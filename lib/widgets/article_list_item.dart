@@ -14,6 +14,7 @@ class ArticleListItem extends ConsumerWidget {
 
   final Article article;
   final bool selected;
+  static const double _metaWidth = 104;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -50,38 +51,48 @@ class ArticleListItem extends ConsumerWidget {
         children: [
           Row(
             children: [
-              // Feed Icon (placeholder or favicon if available later)
-              // For now, using a small icon or just text
-              if (feed?.title != null) ...[
-                // Tiny icon for feed source
-                Icon(
-                  Icons.rss_feed,
-                  size: 12,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 4),
-                Flexible(
-                  child: Text(
-                    feed!.title!,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-              const Spacer(),
-              // Time
-              Text(
-                timeStr,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: isUnread
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurfaceVariant,
-                  fontWeight: isUnread ? FontWeight.bold : FontWeight.normal,
+              Expanded(
+                child: Row(
+                  children: [
+                    // Feed Icon (placeholder or favicon if available later)
+                    // For now, using a small icon or just text
+                    if (feed?.title != null) ...[
+                      // Tiny icon for feed source
+                      Icon(
+                        Icons.rss_feed,
+                        size: 12,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          feed!.title!,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
+              SizedBox(
+                width: _metaWidth,
+                child: Text(
+                  timeStr,
+                  textAlign: TextAlign.right,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: isUnread
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant,
+                    fontWeight: isUnread ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+              )
             ],
           ),
           const SizedBox(height: 6),
