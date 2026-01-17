@@ -50,15 +50,6 @@ class _DesktopTitleBarState extends State<DesktopTitleBar> with WindowListener {
     setState(() => _isMaximized = v);
   }
 
-  Future<void> _toggleMaximize() async {
-    final v = await windowManager.isMaximized();
-    if (v) {
-      await windowManager.unmaximize();
-    } else {
-      await windowManager.maximize();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     if (!isDesktop) return const SizedBox.shrink();
@@ -80,22 +71,16 @@ class _DesktopTitleBarState extends State<DesktopTitleBar> with WindowListener {
             if (isMacOS) const SizedBox(width: 72), // avoid traffic lights
             if (widget.leading != null) widget.leading!,
             Expanded(
-              child: MouseRegion(
-                cursor: SystemMouseCursors.move,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onPanStart: (_) => windowManager.startDragging(),
-                  onDoubleTap: _toggleMaximize,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        widget.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: titleStyle,
-                      ),
+              child: DragToMoveArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      widget.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: titleStyle,
                     ),
                   ),
                 ),
