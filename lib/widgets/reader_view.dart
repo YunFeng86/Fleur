@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_reader/l10n/app_localizations.dart';
 
 import '../models/article.dart';
@@ -212,6 +213,7 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
                         textStyle: TextStyle(
                           fontSize: settings.fontSize,
                           height: settings.lineHeight,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                         onTapUrl: (url) async {
                           final uri = Uri.tryParse(url);

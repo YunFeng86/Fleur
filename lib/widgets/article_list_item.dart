@@ -10,10 +10,12 @@ class ArticleListItem extends ConsumerWidget {
     super.key,
     required this.article,
     required this.selected,
+    this.onTap,
   });
 
   final Article article;
   final bool selected;
+  final VoidCallback? onTap;
   static const double _metaWidth = 104;
 
   @override
@@ -29,93 +31,94 @@ class ArticleListItem extends ConsumerWidget {
       locale: _timeagoLocale(context),
     );
 
-    return Container(
-      decoration: BoxDecoration(
-        color: selected
-            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.12)
-            : null,
-        border: Border(
-          left: BorderSide(
-            color: selected ? theme.colorScheme.primary : Colors.transparent,
-            width: 4,
-          ),
-          bottom: BorderSide(
-            color: theme.dividerColor.withValues(alpha: 0.1),
-            width: 1,
-          ),
-        ),
+    return Card(
+      elevation: selected ? 2 : 0,
+      color: selected
+          ? theme.colorScheme.secondaryContainer
+          : theme.colorScheme.surface,
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: selected
+            ? BorderSide(color: theme.colorScheme.primary, width: 1)
+            : BorderSide.none,
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    // Feed Icon (placeholder or favicon if available later)
-                    // For now, using a small icon or just text
-                    if (feed?.title != null) ...[
-                      // Tiny icon for feed source
-                      Icon(
-                        Icons.rss_feed,
-                        size: 12,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          feed!.title!,
-                          style: theme.textTheme.labelSmall?.copyWith(
+              Row(
+                children: [
+                  Expanded(
+                    child: Row(
+                      children: [
+                        if (feed?.title != null) ...[
+                          Icon(
+                            Icons.rss_feed,
+                            size: 14,
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              SizedBox(
-                width: _metaWidth,
-                child: Text(
-                  timeStr,
-                  textAlign: TextAlign.right,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: isUnread
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurfaceVariant,
-                    fontWeight: isUnread ? FontWeight.bold : FontWeight.normal,
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              feed!.title!,
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
+                  SizedBox(
+                    width: _metaWidth,
+                    child: Text(
+                      timeStr,
+                      textAlign: TextAlign.right,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: isUnread
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.onSurfaceVariant,
+                        fontWeight:
+                            isUnread ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                  )
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                title.isEmpty ? article.link : title,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: isUnread ? FontWeight.bold : FontWeight.w500,
+                  color: isUnread
+                      ? theme.colorScheme.onSurface
+                      : theme.colorScheme.onSurface.withValues(alpha: 0.8),
                 ),
-              )
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (article.isStarred) ...[
+                const SizedBox(height: 8),
+                Icon(
+                  Icons.star,
+                  size: 16,
+                  color: theme.colorScheme.tertiary,
+                ),
+              ],
             ],
           ),
-          const SizedBox(height: 6),
-          // Title
-          Text(
-            title.isEmpty ? article.link : title,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: isUnread ? FontWeight.bold : FontWeight.normal,
-              color: isUnread
-                  ? theme.colorScheme.onSurface
-                  : theme.colorScheme.onSurface.withValues(alpha: 0.8),
-              height: 1.3,
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          // Optional: Summary text or Image could go here in future
-          // Metadata Row (e.g. tags) could go here
-          if (article.isStarred) ...[
-            const SizedBox(height: 6),
-            Icon(Icons.star, size: 14, color: theme.colorScheme.tertiary),
-          ],
-        ],
+        ),
       ),
     );
   }

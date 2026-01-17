@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 class AppTheme {
   static const _seed = Color(0xFF1A73E8); // neutral Google-ish blue
 
-  static ThemeData light() => _build(Brightness.light);
-  static ThemeData dark() => _build(Brightness.dark);
+  static ThemeData light({ColorScheme? scheme}) =>
+      _build(Brightness.light, dynamicScheme: scheme);
+  static ThemeData dark({ColorScheme? scheme}) =>
+      _build(Brightness.dark, dynamicScheme: scheme);
 
   static List<String> _fontFallback() {
     if (kIsWeb) {
@@ -66,11 +68,12 @@ class AppTheme {
     };
   }
 
-  static ThemeData _build(Brightness brightness) {
-    final cs = ColorScheme.fromSeed(
-      seedColor: _seed,
-      brightness: brightness,
-    );
+  static ThemeData _build(Brightness brightness, {ColorScheme? dynamicScheme}) {
+    final cs = dynamicScheme ??
+        ColorScheme.fromSeed(
+          seedColor: _seed,
+          brightness: brightness,
+        );
 
     final base = ThemeData(
       useMaterial3: true,

@@ -52,6 +52,8 @@ dependencies:
   xml: ^6.6.1
   timeago: ^3.6.1
   window_manager: ^0.5.1
+  dynamic_color: ^1.8.1
+  google_fonts: ^7.0.2
 
 dev_dependencies:
   flutter_test:

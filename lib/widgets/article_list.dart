@@ -81,9 +81,6 @@ class _ArticleListState extends ConsumerState<ArticleList> {
             final tile = ArticleListItem(
               article: a,
               selected: a.id == widget.selectedArticleId,
-            );
-
-            Widget child = InkWell(
               onTap: () {
                 final width = MediaQuery.sizeOf(context).width;
 
@@ -97,8 +94,9 @@ class _ArticleListState extends ConsumerState<ArticleList> {
                   context.go('/article/${a.id}');
                 }
               },
-              child: tile,
             );
+
+            Widget child = tile;
 
             if (narrow) {
               child = Dismissible(
