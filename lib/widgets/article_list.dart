@@ -61,79 +61,81 @@ class _ArticleListState extends ConsumerState<ArticleList> {
 
         final narrow = MediaQuery.sizeOf(context).width < 600;
 
-        return ListView.separated(
-          controller: _controller,
-          itemCount: items.length + (data.hasMore ? 1 : 0),
-          separatorBuilder: (_, _) => const Divider(height: 1),
-          itemBuilder: (context, index) {
-            if (index >= items.length) {
-              return Padding(
-                padding: const EdgeInsets.all(16),
-                child: Center(
-                  child: data.isLoadingMore
-                      ? const CircularProgressIndicator()
-                      : Text(l10n.scrollToLoadMore),
-                ),
-              );
-            }
-
-            final a = items[index];
-            final tile = ArticleListItem(
-              article: a,
-              selected: a.id == widget.selectedArticleId,
-              onTap: () {
-                final width = MediaQuery.sizeOf(context).width;
-
-                final openAsSecondaryPage = isDesktop
-                    ? !desktopReaderEmbedded(desktopModeForWidth(width))
-                    : width < 600;
-
-                if (openAsSecondaryPage) {
-                  context.push('/article/${a.id}');
-                } else {
-                  context.go('/article/${a.id}');
-                }
-              },
-            );
-
-            Widget child = tile;
-
-            if (narrow) {
-              child = Dismissible(
-                key: ValueKey(a.id),
-                background: Container(
-                  color: Colors.green.shade700,
-                  alignment: Alignment.centerLeft,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Icon(
-                    a.isRead ? Icons.mark_email_unread : Icons.mark_email_read,
-                    color: Colors.white,
+        return Container(
+          color: Theme.of(context).colorScheme.surfaceContainerLow,
+          child: ListView.builder(
+            controller: _controller,
+            itemCount: items.length + (data.hasMore ? 1 : 0),
+            itemBuilder: (context, index) {
+              if (index >= items.length) {
+                return Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Center(
+                    child: data.isLoadingMore
+                        ? const CircularProgressIndicator()
+                        : Text(l10n.scrollToLoadMore),
                   ),
-                ),
-                secondaryBackground: Container(
-                  color: Colors.amber.shade800,
-                  alignment: Alignment.centerRight,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Icon(
-                    a.isStarred ? Icons.star_border : Icons.star,
-                    color: Colors.white,
-                  ),
-                ),
-                confirmDismiss: (direction) async {
-                  final repo = ref.read(articleRepositoryProvider);
-                  if (direction == DismissDirection.startToEnd) {
-                    await repo.markRead(a.id, !a.isRead);
+                );
+              }
+
+              final a = items[index];
+              final tile = ArticleListItem(
+                article: a,
+                selected: a.id == widget.selectedArticleId,
+                onTap: () {
+                  final width = MediaQuery.sizeOf(context).width;
+
+                  final openAsSecondaryPage = isDesktop
+                      ? !desktopReaderEmbedded(desktopModeForWidth(width))
+                      : width < 600;
+
+                  if (openAsSecondaryPage) {
+                    context.push('/article/${a.id}');
                   } else {
-                    await repo.toggleStar(a.id);
+                    context.go('/article/${a.id}');
                   }
-                  return false; // keep item in list
                 },
-                child: child,
               );
-            }
 
-            return child;
-          },
+              Widget child = tile;
+
+              if (narrow) {
+                child = Dismissible(
+                  key: ValueKey(a.id),
+                  background: Container(
+                    color: Colors.green.shade700,
+                    alignment: Alignment.centerLeft,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Icon(
+                      a.isRead ? Icons.mark_email_unread : Icons.mark_email_read,
+                      color: Colors.white,
+                    ),
+                  ),
+                  secondaryBackground: Container(
+                    color: Colors.amber.shade800,
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Icon(
+                      a.isStarred ? Icons.star_border : Icons.star,
+                      color: Colors.white,
+                    ),
+                  ),
+                  confirmDismiss: (direction) async {
+                    final repo = ref.read(articleRepositoryProvider);
+                    if (direction == DismissDirection.startToEnd) {
+                      await repo.markRead(a.id, !a.isRead);
+                    } else {
+                      await repo.toggleStar(a.id);
+                    }
+                    return false; // keep item in list
+                  },
+                  child: child,
+                );
+              }
+
+              return child;
+            },
+          ),
         );
       },
     );

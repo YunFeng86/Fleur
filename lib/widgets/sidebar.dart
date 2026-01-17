@@ -769,7 +769,7 @@ class _SidebarItem extends StatelessWidget {
   Widget build(BuildContext context) {
     // Mimic the dense, rounded style from the reference
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: ListTile(
         selected: selected,
         leading: Icon(icon, size: 20),
