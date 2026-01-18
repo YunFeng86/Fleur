@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
@@ -275,7 +276,21 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
             appBar: AppBar(
               title: null, // Title is inline
               automaticallyImplyLeading: true,
-              leading: widget.showBack ? const BackButton() : null,
+              leading: widget.showBack
+                  ? IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      tooltip: MaterialLocalizations.of(
+                        context,
+                      ).backButtonTooltip,
+                      onPressed: () {
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.go('/');
+                        }
+                      },
+                    )
+                  : null,
               actions: const [], // Actions moved to bottom bar
             ),
             body: Stack(
