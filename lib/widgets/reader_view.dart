@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
-import 'package:go_router/go_router.dart';
+
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_reader/l10n/app_localizations.dart';
@@ -47,19 +47,18 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
     super.initState();
 
     // Show extraction errors from the one-shot full text fetch.
-    ref.listenManual<AsyncValue<void>>(
-      fullTextControllerProvider,
-      (prev, next) {
-        if (!mounted) return;
-        if (next.hasError) {
-          final l10n = AppLocalizations.of(context)!;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.fullTextFailed(next.error.toString()))),
-          );
-        }
-      },
-      fireImmediately: false,
-    );
+    ref.listenManual<AsyncValue<void>>(fullTextControllerProvider, (
+      prev,
+      next,
+    ) {
+      if (!mounted) return;
+      if (next.hasError) {
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.fullTextFailed(next.error.toString()))),
+        );
+      }
+    }, fireImmediately: false);
 
     _listenArticle(widget.articleId);
   }
@@ -109,16 +108,11 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
 
   @override
   Widget build(BuildContext context) {
-    // Check if we are in 3-pane mode.
-    final width = MediaQuery.sizeOf(context).width;
-    final isThreePane = isDesktop &&
-        desktopModeForWidth(width) == DesktopPaneMode.threePane;
-    // If in 3-pane mode, never show back button.
-    final effectiveShowBack = widget.showBack && !isThreePane;
-
     final a = ref.watch(articleProvider(widget.articleId));
     // final fullTextRequest = ref.watch(fullTextControllerProvider); // Unused
-    final useFullText = ref.watch(fullTextViewEnabledProvider(widget.articleId));
+    final useFullText = ref.watch(
+      fullTextViewEnabledProvider(widget.articleId),
+    );
     final settingsAsync = ref.watch(readerSettingsProvider);
     return a.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -140,9 +134,11 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
         final title = article.title?.trim().isNotEmpty == true
             ? article.title!
             : l10n.reader;
-        
+
         // Format date: e.g. "2026/1/14 08:00:00"
-        final dateStr = DateFormat('yyyy/MM/dd HH:mm:ss').format(article.publishedAt.toLocal());
+        final dateStr = DateFormat(
+          'yyyy/MM/dd HH:mm:ss',
+        ).format(article.publishedAt.toLocal());
 
         // New Inline Header
         final inlineHeader = Column(
@@ -151,16 +147,16 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
             Text(
               title,
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
               dateStr,
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 24),
             const Divider(height: 1),
@@ -205,8 +201,9 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
                               );
                             },
                             onTapImage: (meta) {
-                              final src =
-                                  meta.sources.isNotEmpty ? meta.sources.first.url : null;
+                              final src = meta.sources.isNotEmpty
+                                  ? meta.sources.first.url
+                                  : null;
                               if (src == null || src.trim().isEmpty) return;
                               showDialog<void>(
                                 context: context,
@@ -225,7 +222,8 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
                                           top: 8,
                                           right: 8,
                                           child: IconButton(
-                                            onPressed: () => Navigator.of(context).pop(),
+                                            onPressed: () =>
+                                                Navigator.of(context).pop(),
                                             icon: const Icon(Icons.close),
                                           ),
                                         ),
@@ -248,47 +246,18 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
           right: 0, // Stretch full width
           bottom: 0,
           child: Center(
-             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: ReaderView.maxReadingWidth),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: ReaderView.maxReadingWidth,
+              ),
               child: ReaderBottomBar(
                 article: article,
-                onShowSettings: () => _showReaderSettings(context, ref, settings),
+                onShowSettings: () =>
+                    _showReaderSettings(context, ref, settings),
               ),
             ),
           ),
         );
-
-        Widget header() {
-          // Minimal header for Desktop/Embedded
-          return Material(
-            color: Theme.of(context).colorScheme.surface,
-            child: SizedBox(
-              height: 56,
-              child: Row(
-                children: [
-                  if (effectiveShowBack) ...[
-                    const SizedBox(width: 4),
-                    IconButton(
-                      tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-                      onPressed: () {
-                        final router = GoRouter.of(context);
-                        if (router.canPop()) {
-                          router.pop();
-                        } else {
-                          context.go('/');
-                        }
-                      },
-                      icon: const Icon(Icons.arrow_back),
-                    ),
-                  ] else
-                    const SizedBox(width: 12),
-                  // Title is now inline, so we just keep the back button area clean
-                  // or show feed title? Let's keep it clean.
-                ],
-              ),
-            ),
-          );
-        }
 
         if (!widget.embedded && !isDesktop) {
           return Scaffold(
@@ -297,29 +266,11 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
               automaticallyImplyLeading: true,
               actions: const [], // Actions moved to bottom bar
             ),
-            body: Stack(
-              children: [
-                contentWidget,
-                bottomBar,
-              ],
-            ),
+            body: Stack(children: [contentWidget, bottomBar]),
           );
         }
 
-        return Column(
-          children: [
-            header(),
-            const Divider(height: 1),
-            Expanded(
-              child: Stack(
-                children: [
-                  contentWidget,
-                  bottomBar,
-                ],
-              ),
-            ),
-          ],
-        );
+        return Stack(children: [contentWidget, bottomBar]);
       },
     );
   }

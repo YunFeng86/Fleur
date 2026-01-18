@@ -441,94 +441,6 @@ class HomeScreen extends ConsumerWidget {
     Widget listPane({double? width}) {
       final pane = Column(
         children: [
-          SizedBox(
-            height: 56,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Row(
-                children: [
-                  Consumer(
-                    builder: (context, ref, _) {
-                      final unreadOnly = ref.watch(unreadOnlyProvider);
-                      return FilterChip(
-                        selected: unreadOnly,
-                        label: Text(l10n.unread),
-                        onSelected: (v) =>
-                            ref.read(unreadOnlyProvider.notifier).state = v,
-                      );
-                    },
-                  ),
-                  const Spacer(),
-                  Consumer(
-                    builder: (context, ref, _) {
-                      final selectedFeedId = ref.watch(selectedFeedIdProvider);
-                      final selectedCategoryId = ref.watch(
-                        selectedCategoryIdProvider,
-                      );
-                      return IconButton(
-                        tooltip: l10n.markAllRead,
-                        onPressed: () async {
-                          await ref
-                              .read(articleRepositoryProvider)
-                              .markAllRead(
-                                feedId: selectedFeedId,
-                                categoryId: selectedFeedId == null
-                                    ? selectedCategoryId
-                                    : null,
-                              );
-                        },
-                        icon: const Icon(Icons.done_all),
-                      );
-                    },
-                  ),
-                  Consumer(
-                    builder: (context, ref, _) {
-                      final starredOnly = ref.watch(starredOnlyProvider);
-                      return IconButton(
-                        tooltip: l10n.starred,
-                        onPressed: () {
-                          final next = !starredOnly;
-                          ref.read(starredOnlyProvider.notifier).state = next;
-                          if (next) {
-                            ref.read(selectedFeedIdProvider.notifier).state =
-                                null;
-                            ref
-                                    .read(selectedCategoryIdProvider.notifier)
-                                    .state =
-                                null;
-                          }
-                        },
-                        icon: Icon(
-                          starredOnly ? Icons.star : Icons.star_border,
-                        ),
-                      );
-                    },
-                  ),
-                  IconButton(
-                    tooltip: l10n.search,
-                    onPressed: () => _showArticleSearchDialog(context, ref),
-                    icon: const Icon(Icons.search),
-                  ),
-                  Consumer(
-                    builder: (context, ref, _) {
-                      final q = ref.watch(articleSearchQueryProvider).trim();
-                      if (q.isEmpty) return const SizedBox.shrink();
-                      return IconButton(
-                        tooltip: l10n.delete,
-                        onPressed: () =>
-                            ref
-                                    .read(articleSearchQueryProvider.notifier)
-                                    .state =
-                                '',
-                        icon: const Icon(Icons.clear),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const Divider(height: 1),
           Expanded(child: ArticleList(selectedArticleId: selectedArticleId)),
         ],
       );
@@ -549,6 +461,7 @@ class HomeScreen extends ConsumerWidget {
 
     final body = switch (mode) {
       DesktopPaneMode.threePane => Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (sidebarVisible) ...[
             SizedBox(
@@ -567,6 +480,7 @@ class HomeScreen extends ConsumerWidget {
         ],
       ),
       DesktopPaneMode.splitListReader => Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           listPane(width: kDesktopListWidth),
           const VerticalDivider(width: 1),
@@ -574,6 +488,7 @@ class HomeScreen extends ConsumerWidget {
         ],
       ),
       DesktopPaneMode.splitSidebarList => Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (sidebarVisible) ...[
             SizedBox(

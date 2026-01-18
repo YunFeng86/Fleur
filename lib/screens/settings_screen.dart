@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
@@ -90,22 +89,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 title: Text(l10n.settings),
               ),
               body: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 itemCount: items.length,
                 itemBuilder: (context, index) {
                   final item = items[index];
                   // Match desktop sidebar style
                   return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     child: ListTile(
-                       dense: true,
-                       visualDensity: VisualDensity.compact,
-                       contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                       leading: Icon(item.icon, size: 20),
-                       title: Text(item.label),
-                       trailing: const Icon(Icons.chevron_right, size: 20),
-                       onTap: () {
+                      dense: true,
+                      visualDensity: VisualDensity.compact,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      leading: Icon(item.icon, size: 20),
+                      title: Text(item.label),
+                      trailing: const Icon(Icons.chevron_right, size: 20),
+                      onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (context) => Scaffold(
@@ -144,21 +153,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         width: 260,
                         color: theme.colorScheme.surfaceContainerLow,
                         child: ListView.separated(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
                           itemCount: items.length,
-                          separatorBuilder: (context, index) => const SizedBox(height: 4),
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 4),
                           itemBuilder: (context, index) {
                             final item = items[index];
                             final isSelected = index == _selectedIndex;
-                            
+
                             // Mimic existing Sidebar style
                             return Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
                               child: ListTile(
                                 dense: true,
                                 visualDensity: VisualDensity.compact,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                                 selected: isSelected,
                                 leading: Icon(
                                   isSelected ? item.selectedIcon : item.icon,
@@ -179,7 +199,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       VerticalDivider(
                         width: 1,
                         thickness: 1,
-                        color: theme.colorScheme.outlineVariant.withOpacity(0.5),
+                        color: theme.colorScheme.outlineVariant.withValues(
+                          alpha: 0.5,
+                        ),
                       ),
                       // Right Content Area
                       Expanded(
@@ -187,13 +209,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           child: AnimatedSwitcher(
                             duration: const Duration(milliseconds: 200),
                             transitionBuilder: (child, animation) {
-                               return FadeTransition(opacity: animation, child: child);
+                              return FadeTransition(
+                                opacity: animation,
+                                child: child,
+                              );
                             },
                             child: KeyedSubtree(
                               key: ValueKey(_selectedIndex),
-                              child: Scaffold( // Inner Scaffold for scrolling body
-                                 backgroundColor: Colors.transparent,
-                                 body: selectedItem.content,
+                              child: Scaffold(
+                                // Inner Scaffold for scrolling body
+                                backgroundColor: Colors.transparent,
+                                body: selectedItem.content,
                               ),
                             ),
                           ),

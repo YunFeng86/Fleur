@@ -99,7 +99,6 @@ class AppTheme {
         foregroundColor: cs.onSurface,
         titleTextStyle: base.textTheme.titleMedium?.copyWith(
           color: cs.onSurface,
-          fontWeight: FontWeight.w600,
         ),
       ),
       listTileTheme: ListTileThemeData(
