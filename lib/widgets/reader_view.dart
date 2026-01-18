@@ -275,13 +275,20 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
             appBar: AppBar(
               title: null, // Title is inline
               automaticallyImplyLeading: true,
+              leading: widget.showBack ? const BackButton() : null,
               actions: const [], // Actions moved to bottom bar
             ),
-            body: Stack(children: [contentWidget, bottomBar]),
+            body: Stack(
+              fit: StackFit.expand,
+              children: [contentWidget, bottomBar],
+            ),
           );
         }
 
-        return Stack(children: [contentWidget, bottomBar]);
+        return Stack(
+          fit: StackFit.expand,
+          children: [contentWidget, bottomBar],
+        );
       },
     );
   }
