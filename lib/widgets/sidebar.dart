@@ -115,7 +115,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
     final allUnread = ref.watch(unreadCountProvider(null));
 
     return Material(
-      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      color: Theme.of(context).colorScheme.surfaceContainer,
       child: Column(
         children: [
           Padding(

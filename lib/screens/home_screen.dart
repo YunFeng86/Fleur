@@ -401,7 +401,13 @@ class HomeScreen extends ConsumerWidget {
                 const VerticalDivider(width: 1),
                 Expanded(
                   child: selectedArticleId == null
-                      ? Center(child: Text(l10n.selectAnArticle))
+                      ? Container(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerLowest,
+                          alignment: Alignment.center,
+                          child: Text(l10n.selectAnArticle),
+                        )
                       : ReaderView(
                           articleId: selectedArticleId!,
                           embedded: true,
@@ -453,7 +459,11 @@ class HomeScreen extends ConsumerWidget {
 
     Widget readerPane({required bool embedded}) {
       if (selectedArticleId == null) {
-        return Center(child: Text(l10n.selectAnArticle));
+        return Container(
+          color: Theme.of(context).colorScheme.surfaceContainerLowest,
+          alignment: Alignment.center,
+          child: Text(l10n.selectAnArticle),
+        );
       }
       return Container(
         color: Theme.of(context).colorScheme.surfaceContainerLowest,
@@ -635,7 +645,8 @@ Future<void> _showArticleSearchDialog(
   WidgetRef ref,
 ) async {
   final l10n = AppLocalizations.of(context)!;
-  final appSettings = ref.read(appSettingsProvider).valueOrNull ?? const AppSettings();
+  final appSettings =
+      ref.read(appSettingsProvider).valueOrNull ?? const AppSettings();
   var searchInContent = appSettings.searchInContent;
   final controller = TextEditingController(
     text: ref.read(articleSearchQueryProvider),
@@ -689,7 +700,9 @@ Future<void> _showArticleSearchDialog(
     },
   );
   if (result == null) return;
-  await ref.read(appSettingsProvider.notifier).setSearchInContent(searchInContent);
+  await ref
+      .read(appSettingsProvider.notifier)
+      .setSearchInContent(searchInContent);
   ref.read(articleSearchQueryProvider.notifier).state = result.trim();
 }
 

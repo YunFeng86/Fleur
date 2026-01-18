@@ -121,7 +121,13 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
       ),
       data: (article) {
         final l10n = AppLocalizations.of(context)!;
-        if (article == null) return Center(child: Text(l10n.notFound));
+        if (article == null) {
+          return Container(
+            color: Theme.of(context).colorScheme.surfaceContainerLowest,
+            alignment: Alignment.center,
+            child: Text(l10n.notFound),
+          );
+        }
 
         final settings = settingsAsync.valueOrNull ?? const ReaderSettings();
         final hasFull = (article.fullContentHtml ?? '').trim().isNotEmpty;

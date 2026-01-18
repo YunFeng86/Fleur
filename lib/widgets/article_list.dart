@@ -63,11 +63,16 @@ class _ArticleListState extends ConsumerState<ArticleList> {
       data: (data) {
         final items = data.items;
         if (items.isEmpty) {
+          Widget child;
           if (searchQuery.isNotEmpty || starredOnly) {
-            return Center(child: Text(l10n.notFound));
+            child = Text(l10n.notFound);
+          } else {
+            child = Text(unreadOnly ? l10n.noUnreadArticles : l10n.noArticles);
           }
-          return Center(
-            child: Text(unreadOnly ? l10n.noUnreadArticles : l10n.noArticles),
+          return Container(
+            color: Theme.of(context).colorScheme.surfaceContainerLow,
+            alignment: Alignment.center,
+            child: child,
           );
         }
 
