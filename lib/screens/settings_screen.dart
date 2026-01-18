@@ -149,58 +149,52 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Left Sidebar
-                      Container(
-                        width: 260,
+                      Material(
                         color: theme.colorScheme.surfaceContainerLow,
-                        child: ListView.separated(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          itemCount: items.length,
-                          separatorBuilder: (context, index) =>
-                              const SizedBox(height: 4),
-                          itemBuilder: (context, index) {
-                            final item = items[index];
-                            final isSelected = index == _selectedIndex;
+                        child: SizedBox(
+                          width: 260,
+                          child: ListView.separated(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            itemCount: items.length,
+                            separatorBuilder: (context, index) =>
+                                const SizedBox(height: 4),
+                            itemBuilder: (context, index) {
+                              final item = items[index];
+                              final isSelected = index == _selectedIndex;
 
-                            // Mimic existing Sidebar style
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              child: ListTile(
-                                dense: true,
-                                visualDensity: VisualDensity.compact,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
+                              // Mimic existing Sidebar style
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
                                 ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                child: ListTile(
+                                  dense: true,
+                                  visualDensity: VisualDensity.compact,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  selected: isSelected,
+                                  leading: Icon(
+                                    isSelected ? item.selectedIcon : item.icon,
+                                    size: 20,
+                                  ),
+                                  title: Text(item.label),
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedIndex = index;
+                                    });
+                                  },
                                 ),
-                                selected: isSelected,
-                                leading: Icon(
-                                  isSelected ? item.selectedIcon : item.icon,
-                                  size: 20,
-                                ),
-                                title: Text(item.label),
-                                onTap: () {
-                                  setState(() {
-                                    _selectedIndex = index;
-                                  });
-                                },
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      // Divider
-                      VerticalDivider(
-                        width: 1,
-                        thickness: 1,
-                        color: theme.colorScheme.outlineVariant.withValues(
-                          alpha: 0.5,
+                              );
+                            },
+                          ),
                         ),
                       ),
                       // Right Content Area
