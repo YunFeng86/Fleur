@@ -5,6 +5,12 @@
 
 // Maximum text measure for comfortable reading. This value also participates
 // in desktop layout decisions (when to drop panes).
+// Minimum text measure for readable content.
+// If the reader pane drops below this, we should switch to a different layout.
+const double kMinReadingWidth = 450;
+
+// Maximum text measure for comfortable reading. This value also participates
+// in desktop layout decisions (when to drop panes).
 const double kMaxReadingWidth = 700;
 
 // Desktop fixed panes (in logical pixels).
@@ -25,35 +31,43 @@ const double kCompactWidth = 600;
 enum DesktopPaneMode { threePane, splitListReader, splitSidebarList, listOnly }
 
 DesktopPaneMode desktopModeForWidth(double width) {
-  // Stage 1 -> 2 boundary: when the reader pane would shrink below the maximum
-  // comfortable measure, we fold the sidebar into a drawer.
-  final needFor3 = kDesktopSidebarWidth +
+  // ELASTIC LOGIC:
+  // We use MINIMUM widths to determine when to drop a pane.
+  // This allows the reader view to be flexible (between kMinReadingWidth and infinity)
+  // rather than rigidly requiring kMaxReadingWidth.
+
+  // Stage 1 -> 2 boundary: Can we fit Sidebar + List + MinReader?
+  // We check against kMinReadingWidth to allow the reader to start small and grow.
+  final minFor3 =
+      kDesktopSidebarWidth +
       kDesktopListWidth +
-      kMaxReadingWidth +
+      kMinReadingWidth +
       kDividerWidth * 2;
 
-  // Stage 2 -> 3 boundary: when list+reader would make the reader narrower than
-  // the max reading width, we move the reader into a secondary page.
-  final needForListReader =
-      kDesktopListWidth + kMaxReadingWidth + kDividerWidth;
+  // Stage 2 -> 3/4 boundary: Can we fit List + MinReader?
+  // We prioritizing keeping the Reader view visible over the Sidebar.
+  final minForListReader = kDesktopListWidth + kMinReadingWidth + kDividerWidth;
 
-  // Stage 3 -> 4 boundary: when sidebar+list no longer fits, we fold sidebar
-  // into a drawer and keep only the list.
-  final needForSidebarList =
+  // Stage 3 -> 4 boundary: Can we fit Sidebar + List?
+  // This is a fallback if we can't fit List+Reader but still have decent width.
+  // However, since minForListReader (400+450=850) is likely > minForSidebarList (260+400=660),
+  // there is a zone (660 to 850) where we show Sidebar+List.
+  final minForSidebarList =
       kDesktopSidebarWidth + kDesktopListWidth + kDividerWidth;
 
-  if (width >= needFor3) return DesktopPaneMode.threePane;
-  if (width >= needForListReader) return DesktopPaneMode.splitListReader;
-  if (width >= needForSidebarList) return DesktopPaneMode.splitSidebarList;
+  if (width >= minFor3) return DesktopPaneMode.threePane;
+  if (width >= minForListReader) return DesktopPaneMode.splitListReader;
+  if (width >= minForSidebarList) return DesktopPaneMode.splitSidebarList;
   return DesktopPaneMode.listOnly;
 }
 
 bool desktopSidebarInline(DesktopPaneMode mode) =>
-    mode == DesktopPaneMode.threePane || mode == DesktopPaneMode.splitSidebarList;
+    mode == DesktopPaneMode.threePane ||
+    mode == DesktopPaneMode.splitSidebarList;
 
 bool desktopSidebarInDrawer(DesktopPaneMode mode) =>
     mode == DesktopPaneMode.splitListReader || mode == DesktopPaneMode.listOnly;
 
 bool desktopReaderEmbedded(DesktopPaneMode mode) =>
-    mode == DesktopPaneMode.threePane || mode == DesktopPaneMode.splitListReader;
-
+    mode == DesktopPaneMode.threePane ||
+    mode == DesktopPaneMode.splitListReader;
