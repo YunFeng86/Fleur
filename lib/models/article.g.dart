@@ -52,33 +52,38 @@ const ArticleSchema = CollectionSchema(
       name: r'isRead',
       type: IsarType.bool,
     ),
-    r'isStarred': PropertySchema(
+    r'isReadLater': PropertySchema(
       id: 7,
+      name: r'isReadLater',
+      type: IsarType.bool,
+    ),
+    r'isStarred': PropertySchema(
+      id: 8,
       name: r'isStarred',
       type: IsarType.bool,
     ),
     r'link': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'link',
       type: IsarType.string,
     ),
     r'publishedAt': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'publishedAt',
       type: IsarType.dateTime,
     ),
     r'remoteId': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'remoteId',
       type: IsarType.string,
     ),
     r'title': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'title',
       type: IsarType.string,
     ),
     r'updatedAt': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -189,9 +194,29 @@ const ArticleSchema = CollectionSchema(
           caseSensitive: false,
         )
       ],
+    ),
+    r'isReadLater': IndexSchema(
+      id: -7301790925163700004,
+      name: r'isReadLater',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'isReadLater',
+          type: IndexType.value,
+          caseSensitive: false,
+        )
+      ],
     )
   },
-  links: {},
+  links: {
+    r'tags': LinkSchema(
+      id: -5259216742443275007,
+      name: r'tags',
+      target: r'Tag',
+      single: false,
+    )
+  },
   embeddedSchemas: {},
   getId: _articleGetId,
   getLinks: _articleGetLinks,
@@ -252,12 +277,13 @@ void _articleSerialize(
   writer.writeDateTime(offsets[4], object.fetchedAt);
   writer.writeString(offsets[5], object.fullContentHtml);
   writer.writeBool(offsets[6], object.isRead);
-  writer.writeBool(offsets[7], object.isStarred);
-  writer.writeString(offsets[8], object.link);
-  writer.writeDateTime(offsets[9], object.publishedAt);
-  writer.writeString(offsets[10], object.remoteId);
-  writer.writeString(offsets[11], object.title);
-  writer.writeDateTime(offsets[12], object.updatedAt);
+  writer.writeBool(offsets[7], object.isReadLater);
+  writer.writeBool(offsets[8], object.isStarred);
+  writer.writeString(offsets[9], object.link);
+  writer.writeDateTime(offsets[10], object.publishedAt);
+  writer.writeString(offsets[11], object.remoteId);
+  writer.writeString(offsets[12], object.title);
+  writer.writeDateTime(offsets[13], object.updatedAt);
 }
 
 Article _articleDeserialize(
@@ -275,12 +301,13 @@ Article _articleDeserialize(
   object.fullContentHtml = reader.readStringOrNull(offsets[5]);
   object.id = id;
   object.isRead = reader.readBool(offsets[6]);
-  object.isStarred = reader.readBool(offsets[7]);
-  object.link = reader.readString(offsets[8]);
-  object.publishedAt = reader.readDateTime(offsets[9]);
-  object.remoteId = reader.readStringOrNull(offsets[10]);
-  object.title = reader.readStringOrNull(offsets[11]);
-  object.updatedAt = reader.readDateTime(offsets[12]);
+  object.isReadLater = reader.readBool(offsets[7]);
+  object.isStarred = reader.readBool(offsets[8]);
+  object.link = reader.readString(offsets[9]);
+  object.publishedAt = reader.readDateTime(offsets[10]);
+  object.remoteId = reader.readStringOrNull(offsets[11]);
+  object.title = reader.readStringOrNull(offsets[12]);
+  object.updatedAt = reader.readDateTime(offsets[13]);
   return object;
 }
 
@@ -308,14 +335,16 @@ P _articleDeserializeProp<P>(
     case 7:
       return (reader.readBool(offset)) as P;
     case 8:
-      return (reader.readString(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 9:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 10:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDateTime(offset)) as P;
     case 11:
       return (reader.readStringOrNull(offset)) as P;
     case 12:
+      return (reader.readStringOrNull(offset)) as P;
+    case 13:
       return (reader.readDateTime(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -327,11 +356,12 @@ Id _articleGetId(Article object) {
 }
 
 List<IsarLinkBase<dynamic>> _articleGetLinks(Article object) {
-  return [];
+  return [object.tags];
 }
 
 void _articleAttach(IsarCollection<dynamic> col, Id id, Article object) {
   object.id = id;
+  object.tags.attach(col, col.isar.collection<Tag>(), r'tags', id);
 }
 
 extension ArticleByIndex on IsarCollection<Article> {
@@ -464,6 +494,14 @@ extension ArticleQueryWhereSort on QueryBuilder<Article, Article, QWhere> {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         const IndexWhereClause.any(indexName: r'isStarred'),
+      );
+    });
+  }
+
+  QueryBuilder<Article, Article, QAfterWhere> anyIsReadLater() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'isReadLater'),
       );
     });
   }
@@ -1213,6 +1251,51 @@ extension ArticleQueryWhere on QueryBuilder<Article, Article, QWhereClause> {
       }
     });
   }
+
+  QueryBuilder<Article, Article, QAfterWhereClause> isReadLaterEqualTo(
+      bool isReadLater) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'isReadLater',
+        value: [isReadLater],
+      ));
+    });
+  }
+
+  QueryBuilder<Article, Article, QAfterWhereClause> isReadLaterNotEqualTo(
+      bool isReadLater) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'isReadLater',
+              lower: [],
+              upper: [isReadLater],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'isReadLater',
+              lower: [isReadLater],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'isReadLater',
+              lower: [isReadLater],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'isReadLater',
+              lower: [],
+              upper: [isReadLater],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
 }
 
 extension ArticleQueryFilter
@@ -1899,6 +1982,16 @@ extension ArticleQueryFilter
     });
   }
 
+  QueryBuilder<Article, Article, QAfterFilterCondition> isReadLaterEqualTo(
+      bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isReadLater',
+        value: value,
+      ));
+    });
+  }
+
   QueryBuilder<Article, Article, QAfterFilterCondition> isStarredEqualTo(
       bool value) {
     return QueryBuilder.apply(this, (query) {
@@ -2442,7 +2535,63 @@ extension ArticleQueryObject
     on QueryBuilder<Article, Article, QFilterCondition> {}
 
 extension ArticleQueryLinks
-    on QueryBuilder<Article, Article, QFilterCondition> {}
+    on QueryBuilder<Article, Article, QFilterCondition> {
+  QueryBuilder<Article, Article, QAfterFilterCondition> tags(
+      FilterQuery<Tag> q) {
+    return QueryBuilder.apply(this, (query) {
+      return query.link(q, r'tags');
+    });
+  }
+
+  QueryBuilder<Article, Article, QAfterFilterCondition> tagsLengthEqualTo(
+      int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.linkLength(r'tags', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<Article, Article, QAfterFilterCondition> tagsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.linkLength(r'tags', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<Article, Article, QAfterFilterCondition> tagsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.linkLength(r'tags', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<Article, Article, QAfterFilterCondition> tagsLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.linkLength(r'tags', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<Article, Article, QAfterFilterCondition> tagsLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.linkLength(r'tags', length, include, 999999, true);
+    });
+  }
+
+  QueryBuilder<Article, Article, QAfterFilterCondition> tagsLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.linkLength(
+          r'tags', lower, includeLower, upper, includeUpper);
+    });
+  }
+}
 
 extension ArticleQuerySortBy on QueryBuilder<Article, Article, QSortBy> {
   QueryBuilder<Article, Article, QAfterSortBy> sortByAuthor() {
@@ -2526,6 +2675,18 @@ extension ArticleQuerySortBy on QueryBuilder<Article, Article, QSortBy> {
   QueryBuilder<Article, Article, QAfterSortBy> sortByIsReadDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isRead', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Article, Article, QAfterSortBy> sortByIsReadLater() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isReadLater', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Article, Article, QAfterSortBy> sortByIsReadLaterDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isReadLater', Sort.desc);
     });
   }
 
@@ -2700,6 +2861,18 @@ extension ArticleQuerySortThenBy
     });
   }
 
+  QueryBuilder<Article, Article, QAfterSortBy> thenByIsReadLater() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isReadLater', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Article, Article, QAfterSortBy> thenByIsReadLaterDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isReadLater', Sort.desc);
+    });
+  }
+
   QueryBuilder<Article, Article, QAfterSortBy> thenByIsStarred() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isStarred', Sort.asc);
@@ -2821,6 +2994,12 @@ extension ArticleQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Article, Article, QDistinct> distinctByIsReadLater() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isReadLater');
+    });
+  }
+
   QueryBuilder<Article, Article, QDistinct> distinctByIsStarred() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'isStarred');
@@ -2908,6 +3087,12 @@ extension ArticleQueryProperty
   QueryBuilder<Article, bool, QQueryOperations> isReadProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isRead');
+    });
+  }
+
+  QueryBuilder<Article, bool, QQueryOperations> isReadLaterProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isReadLater');
     });
   }
 

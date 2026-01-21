@@ -1,5 +1,7 @@
 import 'package:isar/isar.dart';
 
+import 'tag.dart';
+
 part 'article.g.dart';
 
 @collection
@@ -37,6 +39,11 @@ class Article {
 
   @Index()
   bool isStarred = false;
+
+  @Index()
+  bool isReadLater = false;
+
+  final tags = IsarLinks<Tag>();
 
   DateTime fetchedAt = DateTime.now();
   DateTime updatedAt = DateTime.now();

@@ -2,6 +2,7 @@ import 'package:isar/isar.dart';
 
 import '../models/article.dart';
 import '../models/rule.dart';
+import '../models/tag.dart';
 
 class ArticleRepository {
   ArticleRepository(this._isar);
@@ -33,11 +34,14 @@ class ArticleRepository {
     int? categoryId,
     bool unreadOnly = false,
     bool starredOnly = false,
+    bool readLaterOnly = false,
+    int? tagId,
     String searchQuery = '',
     bool sortAscending = false,
     bool searchInContent = true,
   }) {
     final cid = categoryId;
+    final tid = tagId;
     final q = searchQuery.trim();
     final hasQuery = q.isNotEmpty;
     final qb = _isar.articles
@@ -45,34 +49,36 @@ class ArticleRepository {
         .optional(feedId != null, (q) => q.feedIdEqualTo(feedId!))
         .optional(cid != null && cid < 0, (q) => q.categoryIdIsNull())
         .optional(cid != null && cid >= 0, (q) => q.categoryIdEqualTo(cid!))
+        .optional(tid != null, (q) => q.tags((t) => t.idEqualTo(tid!)))
         .optional(unreadOnly, (q) => q.isReadEqualTo(false))
         .optional(starredOnly, (q) => q.isStarredEqualTo(true))
+        .optional(readLaterOnly, (q) => q.isReadLaterEqualTo(true))
         .optional(
           hasQuery,
           (q0) => q0.group(
             (q1) => searchInContent
                 ? q1
-                    .titleContains(q, caseSensitive: false)
-                    .or()
-                    .authorContains(q, caseSensitive: false)
-                    .or()
-                    .linkContains(q, caseSensitive: false)
-                    .or()
-                    .contentHtmlContains(q, caseSensitive: false)
-                    .or()
-                    .fullContentHtmlContains(q, caseSensitive: false)
+                      .titleContains(q, caseSensitive: false)
+                      .or()
+                      .authorContains(q, caseSensitive: false)
+                      .or()
+                      .linkContains(q, caseSensitive: false)
+                      .or()
+                      .contentHtmlContains(q, caseSensitive: false)
+                      .or()
+                      .fullContentHtmlContains(q, caseSensitive: false)
                 : q1
-                    .titleContains(q, caseSensitive: false)
-                    .or()
-                    .authorContains(q, caseSensitive: false)
-                    .or()
-                    .linkContains(q, caseSensitive: false),
+                      .titleContains(q, caseSensitive: false)
+                      .or()
+                      .authorContains(q, caseSensitive: false)
+                      .or()
+                      .linkContains(q, caseSensitive: false),
           ),
-        )
-        ;
+        );
 
-    final sorted =
-        sortAscending ? qb.sortByPublishedAt() : qb.sortByPublishedAtDesc();
+    final sorted = sortAscending
+        ? qb.sortByPublishedAt()
+        : qb.sortByPublishedAtDesc();
     return sorted.offset(offset).limit(limit).findAll();
   }
 
@@ -104,6 +110,16 @@ class ArticleRepository {
     });
   }
 
+  Future<void> toggleReadLater(int id) {
+    return _isar.writeTxn(() async {
+      final a = await _isar.articles.get(id);
+      if (a == null) return;
+      a.isReadLater = !a.isReadLater;
+      a.updatedAt = DateTime.now();
+      await _isar.articles.put(a);
+    });
+  }
+
   Future<void> setFullContent(int id, String html) {
     return _isar.writeTxn(() async {
       final a = await _isar.articles.get(id);
@@ -122,6 +138,28 @@ class ArticleRepository {
           .isStarredEqualTo(false)
           .publishedAtLessThan(cutoffUtc)
           .deleteAll();
+    });
+  }
+
+  Future<void> addTag(int articleId, Tag tag) {
+    return _isar.writeTxn(() async {
+      final a = await _isar.articles.get(articleId);
+      if (a == null) return;
+      a.tags.add(tag);
+      a.updatedAt = DateTime.now();
+      await a.tags.save();
+      await _isar.articles.put(a); // Update updatedAt
+    });
+  }
+
+  Future<void> removeTag(int articleId, Tag tag) {
+    return _isar.writeTxn(() async {
+      final a = await _isar.articles.get(articleId);
+      if (a == null) return;
+      a.tags.remove(tag);
+      a.updatedAt = DateTime.now();
+      await a.tags.save();
+      await _isar.articles.put(a);
     });
   }
 
@@ -147,13 +185,26 @@ class ArticleRepository {
     });
   }
 
-  Future<void> upsertMany(
+  Future<List<Article>> getUnread({int? feedId}) {
+    final q = _isar.articles.filter().isReadEqualTo(false);
+    if (feedId != null) {
+      return q.feedIdEqualTo(feedId).findAll();
+    }
+    return q.findAll();
+  }
+
+  Future<(List<Article> newArticles, List<Article> keywordArticles)> upsertMany(
     int feedId,
     List<Article> incoming, {
     List<Rule> rules = const [],
   }) {
     return _isar.writeTxn(() async {
-      final enabledRules = rules.where((r) => r.enabled).toList(growable: false);
+      final enabledRules = rules
+          .where((r) => r.enabled)
+          .toList(growable: false);
+
+      final newArticles = <Article>[];
+      final keywordArticles = <Article>[];
 
       for (final a in incoming) {
         final existing = await _isar.articles
@@ -165,32 +216,45 @@ class ArticleRepository {
         a.updatedAt = DateTime.now();
         a.fetchedAt = DateTime.now();
 
+        bool isNew = false;
+
         if (existing != null) {
           a.id = existing.id;
           a.isRead = existing.isRead;
           a.isStarred = existing.isStarred;
+          a.isReadLater = existing.isReadLater;
           a.fullContentHtml = existing.fullContentHtml;
           if (a.publishedAt.millisecondsSinceEpoch == 0) {
             a.publishedAt = existing.publishedAt;
           }
         } else {
+          isNew = true;
           // Apply automation rules only on first insert so we don't override
           // user actions on subsequent refreshes.
           if (enabledRules.isNotEmpty) {
-            final (markRead, star) = _applyRules(enabledRules, a);
+            final (markRead, star, notify) = _applyRules(enabledRules, a);
             if (markRead) a.isRead = true;
             if (star) a.isStarred = true;
+            if (notify) keywordArticles.add(a);
           }
         }
 
         await _isar.articles.put(a);
+        if (isNew) {
+          newArticles.add(a);
+        }
       }
+      return (newArticles, keywordArticles);
     });
   }
 
-  (bool markRead, bool star) _applyRules(List<Rule> rules, Article a) {
+  (bool markRead, bool star, bool notify) _applyRules(
+    List<Rule> rules,
+    Article a,
+  ) {
     bool shouldMarkRead = false;
     bool shouldStar = false;
+    bool shouldNotify = false;
 
     final keywordCache = <int, String>{};
 
@@ -220,9 +284,10 @@ class ArticleRepository {
       if (!matches(r)) continue;
       if (r.autoMarkRead) shouldMarkRead = true;
       if (r.autoStar) shouldStar = true;
-      if (shouldMarkRead && shouldStar) break;
+      if (r.notify) shouldNotify = true;
+      if (shouldMarkRead && shouldStar && shouldNotify) break;
     }
 
-    return (shouldMarkRead, shouldStar);
+    return (shouldMarkRead, shouldStar, shouldNotify);
   }
 }

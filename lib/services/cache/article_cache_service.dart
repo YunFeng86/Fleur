@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:html/parser.dart' as html_parser;
+import '../../models/article.dart';
 
 class ArticleCacheService {
   ArticleCacheService(this._cacheManager);
@@ -14,7 +15,10 @@ class ArticleCacheService {
     int maxImages = 24,
     int maxConcurrent = 4,
   }) async {
-    final urls = _extractImageUrls(html, baseUrl: baseUrl).take(maxImages).toList();
+    final urls = _extractImageUrls(
+      html,
+      baseUrl: baseUrl,
+    ).take(maxImages).toList();
     if (urls.isEmpty) return;
 
     // Small bounded concurrency: keeps memory/FD usage low.
@@ -33,6 +37,37 @@ class ArticleCacheService {
       }());
     }
     await Future.wait(futures);
+  }
+
+  Future<int> cacheArticles(
+    Iterable<Article> articles, {
+    int maxConcurrentArticles = 2,
+  }) async {
+    final maxConcurrent = maxConcurrentArticles < 1 ? 1 : maxConcurrentArticles;
+    int count = 0;
+    final batch = <Future<void>>[];
+
+    for (final article in articles) {
+      final content = article.fullContentHtml ?? article.contentHtml;
+      if (content == null || content.trim().isEmpty) continue;
+      batch.add(
+        prefetchImagesFromHtml(
+          content,
+          baseUrl: Uri.tryParse(article.link),
+        ),
+      );
+      if (batch.length >= maxConcurrent) {
+        await Future.wait(batch);
+        count += batch.length;
+        batch.clear();
+      }
+    }
+
+    if (batch.isNotEmpty) {
+      await Future.wait(batch);
+      count += batch.length;
+    }
+    return count;
   }
 
   Iterable<Uri> _extractImageUrls(String html, {required Uri? baseUrl}) sync* {
@@ -74,4 +109,3 @@ class _Semaphore {
     }
   }
 }
-
