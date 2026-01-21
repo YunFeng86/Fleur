@@ -84,11 +84,9 @@
   "@cacheCleared": {
     "description": "cacheCleared"
   },
-  "subscriptions": "订阅",
-  "@subscriptions": {
-    "description": "subscriptions"
-  },
-  "all": "全部",
+  "subscriptions": "订阅源",
+  "tags": "标签",
+  "all": "所有文章",
   "@all": {
     "description": "all"
   },
@@ -107,6 +105,10 @@
   "importOpml": "导入 OPML",
   "@importOpml": {
     "description": "importOpml"
+  },
+  "opmlParseFailed": "OPML 文件无效",
+  "@opmlParseFailed": {
+    "description": "opmlParseFailed"
   },
   "exportOpml": "导出 OPML",
   "@exportOpml": {
@@ -226,9 +228,42 @@
   "@deleteSubscriptionConfirmTitle": {
     "description": "deleteSubscriptionConfirmTitle"
   },
-  "deleteSubscriptionConfirmContent": "这也会删除其缓存的文章。",
+  "deleteSubscriptionConfirmContent": "确定要删除此订阅源吗？",
   "@deleteSubscriptionConfirmContent": {
     "description": "deleteSubscriptionConfirmContent"
+  },
+  "makeAvailableOffline": "离线可用",
+  "@makeAvailableOffline": {
+    "description": "makeAvailableOffline"
+  },
+  "cachingArticles": "正在缓存 {count} 篇文章...",
+  "@cachingArticles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    },
+    "description": "cachingArticles"
+  },
+  "showNotification": "显示通知",
+  "@showNotification": {
+    "description": "showNotification"
+  },
+  "manageTags": "管理标签",
+  "@manageTags": {
+    "description": "manageTags"
+  },
+  "newTag": "新标签",
+  "@newTag": {
+    "description": "newTag"
+  },
+  "tagColor": "标签颜色",
+  "@tagColor": {
+    "description": "tagColor"
+  },
+  "autoColor": "自动",
+  "@autoColor": {
+    "description": "autoColor"
   },
   "deleteCategory": "删除分类",
   "@deleteCategory": {
@@ -295,6 +330,10 @@
   "starred": "已收藏",
   "@starred": {
     "description": "starred"
+  },
+  "readLater": "稍后读",
+  "@readLater": {
+    "description": "readLater"
   },
   "markRead": "标记为已读",
   "@markRead": {

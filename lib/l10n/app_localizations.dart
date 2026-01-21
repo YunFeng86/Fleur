@@ -231,10 +231,16 @@ abstract class AppLocalizations {
   /// **'Subscriptions'**
   String get subscriptions;
 
+  /// tags
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get tags;
+
   /// all
   ///
   /// In en, this message translates to:
-  /// **'All'**
+  /// **'All Articles'**
   String get all;
 
   /// uncategorized
@@ -260,6 +266,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Import OPML'**
   String get importOpml;
+
+  /// opmlParseFailed
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid OPML file'**
+  String get opmlParseFailed;
 
   /// exportOpml
   ///
@@ -429,6 +441,12 @@ abstract class AppLocalizations {
   /// **'This will delete its cached articles too.'**
   String get deleteSubscriptionConfirmContent;
 
+  /// makeAvailableOffline
+  ///
+  /// In en, this message translates to:
+  /// **'Make available offline'**
+  String get makeAvailableOffline;
+
   /// deleteCategory
   ///
   /// In en, this message translates to:
@@ -512,6 +530,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Starred'**
   String get starred;
+
+  /// readLater
+  ///
+  /// In en, this message translates to:
+  /// **'Read Later'**
+  String get readLater;
 
   /// markRead
   ///
@@ -734,6 +758,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Run cleanup'**
   String get cleanupNow;
+
+  /// No description provided for @cachingArticles.
+  ///
+  /// In en, this message translates to:
+  /// **'Caching {count} articles...'**
+  String cachingArticles(int count);
+
+  /// showNotification
+  ///
+  /// In en, this message translates to:
+  /// **'Show notification'**
+  String get showNotification;
+
+  /// manageTags
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Tags'**
+  String get manageTags;
+
+  /// newTag
+  ///
+  /// In en, this message translates to:
+  /// **'New Tag'**
+  String get newTag;
+
+  /// tagColor
+  ///
+  /// In en, this message translates to:
+  /// **'Tag color'**
+  String get tagColor;
+
+  /// autoColor
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get autoColor;
 
   /// cleanedArticles
   ///

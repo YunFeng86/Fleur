@@ -88,7 +88,11 @@
   "@subscriptions": {
     "description": "subscriptions"
   },
-  "all": "All",
+  "tags": "Tags",
+  "@tags": {
+    "description": "tags"
+  },
+  "all": "All Articles",
   "@all": {
     "description": "all"
   },
@@ -107,6 +111,10 @@
   "importOpml": "Import OPML",
   "@importOpml": {
     "description": "importOpml"
+  },
+  "opmlParseFailed": "Invalid OPML file",
+  "@opmlParseFailed": {
+    "description": "opmlParseFailed"
   },
   "exportOpml": "Export OPML",
   "@exportOpml": {
@@ -230,6 +238,10 @@
   "@deleteSubscriptionConfirmContent": {
     "description": "deleteSubscriptionConfirmContent"
   },
+  "makeAvailableOffline": "Make available offline",
+  "@makeAvailableOffline": {
+    "description": "makeAvailableOffline"
+  },
   "deleteCategory": "Delete category",
   "@deleteCategory": {
     "description": "deleteCategory"
@@ -295,6 +307,10 @@
   "starred": "Starred",
   "@starred": {
     "description": "starred"
+  },
+  "readLater": "Read Later",
+  "@readLater": {
+    "description": "readLater"
   },
   "markRead": "Mark read",
   "@markRead": {
@@ -443,6 +459,34 @@
   "cleanupNow": "Run cleanup",
   "@cleanupNow": {
     "description": "cleanupNow"
+  },
+  "cachingArticles": "Caching {count} articles...",
+  "@cachingArticles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "showNotification": "Show notification",
+  "@showNotification": {
+    "description": "showNotification"
+  },
+  "manageTags": "Manage Tags",
+  "@manageTags": {
+    "description": "manageTags"
+  },
+  "newTag": "New Tag",
+  "@newTag": {
+    "description": "newTag"
+  },
+  "tagColor": "Tag color",
+  "@tagColor": {
+    "description": "tagColor"
+  },
+  "autoColor": "Auto",
+  "@autoColor": {
+    "description": "autoColor"
   },
   "cleanedArticles": "Cleaned {count} articles",
   "@cleanedArticles": {

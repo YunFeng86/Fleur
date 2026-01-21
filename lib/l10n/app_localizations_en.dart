@@ -76,7 +76,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get subscriptions => 'Subscriptions';
 
   @override
-  String get all => 'All';
+  String get tags => 'Tags';
+
+  @override
+  String get all => 'All Articles';
 
   @override
   String get uncategorized => 'Uncategorized';
@@ -89,6 +92,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importOpml => 'Import OPML';
+
+  @override
+  String get opmlParseFailed => 'Invalid OPML file';
 
   @override
   String get exportOpml => 'Export OPML';
@@ -180,6 +186,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'This will delete its cached articles too.';
 
   @override
+  String get makeAvailableOffline => 'Make available offline';
+
+  @override
   String get deleteCategory => 'Delete category';
 
   @override
@@ -224,6 +233,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get starred => 'Starred';
+
+  @override
+  String get readLater => 'Read Later';
 
   @override
   String get markRead => 'Mark read';
@@ -335,6 +347,26 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cleanupNow => 'Run cleanup';
+
+  @override
+  String cachingArticles(int count) {
+    return 'Caching $count articles...';
+  }
+
+  @override
+  String get showNotification => 'Show notification';
+
+  @override
+  String get manageTags => 'Manage Tags';
+
+  @override
+  String get newTag => 'New Tag';
+
+  @override
+  String get tagColor => 'Tag color';
+
+  @override
+  String get autoColor => 'Auto';
 
   @override
   String cleanedArticles(int count) {

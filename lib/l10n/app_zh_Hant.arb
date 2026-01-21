@@ -84,11 +84,12 @@
   "@cacheCleared": {
     "description": "cacheCleared"
   },
-  "subscriptions": "訂閱",
+  "subscriptions": "訂閱源",
   "@subscriptions": {
     "description": "subscriptions"
   },
-  "all": "全部",
+  "tags": "標籤",
+  "all": "所有文章",
   "@all": {
     "description": "all"
   },
@@ -107,6 +108,10 @@
   "importOpml": "匯入 OPML",
   "@importOpml": {
     "description": "importOpml"
+  },
+  "opmlParseFailed": "OPML 檔案無效",
+  "@opmlParseFailed": {
+    "description": "opmlParseFailed"
   },
   "exportOpml": "匯出 OPML",
   "@exportOpml": {
@@ -226,9 +231,42 @@
   "@deleteSubscriptionConfirmTitle": {
     "description": "deleteSubscriptionConfirmTitle"
   },
-  "deleteSubscriptionConfirmContent": "這也會刪除其快取的文章。",
+  "deleteSubscriptionConfirmContent": "確定要刪除此訂閱源嗎？",
   "@deleteSubscriptionConfirmContent": {
     "description": "deleteSubscriptionConfirmContent"
+  },
+  "makeAvailableOffline": "離線可用",
+  "@makeAvailableOffline": {
+    "description": "makeAvailableOffline"
+  },
+  "cachingArticles": "正在緩存 {count} 篇文章...",
+  "showNotification": "顯示通知",
+  "@showNotification": {
+    "description": "showNotification"
+  },
+  "manageTags": "管理標籤",
+  "@manageTags": {
+    "description": "manageTags"
+  },
+  "newTag": "新標籤",
+  "@newTag": {
+    "description": "newTag"
+  },
+  "tagColor": "標籤顏色",
+  "@tagColor": {
+    "description": "tagColor"
+  },
+  "autoColor": "自動",
+  "@autoColor": {
+    "description": "autoColor"
+  },
+  "@cachingArticles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    },
+    "description": "cachingArticles"
   },
   "deleteCategory": "刪除分類",
   "@deleteCategory": {
@@ -295,6 +333,10 @@
   "starred": "已收藏",
   "@starred": {
     "description": "starred"
+  },
+  "readLater": "稍後讀",
+  "@readLater": {
+    "description": "readLater"
   },
   "markRead": "標記為已讀",
   "@markRead": {

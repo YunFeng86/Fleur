@@ -72,10 +72,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cacheCleared => '缓存已清理';
 
   @override
-  String get subscriptions => '订阅';
+  String get subscriptions => '订阅源';
 
   @override
-  String get all => '全部';
+  String get tags => '标签';
+
+  @override
+  String get all => '所有文章';
 
   @override
   String get uncategorized => '未分类';
@@ -88,6 +91,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get importOpml => '导入 OPML';
+
+  @override
+  String get opmlParseFailed => 'OPML 文件无效';
 
   @override
   String get exportOpml => '导出 OPML';
@@ -175,7 +181,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deleteSubscriptionConfirmTitle => '删除订阅？';
 
   @override
-  String get deleteSubscriptionConfirmContent => '这也会删除其缓存的文章。';
+  String get deleteSubscriptionConfirmContent => '确定要删除此订阅源吗？';
+
+  @override
+  String get makeAvailableOffline => '离线可用';
 
   @override
   String get deleteCategory => '删除分类';
@@ -222,6 +231,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get starred => '已收藏';
+
+  @override
+  String get readLater => '稍后读';
 
   @override
   String get markRead => '标记为已读';
@@ -335,6 +347,26 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cleanupNow => '立即清理';
 
   @override
+  String cachingArticles(int count) {
+    return '正在缓存 $count 篇文章...';
+  }
+
+  @override
+  String get showNotification => '显示通知';
+
+  @override
+  String get manageTags => '管理标签';
+
+  @override
+  String get newTag => '新标签';
+
+  @override
+  String get tagColor => '标签颜色';
+
+  @override
+  String get autoColor => '自动';
+
+  @override
   String cleanedArticles(int count) {
     return '已清理 $count 篇文章';
   }
@@ -445,10 +477,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get cacheCleared => '快取已清理';
 
   @override
-  String get subscriptions => '訂閱';
+  String get subscriptions => '訂閱源';
 
   @override
-  String get all => '全部';
+  String get tags => '標籤';
+
+  @override
+  String get all => '所有文章';
 
   @override
   String get uncategorized => '未分類';
@@ -461,6 +496,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get importOpml => '匯入 OPML';
+
+  @override
+  String get opmlParseFailed => 'OPML 檔案無效';
 
   @override
   String get exportOpml => '匯出 OPML';
@@ -548,7 +586,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get deleteSubscriptionConfirmTitle => '刪除訂閱？';
 
   @override
-  String get deleteSubscriptionConfirmContent => '這也會刪除其快取的文章。';
+  String get deleteSubscriptionConfirmContent => '確定要刪除此訂閱源嗎？';
+
+  @override
+  String get makeAvailableOffline => '離線可用';
 
   @override
   String get deleteCategory => '刪除分類';
@@ -595,6 +636,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get starred => '已收藏';
+
+  @override
+  String get readLater => '稍後讀';
 
   @override
   String get markRead => '標記為已讀';
@@ -706,6 +750,26 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get cleanupNow => '立即清理';
+
+  @override
+  String cachingArticles(int count) {
+    return '正在緩存 $count 篇文章...';
+  }
+
+  @override
+  String get showNotification => '顯示通知';
+
+  @override
+  String get manageTags => '管理標籤';
+
+  @override
+  String get newTag => '新標籤';
+
+  @override
+  String get tagColor => '標籤顏色';
+
+  @override
+  String get autoColor => '自動';
 
   @override
   String cleanedArticles(int count) {
