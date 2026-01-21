@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../models/rule.dart';
 import '../repositories/article_repository.dart';
 import '../repositories/category_repository.dart';
 import '../repositories/feed_repository.dart';
@@ -21,6 +22,10 @@ final categoryRepositoryProvider = Provider<CategoryRepository>((ref) {
 
 final ruleRepositoryProvider = Provider<RuleRepository>((ref) {
   return RuleRepository(ref.watch(isarProvider));
+});
+
+final ruleListProvider = StreamProvider<List<Rule>>((ref) {
+  return ref.watch(ruleRepositoryProvider).watchAll();
 });
 
 final tagRepositoryProvider = Provider<TagRepository>((ref) {

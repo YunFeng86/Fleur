@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
@@ -369,88 +370,88 @@ class _RulesTab extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               Expanded(
-                child: StreamBuilder<List<Rule>>(
-                  stream: repo.watchAll(),
-                  builder: (context, snap) {
-                    if (snap.hasError) {
-                      return Center(
-                        child: Text(l10n.errorMessage('${snap.error}')),
-                      );
-                    }
-                    if (!snap.hasData) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    final rules = snap.data ?? const <Rule>[];
-                    if (rules.isEmpty) {
-                      return Center(child: Text(l10n.notFound));
-                    }
+                child: Consumer(
+                  builder: (context, ref, _) {
+                    final rulesAsync = ref.watch(ruleListProvider);
 
-                    return ListView.separated(
-                      itemCount: rules.length,
-                      separatorBuilder: (_, _) => const Divider(height: 1),
-                      itemBuilder: (context, index) {
-                        final r = rules[index];
-                        return ListTile(
-                          title: Text(r.name),
-                          subtitle: Text(
-                            r.keyword,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          leading: Switch(
-                            value: r.enabled,
-                            onChanged: (v) => repo.setEnabled(r.id, v),
-                          ),
-                          trailing: PopupMenuButton<_RuleMenuAction>(
-                            onSelected: (v) async {
-                              switch (v) {
-                                case _RuleMenuAction.edit:
-                                  await _showRuleEditor(
-                                    context,
-                                    ref,
-                                    existing: r,
-                                  );
-                                  return;
-                                case _RuleMenuAction.delete:
-                                  final ok = await showDialog<bool>(
-                                    context: context,
-                                    builder: (context) {
-                                      return AlertDialog(
-                                        title: Text(l10n.delete),
-                                        content: Text(r.name),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () => Navigator.of(
-                                              context,
-                                            ).pop(false),
-                                            child: Text(l10n.cancel),
-                                          ),
-                                          FilledButton(
-                                            onPressed: () =>
-                                                Navigator.of(context).pop(true),
-                                            child: Text(l10n.delete),
-                                          ),
-                                        ],
+                    return rulesAsync.when(
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
+                      error: (e, _) =>
+                          Center(child: Text(l10n.errorMessage(e.toString()))),
+                      data: (rules) {
+                        if (rules.isEmpty) {
+                          return Center(child: Text(l10n.notFound));
+                        }
+                        return ListView.separated(
+                          itemCount: rules.length,
+                          separatorBuilder: (_, _) => const Divider(height: 1),
+                          itemBuilder: (context, index) {
+                            final r = rules[index];
+                            return ListTile(
+                              title: Text(r.name),
+                              subtitle: Text(
+                                r.keyword,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              leading: Switch(
+                                value: r.enabled,
+                                onChanged: (v) => repo.setEnabled(r.id, v),
+                              ),
+                              trailing: PopupMenuButton<_RuleMenuAction>(
+                                onSelected: (v) async {
+                                  switch (v) {
+                                    case _RuleMenuAction.edit:
+                                      await _showRuleEditor(
+                                        context,
+                                        ref,
+                                        existing: r,
                                       );
-                                    },
-                                  );
-                                  if (ok == true) {
-                                    await repo.delete(r.id);
+                                      return;
+                                    case _RuleMenuAction.delete:
+                                      final ok = await showDialog<bool>(
+                                        context: context,
+                                        builder: (context) {
+                                          return AlertDialog(
+                                            title: Text(l10n.delete),
+                                            content: Text(r.name),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () => Navigator.of(
+                                                  context,
+                                                ).pop(false),
+                                                child: Text(l10n.cancel),
+                                              ),
+                                              FilledButton(
+                                                onPressed: () => Navigator.of(
+                                                  context,
+                                                ).pop(true),
+                                                child: Text(l10n.delete),
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                      );
+                                      if (ok == true) {
+                                        await repo.delete(r.id);
+                                      }
+                                      return;
                                   }
-                                  return;
-                              }
-                            },
-                            itemBuilder: (context) => [
-                              PopupMenuItem(
-                                value: _RuleMenuAction.edit,
-                                child: Text(l10n.editRule),
+                                },
+                                itemBuilder: (context) => [
+                                  PopupMenuItem(
+                                    value: _RuleMenuAction.edit,
+                                    child: Text(l10n.editRule),
+                                  ),
+                                  PopupMenuItem(
+                                    value: _RuleMenuAction.delete,
+                                    child: Text(l10n.delete),
+                                  ),
+                                ],
                               ),
-                              PopupMenuItem(
-                                value: _RuleMenuAction.delete,
-                                child: Text(l10n.delete),
-                              ),
-                            ],
-                          ),
+                            );
+                          },
                         );
                       },
                     );
@@ -1705,8 +1706,21 @@ class _ServicesTab extends ConsumerWidget {
   }
 }
 
-class _AboutTab extends StatelessWidget {
+class _AboutTab extends StatefulWidget {
   const _AboutTab();
+
+  @override
+  State<_AboutTab> createState() => _AboutTabState();
+}
+
+class _AboutTabState extends State<_AboutTab> {
+  late final Future<Directory> _docDirFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _docDirFuture = getApplicationDocumentsDirectory();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1736,7 +1750,7 @@ class _AboutTab extends StatelessWidget {
                       Text(l10n.appTitle, style: theme.textTheme.titleMedium),
                       const SizedBox(height: 12),
                       FutureBuilder(
-                        future: getApplicationDocumentsDirectory(),
+                        future: _docDirFuture,
                         builder: (context, snapshot) {
                           final path = snapshot.data?.path;
                           return Column(

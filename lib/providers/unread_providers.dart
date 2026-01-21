@@ -25,6 +25,30 @@ final unreadCountProvider = StreamProvider.family<int, int?>((
   }
 });
 
+/// Watches all unread counts, returning a Map of feedId -> count.
+/// Key null represents "All" unread count.
+final allUnreadCountsProvider = StreamProvider<Map<int?, int>>((ref) async* {
+  final isar = ref.watch(isarProvider);
+  final qb = isar.articles.filter().isReadEqualTo(false);
+
+  Future<Map<int?, int>> computeCounts() async {
+    // Only fetch feedIds to save memory
+    final feedIds = await qb.feedIdProperty().findAll();
+
+    final counts = <int?, int>{};
+    for (final id in feedIds) {
+      counts[id] = (counts[id] ?? 0) + 1;
+    }
+    counts[null] = feedIds.length;
+    return counts;
+  }
+
+  yield await computeCounts();
+  await for (final _ in qb.watchLazy()) {
+    yield await computeCounts();
+  }
+});
+
 final unreadCountByCategoryProvider = StreamProvider.family<int, int>((
   ref,
   categoryId,

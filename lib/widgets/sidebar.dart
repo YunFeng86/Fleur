@@ -118,7 +118,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
 
     final starredOnly = ref.watch(starredOnlyProvider);
     final readLaterOnly = ref.watch(readLaterOnlyProvider);
-    final allUnread = ref.watch(unreadCountProvider(null));
+    final allUnreadCounts = ref.watch(allUnreadCountsProvider);
     final readLaterCount = ref.watch(readLaterCountProvider);
 
     return Material(
@@ -196,7 +196,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
                     final children = <Widget>[];
 
                     // All Articles Tile
-                    Widget allTile = allUnread.when(
+                    Widget allTile = allUnreadCounts.when(
                       loading: () => _SidebarItem(
                         selected:
                             !starredOnly &&
@@ -220,7 +220,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
                         title: l10n.all,
                         onTap: () => _selectAll(ref),
                       ),
-                      data: (count) => _SidebarItem(
+                      data: (counts) => _SidebarItem(
                         selected:
                             !starredOnly &&
                             !readLaterOnly &&
@@ -229,7 +229,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
                             selectedTagId == null,
                         icon: Icons.all_inbox,
                         title: l10n.all,
-                        count: count,
+                        count: counts[null] ?? 0,
                         onTap: () => _selectAll(ref),
                       ),
                     );
@@ -274,10 +274,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
                                 selected: selectedTagId == tag.id,
                                 icon: Icons.label,
                                 title: tag.name,
-                                iconColor: resolveTagColor(
-                                  tag.name,
-                                  tag.color,
-                                ),
+                                iconColor: resolveTagColor(tag.name, tag.color),
                                 onTap: () => _selectTag(ref, tag.id),
                                 indent: 16,
                               );
@@ -371,6 +368,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
                           feeds: catFeeds,
                           selectedFeedId: selectedFeedId,
                           selectedCategoryId: selectedCategoryId,
+                          unreadCounts: allUnreadCounts.value,
                         ),
                       );
                     }
@@ -378,31 +376,15 @@ class _SidebarState extends ConsumerState<Sidebar> {
                     // Uncategorized group.
                     final uncategorizedFeeds = byCat[null] ?? const <Feed>[];
                     if (_searchText.isEmpty || uncategorizedFeeds.isNotEmpty) {
+                      final counts = allUnreadCounts.value;
                       for (final f in uncategorizedFeeds) {
-                        final unread = ref.watch(unreadCountProvider(f.id));
                         children.add(
-                          unread.when(
-                            data: (count) => _feedTile(
-                              context,
-                              ref,
-                              f,
-                              selectedFeedId,
-                              count,
-                            ),
-                            loading: () => _feedTile(
-                              context,
-                              ref,
-                              f,
-                              selectedFeedId,
-                              null,
-                            ),
-                            error: (_, _) => _feedTile(
-                              context,
-                              ref,
-                              f,
-                              selectedFeedId,
-                              null,
-                            ),
+                          _feedTile(
+                            context,
+                            ref,
+                            f,
+                            selectedFeedId,
+                            counts?[f.id],
                           ),
                         );
                       }
@@ -429,6 +411,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
     required List<Feed> feeds,
     required int? selectedFeedId,
     required int? selectedCategoryId,
+    Map<int?, int>? unreadCounts,
   }) {
     final l10n = AppLocalizations.of(context)!;
     final unread = ref.watch(unreadCountByCategoryProvider(category.id));
@@ -469,21 +452,14 @@ class _SidebarState extends ConsumerState<Sidebar> {
         ),
         if (expanded)
           ...feeds.map((f) {
-            final unread = ref.watch(unreadCountProvider(f.id));
-            return unread.when(
-              data: (count) => _feedTile(
-                context,
-                ref,
-                f,
-                selectedFeedId,
-                count,
-                indent: 16,
-                key: ValueKey('feed_${f.id}'),
-              ),
-              loading: () =>
-                  _feedTile(context, ref, f, selectedFeedId, null, indent: 16),
-              error: (_, _) =>
-                  _feedTile(context, ref, f, selectedFeedId, null, indent: 16),
+            return _feedTile(
+              context,
+              ref,
+              f,
+              selectedFeedId,
+              unreadCounts?[f.id],
+              indent: 16,
+              key: ValueKey('feed_${f.id}'),
             );
           }),
       ],

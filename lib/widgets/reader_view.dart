@@ -282,6 +282,10 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
                   HtmlWidget(
                     html,
                     baseUrl: Uri.tryParse(article.link),
+                    renderMode: RenderMode.column,
+                    buildAsync: true,
+                    onLoadingBuilder: (context, element, loadingProgress) =>
+                        const SizedBox.shrink(),
                     textStyle: TextStyle(
                       fontSize: settings.fontSize,
                       height: settings.lineHeight,
@@ -316,6 +320,10 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
             return HtmlWidget(
               chunks[index - 1],
               baseUrl: Uri.tryParse(article.link),
+              renderMode: RenderMode.column,
+              buildAsync: true,
+              onLoadingBuilder: (context, element, loadingProgress) =>
+                  const SizedBox.shrink(),
               textStyle: TextStyle(
                 fontSize: settings.fontSize,
                 height: settings.lineHeight,

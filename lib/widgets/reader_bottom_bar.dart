@@ -363,8 +363,11 @@ class _TagsDialogState extends State<_TagsDialog> {
                   error: (_, _) => const Text('Error loading article'),
                   data: (a) {
                     if (a == null) return const Text('Article not found');
-                    // Explicitly load tags if not loaded
-                    if (!a.tags.isLoaded) a.tags.loadSync();
+
+                    // watchById does not auto-load links; ensure tags are loaded.
+                    if (!a.tags.isLoaded) {
+                      a.tags.loadSync();
+                    }
                     final articleTags = a.tags.toList();
                     return Flexible(
                       child: ListView.builder(
