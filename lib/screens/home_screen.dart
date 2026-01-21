@@ -62,6 +62,8 @@ class HomeScreen extends ConsumerWidget {
                         ref.read(selectedFeedIdProvider.notifier).state = null;
                         ref.read(selectedCategoryIdProvider.notifier).state =
                             null;
+                        ref.read(articleSearchQueryProvider.notifier).state =
+                            '';
                       }
                     },
                     icon: Icon(starredOnly ? Icons.star : Icons.star_border),
@@ -348,6 +350,13 @@ class HomeScreen extends ConsumerWidget {
                                                 )
                                                 .state =
                                             null;
+                                        ref
+                                                .read(
+                                                  articleSearchQueryProvider
+                                                      .notifier,
+                                                )
+                                                .state =
+                                            '';
                                       }
                                     },
                                     icon: Icon(

@@ -19,6 +19,7 @@ import '../providers/service_providers.dart';
 import '../providers/settings_providers.dart';
 import '../services/settings/app_settings.dart';
 import '../services/settings/reader_settings.dart';
+import '../services/opml/opml_service.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -290,7 +291,9 @@ class _GroupingSortingTab extends ConsumerWidget {
                   ],
                   onChanged: (v) {
                     if (v == null) return;
-                    ref.read(appSettingsProvider.notifier).setArticleGroupMode(v);
+                    ref
+                        .read(appSettingsProvider.notifier)
+                        .setArticleGroupMode(v);
                   },
                 ),
               ),
@@ -322,7 +325,9 @@ class _GroupingSortingTab extends ConsumerWidget {
                   ],
                   onChanged: (v) {
                     if (v == null) return;
-                    ref.read(appSettingsProvider.notifier).setArticleSortOrder(v);
+                    ref
+                        .read(appSettingsProvider.notifier)
+                        .setArticleSortOrder(v);
                   },
                 ),
               ),
@@ -399,7 +404,11 @@ class _RulesTab extends ConsumerWidget {
                             onSelected: (v) async {
                               switch (v) {
                                 case _RuleMenuAction.edit:
-                                  await _showRuleEditor(context, ref, existing: r);
+                                  await _showRuleEditor(
+                                    context,
+                                    ref,
+                                    existing: r,
+                                  );
                                   return;
                                 case _RuleMenuAction.delete:
                                   final ok = await showDialog<bool>(
@@ -410,8 +419,9 @@ class _RulesTab extends ConsumerWidget {
                                         content: Text(r.name),
                                         actions: [
                                           TextButton(
-                                            onPressed: () =>
-                                                Navigator.of(context).pop(false),
+                                            onPressed: () => Navigator.of(
+                                              context,
+                                            ).pop(false),
                                             child: Text(l10n.cancel),
                                           ),
                                           FilledButton(
@@ -467,20 +477,22 @@ class _RulesTab extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
 
     if (!draft.hasMatchField) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.errorMessage(l10n.matchIn))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.errorMessage(l10n.matchIn))));
       return;
     }
     if (!draft.hasAction) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.errorMessage(l10n.actions))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.errorMessage(l10n.actions))));
       return;
     }
 
     try {
-      await ref.read(ruleRepositoryProvider).upsert(
+      await ref
+          .read(ruleRepositoryProvider)
+          .upsert(
             id: existing?.id,
             name: draft.name,
             keyword: draft.keyword,
@@ -491,12 +503,13 @@ class _RulesTab extends ConsumerWidget {
             matchContent: draft.matchContent,
             autoStar: draft.autoStar,
             autoMarkRead: draft.autoMarkRead,
+            notify: draft.notify,
           );
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.errorMessage(e.toString()))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.errorMessage(e.toString()))));
     }
   }
 }
@@ -514,6 +527,7 @@ class _RuleDraft {
     required this.matchContent,
     required this.autoStar,
     required this.autoMarkRead,
+    required this.notify,
   });
 
   final bool enabled;
@@ -525,9 +539,11 @@ class _RuleDraft {
   final bool matchContent;
   final bool autoStar;
   final bool autoMarkRead;
+  final bool notify;
 
-  bool get hasMatchField => matchTitle || matchAuthor || matchLink || matchContent;
-  bool get hasAction => autoStar || autoMarkRead;
+  bool get hasMatchField =>
+      matchTitle || matchAuthor || matchLink || matchContent;
+  bool get hasAction => autoStar || autoMarkRead || notify;
 }
 
 class _RuleEditorDialog extends StatefulWidget {
@@ -549,6 +565,7 @@ class _RuleEditorDialogState extends State<_RuleEditorDialog> {
   bool _matchContent = false;
   bool _autoStar = false;
   bool _autoMarkRead = false;
+  bool _notify = false;
 
   @override
   void initState() {
@@ -563,6 +580,7 @@ class _RuleEditorDialogState extends State<_RuleEditorDialog> {
     _matchContent = r?.matchContent ?? false;
     _autoStar = r?.autoStar ?? false;
     _autoMarkRead = r?.autoMarkRead ?? false;
+    _notify = r?.notify ?? false;
   }
 
   @override
@@ -603,7 +621,10 @@ class _RuleEditorDialogState extends State<_RuleEditorDialog> {
               const Divider(height: 24),
               Align(
                 alignment: Alignment.centerLeft,
-                child: Text(l10n.matchIn, style: Theme.of(context).textTheme.labelLarge),
+                child: Text(
+                  l10n.matchIn,
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
               ),
               CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
@@ -632,7 +653,10 @@ class _RuleEditorDialogState extends State<_RuleEditorDialog> {
               const Divider(height: 24),
               Align(
                 alignment: Alignment.centerLeft,
-                child: Text(l10n.actions, style: Theme.of(context).textTheme.labelLarge),
+                child: Text(
+                  l10n.actions,
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
               ),
               CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
@@ -645,6 +669,12 @@ class _RuleEditorDialogState extends State<_RuleEditorDialog> {
                 title: Text(l10n.autoMarkReadAction),
                 value: _autoMarkRead,
                 onChanged: (v) => setState(() => _autoMarkRead = v ?? false),
+              ),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(l10n.showNotification),
+                value: _notify,
+                onChanged: (v) => setState(() => _notify = v ?? false),
               ),
             ],
           ),
@@ -668,6 +698,7 @@ class _RuleEditorDialogState extends State<_RuleEditorDialog> {
                 matchContent: _matchContent,
                 autoStar: _autoStar,
                 autoMarkRead: _autoMarkRead,
+                notify: _notify,
               ),
             );
           },
@@ -872,8 +903,8 @@ class _AppPreferencesTab extends ConsumerWidget {
                           ),
                           const SizedBox(width: 12),
                           OutlinedButton(
-                            onPressed: appSettings.cleanupReadOlderThanDays ==
-                                    null
+                            onPressed:
+                                appSettings.cleanupReadOlderThanDays == null
                                 ? null
                                 : () async {
                                     final days =
@@ -1012,7 +1043,8 @@ class _SubscriptionsTabState extends ConsumerState<_SubscriptionsTab> {
                     final filteredFeeds = _searchText.isEmpty
                         ? feeds
                         : feeds.where((f) {
-                            final t = (f.userTitle ?? f.title ?? '').toLowerCase();
+                            final t = (f.userTitle ?? f.title ?? '')
+                                .toLowerCase();
                             return t.contains(_searchText) ||
                                 f.url.toLowerCase().contains(_searchText);
                           }).toList();
@@ -1047,13 +1079,13 @@ class _SubscriptionsTabState extends ConsumerState<_SubscriptionsTab> {
                               children: (catFeeds)
                                   .map((f) {
                                     return _FeedTile(
-                                      title: (f.userTitle?.trim().isNotEmpty ==
+                                      title:
+                                          (f.userTitle?.trim().isNotEmpty ==
                                               true)
                                           ? f.userTitle!
-                                          : (f.title?.trim().isNotEmpty ==
-                                                  true)
-                                              ? f.title!
-                                              : f.url,
+                                          : (f.title?.trim().isNotEmpty == true)
+                                          ? f.title!
+                                          : f.url,
                                       url: f.url,
                                       lastCheckedAt: f.lastCheckedAt,
                                       lastSyncedAt: f.lastSyncedAt,
@@ -1087,13 +1119,13 @@ class _SubscriptionsTabState extends ConsumerState<_SubscriptionsTab> {
                               children: uncategorized
                                   .map((f) {
                                     return _FeedTile(
-                                      title: (f.userTitle?.trim().isNotEmpty ==
+                                      title:
+                                          (f.userTitle?.trim().isNotEmpty ==
                                               true)
                                           ? f.userTitle!
-                                          : (f.title?.trim().isNotEmpty ==
-                                                  true)
-                                              ? f.title!
-                                              : f.url,
+                                          : (f.title?.trim().isNotEmpty == true)
+                                          ? f.title!
+                                          : f.url,
                                       url: f.url,
                                       lastCheckedAt: f.lastCheckedAt,
                                       lastSyncedAt: f.lastSyncedAt,
@@ -1334,11 +1366,12 @@ class _SubscriptionsTabState extends ConsumerState<_SubscriptionsTab> {
       await ref.read(categoryRepositoryProvider).rename(categoryId, next);
     } catch (e) {
       if (!context.mounted) return;
-      final msg =
-          e.toString().contains('already exists') ? l10n.nameAlreadyExists : e.toString();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.errorMessage(msg))),
-      );
+      final msg = e.toString().contains('already exists')
+          ? l10n.nameAlreadyExists
+          : e.toString();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.errorMessage(msg))));
     }
   }
 
@@ -1377,10 +1410,9 @@ class _SubscriptionsTabState extends ConsumerState<_SubscriptionsTab> {
       },
     );
     if (next == null) return;
-    await ref.read(feedRepositoryProvider).setUserTitle(
-          feedId: feedId,
-          userTitle: next,
-        );
+    await ref
+        .read(feedRepositoryProvider)
+        .setUserTitle(feedId: feedId, userTitle: next);
   }
 
   Future<void> _importOpml(BuildContext context) async {
@@ -1393,7 +1425,16 @@ class _SubscriptionsTabState extends ConsumerState<_SubscriptionsTab> {
     final file = await openFile(acceptedTypeGroups: [group]);
     if (file == null) return;
     final xml = await file.readAsString();
-    final entries = ref.read(opmlServiceProvider).parseEntries(xml);
+    List<OpmlEntry> entries;
+    try {
+      entries = ref.read(opmlServiceProvider).parseEntries(xml);
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.errorMessage(l10n.opmlParseFailed))),
+      );
+      return;
+    }
     if (entries.isEmpty) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
@@ -1791,10 +1832,7 @@ class _FeedTile extends StatelessWidget {
           }
         },
         itemBuilder: (context) => [
-          PopupMenuItem(
-            value: _FeedMenuAction.edit,
-            child: Text(l10n.edit),
-          ),
+          PopupMenuItem(value: _FeedMenuAction.edit, child: Text(l10n.edit)),
           PopupMenuItem(
             value: _FeedMenuAction.refresh,
             child: Text(l10n.refresh),

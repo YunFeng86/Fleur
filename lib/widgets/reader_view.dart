@@ -42,13 +42,14 @@ class ReaderView extends ConsumerStatefulWidget {
 
 class _ReaderViewState extends ConsumerState<ReaderView> {
   ProviderSubscription<AsyncValue<Article?>>? _articleSub;
+  ProviderSubscription<AsyncValue<void>>? _fullTextSub;
 
   @override
   void initState() {
     super.initState();
 
     // Show extraction errors from the one-shot full text fetch.
-    ref.listenManual<AsyncValue<void>>(fullTextControllerProvider, (
+    _fullTextSub = ref.listenManual<AsyncValue<void>>(fullTextControllerProvider, (
       prev,
       next,
     ) {
@@ -105,6 +106,13 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
       },
       fireImmediately: true,
     );
+  }
+
+  @override
+  void dispose() {
+    _articleSub?.close();
+    _fullTextSub?.close();
+    super.dispose();
   }
 
   @override

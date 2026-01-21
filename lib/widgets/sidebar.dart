@@ -15,6 +15,8 @@ import '../providers/repository_providers.dart';
 import '../providers/service_providers.dart';
 import '../providers/unread_providers.dart';
 import '../utils/platform.dart';
+import '../utils/tag_colors.dart';
+import '../services/opml/opml_service.dart';
 
 class Sidebar extends ConsumerStatefulWidget {
   const Sidebar({super.key, required this.onSelectFeed, this.router});
@@ -111,8 +113,13 @@ class _SidebarState extends ConsumerState<Sidebar> {
     final categories = ref.watch(categoriesProvider);
     final selectedFeedId = ref.watch(selectedFeedIdProvider);
     final selectedCategoryId = ref.watch(selectedCategoryIdProvider);
+    final selectedTagId = ref.watch(selectedTagIdProvider);
+    final tags = ref.watch(tagsProvider);
+
     final starredOnly = ref.watch(starredOnlyProvider);
+    final readLaterOnly = ref.watch(readLaterOnlyProvider);
     final allUnread = ref.watch(unreadCountProvider(null));
+    final readLaterCount = ref.watch(readLaterCountProvider);
 
     return Material(
       color: Theme.of(context).colorScheme.surfaceContainer,
@@ -193,8 +200,10 @@ class _SidebarState extends ConsumerState<Sidebar> {
                       loading: () => _SidebarItem(
                         selected:
                             !starredOnly &&
+                            !readLaterOnly &&
                             selectedFeedId == null &&
-                            selectedCategoryId == null,
+                            selectedCategoryId == null &&
+                            selectedTagId == null,
                         icon: Icons.all_inbox,
                         title: l10n.all,
                         onTap: () => _selectAll(ref),
@@ -203,8 +212,10 @@ class _SidebarState extends ConsumerState<Sidebar> {
                         key: const ValueKey('all_inbox'),
                         selected:
                             !starredOnly &&
+                            !readLaterOnly &&
                             selectedFeedId == null &&
-                            selectedCategoryId == null,
+                            selectedCategoryId == null &&
+                            selectedTagId == null,
                         icon: Icons.all_inbox,
                         title: l10n.all,
                         onTap: () => _selectAll(ref),
@@ -212,8 +223,10 @@ class _SidebarState extends ConsumerState<Sidebar> {
                       data: (count) => _SidebarItem(
                         selected:
                             !starredOnly &&
+                            !readLaterOnly &&
                             selectedFeedId == null &&
-                            selectedCategoryId == null,
+                            selectedCategoryId == null &&
+                            selectedTagId == null,
                         icon: Icons.all_inbox,
                         title: l10n.all,
                         count: count,
@@ -228,6 +241,51 @@ class _SidebarState extends ConsumerState<Sidebar> {
                         icon: starredOnly ? Icons.star : Icons.star_border,
                         title: l10n.starred,
                         onTap: () => _selectStarred(ref),
+                      ),
+                    );
+                    children.add(
+                      readLaterCount.when(
+                        data: (count) => _SidebarItem(
+                          key: const ValueKey('read_later'),
+                          selected: readLaterOnly,
+                          icon: readLaterOnly
+                              ? Icons.watch_later
+                              : Icons.watch_later_outlined,
+                          title: l10n.readLater,
+                          count: count,
+                          onTap: () => _selectReadLater(ref),
+                        ),
+                        loading: () => const SizedBox.shrink(),
+                        error: (_, _) => const SizedBox.shrink(),
+                      ),
+                    );
+
+                    // Tags
+                    children.add(
+                      tags.when(
+                        data: (tagList) {
+                          if (tagList.isEmpty) return const SizedBox.shrink();
+                          return ExpansionTile(
+                            leading: const Icon(Icons.label_outline),
+                            title: Text(l10n.tags),
+                            initiallyExpanded: selectedTagId != null,
+                            children: tagList.map((tag) {
+                              return _SidebarItem(
+                                selected: selectedTagId == tag.id,
+                                icon: Icons.label,
+                                title: tag.name,
+                                iconColor: resolveTagColor(
+                                  tag.name,
+                                  tag.color,
+                                ),
+                                onTap: () => _selectTag(ref, tag.id),
+                                indent: 16,
+                              );
+                            }).toList(),
+                          );
+                        },
+                        loading: () => const SizedBox.shrink(),
+                        error: (_, _) => const SizedBox.shrink(),
                       ),
                     );
 
@@ -463,32 +521,66 @@ class _SidebarState extends ConsumerState<Sidebar> {
 
   void _select(WidgetRef ref, int? id) {
     ref.read(starredOnlyProvider.notifier).state = false;
+    ref.read(readLaterOnlyProvider.notifier).state = false;
     ref.read(selectedFeedIdProvider.notifier).state = id;
     ref.read(selectedCategoryIdProvider.notifier).state = null;
+    ref.read(selectedTagIdProvider.notifier).state = null;
+    ref.read(articleSearchQueryProvider.notifier).state = '';
     widget.onSelectFeed(id);
     _closeDrawerIfDesktopDrawer();
   }
 
   void _selectAll(WidgetRef ref) {
     ref.read(starredOnlyProvider.notifier).state = false;
+    ref.read(readLaterOnlyProvider.notifier).state = false;
     ref.read(selectedFeedIdProvider.notifier).state = null;
     ref.read(selectedCategoryIdProvider.notifier).state = null;
+    ref.read(selectedTagIdProvider.notifier).state = null;
+    ref.read(articleSearchQueryProvider.notifier).state = '';
     widget.onSelectFeed(null);
     _closeDrawerIfDesktopDrawer();
   }
 
   void _selectStarred(WidgetRef ref) {
     ref.read(starredOnlyProvider.notifier).state = true;
+    ref.read(readLaterOnlyProvider.notifier).state = false;
     ref.read(selectedFeedIdProvider.notifier).state = null;
     ref.read(selectedCategoryIdProvider.notifier).state = null;
+    ref.read(selectedTagIdProvider.notifier).state = null;
+    ref.read(articleSearchQueryProvider.notifier).state = '';
     widget.onSelectFeed(null);
     _closeDrawerIfDesktopDrawer();
   }
 
   void _selectCategory(WidgetRef ref, int categoryId) {
     ref.read(starredOnlyProvider.notifier).state = false;
+    ref.read(readLaterOnlyProvider.notifier).state = false;
     ref.read(selectedFeedIdProvider.notifier).state = null;
     ref.read(selectedCategoryIdProvider.notifier).state = categoryId;
+    ref.read(selectedTagIdProvider.notifier).state = null;
+    ref.read(articleSearchQueryProvider.notifier).state = '';
+    widget.onSelectFeed(null);
+    _closeDrawerIfDesktopDrawer();
+  }
+
+  void _selectReadLater(WidgetRef ref) {
+    ref.read(starredOnlyProvider.notifier).state = false;
+    ref.read(readLaterOnlyProvider.notifier).state = true;
+    ref.read(selectedFeedIdProvider.notifier).state = null;
+    ref.read(selectedCategoryIdProvider.notifier).state = null;
+    ref.read(selectedTagIdProvider.notifier).state = null;
+    ref.read(articleSearchQueryProvider.notifier).state = '';
+    widget.onSelectFeed(null);
+    _closeDrawerIfDesktopDrawer();
+  }
+
+  void _selectTag(WidgetRef ref, int tagId) {
+    ref.read(starredOnlyProvider.notifier).state = false;
+    ref.read(readLaterOnlyProvider.notifier).state = false;
+    ref.read(selectedFeedIdProvider.notifier).state = null;
+    ref.read(selectedCategoryIdProvider.notifier).state = null;
+    ref.read(selectedTagIdProvider.notifier).state = tagId;
+    ref.read(articleSearchQueryProvider.notifier).state = '';
     widget.onSelectFeed(null);
     _closeDrawerIfDesktopDrawer();
   }
@@ -560,6 +652,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
     final r = await ref.read(syncServiceProvider).refreshFeedSafe(id);
     ref.read(selectedFeedIdProvider.notifier).state = id;
     ref.read(selectedCategoryIdProvider.notifier).state = null;
+    ref.read(selectedTagIdProvider.notifier).state = null;
     widget.onSelectFeed(id);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -669,6 +762,12 @@ class _SidebarState extends ConsumerState<Sidebar> {
                 onTap: () => Navigator.of(context).pop(_FeedAction.refresh),
               ),
               ListTile(
+                leading: const Icon(Icons.download_for_offline_outlined),
+                title: Text(l10n.makeAvailableOffline),
+                onTap: () =>
+                    Navigator.of(context).pop(_FeedAction.offlineCache),
+              ),
+              ListTile(
                 leading: const Icon(Icons.drive_file_move_outline),
                 title: Text(l10n.moveToCategory),
                 onTap: () => Navigator.of(context).pop(_FeedAction.move),
@@ -699,6 +798,15 @@ class _SidebarState extends ConsumerState<Sidebar> {
             ),
           ),
         );
+        return;
+      case _FeedAction.offlineCache:
+        final count = await ref
+            .read(syncServiceProvider)
+            .offlineCacheFeed(f.id);
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.cachingArticles(count))));
         return;
       case _FeedAction.move:
         await _moveFeedToCategory(context, ref, f);
@@ -886,7 +994,17 @@ class _SidebarState extends ConsumerState<Sidebar> {
     final file = await openFile(acceptedTypeGroups: [group]);
     if (file == null) return;
     final xml = await file.readAsString();
-    final entries = ref.read(opmlServiceProvider).parseEntries(xml);
+    List<OpmlEntry> entries;
+    try {
+      entries = ref.read(opmlServiceProvider).parseEntries(xml);
+    } catch (_) {
+      if (!context.mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.errorMessage(l10n.opmlParseFailed))),
+      );
+      return;
+    }
     if (entries.isEmpty) {
       if (!context.mounted) return;
       final l10n = AppLocalizations.of(context)!;
@@ -941,7 +1059,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
 
 enum _SidebarMenu { settings, refreshAll, importOpml, exportOpml }
 
-enum _FeedAction { edit, refresh, move, delete }
+enum _FeedAction { edit, refresh, offlineCache, move, delete }
 
 enum _CategoryAction { rename, delete }
 
@@ -969,6 +1087,8 @@ class _SidebarItem extends StatelessWidget {
     required this.title,
     required this.onTap,
     this.count,
+    this.iconColor,
+    this.indent = 0,
   });
 
   final bool selected;
@@ -976,6 +1096,8 @@ class _SidebarItem extends StatelessWidget {
   final String title;
   final VoidCallback onTap;
   final int? count;
+  final Color? iconColor;
+  final double indent;
 
   @override
   Widget build(BuildContext context) {
@@ -984,7 +1106,7 @@ class _SidebarItem extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: ListTile(
         selected: selected,
-        leading: Icon(icon, size: 20),
+        leading: Icon(icon, size: 20, color: iconColor),
         title: Text(title),
         trailing: count != null && count! > 0 ? _UnreadBadge(count!) : null,
         onTap: onTap,
@@ -992,7 +1114,7 @@ class _SidebarItem extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         // Visual adjustments to match "denser" look
         visualDensity: VisualDensity.compact,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+        contentPadding: EdgeInsets.only(left: 12 + indent, right: 12),
       ),
     );
   }
