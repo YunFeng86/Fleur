@@ -1,9 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:path_provider/path_provider.dart';
-
 import 'app_settings.dart';
+import '../../utils/path_utils.dart';
 
 class AppSettingsStore {
   Future<AppSettings> load() async {
@@ -25,8 +24,8 @@ class AppSettingsStore {
   }
 
   Future<File> _file() async {
-    final dir = await getApplicationDocumentsDirectory();
+    final dir = await PathUtils.getAppDataDirectory();
+
     return File('${dir.path}${Platform.pathSeparator}app_settings.json');
   }
 }
-

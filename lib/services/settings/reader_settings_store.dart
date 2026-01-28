@@ -1,9 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:path_provider/path_provider.dart';
-
 import 'reader_settings.dart';
+import '../../utils/path_utils.dart';
 
 class ReaderSettingsStore {
   Future<ReaderSettings> load() async {
@@ -25,8 +24,8 @@ class ReaderSettingsStore {
   }
 
   Future<File> _file() async {
-    final dir = await getApplicationDocumentsDirectory();
+    final dir = await PathUtils.getAppDataDirectory();
+
     return File('${dir.path}${Platform.pathSeparator}reader_settings.json');
   }
 }
-
