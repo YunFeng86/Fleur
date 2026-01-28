@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:html/parser.dart' as html_parser;
 import '../../models/article.dart';
@@ -8,6 +9,7 @@ class ArticleCacheService {
   ArticleCacheService(this._cacheManager);
 
   final BaseCacheManager _cacheManager;
+  static const int _asyncParseThreshold = 50000;
 
   Future<void> prefetchImagesFromHtml(
     String html, {
@@ -15,10 +17,11 @@ class ArticleCacheService {
     int maxImages = 24,
     int maxConcurrent = 4,
   }) async {
-    final urls = _extractImageUrls(
+    final urls = await _collectImageUrls(
       html,
       baseUrl: baseUrl,
-    ).take(maxImages).toList();
+      maxImages: maxImages,
+    );
     if (urls.isEmpty) return;
 
     // Small bounded concurrency: keeps memory/FD usage low.
@@ -28,7 +31,7 @@ class ArticleCacheService {
       futures.add(() async {
         await sem.acquire();
         try {
-          await _cacheManager.downloadFile(u.toString());
+          await _cacheManager.downloadFile(u);
         } catch (_) {
           // Best-effort cache warming; failures are ignored.
         } finally {
@@ -70,9 +73,49 @@ class ArticleCacheService {
     return count;
   }
 
-  Iterable<Uri> _extractImageUrls(String html, {required Uri? baseUrl}) sync* {
+  Future<List<String>> _collectImageUrls(
+    String html, {
+    required Uri? baseUrl,
+    required int maxImages,
+  }) async {
+    final limit = maxImages < 1 ? 0 : maxImages;
+    if (limit == 0) return const [];
+    if (html.length < _asyncParseThreshold) {
+      return _extractImageUrlsSync(
+        html,
+        baseUrl: baseUrl,
+        maxImages: limit,
+      );
+    }
+    return compute(
+      _extractImageUrlsIsolate,
+      _ImageUrlExtractParams(
+        html: html,
+        baseUrl: baseUrl?.toString(),
+        maxImages: limit,
+      ),
+    );
+  }
+
+  static List<String> _extractImageUrlsIsolate(
+    _ImageUrlExtractParams params,
+  ) {
+    return _extractImageUrlsSync(
+      params.html,
+      baseUrl: params.baseUrl == null ? null : Uri.tryParse(params.baseUrl!),
+      maxImages: params.maxImages,
+    );
+  }
+
+  static List<String> _extractImageUrlsSync(
+    String html, {
+    required Uri? baseUrl,
+    required int maxImages,
+  }) {
+    if (maxImages <= 0) return const [];
     final doc = html_parser.parse(html);
     final seen = <String>{};
+    final urls = <String>[];
     for (final img in doc.querySelectorAll('img')) {
       final raw = img.attributes['src']?.trim();
       if (raw == null || raw.isEmpty) continue;
@@ -80,8 +123,12 @@ class ArticleCacheService {
       final u = baseUrl?.resolve(raw) ?? Uri.tryParse(raw);
       if (u == null) continue;
       if (!(u.scheme == 'http' || u.scheme == 'https')) continue;
-      if (seen.add(u.toString())) yield u;
+      final normalized = u.toString();
+      if (!seen.add(normalized)) continue;
+      urls.add(normalized);
+      if (urls.length >= maxImages) break;
     }
+    return urls;
   }
 }
 
@@ -108,4 +155,16 @@ class _Semaphore {
       _waiters.removeAt(0).complete();
     }
   }
+}
+
+class _ImageUrlExtractParams {
+  const _ImageUrlExtractParams({
+    required this.html,
+    required this.baseUrl,
+    required this.maxImages,
+  });
+
+  final String html;
+  final String? baseUrl;
+  final int maxImages;
 }
