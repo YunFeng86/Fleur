@@ -62,6 +62,7 @@ class SyncService {
   final FeedParser _parser;
   final NotificationService _notifications;
   final ArticleCacheService _cache;
+  Future<void> _batchRefreshQueue = Future.value();
 
   Future<int> offlineCacheFeed(int feedId) async {
     final articles = await _articles.getUnread(feedId: feedId);
@@ -202,6 +203,24 @@ class SyncService {
   }
 
   Future<BatchRefreshResult> refreshFeedsSafe(
+    Iterable<int> feedIds, {
+    int maxConcurrent = 2,
+    int maxAttemptsPerFeed = 2,
+    void Function(int current, int total)? onProgress,
+  }) {
+    final task = _batchRefreshQueue.then((_) {
+      return _refreshFeedsSafeImpl(
+        feedIds,
+        maxConcurrent: maxConcurrent,
+        maxAttemptsPerFeed: maxAttemptsPerFeed,
+        onProgress: onProgress,
+      );
+    });
+    _batchRefreshQueue = task.then((_) {}).catchError((_) {});
+    return task;
+  }
+
+  Future<BatchRefreshResult> _refreshFeedsSafeImpl(
     Iterable<int> feedIds, {
     int maxConcurrent = 2,
     int maxAttemptsPerFeed = 2,

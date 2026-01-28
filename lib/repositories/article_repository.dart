@@ -215,25 +215,42 @@ class ArticleRepository {
   }
 
   Future<int> markAllRead({int? feedId, int? categoryId}) {
-    return _isar.writeTxn(() async {
-      final cid = categoryId;
-      final qb = _isar.articles
-          .filter()
-          .optional(feedId != null, (q) => q.feedIdEqualTo(feedId!))
-          .optional(cid != null && cid < 0, (q) => q.categoryIdIsNull())
-          .optional(cid != null && cid >= 0, (q) => q.categoryIdEqualTo(cid!))
-          .isReadEqualTo(false);
+    return _markAllReadBatched(feedId: feedId, categoryId: categoryId);
+  }
 
-      final items = await qb.findAll();
-      if (items.isEmpty) return 0;
-      final now = DateTime.now();
-      for (final a in items) {
-        a.isRead = true;
-        a.updatedAt = now;
-      }
-      await _isar.articles.putAll(items);
-      return items.length;
-    });
+  Future<int> _markAllReadBatched({int? feedId, int? categoryId}) async {
+    final cid = categoryId;
+    final qb = _isar.articles
+        .filter()
+        .optional(feedId != null, (q) => q.feedIdEqualTo(feedId!))
+        .optional(cid != null && cid < 0, (q) => q.categoryIdIsNull())
+        .optional(cid != null && cid >= 0, (q) => q.categoryIdEqualTo(cid!))
+        .isReadEqualTo(false);
+
+    // 先取出 ID，避免单次事务加载过多数据。
+    final ids = await qb.idProperty().findAll();
+    if (ids.isEmpty) return 0;
+
+    const batchSize = 200;
+    for (var i = 0; i < ids.length; i += batchSize) {
+      final end = i + batchSize > ids.length ? ids.length : i + batchSize;
+      final batchIds = ids.sublist(i, end);
+      await _isar.writeTxn(() async {
+        final items = await _isar.articles.getAll(batchIds);
+        final now = DateTime.now();
+        final updates = <Article>[];
+        for (final a in items) {
+          if (a == null) continue;
+          a.isRead = true;
+          a.updatedAt = now;
+          updates.add(a);
+        }
+        if (updates.isNotEmpty) {
+          await _isar.articles.putAll(updates);
+        }
+      });
+    }
+    return ids.length;
   }
 
   Future<List<Article>> getUnread({int? feedId}) {

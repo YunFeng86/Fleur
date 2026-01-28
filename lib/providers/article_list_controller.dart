@@ -62,8 +62,8 @@ class ArticleListController extends AutoDisposeAsyncNotifier<ArticleListState> {
         ArticleSortOrder.oldestFirst;
     _searchInContent = settings?.searchInContent ?? true;
 
-    // Refresh the list when the underlying query changes (new items, filters).
-    // Per-item streams cover read/star toggles without full refresh.
+    // 查询结果变化时刷新列表（新增/过滤）。
+    // 读/星标通过单条流更新，避免全量刷新。
     _sub?.cancel();
     final repo = ref.watch(articleRepositoryProvider);
     // Watch only the current query to avoid collection-wide refreshes.
