@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
@@ -7,7 +9,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_reader/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/category.dart';
@@ -22,6 +23,7 @@ import '../providers/settings_providers.dart';
 import '../services/settings/app_settings.dart';
 import '../services/settings/reader_settings.dart';
 import '../services/opml/opml_service.dart';
+import '../utils/path_utils.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -1714,12 +1716,41 @@ class _AboutTab extends StatefulWidget {
 }
 
 class _AboutTabState extends State<_AboutTab> {
-  late final Future<Directory> _docDirFuture;
+  late final Future<String> _appDataPathFuture;
 
   @override
   void initState() {
     super.initState();
-    _docDirFuture = getApplicationDocumentsDirectory();
+    _appDataPathFuture = PathUtils.getAppDataPath();
+  }
+
+  Future<void> _openFolder(String path) async {
+    final trimmed = path.trim();
+    if (trimmed.isEmpty) return;
+    try {
+      if (Platform.isWindows) {
+        await Process.start('explorer', [trimmed]);
+        return;
+      }
+      if (Platform.isMacOS) {
+        await Process.start('open', [trimmed]);
+        return;
+      }
+      if (Platform.isLinux) {
+        await Process.start('xdg-open', [trimmed]);
+        return;
+      }
+      await launchUrl(
+        Uri.file(trimmed),
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.errorMessage(e.toString()))));
+    }
   }
 
   @override
@@ -1749,10 +1780,10 @@ class _AboutTabState extends State<_AboutTab> {
                     children: [
                       Text(l10n.appTitle, style: theme.textTheme.titleMedium),
                       const SizedBox(height: 12),
-                      FutureBuilder(
-                        future: _docDirFuture,
+                      FutureBuilder<String>(
+                        future: _appDataPathFuture,
                         builder: (context, snapshot) {
-                          final path = snapshot.data?.path;
+                          final path = snapshot.data;
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -1788,11 +1819,8 @@ class _AboutTabState extends State<_AboutTab> {
                                     onPressed: path == null
                                         ? null
                                         : () {
-                                            launchUrl(
-                                              Uri.file(path),
-                                              mode: LaunchMode
-                                                  .externalApplication,
-                                            );
+                                            // 使用 unawaited 包装异步调用，避免阻塞UI线程
+                                            unawaited(_openFolder(path));
                                           },
                                     child: Text(l10n.openFolder),
                                   ),
