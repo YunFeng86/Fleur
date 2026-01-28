@@ -43,6 +43,7 @@ class ReaderView extends ConsumerStatefulWidget {
 class _ReaderViewState extends ConsumerState<ReaderView> {
   ProviderSubscription<AsyncValue<Article?>>? _articleSub;
   ProviderSubscription<AsyncValue<void>>? _fullTextSub;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -115,6 +116,7 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
   void dispose() {
     _articleSub?.close();
     _fullTextSub?.close();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -261,40 +263,49 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
   ) {
     const chunkThreshold = 50000;
     if (html.length < chunkThreshold) {
-      return SingleChildScrollView(
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: ReaderView.maxReadingWidth,
-            ),
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                settings.horizontalPadding,
-                24, // Top padding
-                settings.horizontalPadding,
-                100, // Bottom padding for floating bar
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  inlineHeader,
-                  HtmlWidget(
-                    html,
-                    baseUrl: Uri.tryParse(article.link),
-                    renderMode: RenderMode.column,
-                    buildAsync: true,
-                    onLoadingBuilder: (context, element, loadingProgress) =>
-                        const SizedBox.shrink(),
-                    textStyle: TextStyle(
-                      fontSize: settings.fontSize,
-                      height: settings.lineHeight,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                    onTapUrl: _onTapUrl,
-                    onTapImage: _onTapImage,
+      return SelectionArea(
+        contextMenuBuilder: _buildContextMenu,
+        child: Scrollbar(
+          controller: _scrollController,
+          thumbVisibility: isDesktop,
+          interactive: true,
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: ReaderView.maxReadingWidth,
+                ),
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    settings.horizontalPadding,
+                    24, // Top padding
+                    settings.horizontalPadding,
+                    100, // Bottom padding for floating bar
                   ),
-                ],
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      inlineHeader,
+                      HtmlWidget(
+                        html,
+                        baseUrl: Uri.tryParse(article.link),
+                        renderMode: RenderMode.column,
+                        buildAsync: true,
+                        onLoadingBuilder: (context, element, loadingProgress) =>
+                            const SizedBox.shrink(),
+                        textStyle: TextStyle(
+                          fontSize: settings.fontSize,
+                          height: settings.lineHeight,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                        onTapUrl: _onTapUrl,
+                        onTapImage: _onTapImage,
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -304,37 +315,59 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
 
     // Lazy load long articles
     final chunks = _splitHtmlIntoChunks(html);
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: ReaderView.maxReadingWidth),
-        child: ListView.builder(
-          padding: EdgeInsets.fromLTRB(
-            settings.horizontalPadding,
-            24,
-            settings.horizontalPadding,
-            100,
+    return SelectionArea(
+      contextMenuBuilder: _buildContextMenu,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            maxWidth: ReaderView.maxReadingWidth,
           ),
-          itemCount: chunks.length + 1,
-          itemBuilder: (context, index) {
-            if (index == 0) return inlineHeader;
-            return HtmlWidget(
-              chunks[index - 1],
-              baseUrl: Uri.tryParse(article.link),
-              renderMode: RenderMode.column,
-              buildAsync: true,
-              onLoadingBuilder: (context, element, loadingProgress) =>
-                  const SizedBox.shrink(),
-              textStyle: TextStyle(
-                fontSize: settings.fontSize,
-                height: settings.lineHeight,
-                color: Theme.of(context).colorScheme.onSurface,
+          child: Scrollbar(
+            controller: _scrollController,
+            thumbVisibility: isDesktop,
+            interactive: true,
+            child: ListView.builder(
+              controller: _scrollController,
+              padding: EdgeInsets.fromLTRB(
+                settings.horizontalPadding,
+                24,
+                settings.horizontalPadding,
+                100,
               ),
-              onTapUrl: _onTapUrl,
-              onTapImage: _onTapImage,
-            );
-          },
+              itemCount: chunks.length + 1,
+              itemBuilder: (context, index) {
+                if (index == 0) return inlineHeader;
+                return HtmlWidget(
+                  chunks[index - 1],
+                  baseUrl: Uri.tryParse(article.link),
+                  renderMode: RenderMode.column,
+                  buildAsync: true,
+                  onLoadingBuilder: (context, element, loadingProgress) =>
+                      const SizedBox.shrink(),
+                  textStyle: TextStyle(
+                    fontSize: settings.fontSize,
+                    height: settings.lineHeight,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                  onTapUrl: _onTapUrl,
+                  onTapImage: _onTapImage,
+                );
+              },
+            ),
+          ),
         ),
       ),
+    );
+  }
+
+  /// 构建自定义上下文菜单，使用 Material Design 风格
+  Widget _buildContextMenu(
+    BuildContext context,
+    SelectableRegionState selectableRegionState,
+  ) {
+    return AdaptiveTextSelectionToolbar.buttonItems(
+      anchors: selectableRegionState.contextMenuAnchors,
+      buttonItems: selectableRegionState.contextMenuButtonItems,
     );
   }
 

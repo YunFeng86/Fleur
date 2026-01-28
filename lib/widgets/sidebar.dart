@@ -31,6 +31,7 @@ class Sidebar extends ConsumerStatefulWidget {
 class _SidebarState extends ConsumerState<Sidebar> {
   int? _expandedCategoryId;
   final _searchController = TextEditingController();
+  final _scrollController = ScrollController();
   String _searchText = '';
 
   void _closeDrawerIfDesktopDrawer() {
@@ -57,6 +58,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -390,9 +392,15 @@ class _SidebarState extends ConsumerState<Sidebar> {
                       }
                     }
 
-                    return ListView(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      children: children,
+                    return Scrollbar(
+                      controller: _scrollController,
+                      thumbVisibility: isDesktop,
+                      interactive: true,
+                      child: ListView(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        children: children,
+                      ),
                     );
                   },
                 );

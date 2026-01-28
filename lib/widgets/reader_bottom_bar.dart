@@ -49,148 +49,171 @@ class ReaderBottomBar extends ConsumerWidget {
       ),
       child: SafeArea(
         top: false,
-        child: Row(
+        child: OverflowBar(
+          alignment: MainAxisAlignment.spaceBetween,
+          overflowAlignment: OverflowBarAlignment.end,
+          spacing: 8,
+          overflowSpacing: 8,
           children: [
             // Feed Info
-            if (feed != null && feedTitle != null && feedTitle.isNotEmpty) ...[
-              Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHigh,
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(
-                    feedTitle.substring(0, 1).toUpperCase(),
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.onSurfaceVariant,
+            if (feed != null && feedTitle != null && feedTitle.isNotEmpty)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHigh,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        feedTitle.substring(0, 1).toUpperCase(),
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  feedTitle,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.onSurface,
-                    fontWeight: FontWeight.bold,
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      feedTitle,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.onSurface,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ] else
-              const Spacer(),
+                ],
+              )
+            else
+              const SizedBox.shrink(),
 
             // Actions
-            IconButton(
-              tooltip: l10n.readerSettings,
-              onPressed: onShowSettings,
-              icon: const Icon(Icons.text_fields),
-            ),
-            IconButton(
-              tooltip: article.isStarred ? l10n.unstar : l10n.star,
-              onPressed: () =>
-                  ref.read(articleRepositoryProvider).toggleStar(article.id),
-              icon: Icon(
-                article.isStarred ? Icons.star : Icons.star_border,
-                color: article.isStarred ? theme.colorScheme.tertiary : null,
-              ),
-            ),
-            IconButton(
-              tooltip: l10n.manageTags,
-              onPressed: () => _showManageTagsDialog(context, ref, article),
-              icon: const Icon(Icons.label_outline),
-            ),
-            IconButton(
-              tooltip: article.isRead ? l10n.markUnread : l10n.markRead,
-              onPressed: () => ref
-                  .read(articleRepositoryProvider)
-                  .markRead(article.id, !article.isRead),
-              icon: Icon(
-                article.isRead
-                    ? Icons.mark_email_unread
-                    : Icons.mark_email_read,
-              ),
-            ),
-            IconButton(
-              tooltip: l10n.readLater,
-              onPressed: () => ref
-                  .read(articleRepositoryProvider)
-                  .toggleReadLater(article.id),
-              icon: Icon(
-                article.isReadLater
-                    ? Icons.watch_later
-                    : Icons.watch_later_outlined,
-                color: article.isReadLater ? theme.colorScheme.tertiary : null,
-              ),
-            ),
-            // Full Text / Reader Mode Toggle
-            Consumer(
-              builder: (context, ref, _) {
-                final hasFull = (article.fullContentHtml ?? '')
-                    .trim()
-                    .isNotEmpty;
-                final useFullText = ref.watch(
-                  fullTextViewEnabledProvider(article.id),
-                );
-                final controller = ref.watch(fullTextControllerProvider);
-                final showFull = hasFull && useFullText;
+            Wrap(
+              spacing: 4,
+              children: [
+                IconButton(
+                  tooltip: l10n.readerSettings,
+                  onPressed: onShowSettings,
+                  icon: const Icon(Icons.text_fields),
+                ),
+                IconButton(
+                  tooltip: article.isStarred ? l10n.unstar : l10n.star,
+                  onPressed: () => ref
+                      .read(articleRepositoryProvider)
+                      .toggleStar(article.id),
+                  icon: Icon(
+                    article.isStarred ? Icons.star : Icons.star_border,
+                    color: article.isStarred
+                        ? theme.colorScheme.tertiary
+                        : null,
+                  ),
+                ),
+                IconButton(
+                  tooltip: l10n.manageTags,
+                  onPressed: () => _showManageTagsDialog(context, ref, article),
+                  icon: const Icon(Icons.label_outline),
+                ),
+                IconButton(
+                  tooltip: article.isRead ? l10n.markUnread : l10n.markRead,
+                  onPressed: () => ref
+                      .read(articleRepositoryProvider)
+                      .markRead(article.id, !article.isRead),
+                  icon: Icon(
+                    article.isRead
+                        ? Icons.mark_email_unread
+                        : Icons.mark_email_read,
+                  ),
+                ),
+                IconButton(
+                  tooltip: l10n.readLater,
+                  onPressed: () => ref
+                      .read(articleRepositoryProvider)
+                      .toggleReadLater(article.id),
+                  icon: Icon(
+                    article.isReadLater
+                        ? Icons.watch_later
+                        : Icons.watch_later_outlined,
+                    color: article.isReadLater
+                        ? theme.colorScheme.tertiary
+                        : null,
+                  ),
+                ),
+                // Full Text / Reader Mode Toggle
+                Consumer(
+                  builder: (context, ref, _) {
+                    final hasFull = (article.fullContentHtml ?? '')
+                        .trim()
+                        .isNotEmpty;
+                    final useFullText = ref.watch(
+                      fullTextViewEnabledProvider(article.id),
+                    );
+                    final controller = ref.watch(fullTextControllerProvider);
+                    final showFull = hasFull && useFullText;
 
-                return IconButton(
-                  tooltip: hasFull && showFull ? l10n.collapse : l10n.fullText,
-                  onPressed: controller.isLoading
-                      ? null
-                      : hasFull
-                      ? () {
-                          ref
-                                  .read(
-                                    fullTextViewEnabledProvider(
-                                      article.id,
-                                    ).notifier,
-                                  )
-                                  .state =
-                              !useFullText;
-                        }
-                      : () {
-                          // Fetch and show
-                          ref
-                                  .read(
-                                    fullTextViewEnabledProvider(
-                                      article.id,
-                                    ).notifier,
-                                  )
-                                  .state =
-                              true;
-                          ref
-                              .read(fullTextControllerProvider.notifier)
-                              .fetch(article.id);
-                        },
-                  icon: controller.isLoading
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Icon(
-                          Icons.chrome_reader_mode,
-                          color: showFull ? theme.colorScheme.primary : null,
-                        ),
-                );
-              },
-            ),
-            IconButton(
-              tooltip: l10n.openInBrowser,
-              onPressed: () {
-                final uri = Uri.tryParse(article.link);
-                if (uri != null) {
-                  launchUrl(uri, mode: LaunchMode.externalApplication);
-                }
-              },
-              icon: const Icon(Icons.open_in_browser),
+                    return IconButton(
+                      tooltip: hasFull && showFull
+                          ? l10n.collapse
+                          : l10n.fullText,
+                      onPressed: controller.isLoading
+                          ? null
+                          : hasFull
+                          ? () {
+                              ref
+                                      .read(
+                                        fullTextViewEnabledProvider(
+                                          article.id,
+                                        ).notifier,
+                                      )
+                                      .state =
+                                  !useFullText;
+                            }
+                          : () {
+                              // Fetch and show
+                              ref
+                                      .read(
+                                        fullTextViewEnabledProvider(
+                                          article.id,
+                                        ).notifier,
+                                      )
+                                      .state =
+                                  true;
+                              ref
+                                  .read(fullTextControllerProvider.notifier)
+                                  .fetch(article.id);
+                            },
+                      icon: controller.isLoading
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Icon(
+                              Icons.chrome_reader_mode,
+                              color: showFull
+                                  ? theme.colorScheme.primary
+                                  : null,
+                            ),
+                    );
+                  },
+                ),
+                IconButton(
+                  tooltip: l10n.openInBrowser,
+                  onPressed: () {
+                    final uri = Uri.tryParse(article.link);
+                    if (uri != null) {
+                      launchUrl(uri, mode: LaunchMode.externalApplication);
+                    }
+                  },
+                  icon: const Icon(Icons.open_in_browser),
+                ),
+              ],
             ),
           ],
         ),

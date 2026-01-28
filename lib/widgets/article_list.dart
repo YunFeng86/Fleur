@@ -102,89 +102,94 @@ class _ArticleListState extends ConsumerState<ArticleList> {
 
         return Container(
           color: Theme.of(context).colorScheme.surfaceContainerLow,
-          child: ListView.builder(
+          child: Scrollbar(
             controller: _controller,
-            itemCount: entries.length + (data.hasMore ? 1 : 0),
-            itemBuilder: (context, index) {
-              if (index >= entries.length) {
-                return Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Center(
-                    child: data.isLoadingMore
-                        ? const CircularProgressIndicator()
-                        : Text(l10n.scrollToLoadMore),
-                  ),
-                );
-              }
-
-              final entry = entries[index];
-              if (entry is _HeaderEntry) {
-                return Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 16, 12, 8),
-                  child: Text(
-                    entry.title,
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                );
-              }
-
-              final a = (entry as _ArticleEntry).article;
-              Widget child = ArticleListItem(
-                article: a,
-                selected: a.id == widget.selectedArticleId,
-                onTap: () {
-                  final width = MediaQuery.sizeOf(context).width;
-
-                  final openAsSecondaryPage = isDesktop
-                      ? !desktopReaderEmbedded(desktopModeForWidth(width))
-                      : width < 600;
-
-                  if (openAsSecondaryPage) {
-                    context.push('/article/${a.id}');
-                  } else {
-                    context.go('/article/${a.id}');
-                  }
-                },
-              );
-
-              if (narrow) {
-                child = Dismissible(
-                  key: ValueKey(a.id),
-                  background: Container(
-                    color: Colors.green.shade700,
-                    alignment: Alignment.centerLeft,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Icon(
-                      a.isRead
-                          ? Icons.mark_email_unread
-                          : Icons.mark_email_read,
-                      color: Colors.white,
+            thumbVisibility: isDesktop,
+            interactive: true,
+            child: ListView.builder(
+              controller: _controller,
+              itemCount: entries.length + (data.hasMore ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index >= entries.length) {
+                  return Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Center(
+                      child: data.isLoadingMore
+                          ? const CircularProgressIndicator()
+                          : Text(l10n.scrollToLoadMore),
                     ),
-                  ),
-                  secondaryBackground: Container(
-                    color: Colors.amber.shade800,
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Icon(
-                      a.isStarred ? Icons.star_border : Icons.star,
-                      color: Colors.white,
+                  );
+                }
+
+                final entry = entries[index];
+                if (entry is _HeaderEntry) {
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 16, 12, 8),
+                    child: Text(
+                      entry.title,
+                      style: Theme.of(context).textTheme.titleSmall,
                     ),
-                  ),
-                  confirmDismiss: (direction) async {
-                    final repo = ref.read(articleRepositoryProvider);
-                    if (direction == DismissDirection.startToEnd) {
-                      await repo.markRead(a.id, !a.isRead);
+                  );
+                }
+
+                final a = (entry as _ArticleEntry).article;
+                Widget child = ArticleListItem(
+                  article: a,
+                  selected: a.id == widget.selectedArticleId,
+                  onTap: () {
+                    final width = MediaQuery.sizeOf(context).width;
+
+                    final openAsSecondaryPage = isDesktop
+                        ? !desktopReaderEmbedded(desktopModeForWidth(width))
+                        : width < 600;
+
+                    if (openAsSecondaryPage) {
+                      context.push('/article/${a.id}');
                     } else {
-                      await repo.toggleStar(a.id);
+                      context.go('/article/${a.id}');
                     }
-                    return false; // keep item in list
                   },
-                  child: child,
                 );
-              }
 
-              return child;
-            },
+                if (narrow) {
+                  child = Dismissible(
+                    key: ValueKey(a.id),
+                    background: Container(
+                      color: Colors.green.shade700,
+                      alignment: Alignment.centerLeft,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Icon(
+                        a.isRead
+                            ? Icons.mark_email_unread
+                            : Icons.mark_email_read,
+                        color: Colors.white,
+                      ),
+                    ),
+                    secondaryBackground: Container(
+                      color: Colors.amber.shade800,
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Icon(
+                        a.isStarred ? Icons.star_border : Icons.star,
+                        color: Colors.white,
+                      ),
+                    ),
+                    confirmDismiss: (direction) async {
+                      final repo = ref.read(articleRepositoryProvider);
+                      if (direction == DismissDirection.startToEnd) {
+                        await repo.markRead(a.id, !a.isRead);
+                      } else {
+                        await repo.toggleStar(a.id);
+                      }
+                      return false; // keep item in list
+                    },
+                    child: child,
+                  );
+                }
+
+                return child;
+              },
+            ),
           ),
         );
       },
