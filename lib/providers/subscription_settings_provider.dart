@@ -40,7 +40,11 @@ class SubscriptionSelectionNotifier extends StateNotifier<SubscriptionState> {
   SubscriptionSelectionNotifier() : super(const SubscriptionState());
 
   void selectCategory(int? id) {
-    if (state.activeCategoryId == id && state.selectedFeedId == null) return;
+    if (state.activeCategoryId == id && state.selectedFeedId == null) {
+      // Toggle off if clicking the currently active category (and no feed is selected)
+      state = const SubscriptionState();
+      return;
+    }
     state = SubscriptionState(activeCategoryId: id, selectedFeedId: null);
   }
 
@@ -49,6 +53,11 @@ class SubscriptionSelectionNotifier extends StateNotifier<SubscriptionState> {
   }
 
   void selectFeed(int feedId, [int? categoryId]) {
+    // If clicking the currently selected feed, toggle it off.
+    if (state.selectedFeedId == feedId) {
+      state = state.copyWith(clearFeed: true);
+      return;
+    }
     // If categoryId is provided, we switch context.
     // Otherwise we keep existing category.
     state = SubscriptionState(

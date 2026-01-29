@@ -141,6 +141,11 @@ class _ArticleListState extends ConsumerState<ArticleList> {
                       article: live,
                       selected: live.id == widget.selectedArticleId,
                       onTap: () {
+                        if (live.id == widget.selectedArticleId) {
+                          context.go('/');
+                          return;
+                        }
+
                         final width = MediaQuery.sizeOf(context).width;
 
                         final openAsSecondaryPage = isDesktop

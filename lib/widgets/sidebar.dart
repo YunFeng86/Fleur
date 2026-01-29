@@ -504,6 +504,10 @@ class _SidebarState extends ConsumerState<Sidebar> {
   }
 
   void _select(WidgetRef ref, int? id) {
+    if (ref.read(selectedFeedIdProvider) == id) {
+      _selectAll(ref);
+      return;
+    }
     ref.read(starredOnlyProvider.notifier).state = false;
     ref.read(readLaterOnlyProvider.notifier).state = false;
     ref.read(selectedFeedIdProvider.notifier).state = id;
@@ -526,6 +530,10 @@ class _SidebarState extends ConsumerState<Sidebar> {
   }
 
   void _selectStarred(WidgetRef ref) {
+    if (ref.read(starredOnlyProvider)) {
+      _selectAll(ref);
+      return;
+    }
     ref.read(starredOnlyProvider.notifier).state = true;
     ref.read(readLaterOnlyProvider.notifier).state = false;
     ref.read(selectedFeedIdProvider.notifier).state = null;
@@ -537,6 +545,10 @@ class _SidebarState extends ConsumerState<Sidebar> {
   }
 
   void _selectCategory(WidgetRef ref, int categoryId) {
+    if (ref.read(selectedCategoryIdProvider) == categoryId) {
+      _selectAll(ref);
+      return;
+    }
     ref.read(starredOnlyProvider.notifier).state = false;
     ref.read(readLaterOnlyProvider.notifier).state = false;
     ref.read(selectedFeedIdProvider.notifier).state = null;
@@ -548,6 +560,10 @@ class _SidebarState extends ConsumerState<Sidebar> {
   }
 
   void _selectReadLater(WidgetRef ref) {
+    if (ref.read(readLaterOnlyProvider)) {
+      _selectAll(ref);
+      return;
+    }
     ref.read(starredOnlyProvider.notifier).state = false;
     ref.read(readLaterOnlyProvider.notifier).state = true;
     ref.read(selectedFeedIdProvider.notifier).state = null;
@@ -559,6 +575,10 @@ class _SidebarState extends ConsumerState<Sidebar> {
   }
 
   void _selectTag(WidgetRef ref, int tagId) {
+    if (ref.read(selectedTagIdProvider) == tagId) {
+      _selectAll(ref);
+      return;
+    }
     ref.read(starredOnlyProvider.notifier).state = false;
     ref.read(readLaterOnlyProvider.notifier).state = false;
     ref.read(selectedFeedIdProvider.notifier).state = null;
