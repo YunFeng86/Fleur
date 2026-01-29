@@ -347,10 +347,6 @@ class ArticleRepository {
     List<Rule> rules = const [],
   }) {
     return _isar.writeTxn(() async {
-      // Get Feed's categoryId for denormalization
-      final feed = await _isar.feeds.get(feedId);
-      final categoryId = feed?.categoryId;
-
       final enabledRules = rules
           .where((r) => r.enabled)
           .toList(growable: false);
@@ -369,6 +365,11 @@ class ArticleRepository {
             .where()
             .linkFeedIdEqualTo(a.link, feedId)
             .findFirst();
+
+        // [BUGFIX] Get Feed's categoryId within the loop to ensure consistency
+        // This prevents race conditions when Feed.categoryId is updated concurrently
+        final feed = await _isar.feeds.get(feedId);
+        final categoryId = feed?.categoryId;
 
         a.feedId = feedId;
         a.categoryId = categoryId; // [V2.0] Denormalize categoryId

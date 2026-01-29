@@ -6,6 +6,7 @@ import 'package:window_manager/window_manager.dart';
 import 'app/app.dart';
 import 'db/isar_db.dart';
 import 'providers/core_providers.dart';
+import 'services/data_integrity_service.dart';
 import 'utils/platform.dart';
 
 Future<void> main() async {
@@ -30,6 +31,21 @@ Future<void> main() async {
   }
 
   final isar = await openIsar();
+
+  // [BUGFIX] Run data integrity check in background to avoid blocking UI
+  // This prevents categoryId mismatches caused by race conditions
+  Future.microtask(() async {
+    final integrityService = DataIntegrityService(isar);
+    try {
+      final fixed = await integrityService.repairCategoryIdMismatch();
+      if (fixed > 0) {
+        debugPrint('✅ Data integrity check: Fixed $fixed articles with mismatched categoryId');
+      }
+    } catch (e) {
+      debugPrint('⚠️ Data integrity check failed: $e');
+    }
+  });
+
   runApp(
     ProviderScope(
       overrides: [isarProvider.overrideWithValue(isar)],
