@@ -17,7 +17,7 @@ jobs:
           # Windows构建（正式支持，已测试）
           - os: windows-latest
             platform: windows
-            build-cmd: flutter build windows --release
+            build-args: windows --release
             artifact-path: build/windows/x64/runner/Release
             artifact-name: flutter_reader-windows-x64.zip
             archive-cmd: |
@@ -28,7 +28,7 @@ jobs:
           # macOS构建（实验性，未测试）
           - os: macos-latest
             platform: macos
-            build-cmd: flutter build macos --release
+            build-args: macos --release
             artifact-path: build/macos/Build/Products/Release
             artifact-name: flutter_reader-macos.zip
             archive-cmd: |
@@ -38,7 +38,7 @@ jobs:
           # Linux构建（实验性，未测试）
           - os: ubuntu-latest
             platform: linux
-            build-cmd: flutter build linux --release
+            build-args: linux --release
             artifact-path: build/linux/x64/release/bundle
             artifact-name: flutter_reader-linux-x64.tar.gz
             archive-cmd: |
@@ -139,7 +139,7 @@ jobs:
       - name: Build ${{ matrix.platform }} release
         shell: bash
         run: |
-          flutter build ${{ matrix.build-cmd }} \
+          flutter build ${{ matrix.build-args }} \
             --dart-define=APP_COMMIT_HASH="${{ steps.version_vars.outputs.commit_hash }}" \
             --dart-define=APP_BUILD_TIME="${{ steps.version_vars.outputs.build_time }}" \
             --dart-define=APP_BUILD_NUMBER="${{ steps.version_vars.outputs.build_number }}"
