@@ -1,8 +1,13 @@
 name: flutter_reader
-description: "A new Flutter project."
+description: "An RSS Reader built with Flutter"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+# 项目链接（便于用户提Issue和查看源码）
+homepage: https://github.com/YunFeng86/Flutter-Reader
+repository: https://github.com/YunFeng86/Flutter-Reader
+issue_tracker: https://github.com/YunFeng86/Flutter-Reader/issues
 
 # The following defines the version and build number for your application.
 # A version number is three numbers separated by dots, like 1.2.43
@@ -16,7 +21,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 0.0.1-alpha.1  # CI会从Git Tag自动覆盖此版本号
 
 environment:
   sdk: ^3.10.0
@@ -66,7 +71,6 @@ dev_dependencies:
     sdk: flutter
   build_runner: ^2.4.5
   isar_generator: ^3.1.0+1
-  path_provider_platform_interface: ^2.1.2
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
