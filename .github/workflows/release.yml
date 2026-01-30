@@ -78,15 +78,47 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # 自动同步版本号：从Git Tag更新pubspec.yaml
+      # 计算版本变量（版本号+构建号+Commit Hash）
+      - name: Calculate version variables
+        id: version_vars
+        shell: bash
+        run: |
+          # 提取版本号（从tag移除v前缀，如 v1.0.0-alpha.1 -> 1.0.0-alpha.1）
+          VERSION_NAME="${{ github.ref_name }}"
+          VERSION_NAME=${VERSION_NAME#v}
+
+          # 构建号：使用GitHub Actions的run_number（纯数字，严格递增）
+          BUILD_NUM=${{ github.run_number }}
+
+          # 完整版本号（符合语义化版本规范）
+          FULL_VERSION="${VERSION_NAME}+${BUILD_NUM}"
+
+          # Git Commit Hash（用于"关于"页面显示，不写入pubspec.yaml）
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+
+          # 构建时间（UTC）
+          BUILD_TIME=$(date -u "+%Y-%m-%d %H:%M UTC")
+
+          # 输出变量供后续步骤使用
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "build_number=$BUILD_NUM" >> $GITHUB_OUTPUT
+          echo "full_version=$FULL_VERSION" >> $GITHUB_OUTPUT
+          echo "commit_hash=$COMMIT_HASH" >> $GITHUB_OUTPUT
+          echo "build_time=$BUILD_TIME" >> $GITHUB_OUTPUT
+
+          # 调试输出
+          echo "✅ Version: $FULL_VERSION"
+          echo "✅ Commit: $COMMIT_HASH"
+          echo "✅ Build Time: $BUILD_TIME"
+
+      # 更新pubspec.yaml的版本号（仅在tag构建时）
       - name: Update version from tag
         if: startsWith(github.ref, 'refs/tags/')
         shell: bash
         run: |
-          VERSION=${{ github.ref_name }}
-          VERSION=${VERSION#v}  # 移除v前缀 (v1.2.3 -> 1.2.3)
+          VERSION="${{ steps.version_vars.outputs.full_version }}"
 
-          # 使用sed替换pubspec.yaml中的版本号
+          # 使用sed替换pubspec.yaml中的版本号（处理macOS/Linux的sed差异）
           if [[ "$RUNNER_OS" == "macOS" ]]; then
             sed -i '' "s/^version: .*/version: $VERSION/" pubspec.yaml
           else
@@ -105,7 +137,12 @@ jobs:
         continue-on-error: true  # 测试失败不阻塞构建（Alpha版本容忍测试失败）
 
       - name: Build ${{ matrix.platform }} release
-        run: ${{ matrix.build-cmd }}
+        shell: bash
+        run: |
+          flutter build ${{ matrix.build-cmd }} \
+            --dart-define=APP_COMMIT_HASH="${{ steps.version_vars.outputs.commit_hash }}" \
+            --dart-define=APP_BUILD_TIME="${{ steps.version_vars.outputs.build_time }}" \
+            --dart-define=APP_BUILD_NUMBER="${{ steps.version_vars.outputs.build_number }}"
 
       - name: Archive build artifacts
         shell: bash
