@@ -23,7 +23,8 @@ jobs:
             archive-cmd: |
               cd build/windows/x64/runner/Release
               rm -f *.pdb
-              7z a -tzip "${{ github.workspace }}/flutter_reader-windows-x64.zip" *
+              7z a -tzip flutter_reader-windows-x64.zip *
+              mv flutter_reader-windows-x64.zip "${{ github.workspace }}/"
 
           # macOS构建（实验性，未测试）
           - os: macos-latest
@@ -33,7 +34,8 @@ jobs:
             artifact-name: flutter_reader-macos.zip
             archive-cmd: |
               cd build/macos/Build/Products/Release
-              zip -r "${{ github.workspace }}/flutter_reader-macos.zip" flutter_reader.app
+              zip -r flutter_reader-macos.zip flutter_reader.app
+              mv flutter_reader-macos.zip "${{ github.workspace }}/"
 
           # Linux构建（实验性，未测试）
           - os: ubuntu-latest
@@ -43,7 +45,8 @@ jobs:
             artifact-name: flutter_reader-linux-x64.tar.gz
             archive-cmd: |
               cd build/linux/x64/release/bundle
-              tar -czf "${{ github.workspace }}/flutter_reader-linux-x64.tar.gz" *
+              tar -czf flutter_reader-linux-x64.tar.gz *
+              mv flutter_reader-linux-x64.tar.gz "${{ github.workspace }}/"
             deps-cmd: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev
 
     runs-on: ${{ matrix.os }}
