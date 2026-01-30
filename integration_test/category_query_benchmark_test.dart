@@ -25,15 +25,20 @@ void main() {
   setUpAll(() async {
     // Create temporary directory for test database
     final appDir = await getApplicationDocumentsDirectory();
-    tempDir = Directory('${appDir.path}/isar_benchmark_${DateTime.now().millisecondsSinceEpoch}');
+    tempDir = Directory(
+      '${appDir.path}/isar_benchmark_${DateTime.now().millisecondsSinceEpoch}',
+    );
     await tempDir.create(recursive: true);
 
-    isar = await Isar.open(
-      [FeedSchema, ArticleSchema, CategorySchema, TagSchema, RuleSchema],
-      directory: tempDir.path,
-    );
+    isar = await Isar.open([
+      FeedSchema,
+      ArticleSchema,
+      CategorySchema,
+      TagSchema,
+      RuleSchema,
+    ], directory: tempDir.path);
 
-    print('\n🏗️  Setting up benchmark database...');
+    stdout.writeln('\n🏗️  Setting up benchmark database...');
     await _seedTestData(isar);
   });
 
@@ -44,8 +49,9 @@ void main() {
     }
   });
 
-  testWidgets('Benchmark: categoryId direct query vs feedId two-step query',
-      (WidgetTester tester) async {
+  testWidgets('Benchmark: categoryId direct query vs feedId two-step query', (
+    WidgetTester tester,
+  ) async {
     const categoryId = 5;
     const iterations = 20;
 
@@ -78,18 +84,24 @@ void main() {
     final speedup = ((avg2 - avg1) / avg2 * 100).toStringAsFixed(1);
     final diff = (avg2 - avg1).toStringAsFixed(0);
 
-    print('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    print('📊 Category Query Performance Benchmark');
-    print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    print('Dataset: 50 feeds × 500 articles = 25,000 total articles');
-    print('Category: $categoryId (contains 10 feeds)');
-    print('Iterations: $iterations');
-    print('');
-    print('Method 1 (Direct categoryId):  ${avg1.toStringAsFixed(0)} μs/query');
-    print('Method 2 (Two-step via feedId): ${avg2.toStringAsFixed(0)} μs/query');
-    print('');
-    print('Result: Method 1 is $speedup% faster ($diff μs improvement)');
-    print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    stdout.writeln('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    stdout.writeln('📊 Category Query Performance Benchmark');
+    stdout.writeln('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    stdout.writeln('Dataset: 50 feeds × 500 articles = 25,000 total articles');
+    stdout.writeln('Category: $categoryId (contains 10 feeds)');
+    stdout.writeln('Iterations: $iterations');
+    stdout.writeln();
+    stdout.writeln(
+      'Method 1 (Direct categoryId):  ${avg1.toStringAsFixed(0)} μs/query',
+    );
+    stdout.writeln(
+      'Method 2 (Two-step via feedId): ${avg2.toStringAsFixed(0)} μs/query',
+    );
+    stdout.writeln();
+    stdout.writeln(
+      'Result: Method 1 is $speedup% faster ($diff μs improvement)',
+    );
+    stdout.writeln('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     // Assert that Method 1 is faster
     expect(
@@ -101,16 +113,28 @@ void main() {
     // Performance analysis
     final improvementRatio = avg2 / avg1;
     if (improvementRatio >= 1.3) {
-      print('✅ Performance improvement (${speedup}%) justifies denormalization');
-      print('   Speedup ratio: ${improvementRatio.toStringAsFixed(2)}x\n');
+      stdout.writeln(
+        '✅ Performance improvement ($speedup%) justifies denormalization',
+      );
+      stdout.writeln(
+        '   Speedup ratio: ${improvementRatio.toStringAsFixed(2)}x\n',
+      );
     } else if (improvementRatio >= 1.15) {
-      print('⚠️  Moderate improvement (${speedup}%)');
-      print('   Speedup ratio: ${improvementRatio.toStringAsFixed(2)}x');
-      print('   Denormalization may still be worth it for UX responsiveness\n');
+      stdout.writeln('⚠️  Moderate improvement ($speedup%)');
+      stdout.writeln(
+        '   Speedup ratio: ${improvementRatio.toStringAsFixed(2)}x',
+      );
+      stdout.writeln(
+        '   Denormalization may still be worth it for UX responsiveness\n',
+      );
     } else {
-      print('❌ Low improvement (${speedup}%)');
-      print('   Speedup ratio: ${improvementRatio.toStringAsFixed(2)}x');
-      print('   Consider removing denormalization - complexity cost may not justify gains\n');
+      stdout.writeln('❌ Low improvement ($speedup%)');
+      stdout.writeln(
+        '   Speedup ratio: ${improvementRatio.toStringAsFixed(2)}x',
+      );
+      stdout.writeln(
+        '   Consider removing denormalization - complexity cost may not justify gains\n',
+      );
     }
   });
 }
@@ -178,7 +202,8 @@ Future<void> _seedTestData(Isar isar) async {
       for (var j = 1; j <= 500; j++) {
         final article = Article()
           ..feedId = feedId
-          ..categoryId = categoryId // Denormalized field
+          ..categoryId =
+              categoryId // Denormalized field
           ..link = 'https://example.com/feed$feedId/article$j'
           ..title = 'Article $j from Feed $feedId'
           ..publishedAt = DateTime.now().subtract(Duration(hours: j))
@@ -193,7 +218,7 @@ Future<void> _seedTestData(Isar isar) async {
   final articleCount = await isar.articles.count();
   final categoryCount = await isar.categorys.count();
 
-  print('📦 Seeded $feedCount feeds');
-  print('📦 Seeded $articleCount articles');
-  print('📦 Seeded $categoryCount categories\n');
+  stdout.writeln('📦 Seeded $feedCount feeds');
+  stdout.writeln('📦 Seeded $articleCount articles');
+  stdout.writeln('📦 Seeded $categoryCount categories\n');
 }

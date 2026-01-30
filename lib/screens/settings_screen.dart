@@ -94,7 +94,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               final item = items[_selectedIndex!];
               return PopScope(
                 canPop: false,
-                onPopInvoked: (didPop) {
+                onPopInvokedWithResult: (didPop, _) {
                   if (didPop) return;
                   setState(() => _selectedIndex = null);
                 },

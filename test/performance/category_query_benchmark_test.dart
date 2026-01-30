@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:ffi';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -18,25 +20,55 @@ import 'package:flutter_reader/models/rule.dart';
 /// Expected result: Method 1 should be significantly faster (>30% improvement)
 /// to justify the complexity cost of maintaining denormalized data.
 void main() {
-  late Isar isar;
-  late Directory tempDir;
+  Isar? isar;
+  Directory? tempDir;
 
   setUpAll(() async {
+    // This benchmark relies on Isar Core native binaries. In unit tests,
+    // Isar Core might be missing from the working directory, so we load it
+    // from `isar_flutter_libs` (bundled in pub cache) to keep `flutter test`
+    // runnable offline.
+    final coreLibName = switch (true) {
+      _ when Platform.isWindows => 'isar.dll',
+      _ when Platform.isMacOS => 'libisar.dylib',
+      _ => 'libisar.so',
+    };
+    final platformDir = switch (true) {
+      _ when Platform.isWindows => 'windows',
+      _ when Platform.isMacOS => 'macos',
+      _ => 'linux',
+    };
+
+    final isarFlutterLibsRoot = await _resolvePackageRoot('isar_flutter_libs');
+    if (isarFlutterLibsRoot == null) {
+      throw StateError(
+        'Failed to locate isar_flutter_libs in the package config. '
+        'Add isar_flutter_libs to your dependencies.',
+      );
+    }
+    final isarCorePath =
+        '${isarFlutterLibsRoot.path}${Platform.pathSeparator}$platformDir'
+        '${Platform.pathSeparator}$coreLibName';
+    await Isar.initializeIsarCore(libraries: {Abi.current(): isarCorePath});
+
     // Create temporary directory for test database
     tempDir = await Directory.systemTemp.createTemp('isar_benchmark_');
-    isar = await Isar.open(
-      [FeedSchema, ArticleSchema, CategorySchema, TagSchema, RuleSchema],
-      directory: tempDir.path,
-    );
+    isar = await Isar.open([
+      FeedSchema,
+      ArticleSchema,
+      CategorySchema,
+      TagSchema,
+      RuleSchema,
+    ], directory: tempDir!.path);
 
     // Seed test data: 50 feeds with 500 articles each = 25000 articles
     // This simulates a moderate RSS reader usage
-    await _seedTestData(isar);
+    await _seedTestData(isar!);
   });
 
   tearDownAll(() async {
-    await isar.close();
-    await tempDir.delete(recursive: true);
+    await isar?.close();
+    await tempDir?.delete(recursive: true);
   });
 
   test('Benchmark: categoryId direct query vs feedId two-step query', () async {
@@ -44,13 +76,13 @@ void main() {
     const iterations = 10;
 
     // Warmup (JIT compilation, cache warming)
-    await _queryWithCategoryId(isar, categoryId);
-    await _queryWithFeedIds(isar, categoryId);
+    await _queryWithCategoryId(isar!, categoryId);
+    await _queryWithFeedIds(isar!, categoryId);
 
     // Method 1: Direct categoryId query (current implementation)
     final stopwatch1 = Stopwatch()..start();
     for (var i = 0; i < iterations; i++) {
-      await _queryWithCategoryId(isar, categoryId);
+      await _queryWithCategoryId(isar!, categoryId);
     }
     stopwatch1.stop();
     final avg1 = stopwatch1.elapsedMicroseconds / iterations;
@@ -58,7 +90,7 @@ void main() {
     // Method 2: Two-step query via feedId (alternative approach)
     final stopwatch2 = Stopwatch()..start();
     for (var i = 0; i < iterations; i++) {
-      await _queryWithFeedIds(isar, categoryId);
+      await _queryWithFeedIds(isar!, categoryId);
     }
     stopwatch2.stop();
     final avg2 = stopwatch2.elapsedMicroseconds / iterations;
@@ -67,18 +99,24 @@ void main() {
     final speedup = ((avg2 - avg1) / avg2 * 100).toStringAsFixed(1);
     final diff = (avg2 - avg1).toStringAsFixed(0);
 
-    print('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    print('📊 Category Query Performance Benchmark');
-    print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    print('Dataset: 50 feeds × 500 articles = 25,000 total articles');
-    print('Category: $categoryId (contains 10 feeds)');
-    print('Iterations: $iterations');
-    print('');
-    print('Method 1 (Direct categoryId):  ${avg1.toStringAsFixed(0)} μs/query');
-    print('Method 2 (Two-step via feedId): ${avg2.toStringAsFixed(0)} μs/query');
-    print('');
-    print('Result: Method 1 is ${speedup}% faster ($diff μs improvement)');
-    print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    stdout.writeln('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    stdout.writeln('📊 Category Query Performance Benchmark');
+    stdout.writeln('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    stdout.writeln('Dataset: 50 feeds × 500 articles = 25,000 total articles');
+    stdout.writeln('Category: $categoryId (contains 10 feeds)');
+    stdout.writeln('Iterations: $iterations');
+    stdout.writeln();
+    stdout.writeln(
+      'Method 1 (Direct categoryId):  ${avg1.toStringAsFixed(0)} μs/query',
+    );
+    stdout.writeln(
+      'Method 2 (Two-step via feedId): ${avg2.toStringAsFixed(0)} μs/query',
+    );
+    stdout.writeln();
+    stdout.writeln(
+      'Result: Method 1 is $speedup% faster ($diff μs improvement)',
+    );
+    stdout.writeln('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     // Assert that Method 1 is faster
     expect(
@@ -91,12 +129,47 @@ void main() {
     // If the improvement is less than 30%, the denormalization might not be worth it
     final improvementThreshold = avg2 * 0.7;
     if (avg1 < improvementThreshold) {
-      print('✅ Performance improvement (${speedup}%) justifies denormalization');
+      stdout.writeln(
+        '✅ Performance improvement ($speedup%) justifies denormalization',
+      );
     } else {
-      print('⚠️  Performance improvement (${speedup}%) is below 30% threshold');
-      print('   Consider removing denormalization if complexity cost is high');
+      stdout.writeln(
+        '⚠️  Performance improvement ($speedup%) is below 30% threshold',
+      );
+      stdout.writeln(
+        '   Consider removing denormalization if complexity cost is high',
+      );
     }
   });
+}
+
+Future<Directory?> _resolvePackageRoot(String packageName) async {
+  final configFile = File('.dart_tool/package_config.json');
+  // ignore: avoid_slow_async_io
+  if (!await configFile.exists()) return null;
+
+  final configUri = configFile.uri;
+  final raw =
+      jsonDecode(await configFile.readAsString()) as Map<String, Object?>;
+  final packages = (raw['packages'] as List<Object?>)
+      .whereType<Map<String, Object?>>()
+      .toList();
+
+  Map<String, Object?>? pkg;
+  for (final p in packages) {
+    if (p['name'] == packageName) {
+      pkg = p;
+      break;
+    }
+  }
+  if (pkg == null) return null;
+
+  final rootUriStr = pkg['rootUri'] as String?;
+  if (rootUriStr == null) return null;
+
+  // `rootUri` can be relative to the config file, so resolve against it.
+  final rootUri = configUri.resolve(rootUriStr);
+  return Directory.fromUri(rootUri);
 }
 
 /// Method 1: Query articles directly by categoryId (current implementation)
@@ -162,7 +235,8 @@ Future<void> _seedTestData(Isar isar) async {
       for (var j = 1; j <= 500; j++) {
         final article = Article()
           ..feedId = feedId
-          ..categoryId = categoryId // Denormalized field
+          ..categoryId =
+              categoryId // Denormalized field
           ..link = 'https://example.com/feed$feedId/article$j'
           ..title = 'Article $j from Feed $feedId'
           ..publishedAt = DateTime.now().subtract(Duration(hours: j))
@@ -173,7 +247,7 @@ Future<void> _seedTestData(Isar isar) async {
     }
   });
 
-  print('📦 Seeded ${await isar.feeds.count()} feeds');
-  print('📦 Seeded ${await isar.articles.count()} articles');
-  print('📦 Seeded ${await isar.categorys.count()} categories\n');
+  stdout.writeln('📦 Seeded ${await isar.feeds.count()} feeds');
+  stdout.writeln('📦 Seeded ${await isar.articles.count()} articles');
+  stdout.writeln('📦 Seeded ${await isar.categorys.count()} categories\n');
 }

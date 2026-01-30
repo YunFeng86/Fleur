@@ -8,8 +8,11 @@ class SettingsInheritanceHelper {
     Category? category,
     AppSettings appSettings,
   ) {
-    if (feed?.filterEnabled != null) return feed!.filterEnabled!;
-    if (category?.filterEnabled != null) return category!.filterEnabled!;
+    final feedFilterEnabled = feed?.filterEnabled;
+    if (feedFilterEnabled != null) return feedFilterEnabled;
+
+    final categoryFilterEnabled = category?.filterEnabled;
+    if (categoryFilterEnabled != null) return categoryFilterEnabled;
     return appSettings.filterEnabled;
   }
 
@@ -18,12 +21,14 @@ class SettingsInheritanceHelper {
     Category? category,
     AppSettings appSettings,
   ) {
-    if (feed?.filterKeywords != null && feed!.filterKeywords!.isNotEmpty) {
-      return feed!.filterKeywords!;
+    final feedFilterKeywords = feed?.filterKeywords;
+    if (feedFilterKeywords != null && feedFilterKeywords.isNotEmpty) {
+      return feedFilterKeywords;
     }
-    if (category?.filterKeywords != null &&
-        category!.filterKeywords!.isNotEmpty) {
-      return category!.filterKeywords!;
+
+    final categoryFilterKeywords = category?.filterKeywords;
+    if (categoryFilterKeywords != null && categoryFilterKeywords.isNotEmpty) {
+      return categoryFilterKeywords;
     }
     return appSettings.filterKeywords;
   }
@@ -33,8 +38,11 @@ class SettingsInheritanceHelper {
     Category? category,
     AppSettings appSettings,
   ) {
-    if (feed?.syncEnabled != null) return feed!.syncEnabled!;
-    if (category?.syncEnabled != null) return category!.syncEnabled!;
+    final feedSyncEnabled = feed?.syncEnabled;
+    if (feedSyncEnabled != null) return feedSyncEnabled;
+
+    final categorySyncEnabled = category?.syncEnabled;
+    if (categorySyncEnabled != null) return categorySyncEnabled;
     return appSettings.syncEnabled;
   }
 
@@ -43,8 +51,11 @@ class SettingsInheritanceHelper {
     Category? category,
     AppSettings appSettings,
   ) {
-    if (feed?.syncImages != null) return feed!.syncImages!;
-    if (category?.syncImages != null) return category!.syncImages!;
+    final feedSyncImages = feed?.syncImages;
+    if (feedSyncImages != null) return feedSyncImages;
+
+    final categorySyncImages = category?.syncImages;
+    if (categorySyncImages != null) return categorySyncImages;
     return appSettings.syncImages;
   }
 
@@ -53,8 +64,11 @@ class SettingsInheritanceHelper {
     Category? category,
     AppSettings appSettings,
   ) {
-    if (feed?.syncWebPages != null) return feed!.syncWebPages!;
-    if (category?.syncWebPages != null) return category!.syncWebPages!;
+    final feedSyncWebPages = feed?.syncWebPages;
+    if (feedSyncWebPages != null) return feedSyncWebPages;
+
+    final categorySyncWebPages = category?.syncWebPages;
+    if (categorySyncWebPages != null) return categorySyncWebPages;
     return appSettings.syncWebPages;
   }
 
@@ -63,8 +77,11 @@ class SettingsInheritanceHelper {
     Category? category,
     AppSettings appSettings,
   ) {
-    if (feed?.showAiSummary != null) return feed!.showAiSummary!;
-    if (category?.showAiSummary != null) return category!.showAiSummary!;
+    final feedShowAiSummary = feed?.showAiSummary;
+    if (feedShowAiSummary != null) return feedShowAiSummary;
+
+    final categoryShowAiSummary = category?.showAiSummary;
+    if (categoryShowAiSummary != null) return categoryShowAiSummary;
     return appSettings.showAiSummary;
   }
 }

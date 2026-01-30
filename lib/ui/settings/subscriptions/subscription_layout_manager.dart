@@ -40,7 +40,7 @@ class SubscriptionLayoutManager extends ConsumerWidget {
 
         return PopScope(
           canPop: !canPopInternal,
-          onPopInvoked: (didPop) {
+          onPopInvokedWithResult: (didPop, _) {
             if (didPop) return;
             handleBack();
           },
