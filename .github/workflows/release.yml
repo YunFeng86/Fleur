@@ -21,9 +21,11 @@ jobs:
             artifact-path: build/windows/x64/runner/Release
             artifact-name: flutter_reader-windows-x64.zip
             archive-cmd: |
+              VERSION="${{ github.ref_name }}"
+              VERSION=${VERSION#v}
               cd build/windows/x64/runner/Release
               rm -f *.pdb
-              7z a -tzip "$GITHUB_WORKSPACE/flutter_reader-windows-x64.zip" *
+              7z a -tzip "$GITHUB_WORKSPACE/flutter_reader-windows-x64-${VERSION}.zip" *
 
           # macOS构建（实验性，未测试）
           - os: macos-latest
@@ -32,8 +34,10 @@ jobs:
             artifact-path: build/macos/Build/Products/Release
             artifact-name: flutter_reader-macos.zip
             archive-cmd: |
+              VERSION="${{ github.ref_name }}"
+              VERSION=${VERSION#v}
               cd build/macos/Build/Products/Release
-              zip -r "$GITHUB_WORKSPACE/flutter_reader-macos.zip" flutter_reader.app
+              zip -r "$GITHUB_WORKSPACE/flutter_reader-macos-${VERSION}.zip" flutter_reader.app
 
           # Linux构建（实验性，未测试）
           - os: ubuntu-latest
@@ -42,8 +46,10 @@ jobs:
             artifact-path: build/linux/x64/release/bundle
             artifact-name: flutter_reader-linux-x64.tar.gz
             archive-cmd: |
+              VERSION="${{ github.ref_name }}"
+              VERSION=${VERSION#v}
               cd build/linux/x64/release/bundle
-              tar -czf "$GITHUB_WORKSPACE/flutter_reader-linux-x64.tar.gz" *
+              tar -czf "$GITHUB_WORKSPACE/flutter_reader-linux-x64-${VERSION}.tar.gz" *
             deps-cmd: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev
 
     runs-on: ${{ matrix.os }}
@@ -222,8 +228,8 @@ jobs:
 
             **如遇到问题请提交 [Issue](https://github.com/${{ github.repository }}/issues)**
           files: |
-            artifacts/windows-release/flutter_reader-windows-x64.zip
-            artifacts/macos-release/flutter_reader-macos.zip
-            artifacts/linux-release/flutter_reader-linux-x64.tar.gz
+            artifacts/windows-release/flutter_reader-windows-x64-*.zip
+            artifacts/macos-release/flutter_reader-macos-*.zip
+            artifacts/linux-release/flutter_reader-linux-x64-*.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
