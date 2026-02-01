@@ -283,7 +283,7 @@ class _FilterSection extends ConsumerWidget {
           ),
         ),
         _TriStateSwitch(
-          title: l10n.enableSync, // Using "Enable" label
+          title: l10n.enableFilter,
           // IMPORTANT: keep `currentValue` as the explicit value at this level.
           // Do not fall back to parent (category/global), otherwise selecting
           // "Auto" will appear to do nothing.
@@ -572,6 +572,7 @@ class _FilterKeywordsInput extends ConsumerStatefulWidget {
 
 class _FilterKeywordsInputState extends ConsumerState<_FilterKeywordsInput> {
   late TextEditingController _controller;
+  late FocusNode _focusNode;
 
   // Calculate effective value for placeholder
   String get _effectiveValue => SettingsInheritanceHelper.resolveFilterKeywords(
@@ -588,9 +589,13 @@ class _FilterKeywordsInputState extends ConsumerState<_FilterKeywordsInput> {
 
   bool get _isGlobal => widget.feed == null && widget.category == null;
 
+  bool get _isInherit =>
+      !_isGlobal && (_currentValue == null || _currentValue!.trim().isEmpty);
+
   @override
   void initState() {
     super.initState();
+    _focusNode = FocusNode();
     // If global, we just use the value directly.
     // If category/feed, we prefer the explicit value, else empty (showing placeholder).
     if (_isGlobal) {
@@ -598,7 +603,10 @@ class _FilterKeywordsInputState extends ConsumerState<_FilterKeywordsInput> {
         text: widget.appSettings.filterKeywords,
       );
     } else {
-      _controller = TextEditingController(text: _currentValue);
+      // In inherit mode, show the effective value but keep it read-only.
+      _controller = TextEditingController(
+        text: _isInherit ? _effectiveValue : _currentValue,
+      );
     }
   }
 
@@ -610,15 +618,12 @@ class _FilterKeywordsInputState extends ConsumerState<_FilterKeywordsInput> {
         _controller.text = widget.appSettings.filterKeywords;
       }
     } else {
-      // Logic for feed/category updates
-      final newVal = _currentValue;
-      final oldVal = oldWidget.feed != null
-          ? oldWidget.feed!.filterKeywords
-          : oldWidget.category?.filterKeywords;
-      if (newVal != oldVal) {
-        if (_controller.text != newVal && newVal != null) {
-          _controller.text = newVal;
-        }
+      // Logic for feed/category updates.
+      // - If inheriting, show effective value (read-only).
+      // - If overridden, show explicit value.
+      final nextText = _isInherit ? _effectiveValue : (_currentValue ?? '');
+      if (_controller.text != nextText) {
+        _controller.text = nextText;
       }
     }
   }
@@ -626,6 +631,7 @@ class _FilterKeywordsInputState extends ConsumerState<_FilterKeywordsInput> {
   @override
   void dispose() {
     _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -638,43 +644,69 @@ class _FilterKeywordsInputState extends ConsumerState<_FilterKeywordsInput> {
       children: [
         TextField(
           controller: _controller,
+          focusNode: _focusNode,
+          readOnly: _isInherit,
           decoration: InputDecoration(
-            hintText: _isGlobal ? null : '${l10n.inherit}: $_effectiveValue',
+            // When inheriting, don't show "inherit:" text; show effective value
+            // directly (read-only) to match global/category-global behavior.
+            hintText:
+                _isInherit && _effectiveValue.trim().isEmpty
+                    ? l10n.defaultValue
+                    : null,
             border: const OutlineInputBorder(),
             filled: true,
             helperText: l10n.filterKeywordsHint,
             helperMaxLines: 2,
             suffixIcon:
-                (!_isGlobal &&
-                    _currentValue != null &&
-                    _currentValue!.isNotEmpty)
-                ? IconButton(
-                    icon: const Icon(Icons.undo),
-                    tooltip: l10n.inherit,
-                    onPressed: () {
-                      _controller.clear();
-                      _save(null);
-                    },
-                  )
-                : null,
+                _isGlobal
+                    ? null
+                    : (_isInherit
+                        ? IconButton(
+                            icon: const Icon(Icons.edit),
+                            tooltip: l10n.edit,
+                            onPressed: () {
+                              // Create an explicit override based on the current effective value,
+                              // then let user edit.
+                              final seed = _effectiveValue;
+                              _controller.text = seed;
+                              _save(seed);
+                              _focusNode.requestFocus();
+                              _controller.selection = TextSelection.fromPosition(
+                                TextPosition(offset: _controller.text.length),
+                              );
+                            },
+                          )
+                        : ((_currentValue != null &&
+                                _currentValue!.trim().isNotEmpty)
+                            ? IconButton(
+                                icon: const Icon(Icons.undo),
+                                tooltip: l10n.inherit,
+                                onPressed: () {
+                                  _controller.text = _effectiveValue;
+                                  _save(null);
+                                },
+                              )
+                            : null)),
           ),
           minLines: 1,
           maxLines: 3,
-          onChanged: (value) => _save(value),
+          onChanged: _isInherit ? null : (value) => _save(value),
         ),
       ],
     );
   }
 
   void _save(String? value) {
+    final v = value?.trim();
+    final next = (v == null || v.isEmpty) ? null : v;
     if (_isGlobal) {
-      ref.read(appSettingsProvider.notifier).setFilterKeywords(value ?? '');
+      ref.read(appSettingsProvider.notifier).setFilterKeywords(next ?? '');
     } else if (widget.feed != null) {
       SubscriptionActions.updateFeedSettings(
         context,
         ref,
         feedId: widget.feed!.id,
-        filterKeywords: value,
+        filterKeywords: next,
         updateFilterKeywords: true,
       );
     } else if (widget.category != null) {
@@ -682,7 +714,7 @@ class _FilterKeywordsInputState extends ConsumerState<_FilterKeywordsInput> {
         context,
         ref,
         categoryId: widget.category!.id,
-        filterKeywords: value,
+        filterKeywords: next,
         updateFilterKeywords: true,
       );
     }

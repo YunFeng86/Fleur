@@ -909,6 +909,12 @@ abstract class AppLocalizations {
   /// **'Enable Sync'**
   String get enableSync;
 
+  /// enableFilter
+  ///
+  /// In en, this message translates to:
+  /// **'Enable Filter'**
+  String get enableFilter;
+
   /// syncAlwaysEnabled
   ///
   /// In en, this message translates to:

@@ -567,5 +567,101 @@
   "keyboardShortcuts": "快速鍵",
   "@keyboardShortcuts": {
     "description": "keyboardShortcuts"
+  },
+  "filter": "過濾",
+  "@filter": {
+    "description": "filter"
+  },
+  "enableFilter": "啟用過濾",
+  "@enableFilter": {
+    "description": "enableFilter"
+  },
+  "filterKeywordsHint": "新增保留關鍵字（不同的關鍵字用“;”分隔，多重條件使用“+”連接）",
+  "@filterKeywordsHint": {
+    "description": "filterKeywordsHint"
+  },
+  "sync": "同步",
+  "@sync": {
+    "description": "sync"
+  },
+  "enableSync": "啟用同步",
+  "@enableSync": {
+    "description": "enableSync"
+  },
+  "syncImages": "同步時下載圖片",
+  "@syncImages": {
+    "description": "syncImages"
+  },
+  "syncAlwaysEnabled": "總是啟用，因為設定 - 同步 - 同步模式為\"全部\"",
+  "@syncAlwaysEnabled": {
+    "description": "syncAlwaysEnabled"
+  },
+  "syncWebPages": "同步時下載網頁",
+  "@syncWebPages": {
+    "description": "syncWebPages"
+  },
+  "showAiSummary": "顯示 AI 摘要",
+  "@showAiSummary": {
+    "description": "showAiSummary"
+  },
+  "showImageTitle": "顯示圖片標題",
+  "@showImageTitle": {
+    "description": "showImageTitle"
+  },
+  "showAttachedImage": "顯示附文圖像",
+  "@showAttachedImage": {
+    "description": "showAttachedImage"
+  },
+  "htmlDecoding": "HTML 轉碼",
+  "@htmlDecoding": {
+    "description": "htmlDecoding"
+  },
+  "mobilizer": "Mobilizer",
+  "@mobilizer": {
+    "description": "mobilizer"
+  },
+  "inherit": "繼承",
+  "@inherit": {
+    "description": "inherit"
+  },
+  "auto": "自動",
+  "@auto": {
+    "description": "auto"
+  },
+  "autoOn": "開",
+  "@autoOn": {
+    "description": "autoOn"
+  },
+  "autoOff": "關",
+  "@autoOff": {
+    "description": "autoOff"
+  },
+  "defaultValue": "預設值",
+  "@defaultValue": {
+    "description": "defaultValue"
+  },
+  "userAgent": "User-Agent",
+  "@userAgent": {
+    "description": "userAgent"
+  },
+  "rssUserAgent": "RSS/Atom User-Agent",
+  "@rssUserAgent": {
+    "description": "rssUserAgent"
+  },
+  "webUserAgent": "網頁 User-Agent",
+  "@webUserAgent": {
+    "description": "webUserAgent"
+  },
+  "userAgentRssHint": "用於抓取 RSS/Atom 訂閱源。",
+  "@userAgentRssHint": {
+    "description": "userAgentRssHint"
+  },
+  "userAgentWebHint": "用於抓取網頁全文（閱讀模式）。",
+  "@userAgentWebHint": {
+    "description": "userAgentWebHint"
+  },
+  "resetToDefault": "恢復預設",
+  "@resetToDefault": {
+    "description": "resetToDefault"
   }
 }

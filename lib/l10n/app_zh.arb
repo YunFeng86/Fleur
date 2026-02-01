@@ -571,6 +571,10 @@
   "@enableSync": {
     "description": "enableSync"
   },
+  "enableFilter": "启用过滤",
+  "@enableFilter": {
+    "description": "enableFilter"
+  },
   "syncAlwaysEnabled": "总是启用，因为设置 - 同步 - 同步模式为\"全部\"",
   "@syncAlwaysEnabled": {
     "description": "syncAlwaysEnabled"

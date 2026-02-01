@@ -586,6 +586,10 @@
   "@enableSync": {
     "description": "enableSync"
   },
+  "enableFilter": "Enable Filter",
+  "@enableFilter": {
+    "description": "enableFilter"
+  },
   "syncAlwaysEnabled": "Always enabled (Settings - Sync - Sync Mode is \"All\")",
   "@syncAlwaysEnabled": {
     "description": "syncAlwaysEnabled"

@@ -432,6 +432,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get enableSync => '启用同步';
 
   @override
+  String get enableFilter => '启用过滤';
+
+  @override
   String get syncAlwaysEnabled => '总是启用，因为设置 - 同步 - 同步模式为\"全部\"';
 
   @override
@@ -903,4 +906,76 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get keyboardShortcuts => '快速鍵';
+
+  @override
+  String get filter => '過濾';
+
+  @override
+  String get filterKeywordsHint => '新增保留關鍵字（不同的關鍵字用“;”分隔，多重條件使用“+”連接）';
+
+  @override
+  String get sync => '同步';
+
+  @override
+  String get enableSync => '啟用同步';
+
+  @override
+  String get enableFilter => '啟用過濾';
+
+  @override
+  String get syncAlwaysEnabled => '總是啟用，因為設定 - 同步 - 同步模式為\"全部\"';
+
+  @override
+  String get syncImages => '同步時下載圖片';
+
+  @override
+  String get syncWebPages => '同步時下載網頁';
+
+  @override
+  String get showAiSummary => '顯示 AI 摘要';
+
+  @override
+  String get showImageTitle => '顯示圖片標題';
+
+  @override
+  String get showAttachedImage => '顯示附文圖像';
+
+  @override
+  String get htmlDecoding => 'HTML 轉碼';
+
+  @override
+  String get mobilizer => 'Mobilizer';
+
+  @override
+  String get inherit => '繼承';
+
+  @override
+  String get auto => '自動';
+
+  @override
+  String get autoOn => '開';
+
+  @override
+  String get autoOff => '關';
+
+  @override
+  String get defaultValue => '預設值';
+
+  @override
+  String get userAgent => 'User-Agent';
+
+  @override
+  String get rssUserAgent => 'RSS/Atom User-Agent';
+
+  @override
+  String get webUserAgent => '網頁 User-Agent';
+
+  @override
+  String get userAgentRssHint => '用於抓取 RSS/Atom 訂閱源。';
+
+  @override
+  String get userAgentWebHint => '用於抓取網頁全文（閱讀模式）。';
+
+  @override
+  String get resetToDefault => '恢復預設';
 }

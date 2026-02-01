@@ -435,6 +435,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get enableSync => 'Enable Sync';
 
   @override
+  String get enableFilter => 'Enable Filter';
+
+  @override
   String get syncAlwaysEnabled =>
       'Always enabled (Settings - Sync - Sync Mode is \"All\")';
 
