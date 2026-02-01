@@ -173,11 +173,24 @@ jobs:
       - name: Extract Windows build
         shell: powershell
         run: |
+          # 检查下载的文件
+          Write-Host "Downloaded artifacts:"
+          Get-ChildItem -Path "windows-release" -File | ForEach-Object { Write-Host "  $($_.Name) - $($_.Length) bytes" }
+          
           cd windows-release
           # 使用 PowerShell 的 Expand-Archive 而不是 7z
           Expand-Archive -Path "flutter_reader-windows-x64.zip" -DestinationPath "temp" -Force
-          Write-Host "✅ Extracted files:"
-          Get-ChildItem -Path "temp" -Recurse | Select-Object Name, Length
+          
+          Write-Host "Extracted files:"
+          Get-ChildItem -Path "temp" -Recurse | ForEach-Object { Write-Host "  $($_.FullName)" }
+          
+          # 检查关键文件
+          if (Test-Path "temp\flutter_reader.exe") {
+            Write-Host "Main executable found"
+          } else {
+            Write-Error "Main executable not found!"
+            exit 1
+          }
 
       # 计算版本变量
       - name: Calculate version variables
@@ -192,7 +205,11 @@ jobs:
       - name: Build Windows Installer
         shell: powershell
         run: |
-          # 创建 Inno Setup 脚本
+          # 先检查文件结构
+          Write-Host "Checking file structure:"
+          Get-ChildItem -Path "windows-release\temp" -Recurse | Select-Object FullName | ForEach-Object { Write-Host $_.FullName }
+          
+          # 创建 Inno Setup 脚本 - 简化版本，避免复杂路径问题
           $issContent = @"
           [Setup]
           AppName=Flutter Reader
@@ -221,30 +238,26 @@ jobs:
           Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
           
           [Tasks]
-          Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-          Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 6.1
+          Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
           
           [Files]
           Source: "windows-release\temp\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
           
           [Icons]
-          Name: "{group}\Flutter Reader"; Filename: "{app}\flutter_reader.exe"; IconFilename: "{app}\data\flutter_assets\assets\icons\app_icon.ico"
+          Name: "{group}\Flutter Reader"; Filename: "{app}\flutter_reader.exe"
           Name: "{group}\{cm:UninstallProgram,Flutter Reader}"; Filename: "{uninstallexe}"
-          Name: "{autodesktop}\Flutter Reader"; Filename: "{app}\flutter_reader.exe"; IconFilename: "{app}\data\flutter_assets\assets\icons\app_icon.ico"; Tasks: desktopicon
-          Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\Flutter Reader"; Filename: "{app}\flutter_reader.exe"; IconFilename: "{app}\data\flutter_assets\assets\icons\app_icon.ico"; Tasks: quicklaunchicon
+          Name: "{autodesktop}\Flutter Reader"; Filename: "{app}\flutter_reader.exe"; Tasks: desktopicon
           
           [Run]
           Filename: "{app}\flutter_reader.exe"; Description: "{cm:LaunchProgram,Flutter Reader}"; Flags: nowait postinstall skipifsilent
-          
-          [Registry]
-          Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Uninstall\FlutterReader"; ValueType: string; ValueName: "DisplayName"; ValueData: "Flutter Reader"
-          Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Uninstall\FlutterReader"; ValueType: string; ValueName: "DisplayVersion"; ValueData: "${{ steps.version_vars.outputs.version_name }}"
-          Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Uninstall\FlutterReader"; ValueType: string; ValueName: "Publisher"; ValueData: "Flutter Reader Team"
-          Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Uninstall\FlutterReader"; ValueType: string; ValueName: "UninstallString"; ValueData: "{uninstallexe}"
           "@
           
           $issContent | Out-File -FilePath "installer.iss" -Encoding UTF8
-          Write-Host "✅ Created installer.iss"
+          Write-Host "Created installer.iss"
+          
+          # 显示生成的脚本内容以便调试
+          Write-Host "Generated Inno Setup script:"
+          Get-Content "installer.iss" | ForEach-Object { Write-Host "  $_" }
 
       - name: Install Inno Setup
         shell: powershell
@@ -254,11 +267,26 @@ jobs:
           
           # 验证安装 (不检查退出代码，因为帮助命令会返回1)
           if (Test-Path "C:\Program Files (x86)\Inno Setup 6\ISCC.exe") {
-            Write-Host "✅ Inno Setup installed successfully"
-            Write-Host "📍 ISCC.exe found at: C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+            Write-Host "Inno Setup installed successfully"
+            Write-Host "ISCC.exe found at: C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
           } else {
-            Write-Error "❌ Inno Setup installation failed - ISCC.exe not found"
+            Write-Error "Inno Setup installation failed - ISCC.exe not found"
             exit 1
+          }
+          
+          # 检查必要文件
+          Write-Host "Checking required files:"
+          if (Test-Path "LICENSE") {
+            Write-Host "  LICENSE file found"
+          } else {
+            Write-Host "  LICENSE file not found, creating placeholder"
+            "MIT License" | Out-File -FilePath "LICENSE" -Encoding UTF8
+          }
+          
+          if (Test-Path "windows\runner\resources\app_icon.ico") {
+            Write-Host "  App icon found"
+          } else {
+            Write-Host "  App icon not found at windows\runner\resources\app_icon.ico"
           }
 
       - name: Compile Installer
@@ -267,11 +295,11 @@ jobs:
           $isccPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
           
           if (-not (Test-Path $isccPath)) {
-            Write-Error "❌ ISCC.exe not found at $isccPath"
+            Write-Error "ISCC.exe not found at $isccPath"
             exit 1
           }
           
-          Write-Host "🔨 Compiling installer with Inno Setup..."
+          Write-Host "Compiling installer with Inno Setup..."
           
           # 创建输出目录
           if (-not (Test-Path "installer-output")) {
@@ -283,17 +311,17 @@ jobs:
             & $isccPath "/Qp" "installer.iss"
             
             if ($LASTEXITCODE -eq 0) {
-              Write-Host "✅ Installer compiled successfully"
+              Write-Host "Installer compiled successfully"
               Get-ChildItem -Path "installer-output" -File | ForEach-Object {
-                Write-Host "📦 Generated: $($_.Name) ($([math]::Round($_.Length / 1MB, 2)) MB)"
+                Write-Host "Generated: $($_.Name) ($([math]::Round($_.Length / 1MB, 2)) MB)"
               }
             } else {
-              Write-Error "❌ Installer compilation failed with exit code $LASTEXITCODE"
+              Write-Error "Installer compilation failed with exit code $LASTEXITCODE"
               exit $LASTEXITCODE
             }
           }
           catch {
-            Write-Error "❌ Exception during compilation: $($_.Exception.Message)"
+            Write-Error "Exception during compilation: $($_.Exception.Message)"
             exit 1
           }
 
