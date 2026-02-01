@@ -155,9 +155,113 @@ jobs:
           path: ${{ matrix.artifact-name }}
           retention-days: 90  # 保留90天
 
+  # Windows 安装器构建
+  build-windows-installer:
+    needs: [build]
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-release
+          path: windows-release
+
+      - name: Extract Windows build
+        shell: bash
+        run: |
+          cd windows-release
+          7z x flutter_reader-windows-x64.zip -otemp/
+          ls -la temp/
+
+      # 计算版本变量
+      - name: Calculate version variables
+        id: version_vars
+        shell: bash
+        run: |
+          VERSION_NAME="${{ github.ref_name }}"
+          VERSION_NAME=${VERSION_NAME#v}
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+
+      # 使用 Inno Setup 创建安装器
+      - name: Build Windows Installer
+        shell: bash
+        run: |
+          # 创建 Inno Setup 脚本
+          cat > installer.iss << 'EOF'
+          [Setup]
+          AppName=Flutter Reader
+          AppVersion=${{ steps.version_vars.outputs.version_name }}
+          AppPublisher=Flutter Reader Team
+          AppPublisherURL=https://github.com/${{ github.repository }}
+          AppSupportURL=https://github.com/${{ github.repository }}/issues
+          AppUpdatesURL=https://github.com/${{ github.repository }}/releases
+          DefaultDirName={autopf}\FlutterReader
+          DefaultGroupName=Flutter Reader
+          AllowNoIcons=yes
+          LicenseFile=LICENSE
+          OutputDir=installer-output
+          OutputBaseFilename=flutter_reader-windows-x64-installer-${{ steps.version_vars.outputs.version_name }}
+          SetupIconFile=windows\runner\resources\app_icon.ico
+          Compression=lzma
+          SolidCompression=yes
+          WizardStyle=modern
+          ArchitecturesAllowed=x64
+          ArchitecturesInstallIn64BitMode=x64
+          MinVersion=10.0
+          PrivilegesRequired=lowest
+          
+          [Languages]
+          Name: "english"; MessagesFile: "compiler:Default.isl"
+          Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+          
+          [Tasks]
+          Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+          Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 6.1
+          
+          [Files]
+          Source: "windows-release\temp\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+          
+          [Icons]
+          Name: "{group}\Flutter Reader"; Filename: "{app}\flutter_reader.exe"; IconFilename: "{app}\data\flutter_assets\assets\icons\app_icon.ico"
+          Name: "{group}\{cm:UninstallProgram,Flutter Reader}"; Filename: "{uninstallexe}"
+          Name: "{autodesktop}\Flutter Reader"; Filename: "{app}\flutter_reader.exe"; IconFilename: "{app}\data\flutter_assets\assets\icons\app_icon.ico"; Tasks: desktopicon
+          Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\Flutter Reader"; Filename: "{app}\flutter_reader.exe"; IconFilename: "{app}\data\flutter_assets\assets\icons\app_icon.ico"; Tasks: quicklaunchicon
+          
+          [Run]
+          Filename: "{app}\flutter_reader.exe"; Description: "{cm:LaunchProgram,Flutter Reader}"; Flags: nowait postinstall skipifsilent
+          
+          [Registry]
+          Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Uninstall\FlutterReader"; ValueType: string; ValueName: "DisplayName"; ValueData: "Flutter Reader"
+          Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Uninstall\FlutterReader"; ValueType: string; ValueName: "DisplayVersion"; ValueData: "${{ steps.version_vars.outputs.version_name }}"
+          Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Uninstall\FlutterReader"; ValueType: string; ValueName: "Publisher"; ValueData: "Flutter Reader Team"
+          Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Uninstall\FlutterReader"; ValueType: string; ValueName: "UninstallString"; ValueData: "{uninstallexe}"
+          EOF
+
+      - name: Install Inno Setup
+        shell: bash
+        run: |
+          # 下载并安装 Inno Setup
+          curl -L -o innosetup.exe "https://jrsoftware.org/download.php/is.exe"
+          ./innosetup.exe /SILENT /NORESTART /SUPPRESSMSGBOXES
+
+      - name: Compile Installer
+        shell: cmd
+        run: |
+          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+
+      - name: Upload Windows Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: installer-output/*.exe
+          retention-days: 90
+
   # 创建GitHub Release并上传所有构建产物
   create-release:
-    needs: [build]
+    needs: [build, build-windows-installer]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -191,6 +295,9 @@ jobs:
                artifacts/windows-release/flutter_reader-windows-x64-${VERSION}.zip
           fi
 
+          # 重命名Windows安装器（不需要重命名，Inno Setup已经包含了版本号）
+          # Windows 安装器已经在构建时包含版本号
+          
           # 重命名macOS构建
           if [ -f artifacts/macos-release/flutter_reader-macos.zip ]; then
             mv artifacts/macos-release/flutter_reader-macos.zip \
@@ -227,9 +334,13 @@ jobs:
             ## 安装说明
 
             **Windows:**
-            1. 下载 `flutter_reader-windows-x64.zip`
-            2. 解压到任意目录
-            3. 运行 `flutter_reader.exe`
+            1. **安装器版本（推荐）**: 下载 `flutter_reader-windows-x64-installer-*.exe`
+               - 双击运行安装器，按提示安装
+               - 自动创建开始菜单和桌面快捷方式
+               - 支持自动卸载
+            2. **便携版**: 下载 `flutter_reader-windows-x64.zip`
+               - 解压到任意目录
+               - 运行 `flutter_reader.exe`
 
             **macOS:**
             1. 下载 `flutter_reader-macos.zip`
@@ -247,6 +358,7 @@ jobs:
             **如遇到问题请提交 [Issue](https://github.com/${{ github.repository }}/issues)**
           files: |
             artifacts/windows-release/flutter_reader-windows-x64-*.zip
+            artifacts/windows-installer/flutter_reader-windows-x64-installer-*.exe
             artifacts/macos-release/flutter_reader-macos-*.zip
             artifacts/linux-release/flutter_reader-linux-x64-*.tar.gz
         env:
