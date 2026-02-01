@@ -185,10 +185,11 @@ class SyncService {
           clearError: false,
         );
 
-        // Small backoff so quick transient failures (DNS/timeout) have a chance
-        // to recover without blocking the whole batch for too long.
+        // Exponential backoff: 500ms, 1000ms, 2000ms...
+        // Gives network/DNS failures time to recover without wasting time on persistent errors
         if (i < attempts - 1) {
-          await Future<void>.delayed(const Duration(milliseconds: 500));
+          final delayMs = 500 * (1 << i); // 2^i exponential growth
+          await Future<void>.delayed(Duration(milliseconds: delayMs));
           sw
             ..reset()
             ..start();
@@ -232,9 +233,11 @@ class SyncService {
     final total = ids.length;
     var completed = 0;
 
-    // 分批处理，避免一次性创建过多 Future。
-    // Batch size to prevent creating too many concurrent Futures (memory optimization)
-    const batchSize = 10;
+    // Dynamic batch size based on total feeds:
+    // - Small feeds (<=20): process all at once (no batching overhead)
+    // - Medium feeds (21-100): batch by 20
+    // - Large feeds (>100): batch by 50
+    final batchSize = total <= 20 ? total : (total <= 100 ? 20 : 50);
     final results = <FeedRefreshResult>[];
 
     for (var i = 0; i < total; i += batchSize) {
@@ -262,8 +265,9 @@ class SyncService {
       await Future.wait(futures);
       await pool.close();
 
-      // 批次间小暂停，给事件循环留出处理时间。
-      if (end < total) {
+      // Small pause between batches only for large feeds (>20)
+      // Gives event loop time to process UI updates
+      if (end < total && total > 20) {
         await Future<void>.delayed(const Duration(milliseconds: 50));
       }
     }

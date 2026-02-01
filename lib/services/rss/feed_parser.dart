@@ -9,32 +9,79 @@ class FeedParser {
   ParsedFeed parse(String xml) {
     final trimmed = xml.trim();
 
-    // Detect feed format by inspecting root element declaration (first 512 bytes)
-    // This prevents false positives from matching format identifiers in content.
-    // RSS 2.0: <rss version="2.0">
-    // RSS 1.0: <rdf:RDF xmlns:rdf="..." xmlns="http://purl.org/rss/1.0/">
-    // Atom: <feed xmlns="http://www.w3.org/2005/Atom">
-    final header = trimmed.length > 512 ? trimmed.substring(0, 512) : trimmed;
+    // Detect feed format by checking the actual root element tag name
+    // This is more reliable than searching for substrings in arbitrary positions
+    try {
+      final rootTag = _extractRootTag(trimmed);
 
-    // Maintain RSS-first priority to preserve backward compatibility with existing feeds
-    // (matches previous try-RSS-first behavior without exception overhead)
-    if (_isRssFeed(header)) {
-      try {
+      if (rootTag == 'rss' || rootTag == 'channel') {
+        // RSS 2.0 or malformed RSS without version attribute
         return _parseRss(trimmed);
-      } catch (e) {
-        throw FormatException('Failed to parse RSS feed: $e');
-      }
-    } else if (_isAtomFeed(header)) {
-      try {
+      } else if (rootTag == 'rdf:RDF' || rootTag.contains('RDF')) {
+        // RSS 1.0 (RDF-based)
+        return _parseRss(trimmed);
+      } else if (rootTag == 'feed') {
+        // Atom feed
         return _parseAtom(trimmed);
-      } catch (e) {
-        throw FormatException('Failed to parse Atom feed: $e');
+      } else {
+        throw FormatException(
+          'Unknown feed format. Root element: <$rootTag>. Expected <rss>, <feed>, or <rdf:RDF>.',
+        );
       }
-    } else {
-      throw FormatException(
-        'Unknown feed format. Expected RSS 1.0/2.0 or Atom feed.',
-      );
+    } catch (e) {
+      // Fallback to old substring-based detection if XML parsing fails
+      final header = trimmed.length > 512 ? trimmed.substring(0, 512) : trimmed;
+
+      if (_isRssFeed(header)) {
+        try {
+          return _parseRss(trimmed);
+        } catch (e) {
+          throw FormatException('Failed to parse RSS feed: $e');
+        }
+      } else if (_isAtomFeed(header)) {
+        try {
+          return _parseAtom(trimmed);
+        } catch (e) {
+          throw FormatException('Failed to parse Atom feed: $e');
+        }
+      } else {
+        throw FormatException(
+          'Unknown feed format. Expected RSS 1.0/2.0 or Atom feed.',
+        );
+      }
     }
+  }
+
+  /// Extract root element tag name from XML
+  String _extractRootTag(String xml) {
+    // Find first '<' that isn't '<?xml' or '<!DOCTYPE'
+    var pos = 0;
+    while (pos < xml.length) {
+      final start = xml.indexOf('<', pos);
+      if (start == -1) break;
+
+      // Skip XML declaration and DOCTYPE
+      if (xml.startsWith('<?', start) || xml.startsWith('<!', start)) {
+        final end = xml.indexOf('>', start);
+        if (end == -1) break;
+        pos = end + 1;
+        continue;
+      }
+
+      // Found root element
+      final end = xml.indexOf('>', start);
+      if (end == -1) break;
+
+      var tag = xml.substring(start + 1, end);
+      // Remove attributes and whitespace
+      final spacePos = tag.indexOf(RegExp(r'\s'));
+      if (spacePos != -1) {
+        tag = tag.substring(0, spacePos);
+      }
+      return tag.trim();
+    }
+
+    return '';
   }
 
   bool _isAtomFeed(String xmlHeader) {
