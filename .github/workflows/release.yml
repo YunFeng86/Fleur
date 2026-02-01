@@ -209,6 +209,12 @@ jobs:
           Write-Host "Checking file structure:"
           Get-ChildItem -Path "windows-release\temp" -Recurse | Select-Object FullName | ForEach-Object { Write-Host $_.FullName }
           
+          # 检查并创建必要文件
+          if (-not (Test-Path "LICENSE")) {
+            Write-Host "Creating LICENSE file"
+            "MIT License" | Out-File -FilePath "LICENSE" -Encoding UTF8
+          }
+          
           # 创建 Inno Setup 脚本 - 简化版本，避免复杂路径问题
           $issContent = @"
           [Setup]
@@ -222,7 +228,6 @@ jobs:
           DefaultGroupName=Flutter Reader
           AllowNoIcons=yes
           LicenseFile=LICENSE
-          OutputDir=installer-output
           OutputBaseFilename=flutter_reader-windows-x64-installer-${{ steps.version_vars.outputs.version_name }}
           SetupIconFile=windows\runner\resources\app_icon.ico
           Compression=lzma
@@ -254,82 +259,26 @@ jobs:
           
           $issContent | Out-File -FilePath "installer.iss" -Encoding UTF8
           Write-Host "Created installer.iss"
-          
-          # 显示生成的脚本内容以便调试
-          Write-Host "Generated Inno Setup script:"
-          Get-Content "installer.iss" | ForEach-Object { Write-Host "  $_" }
 
-      - name: Install Inno Setup
+      - name: Install Inno Setup and Compile Installer
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.4
+        with:
+          path: installer.iss
+          options: /Qp
+
+      - name: Check generated installer
         shell: powershell
         run: |
-          # 使用 Chocolatey 安装 Inno Setup (更可靠)
-          choco install innosetup -y
-          
-          # 验证安装 (不检查退出代码，因为帮助命令会返回1)
-          if (Test-Path "C:\Program Files (x86)\Inno Setup 6\ISCC.exe") {
-            Write-Host "Inno Setup installed successfully"
-            Write-Host "ISCC.exe found at: C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-          } else {
-            Write-Error "Inno Setup installation failed - ISCC.exe not found"
-            exit 1
-          }
-          
-          # 检查必要文件
-          Write-Host "Checking required files:"
-          if (Test-Path "LICENSE") {
-            Write-Host "  LICENSE file found"
-          } else {
-            Write-Host "  LICENSE file not found, creating placeholder"
-            "MIT License" | Out-File -FilePath "LICENSE" -Encoding UTF8
-          }
-          
-          if (Test-Path "windows\runner\resources\app_icon.ico") {
-            Write-Host "  App icon found"
-          } else {
-            Write-Host "  App icon not found at windows\runner\resources\app_icon.ico"
-          }
-
-      - name: Compile Installer
-        shell: powershell
-        run: |
-          $isccPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-          
-          if (-not (Test-Path $isccPath)) {
-            Write-Error "ISCC.exe not found at $isccPath"
-            exit 1
-          }
-          
-          Write-Host "Compiling installer with Inno Setup..."
-          
-          # 创建输出目录
-          if (-not (Test-Path "installer-output")) {
-            New-Item -ItemType Directory -Path "installer-output" -Force
-          }
-          
-          try {
-            # 执行 Inno Setup 编译，使用安静模式显示进度
-            & $isccPath "/Qp" "installer.iss"
-            
-            if ($LASTEXITCODE -eq 0) {
-              Write-Host "Installer compiled successfully"
-              Get-ChildItem -Path "installer-output" -File | ForEach-Object {
-                Write-Host "Generated: $($_.Name) ($([math]::Round($_.Length / 1MB, 2)) MB)"
-              }
-            } else {
-              Write-Error "Installer compilation failed with exit code $LASTEXITCODE"
-              exit $LASTEXITCODE
-            }
-          }
-          catch {
-            Write-Error "Exception during compilation: $($_.Exception.Message)"
-            exit 1
+          Write-Host "Generated files:"
+          Get-ChildItem -Path "." -File -Filter "*.exe" | ForEach-Object {
+            Write-Host "Generated installer: $($_.Name) ($([math]::Round($_.Length / 1MB, 2)) MB)"
           }
 
       - name: Upload Windows Installer
         uses: actions/upload-artifact@v4
         with:
           name: windows-installer
-          path: installer-output/*.exe
+          path: flutter_reader-windows-x64-installer-*.exe
           retention-days: 90
 
   # 创建GitHub Release并上传所有构建产物
