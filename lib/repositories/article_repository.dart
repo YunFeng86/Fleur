@@ -355,25 +355,42 @@ class ArticleRepository {
       }
       final categoryId = feed.categoryId;
 
-      // [FIX] Batch query all existing articles by links (eliminates N+1 query)
+      // [FIX] Batch query all existing articles by remoteId and links (eliminates N+1 query)
       // Normalize links first to ensure consistent matching
       final normalizedLinks = <String>[];
+      final remoteIds = <String>[];
       for (final a in incoming) {
         a.link = LinkNormalizer.normalize(a.link);
         normalizedLinks.add(a.link);
+        if (a.remoteId != null && a.remoteId!.trim().isNotEmpty) {
+          remoteIds.add(a.remoteId!);
+        }
       }
 
-      // Single batch query to fetch all potentially existing articles
+      // Query by both remoteId (primary) and link (fallback)
+      // This prevents duplicates even if URL changes but guid stays the same
       final existingArticles = await _isar.articles
           .filter()
           .feedIdEqualTo(feedId)
-          .anyOf(normalizedLinks, (q, link) => q.linkEqualTo(link))
+          .group((q) => q
+              .anyOf(normalizedLinks, (q, link) => q.linkEqualTo(link))
+              .or()
+              .optional(
+                remoteIds.isNotEmpty,
+                (q) => q.anyOf(remoteIds, (q, rid) => q.remoteIdEqualTo(rid)),
+              ))
           .findAll();
 
-      // Build link -> Article lookup map for O(1) access
-      final existingMap = <String, Article>{
-        for (var article in existingArticles) article.link: article,
-      };
+      // Build dual lookup maps for O(1) access
+      // remoteId takes priority over link for deduplication
+      final existingByRemoteId = <String, Article>{};
+      final existingByLink = <String, Article>{};
+      for (var article in existingArticles) {
+        if (article.remoteId != null && article.remoteId!.isNotEmpty) {
+          existingByRemoteId[article.remoteId!] = article;
+        }
+        existingByLink[article.link] = article;
+      }
 
       final now = DateTime.now();
 
@@ -383,8 +400,11 @@ class ArticleRepository {
         // [V2.0] Compute content hash for change detection
         final newHash = ContentHash.compute(a.contentHtml);
 
-        // O(1) lookup instead of N database queries
-        final existing = existingMap[a.link];
+        // Dual-key O(1) lookup: remoteId takes priority over link
+        // This prevents duplicates when URLs change but guid remains the same
+        final existing = (a.remoteId != null && a.remoteId!.isNotEmpty)
+            ? existingByRemoteId[a.remoteId!] ?? existingByLink[a.link]
+            : existingByLink[a.link];
 
         a.feedId = feedId;
         a.categoryId = categoryId; // [V2.0] Denormalize categoryId
