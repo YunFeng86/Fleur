@@ -465,7 +465,6 @@ class _TriStateSwitch extends StatefulWidget {
   final ValueChanged<bool?> onChanged;
 
   const _TriStateSwitch({
-    super.key,
     required this.title,
     required this.currentValue,
     required this.effectiveValue,
