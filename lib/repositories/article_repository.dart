@@ -439,6 +439,10 @@ class ArticleRepository {
         } else {
           isNew = true;
           a.contentHash = newHash;
+          if (a.publishedAt.millisecondsSinceEpoch == 0) {
+            // Some feeds omit pubDate/updated; use fetchedAt for reasonable sorting.
+            a.publishedAt = now.toUtc();
+          }
 
           // Apply automation rules only on first insert so we don't override
           // user actions on subsequent refreshes.

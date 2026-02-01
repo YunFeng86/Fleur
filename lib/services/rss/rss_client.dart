@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 
+import '../network/user_agents.dart';
+
 class RssFetchResult {
   const RssFetchResult({
     required this.statusCode,
@@ -32,8 +34,7 @@ class RssClient {
         validateStatus: (s) => s != null && s >= 200 && s < 400,
         headers: const {
           'Accept': 'application/rss+xml, application/atom+xml, text/xml, */*',
-          'User-Agent':
-              'FlutterReader/0.1 (+https://example.invalid) Dart/Dio',
+          'User-Agent': UserAgents.rss,
         }
             .map((k, v) => MapEntry(k, v))
             ..addAll({

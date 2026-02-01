@@ -8,6 +8,10 @@ class CategoryRepository {
 
   final Isar _isar;
 
+  Future<Category?> getById(int id) {
+    return _isar.categorys.get(id);
+  }
+
   Stream<List<Category>> watchAll() {
     return _isar.categorys.where().watch(fireImmediately: true);
   }

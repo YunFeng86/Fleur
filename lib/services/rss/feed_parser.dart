@@ -13,14 +13,15 @@ class FeedParser {
     // This is more reliable than searching for substrings in arbitrary positions
     try {
       final rootTag = _extractRootTag(trimmed);
+      final localName = _localName(rootTag).toLowerCase();
 
-      if (rootTag == 'rss' || rootTag == 'channel') {
+      if (localName == 'rss' || localName == 'channel') {
         // RSS 2.0 or malformed RSS without version attribute
         return _parseRss(trimmed);
-      } else if (rootTag == 'rdf:RDF' || rootTag.contains('RDF')) {
+      } else if (localName == 'rdf') {
         // RSS 1.0 (RDF-based)
         return _parseRss(trimmed);
-      } else if (rootTag == 'feed') {
+      } else if (localName == 'feed') {
         // Atom feed
         return _parseAtom(trimmed);
       } else {
@@ -82,6 +83,12 @@ class FeedParser {
     }
 
     return '';
+  }
+
+  String _localName(String tag) {
+    final t = tag.trim();
+    final idx = t.indexOf(':');
+    return idx >= 0 ? t.substring(idx + 1) : t;
   }
 
   bool _isAtomFeed(String xmlHeader) {

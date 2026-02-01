@@ -4,13 +4,19 @@ import 'package:dio/dio.dart';
 import 'package:pool/pool.dart';
 
 import '../../models/article.dart';
+import '../../models/category.dart';
+import '../../models/feed.dart';
 import '../../repositories/article_repository.dart';
+import '../../repositories/category_repository.dart';
 import '../../repositories/feed_repository.dart';
 import '../../repositories/rule_repository.dart';
+import '../settings/app_settings.dart';
+import '../settings/app_settings_store.dart';
 import '../rss/feed_parser.dart';
 import '../rss/rss_client.dart';
 import '../notifications/notification_service.dart';
 import '../cache/article_cache_service.dart';
+import '../../utils/keyword_filter.dart';
 
 class FeedRefreshResult {
   const FeedRefreshResult({
@@ -42,27 +48,33 @@ class BatchRefreshResult {
 class SyncService {
   SyncService({
     required FeedRepository feeds,
+    required CategoryRepository categories,
     required ArticleRepository articles,
     required RuleRepository rules,
     required RssClient client,
     required FeedParser parser,
     required NotificationService notifications,
     required ArticleCacheService cache,
+    required AppSettingsStore appSettingsStore,
   }) : _feeds = feeds,
+       _categories = categories,
        _articles = articles,
        _rules = rules,
        _client = client,
        _parser = parser,
        _notifications = notifications,
-       _cache = cache;
+       _cache = cache,
+       _appSettingsStore = appSettingsStore;
 
   final FeedRepository _feeds;
+  final CategoryRepository _categories;
   final ArticleRepository _articles;
   final RuleRepository _rules;
   final RssClient _client;
   final FeedParser _parser;
   final NotificationService _notifications;
   final ArticleCacheService _cache;
+  final AppSettingsStore _appSettingsStore;
   Future<void> _batchRefreshQueue = Future.value();
 
   Future<int> offlineCacheFeed(int feedId) async {
@@ -70,11 +82,23 @@ class SyncService {
     return _cache.cacheArticles(articles);
   }
 
-  Future<_RefreshOutcome> _refreshFeedOnce(int feedId) async {
-    final feed = await _feeds.getById(feedId);
-    if (feed == null) {
-      return const _RefreshOutcome(feedId: -1, statusCode: 0, incomingCount: 0);
-    }
+  Future<_EffectiveFeedSettings> _resolveSettings(
+    Feed feed, {
+    AppSettings? appSettings,
+  }) async {
+    final resolvedAppSettings = appSettings ?? await _appSettingsStore.load();
+    final categoryId = feed.categoryId;
+    final Category? category = categoryId == null
+        ? null
+        : await _categories.getById(categoryId);
+    return _EffectiveFeedSettings.resolve(feed, category, resolvedAppSettings);
+  }
+
+  Future<_RefreshOutcome> _refreshFeedOnce(
+    Feed feed,
+    _EffectiveFeedSettings settings,
+  ) async {
+    final feedId = feed.id;
 
     final fetched = await _client.fetchXml(
       feed.url,
@@ -106,7 +130,19 @@ class SyncService {
       lastSyncedAt: DateTime.now(),
     );
 
-    final incoming = parsed.items
+    final filteredItems = (!settings.filterEnabled ||
+            settings.filterKeywords.trim().isEmpty)
+        ? parsed.items
+        : parsed.items
+            .where(
+              (it) => ReservedKeywordFilter.matches(
+                pattern: settings.filterKeywords,
+                fields: [it.title, it.author, it.link, it.contentHtml],
+              ),
+            )
+            .toList(growable: false);
+
+    final incoming = filteredItems
         .map((it) {
           final a = Article()
             ..remoteId = it.remoteId
@@ -114,7 +150,11 @@ class SyncService {
             ..title = it.title
             ..author = it.author
             ..contentHtml = it.contentHtml
-            ..publishedAt = (it.publishedAt ?? DateTime.now()).toUtc();
+            // Keep `publishedAt` at the model default (epoch) when missing so
+            // upsert can preserve existing value; for brand-new items we will
+            // fall back to fetchedAt during upsert.
+            ..publishedAt = it.publishedAt?.toUtc() ??
+                DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
           return a;
         })
         .toList(growable: false);
@@ -125,6 +165,14 @@ class SyncService {
       incoming,
       rules: rules,
     );
+
+    // Best-effort offline caching for newly discovered articles.
+    if (settings.syncImages && newArticles.isNotEmpty) {
+      // Don't let caching failures break the refresh flow.
+      try {
+        await _cache.cacheArticles(newArticles);
+      } catch (_) {}
+    }
 
     if (keywordArticles.isNotEmpty) {
       await _notifications.showKeywordArticlesNotification(keywordArticles);
@@ -144,14 +192,30 @@ class SyncService {
   Future<FeedRefreshResult> refreshFeedSafe(
     int feedId, {
     int maxAttempts = 2,
+    AppSettings? appSettings,
   }) async {
+    final feed = await _feeds.getById(feedId);
+    if (feed == null) {
+      return FeedRefreshResult(
+        feedId: feedId,
+        incomingCount: 0,
+        error: ArgumentError('Feed $feedId not found'),
+      );
+    }
+
+    final settings = await _resolveSettings(feed, appSettings: appSettings);
+    if (!settings.syncEnabled) {
+      // Skip network refresh when sync is disabled for this feed (effective).
+      return FeedRefreshResult(feedId: feedId, incomingCount: 0);
+    }
+
     Object? lastError;
     final attempts = maxAttempts < 1 ? 1 : maxAttempts;
     final sw = Stopwatch()..start();
     for (var i = 0; i < attempts; i++) {
       final checkedAt = DateTime.now();
       try {
-        final out = await _refreshFeedOnce(feedId);
+        final out = await _refreshFeedOnce(feed, settings);
         sw.stop();
 
         await _feeds.updateSyncState(
@@ -230,6 +294,9 @@ class SyncService {
     final ids = feedIds.toList(growable: false);
     if (ids.isEmpty) return const BatchRefreshResult([]);
 
+    // Load once per batch to avoid per-feed disk reads.
+    final appSettings = await _appSettingsStore.load();
+
     final total = ids.length;
     var completed = 0;
 
@@ -254,6 +321,7 @@ class SyncService {
             final r = await refreshFeedSafe(
               id,
               maxAttempts: maxAttemptsPerFeed,
+              appSettings: appSettings,
             );
             results.add(r);
             completed++;
@@ -290,4 +358,61 @@ class _RefreshOutcome {
   final int incomingCount;
   final String? etag;
   final String? lastModified;
+}
+
+class _EffectiveFeedSettings {
+  const _EffectiveFeedSettings({
+    required this.syncEnabled,
+    required this.filterEnabled,
+    required this.filterKeywords,
+    required this.syncImages,
+  });
+
+  final bool syncEnabled;
+  final bool filterEnabled;
+  final String filterKeywords;
+  final bool syncImages;
+
+  static _EffectiveFeedSettings resolve(
+    Feed feed,
+    Category? category,
+    AppSettings appSettings,
+  ) {
+    bool pickBool(bool? feedV, bool? catV, bool appV) {
+      if (feedV != null) return feedV;
+      if (catV != null) return catV;
+      return appV;
+    }
+
+    String pickKeywords(String? feedV, String? catV, String appV) {
+      final f = feedV?.trim();
+      if (f != null && f.isNotEmpty) return f;
+      final c = catV?.trim();
+      if (c != null && c.isNotEmpty) return c;
+      return appV;
+    }
+
+    return _EffectiveFeedSettings(
+      syncEnabled: pickBool(
+        feed.syncEnabled,
+        category?.syncEnabled,
+        appSettings.syncEnabled,
+      ),
+      filterEnabled: pickBool(
+        feed.filterEnabled,
+        category?.filterEnabled,
+        appSettings.filterEnabled,
+      ),
+      filterKeywords: pickKeywords(
+        feed.filterKeywords,
+        category?.filterKeywords,
+        appSettings.filterKeywords,
+      ),
+      syncImages: pickBool(
+        feed.syncImages,
+        category?.syncImages,
+        appSettings.syncImages,
+      ),
+    );
+  }
 }

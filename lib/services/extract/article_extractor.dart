@@ -3,6 +3,8 @@ import 'package:dio/dio.dart';
 import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
 
+import '../network/user_agents.dart';
+
 class ExtractedArticle {
   const ExtractedArticle({required this.title, required this.contentHtml});
 
@@ -29,9 +31,7 @@ class ArticleExtractor {
         headers: const {
           'Accept':
               'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'User-Agent':
-              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
-              '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'User-Agent': UserAgents.web,
         },
       ),
     );
