@@ -159,6 +159,7 @@ jobs:
   build-windows-installer:
     needs: [build]
     runs-on: windows-latest
+    timeout-minutes: 20  # 添加超时保护
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -170,11 +171,13 @@ jobs:
           path: windows-release
 
       - name: Extract Windows build
-        shell: bash
+        shell: powershell
         run: |
           cd windows-release
-          7z x flutter_reader-windows-x64.zip -otemp/
-          ls -la temp/
+          # 使用 PowerShell 的 Expand-Archive 而不是 7z
+          Expand-Archive -Path "flutter_reader-windows-x64.zip" -DestinationPath "temp" -Force
+          Write-Host "✅ Extracted files:"
+          Get-ChildItem -Path "temp" -Recurse | Select-Object Name, Length
 
       # 计算版本变量
       - name: Calculate version variables
@@ -187,10 +190,10 @@ jobs:
 
       # 使用 Inno Setup 创建安装器
       - name: Build Windows Installer
-        shell: bash
+        shell: powershell
         run: |
           # 创建 Inno Setup 脚本
-          cat > installer.iss << 'EOF'
+          $issContent = @"
           [Setup]
           AppName=Flutter Reader
           AppVersion=${{ steps.version_vars.outputs.version_name }}
@@ -238,19 +241,48 @@ jobs:
           Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Uninstall\FlutterReader"; ValueType: string; ValueName: "DisplayVersion"; ValueData: "${{ steps.version_vars.outputs.version_name }}"
           Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Uninstall\FlutterReader"; ValueType: string; ValueName: "Publisher"; ValueData: "Flutter Reader Team"
           Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Uninstall\FlutterReader"; ValueType: string; ValueName: "UninstallString"; ValueData: "{uninstallexe}"
-          EOF
+          "@
+          
+          $issContent | Out-File -FilePath "installer.iss" -Encoding UTF8
+          Write-Host "✅ Created installer.iss"
 
       - name: Install Inno Setup
-        shell: bash
+        shell: powershell
         run: |
-          # 下载并安装 Inno Setup
-          curl -L -o innosetup.exe "https://jrsoftware.org/download.php/is.exe"
-          ./innosetup.exe /SILENT /NORESTART /SUPPRESSMSGBOXES
+          # 使用 Chocolatey 安装 Inno Setup (更可靠)
+          choco install innosetup -y
+          
+          # 验证安装
+          if (Test-Path "C:\Program Files (x86)\Inno Setup 6\ISCC.exe") {
+            Write-Host "✅ Inno Setup installed successfully"
+            & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /?
+          } else {
+            Write-Error "❌ Inno Setup installation failed"
+            exit 1
+          }
 
       - name: Compile Installer
-        shell: cmd
+        shell: powershell
         run: |
-          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+          $isccPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          
+          if (-not (Test-Path $isccPath)) {
+            Write-Error "❌ ISCC.exe not found at $isccPath"
+            exit 1
+          }
+          
+          Write-Host "🔨 Compiling installer..."
+          & $isccPath "installer.iss"
+          
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "✅ Installer compiled successfully"
+            Get-ChildItem -Path "installer-output" -File | ForEach-Object {
+              Write-Host "📦 Generated: $($_.Name) ($([math]::Round($_.Length / 1MB, 2)) MB)"
+            }
+          } else {
+            Write-Error "❌ Installer compilation failed with exit code $LASTEXITCODE"
+            exit $LASTEXITCODE
+          }
 
       - name: Upload Windows Installer
         uses: actions/upload-artifact@v4
