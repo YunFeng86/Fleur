@@ -10,6 +10,8 @@ class HtmlSanitizer {
 
   /// Allowed HTML tags (whitelist approach).
   static const _allowedTags = {
+    // Wrapper used by our full-text extractor.
+    'article',
     'p',
     'h1',
     'h2',
