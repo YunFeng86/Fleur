@@ -9,7 +9,6 @@ import 'package:flutter_reader/models/article.dart';
 import 'package:flutter_reader/models/category.dart';
 import 'package:flutter_reader/models/feed.dart';
 import 'package:flutter_reader/models/tag.dart';
-import 'package:flutter_reader/models/rule.dart';
 
 /// Performance benchmark test to validate the value of categoryId denormalization.
 ///
@@ -35,7 +34,6 @@ void main() {
       ArticleSchema,
       CategorySchema,
       TagSchema,
-      RuleSchema,
     ], directory: tempDir.path);
 
     stdout.writeln('\n🏗️  Setting up benchmark database...');

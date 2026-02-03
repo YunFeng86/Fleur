@@ -168,7 +168,7 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<int>(
       valueListenable: _routerVersion,
-      builder: (context, _, __) {
+      builder: (context, _, child) {
         final l10n = AppLocalizations.of(context)!;
         final totalWidth = MediaQuery.sizeOf(context).width;
         final width = effectiveContentWidth(totalWidth);
@@ -256,7 +256,7 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
                         tooltip: l10n.refreshAll,
                         onPressed: () async {
                           final batch = await refreshAll();
-                          if (!mounted) return;
+                          if (!context.mounted) return;
                           final err = batch.firstError?.error;
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -291,7 +291,7 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
                         tooltip: l10n.markAllRead,
                         onPressed: () async {
                           await markAllRead();
-                          if (!mounted) return;
+                          if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text(l10n.done)),
                           );
