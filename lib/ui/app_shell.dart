@@ -56,9 +56,15 @@ class AppShell extends StatelessWidget {
           ),
           GlobalNavMode.bottom => GlobalNavScope(
             hasGlobalNav: true,
-            child: Scaffold(
-              body: child,
-              bottomNavigationBar: GlobalNavBar(currentUri: currentUri),
+            child: Column(
+              children: [
+                Expanded(child: child),
+                const Divider(height: 1),
+                SafeArea(
+                  top: false,
+                  child: GlobalNavBar(currentUri: currentUri),
+                ),
+              ],
             ),
           ),
         };

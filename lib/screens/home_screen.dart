@@ -14,7 +14,6 @@ import '../widgets/article_list.dart';
 import '../widgets/reader_view.dart';
 import '../widgets/sidebar.dart';
 import '../utils/platform.dart';
-import '../ui/dialogs/article_search_dialog.dart';
 import '../ui/layout.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -62,9 +61,12 @@ class HomeScreen extends ConsumerWidget {
                             ref.read(selectedFeedIdProvider.notifier).state =
                                 null;
                             ref
-                                .read(selectedCategoryIdProvider.notifier)
-                                .state = null;
-                            ref.read(articleSearchQueryProvider.notifier).state =
+                                    .read(selectedCategoryIdProvider.notifier)
+                                    .state =
+                                null;
+                            ref
+                                    .read(articleSearchQueryProvider.notifier)
+                                    .state =
                                 '';
                           }
                         },
@@ -74,16 +76,17 @@ class HomeScreen extends ConsumerWidget {
                       ),
                       IconButton(
                         tooltip: l10n.search,
-                        onPressed: () =>
-                            showArticleSearchDialog(context, ref),
+                        onPressed: () => context.go('/search'),
                         icon: const Icon(Icons.search),
                       ),
                       if (searchQuery.isNotEmpty)
                         IconButton(
                           tooltip: l10n.delete,
-                          onPressed: () => ref
-                              .read(articleSearchQueryProvider.notifier)
-                              .state = '',
+                          onPressed: () =>
+                              ref
+                                      .read(articleSearchQueryProvider.notifier)
+                                      .state =
+                                  '',
                           icon: const Icon(Icons.clear),
                         ),
                       IconButton(
@@ -126,315 +129,342 @@ class HomeScreen extends ConsumerWidget {
           );
         }
 
-    // 2/3-column: desktop / tablet style with keyboard shortcuts.
-    final shortcuts = <ShortcutActivator, Intent>{
-      const SingleActivator(LogicalKeyboardKey.keyJ):
-          const _NextArticleIntent(),
-      const SingleActivator(LogicalKeyboardKey.keyK):
-          const _PrevArticleIntent(),
-      const SingleActivator(LogicalKeyboardKey.keyR): const _RefreshIntent(),
-      const SingleActivator(LogicalKeyboardKey.keyU):
-          const _ToggleUnreadIntent(),
-      const SingleActivator(LogicalKeyboardKey.keyM): const _ToggleReadIntent(),
-      const SingleActivator(LogicalKeyboardKey.keyS): const _ToggleStarIntent(),
-      const SingleActivator(LogicalKeyboardKey.keyF, control: true):
-          const _SearchIntent(),
-      const SingleActivator(LogicalKeyboardKey.keyF, meta: true):
-          const _SearchIntent(),
-    };
+        // 2/3-column: desktop / tablet style with keyboard shortcuts.
+        final shortcuts = <ShortcutActivator, Intent>{
+          const SingleActivator(LogicalKeyboardKey.keyJ):
+              const _NextArticleIntent(),
+          const SingleActivator(LogicalKeyboardKey.keyK):
+              const _PrevArticleIntent(),
+          const SingleActivator(LogicalKeyboardKey.keyR):
+              const _RefreshIntent(),
+          const SingleActivator(LogicalKeyboardKey.keyU):
+              const _ToggleUnreadIntent(),
+          const SingleActivator(LogicalKeyboardKey.keyM):
+              const _ToggleReadIntent(),
+          const SingleActivator(LogicalKeyboardKey.keyS):
+              const _ToggleStarIntent(),
+          const SingleActivator(LogicalKeyboardKey.keyF, control: true):
+              const _SearchIntent(),
+          const SingleActivator(LogicalKeyboardKey.keyF, meta: true):
+              const _SearchIntent(),
+        };
 
-    return Shortcuts(
-      shortcuts: shortcuts,
-      child: Actions(
-        actions: {
-          _NextArticleIntent: CallbackAction<_NextArticleIntent>(
-            onInvoke: (intent) {
-              final list =
-                  ref.read(articleListControllerProvider).valueOrNull?.items ??
-                  const [];
-              if (list.isEmpty) return null;
-              final idx = selectedArticleId == null
-                  ? -1
-                  : list.indexWhere((a) => a.id == selectedArticleId);
-              final next = list[(idx + 1).clamp(0, list.length - 1)];
-              context.go('/article/${next.id}');
-              return null;
+        return Shortcuts(
+          shortcuts: shortcuts,
+          child: Actions(
+            actions: {
+              _NextArticleIntent: CallbackAction<_NextArticleIntent>(
+                onInvoke: (intent) {
+                  final list =
+                      ref
+                          .read(articleListControllerProvider)
+                          .valueOrNull
+                          ?.items ??
+                      const [];
+                  if (list.isEmpty) return null;
+                  final idx = selectedArticleId == null
+                      ? -1
+                      : list.indexWhere((a) => a.id == selectedArticleId);
+                  final next = list[(idx + 1).clamp(0, list.length - 1)];
+                  context.go('/article/${next.id}');
+                  return null;
+                },
+              ),
+              _PrevArticleIntent: CallbackAction<_PrevArticleIntent>(
+                onInvoke: (intent) {
+                  final list =
+                      ref
+                          .read(articleListControllerProvider)
+                          .valueOrNull
+                          ?.items ??
+                      const [];
+                  if (list.isEmpty) return null;
+                  final idx = selectedArticleId == null
+                      ? 0
+                      : list.indexWhere((a) => a.id == selectedArticleId);
+                  final prev = list[(idx - 1).clamp(0, list.length - 1)];
+                  context.go('/article/${prev.id}');
+                  return null;
+                },
+              ),
+              _RefreshIntent: CallbackAction<_RefreshIntent>(
+                onInvoke: (intent) async {
+                  final feedId = ref.read(selectedFeedIdProvider);
+                  final categoryId = ref.read(selectedCategoryIdProvider);
+                  if (feedId != null) {
+                    await ref.read(syncServiceProvider).refreshFeedSafe(feedId);
+                  } else if (categoryId != null) {
+                    final feeds = await ref
+                        .read(feedRepositoryProvider)
+                        .getAll();
+                    final filtered = categoryId < 0
+                        ? feeds.where((f) => f.categoryId == null)
+                        : feeds.where((f) => f.categoryId == categoryId);
+                    await ref
+                        .read(syncServiceProvider)
+                        .refreshFeedsSafe(filtered.map((f) => f.id));
+                  } else {
+                    final feeds = await ref
+                        .read(feedRepositoryProvider)
+                        .getAll();
+                    await ref
+                        .read(syncServiceProvider)
+                        .refreshFeedsSafe(feeds.map((f) => f.id));
+                  }
+                  return null;
+                },
+              ),
+              _ToggleUnreadIntent: CallbackAction<_ToggleUnreadIntent>(
+                onInvoke: (intent) {
+                  final cur = ref.read(unreadOnlyProvider);
+                  ref.read(unreadOnlyProvider.notifier).state = !cur;
+                  return null;
+                },
+              ),
+              _ToggleReadIntent: CallbackAction<_ToggleReadIntent>(
+                onInvoke: (intent) async {
+                  if (selectedArticleId == null) return null;
+                  final a = await ref
+                      .read(articleRepositoryProvider)
+                      .getById(selectedArticleId!);
+                  if (a == null) return null;
+                  await ref
+                      .read(articleRepositoryProvider)
+                      .markRead(selectedArticleId!, !a.isRead);
+                  return null;
+                },
+              ),
+              _ToggleStarIntent: CallbackAction<_ToggleStarIntent>(
+                onInvoke: (intent) async {
+                  if (selectedArticleId == null) return null;
+                  await ref
+                      .read(articleRepositoryProvider)
+                      .toggleStar(selectedArticleId!);
+                  return null;
+                },
+              ),
+              _SearchIntent: CallbackAction<_SearchIntent>(
+                onInvoke: (intent) {
+                  context.go('/search');
+                  return null;
+                },
+              ),
             },
-          ),
-          _PrevArticleIntent: CallbackAction<_PrevArticleIntent>(
-            onInvoke: (intent) {
-              final list =
-                  ref.read(articleListControllerProvider).valueOrNull?.items ??
-                  const [];
-              if (list.isEmpty) return null;
-              final idx = selectedArticleId == null
-                  ? 0
-                  : list.indexWhere((a) => a.id == selectedArticleId);
-              final prev = list[(idx - 1).clamp(0, list.length - 1)];
-              context.go('/article/${prev.id}');
-              return null;
-            },
-          ),
-          _RefreshIntent: CallbackAction<_RefreshIntent>(
-            onInvoke: (intent) async {
-              final feedId = ref.read(selectedFeedIdProvider);
-              final categoryId = ref.read(selectedCategoryIdProvider);
-              if (feedId != null) {
-                await ref.read(syncServiceProvider).refreshFeedSafe(feedId);
-              } else if (categoryId != null) {
-                final feeds = await ref.read(feedRepositoryProvider).getAll();
-                final filtered = categoryId < 0
-                    ? feeds.where((f) => f.categoryId == null)
-                    : feeds.where((f) => f.categoryId == categoryId);
-                await ref
-                    .read(syncServiceProvider)
-                    .refreshFeedsSafe(filtered.map((f) => f.id));
-              } else {
-                final feeds = await ref.read(feedRepositoryProvider).getAll();
-                await ref
-                    .read(syncServiceProvider)
-                    .refreshFeedsSafe(feeds.map((f) => f.id));
-              }
-              return null;
-            },
-          ),
-          _ToggleUnreadIntent: CallbackAction<_ToggleUnreadIntent>(
-            onInvoke: (intent) {
-              final cur = ref.read(unreadOnlyProvider);
-              ref.read(unreadOnlyProvider.notifier).state = !cur;
-              return null;
-            },
-          ),
-          _ToggleReadIntent: CallbackAction<_ToggleReadIntent>(
-            onInvoke: (intent) async {
-              if (selectedArticleId == null) return null;
-              final a = await ref
-                  .read(articleRepositoryProvider)
-                  .getById(selectedArticleId!);
-              if (a == null) return null;
-              await ref
-                  .read(articleRepositoryProvider)
-                  .markRead(selectedArticleId!, !a.isRead);
-              return null;
-            },
-          ),
-          _ToggleStarIntent: CallbackAction<_ToggleStarIntent>(
-            onInvoke: (intent) async {
-              if (selectedArticleId == null) return null;
-              await ref
-                  .read(articleRepositoryProvider)
-                  .toggleStar(selectedArticleId!);
-              return null;
-            },
-          ),
-          _SearchIntent: CallbackAction<_SearchIntent>(
-            onInvoke: (intent) {
-              showArticleSearchDialog(context, ref);
-              return null;
-            },
-          ),
-        },
-        child: Focus(
-          autofocus: true,
-          child: Scaffold(
-            appBar: (!isDesktop && columns == 2)
-                ? AppBar(
-                    title: Text(l10n.appTitle),
-                    actions: [
-                      IconButton(
-                        tooltip: l10n.settings,
-                        onPressed: () => context.push('/settings'),
-                        icon: const Icon(Icons.settings),
-                      ),
-                    ],
-                  )
-                : null,
-            drawer: (!isDesktop && columns == 2)
-                ? Drawer(
-                    child: Sidebar(
-                      onSelectFeed: (_) {
-                        Navigator.of(context).maybePop(); // close drawer
-                      },
-                    ),
-                  )
-                : null,
-            body: Row(
-              children: [
-                if (columns == 3) ...[
-                  SizedBox(
-                    width: 280,
-                    child: Sidebar(
-                      onSelectFeed: (_) {
-                        if (selectedArticleId != null) context.go('/');
-                      },
-                    ),
-                  ),
-                  const VerticalDivider(width: 1),
-                ],
-                SizedBox(
-                  width: 420,
-                  child: Column(
-                    children: [
-                      SizedBox(
-                        height: 56,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: Row(
-                            children: [
-                              Consumer(
-                                builder: (context, ref, _) {
-                                  final l10n = AppLocalizations.of(context)!;
-                                  final unreadOnly = ref.watch(
-                                    unreadOnlyProvider,
-                                  );
-                                  return FilterChip(
-                                    selected: unreadOnly,
-                                    label: Text(l10n.unread),
-                                    onSelected: (v) =>
-                                        ref
-                                                .read(
-                                                  unreadOnlyProvider.notifier,
-                                                )
-                                                .state =
-                                            v,
-                                  );
-                                },
-                              ),
-                              const Spacer(),
-                              Consumer(
-                                builder: (context, ref, _) {
-                                  final l10n = AppLocalizations.of(context)!;
-                                  final selectedFeedId = ref.watch(
-                                    selectedFeedIdProvider,
-                                  );
-                                  final selectedCategoryId = ref.watch(
-                                    selectedCategoryIdProvider,
-                                  );
-                                  return IconButton(
-                                    tooltip: l10n.markAllRead,
-                                    onPressed: () async {
-                                      await ref
-                                          .read(articleRepositoryProvider)
-                                          .markAllRead(
-                                            feedId: selectedFeedId,
-                                            categoryId: selectedFeedId == null
-                                                ? selectedCategoryId
-                                                : null,
-                                          );
-                                    },
-                                    icon: const Icon(Icons.done_all),
-                                  );
-                                },
-                              ),
-                              Consumer(
-                                builder: (context, ref, _) {
-                                  final l10n = AppLocalizations.of(context)!;
-                                  final starredOnly = ref.watch(
-                                    starredOnlyProvider,
-                                  );
-                                  return IconButton(
-                                    tooltip: l10n.starred,
-                                    onPressed: () {
-                                      final next = !starredOnly;
-                                      ref
-                                              .read(
-                                                starredOnlyProvider.notifier,
-                                              )
-                                              .state =
-                                          next;
-                                      if (next) {
-                                        ref
-                                                .read(
-                                                  selectedFeedIdProvider
-                                                      .notifier,
-                                                )
-                                                .state =
-                                            null;
-                                        ref
-                                                .read(
-                                                  selectedCategoryIdProvider
-                                                      .notifier,
-                                                )
-                                                .state =
-                                            null;
-                                        ref
-                                                .read(
-                                                  articleSearchQueryProvider
-                                                      .notifier,
-                                                )
-                                                .state =
-                                            '';
-                                      }
-                                    },
-                                    icon: Icon(
-                                      starredOnly
-                                          ? Icons.star
-                                          : Icons.star_border,
-                                    ),
-                                  );
-                                },
-                              ),
-                              IconButton(
-                                tooltip: l10n.search,
-                                onPressed: () =>
-                                    showArticleSearchDialog(context, ref),
-                                icon: const Icon(Icons.search),
-                              ),
-                              Consumer(
-                                builder: (context, ref, _) {
-                                  final l10n = AppLocalizations.of(context)!;
-                                  final q = ref
-                                      .watch(articleSearchQueryProvider)
-                                      .trim();
-                                  if (q.isEmpty) return const SizedBox.shrink();
-                                  return IconButton(
-                                    tooltip: l10n.delete,
-                                    onPressed: () =>
-                                        ref
-                                                .read(
-                                                  articleSearchQueryProvider
-                                                      .notifier,
-                                                )
-                                                .state =
-                                            '',
-                                    icon: const Icon(Icons.clear),
-                                  );
-                                },
-                              ),
-                            ],
+            child: Focus(
+              autofocus: true,
+              child: Scaffold(
+                appBar: (!isDesktop && columns == 2)
+                    ? AppBar(
+                        title: Text(l10n.appTitle),
+                        actions: [
+                          IconButton(
+                            tooltip: l10n.settings,
+                            onPressed: () => context.push('/settings'),
+                            icon: const Icon(Icons.settings),
                           ),
+                        ],
+                      )
+                    : null,
+                drawer: (!isDesktop && columns == 2)
+                    ? Drawer(
+                        child: Sidebar(
+                          onSelectFeed: (_) {
+                            Navigator.of(context).maybePop(); // close drawer
+                          },
+                        ),
+                      )
+                    : null,
+                body: Row(
+                  children: [
+                    if (columns == 3) ...[
+                      SizedBox(
+                        width: 280,
+                        child: Sidebar(
+                          onSelectFeed: (_) {
+                            if (selectedArticleId != null) context.go('/');
+                          },
                         ),
                       ),
-                      const Divider(height: 1),
-                      Expanded(
-                        child: ArticleList(
-                          selectedArticleId: selectedArticleId,
-                        ),
-                      ),
+                      const VerticalDivider(width: 1),
                     ],
-                  ),
+                    SizedBox(
+                      width: 420,
+                      child: Column(
+                        children: [
+                          SizedBox(
+                            height: 56,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
+                              child: Row(
+                                children: [
+                                  Consumer(
+                                    builder: (context, ref, _) {
+                                      final l10n = AppLocalizations.of(
+                                        context,
+                                      )!;
+                                      final unreadOnly = ref.watch(
+                                        unreadOnlyProvider,
+                                      );
+                                      return FilterChip(
+                                        selected: unreadOnly,
+                                        label: Text(l10n.unread),
+                                        onSelected: (v) =>
+                                            ref
+                                                    .read(
+                                                      unreadOnlyProvider
+                                                          .notifier,
+                                                    )
+                                                    .state =
+                                                v,
+                                      );
+                                    },
+                                  ),
+                                  const Spacer(),
+                                  Consumer(
+                                    builder: (context, ref, _) {
+                                      final l10n = AppLocalizations.of(
+                                        context,
+                                      )!;
+                                      final selectedFeedId = ref.watch(
+                                        selectedFeedIdProvider,
+                                      );
+                                      final selectedCategoryId = ref.watch(
+                                        selectedCategoryIdProvider,
+                                      );
+                                      return IconButton(
+                                        tooltip: l10n.markAllRead,
+                                        onPressed: () async {
+                                          await ref
+                                              .read(articleRepositoryProvider)
+                                              .markAllRead(
+                                                feedId: selectedFeedId,
+                                                categoryId:
+                                                    selectedFeedId == null
+                                                    ? selectedCategoryId
+                                                    : null,
+                                              );
+                                        },
+                                        icon: const Icon(Icons.done_all),
+                                      );
+                                    },
+                                  ),
+                                  Consumer(
+                                    builder: (context, ref, _) {
+                                      final l10n = AppLocalizations.of(
+                                        context,
+                                      )!;
+                                      final starredOnly = ref.watch(
+                                        starredOnlyProvider,
+                                      );
+                                      return IconButton(
+                                        tooltip: l10n.starred,
+                                        onPressed: () {
+                                          final next = !starredOnly;
+                                          ref
+                                                  .read(
+                                                    starredOnlyProvider
+                                                        .notifier,
+                                                  )
+                                                  .state =
+                                              next;
+                                          if (next) {
+                                            ref
+                                                    .read(
+                                                      selectedFeedIdProvider
+                                                          .notifier,
+                                                    )
+                                                    .state =
+                                                null;
+                                            ref
+                                                    .read(
+                                                      selectedCategoryIdProvider
+                                                          .notifier,
+                                                    )
+                                                    .state =
+                                                null;
+                                            ref
+                                                    .read(
+                                                      articleSearchQueryProvider
+                                                          .notifier,
+                                                    )
+                                                    .state =
+                                                '';
+                                          }
+                                        },
+                                        icon: Icon(
+                                          starredOnly
+                                              ? Icons.star
+                                              : Icons.star_border,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  IconButton(
+                                    tooltip: l10n.search,
+                                    onPressed: () => context.go('/search'),
+                                    icon: const Icon(Icons.search),
+                                  ),
+                                  Consumer(
+                                    builder: (context, ref, _) {
+                                      final l10n = AppLocalizations.of(
+                                        context,
+                                      )!;
+                                      final q = ref
+                                          .watch(articleSearchQueryProvider)
+                                          .trim();
+                                      if (q.isEmpty) {
+                                        return const SizedBox.shrink();
+                                      }
+                                      return IconButton(
+                                        tooltip: l10n.delete,
+                                        onPressed: () =>
+                                            ref
+                                                    .read(
+                                                      articleSearchQueryProvider
+                                                          .notifier,
+                                                    )
+                                                    .state =
+                                                '',
+                                        icon: const Icon(Icons.clear),
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const Divider(height: 1),
+                          Expanded(
+                            child: ArticleList(
+                              selectedArticleId: selectedArticleId,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const VerticalDivider(width: 1),
+                    Expanded(
+                      child: selectedArticleId == null
+                          ? Container(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerLowest,
+                              alignment: Alignment.center,
+                              child: Text(l10n.selectAnArticle),
+                            )
+                          : ReaderView(
+                              articleId: selectedArticleId!,
+                              embedded: true,
+                            ),
+                    ),
+                  ],
                 ),
-                const VerticalDivider(width: 1),
-                Expanded(
-                  child: selectedArticleId == null
-                      ? Container(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.surfaceContainerLowest,
-                          alignment: Alignment.center,
-                          child: Text(l10n.selectAnArticle),
-                        )
-                      : ReaderView(
-                          articleId: selectedArticleId!,
-                          embedded: true,
-                        ),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
-    );
+        );
       },
     );
   }
@@ -603,7 +633,7 @@ class HomeScreen extends ConsumerWidget {
           ),
           _SearchIntent: CallbackAction<_SearchIntent>(
             onInvoke: (intent) {
-              showArticleSearchDialog(context, ref);
+              context.go('/search');
               return null;
             },
           ),

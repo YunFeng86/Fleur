@@ -3,9 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_reader/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
+import '../providers/app_settings_providers.dart';
 import '../providers/query_providers.dart';
 import '../providers/unread_providers.dart';
-import '../ui/dialogs/article_search_dialog.dart';
+import '../services/settings/app_settings.dart';
 import '../ui/layout.dart';
 import '../utils/platform.dart';
 import '../widgets/article_list.dart';
@@ -22,10 +23,28 @@ class SearchScreen extends ConsumerStatefulWidget {
 
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   bool _initialized = false;
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+  bool _suppressControllerListener = false;
+
+  void _applyQuery(String q) {
+    // Typing/searching should reset any embedded selection.
+    if (widget.selectedArticleId != null) context.go('/search');
+    ref.read(articleSearchQueryProvider.notifier).state = q;
+  }
 
   @override
   void initState() {
     super.initState();
+
+    _focusNode = FocusNode();
+    _controller = TextEditingController(
+      text: ref.read(articleSearchQueryProvider),
+    );
+    _controller.addListener(() {
+      if (_suppressControllerListener) return;
+      _applyQuery(_controller.text);
+    });
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
@@ -41,13 +60,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
       if (!mounted) return;
       setState(() => _initialized = true);
-
-      // Only auto-prompt for a query when we're on the list root.
-      if (widget.selectedArticleId != null) return;
-      if (ref.read(articleSearchQueryProvider).trim().isNotEmpty) return;
-
-      await showArticleSearchDialog(context, ref);
     });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
   }
 
   @override
@@ -69,55 +89,99 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             ? desktopReaderEmbedded(desktopModeForWidth(width))
             : width >= 600;
 
-        final query = ref.watch(articleSearchQueryProvider).trim();
+        final query = ref.watch(articleSearchQueryProvider);
+        final appSettings = ref.watch(appSettingsProvider).valueOrNull;
+        final searchInContent = appSettings?.searchInContent ?? true;
+
+        // Keep the TextField controller in sync with external updates (e.g.
+        // navigating back to Search with an existing query).
+        if (_controller.text != query) {
+          _suppressControllerListener = true;
+          _controller.value = _controller.value.copyWith(
+            text: query,
+            selection: TextSelection.collapsed(offset: query.length),
+            composing: TextRange.empty,
+          );
+          _suppressControllerListener = false;
+        }
 
         final header = Padding(
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                child: Text(
-                  query.isEmpty ? l10n.search : query,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
+              Text(l10n.search, style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      focusNode: _focusNode,
+                      autofocus: widget.selectedArticleId == null,
+                      decoration: InputDecoration(
+                        hintText: l10n.search,
+                        prefixIcon: const Icon(Icons.search),
+                        filled: true,
+                        suffixIcon: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (query.trim().isNotEmpty)
+                              IconButton(
+                                tooltip: l10n.delete,
+                                onPressed: () => _applyQuery(''),
+                                icon: const Icon(Icons.clear),
+                              ),
+                          ],
+                        ),
+                      ),
+                      textInputAction: TextInputAction.search,
+                      onSubmitted: _applyQuery,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    tooltip: l10n.searchInContent,
+                    onPressed: () async {
+                      final cur =
+                          ref.read(appSettingsProvider).valueOrNull ??
+                          const AppSettings();
+                      await ref
+                          .read(appSettingsProvider.notifier)
+                          .setSearchInContent(!cur.searchInContent);
+                    },
+                    icon: Icon(
+                      searchInContent
+                          ? Icons.text_snippet_outlined
+                          : Icons.title_outlined,
+                    ),
+                  ),
+                ],
               ),
-              IconButton(
-                tooltip: l10n.search,
-                onPressed: () async {
-                  await showArticleSearchDialog(context, ref);
-                  // If we're showing an embedded article, return to list root
-                  // after changing the query.
-                  if (!context.mounted) return;
-                  if (widget.selectedArticleId != null) context.go('/search');
-                },
-                icon: const Icon(Icons.search),
-              ),
-              if (query.isNotEmpty)
-                IconButton(
-                  tooltip: l10n.delete,
-                  onPressed: () {
-                    ref.read(articleSearchQueryProvider.notifier).state = '';
-                    if (context.mounted) context.go('/search');
-                  },
-                  icon: const Icon(Icons.clear),
-                ),
             ],
           ),
         );
 
         Widget listPane() {
+          final trimmed = query.trim();
+          final showResults = trimmed.isNotEmpty;
           return Column(
             children: [
               header,
               const Divider(height: 1),
               Expanded(
-                child: ArticleList(
-                  selectedArticleId: widget.selectedArticleId,
-                  baseLocation: '/search',
-                  articleRoutePrefix: '/search',
-                ),
+                child: showResults
+                    ? ArticleList(
+                        selectedArticleId: widget.selectedArticleId,
+                        baseLocation: '/search',
+                        articleRoutePrefix: '/search',
+                      )
+                    : Container(
+                        color: Theme.of(context).colorScheme.surface,
+                        alignment: Alignment.center,
+                        padding: const EdgeInsets.all(24),
+                        child: Text(l10n.search),
+                      ),
               ),
             ],
           );

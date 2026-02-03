@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../l10n/app_localizations.dart';
 import '../providers/query_providers.dart';
-import '../ui/dialogs/article_search_dialog.dart';
 
 enum _GlobalDest { dashboard, feeds, saved, automate, search, settings }
 
@@ -37,9 +36,8 @@ class GlobalNavBar extends ConsumerWidget {
 
     return NavigationBar(
       selectedIndex: selectedIndex,
-      onDestinationSelected: (idx) async {
+      onDestinationSelected: (idx) {
         final next = _GlobalDest.values[idx];
-        final wasSearch = _destForUri(currentUri) == _GlobalDest.search;
         switch (next) {
           case _GlobalDest.dashboard:
             context.go('/dashboard');
@@ -60,13 +58,6 @@ class GlobalNavBar extends ConsumerWidget {
             context.go('/automate');
             return;
           case _GlobalDest.search:
-            if (wasSearch) {
-              await showArticleSearchDialog(context, ref);
-              if (!context.mounted) return;
-              // If we were on an embedded article route, return to list root.
-              if (currentUri.pathSegments.length > 1) context.go('/search');
-              return;
-            }
             context.go('/search');
             return;
           case _GlobalDest.settings:

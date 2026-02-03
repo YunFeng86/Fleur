@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/query_providers.dart';
 import '../ui/dialogs/add_subscription_dialog.dart';
-import '../ui/dialogs/article_search_dialog.dart';
 import '../ui/global_nav.dart';
 
 enum _GlobalDest { dashboard, feeds, saved, automate, search, settings }
@@ -112,7 +111,7 @@ class GlobalNavRail extends ConsumerWidget {
             ],
           ),
         ),
-        onDestinationSelected: (idx) async {
+        onDestinationSelected: (idx) {
           final next = _GlobalDest.values[idx];
           switch (next) {
             case _GlobalDest.dashboard:
@@ -134,18 +133,7 @@ class GlobalNavRail extends ConsumerWidget {
               context.go('/automate');
               return;
             case _GlobalDest.search:
-              // Prefer the dedicated Search section; allow re-opening quickly
-              // when we're already there.
-              final wasSearch = _destForUri(currentUri) == _GlobalDest.search;
-              if (!wasSearch) {
-                context.go('/search');
-                return;
-              }
-
-              await showArticleSearchDialog(context, ref);
-              if (!context.mounted) return;
-              // If we were on an embedded article route, return to list root.
-              if (currentUri.pathSegments.length > 1) context.go('/search');
+              context.go('/search');
               return;
             case _GlobalDest.settings:
               context.go('/settings');
