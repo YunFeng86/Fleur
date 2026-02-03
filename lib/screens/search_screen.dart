@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../providers/app_settings_providers.dart';
 import '../providers/query_providers.dart';
 import '../providers/unread_providers.dart';
+import '../ui/global_nav.dart';
 import '../ui/layout.dart';
 import '../utils/platform.dart';
 import '../widgets/article_list.dart';
@@ -72,12 +73,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final totalWidth = MediaQuery.sizeOf(context).width;
+    final useCompactTopBar =
+        !isDesktop || globalNavModeForWidth(totalWidth) == GlobalNavMode.bottom;
 
     if (!_initialized) {
-      return Container(
+      final loading = Container(
         color: Theme.of(context).colorScheme.surface,
         alignment: Alignment.center,
         child: const CircularProgressIndicator(),
+      );
+      if (!useCompactTopBar) return loading;
+      return Scaffold(
+        appBar: AppBar(title: Text(l10n.search)),
+        body: loading,
       );
     }
 
@@ -109,8 +118,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(l10n.search, style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 12),
               if (width >= 600)
                 Row(
                   children: [
@@ -242,15 +249,25 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           );
         }
 
-        if (!isEmbedded) return listPane();
+        Widget content;
+        if (!isEmbedded) {
+          content = listPane();
+        } else {
+          content = Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(width: kDesktopListWidth, child: listPane()),
+              const VerticalDivider(width: 1),
+              Expanded(child: readerPane(embedded: true)),
+            ],
+          );
+        }
 
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SizedBox(width: kDesktopListWidth, child: listPane()),
-            const VerticalDivider(width: 1),
-            Expanded(child: readerPane(embedded: true)),
-          ],
+        if (!useCompactTopBar) return content;
+
+        return Scaffold(
+          appBar: AppBar(title: Text(l10n.search)),
+          body: content,
         );
       },
     );

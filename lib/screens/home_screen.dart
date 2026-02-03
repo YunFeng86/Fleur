@@ -14,6 +14,7 @@ import '../widgets/article_list.dart';
 import '../widgets/reader_view.dart';
 import '../widgets/sidebar.dart';
 import '../utils/platform.dart';
+import '../ui/global_nav.dart';
 import '../ui/layout.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -24,6 +25,62 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final totalWidth = MediaQuery.sizeOf(context).width;
+    final useCompactTopBar =
+        !isDesktop || globalNavModeForWidth(totalWidth) == GlobalNavMode.bottom;
+
+    Future<void> refreshAll() async {
+      Object? err;
+      final feedId = ref.read(selectedFeedIdProvider);
+      final categoryId = ref.read(selectedCategoryIdProvider);
+      if (feedId != null) {
+        final r = await ref.read(syncServiceProvider).refreshFeedSafe(feedId);
+        err = r.error;
+      } else {
+        final feeds = await ref.read(feedRepositoryProvider).getAll();
+        final filtered = (categoryId == null)
+            ? feeds
+            : (categoryId < 0
+                  ? feeds.where((f) => f.categoryId == null)
+                  : feeds.where((f) => f.categoryId == categoryId));
+        final batch = await ref
+            .read(syncServiceProvider)
+            .refreshFeedsSafe(filtered.map((f) => f.id));
+        err = batch.firstError?.error;
+      }
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            err == null ? l10n.refreshedAll : l10n.errorMessage(err.toString()),
+          ),
+        ),
+      );
+    }
+
+    Future<void> markAllRead() async {
+      final selectedFeedId = ref.read(selectedFeedIdProvider);
+      final selectedCategoryId = ref.read(selectedCategoryIdProvider);
+      await ref
+          .read(articleRepositoryProvider)
+          .markAllRead(
+            feedId: selectedFeedId,
+            categoryId: selectedFeedId == null ? selectedCategoryId : null,
+          );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.done)),
+      );
+    }
+
+    Widget markAllReadFab() {
+      return FloatingActionButton(
+        onPressed: markAllRead,
+        tooltip: l10n.markAllRead,
+        child: const Icon(Icons.done_all),
+      );
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
@@ -31,7 +88,15 @@ class HomeScreen extends ConsumerWidget {
 
         if (isDesktop) {
           final mode = desktopModeForWidth(width);
-          return _buildDesktop(context, ref, l10n, mode);
+          return _buildDesktop(
+            context,
+            ref,
+            l10n,
+            mode,
+            useCompactTopBar,
+            refreshAll,
+            markAllRead,
+          );
         }
 
         // 1-column: mobile-style list + drawer, dedicated reader route.
@@ -39,14 +104,17 @@ class HomeScreen extends ConsumerWidget {
           final unreadOnly = ref.watch(unreadOnlyProvider);
           final starredOnly = ref.watch(starredOnlyProvider);
           final searchQuery = ref.watch(articleSearchQueryProvider).trim();
-          final selectedFeedId = ref.watch(selectedFeedIdProvider);
-          final selectedCategoryId = ref.watch(selectedCategoryIdProvider);
           return Scaffold(
             appBar: isDesktop
                 ? null
                 : AppBar(
-                    title: Text(l10n.appTitle),
+                    title: Text(l10n.feeds),
                     actions: [
+                      IconButton(
+                        tooltip: l10n.refreshAll,
+                        onPressed: refreshAll,
+                        icon: const Icon(Icons.refresh),
+                      ),
                       IconButton(
                         tooltip: l10n.settings,
                         onPressed: () => context.push('/settings'),
@@ -100,20 +168,6 @@ class HomeScreen extends ConsumerWidget {
                               : Icons.filter_alt_outlined,
                         ),
                       ),
-                      IconButton(
-                        tooltip: l10n.markAllRead,
-                        onPressed: () async {
-                          await ref
-                              .read(articleRepositoryProvider)
-                              .markAllRead(
-                                feedId: selectedFeedId,
-                                categoryId: selectedFeedId == null
-                                    ? selectedCategoryId
-                                    : null,
-                              );
-                        },
-                        icon: const Icon(Icons.done_all),
-                      ),
                     ],
                   ),
             drawer: isDesktop
@@ -125,6 +179,8 @@ class HomeScreen extends ConsumerWidget {
                       },
                     ),
                   ),
+            floatingActionButton:
+                useCompactTopBar ? markAllReadFab() : null,
             body: ArticleList(selectedArticleId: selectedArticleId),
           );
         }
@@ -253,10 +309,35 @@ class HomeScreen extends ConsumerWidget {
             child: Focus(
               autofocus: true,
               child: Scaffold(
-                appBar: (!isDesktop && columns == 2)
+                appBar: useCompactTopBar
                     ? AppBar(
-                        title: Text(l10n.appTitle),
+                        title: Text(l10n.feeds),
                         actions: [
+                          IconButton(
+                            tooltip: l10n.refreshAll,
+                            onPressed: refreshAll,
+                            icon: const Icon(Icons.refresh),
+                          ),
+                          Consumer(
+                            builder: (context, ref, _) {
+                              final unreadOnly = ref.watch(unreadOnlyProvider);
+                              return IconButton(
+                                tooltip: unreadOnly
+                                    ? l10n.showAll
+                                    : l10n.unreadOnly,
+                                onPressed: () =>
+                                    ref
+                                            .read(unreadOnlyProvider.notifier)
+                                            .state =
+                                        !unreadOnly,
+                                icon: Icon(
+                                  unreadOnly
+                                      ? Icons.filter_alt
+                                      : Icons.filter_alt_outlined,
+                                ),
+                              );
+                            },
+                          ),
                           IconButton(
                             tooltip: l10n.settings,
                             onPressed: () => context.push('/settings'),
@@ -265,6 +346,8 @@ class HomeScreen extends ConsumerWidget {
                         ],
                       )
                     : null,
+                floatingActionButton:
+                    useCompactTopBar ? markAllReadFab() : null,
                 drawer: (!isDesktop && columns == 2)
                     ? Drawer(
                         child: Sidebar(
@@ -299,57 +382,30 @@ class HomeScreen extends ConsumerWidget {
                               ),
                               child: Row(
                                 children: [
-                                  Consumer(
-                                    builder: (context, ref, _) {
-                                      final l10n = AppLocalizations.of(
-                                        context,
-                                      )!;
-                                      final unreadOnly = ref.watch(
-                                        unreadOnlyProvider,
-                                      );
-                                      return FilterChip(
-                                        selected: unreadOnly,
-                                        label: Text(l10n.unread),
-                                        onSelected: (v) =>
-                                            ref
-                                                    .read(
-                                                      unreadOnlyProvider
-                                                          .notifier,
-                                                    )
-                                                    .state =
-                                                v,
-                                      );
-                                    },
-                                  ),
+                                  if (!useCompactTopBar)
+                                    Consumer(
+                                      builder: (context, ref, _) {
+                                        final l10n = AppLocalizations.of(
+                                          context,
+                                        )!;
+                                        final unreadOnly = ref.watch(
+                                          unreadOnlyProvider,
+                                        );
+                                        return FilterChip(
+                                          selected: unreadOnly,
+                                          label: Text(l10n.unread),
+                                          onSelected: (v) =>
+                                              ref
+                                                      .read(
+                                                        unreadOnlyProvider
+                                                            .notifier,
+                                                      )
+                                                      .state =
+                                                  v,
+                                        );
+                                      },
+                                    ),
                                   const Spacer(),
-                                  Consumer(
-                                    builder: (context, ref, _) {
-                                      final l10n = AppLocalizations.of(
-                                        context,
-                                      )!;
-                                      final selectedFeedId = ref.watch(
-                                        selectedFeedIdProvider,
-                                      );
-                                      final selectedCategoryId = ref.watch(
-                                        selectedCategoryIdProvider,
-                                      );
-                                      return IconButton(
-                                        tooltip: l10n.markAllRead,
-                                        onPressed: () async {
-                                          await ref
-                                              .read(articleRepositoryProvider)
-                                              .markAllRead(
-                                                feedId: selectedFeedId,
-                                                categoryId:
-                                                    selectedFeedId == null
-                                                    ? selectedCategoryId
-                                                    : null,
-                                              );
-                                        },
-                                        icon: const Icon(Icons.done_all),
-                                      );
-                                    },
-                                  ),
                                   Consumer(
                                     builder: (context, ref, _) {
                                       final l10n = AppLocalizations.of(
@@ -474,6 +530,9 @@ class HomeScreen extends ConsumerWidget {
     WidgetRef ref,
     AppLocalizations l10n,
     DesktopPaneMode mode,
+    bool useCompactTopBar,
+    Future<void> Function() refreshAll,
+    Future<void> Function() markAllRead,
   ) {
     // Desktop keyboard shortcuts stay enabled across all layouts.
     final shortcuts = <ShortcutActivator, Intent>{
@@ -547,7 +606,7 @@ class HomeScreen extends ConsumerWidget {
       DesktopPaneMode.listOnly => listPane(),
     };
 
-    return Shortcuts(
+    final content = Shortcuts(
       shortcuts: shortcuts,
       child: Actions(
         actions: {
@@ -640,6 +699,56 @@ class HomeScreen extends ConsumerWidget {
         },
         child: Focus(autofocus: true, child: body),
       ),
+    );
+
+    if (!useCompactTopBar) return content;
+
+    final drawerEnabled = sidebarVisible && desktopSidebarInDrawer(mode);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(l10n.feeds),
+        actions: [
+          IconButton(
+            tooltip: l10n.refreshAll,
+            onPressed: refreshAll,
+            icon: const Icon(Icons.refresh),
+          ),
+          Consumer(
+            builder: (context, ref, _) {
+              final unreadOnly = ref.watch(unreadOnlyProvider);
+              return IconButton(
+                tooltip: unreadOnly ? l10n.showAll : l10n.unreadOnly,
+                onPressed: () =>
+                    ref.read(unreadOnlyProvider.notifier).state = !unreadOnly,
+                icon: Icon(
+                  unreadOnly ? Icons.filter_alt : Icons.filter_alt_outlined,
+                ),
+              );
+            },
+          ),
+          IconButton(
+            tooltip: l10n.settings,
+            onPressed: () => context.push('/settings'),
+            icon: const Icon(Icons.settings),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: markAllRead,
+        tooltip: l10n.markAllRead,
+        child: const Icon(Icons.done_all),
+      ),
+      drawer: drawerEnabled
+          ? Drawer(
+              child: Sidebar(
+                onSelectFeed: (_) {
+                  Navigator.of(context).maybePop();
+                },
+              ),
+            )
+          : null,
+      body: content,
     );
   }
 }

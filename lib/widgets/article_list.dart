@@ -35,6 +35,7 @@ class ArticleList extends ConsumerStatefulWidget {
 
 class _ArticleListState extends ConsumerState<ArticleList> {
   late final ScrollController _controller;
+  bool _loadMoreScheduled = false;
 
   // Cache to avoid recalculating entries on every build
   List<Article> _cachedItems = [];
@@ -49,9 +50,19 @@ class _ArticleListState extends ConsumerState<ArticleList> {
         final pos = _controller.position;
         if (pos.maxScrollExtent <= 0) return;
         if (pos.pixels >= pos.maxScrollExtent - 600) {
-          ref.read(articleListControllerProvider.notifier).loadMore();
+          _scheduleLoadMore();
         }
       });
+  }
+
+  void _scheduleLoadMore() {
+    if (_loadMoreScheduled) return;
+    _loadMoreScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadMoreScheduled = false;
+      if (!mounted) return;
+      ref.read(articleListControllerProvider.notifier).loadMore();
+    });
   }
 
   @override

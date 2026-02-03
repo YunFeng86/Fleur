@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../providers/query_providers.dart';
 import '../providers/unread_providers.dart';
+import '../ui/global_nav.dart';
 import '../ui/layout.dart';
 import '../utils/platform.dart';
 import '../widgets/article_list.dart';
@@ -52,12 +53,20 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final totalWidth = MediaQuery.sizeOf(context).width;
+    final useCompactTopBar =
+        !isDesktop || globalNavModeForWidth(totalWidth) == GlobalNavMode.bottom;
 
     if (!_initialized) {
-      return Container(
+      final loading = Container(
         color: Theme.of(context).colorScheme.surface,
         alignment: Alignment.center,
         child: const CircularProgressIndicator(),
+      );
+      if (!useCompactTopBar) return loading;
+      return Scaffold(
+        appBar: AppBar(title: Text(l10n.saved)),
+        body: loading,
       );
     }
 
@@ -72,12 +81,6 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
           child: Row(
             children: [
-              Expanded(
-                child: Text(
-                  l10n.saved,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ),
               SegmentedButton<_SavedMode>(
                 segments: [
                   ButtonSegment(
@@ -140,18 +143,26 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
           );
         }
 
+        Widget content;
         if (!isEmbedded) {
           // List-only; reader is a secondary route (or shown full page if deep-linked).
-          return listPane();
+          content = listPane();
+        } else {
+          content = Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(width: kDesktopListWidth, child: listPane()),
+              const VerticalDivider(width: 1),
+              Expanded(child: readerPane(embedded: true)),
+            ],
+          );
         }
 
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SizedBox(width: kDesktopListWidth, child: listPane()),
-            const VerticalDivider(width: 1),
-            Expanded(child: readerPane(embedded: true)),
-          ],
+        if (!useCompactTopBar) return content;
+
+        return Scaffold(
+          appBar: AppBar(title: Text(l10n.saved)),
+          body: content,
         );
       },
     );

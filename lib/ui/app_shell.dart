@@ -25,50 +25,46 @@ class AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final totalWidth = constraints.maxWidth;
-        final hideNavForReaderPage =
-            _isArticleRoute(currentUri) &&
-            !_isReaderEmbedded(totalWidth: totalWidth, uri: currentUri);
+    final totalWidth = MediaQuery.sizeOf(context).width;
+    final hideNavForReaderPage =
+        _isArticleRoute(currentUri) &&
+        !_isReaderEmbedded(totalWidth: totalWidth, uri: currentUri);
 
-        if (hideNavForReaderPage) {
-          // Dedicated reader pages should maximize content; they have their own
-          // back button (ReaderView/ReaderScreen).
-          return GlobalNavScope(hasGlobalNav: false, child: child);
-        }
+    if (hideNavForReaderPage) {
+      // Dedicated reader pages should maximize content; they have their own
+      // back button (ReaderView/ReaderScreen).
+      return GlobalNavScope(hasGlobalNav: false, child: child);
+    }
 
-        final mode = globalNavModeForWidth(totalWidth);
-        return switch (mode) {
-          GlobalNavMode.rail => GlobalNavScope(
-            hasGlobalNav: true,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SizedBox(
-                  width: kGlobalNavRailWidth,
-                  child: GlobalNavRail(currentUri: currentUri),
-                ),
-                const VerticalDivider(width: kDividerWidth, thickness: 1),
-                Expanded(child: child),
-              ],
+    final mode = globalNavModeForWidth(totalWidth);
+    return switch (mode) {
+      GlobalNavMode.rail => GlobalNavScope(
+        hasGlobalNav: true,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: kGlobalNavRailWidth,
+              child: GlobalNavRail(currentUri: currentUri),
             ),
-          ),
-          GlobalNavMode.bottom => GlobalNavScope(
-            hasGlobalNav: true,
-            child: Column(
-              children: [
-                Expanded(child: child),
-                const Divider(height: 1),
-                SafeArea(
-                  top: false,
-                  child: GlobalNavBar(currentUri: currentUri),
-                ),
-              ],
+            const VerticalDivider(width: kDividerWidth, thickness: 1),
+            Expanded(child: child),
+          ],
+        ),
+      ),
+      GlobalNavMode.bottom => GlobalNavScope(
+        hasGlobalNav: true,
+        child: Column(
+          children: [
+            Expanded(child: child),
+            const Divider(height: 1),
+            SafeArea(
+              top: false,
+              child: GlobalNavBar(currentUri: currentUri),
             ),
-          ),
-        };
-      },
-    );
+          ],
+        ),
+      ),
+    };
   }
 }

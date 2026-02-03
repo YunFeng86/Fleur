@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/query_providers.dart';
 
-enum _GlobalDest { dashboard, feeds, saved, automate, search, settings }
+enum _GlobalDest { dashboard, feeds, saved, search, settings }
 
 class GlobalNavBar extends ConsumerWidget {
   const GlobalNavBar({super.key, required this.currentUri});
@@ -17,7 +17,6 @@ class GlobalNavBar extends ConsumerWidget {
     return switch (seg) {
       'dashboard' => _GlobalDest.dashboard,
       'saved' => _GlobalDest.saved,
-      'automate' => _GlobalDest.automate,
       'search' => _GlobalDest.search,
       'settings' => _GlobalDest.settings,
       // article + home live under the Feeds section.
@@ -54,9 +53,6 @@ class GlobalNavBar extends ConsumerWidget {
           case _GlobalDest.saved:
             context.go('/saved');
             return;
-          case _GlobalDest.automate:
-            context.go('/automate');
-            return;
           case _GlobalDest.search:
             context.go('/search');
             return;
@@ -80,11 +76,6 @@ class GlobalNavBar extends ConsumerWidget {
           icon: const Icon(Icons.bookmark_outline),
           selectedIcon: const Icon(Icons.bookmark),
           label: l10n.saved,
-        ),
-        NavigationDestination(
-          icon: const Icon(Icons.auto_awesome_outlined),
-          selectedIcon: const Icon(Icons.auto_awesome),
-          label: l10n.automate,
         ),
         NavigationDestination(
           icon: const Icon(Icons.search_outlined),

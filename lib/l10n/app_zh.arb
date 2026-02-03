@@ -24,10 +24,6 @@
   "@saved": {
     "description": "Global navigation label: saved"
   },
-  "automate": "自动化",
-  "@automate": {
-    "description": "Global navigation label: automate"
-  },
   "comingSoon": "敬请期待",
   "@comingSoon": {
     "description": "Placeholder text"
@@ -270,10 +266,6 @@
     },
     "description": "cachingArticles"
   },
-  "showNotification": "显示通知",
-  "@showNotification": {
-    "description": "showNotification"
-  },
   "manageTags": "管理标签",
   "@manageTags": {
     "description": "manageTags"
@@ -419,58 +411,6 @@
   "sortOldestFirst": "最旧优先",
   "@sortOldestFirst": {
     "description": "sortOldestFirst"
-  },
-  "rules": "规则",
-  "@rules": {
-    "description": "rules"
-  },
-  "addRule": "新增规则",
-  "@addRule": {
-    "description": "addRule"
-  },
-  "editRule": "编辑规则",
-  "@editRule": {
-    "description": "editRule"
-  },
-  "ruleName": "规则名称",
-  "@ruleName": {
-    "description": "ruleName"
-  },
-  "keyword": "关键字",
-  "@keyword": {
-    "description": "keyword"
-  },
-  "matchIn": "匹配范围",
-  "@matchIn": {
-    "description": "matchIn"
-  },
-  "matchTitle": "标题",
-  "@matchTitle": {
-    "description": "matchTitle"
-  },
-  "matchAuthor": "作者",
-  "@matchAuthor": {
-    "description": "matchAuthor"
-  },
-  "matchLink": "链接",
-  "@matchLink": {
-    "description": "matchLink"
-  },
-  "matchContent": "内容",
-  "@matchContent": {
-    "description": "matchContent"
-  },
-  "actions": "动作",
-  "@actions": {
-    "description": "actions"
-  },
-  "autoStar": "自动收藏",
-  "@autoStar": {
-    "description": "autoStar"
-  },
-  "autoMarkReadAction": "自动标记为已读",
-  "@autoMarkReadAction": {
-    "description": "autoMarkReadAction"
   },
   "enabled": "启用",
   "@enabled": {

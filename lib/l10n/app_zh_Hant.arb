@@ -24,10 +24,6 @@
   "@saved": {
     "description": "Global navigation label: saved"
   },
-  "automate": "自動化",
-  "@automate": {
-    "description": "Global navigation label: automate"
-  },
   "comingSoon": "敬請期待",
   "@comingSoon": {
     "description": "Placeholder text"
@@ -275,10 +271,6 @@
     "description": "makeAvailableOffline"
   },
   "cachingArticles": "正在緩存 {count} 篇文章...",
-  "showNotification": "顯示通知",
-  "@showNotification": {
-    "description": "showNotification"
-  },
   "manageTags": "管理標籤",
   "@manageTags": {
     "description": "manageTags"
@@ -432,58 +424,6 @@
   "sortOldestFirst": "最舊的在先",
   "@sortOldestFirst": {
     "description": "sortOldestFirst"
-  },
-  "rules": "規則",
-  "@rules": {
-    "description": "rules"
-  },
-  "addRule": "新增規則",
-  "@addRule": {
-    "description": "addRule"
-  },
-  "editRule": "編輯規則",
-  "@editRule": {
-    "description": "editRule"
-  },
-  "ruleName": "規則名稱",
-  "@ruleName": {
-    "description": "ruleName"
-  },
-  "keyword": "關鍵字",
-  "@keyword": {
-    "description": "keyword"
-  },
-  "matchIn": "匹配範圍",
-  "@matchIn": {
-    "description": "matchIn"
-  },
-  "matchTitle": "標題",
-  "@matchTitle": {
-    "description": "matchTitle"
-  },
-  "matchAuthor": "作者",
-  "@matchAuthor": {
-    "description": "matchAuthor"
-  },
-  "matchLink": "連結",
-  "@matchLink": {
-    "description": "matchLink"
-  },
-  "matchContent": "內容",
-  "@matchContent": {
-    "description": "matchContent"
-  },
-  "actions": "動作",
-  "@actions": {
-    "description": "actions"
-  },
-  "autoStar": "自動收藏",
-  "@autoStar": {
-    "description": "autoStar"
-  },
-  "autoMarkReadAction": "自動標記為已讀",
-  "@autoMarkReadAction": {
-    "description": "autoMarkReadAction"
   },
   "enabled": "啟用",
   "@enabled": {

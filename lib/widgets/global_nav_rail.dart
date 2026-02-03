@@ -7,7 +7,7 @@ import '../providers/query_providers.dart';
 import '../ui/dialogs/add_subscription_dialog.dart';
 import '../ui/global_nav.dart';
 
-enum _GlobalDest { dashboard, feeds, saved, automate, search, settings }
+enum _GlobalDest { dashboard, feeds, saved, search, settings }
 
 class GlobalNavRail extends ConsumerWidget {
   const GlobalNavRail({super.key, required this.currentUri});
@@ -19,7 +19,6 @@ class GlobalNavRail extends ConsumerWidget {
     return switch (seg) {
       'dashboard' => _GlobalDest.dashboard,
       'saved' => _GlobalDest.saved,
-      'automate' => _GlobalDest.automate,
       'search' => _GlobalDest.search,
       'settings' => _GlobalDest.settings,
       // article + home live under the Feeds section.
@@ -65,11 +64,6 @@ class GlobalNavRail extends ConsumerWidget {
             icon: const Icon(Icons.bookmark_outline),
             selectedIcon: const Icon(Icons.bookmark),
             label: Text(l10n.saved),
-          ),
-          NavigationRailDestination(
-            icon: const Icon(Icons.auto_awesome_outlined),
-            selectedIcon: const Icon(Icons.auto_awesome),
-            label: Text(l10n.automate),
           ),
           NavigationRailDestination(
             icon: const Icon(Icons.search_outlined),
@@ -128,9 +122,6 @@ class GlobalNavRail extends ConsumerWidget {
               return;
             case _GlobalDest.saved:
               context.go('/saved');
-              return;
-            case _GlobalDest.automate:
-              context.go('/automate');
               return;
             case _GlobalDest.search:
               context.go('/search');

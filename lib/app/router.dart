@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_reader/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
-import '../screens/automate_screen.dart';
 import '../screens/dashboard_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/reader_screen.dart';
@@ -71,7 +70,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/dashboard',
             name: 'dashboard',
-            builder: (context, state) => const DashboardScreen(),
+            pageBuilder: (context, state) {
+              return const NoTransitionPage(child: DashboardScreen());
+            },
           ),
           GoRoute(
             path: '/saved',
@@ -178,14 +179,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
           GoRoute(
-            path: '/automate',
-            name: 'automate',
-            builder: (context, state) => const AutomateScreen(),
-          ),
-          GoRoute(
             path: '/settings',
             name: 'settings',
-            builder: (context, state) => const SettingsScreen(),
+            pageBuilder: (context, state) {
+              return const NoTransitionPage(child: SettingsScreen());
+            },
           ),
         ],
       ),
