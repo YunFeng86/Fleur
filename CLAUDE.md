@@ -24,6 +24,12 @@ dart run build_runner build
 # Clean and regenerate (if code generation has issues)
 dart run build_runner build --delete-conflicting-outputs
 
+# Code quality and formatting
+flutter analyze              # Run static analysis (53 rules from analysis_options.yaml)
+dart format .                # Format code (non-configurable, follows Dart style guide)
+dart fix --dry-run           # Preview auto-fixable issues
+dart fix --apply             # Auto-fix issues (async patterns, bool literals, etc.)
+
 # Run tests
 flutter test
 ```
@@ -131,3 +137,18 @@ Add localization keys to all ARB files in `l10n/` and run `flutter pub get` to r
 ### Dependencies Injection Pattern
 
 Override providers in tests using `ProviderScope(overrides: [...])`. Example in [main.dart:12-16](lib/main.dart#L12-L16).
+
+### Code Quality Standards
+
+**Static Analysis**: [analysis_options.yaml](analysis_options.yaml) enforces strict rules to prevent bugs:
+- **Async Safety**: All `Future`-returning calls must be awaited or explicitly marked with `unawaited()`
+- **Type Safety**: No implicit casts or dynamic calls (strict mode enabled)
+- **Resource Management**: Stream subscriptions and sinks must be closed
+- **Logic Errors**: BuildContext usage in async callbacks is flagged
+
+**Critical Rules**:
+- `unawaited_futures` / `discarded_futures` - Prevents silent error swallowing
+- `use_build_context_synchronously` - Catches async/UI timing bugs
+- `implicit-casts: false` - Type errors caught at analysis time, not runtime
+
+**Auto-fixing**: Run `dart fix --apply` to automatically resolve most issues before committing.
