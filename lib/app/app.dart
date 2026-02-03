@@ -299,12 +299,6 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
                         icon: const Icon(Icons.done_all),
                       ),
                     ],
-                  if (!useCompactTopBar)
-                    IconButton(
-                      tooltip: l10n.settings,
-                      onPressed: () => widget.router.push('/settings'),
-                      icon: const Icon(Icons.settings_outlined),
-                    ),
                 ],
               ),
               Expanded(child: widget.content),

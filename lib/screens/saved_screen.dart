@@ -26,6 +26,11 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
   _SavedMode _mode = _SavedMode.starred;
   bool _initialized = false;
 
+  String _labelWithCount(String label, int? count) {
+    if (count == null) return label;
+    return '$label ($count)';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -53,6 +58,8 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final starredCount = ref.watch(starredCountProvider).valueOrNull;
+    final readLaterCount = ref.watch(readLaterCountProvider).valueOrNull;
     final totalWidth = MediaQuery.sizeOf(context).width;
     final useCompactTopBar =
         !isDesktop || globalNavModeForWidth(totalWidth) == GlobalNavMode.bottom;
@@ -85,12 +92,14 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
                 segments: [
                   ButtonSegment(
                     value: _SavedMode.starred,
-                    label: Text(l10n.starred),
+                    label: Text(_labelWithCount(l10n.starred, starredCount)),
                     icon: const Icon(Icons.star),
                   ),
                   ButtonSegment(
                     value: _SavedMode.readLater,
-                    label: Text(l10n.readLater),
+                    label: Text(
+                      _labelWithCount(l10n.readLater, readLaterCount),
+                    ),
                     icon: const Icon(Icons.bookmark),
                   ),
                 ],

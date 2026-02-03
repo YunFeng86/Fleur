@@ -116,11 +116,6 @@ class HomeScreen extends ConsumerWidget {
                         icon: const Icon(Icons.refresh),
                       ),
                       IconButton(
-                        tooltip: l10n.settings,
-                        onPressed: () => context.push('/settings'),
-                        icon: const Icon(Icons.settings),
-                      ),
-                      IconButton(
                         tooltip: l10n.starred,
                         onPressed: () {
                           final next = !starredOnly;
@@ -337,11 +332,6 @@ class HomeScreen extends ConsumerWidget {
                                 ),
                               );
                             },
-                          ),
-                          IconButton(
-                            tooltip: l10n.settings,
-                            onPressed: () => context.push('/settings'),
-                            icon: const Icon(Icons.settings),
                           ),
                         ],
                       )
@@ -726,11 +716,6 @@ class HomeScreen extends ConsumerWidget {
                 ),
               );
             },
-          ),
-          IconButton(
-            tooltip: l10n.settings,
-            onPressed: () => context.push('/settings'),
-            icon: const Icon(Icons.settings),
           ),
         ],
       ),
