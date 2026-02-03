@@ -210,6 +210,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deleteCategory => '删除分类';
 
   @override
+  String get deleteCategoryConfirmTitle => '删除分类？';
+
+  @override
+  String get deleteCategoryConfirmContent => '该分类下的订阅源将移动到未分类。';
+
+  @override
   String get categoryDeleted => '分类已删除';
 
   @override
@@ -666,6 +672,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get deleteCategory => '刪除分類';
+
+  @override
+  String get deleteCategoryConfirmTitle => '刪除分類？';
+
+  @override
+  String get deleteCategoryConfirmContent => '此分類下的訂閱源將移至未分類。';
 
   @override
   String get categoryDeleted => '分類已刪除';

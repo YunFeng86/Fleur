@@ -105,6 +105,9 @@
     "description": "subscriptions"
   },
   "tags": "標籤",
+  "@tags": {
+    "description": "tags"
+  },
   "all": "所有文章",
   "@all": {
     "description": "all"
@@ -298,6 +301,14 @@
   "deleteCategory": "刪除分類",
   "@deleteCategory": {
     "description": "deleteCategory"
+  },
+  "deleteCategoryConfirmTitle": "刪除分類？",
+  "@deleteCategoryConfirmTitle": {
+    "description": "deleteCategoryConfirmTitle"
+  },
+  "deleteCategoryConfirmContent": "此分類下的訂閱源將移至未分類。",
+  "@deleteCategoryConfirmContent": {
+    "description": "deleteCategoryConfirmContent"
   },
   "categoryDeleted": "分類已刪除",
   "@categoryDeleted": {

@@ -214,7 +214,7 @@ class SubscriptionActions {
         .setCategory(feedId: feedId, categoryId: categoryId);
   }
 
-  static Future<void> deleteFeed(
+  static Future<bool> deleteFeed(
     BuildContext context,
     WidgetRef ref,
     int feedId,
@@ -239,28 +239,47 @@ class SubscriptionActions {
         );
       },
     );
-    if (confirmed != true) return;
+    if (confirmed != true) return false;
     await ref.read(feedRepositoryProvider).delete(feedId);
-    if (!context.mounted) return;
+    if (!context.mounted) return true;
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(l10n.deleted)));
+    return true;
   }
 
-  static Future<void> deleteCategory(
+  static Future<bool> deleteCategory(
     BuildContext context,
     WidgetRef ref,
     int categoryId,
   ) async {
-    // Maybe add confirmation? The original code did NOT have confirmation for deleting category.
-    // "Future<void> _deleteCategory(...) async { await ref.read...delete(categoryId); }"
-    // It seems risky. Let's add a small confirmation or stick to original behavior?
-    // User requested "UI/UX optimization". Adding confirmation is good UX.
-    // But let's stick to original behavior to avoid being annoyance, OR add it.
-    // I'll stick to original behavior for now, but `deleteCategory` in repo likely deletes feeds or moves them?
-    // Need to verify repo behavior. Usually deleting category -> feeds become uncategorized or deleted.
-    // Assuming unsafe delete for now as per original code.
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(l10n.deleteCategoryConfirmTitle),
+          content: Text(l10n.deleteCategoryConfirmContent),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(l10n.delete),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true) return false;
     await ref.read(categoryRepositoryProvider).delete(categoryId);
+    if (!context.mounted) return true;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.categoryDeleted)));
+    return true;
   }
 
   static Future<void> renameCategory(

@@ -489,6 +489,18 @@ abstract class AppLocalizations {
   /// **'Delete category'**
   String get deleteCategory;
 
+  /// deleteCategoryConfirmTitle
+  ///
+  /// In en, this message translates to:
+  /// **'Delete category?'**
+  String get deleteCategoryConfirmTitle;
+
+  /// deleteCategoryConfirmContent
+  ///
+  /// In en, this message translates to:
+  /// **'Feeds in this category will be moved to Uncategorized.'**
+  String get deleteCategoryConfirmContent;
+
   /// categoryDeleted
   ///
   /// In en, this message translates to:

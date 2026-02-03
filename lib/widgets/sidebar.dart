@@ -559,9 +559,47 @@ class _SidebarState extends ConsumerState<Sidebar> {
     if (ok != true) return;
     await ref.read(feedRepositoryProvider).delete(feedId);
     if (!context.mounted) return;
+    if (ref.read(selectedFeedIdProvider) == feedId) {
+      _selectAll(ref);
+    }
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(l10n.deleted)));
+  }
+
+  Future<void> _confirmDeleteCategory(
+    BuildContext context,
+    WidgetRef ref,
+    int categoryId,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    final ok = await _showDialog<bool>(
+      builder: (context) {
+        return AlertDialog(
+          title: Text(l10n.deleteCategoryConfirmTitle),
+          content: Text(l10n.deleteCategoryConfirmContent),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(l10n.delete),
+            ),
+          ],
+        );
+      },
+    );
+    if (ok != true) return;
+    await ref.read(categoryRepositoryProvider).delete(categoryId);
+    if (!context.mounted) return;
+    if (ref.read(selectedCategoryIdProvider) == categoryId) {
+      _selectAll(ref);
+    }
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.categoryDeleted)));
   }
 
   Future<void> _showAddFeedDialog(BuildContext context, WidgetRef ref) async {
@@ -676,11 +714,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
         await _renameCategory(context, ref, c);
         return;
       case _CategoryAction.delete:
-        await ref.read(categoryRepositoryProvider).delete(c.id);
-        if (!context.mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.categoryDeleted)));
+        await _confirmDeleteCategory(context, ref, c.id);
         return;
       case null:
         return;

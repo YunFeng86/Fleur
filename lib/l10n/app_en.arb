@@ -277,6 +277,14 @@
   "@deleteCategory": {
     "description": "deleteCategory"
   },
+  "deleteCategoryConfirmTitle": "Delete category?",
+  "@deleteCategoryConfirmTitle": {
+    "description": "deleteCategoryConfirmTitle"
+  },
+  "deleteCategoryConfirmContent": "Feeds in this category will be moved to Uncategorized.",
+  "@deleteCategoryConfirmContent": {
+    "description": "deleteCategoryConfirmContent"
+  },
   "categoryDeleted": "Category deleted",
   "@categoryDeleted": {
     "description": "categoryDeleted"

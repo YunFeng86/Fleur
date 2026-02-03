@@ -212,6 +212,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteCategory => 'Delete category';
 
   @override
+  String get deleteCategoryConfirmTitle => 'Delete category?';
+
+  @override
+  String get deleteCategoryConfirmContent =>
+      'Feeds in this category will be moved to Uncategorized.';
+
+  @override
   String get categoryDeleted => 'Category deleted';
 
   @override

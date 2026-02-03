@@ -159,20 +159,26 @@ class _CategorySettings extends ConsumerWidget {
             currentName: category.name,
           ),
         ),
+        const Divider(),
+        _FilterSection(category: category, appSettings: appSettings),
+        const Divider(),
+        _SyncSection(category: category, appSettings: appSettings),
+        const Divider(),
         ListTile(
           leading: const Icon(Icons.delete_outline, color: Colors.red),
           title: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
-          onTap: () {
-            SubscriptionActions.deleteCategory(context, ref, category.id);
+          onTap: () async {
+            final deleted = await SubscriptionActions.deleteCategory(
+              context,
+              ref,
+              category.id,
+            );
+            if (!deleted || !context.mounted) return;
             ref
                 .read(subscriptionSelectionProvider.notifier)
                 .selectCategory(null);
           },
         ),
-        const Divider(),
-        _FilterSection(category: category, appSettings: appSettings),
-        const Divider(),
-        _SyncSection(category: category, appSettings: appSettings),
       ],
     );
   }
@@ -239,8 +245,13 @@ class _FeedSettings extends ConsumerWidget {
         ListTile(
           leading: const Icon(Icons.delete_outline, color: Colors.red),
           title: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
-          onTap: () {
-            SubscriptionActions.deleteFeed(context, ref, feed.id);
+          onTap: () async {
+            final deleted = await SubscriptionActions.deleteFeed(
+              context,
+              ref,
+              feed.id,
+            );
+            if (!deleted || !context.mounted) return;
             ref
                 .read(subscriptionSelectionProvider.notifier)
                 .clearFeedSelection();

@@ -101,7 +101,13 @@
     "description": "cacheCleared"
   },
   "subscriptions": "订阅源",
+  "@subscriptions": {
+    "description": "subscriptions"
+  },
   "tags": "标签",
+  "@tags": {
+    "description": "tags"
+  },
   "all": "所有文章",
   "@all": {
     "description": "all"
@@ -151,6 +157,16 @@
     "description": "refreshConcurrency"
   },
   "refreshingProgress": "正在刷新 {current}/{total}...",
+  "@refreshingProgress": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "markAllRead": "全部已读",
   "@markAllRead": {
     "description": "markAllRead"
@@ -285,6 +301,14 @@
   "deleteCategory": "删除分类",
   "@deleteCategory": {
     "description": "deleteCategory"
+  },
+  "deleteCategoryConfirmTitle": "删除分类？",
+  "@deleteCategoryConfirmTitle": {
+    "description": "deleteCategoryConfirmTitle"
+  },
+  "deleteCategoryConfirmContent": "该分类下的订阅源将移动到未分类。",
+  "@deleteCategoryConfirmContent": {
+    "description": "deleteCategoryConfirmContent"
   },
   "categoryDeleted": "分类已删除",
   "@categoryDeleted": {
