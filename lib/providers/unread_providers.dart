@@ -125,6 +125,16 @@ final unreadCountUncategorizedProvider = StreamProvider<int>((ref) {
   return _watchUnreadCountByCategoryId(isar, -1);
 });
 
+/// Watches total count of Starred articles.
+final starredCountProvider = StreamProvider<int>((ref) async* {
+  final isar = ref.watch(isarProvider);
+  final qb = isar.articles.filter().isStarredEqualTo(true);
+  yield await qb.count();
+  await for (final _ in qb.watchLazy()) {
+    yield await qb.count();
+  }
+});
+
 /// Watches total count of Read Later articles.
 final readLaterCountProvider = StreamProvider<int>((ref) async* {
   final isar = ref.watch(isarProvider);

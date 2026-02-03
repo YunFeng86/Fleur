@@ -12,6 +12,22 @@
   "@settings": {
     "description": "settings"
   },
+  "dashboard": "Dashboard",
+  "@dashboard": {
+    "description": "Global navigation label: dashboard"
+  },
+  "feeds": "Feeds",
+  "@feeds": {
+    "description": "Global navigation label: feeds"
+  },
+  "saved": "Saved",
+  "@saved": {
+    "description": "Global navigation label: saved"
+  },
+  "comingSoon": "Coming soon",
+  "@comingSoon": {
+    "description": "Placeholder text"
+  },
   "appearance": "Appearance",
   "@appearance": {
     "description": "appearance"
@@ -387,58 +403,6 @@
   "@sortOldestFirst": {
     "description": "sortOldestFirst"
   },
-  "rules": "Rules",
-  "@rules": {
-    "description": "rules"
-  },
-  "addRule": "Add rule",
-  "@addRule": {
-    "description": "addRule"
-  },
-  "editRule": "Edit rule",
-  "@editRule": {
-    "description": "editRule"
-  },
-  "ruleName": "Rule name",
-  "@ruleName": {
-    "description": "ruleName"
-  },
-  "keyword": "Keyword",
-  "@keyword": {
-    "description": "keyword"
-  },
-  "matchIn": "Match in",
-  "@matchIn": {
-    "description": "matchIn"
-  },
-  "matchTitle": "Title",
-  "@matchTitle": {
-    "description": "matchTitle"
-  },
-  "matchAuthor": "Author",
-  "@matchAuthor": {
-    "description": "matchAuthor"
-  },
-  "matchLink": "Link",
-  "@matchLink": {
-    "description": "matchLink"
-  },
-  "matchContent": "Content",
-  "@matchContent": {
-    "description": "matchContent"
-  },
-  "actions": "Actions",
-  "@actions": {
-    "description": "actions"
-  },
-  "autoStar": "Auto-star",
-  "@autoStar": {
-    "description": "autoStar"
-  },
-  "autoMarkReadAction": "Auto mark as read",
-  "@autoMarkReadAction": {
-    "description": "autoMarkReadAction"
-  },
   "enabled": "Enabled",
   "@enabled": {
     "description": "enabled"
@@ -482,10 +446,6 @@
         "type": "int"
       }
     }
-  },
-  "showNotification": "Show notification",
-  "@showNotification": {
-    "description": "showNotification"
   },
   "manageTags": "Manage Tags",
   "@manageTags": {

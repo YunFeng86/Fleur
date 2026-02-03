@@ -4,7 +4,6 @@ import 'package:isar/isar.dart';
 
 import '../models/article.dart';
 import '../models/feed.dart';
-import '../models/rule.dart';
 import '../models/tag.dart';
 import '../services/html_sanitizer.dart';
 import '../utils/content_hash.dart';
@@ -332,20 +331,11 @@ class ArticleRepository {
     return q.findAll();
   }
 
-  Future<(List<Article> newArticles, List<Article> keywordArticles)> upsertMany(
-    int feedId,
-    List<Article> incoming, {
-    List<Rule> rules = const [],
-  }) {
+  Future<List<Article>> upsertMany(int feedId, List<Article> incoming) {
     return _isar.writeTxn(() async {
-      if (incoming.isEmpty) return (<Article>[], <Article>[]);
-
-      final enabledRules = rules
-          .where((r) => r.enabled)
-          .toList(growable: false);
+      if (incoming.isEmpty) return <Article>[];
 
       final newArticles = <Article>[];
-      final keywordArticles = <Article>[];
 
       // Get Feed's categoryId once before the loop (prevents N+1 query problem)
       // Within a transaction, feedId and categoryId won't change
@@ -444,14 +434,6 @@ class ArticleRepository {
             a.publishedAt = now.toUtc();
           }
 
-          // Apply automation rules only on first insert so we don't override
-          // user actions on subsequent refreshes.
-          if (enabledRules.isNotEmpty) {
-            final (markRead, star, notify) = _applyRules(enabledRules, a);
-            if (markRead) a.isRead = true;
-            if (star) a.isStarred = true;
-            if (notify) keywordArticles.add(a);
-          }
         }
 
         if (isNew) {
@@ -462,50 +444,7 @@ class ArticleRepository {
       // Batch write all articles at once (more efficient than individual puts)
       await _isar.articles.putAll(incoming);
 
-      return (newArticles, keywordArticles);
+      return newArticles;
     });
-  }
-
-  (bool markRead, bool star, bool notify) _applyRules(
-    List<Rule> rules,
-    Article a,
-  ) {
-    bool shouldMarkRead = false;
-    bool shouldStar = false;
-    bool shouldNotify = false;
-
-    final keywordCache = <int, String>{};
-
-    bool matches(Rule r) {
-      final needle = keywordCache.putIfAbsent(
-        r.id,
-        () => r.keyword.trim().toLowerCase(),
-      );
-      if (needle.isEmpty) return false;
-
-      bool contains(String? haystack) {
-        if (haystack == null || haystack.isEmpty) return false;
-        return haystack.toLowerCase().contains(needle);
-      }
-
-      if (r.matchTitle && contains(a.title)) return true;
-      if (r.matchAuthor && contains(a.author)) return true;
-      if (r.matchLink && contains(a.link)) return true;
-        if (r.matchContent &&
-            (contains(a.contentHtml) || contains(a.extractedContentHtml))) {
-          return true;
-        }
-      return false;
-    }
-
-    for (final r in rules) {
-      if (!matches(r)) continue;
-      if (r.autoMarkRead) shouldMarkRead = true;
-      if (r.autoStar) shouldStar = true;
-      if (r.notify) shouldNotify = true;
-      if (shouldMarkRead && shouldStar && shouldNotify) break;
-    }
-
-    return (shouldMarkRead, shouldStar, shouldNotify);
   }
 }

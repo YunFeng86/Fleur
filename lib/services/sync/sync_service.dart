@@ -9,7 +9,6 @@ import '../../models/feed.dart';
 import '../../repositories/article_repository.dart';
 import '../../repositories/category_repository.dart';
 import '../../repositories/feed_repository.dart';
-import '../../repositories/rule_repository.dart';
 import '../settings/app_settings.dart';
 import '../settings/app_settings_store.dart';
 import '../rss/feed_parser.dart';
@@ -50,7 +49,6 @@ class SyncService {
     required FeedRepository feeds,
     required CategoryRepository categories,
     required ArticleRepository articles,
-    required RuleRepository rules,
     required RssClient client,
     required FeedParser parser,
     required NotificationService notifications,
@@ -59,7 +57,6 @@ class SyncService {
   }) : _feeds = feeds,
        _categories = categories,
        _articles = articles,
-       _rules = rules,
        _client = client,
        _parser = parser,
        _notifications = notifications,
@@ -69,7 +66,6 @@ class SyncService {
   final FeedRepository _feeds;
   final CategoryRepository _categories;
   final ArticleRepository _articles;
-  final RuleRepository _rules;
   final RssClient _client;
   final FeedParser _parser;
   final NotificationService _notifications;
@@ -160,12 +156,7 @@ class SyncService {
         })
         .toList(growable: false);
 
-    final rules = await _rules.getEnabled();
-    final (newArticles, keywordArticles) = await _articles.upsertMany(
-      feedId,
-      incoming,
-      rules: rules,
-    );
+    final newArticles = await _articles.upsertMany(feedId, incoming);
 
     // Best-effort offline caching for newly discovered articles.
     if (settings.syncImages && newArticles.isNotEmpty) {
@@ -175,9 +166,7 @@ class SyncService {
       } catch (_) {}
     }
 
-    if (keywordArticles.isNotEmpty) {
-      await _notifications.showKeywordArticlesNotification(keywordArticles);
-    } else if (newArticles.isNotEmpty) {
+    if (newArticles.isNotEmpty) {
       await _notifications.showNewArticlesNotification(newArticles);
     }
 

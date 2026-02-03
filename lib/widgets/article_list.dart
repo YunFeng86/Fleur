@@ -12,14 +12,22 @@ import '../providers/query_providers.dart';
 import '../providers/unread_providers.dart';
 import '../services/settings/app_settings.dart';
 import '../ui/layout.dart';
+import '../ui/global_nav.dart';
 import '../utils/platform.dart';
 import '../models/article.dart';
 import 'article_list_item.dart';
 
 class ArticleList extends ConsumerStatefulWidget {
-  const ArticleList({super.key, required this.selectedArticleId});
+  const ArticleList({
+    super.key,
+    required this.selectedArticleId,
+    this.baseLocation = '/',
+    this.articleRoutePrefix = '',
+  });
 
   final int? selectedArticleId;
+  final String baseLocation;
+  final String articleRoutePrefix;
 
   @override
   ConsumerState<ArticleList> createState() => _ArticleListState();
@@ -27,6 +35,7 @@ class ArticleList extends ConsumerStatefulWidget {
 
 class _ArticleListState extends ConsumerState<ArticleList> {
   late final ScrollController _controller;
+  bool _loadMoreScheduled = false;
 
   // Cache to avoid recalculating entries on every build
   List<Article> _cachedItems = [];
@@ -41,9 +50,19 @@ class _ArticleListState extends ConsumerState<ArticleList> {
         final pos = _controller.position;
         if (pos.maxScrollExtent <= 0) return;
         if (pos.pixels >= pos.maxScrollExtent - 600) {
-          ref.read(articleListControllerProvider.notifier).loadMore();
+          _scheduleLoadMore();
         }
       });
+  }
+
+  void _scheduleLoadMore() {
+    if (_loadMoreScheduled) return;
+    _loadMoreScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadMoreScheduled = false;
+      if (!mounted) return;
+      ref.read(articleListControllerProvider.notifier).loadMore();
+    });
   }
 
   @override
@@ -96,7 +115,9 @@ class _ArticleListState extends ConsumerState<ArticleList> {
           );
         }
 
-        final narrow = MediaQuery.sizeOf(context).width < 600;
+        final totalWidth = MediaQuery.sizeOf(context).width;
+        final width = effectiveContentWidth(totalWidth);
+        final narrow = width < 600;
 
         final entries = _getEntries(items, groupMode);
 
@@ -142,20 +163,22 @@ class _ArticleListState extends ConsumerState<ArticleList> {
                       selected: live.id == widget.selectedArticleId,
                       onTap: () {
                         if (live.id == widget.selectedArticleId) {
-                          context.go('/');
+                          context.go(widget.baseLocation);
                           return;
                         }
-
-                        final width = MediaQuery.sizeOf(context).width;
 
                         final openAsSecondaryPage = isDesktop
                             ? !desktopReaderEmbedded(desktopModeForWidth(width))
                             : width < 600;
 
+                        final loc = widget.articleRoutePrefix.isEmpty
+                            ? '/article/${live.id}'
+                            : '${widget.articleRoutePrefix}/article/${live.id}';
+
                         if (openAsSecondaryPage) {
-                          context.push('/article/${live.id}');
+                          context.push(loc);
                         } else {
-                          context.go('/article/${live.id}');
+                          context.go(loc);
                         }
                       },
                     );

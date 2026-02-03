@@ -121,7 +121,6 @@ class _SidebarState extends ConsumerState<Sidebar> {
     final starredOnly = ref.watch(starredOnlyProvider);
     final readLaterOnly = ref.watch(readLaterOnlyProvider);
     final allUnreadCounts = ref.watch(allUnreadCountsProvider);
-    final readLaterCount = ref.watch(readLaterCountProvider);
 
     return Material(
       color: Theme.of(context).colorScheme.surfaceContainer,
@@ -236,32 +235,6 @@ class _SidebarState extends ConsumerState<Sidebar> {
                       ),
                     );
                     children.add(allTile);
-                    children.add(
-                      _SidebarItem(
-                        key: const ValueKey('starred'),
-                        selected: starredOnly,
-                        icon: starredOnly ? Icons.star : Icons.star_border,
-                        title: l10n.starred,
-                        onTap: () => _selectStarred(ref),
-                      ),
-                    );
-                    children.add(
-                      readLaterCount.when(
-                        data: (count) => _SidebarItem(
-                          key: const ValueKey('read_later'),
-                          selected: readLaterOnly,
-                          icon: readLaterOnly
-                              ? Icons.watch_later
-                              : Icons.watch_later_outlined,
-                          title: l10n.readLater,
-                          count: count,
-                          onTap: () => _selectReadLater(ref),
-                        ),
-                        loading: () => const SizedBox.shrink(),
-                        error: (_, _) => const SizedBox.shrink(),
-                      ),
-                    );
-
                     // Tags
                     children.add(
                       tags.when(
@@ -529,21 +502,6 @@ class _SidebarState extends ConsumerState<Sidebar> {
     _closeDrawerIfDesktopDrawer();
   }
 
-  void _selectStarred(WidgetRef ref) {
-    if (ref.read(starredOnlyProvider)) {
-      _selectAll(ref);
-      return;
-    }
-    ref.read(starredOnlyProvider.notifier).state = true;
-    ref.read(readLaterOnlyProvider.notifier).state = false;
-    ref.read(selectedFeedIdProvider.notifier).state = null;
-    ref.read(selectedCategoryIdProvider.notifier).state = null;
-    ref.read(selectedTagIdProvider.notifier).state = null;
-    ref.read(articleSearchQueryProvider.notifier).state = '';
-    widget.onSelectFeed(null);
-    _closeDrawerIfDesktopDrawer();
-  }
-
   void _selectCategory(WidgetRef ref, int categoryId) {
     if (ref.read(selectedCategoryIdProvider) == categoryId) {
       _selectAll(ref);
@@ -553,21 +511,6 @@ class _SidebarState extends ConsumerState<Sidebar> {
     ref.read(readLaterOnlyProvider.notifier).state = false;
     ref.read(selectedFeedIdProvider.notifier).state = null;
     ref.read(selectedCategoryIdProvider.notifier).state = categoryId;
-    ref.read(selectedTagIdProvider.notifier).state = null;
-    ref.read(articleSearchQueryProvider.notifier).state = '';
-    widget.onSelectFeed(null);
-    _closeDrawerIfDesktopDrawer();
-  }
-
-  void _selectReadLater(WidgetRef ref) {
-    if (ref.read(readLaterOnlyProvider)) {
-      _selectAll(ref);
-      return;
-    }
-    ref.read(starredOnlyProvider.notifier).state = false;
-    ref.read(readLaterOnlyProvider.notifier).state = true;
-    ref.read(selectedFeedIdProvider.notifier).state = null;
-    ref.read(selectedCategoryIdProvider.notifier).state = null;
     ref.read(selectedTagIdProvider.notifier).state = null;
     ref.read(articleSearchQueryProvider.notifier).state = '';
     widget.onSelectFeed(null);

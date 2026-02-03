@@ -8,7 +8,6 @@ import 'package:flutter_reader/l10n/app_localizations.dart';
 
 import 'package:url_launcher/url_launcher.dart';
 
-import '../models/rule.dart';
 import '../providers/app_settings_providers.dart';
 
 import '../providers/repository_providers.dart';
@@ -18,7 +17,9 @@ import '../services/settings/app_settings.dart';
 import '../services/settings/reader_settings.dart';
 
 import '../utils/path_utils.dart';
+import '../utils/platform.dart';
 import '../ui/settings/subscriptions/subscriptions_settings_tab.dart';
+import '../ui/global_nav.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -55,12 +56,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         content: const _GroupingSortingTab(),
       ),
       _SettingsPageItem(
-        icon: Icons.filter_alt_outlined,
-        selectedIcon: Icons.filter_alt,
-        label: l10n.rules,
-        content: const _RulesTab(),
-      ),
-      _SettingsPageItem(
         icon: Icons.cloud_outlined,
         selectedIcon: Icons.cloud,
         label: l10n.services,
@@ -80,6 +75,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final items = _buildItems(context);
+    final hasGlobalNav = GlobalNavScope.maybeOf(context)?.hasGlobalNav ?? false;
+    final totalWidth = MediaQuery.sizeOf(context).width;
+    final useCompactTopBar =
+        !isDesktop || globalNavModeForWidth(totalWidth) == GlobalNavMode.bottom;
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
@@ -99,22 +98,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   setState(() => _selectedIndex = null);
                 },
                 child: Scaffold(
-                  appBar: AppBar(
-                    leading: BackButton(
-                      onPressed: () => setState(() => _selectedIndex = null),
-                    ),
-                    title: Text(item.label),
-                  ),
+                  appBar: useCompactTopBar
+                      ? AppBar(
+                          leading: BackButton(
+                            onPressed: () =>
+                                setState(() => _selectedIndex = null),
+                          ),
+                          title: Text(item.label),
+                        )
+                      : null,
                   body: item.content,
                 ),
               );
             }
 
             return Scaffold(
-              appBar: AppBar(
-                leading: const BackButton(),
-                title: Text(l10n.settings),
-              ),
+              appBar: useCompactTopBar
+                  ? AppBar(
+                      leading: hasGlobalNav ? null : const BackButton(),
+                      title: Text(l10n.settings),
+                    )
+                  : null,
               body: ListView.builder(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
@@ -156,12 +160,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
             return Column(
               children: [
-                AppBar(
-                  leading: const BackButton(),
-                  title: Text(l10n.settings),
-                  elevation: 0,
-                  backgroundColor: Colors.transparent,
-                ),
+                if (useCompactTopBar)
+                  AppBar(
+                    leading: hasGlobalNav ? null : const BackButton(),
+                    title: Text(l10n.settings),
+                  ),
                 Expanded(
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -349,376 +352,6 @@ class _GroupingSortingTab extends ConsumerWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _RulesTab extends ConsumerWidget {
-  const _RulesTab();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final repo = ref.watch(ruleRepositoryProvider);
-
-    return Align(
-      alignment: Alignment.topCenter,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 900),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Expanded(child: _SectionHeader(title: l10n.rules)),
-                  FilledButton.icon(
-                    onPressed: () => _showRuleEditor(context, ref),
-                    icon: const Icon(Icons.add),
-                    label: Text(l10n.addRule),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: Consumer(
-                  builder: (context, ref, _) {
-                    final rulesAsync = ref.watch(ruleListProvider);
-
-                    return rulesAsync.when(
-                      loading: () =>
-                          const Center(child: CircularProgressIndicator()),
-                      error: (e, _) =>
-                          Center(child: Text(l10n.errorMessage(e.toString()))),
-                      data: (rules) {
-                        if (rules.isEmpty) {
-                          return Center(child: Text(l10n.notFound));
-                        }
-                        return ListView.separated(
-                          itemCount: rules.length,
-                          separatorBuilder: (_, _) => const Divider(height: 1),
-                          itemBuilder: (context, index) {
-                            final r = rules[index];
-                            return ListTile(
-                              title: Text(r.name),
-                              subtitle: Text(
-                                r.keyword,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              leading: Switch(
-                                value: r.enabled,
-                                onChanged: (v) => repo.setEnabled(r.id, v),
-                              ),
-                              trailing: PopupMenuButton<_RuleMenuAction>(
-                                onSelected: (v) async {
-                                  switch (v) {
-                                    case _RuleMenuAction.edit:
-                                      await _showRuleEditor(
-                                        context,
-                                        ref,
-                                        existing: r,
-                                      );
-                                      return;
-                                    case _RuleMenuAction.delete:
-                                      final ok = await showDialog<bool>(
-                                        context: context,
-                                        builder: (context) {
-                                          return AlertDialog(
-                                            title: Text(l10n.delete),
-                                            content: Text(r.name),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () => Navigator.of(
-                                                  context,
-                                                ).pop(false),
-                                                child: Text(l10n.cancel),
-                                              ),
-                                              FilledButton(
-                                                onPressed: () => Navigator.of(
-                                                  context,
-                                                ).pop(true),
-                                                child: Text(l10n.delete),
-                                              ),
-                                            ],
-                                          );
-                                        },
-                                      );
-                                      if (ok == true) {
-                                        await repo.delete(r.id);
-                                      }
-                                      return;
-                                  }
-                                },
-                                itemBuilder: (context) => [
-                                  PopupMenuItem(
-                                    value: _RuleMenuAction.edit,
-                                    child: Text(l10n.editRule),
-                                  ),
-                                  PopupMenuItem(
-                                    value: _RuleMenuAction.delete,
-                                    child: Text(l10n.delete),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showRuleEditor(
-    BuildContext context,
-    WidgetRef ref, {
-    Rule? existing,
-  }) async {
-    final draft = await showDialog<_RuleDraft>(
-      context: context,
-      builder: (context) => _RuleEditorDialog(existing: existing),
-    );
-    if (draft == null) return;
-    if (!context.mounted) return;
-    final l10n = AppLocalizations.of(context)!;
-
-    if (!draft.hasMatchField) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.errorMessage(l10n.matchIn))));
-      return;
-    }
-    if (!draft.hasAction) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.errorMessage(l10n.actions))));
-      return;
-    }
-
-    try {
-      await ref
-          .read(ruleRepositoryProvider)
-          .upsert(
-            id: existing?.id,
-            name: draft.name,
-            keyword: draft.keyword,
-            enabled: draft.enabled,
-            matchTitle: draft.matchTitle,
-            matchAuthor: draft.matchAuthor,
-            matchLink: draft.matchLink,
-            matchContent: draft.matchContent,
-            autoStar: draft.autoStar,
-            autoMarkRead: draft.autoMarkRead,
-            notify: draft.notify,
-          );
-    } catch (e) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.errorMessage(e.toString()))));
-    }
-  }
-}
-
-enum _RuleMenuAction { edit, delete }
-
-class _RuleDraft {
-  _RuleDraft({
-    required this.enabled,
-    required this.name,
-    required this.keyword,
-    required this.matchTitle,
-    required this.matchAuthor,
-    required this.matchLink,
-    required this.matchContent,
-    required this.autoStar,
-    required this.autoMarkRead,
-    required this.notify,
-  });
-
-  final bool enabled;
-  final String name;
-  final String keyword;
-  final bool matchTitle;
-  final bool matchAuthor;
-  final bool matchLink;
-  final bool matchContent;
-  final bool autoStar;
-  final bool autoMarkRead;
-  final bool notify;
-
-  bool get hasMatchField =>
-      matchTitle || matchAuthor || matchLink || matchContent;
-  bool get hasAction => autoStar || autoMarkRead || notify;
-}
-
-class _RuleEditorDialog extends StatefulWidget {
-  const _RuleEditorDialog({this.existing});
-
-  final Rule? existing;
-
-  @override
-  State<_RuleEditorDialog> createState() => _RuleEditorDialogState();
-}
-
-class _RuleEditorDialogState extends State<_RuleEditorDialog> {
-  late final TextEditingController _name;
-  late final TextEditingController _keyword;
-  bool _enabled = true;
-  bool _matchTitle = true;
-  bool _matchAuthor = false;
-  bool _matchLink = false;
-  bool _matchContent = false;
-  bool _autoStar = false;
-  bool _autoMarkRead = false;
-  bool _notify = false;
-
-  @override
-  void initState() {
-    super.initState();
-    final r = widget.existing;
-    _name = TextEditingController(text: r?.name ?? '');
-    _keyword = TextEditingController(text: r?.keyword ?? '');
-    _enabled = r?.enabled ?? true;
-    _matchTitle = r?.matchTitle ?? true;
-    _matchAuthor = r?.matchAuthor ?? false;
-    _matchLink = r?.matchLink ?? false;
-    _matchContent = r?.matchContent ?? false;
-    _autoStar = r?.autoStar ?? false;
-    _autoMarkRead = r?.autoMarkRead ?? false;
-    _notify = r?.notify ?? false;
-  }
-
-  @override
-  void dispose() {
-    _name.dispose();
-    _keyword.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return AlertDialog(
-      title: Text(widget.existing == null ? l10n.addRule : l10n.editRule),
-      content: SizedBox(
-        width: 520,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: _name,
-                decoration: InputDecoration(labelText: l10n.ruleName),
-                autofocus: widget.existing == null,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _keyword,
-                decoration: InputDecoration(labelText: l10n.keyword),
-              ),
-              const SizedBox(height: 12),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(l10n.enabled),
-                value: _enabled,
-                onChanged: (v) => setState(() => _enabled = v),
-              ),
-              const Divider(height: 24),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  l10n.matchIn,
-                  style: Theme.of(context).textTheme.labelLarge,
-                ),
-              ),
-              CheckboxListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(l10n.matchTitle),
-                value: _matchTitle,
-                onChanged: (v) => setState(() => _matchTitle = v ?? false),
-              ),
-              CheckboxListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(l10n.matchAuthor),
-                value: _matchAuthor,
-                onChanged: (v) => setState(() => _matchAuthor = v ?? false),
-              ),
-              CheckboxListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(l10n.matchLink),
-                value: _matchLink,
-                onChanged: (v) => setState(() => _matchLink = v ?? false),
-              ),
-              CheckboxListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(l10n.matchContent),
-                value: _matchContent,
-                onChanged: (v) => setState(() => _matchContent = v ?? false),
-              ),
-              const Divider(height: 24),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  l10n.actions,
-                  style: Theme.of(context).textTheme.labelLarge,
-                ),
-              ),
-              CheckboxListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(l10n.autoStar),
-                value: _autoStar,
-                onChanged: (v) => setState(() => _autoStar = v ?? false),
-              ),
-              CheckboxListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(l10n.autoMarkReadAction),
-                value: _autoMarkRead,
-                onChanged: (v) => setState(() => _autoMarkRead = v ?? false),
-              ),
-              CheckboxListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(l10n.showNotification),
-                value: _notify,
-                onChanged: (v) => setState(() => _notify = v ?? false),
-              ),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.cancel),
-        ),
-        FilledButton(
-          onPressed: () {
-            Navigator.of(context).pop(
-              _RuleDraft(
-                enabled: _enabled,
-                name: _name.text,
-                keyword: _keyword.text,
-                matchTitle: _matchTitle,
-                matchAuthor: _matchAuthor,
-                matchLink: _matchLink,
-                matchContent: _matchContent,
-                autoStar: _autoStar,
-                autoMarkRead: _autoMarkRead,
-                notify: _notify,
-              ),
-            );
-          },
-          child: Text(l10n.done),
-        ),
-      ],
     );
   }
 }

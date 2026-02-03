@@ -18,6 +18,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settings => 'Settings';
 
   @override
+  String get dashboard => 'Dashboard';
+
+  @override
+  String get feeds => 'Feeds';
+
+  @override
+  String get saved => 'Saved';
+
+  @override
+  String get comingSoon => 'Coming soon';
+
+  @override
   String get appearance => 'Appearance';
 
   @override
@@ -291,45 +303,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sortOldestFirst => 'Oldest first';
 
   @override
-  String get rules => 'Rules';
-
-  @override
-  String get addRule => 'Add rule';
-
-  @override
-  String get editRule => 'Edit rule';
-
-  @override
-  String get ruleName => 'Rule name';
-
-  @override
-  String get keyword => 'Keyword';
-
-  @override
-  String get matchIn => 'Match in';
-
-  @override
-  String get matchTitle => 'Title';
-
-  @override
-  String get matchAuthor => 'Author';
-
-  @override
-  String get matchLink => 'Link';
-
-  @override
-  String get matchContent => 'Content';
-
-  @override
-  String get actions => 'Actions';
-
-  @override
-  String get autoStar => 'Auto-star';
-
-  @override
-  String get autoMarkReadAction => 'Auto mark as read';
-
-  @override
   String get enabled => 'Enabled';
 
   @override
@@ -360,9 +333,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String cachingArticles(int count) {
     return 'Caching $count articles...';
   }
-
-  @override
-  String get showNotification => 'Show notification';
 
   @override
   String get manageTags => 'Manage Tags';

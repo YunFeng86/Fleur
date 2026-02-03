@@ -117,6 +117,30 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get settings;
 
+  /// Global navigation label: dashboard
+  ///
+  /// In en, this message translates to:
+  /// **'Dashboard'**
+  String get dashboard;
+
+  /// Global navigation label: feeds
+  ///
+  /// In en, this message translates to:
+  /// **'Feeds'**
+  String get feeds;
+
+  /// Global navigation label: saved
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get saved;
+
+  /// Placeholder text
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get comingSoon;
+
   /// appearance
   ///
   /// In en, this message translates to:
@@ -639,84 +663,6 @@ abstract class AppLocalizations {
   /// **'Oldest first'**
   String get sortOldestFirst;
 
-  /// rules
-  ///
-  /// In en, this message translates to:
-  /// **'Rules'**
-  String get rules;
-
-  /// addRule
-  ///
-  /// In en, this message translates to:
-  /// **'Add rule'**
-  String get addRule;
-
-  /// editRule
-  ///
-  /// In en, this message translates to:
-  /// **'Edit rule'**
-  String get editRule;
-
-  /// ruleName
-  ///
-  /// In en, this message translates to:
-  /// **'Rule name'**
-  String get ruleName;
-
-  /// keyword
-  ///
-  /// In en, this message translates to:
-  /// **'Keyword'**
-  String get keyword;
-
-  /// matchIn
-  ///
-  /// In en, this message translates to:
-  /// **'Match in'**
-  String get matchIn;
-
-  /// matchTitle
-  ///
-  /// In en, this message translates to:
-  /// **'Title'**
-  String get matchTitle;
-
-  /// matchAuthor
-  ///
-  /// In en, this message translates to:
-  /// **'Author'**
-  String get matchAuthor;
-
-  /// matchLink
-  ///
-  /// In en, this message translates to:
-  /// **'Link'**
-  String get matchLink;
-
-  /// matchContent
-  ///
-  /// In en, this message translates to:
-  /// **'Content'**
-  String get matchContent;
-
-  /// actions
-  ///
-  /// In en, this message translates to:
-  /// **'Actions'**
-  String get actions;
-
-  /// autoStar
-  ///
-  /// In en, this message translates to:
-  /// **'Auto-star'**
-  String get autoStar;
-
-  /// autoMarkReadAction
-  ///
-  /// In en, this message translates to:
-  /// **'Auto mark as read'**
-  String get autoMarkReadAction;
-
   /// enabled
   ///
   /// In en, this message translates to:
@@ -776,12 +722,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Caching {count} articles...'**
   String cachingArticles(int count);
-
-  /// showNotification
-  ///
-  /// In en, this message translates to:
-  /// **'Show notification'**
-  String get showNotification;
 
   /// manageTags
   ///

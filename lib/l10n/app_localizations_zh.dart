@@ -18,6 +18,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settings => '设置';
 
   @override
+  String get dashboard => '仪表盘';
+
+  @override
+  String get feeds => '订阅';
+
+  @override
+  String get saved => '收藏';
+
+  @override
+  String get comingSoon => '敬请期待';
+
+  @override
   String get appearance => '外观';
 
   @override
@@ -289,45 +301,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sortOldestFirst => '最旧优先';
 
   @override
-  String get rules => '规则';
-
-  @override
-  String get addRule => '新增规则';
-
-  @override
-  String get editRule => '编辑规则';
-
-  @override
-  String get ruleName => '规则名称';
-
-  @override
-  String get keyword => '关键字';
-
-  @override
-  String get matchIn => '匹配范围';
-
-  @override
-  String get matchTitle => '标题';
-
-  @override
-  String get matchAuthor => '作者';
-
-  @override
-  String get matchLink => '链接';
-
-  @override
-  String get matchContent => '内容';
-
-  @override
-  String get actions => '动作';
-
-  @override
-  String get autoStar => '自动收藏';
-
-  @override
-  String get autoMarkReadAction => '自动标记为已读';
-
-  @override
   String get enabled => '启用';
 
   @override
@@ -358,9 +331,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String cachingArticles(int count) {
     return '正在缓存 $count 篇文章...';
   }
-
-  @override
-  String get showNotification => '显示通知';
 
   @override
   String get manageTags => '管理标签';
@@ -504,6 +474,18 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get settings => '設定';
+
+  @override
+  String get dashboard => '儀表板';
+
+  @override
+  String get feeds => '訂閱';
+
+  @override
+  String get saved => '收藏';
+
+  @override
+  String get comingSoon => '敬請期待';
 
   @override
   String get appearance => '外觀';
@@ -777,45 +759,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get sortOldestFirst => '最舊的在先';
 
   @override
-  String get rules => '規則';
-
-  @override
-  String get addRule => '新增規則';
-
-  @override
-  String get editRule => '編輯規則';
-
-  @override
-  String get ruleName => '規則名稱';
-
-  @override
-  String get keyword => '關鍵字';
-
-  @override
-  String get matchIn => '匹配範圍';
-
-  @override
-  String get matchTitle => '標題';
-
-  @override
-  String get matchAuthor => '作者';
-
-  @override
-  String get matchLink => '連結';
-
-  @override
-  String get matchContent => '內容';
-
-  @override
-  String get actions => '動作';
-
-  @override
-  String get autoStar => '自動收藏';
-
-  @override
-  String get autoMarkReadAction => '自動標記為已讀';
-
-  @override
   String get enabled => '啟用';
 
   @override
@@ -846,9 +789,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String cachingArticles(int count) {
     return '正在緩存 $count 篇文章...';
   }
-
-  @override
-  String get showNotification => '顯示通知';
 
   @override
   String get manageTags => '管理標籤';

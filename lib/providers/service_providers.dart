@@ -50,7 +50,6 @@ final syncServiceProvider = Provider<SyncService>((ref) {
   final feeds = ref.watch(feedRepositoryProvider);
   final categories = ref.watch(categoryRepositoryProvider);
   final articles = ref.watch(articleRepositoryProvider);
-  final rules = ref.watch(ruleRepositoryProvider);
   final client = ref.watch(rssClientProvider);
   final parser = ref.watch(feedParserProvider);
   final notifications = ref.watch(notificationServiceProvider);
@@ -58,7 +57,6 @@ final syncServiceProvider = Provider<SyncService>((ref) {
     feeds: feeds,
     categories: categories,
     articles: articles,
-    rules: rules,
     client: client,
     parser: parser,
     notifications: notifications,

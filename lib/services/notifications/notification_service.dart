@@ -126,40 +126,4 @@ class NotificationService {
     }
   }
 
-  Future<void> showKeywordArticlesNotification(List<Article> articles) async {
-    if (articles.isEmpty) return;
-
-    const androidDetails = AndroidNotificationDetails(
-      'keyword_matches_channel',
-      'Keyword Matches',
-      channelDescription: 'Notifications for articles matching your keywords',
-      importance: Importance.high,
-      priority: Priority.high,
-    );
-
-    const details = NotificationDetails(
-      android: androidDetails,
-    ); // Simple details for now, can extend for other OS
-
-    await ensureInitialized();
-
-    if (articles.length == 1) {
-      final article = articles.first;
-      await _notificationsPlugin.show(
-        article.id,
-        'Keyword Match found!',
-        article.title,
-        details,
-        payload: article.id.toString(),
-      );
-    } else {
-      await ensureInitialized();
-      await _notificationsPlugin.show(
-        0, // Summary ID
-        'Keyword Matches',
-        'Found ${articles.length} articles matching your keywords',
-        details,
-      );
-    }
-  }
 }
