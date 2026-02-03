@@ -12,6 +12,26 @@
   "@settings": {
     "description": "settings"
   },
+  "dashboard": "Dashboard",
+  "@dashboard": {
+    "description": "Global navigation label: dashboard"
+  },
+  "feeds": "Feeds",
+  "@feeds": {
+    "description": "Global navigation label: feeds"
+  },
+  "saved": "Saved",
+  "@saved": {
+    "description": "Global navigation label: saved"
+  },
+  "automate": "Automate",
+  "@automate": {
+    "description": "Global navigation label: automate"
+  },
+  "comingSoon": "Coming soon",
+  "@comingSoon": {
+    "description": "Placeholder text"
+  },
   "appearance": "Appearance",
   "@appearance": {
     "description": "appearance"

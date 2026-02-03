@@ -19,6 +19,7 @@ import '../providers/auto_refresh_providers.dart';
 import '../providers/unread_providers.dart';
 import '../services/sync/sync_service.dart';
 import '../ui/layout.dart';
+import '../ui/global_nav.dart';
 
 class App extends ConsumerWidget {
   const App({super.key});
@@ -130,12 +131,15 @@ class App extends ConsumerWidget {
                       listenable: router.routerDelegate,
                       builder: (context, _) {
                         final l10n = AppLocalizations.of(context)!;
-                        final width = MediaQuery.sizeOf(context).width;
+                        final totalWidth = MediaQuery.sizeOf(context).width;
+                        final width = effectiveContentWidth(totalWidth);
                         final uri =
                             router.routerDelegate.currentConfiguration.uri;
                         final isArticleRoute =
                             uri.pathSegments.isNotEmpty &&
                             uri.pathSegments.first == 'article';
+                        final isFeedsSection =
+                            uri.pathSegments.isEmpty || isArticleRoute;
                         final mode = desktopModeForWidth(width);
                         final isArticleSeparatePage =
                             isArticleRoute && !desktopReaderEmbedded(mode);
@@ -143,6 +147,7 @@ class App extends ConsumerWidget {
                           sidebarVisibleProvider,
                         );
                         final drawerEnabled =
+                            isFeedsSection &&
                             sidebarVisible &&
                             desktopSidebarInDrawer(mode) &&
                             !isArticleSeparatePage;
@@ -179,66 +184,68 @@ class App extends ConsumerWidget {
                                 title: l10n.appTitle,
                                 leading: leading,
                                 actions: [
-                                  IconButton(
-                                    tooltip: l10n.refreshAll,
-                                    onPressed: () async {
-                                      final batch = await refreshAll();
-                                      if (!overlayContext.mounted) return;
-                                      final err = batch.firstError?.error;
-                                      ScaffoldMessenger.of(
-                                        overlayContext,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            err == null
-                                                ? l10n.refreshedAll
-                                                : l10n.errorMessage(
-                                                    err.toString(),
-                                                  ),
+                                  if (isFeedsSection) ...[
+                                    IconButton(
+                                      tooltip: l10n.refreshAll,
+                                      onPressed: () async {
+                                        final batch = await refreshAll();
+                                        if (!overlayContext.mounted) return;
+                                        final err = batch.firstError?.error;
+                                        ScaffoldMessenger.of(
+                                          overlayContext,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              err == null
+                                                  ? l10n.refreshedAll
+                                                  : l10n.errorMessage(
+                                                      err.toString(),
+                                                    ),
+                                            ),
                                           ),
-                                        ),
-                                      );
-                                    },
-                                    icon: const Icon(Icons.refresh),
-                                  ),
-                                  Consumer(
-                                    builder: (context, ref, _) {
-                                      final unreadOnly = ref.watch(
-                                        unreadOnlyProvider,
-                                      );
-                                      return IconButton(
-                                        tooltip: unreadOnly
-                                            ? l10n.showAll
-                                            : l10n.unreadOnly,
-                                        onPressed: () =>
-                                            ref
-                                                    .read(
-                                                      unreadOnlyProvider
-                                                          .notifier,
-                                                    )
-                                                    .state =
-                                                !unreadOnly,
-                                        icon: Icon(
-                                          unreadOnly
-                                              ? Icons.filter_alt
-                                              : Icons.filter_alt_outlined,
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                  IconButton(
-                                    tooltip: l10n.markAllRead,
-                                    onPressed: () async {
-                                      await markAllRead();
-                                      if (!overlayContext.mounted) return;
-                                      ScaffoldMessenger.of(
-                                        overlayContext,
-                                      ).showSnackBar(
-                                        SnackBar(content: Text(l10n.done)),
-                                      );
-                                    },
-                                    icon: const Icon(Icons.done_all),
-                                  ),
+                                        );
+                                      },
+                                      icon: const Icon(Icons.refresh),
+                                    ),
+                                    Consumer(
+                                      builder: (context, ref, _) {
+                                        final unreadOnly = ref.watch(
+                                          unreadOnlyProvider,
+                                        );
+                                        return IconButton(
+                                          tooltip: unreadOnly
+                                              ? l10n.showAll
+                                              : l10n.unreadOnly,
+                                          onPressed: () =>
+                                              ref
+                                                      .read(
+                                                        unreadOnlyProvider
+                                                            .notifier,
+                                                      )
+                                                      .state =
+                                                  !unreadOnly,
+                                          icon: Icon(
+                                            unreadOnly
+                                                ? Icons.filter_alt
+                                                : Icons.filter_alt_outlined,
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    IconButton(
+                                      tooltip: l10n.markAllRead,
+                                      onPressed: () async {
+                                        await markAllRead();
+                                        if (!overlayContext.mounted) return;
+                                        ScaffoldMessenger.of(
+                                          overlayContext,
+                                        ).showSnackBar(
+                                          SnackBar(content: Text(l10n.done)),
+                                        );
+                                      },
+                                      icon: const Icon(Icons.done_all),
+                                    ),
+                                  ],
                                   IconButton(
                                     tooltip: l10n.settings,
                                     onPressed: () => router.push('/settings'),

@@ -18,6 +18,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settings => 'Settings';
 
   @override
+  String get dashboard => 'Dashboard';
+
+  @override
+  String get feeds => 'Feeds';
+
+  @override
+  String get saved => 'Saved';
+
+  @override
+  String get automate => 'Automate';
+
+  @override
+  String get comingSoon => 'Coming soon';
+
+  @override
   String get appearance => 'Appearance';
 
   @override

@@ -12,6 +12,26 @@
   "@settings": {
     "description": "settings"
   },
+  "dashboard": "儀表板",
+  "@dashboard": {
+    "description": "Global navigation label: dashboard"
+  },
+  "feeds": "訂閱",
+  "@feeds": {
+    "description": "Global navigation label: feeds"
+  },
+  "saved": "收藏",
+  "@saved": {
+    "description": "Global navigation label: saved"
+  },
+  "automate": "自動化",
+  "@automate": {
+    "description": "Global navigation label: automate"
+  },
+  "comingSoon": "敬請期待",
+  "@comingSoon": {
+    "description": "Placeholder text"
+  },
   "appearance": "外觀",
   "@appearance": {
     "description": "appearance"

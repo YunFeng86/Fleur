@@ -30,11 +30,13 @@ class ReaderView extends ConsumerStatefulWidget {
     required this.articleId,
     this.embedded = false,
     this.showBack = false,
+    this.fallbackBackLocation = '/',
   });
 
   final int articleId;
   final bool embedded;
   final bool showBack;
+  final String fallbackBackLocation;
 
   static const double maxReadingWidth = kMaxReadingWidth;
 
@@ -253,7 +255,7 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
                         if (context.canPop()) {
                           context.pop();
                         } else {
-                          context.go('/');
+                          context.go(widget.fallbackBackLocation);
                         }
                       },
                     )

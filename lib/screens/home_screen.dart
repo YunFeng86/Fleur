@@ -5,17 +5,16 @@ import 'package:flutter_reader/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
 import '../providers/article_list_controller.dart';
-import '../providers/app_settings_providers.dart';
 import '../providers/core_providers.dart';
 import '../providers/query_providers.dart';
 import '../providers/repository_providers.dart';
 import '../providers/service_providers.dart';
 import '../providers/unread_providers.dart';
-import '../services/settings/app_settings.dart';
 import '../widgets/article_list.dart';
 import '../widgets/reader_view.dart';
 import '../widgets/sidebar.dart';
 import '../utils/platform.dart';
+import '../ui/dialogs/article_search_dialog.dart';
 import '../ui/layout.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -26,98 +25,106 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final width = MediaQuery.sizeOf(context).width;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final columns = _effectiveColumns(width);
 
-    final columns = _effectiveColumns(width);
+        if (isDesktop) {
+          final mode = desktopModeForWidth(width);
+          return _buildDesktop(context, ref, l10n, mode);
+        }
 
-    if (isDesktop) {
-      final mode = desktopModeForWidth(width);
-      return _buildDesktop(context, ref, l10n, mode);
-    }
-
-    // 1-column: mobile-style list + drawer, dedicated reader route.
-    if (columns == 1) {
-      final unreadOnly = ref.watch(unreadOnlyProvider);
-      final starredOnly = ref.watch(starredOnlyProvider);
-      final searchQuery = ref.watch(articleSearchQueryProvider).trim();
-      final selectedFeedId = ref.watch(selectedFeedIdProvider);
-      final selectedCategoryId = ref.watch(selectedCategoryIdProvider);
-      return Scaffold(
-        appBar: isDesktop
-            ? null
-            : AppBar(
-                title: Text(l10n.appTitle),
-                actions: [
-                  IconButton(
-                    tooltip: l10n.settings,
-                    onPressed: () => context.push('/settings'),
-                    icon: const Icon(Icons.settings),
+        // 1-column: mobile-style list + drawer, dedicated reader route.
+        if (columns == 1) {
+          final unreadOnly = ref.watch(unreadOnlyProvider);
+          final starredOnly = ref.watch(starredOnlyProvider);
+          final searchQuery = ref.watch(articleSearchQueryProvider).trim();
+          final selectedFeedId = ref.watch(selectedFeedIdProvider);
+          final selectedCategoryId = ref.watch(selectedCategoryIdProvider);
+          return Scaffold(
+            appBar: isDesktop
+                ? null
+                : AppBar(
+                    title: Text(l10n.appTitle),
+                    actions: [
+                      IconButton(
+                        tooltip: l10n.settings,
+                        onPressed: () => context.push('/settings'),
+                        icon: const Icon(Icons.settings),
+                      ),
+                      IconButton(
+                        tooltip: l10n.starred,
+                        onPressed: () {
+                          final next = !starredOnly;
+                          ref.read(starredOnlyProvider.notifier).state = next;
+                          if (next) {
+                            ref.read(selectedFeedIdProvider.notifier).state =
+                                null;
+                            ref
+                                .read(selectedCategoryIdProvider.notifier)
+                                .state = null;
+                            ref.read(articleSearchQueryProvider.notifier).state =
+                                '';
+                          }
+                        },
+                        icon: Icon(
+                          starredOnly ? Icons.star : Icons.star_border,
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: l10n.search,
+                        onPressed: () =>
+                            showArticleSearchDialog(context, ref),
+                        icon: const Icon(Icons.search),
+                      ),
+                      if (searchQuery.isNotEmpty)
+                        IconButton(
+                          tooltip: l10n.delete,
+                          onPressed: () => ref
+                              .read(articleSearchQueryProvider.notifier)
+                              .state = '',
+                          icon: const Icon(Icons.clear),
+                        ),
+                      IconButton(
+                        tooltip: unreadOnly ? l10n.showAll : l10n.unreadOnly,
+                        onPressed: () =>
+                            ref.read(unreadOnlyProvider.notifier).state =
+                                !unreadOnly,
+                        icon: Icon(
+                          unreadOnly
+                              ? Icons.filter_alt
+                              : Icons.filter_alt_outlined,
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: l10n.markAllRead,
+                        onPressed: () async {
+                          await ref
+                              .read(articleRepositoryProvider)
+                              .markAllRead(
+                                feedId: selectedFeedId,
+                                categoryId: selectedFeedId == null
+                                    ? selectedCategoryId
+                                    : null,
+                              );
+                        },
+                        icon: const Icon(Icons.done_all),
+                      ),
+                    ],
                   ),
-                  IconButton(
-                    tooltip: l10n.starred,
-                    onPressed: () {
-                      final next = !starredOnly;
-                      ref.read(starredOnlyProvider.notifier).state = next;
-                      if (next) {
-                        ref.read(selectedFeedIdProvider.notifier).state = null;
-                        ref.read(selectedCategoryIdProvider.notifier).state =
-                            null;
-                        ref.read(articleSearchQueryProvider.notifier).state =
-                            '';
-                      }
-                    },
-                    icon: Icon(starredOnly ? Icons.star : Icons.star_border),
-                  ),
-                  IconButton(
-                    tooltip: l10n.search,
-                    onPressed: () => _showArticleSearchDialog(context, ref),
-                    icon: const Icon(Icons.search),
-                  ),
-                  if (searchQuery.isNotEmpty)
-                    IconButton(
-                      tooltip: l10n.delete,
-                      onPressed: () =>
-                          ref.read(articleSearchQueryProvider.notifier).state =
-                              '',
-                      icon: const Icon(Icons.clear),
+            drawer: isDesktop
+                ? null
+                : Drawer(
+                    child: Sidebar(
+                      onSelectFeed: (_) {
+                        Navigator.of(context).maybePop(); // close drawer
+                      },
                     ),
-                  IconButton(
-                    tooltip: unreadOnly ? l10n.showAll : l10n.unreadOnly,
-                    onPressed: () =>
-                        ref.read(unreadOnlyProvider.notifier).state =
-                            !unreadOnly,
-                    icon: Icon(
-                      unreadOnly ? Icons.filter_alt : Icons.filter_alt_outlined,
-                    ),
                   ),
-                  IconButton(
-                    tooltip: l10n.markAllRead,
-                    onPressed: () async {
-                      await ref
-                          .read(articleRepositoryProvider)
-                          .markAllRead(
-                            feedId: selectedFeedId,
-                            categoryId: selectedFeedId == null
-                                ? selectedCategoryId
-                                : null,
-                          );
-                    },
-                    icon: const Icon(Icons.done_all),
-                  ),
-                ],
-              ),
-        drawer: isDesktop
-            ? null
-            : Drawer(
-                child: Sidebar(
-                  onSelectFeed: (_) {
-                    Navigator.of(context).maybePop(); // close drawer
-                  },
-                ),
-              ),
-        body: ArticleList(selectedArticleId: selectedArticleId),
-      );
-    }
+            body: ArticleList(selectedArticleId: selectedArticleId),
+          );
+        }
 
     // 2/3-column: desktop / tablet style with keyboard shortcuts.
     final shortcuts = <ShortcutActivator, Intent>{
@@ -222,7 +229,7 @@ class HomeScreen extends ConsumerWidget {
           ),
           _SearchIntent: CallbackAction<_SearchIntent>(
             onInvoke: (intent) {
-              _showArticleSearchDialog(context, ref);
+              showArticleSearchDialog(context, ref);
               return null;
             },
           ),
@@ -370,7 +377,7 @@ class HomeScreen extends ConsumerWidget {
                               IconButton(
                                 tooltip: l10n.search,
                                 onPressed: () =>
-                                    _showArticleSearchDialog(context, ref),
+                                    showArticleSearchDialog(context, ref),
                                 icon: const Icon(Icons.search),
                               ),
                               Consumer(
@@ -427,6 +434,8 @@ class HomeScreen extends ConsumerWidget {
           ),
         ),
       ),
+    );
+      },
     );
   }
 
@@ -594,7 +603,7 @@ class HomeScreen extends ConsumerWidget {
           ),
           _SearchIntent: CallbackAction<_SearchIntent>(
             onInvoke: (intent) {
-              _showArticleSearchDialog(context, ref);
+              showArticleSearchDialog(context, ref);
               return null;
             },
           ),
@@ -631,72 +640,6 @@ class _ToggleStarIntent extends Intent {
 
 class _SearchIntent extends Intent {
   const _SearchIntent();
-}
-
-Future<void> _showArticleSearchDialog(
-  BuildContext context,
-  WidgetRef ref,
-) async {
-  final l10n = AppLocalizations.of(context)!;
-  final appSettings =
-      ref.read(appSettingsProvider).valueOrNull ?? const AppSettings();
-  var searchInContent = appSettings.searchInContent;
-  final controller = TextEditingController(
-    text: ref.read(articleSearchQueryProvider),
-  );
-  final result = await showDialog<String?>(
-    context: context,
-    builder: (context) {
-      return StatefulBuilder(
-        builder: (context, setState) {
-          return AlertDialog(
-            title: Text(l10n.search),
-            content: SizedBox(
-              width: 520,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: controller,
-                    autofocus: true,
-                    decoration: InputDecoration(hintText: l10n.search),
-                    onSubmitted: (v) => Navigator.of(context).pop(v),
-                  ),
-                  const SizedBox(height: 12),
-                  CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(l10n.searchInContent),
-                    value: searchInContent,
-                    onChanged: (v) =>
-                        setState(() => searchInContent = v ?? true),
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(null),
-                child: Text(l10n.cancel),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(''),
-                child: Text(l10n.delete),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(context).pop(controller.text),
-                child: Text(l10n.done),
-              ),
-            ],
-          );
-        },
-      );
-    },
-  );
-  if (result == null) return;
-  await ref
-      .read(appSettingsProvider.notifier)
-      .setSearchInContent(searchInContent);
-  ref.read(articleSearchQueryProvider.notifier).state = result.trim();
 }
 
 int _effectiveColumns(double width) {

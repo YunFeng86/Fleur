@@ -18,6 +18,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settings => '设置';
 
   @override
+  String get dashboard => '仪表盘';
+
+  @override
+  String get feeds => '订阅';
+
+  @override
+  String get saved => '收藏';
+
+  @override
+  String get automate => '自动化';
+
+  @override
+  String get comingSoon => '敬请期待';
+
+  @override
   String get appearance => '外观';
 
   @override
@@ -504,6 +519,21 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get settings => '設定';
+
+  @override
+  String get dashboard => '儀表板';
+
+  @override
+  String get feeds => '訂閱';
+
+  @override
+  String get saved => '收藏';
+
+  @override
+  String get automate => '自動化';
+
+  @override
+  String get comingSoon => '敬請期待';
 
   @override
   String get appearance => '外觀';

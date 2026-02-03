@@ -19,6 +19,7 @@ import '../services/settings/reader_settings.dart';
 
 import '../utils/path_utils.dart';
 import '../ui/settings/subscriptions/subscriptions_settings_tab.dart';
+import '../ui/global_nav.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -58,7 +59,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         icon: Icons.filter_alt_outlined,
         selectedIcon: Icons.filter_alt,
         label: l10n.rules,
-        content: const _RulesTab(),
+        content: const RulesTab(),
       ),
       _SettingsPageItem(
         icon: Icons.cloud_outlined,
@@ -80,6 +81,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final items = _buildItems(context);
+    final hasGlobalNav = GlobalNavScope.maybeOf(context)?.hasGlobalNav ?? false;
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
@@ -112,7 +114,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
             return Scaffold(
               appBar: AppBar(
-                leading: const BackButton(),
+                leading: hasGlobalNav ? null : const BackButton(),
                 title: Text(l10n.settings),
               ),
               body: ListView.builder(
@@ -157,7 +159,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             return Column(
               children: [
                 AppBar(
-                  leading: const BackButton(),
+                  leading: hasGlobalNav ? null : const BackButton(),
                   title: Text(l10n.settings),
                   elevation: 0,
                   backgroundColor: Colors.transparent,
@@ -353,8 +355,8 @@ class _GroupingSortingTab extends ConsumerWidget {
   }
 }
 
-class _RulesTab extends ConsumerWidget {
-  const _RulesTab();
+class RulesTab extends ConsumerWidget {
+  const RulesTab({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

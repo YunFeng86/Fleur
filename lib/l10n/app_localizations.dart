@@ -117,6 +117,36 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get settings;
 
+  /// Global navigation label: dashboard
+  ///
+  /// In en, this message translates to:
+  /// **'Dashboard'**
+  String get dashboard;
+
+  /// Global navigation label: feeds
+  ///
+  /// In en, this message translates to:
+  /// **'Feeds'**
+  String get feeds;
+
+  /// Global navigation label: saved
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get saved;
+
+  /// Global navigation label: automate
+  ///
+  /// In en, this message translates to:
+  /// **'Automate'**
+  String get automate;
+
+  /// Placeholder text
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get comingSoon;
+
   /// appearance
   ///
   /// In en, this message translates to:
