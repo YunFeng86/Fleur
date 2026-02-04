@@ -43,6 +43,10 @@ docs/
 /build/
 /coverage/
 
+# Generated files (Isar, Freezed, etc.)
+**/*.g.dart
+**/*.freezed.dart
+
 # Web related
 lib/generated_plugin_registrant.dart
 
