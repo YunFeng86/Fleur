@@ -23,7 +23,7 @@ Future<void> main() async {
       minimumSize: Size(360, 520),
       titleBarStyle: TitleBarStyle.hidden,
     );
-    windowManager.waitUntilReadyToShow(options, () async {
+    await windowManager.waitUntilReadyToShow(options, () async {
       await windowManager.show();
       await windowManager.focus();
     });

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../providers/subscription_settings_provider.dart';
@@ -305,25 +307,31 @@ class _FilterSection extends ConsumerWidget {
           isGlobal: feed == null && category == null,
           onChanged: (val) {
             if (feed != null) {
-              SubscriptionActions.updateFeedSettings(
-                context,
-                ref,
-                feedId: feed!.id,
-                filterEnabled: val,
-                updateFilterEnabled: true,
+              unawaited(
+                SubscriptionActions.updateFeedSettings(
+                  context,
+                  ref,
+                  feedId: feed!.id,
+                  filterEnabled: val,
+                  updateFilterEnabled: true,
+                ),
               );
             } else if (category != null) {
-              SubscriptionActions.updateCategorySettings(
-                context,
-                ref,
-                categoryId: category!.id,
-                filterEnabled: val,
-                updateFilterEnabled: true,
+              unawaited(
+                SubscriptionActions.updateCategorySettings(
+                  context,
+                  ref,
+                  categoryId: category!.id,
+                  filterEnabled: val,
+                  updateFilterEnabled: true,
+                ),
               );
             } else {
-              ref
-                  .read(appSettingsProvider.notifier)
-                  .setFilterEnabled(val ?? false);
+              unawaited(
+                ref
+                    .read(appSettingsProvider.notifier)
+                    .setFilterEnabled(val ?? false),
+              );
             }
           },
         ),
@@ -379,25 +387,31 @@ class _SyncSection extends ConsumerWidget {
           isGlobal: feed == null && category == null,
           onChanged: (val) {
             if (feed != null) {
-              SubscriptionActions.updateFeedSettings(
-                context,
-                ref,
-                feedId: feed!.id,
-                syncEnabled: val,
-                updateSyncEnabled: true,
+              unawaited(
+                SubscriptionActions.updateFeedSettings(
+                  context,
+                  ref,
+                  feedId: feed!.id,
+                  syncEnabled: val,
+                  updateSyncEnabled: true,
+                ),
               );
             } else if (category != null) {
-              SubscriptionActions.updateCategorySettings(
-                context,
-                ref,
-                categoryId: category!.id,
-                syncEnabled: val,
-                updateSyncEnabled: true,
+              unawaited(
+                SubscriptionActions.updateCategorySettings(
+                  context,
+                  ref,
+                  categoryId: category!.id,
+                  syncEnabled: val,
+                  updateSyncEnabled: true,
+                ),
               );
             } else {
-              ref
-                  .read(appSettingsProvider.notifier)
-                  .setSyncEnabled(val ?? true);
+              unawaited(
+                ref
+                    .read(appSettingsProvider.notifier)
+                    .setSyncEnabled(val ?? true),
+              );
             }
           },
         ),
@@ -412,23 +426,31 @@ class _SyncSection extends ConsumerWidget {
           isGlobal: feed == null && category == null,
           onChanged: (val) {
             if (feed != null) {
-              SubscriptionActions.updateFeedSettings(
-                context,
-                ref,
-                feedId: feed!.id,
-                syncImages: val,
-                updateSyncImages: true,
+              unawaited(
+                SubscriptionActions.updateFeedSettings(
+                  context,
+                  ref,
+                  feedId: feed!.id,
+                  syncImages: val,
+                  updateSyncImages: true,
+                ),
               );
             } else if (category != null) {
-              SubscriptionActions.updateCategorySettings(
-                context,
-                ref,
-                categoryId: category!.id,
-                syncImages: val,
-                updateSyncImages: true,
+              unawaited(
+                SubscriptionActions.updateCategorySettings(
+                  context,
+                  ref,
+                  categoryId: category!.id,
+                  syncImages: val,
+                  updateSyncImages: true,
+                ),
               );
             } else {
-              ref.read(appSettingsProvider.notifier).setSyncImages(val ?? true);
+              unawaited(
+                ref
+                    .read(appSettingsProvider.notifier)
+                    .setSyncImages(val ?? true),
+              );
             }
           },
         ),
@@ -445,25 +467,31 @@ class _SyncSection extends ConsumerWidget {
           isGlobal: feed == null && category == null,
           onChanged: (val) {
             if (feed != null) {
-              SubscriptionActions.updateFeedSettings(
-                context,
-                ref,
-                feedId: feed!.id,
-                syncWebPages: val,
-                updateSyncWebPages: true,
+              unawaited(
+                SubscriptionActions.updateFeedSettings(
+                  context,
+                  ref,
+                  feedId: feed!.id,
+                  syncWebPages: val,
+                  updateSyncWebPages: true,
+                ),
               );
             } else if (category != null) {
-              SubscriptionActions.updateCategorySettings(
-                context,
-                ref,
-                categoryId: category!.id,
-                syncWebPages: val,
-                updateSyncWebPages: true,
+              unawaited(
+                SubscriptionActions.updateCategorySettings(
+                  context,
+                  ref,
+                  categoryId: category!.id,
+                  syncWebPages: val,
+                  updateSyncWebPages: true,
+                ),
               );
             } else {
-              ref
-                  .read(appSettingsProvider.notifier)
-                  .setSyncWebPages(val ?? false);
+              unawaited(
+                ref
+                    .read(appSettingsProvider.notifier)
+                    .setSyncWebPages(val ?? false),
+              );
             }
           },
         ),
@@ -711,22 +739,28 @@ class _FilterKeywordsInputState extends ConsumerState<_FilterKeywordsInput> {
     final v = value?.trim();
     final next = (v == null || v.isEmpty) ? null : v;
     if (_isGlobal) {
-      ref.read(appSettingsProvider.notifier).setFilterKeywords(next ?? '');
+      unawaited(
+        ref.read(appSettingsProvider.notifier).setFilterKeywords(next ?? ''),
+      );
     } else if (widget.feed != null) {
-      SubscriptionActions.updateFeedSettings(
-        context,
-        ref,
-        feedId: widget.feed!.id,
-        filterKeywords: next,
-        updateFilterKeywords: true,
+      unawaited(
+        SubscriptionActions.updateFeedSettings(
+          context,
+          ref,
+          feedId: widget.feed!.id,
+          filterKeywords: next,
+          updateFilterKeywords: true,
+        ),
       );
     } else if (widget.category != null) {
-      SubscriptionActions.updateCategorySettings(
-        context,
-        ref,
-        categoryId: widget.category!.id,
-        filterKeywords: next,
-        updateFilterKeywords: true,
+      unawaited(
+        SubscriptionActions.updateCategorySettings(
+          context,
+          ref,
+          categoryId: widget.category!.id,
+          filterKeywords: next,
+          updateFilterKeywords: true,
+        ),
       );
     }
   }
@@ -809,16 +843,19 @@ class _UserAgentSectionState extends ConsumerState<_UserAgentSection> {
                 tooltip: l10n.resetToDefault,
                 onPressed: () {
                   _rssController.text = UserAgents.rss;
-                  ref
-                      .read(appSettingsProvider.notifier)
-                      .setRssUserAgent(UserAgents.rss);
+                  unawaited(
+                    ref
+                        .read(appSettingsProvider.notifier)
+                        .setRssUserAgent(UserAgents.rss),
+                  );
                 },
               ),
             ),
             minLines: 1,
             maxLines: 3,
-            onChanged: (value) =>
-                ref.read(appSettingsProvider.notifier).setRssUserAgent(value),
+            onChanged: (value) => unawaited(
+              ref.read(appSettingsProvider.notifier).setRssUserAgent(value),
+            ),
           ),
         ),
         Padding(
@@ -836,16 +873,19 @@ class _UserAgentSectionState extends ConsumerState<_UserAgentSection> {
                 tooltip: l10n.resetToDefault,
                 onPressed: () {
                   _webController.text = UserAgents.web;
-                  ref
-                      .read(appSettingsProvider.notifier)
-                      .setWebUserAgent(UserAgents.web);
+                  unawaited(
+                    ref
+                        .read(appSettingsProvider.notifier)
+                        .setWebUserAgent(UserAgents.web),
+                  );
                 },
               ),
             ),
             minLines: 1,
             maxLines: 3,
-            onChanged: (value) =>
-                ref.read(appSettingsProvider.notifier).setWebUserAgent(value),
+            onChanged: (value) => unawaited(
+              ref.read(appSettingsProvider.notifier).setWebUserAgent(value),
+            ),
           ),
         ),
       ],

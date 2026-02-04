@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -61,7 +63,7 @@ class _ArticleListState extends ConsumerState<ArticleList> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadMoreScheduled = false;
       if (!mounted) return;
-      ref.read(articleListControllerProvider.notifier).loadMore();
+      unawaited(ref.read(articleListControllerProvider.notifier).loadMore());
     });
   }
 
@@ -161,7 +163,7 @@ class _ArticleListState extends ConsumerState<ArticleList> {
                     Widget child = ArticleListItem(
                       article: live,
                       selected: live.id == widget.selectedArticleId,
-                      onTap: () {
+                      onTap: () async {
                         if (live.id == widget.selectedArticleId) {
                           context.go(widget.baseLocation);
                           return;
@@ -176,7 +178,7 @@ class _ArticleListState extends ConsumerState<ArticleList> {
                             : '${widget.articleRoutePrefix}/article/${live.id}';
 
                         if (openAsSecondaryPage) {
-                          context.push(loc);
+                          await context.push(loc);
                         } else {
                           context.go(loc);
                         }

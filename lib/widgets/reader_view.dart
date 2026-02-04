@@ -93,7 +93,10 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
   }
 
   void _listenArticle(int articleId) {
-    _articleSub?.close();
+    final sub = _articleSub;
+    if (sub != null) {
+      sub.close();
+    }
     var hasMarkedRead = false; // 追踪是否已标记
     _articleSub = ref.listenManual<AsyncValue<Article?>>(
       articleProvider(articleId),
@@ -107,7 +110,9 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
           final appSettings =
               ref.read(appSettingsProvider).valueOrNull ?? const AppSettings();
           if (appSettings.autoMarkRead) {
-            ref.read(articleRepositoryProvider).markRead(articleId, true);
+            unawaited(
+              ref.read(articleRepositoryProvider).markRead(articleId, true),
+            );
             hasMarkedRead = true;
           }
         }
@@ -809,26 +814,30 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
   void _onTapImage(ImageMetadata meta) {
     final src = meta.sources.isNotEmpty ? meta.sources.first.url : null;
     if (src == null || src.trim().isEmpty) return;
-    showDialog<void>(
-      context: context,
-      builder: (context) {
-        return Dialog(
-          insetPadding: EdgeInsets.zero,
-          child: Stack(
-            children: [
-              InteractiveViewer(child: Image.network(src, fit: BoxFit.contain)),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close),
+    unawaited(
+      showDialog<void>(
+        context: context,
+        builder: (context) {
+          return Dialog(
+            insetPadding: EdgeInsets.zero,
+            child: Stack(
+              children: [
+                InteractiveViewer(
+                  child: Image.network(src, fit: BoxFit.contain),
                 ),
-              ),
-            ],
-          ),
-        );
-      },
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ).then((_) {}),
     );
   }
 

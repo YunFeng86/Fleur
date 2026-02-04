@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -29,7 +31,7 @@ class _DesktopTitleBarState extends State<DesktopTitleBar> with WindowListener {
     super.initState();
     if (!isDesktop) return;
     windowManager.addListener(this);
-    _syncMaximized();
+    unawaited(_syncMaximized());
   }
 
   @override

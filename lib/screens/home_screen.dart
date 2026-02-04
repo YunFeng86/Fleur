@@ -169,8 +169,8 @@ class HomeScreen extends ConsumerWidget {
                 ? null
                 : Drawer(
                     child: Sidebar(
-                      onSelectFeed: (_) {
-                        Navigator.of(context).maybePop(); // close drawer
+                      onSelectFeed: (_) async {
+                        await Navigator.of(context).maybePop(); // close drawer
                       },
                     ),
                   ),
@@ -341,8 +341,10 @@ class HomeScreen extends ConsumerWidget {
                 drawer: (!isDesktop && columns == 2)
                     ? Drawer(
                         child: Sidebar(
-                          onSelectFeed: (_) {
-                            Navigator.of(context).maybePop(); // close drawer
+                          onSelectFeed: (_) async {
+                            await Navigator.of(
+                              context,
+                            ).maybePop(); // close drawer
                           },
                         ),
                       )
@@ -727,8 +729,8 @@ class HomeScreen extends ConsumerWidget {
       drawer: drawerEnabled
           ? Drawer(
               child: Sidebar(
-                onSelectFeed: (_) {
-                  Navigator.of(context).maybePop();
+                onSelectFeed: (_) async {
+                  await Navigator.of(context).maybePop();
                 },
               ),
             )

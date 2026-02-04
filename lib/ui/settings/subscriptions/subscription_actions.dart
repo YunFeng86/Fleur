@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -124,33 +125,35 @@ class SubscriptionActions {
 
     // Show progress dialog
     final progressNotifier = ValueNotifier<String>('0/${feeds.length}');
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return PopScope(
-          canPop: false,
-          child: AlertDialog(
-            content: Row(
-              children: [
-                const CircularProgressIndicator(),
-                const SizedBox(width: 24),
-                ValueListenableBuilder<String>(
-                  valueListenable: progressNotifier,
-                  builder: (context, value, _) {
-                    return Text(
-                      l10n.refreshingProgress(
-                        int.tryParse(value.split('/')[0]) ?? 0,
-                        int.tryParse(value.split('/')[1]) ?? feeds.length,
-                      ),
-                    );
-                  },
-                ),
-              ],
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          return PopScope(
+            canPop: false,
+            child: AlertDialog(
+              content: Row(
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(width: 24),
+                  ValueListenableBuilder<String>(
+                    valueListenable: progressNotifier,
+                    builder: (context, value, _) {
+                      return Text(
+                        l10n.refreshingProgress(
+                          int.tryParse(value.split('/')[0]) ?? 0,
+                          int.tryParse(value.split('/')[1]) ?? feeds.length,
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ).then((_) {}),
     );
 
     final batch = await ref

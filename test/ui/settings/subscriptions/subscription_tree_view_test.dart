@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -36,11 +38,13 @@ void main() {
               // Simulate "already drilled down" state by initialising the provider state
               // We can't easily mock the notifier logic directly unless we override the provider.
               // We can just act on it in build or use a microtask.
-              Future.microtask(() {
-                ref
-                    .read(subscriptionSelectionProvider.notifier)
-                    .selectCategory(1);
-              });
+              unawaited(
+                Future.microtask(() {
+                  ref
+                      .read(subscriptionSelectionProvider.notifier)
+                      .selectCategory(1);
+                }),
+              );
               return const Scaffold(body: SubscriptionTreeView());
             },
           ),

@@ -308,9 +308,11 @@ class _GroupingSortingTab extends ConsumerWidget {
                   ],
                   onChanged: (v) {
                     if (v == null) return;
-                    ref
-                        .read(appSettingsProvider.notifier)
-                        .setArticleGroupMode(v);
+                    unawaited(
+                      ref
+                          .read(appSettingsProvider.notifier)
+                          .setArticleGroupMode(v),
+                    );
                   },
                 ),
               ),
@@ -342,9 +344,11 @@ class _GroupingSortingTab extends ConsumerWidget {
                   ],
                   onChanged: (v) {
                     if (v == null) return;
-                    ref
-                        .read(appSettingsProvider.notifier)
-                        .setArticleSortOrder(v);
+                    unawaited(
+                      ref
+                          .read(appSettingsProvider.notifier)
+                          .setArticleSortOrder(v),
+                    );
                   },
                 ),
               ),
@@ -407,9 +411,9 @@ class _AppPreferencesTab extends ConsumerWidget {
                           child: Text(l10n.chineseTraditional),
                         ),
                       ],
-                      onChanged: (v) => ref
-                          .read(appSettingsProvider.notifier)
-                          .setLocaleTag(v),
+                      onChanged: (v) => unawaited(
+                        ref.read(appSettingsProvider.notifier).setLocaleTag(v),
+                      ),
                     ),
                   ),
                 ),
@@ -421,7 +425,9 @@ class _AppPreferencesTab extends ConsumerWidget {
                   groupValue: appSettings.themeMode,
                   onChanged: (v) {
                     if (v == null) return;
-                    ref.read(appSettingsProvider.notifier).setThemeMode(v);
+                    unawaited(
+                      ref.read(appSettingsProvider.notifier).setThemeMode(v),
+                    );
                   },
                   child: Column(
                     children: [
@@ -606,33 +612,35 @@ class _ServicesTab extends ConsumerWidget {
 
       // Show progress dialog
       final progressNotifier = ValueNotifier<String>('0/${feeds.length}');
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) {
-          return PopScope(
-            canPop: false,
-            child: AlertDialog(
-              content: Row(
-                children: [
-                  const CircularProgressIndicator(),
-                  const SizedBox(width: 24),
-                  ValueListenableBuilder<String>(
-                    valueListenable: progressNotifier,
-                    builder: (context, value, _) {
-                      return Text(
-                        l10n.refreshingProgress(
-                          int.tryParse(value.split('/')[0]) ?? 0,
-                          int.tryParse(value.split('/')[1]) ?? feeds.length,
-                        ),
-                      );
-                    },
-                  ),
-                ],
+      unawaited(
+        showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) {
+            return PopScope(
+              canPop: false,
+              child: AlertDialog(
+                content: Row(
+                  children: [
+                    const CircularProgressIndicator(),
+                    const SizedBox(width: 24),
+                    ValueListenableBuilder<String>(
+                      valueListenable: progressNotifier,
+                      builder: (context, value, _) {
+                        return Text(
+                          l10n.refreshingProgress(
+                            int.tryParse(value.split('/')[0]) ?? 0,
+                            int.tryParse(value.split('/')[1]) ?? feeds.length,
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ).then((_) {}),
       );
 
       final batch = await ref
@@ -722,9 +730,11 @@ class _ServicesTab extends ConsumerWidget {
                           ],
                           onChanged: (v) {
                             if (v != null) {
-                              ref
-                                  .read(appSettingsProvider.notifier)
-                                  .setAutoRefreshConcurrency(v);
+                              unawaited(
+                                ref
+                                    .read(appSettingsProvider.notifier)
+                                    .setAutoRefreshConcurrency(v),
+                              );
                             }
                           },
                         ),

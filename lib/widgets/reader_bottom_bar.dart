@@ -164,7 +164,7 @@ class ReaderBottomBar extends ConsumerWidget {
                       onPressed: controller.isLoading
                           ? null
                           : hasFull
-                          ? () {
+                          ? () async {
                               ref
                                       .read(
                                         fullTextViewEnabledProvider(
@@ -174,7 +174,7 @@ class ReaderBottomBar extends ConsumerWidget {
                                       .state =
                                   !useFullText;
                             }
-                          : () {
+                          : () async {
                               // 先切换为提取视图，再触发提取。
                               ref
                                       .read(
@@ -184,7 +184,7 @@ class ReaderBottomBar extends ConsumerWidget {
                                       )
                                       .state =
                                   true;
-                              ref
+                              await ref
                                   .read(fullTextControllerProvider.notifier)
                                   .fetch(article.id);
                             },
@@ -205,10 +205,13 @@ class ReaderBottomBar extends ConsumerWidget {
                 ),
                 IconButton(
                   tooltip: l10n.openInBrowser,
-                  onPressed: () {
+                  onPressed: () async {
                     final uri = Uri.tryParse(article.link);
                     if (uri != null) {
-                      launchUrl(uri, mode: LaunchMode.externalApplication);
+                      await launchUrl(
+                        uri,
+                        mode: LaunchMode.externalApplication,
+                      );
                     }
                   },
                   icon: const Icon(Icons.open_in_browser),

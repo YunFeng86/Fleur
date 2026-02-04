@@ -90,7 +90,7 @@ class ArticleListController extends AutoDisposeAsyncNotifier<ArticleListState> {
 
     // 查询结果变化时刷新列表（新增/过滤）。
     // 读/星标通过单条流更新，避免全量刷新。
-    _sub?.cancel();
+    await _sub?.cancel();
     final repo = ref.watch(articleRepositoryProvider);
     // 仅监听当前查询，避免全表刷新。
     final query = _currentQuery();

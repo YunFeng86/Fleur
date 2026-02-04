@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -24,8 +26,9 @@ class SubscriptionToolbar extends ConsumerWidget {
           // Action Buttons
           // Add Feed
           FilledButton.icon(
-            onPressed: () =>
-                SubscriptionActions.showAddFeedDialog(context, ref),
+            onPressed: () {
+              unawaited(SubscriptionActions.showAddFeedDialog(context, ref));
+            },
             icon: const Icon(Icons.add),
             label: Text(l10n.addSubscription),
           ),
@@ -35,15 +38,20 @@ class SubscriptionToolbar extends ConsumerWidget {
           IconButton(
             tooltip: l10n.newCategory,
             icon: const Icon(Icons.create_new_folder_outlined),
-            onPressed: () =>
+            onPressed: () {
+              unawaited(
                 SubscriptionActions.showAddCategoryDialog(context, ref),
+              );
+            },
           ),
 
           // Refresh All
           IconButton(
             tooltip: l10n.refreshAll,
             icon: const Icon(Icons.refresh),
-            onPressed: () => SubscriptionActions.refreshAll(context, ref),
+            onPressed: () {
+              unawaited(SubscriptionActions.refreshAll(context, ref));
+            },
           ),
 
           // More Menu (Import/Export)
@@ -51,8 +59,12 @@ class SubscriptionToolbar extends ConsumerWidget {
             icon: const Icon(Icons.more_vert),
             tooltip: l10n.more,
             onSelected: (value) {
-              if (value == 0) SubscriptionActions.importOpml(context, ref);
-              if (value == 1) SubscriptionActions.exportOpml(context, ref);
+              if (value == 0) {
+                unawaited(SubscriptionActions.importOpml(context, ref));
+              }
+              if (value == 1) {
+                unawaited(SubscriptionActions.exportOpml(context, ref));
+              }
             },
             itemBuilder: (context) => [
               PopupMenuItem(
