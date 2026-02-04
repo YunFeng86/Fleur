@@ -21,6 +21,7 @@ import '../providers/query_providers.dart';
 import '../providers/repository_providers.dart';
 import '../providers/service_providers.dart';
 import '../providers/settings_providers.dart';
+import '../services/cache/image_meta_store.dart';
 import '../services/settings/app_settings.dart';
 import '../services/settings/reader_settings.dart';
 import '../services/settings/reader_progress_store.dart';
@@ -73,12 +74,18 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
   final GlobalKey _listViewKey = GlobalKey();
   final Map<int, GlobalKey> _chunkKeys = {};
   _ChunkAnchor? _pendingAnchor;
+  _ChunkAnchor? _lastAnchor;
   Timer? _resizeTimer;
   bool _isResizing = false;
   int _resizeRestoreAttempts = 0;
   Size? _lastViewportSize;
   bool _usingChunkedLayout = false;
+  Timer? _prefetchTimer;
+  final Set<int> _prefetchedChunks = {};
+  List<String>? _currentChunks;
+  Uri? _currentImageBaseUrl;
   late final ReaderProgressStore _progressStore;
+  late final ImageMetaStore _imageMetaStore;
   int? _pendingSaveArticleId;
   String? _pendingSaveContentHash;
   double? _pendingSavePixels;
@@ -93,6 +100,8 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
   void initState() {
     super.initState();
     _progressStore = ref.read(readerProgressStoreProvider);
+    _imageMetaStore = ref.read(imageMetaStoreProvider);
+    unawaited(_imageMetaStore.getMany(const []));
     _scrollController.addListener(_handleScroll);
 
     // Show extraction errors from the one-shot full text fetch.
@@ -181,16 +190,22 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
     _restoreTimer = null;
     _resizeTimer?.cancel();
     _resizeTimer = null;
+    _prefetchTimer?.cancel();
+    _prefetchTimer = null;
     _pendingProgress = null;
     _currentContentHash = null;
     _restoredScrollPosition = false;
     _isRestoring = false;
     _isResizing = false;
     _pendingAnchor = null;
+    _lastAnchor = null;
     _resizeRestoreAttempts = 0;
     _lastViewportSize = null;
     _usingChunkedLayout = false;
     _chunkKeys.clear();
+    _prefetchedChunks.clear();
+    _currentChunks = null;
+    _currentImageBaseUrl = null;
     _restoreAttempts = 0;
     _pendingSaveArticleId = null;
     _pendingSaveContentHash = null;
@@ -217,6 +232,8 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
     _restoredScrollPosition = false;
     _restoreAttempts = 0;
     _pendingProgress = null;
+    _prefetchedChunks.clear();
+    _lastAnchor = null;
     if (contentHash.trim().isEmpty) {
       _scheduleRestore(contentHash);
       return;
@@ -319,6 +336,7 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
       pixels: pixels,
       progress: progress,
     );
+    _maybePrefetchNextChunks();
   }
 
   void _scheduleProgressSave({
@@ -375,6 +393,11 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
     _resizeTimer = null;
     _lastViewportSize = null;
     _isResizing = false;
+    _prefetchedChunks.clear();
+    _prefetchTimer?.cancel();
+    _prefetchTimer = null;
+    _currentChunks = null;
+    _lastAnchor = null;
   }
 
   void _handleViewportSizeChange(Size size, {required bool isChunked}) {
@@ -408,10 +431,17 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
   }
 
   void _captureChunkAnchor() {
-    if (!_scrollController.hasClients) return;
+    final anchor = _findChunkAnchor();
+    if (anchor == null) return;
+    _pendingAnchor = anchor;
+    _lastAnchor = anchor;
+  }
+
+  _ChunkAnchor? _findChunkAnchor() {
+    if (!_scrollController.hasClients) return null;
     final listBox =
         _listViewKey.currentContext?.findRenderObject() as RenderBox?;
-    if (listBox == null || !listBox.hasSize) return;
+    if (listBox == null || !listBox.hasSize) return null;
     final viewportCenterY =
         listBox.localToGlobal(Offset.zero).dy + listBox.size.height / 2;
 
@@ -436,11 +466,11 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
       }
     }
 
-    if (bestIndex == null || bestHeight <= 0) return;
+    if (bestIndex == null || bestHeight <= 0) return null;
     final fraction = ((viewportCenterY - bestTop) / bestHeight)
         .clamp(0.0, 1.0)
         .toDouble();
-    _pendingAnchor = _ChunkAnchor(index: bestIndex, fraction: fraction);
+    return _ChunkAnchor(index: bestIndex, fraction: fraction);
   }
 
   void _restoreChunkAnchor() {
@@ -485,11 +515,60 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
     _isRestoring = false;
   }
 
+  void _maybePrefetchNextChunks() {
+    if (!_usingChunkedLayout) return;
+    final chunks = _currentChunks;
+    final baseUrl = _currentImageBaseUrl;
+    if (chunks == null || baseUrl == null) return;
+    if (_prefetchTimer != null) return;
+    _prefetchTimer = Timer(const Duration(milliseconds: 220), () async {
+      _prefetchTimer = null;
+      final anchor = _findChunkAnchor() ?? _lastAnchor;
+      if (anchor == null) return;
+      _lastAnchor = anchor;
+      final targets = <int>[anchor.index + 1, anchor.index + 2];
+      final toPrefetch = <int>[];
+      for (final idx in targets) {
+        if (idx <= 0 || idx >= chunks.length + 1) continue;
+        if (_prefetchedChunks.contains(idx)) continue;
+        toPrefetch.add(idx);
+      }
+      if (toPrefetch.isEmpty) return;
+      final cache = ref.read(articleCacheServiceProvider);
+      for (final idx in toPrefetch) {
+        _prefetchedChunks.add(idx);
+        final html = chunks[idx - 1];
+        unawaited(
+          cache.prefetchImagesFromHtml(
+            html,
+            baseUrl: baseUrl,
+            maxImages: 8,
+            maxConcurrent: 2,
+          ),
+        );
+      }
+    });
+  }
+
+  String? _resolveImageUrl(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return null;
+    final trimmed = raw.trim();
+    if (trimmed.startsWith('data:') ||
+        trimmed.startsWith('file:') ||
+        trimmed.startsWith('asset:')) {
+      return null;
+    }
+    final base = _currentImageBaseUrl;
+    if (base == null) return trimmed;
+    return base.resolve(trimmed).toString();
+  }
+
   @override
   void dispose() {
     _flushPendingProgressSave();
     _restoreTimer?.cancel();
     _resizeTimer?.cancel();
+    _prefetchTimer?.cancel();
     _articleSub?.close();
     _fullTextSub?.close();
     _scrollController.removeListener(_handleScroll);
@@ -652,7 +731,9 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
     Widget inlineHeader,
   ) {
     final cacheManager = ref.read(cacheManagerProvider);
+    _currentImageBaseUrl = Uri.tryParse(article.link);
     if (html.length < _chunkThreshold) {
+      _currentChunks = null;
       return SelectionArea(
         key: _selectionAreaKey,
         onSelectionChanged: _handleSelectionChanged,
@@ -705,6 +786,7 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
 
     // Lazy load long articles
     final chunks = _splitHtmlIntoChunks(html);
+    _currentChunks = chunks;
     return SelectionArea(
       key: _selectionAreaKey,
       onSelectionChanged: _handleSelectionChanged,
@@ -1148,10 +1230,13 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
     if (element.localName != 'img') {
       return null;
     }
+    final resolvedUrl = _resolveImageUrl(element.attributes['src']);
+    final meta = resolvedUrl == null ? null : _imageMetaStore.peek(resolvedUrl);
+    final aspectRatio = meta == null ? null : meta.width / meta.height;
     return _ImagePlaceholder.fromElement(
-      context: context,
       element: element,
       loadingProgress: loadingProgress,
+      aspectRatio: aspectRatio,
     );
   }
 
@@ -1384,12 +1469,13 @@ class _ImagePlaceholder extends StatelessWidget {
     required this.widthPercent,
     required this.heightPercent,
     required this.loadingProgress,
+    required this.aspectRatio,
   });
 
   factory _ImagePlaceholder.fromElement({
-    required BuildContext context,
     required dom.Element element,
     required double? loadingProgress,
+    required double? aspectRatio,
   }) {
     final spec = _parseImageSizeSpec(element);
     return _ImagePlaceholder(
@@ -1398,6 +1484,7 @@ class _ImagePlaceholder extends StatelessWidget {
       widthPercent: spec.widthPercent,
       heightPercent: spec.heightPercent,
       loadingProgress: loadingProgress,
+      aspectRatio: aspectRatio,
     );
   }
 
@@ -1408,6 +1495,7 @@ class _ImagePlaceholder extends StatelessWidget {
   final double? widthPercent;
   final double? heightPercent;
   final double? loadingProgress;
+  final double? aspectRatio;
 
   @override
   Widget build(BuildContext context) {
@@ -1454,7 +1542,7 @@ class _ImagePlaceholder extends StatelessWidget {
         if (resolvedWidth != null) {
           return SizedBox(
             width: resolvedWidth,
-            height: resolvedWidth / _fallbackAspectRatio,
+            height: resolvedWidth / (aspectRatio ?? _fallbackAspectRatio),
             child: base,
           );
         }
@@ -1466,7 +1554,8 @@ class _ImagePlaceholder extends StatelessWidget {
         if (constraints.hasBoundedWidth && constraints.maxWidth.isFinite) {
           return SizedBox(
             width: constraints.maxWidth,
-            height: constraints.maxWidth / _fallbackAspectRatio,
+            height:
+                constraints.maxWidth / (aspectRatio ?? _fallbackAspectRatio),
             child: base,
           );
         }

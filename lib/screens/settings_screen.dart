@@ -507,6 +507,7 @@ class _AppPreferencesTab extends ConsumerWidget {
                       OutlinedButton(
                         onPressed: () async {
                           await ref.read(cacheManagerProvider).emptyCache();
+                          await ref.read(imageMetaStoreProvider).clear();
                           if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text(l10n.cacheCleared)),

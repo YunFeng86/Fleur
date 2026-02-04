@@ -8,6 +8,7 @@ import '../services/rss/rss_client.dart';
 import '../services/sync/sync_service.dart';
 import '../services/extract/article_extractor.dart';
 import '../services/cache/article_cache_service.dart';
+import '../services/cache/image_meta_store.dart';
 import '../services/notifications/notification_service.dart';
 import 'repository_providers.dart';
 import 'app_settings_providers.dart';
@@ -70,9 +71,22 @@ final articleExtractorProvider = Provider<ArticleExtractor>((ref) {
 });
 
 final cacheManagerProvider = Provider<BaseCacheManager>((ref) {
-  return DefaultCacheManager();
+  return CacheManager(
+    Config(
+      'flutter_reader_images',
+      stalePeriod: const Duration(days: 45),
+      maxNrOfCacheObjects: 1200,
+    ),
+  );
+});
+
+final imageMetaStoreProvider = Provider<ImageMetaStore>((ref) {
+  return ImageMetaStore();
 });
 
 final articleCacheServiceProvider = Provider<ArticleCacheService>((ref) {
-  return ArticleCacheService(ref.watch(cacheManagerProvider));
+  return ArticleCacheService(
+    ref.watch(cacheManagerProvider),
+    ref.watch(imageMetaStoreProvider),
+  );
 });
