@@ -222,6 +222,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
           return Container(
             color: Theme.of(context).colorScheme.surfaceContainerLowest,
             child: ReaderView(
+              key: ValueKey('saved-reader-$id'),
               articleId: id,
               embedded: embedded,
               showBack: !embedded,

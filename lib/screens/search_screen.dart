@@ -241,6 +241,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           return Container(
             color: Theme.of(context).colorScheme.surfaceContainerLowest,
             child: ReaderView(
+              key: ValueKey('search-reader-$id'),
               articleId: id,
               embedded: embedded,
               showBack: !embedded,

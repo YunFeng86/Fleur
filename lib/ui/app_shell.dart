@@ -14,16 +14,6 @@ class AppShell extends StatelessWidget {
 
   bool _isArticleRoute(Uri uri) => uri.pathSegments.contains('article');
 
-  String _sectionKeyForUri(Uri uri) {
-    if (uri.pathSegments.isEmpty) return 'home';
-    final seg = uri.pathSegments.first;
-    if (seg == 'article') return 'home';
-    return switch (seg) {
-      'dashboard' || 'saved' || 'search' || 'settings' => seg,
-      _ => 'home',
-    };
-  }
-
   bool _isReaderEmbedded({required double totalWidth, required Uri uri}) {
     if (!_isArticleRoute(uri)) return true;
     final contentWidth = effectiveContentWidth(totalWidth);
@@ -47,25 +37,7 @@ class AppShell extends StatelessWidget {
     }
 
     final mode = globalNavModeForWidth(totalWidth);
-    final sectionKey = _sectionKeyForUri(currentUri);
-    final animatedChild = AnimatedSwitcher(
-      duration: const Duration(milliseconds: 180),
-      switchInCurve: Curves.easeOutCubic,
-      switchOutCurve: Curves.easeInCubic,
-      transitionBuilder: (child, animation) {
-        return FadeTransition(
-          opacity: animation,
-          child: SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0.02, 0),
-              end: Offset.zero,
-            ).animate(animation),
-            child: child,
-          ),
-        );
-      },
-      child: KeyedSubtree(key: ValueKey(sectionKey), child: child),
-    );
+
     return switch (mode) {
       GlobalNavMode.rail => GlobalNavScope(
         hasGlobalNav: true,
@@ -77,7 +49,7 @@ class AppShell extends StatelessWidget {
               child: GlobalNavRail(currentUri: currentUri),
             ),
             const VerticalDivider(width: kDividerWidth, thickness: 1),
-            Expanded(child: animatedChild),
+            Expanded(child: child),
           ],
         ),
       ),
@@ -85,7 +57,7 @@ class AppShell extends StatelessWidget {
         hasGlobalNav: true,
         child: Column(
           children: [
-            Expanded(child: animatedChild),
+            Expanded(child: child),
             const Divider(height: 1),
             SafeArea(top: false, child: GlobalNavBar(currentUri: currentUri)),
           ],

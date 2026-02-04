@@ -15,6 +15,7 @@ class ReaderScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ReaderView(
+      key: ValueKey('reader-$articleId'),
       articleId: articleId,
       showBack: true,
       fallbackBackLocation: fallbackBackLocation,

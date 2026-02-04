@@ -26,8 +26,6 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/',
             name: 'home',
             pageBuilder: (context, state) {
-              // Use a no-transition page so selecting articles in the 2/3-column
-              // layout does not animate the whole page.
               return const NoTransitionPage(
                 child: HomeScreen(selectedArticleId: null),
               );

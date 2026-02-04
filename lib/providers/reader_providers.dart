@@ -3,6 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'repository_providers.dart';
 import 'app_settings_providers.dart';
 import 'service_providers.dart';
+import '../services/settings/reader_progress_store.dart';
+
+final readerProgressStoreProvider = Provider<ReaderProgressStore>((ref) {
+  return ReaderProgressStore();
+});
 
 class FullTextController extends AutoDisposeAsyncNotifier<void> {
   @override

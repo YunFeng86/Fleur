@@ -6,6 +6,8 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:html/dom.dart' as dom;
 
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
@@ -21,7 +23,9 @@ import '../providers/service_providers.dart';
 import '../providers/settings_providers.dart';
 import '../services/settings/app_settings.dart';
 import '../services/settings/reader_settings.dart';
+import '../services/settings/reader_progress_store.dart';
 import '../utils/platform.dart';
+import '../utils/content_hash.dart';
 import '../ui/layout.dart';
 
 class ReaderView extends ConsumerStatefulWidget {
@@ -59,12 +63,37 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
   Offset? _autoScrollAnchor;
   Offset? _autoScrollPointer;
   bool _suppressNextContextMenu = false;
+  Timer? _progressSaveTimer;
+  ReaderProgress? _pendingProgress;
+  String? _currentContentHash;
+  int _restoreAttempts = 0;
+  bool _restoredScrollPosition = false;
+  bool _isRestoring = false;
+  Timer? _restoreTimer;
+  final GlobalKey _listViewKey = GlobalKey();
+  final Map<int, GlobalKey> _chunkKeys = {};
+  _ChunkAnchor? _pendingAnchor;
+  Timer? _resizeTimer;
+  bool _isResizing = false;
+  int _resizeRestoreAttempts = 0;
+  Size? _lastViewportSize;
+  bool _usingChunkedLayout = false;
+  late final ReaderProgressStore _progressStore;
+  int? _pendingSaveArticleId;
+  String? _pendingSaveContentHash;
+  double? _pendingSavePixels;
+  double? _pendingSaveProgress;
+  double? _lastSavedPixels;
+  double? _lastSavedProgress;
   static const double _autoScrollDeadZone = 6;
   static const double _autoScrollSpeedFactor = 0.12;
+  static const int _chunkThreshold = 50000;
 
   @override
   void initState() {
     super.initState();
+    _progressStore = ref.read(readerProgressStoreProvider);
+    _scrollController.addListener(_handleScroll);
 
     // Show extraction errors from the one-shot full text fetch.
     _fullTextSub = ref.listenManual<AsyncValue<void>>(
@@ -88,6 +117,11 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
   void didUpdateWidget(covariant ReaderView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.articleId != widget.articleId) {
+      _flushPendingProgressSave();
+      _resetProgressState();
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(_scrollController.position.minScrollExtent);
+      }
       _listenArticle(widget.articleId);
     }
   }
@@ -124,20 +158,341 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
         final html = (a?.extractedContentHtml ?? a?.contentHtml ?? '').trim();
         if (a == null || html.isEmpty) return;
         if (prevA != null && prevA.id == a.id && prevHtml == html) return;
+        final maxPrefetch = html.length >= 50000 ? 6 : 24;
         unawaited(
           ref
               .read(articleCacheServiceProvider)
-              .prefetchImagesFromHtml(html, baseUrl: Uri.tryParse(a.link)),
+              .prefetchImagesFromHtml(
+                html,
+                baseUrl: Uri.tryParse(a.link),
+                maxImages: maxPrefetch,
+                maxConcurrent: 3,
+              ),
         );
       },
       fireImmediately: true,
     );
   }
 
+  void _resetProgressState() {
+    _progressSaveTimer?.cancel();
+    _progressSaveTimer = null;
+    _restoreTimer?.cancel();
+    _restoreTimer = null;
+    _resizeTimer?.cancel();
+    _resizeTimer = null;
+    _pendingProgress = null;
+    _currentContentHash = null;
+    _restoredScrollPosition = false;
+    _isRestoring = false;
+    _isResizing = false;
+    _pendingAnchor = null;
+    _resizeRestoreAttempts = 0;
+    _lastViewportSize = null;
+    _usingChunkedLayout = false;
+    _chunkKeys.clear();
+    _restoreAttempts = 0;
+    _pendingSaveArticleId = null;
+    _pendingSaveContentHash = null;
+    _pendingSavePixels = null;
+    _pendingSaveProgress = null;
+    _lastSavedPixels = null;
+    _lastSavedProgress = null;
+  }
+
+  void _flushPendingProgressSave() {
+    if (_progressSaveTimer == null &&
+        _pendingSavePixels == null &&
+        _pendingSaveProgress == null) {
+      return;
+    }
+    _progressSaveTimer?.cancel();
+    _progressSaveTimer = null;
+    unawaited(_saveProgressNow());
+  }
+
+  void _syncProgressForContent(String contentHash) {
+    if (_currentContentHash == contentHash) return;
+    _currentContentHash = contentHash;
+    _restoredScrollPosition = false;
+    _restoreAttempts = 0;
+    _pendingProgress = null;
+    if (contentHash.trim().isEmpty) {
+      _scheduleRestore(contentHash);
+      return;
+    }
+    unawaited(_loadProgressForContent(contentHash));
+  }
+
+  Future<void> _loadProgressForContent(String contentHash) async {
+    final progress = await _progressStore.getProgress(
+      articleId: widget.articleId,
+      contentHash: contentHash,
+    );
+    if (!mounted) return;
+    if (_currentContentHash != contentHash) return;
+    _pendingProgress = progress;
+    _scheduleRestore(contentHash);
+  }
+
+  void _scheduleRestore(String contentHash) {
+    _restoreTimer?.cancel();
+    _restoreTimer = Timer(const Duration(milliseconds: 120), () {
+      if (!mounted) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _tryRestore(contentHash);
+      });
+    });
+  }
+
+  void _tryRestore(String contentHash) {
+    if (!mounted) return;
+    if (_restoredScrollPosition) return;
+    if (_currentContentHash != contentHash) return;
+    if (!_scrollController.hasClients) {
+      _restoreAttempts++;
+      if (_restoreAttempts < 4) {
+        _scheduleRestore(contentHash);
+      }
+      return;
+    }
+
+    final position = _scrollController.position;
+    final progress = _pendingProgress;
+    if (progress == null || progress.contentHash != contentHash) {
+      _restoredScrollPosition = true;
+      if (position.pixels != position.minScrollExtent) {
+        _scrollController.jumpTo(position.minScrollExtent);
+      }
+      return;
+    }
+
+    final maxExtent = position.maxScrollExtent;
+    final minExtent = position.minScrollExtent;
+    final targetPixels = progress.pixels;
+    final needsMoreExtent = maxExtent <= 0 || targetPixels > maxExtent + 24;
+    if (needsMoreExtent && _restoreAttempts < 6) {
+      _restoreAttempts++;
+      _scheduleRestore(contentHash);
+      return;
+    }
+
+    final target = maxExtent > 0
+        ? (targetPixels <= maxExtent + 8
+              ? targetPixels
+              : progress.progress * maxExtent)
+        : targetPixels;
+    final clamped = target
+        .clamp(minExtent, position.maxScrollExtent)
+        .toDouble();
+    if ((position.pixels - clamped).abs() > 1) {
+      _isRestoring = true;
+      _scrollController.jumpTo(clamped);
+      _isRestoring = false;
+    }
+    _restoredScrollPosition = true;
+  }
+
+  void _handleScroll() {
+    if (_isRestoring || _isResizing) return;
+    if (!_scrollController.hasClients) return;
+    final contentHash = _currentContentHash;
+    if (contentHash == null || contentHash.trim().isEmpty) return;
+    final position = _scrollController.position;
+    if (!position.hasPixels) return;
+    final maxExtent = position.maxScrollExtent;
+    final pixels = position.pixels;
+    final progress = maxExtent > 0
+        ? (pixels / maxExtent).clamp(0.0, 1.0).toDouble()
+        : 0.0;
+
+    final lastPixels = _lastSavedPixels;
+    final lastProgress = _lastSavedProgress;
+    if (lastPixels != null && (pixels - lastPixels).abs() < 8) return;
+    if (lastProgress != null && (progress - lastProgress).abs() < 0.005) {
+      return;
+    }
+
+    _scheduleProgressSave(
+      articleId: widget.articleId,
+      contentHash: contentHash,
+      pixels: pixels,
+      progress: progress,
+    );
+  }
+
+  void _scheduleProgressSave({
+    required int articleId,
+    required String contentHash,
+    required double pixels,
+    required double progress,
+  }) {
+    _pendingSaveArticleId = articleId;
+    _pendingSaveContentHash = contentHash;
+    _pendingSavePixels = pixels;
+    _pendingSaveProgress = progress;
+    _progressSaveTimer?.cancel();
+    _progressSaveTimer = Timer(const Duration(milliseconds: 500), () {
+      unawaited(_saveProgressNow());
+    });
+  }
+
+  Future<void> _saveProgressNow() async {
+    final articleId = _pendingSaveArticleId;
+    final contentHash = _pendingSaveContentHash;
+    final pixels = _pendingSavePixels;
+    final progress = _pendingSaveProgress;
+    if (articleId == null ||
+        contentHash == null ||
+        pixels == null ||
+        progress == null) {
+      return;
+    }
+    _pendingSaveArticleId = null;
+    _pendingSaveContentHash = null;
+    _pendingSavePixels = null;
+    _pendingSaveProgress = null;
+
+    final entry = ReaderProgress(
+      articleId: articleId,
+      contentHash: contentHash,
+      pixels: pixels,
+      progress: progress,
+      updatedAt: DateTime.now(),
+    );
+    await _progressStore.saveProgress(entry);
+    _lastSavedPixels = pixels;
+    _lastSavedProgress = progress;
+  }
+
+  void _setChunkedLayout(bool isChunked) {
+    if (_usingChunkedLayout == isChunked) return;
+    _usingChunkedLayout = isChunked;
+    _chunkKeys.clear();
+    _pendingAnchor = null;
+    _resizeRestoreAttempts = 0;
+    _resizeTimer?.cancel();
+    _resizeTimer = null;
+    _lastViewportSize = null;
+    _isResizing = false;
+  }
+
+  void _handleViewportSizeChange(Size size, {required bool isChunked}) {
+    if (!isChunked) {
+      _setChunkedLayout(false);
+      _lastViewportSize = size;
+      return;
+    }
+
+    _setChunkedLayout(true);
+    final last = _lastViewportSize;
+    _lastViewportSize = size;
+    if (last == null) return;
+    if ((size.width - last.width).abs() < 1 &&
+        (size.height - last.height).abs() < 1) {
+      return;
+    }
+    _startResizeSession();
+  }
+
+  void _startResizeSession() {
+    if (!_isResizing) {
+      _isResizing = true;
+      _captureChunkAnchor();
+    }
+    _resizeTimer?.cancel();
+    _resizeTimer = Timer(const Duration(milliseconds: 240), () {
+      _isResizing = false;
+      _restoreChunkAnchor();
+    });
+  }
+
+  void _captureChunkAnchor() {
+    if (!_scrollController.hasClients) return;
+    final listBox =
+        _listViewKey.currentContext?.findRenderObject() as RenderBox?;
+    if (listBox == null || !listBox.hasSize) return;
+    final viewportCenterY =
+        listBox.localToGlobal(Offset.zero).dy + listBox.size.height / 2;
+
+    double bestDistance = double.infinity;
+    int? bestIndex;
+    double bestTop = 0;
+    double bestHeight = 0;
+
+    for (final entry in _chunkKeys.entries) {
+      final ctx = entry.value.currentContext;
+      if (ctx == null) continue;
+      final box = ctx.findRenderObject() as RenderBox?;
+      if (box == null || !box.hasSize) continue;
+      final top = box.localToGlobal(Offset.zero).dy;
+      final center = top + box.size.height / 2;
+      final distance = (center - viewportCenterY).abs();
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestIndex = entry.key;
+        bestTop = top;
+        bestHeight = box.size.height;
+      }
+    }
+
+    if (bestIndex == null || bestHeight <= 0) return;
+    final fraction = ((viewportCenterY - bestTop) / bestHeight)
+        .clamp(0.0, 1.0)
+        .toDouble();
+    _pendingAnchor = _ChunkAnchor(index: bestIndex, fraction: fraction);
+  }
+
+  void _restoreChunkAnchor() {
+    if (!_scrollController.hasClients) return;
+    final anchor = _pendingAnchor;
+    if (anchor == null) return;
+
+    final listBox =
+        _listViewKey.currentContext?.findRenderObject() as RenderBox?;
+    final itemBox =
+        _chunkKeys[anchor.index]?.currentContext?.findRenderObject()
+            as RenderBox?;
+    if (listBox == null ||
+        itemBox == null ||
+        !listBox.hasSize ||
+        !itemBox.hasSize) {
+      if (_resizeRestoreAttempts < 4) {
+        _resizeRestoreAttempts++;
+        _resizeTimer?.cancel();
+        _resizeTimer = Timer(const Duration(milliseconds: 120), () {
+          _restoreChunkAnchor();
+        });
+      }
+      return;
+    }
+
+    final viewportCenterY =
+        listBox.localToGlobal(Offset.zero).dy + listBox.size.height / 2;
+    final itemTop = itemBox.localToGlobal(Offset.zero).dy;
+    final itemHeight = itemBox.size.height;
+    final targetY = itemTop + itemHeight * anchor.fraction;
+    final delta = targetY - viewportCenterY;
+    if (delta.abs() < 0.5) return;
+    final position = _scrollController.position;
+    final next = (position.pixels + delta).clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
+    if ((next - position.pixels).abs() < 0.5) return;
+    _isRestoring = true;
+    _scrollController.jumpTo(next);
+    _isRestoring = false;
+  }
+
   @override
   void dispose() {
+    _flushPendingProgressSave();
+    _restoreTimer?.cancel();
+    _resizeTimer?.cancel();
     _articleSub?.close();
     _fullTextSub?.close();
+    _scrollController.removeListener(_handleScroll);
     _scrollController.dispose();
     _quickMenuTimer?.cancel();
     ContextMenuController.removeAny();
@@ -179,6 +534,13 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
                     article.contentHtml ??
                     '')
                 .trim();
+        final contentHash = ContentHash.compute(html);
+        _syncProgressForContent(contentHash);
+        final isChunked = html.length >= _chunkThreshold;
+        _handleViewportSizeChange(
+          MediaQuery.sizeOf(context),
+          isChunked: isChunked,
+        );
         final title = article.title?.trim().isNotEmpty == true
             ? article.title!
             : l10n.reader;
@@ -289,8 +651,8 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
     ReaderSettings settings,
     Widget inlineHeader,
   ) {
-    const chunkThreshold = 50000;
-    if (html.length < chunkThreshold) {
+    final cacheManager = ref.read(cacheManagerProvider);
+    if (html.length < _chunkThreshold) {
       return SelectionArea(
         key: _selectionAreaKey,
         onSelectionChanged: _handleSelectionChanged,
@@ -318,10 +680,11 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
                       HtmlWidget(
                         html,
                         baseUrl: Uri.tryParse(article.link),
+                        factoryBuilder: () =>
+                            _ReaderWidgetFactory(cacheManager),
                         renderMode: RenderMode.column,
                         buildAsync: true,
-                        onLoadingBuilder: (context, element, loadingProgress) =>
-                            const SizedBox.shrink(),
+                        onLoadingBuilder: _buildImageLoadingPlaceholder,
                         textStyle: TextStyle(
                           fontSize: settings.fontSize,
                           height: settings.lineHeight,
@@ -353,7 +716,9 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
           ),
           child: _wrapScrollable(
             child: ListView.builder(
+              key: _listViewKey,
               controller: _scrollController,
+              cacheExtent: 1200,
               padding: EdgeInsets.fromLTRB(
                 settings.horizontalPadding,
                 24,
@@ -362,21 +727,27 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
               ),
               itemCount: chunks.length + 1,
               itemBuilder: (context, index) {
-                if (index == 0) return inlineHeader;
-                return HtmlWidget(
-                  chunks[index - 1],
-                  baseUrl: Uri.tryParse(article.link),
-                  renderMode: RenderMode.column,
-                  buildAsync: true,
-                  onLoadingBuilder: (context, element, loadingProgress) =>
-                      const SizedBox.shrink(),
-                  textStyle: TextStyle(
-                    fontSize: settings.fontSize,
-                    height: settings.lineHeight,
-                    color: Theme.of(context).colorScheme.onSurface,
+                final key = _chunkKeys.putIfAbsent(index, () => GlobalKey());
+                if (index == 0) {
+                  return KeyedSubtree(key: key, child: inlineHeader);
+                }
+                return KeyedSubtree(
+                  key: key,
+                  child: HtmlWidget(
+                    chunks[index - 1],
+                    baseUrl: Uri.tryParse(article.link),
+                    factoryBuilder: () => _ReaderWidgetFactory(cacheManager),
+                    renderMode: RenderMode.column,
+                    buildAsync: true,
+                    onLoadingBuilder: _buildImageLoadingPlaceholder,
+                    textStyle: TextStyle(
+                      fontSize: settings.fontSize,
+                      height: settings.lineHeight,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                    onTapUrl: _onTapUrl,
+                    onTapImage: _onTapImage,
                   ),
-                  onTapUrl: _onTapUrl,
-                  onTapImage: _onTapImage,
                 );
               },
             ),
@@ -769,6 +1140,21 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
     );
   }
 
+  Widget? _buildImageLoadingPlaceholder(
+    BuildContext context,
+    dom.Element element,
+    double? loadingProgress,
+  ) {
+    if (element.localName != 'img') {
+      return null;
+    }
+    return _ImagePlaceholder.fromElement(
+      context: context,
+      element: element,
+      loadingProgress: loadingProgress,
+    );
+  }
+
   List<String> _splitHtmlIntoChunks(String html, {int chunkSize = 20000}) {
     final chunks = <String>[];
     int start = 0;
@@ -973,4 +1359,188 @@ class _QuickAction {
   final IconData icon;
   final String label;
   final VoidCallback onPressed;
+}
+
+class _ReaderWidgetFactory extends WidgetFactory {
+  _ReaderWidgetFactory(this._cacheManager);
+
+  final BaseCacheManager _cacheManager;
+
+  @override
+  BaseCacheManager? get cacheManager => _cacheManager;
+}
+
+class _ChunkAnchor {
+  const _ChunkAnchor({required this.index, required this.fraction});
+
+  final int index;
+  final double fraction;
+}
+
+class _ImagePlaceholder extends StatelessWidget {
+  const _ImagePlaceholder({
+    required this.widthPx,
+    required this.heightPx,
+    required this.widthPercent,
+    required this.heightPercent,
+    required this.loadingProgress,
+  });
+
+  factory _ImagePlaceholder.fromElement({
+    required BuildContext context,
+    required dom.Element element,
+    required double? loadingProgress,
+  }) {
+    final spec = _parseImageSizeSpec(element);
+    return _ImagePlaceholder(
+      widthPx: spec.widthPx,
+      heightPx: spec.heightPx,
+      widthPercent: spec.widthPercent,
+      heightPercent: spec.heightPercent,
+      loadingProgress: loadingProgress,
+    );
+  }
+
+  static const double _fallbackAspectRatio = 4 / 3;
+
+  final double? widthPx;
+  final double? heightPx;
+  final double? widthPercent;
+  final double? heightPercent;
+  final double? loadingProgress;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final base = DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: loadingProgress == null
+          ? null
+          : Align(
+              alignment: Alignment.bottomCenter,
+              child: LinearProgressIndicator(
+                value: loadingProgress,
+                minHeight: 3,
+                backgroundColor: theme.colorScheme.surfaceContainer,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final resolvedWidth = _resolveLength(
+          widthPx,
+          widthPercent,
+          constraints.maxWidth,
+        );
+        final resolvedHeight = _resolveLength(
+          heightPx,
+          heightPercent,
+          constraints.maxHeight,
+        );
+
+        if (resolvedWidth != null && resolvedHeight != null) {
+          return SizedBox(
+            width: resolvedWidth,
+            height: resolvedHeight,
+            child: base,
+          );
+        }
+
+        if (resolvedWidth != null) {
+          return SizedBox(
+            width: resolvedWidth,
+            height: resolvedWidth / _fallbackAspectRatio,
+            child: base,
+          );
+        }
+
+        if (resolvedHeight != null) {
+          return SizedBox(height: resolvedHeight, child: base);
+        }
+
+        if (constraints.hasBoundedWidth && constraints.maxWidth.isFinite) {
+          return SizedBox(
+            width: constraints.maxWidth,
+            height: constraints.maxWidth / _fallbackAspectRatio,
+            child: base,
+          );
+        }
+
+        return SizedBox(height: 180, child: base);
+      },
+    );
+  }
+
+  static double? _resolveLength(double? px, double? percent, double max) {
+    if (px != null && px > 0) return px;
+    if (percent != null && percent > 0 && max.isFinite && max > 0) {
+      return max * percent / 100;
+    }
+    return null;
+  }
+}
+
+class _ImageSizeSpec {
+  const _ImageSizeSpec({
+    this.widthPx,
+    this.heightPx,
+    this.widthPercent,
+    this.heightPercent,
+  });
+
+  final double? widthPx;
+  final double? heightPx;
+  final double? widthPercent;
+  final double? heightPercent;
+}
+
+_ImageSizeSpec _parseImageSizeSpec(dom.Element element) {
+  final attrs = element.attributes;
+  final style = attrs['style'] ?? '';
+
+  final styleWidth = _parseCssLength(_extractStyleValue(style, 'width'));
+  final styleHeight = _parseCssLength(_extractStyleValue(style, 'height'));
+  final attrWidth = _parseCssLength(attrs['width']);
+  final attrHeight = _parseCssLength(attrs['height']);
+  final dataWidth = _parseCssLength(attrs['data-width']);
+  final dataHeight = _parseCssLength(attrs['data-height']);
+
+  return _ImageSizeSpec(
+    widthPx: styleWidth.px ?? attrWidth.px ?? dataWidth.px,
+    heightPx: styleHeight.px ?? attrHeight.px ?? dataHeight.px,
+    widthPercent: styleWidth.percent ?? attrWidth.percent ?? dataWidth.percent,
+    heightPercent:
+        styleHeight.percent ?? attrHeight.percent ?? dataHeight.percent,
+  );
+}
+
+_CssLength _parseCssLength(String? raw) {
+  if (raw == null) return const _CssLength();
+  final value = raw.trim().toLowerCase();
+  if (value.isEmpty) return const _CssLength();
+  if (value.endsWith('%')) {
+    final number = double.tryParse(value.replaceAll('%', '').trim());
+    return _CssLength(percent: number);
+  }
+  final cleaned = value.replaceAll('px', '').trim();
+  return _CssLength(px: double.tryParse(cleaned));
+}
+
+String? _extractStyleValue(String style, String key) {
+  if (style.isEmpty) return null;
+  final regex = RegExp('$key\\s*:\\s*([^;]+)', caseSensitive: false);
+  final match = regex.firstMatch(style);
+  return match?.group(1)?.trim();
+}
+
+class _CssLength {
+  const _CssLength({this.px, this.percent});
+
+  final double? px;
+  final double? percent;
 }

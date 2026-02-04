@@ -503,6 +503,7 @@ class HomeScreen extends ConsumerWidget {
                               child: Text(l10n.selectAnArticle),
                             )
                           : ReaderView(
+                              key: ValueKey('home-reader-$selectedArticleId'),
                               articleId: selectedArticleId!,
                               embedded: true,
                             ),
@@ -566,7 +567,11 @@ class HomeScreen extends ConsumerWidget {
       }
       return Container(
         color: Theme.of(context).colorScheme.surfaceContainerLowest,
-        child: ReaderView(articleId: selectedArticleId!, embedded: embedded),
+        child: ReaderView(
+          key: ValueKey('home-reader-$selectedArticleId'),
+          articleId: selectedArticleId!,
+          embedded: embedded,
+        ),
       );
     }
 
