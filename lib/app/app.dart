@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'router.dart';
 import '../theme/app_theme.dart';
 import '../providers/app_settings_providers.dart';
+import '../utils/macos_locale_bridge.dart';
 import '../utils/platform.dart';
 import '../widgets/desktop_title_bar.dart';
 import '../widgets/sidebar.dart';
@@ -74,6 +75,7 @@ class App extends ConsumerWidget {
     final localeTag = appSettings?.localeTag;
     ref.watch(autoRefreshControllerProvider);
     unawaited(ref.watch(notificationServiceProvider).init().catchError((_) {}));
+    unawaited(MacOSLocaleBridge.setPreferredLanguage(localeTag));
 
     return DynamicColorBuilder(
       builder: (lightDynamic, darkDynamic) {

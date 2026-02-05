@@ -15,6 +15,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notFound => 'Not found';
 
   @override
+  String get openFailedGeneral =>
+      'Couldn\'t open this location. Check permissions and try again.';
+
+  @override
+  String get macosMenuLanguageRestartHint =>
+      'Menu bar language may require restarting the app to fully apply.';
+
+  @override
+  String pathNotFound(Object path) {
+    return 'Path does not exist: $path';
+  }
+
+  @override
   String get settings => 'Settings';
 
   @override

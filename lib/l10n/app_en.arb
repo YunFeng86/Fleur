@@ -8,6 +8,21 @@
   "@notFound": {
     "description": "notFound"
   },
+  "openFailedGeneral": "Couldn't open this location. Check permissions and try again.",
+  "@openFailedGeneral": {
+    "description": "openFailedGeneral"
+  },
+  "macosMenuLanguageRestartHint": "Menu bar language may require restarting the app to fully apply.",
+  "@macosMenuLanguageRestartHint": {
+    "description": "macosMenuLanguageRestartHint"
+  },
+  "pathNotFound": "Path does not exist: {path}",
+  "@pathNotFound": {
+    "description": "pathNotFound",
+    "placeholders": {
+      "path": {}
+    }
+  },
   "settings": "Settings",
   "@settings": {
     "description": "settings"

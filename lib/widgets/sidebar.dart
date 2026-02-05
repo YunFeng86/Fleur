@@ -971,8 +971,19 @@ class _SidebarState extends ConsumerState<Sidebar> {
       label: 'OPML',
       extensions: ['opml', 'xml'],
       mimeTypes: ['text/xml', 'application/xml'],
+      uniformTypeIdentifiers: ['public.xml'],
     );
-    final file = await openFile(acceptedTypeGroups: [group]);
+    XFile? file;
+    try {
+      file = await openFile(acceptedTypeGroups: [group]);
+    } catch (e) {
+      if (!context.mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.errorMessage(e.toString()))));
+      return;
+    }
     if (file == null) return;
     final xml = await file.readAsString();
     List<OpmlEntry> entries;
@@ -1016,7 +1027,26 @@ class _SidebarState extends ConsumerState<Sidebar> {
   }
 
   Future<void> _exportOpml(BuildContext context, WidgetRef ref) async {
-    final loc = await getSaveLocation(suggestedName: 'subscriptions.opml');
+    const group = XTypeGroup(
+      label: 'OPML',
+      extensions: ['opml', 'xml'],
+      mimeTypes: ['text/xml', 'application/xml'],
+      uniformTypeIdentifiers: ['public.xml'],
+    );
+    FileSaveLocation? loc;
+    try {
+      loc = await getSaveLocation(
+        suggestedName: 'subscriptions.opml',
+        acceptedTypeGroups: [group],
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.errorMessage(e.toString()))));
+      return;
+    }
     if (loc == null) return;
     final feeds = await ref.read(feedRepositoryProvider).getAll();
     final cats = await ref.read(categoryRepositoryProvider).getAll();
@@ -1029,7 +1059,16 @@ class _SidebarState extends ConsumerState<Sidebar> {
       mimeType: 'text/xml',
       name: 'subscriptions.opml',
     );
-    await xfile.saveTo(loc.path);
+    try {
+      await xfile.saveTo(loc.path);
+    } catch (e) {
+      if (!context.mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.errorMessage(e.toString()))));
+      return;
+    }
     if (!context.mounted) return;
     final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(

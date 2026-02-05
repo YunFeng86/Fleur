@@ -111,6 +111,24 @@ abstract class AppLocalizations {
   /// **'Not found'**
   String get notFound;
 
+  /// openFailedGeneral
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open this location. Check permissions and try again.'**
+  String get openFailedGeneral;
+
+  /// macosMenuLanguageRestartHint
+  ///
+  /// In en, this message translates to:
+  /// **'Menu bar language may require restarting the app to fully apply.'**
+  String get macosMenuLanguageRestartHint;
+
+  /// pathNotFound
+  ///
+  /// In en, this message translates to:
+  /// **'Path does not exist: {path}'**
+  String pathNotFound(Object path);
+
   /// settings
   ///
   /// In en, this message translates to:

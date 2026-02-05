@@ -94,4 +94,141 @@ void main() {
     // Uses default selection (index 0 -> App Preferences)
     expect(find.text('System language'), findsOneWidget);
   });
+
+  testWidgets('AppLocalizations uses strict pathNotFound message in English', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Builder(
+          builder: (context) {
+            final l10n = AppLocalizations.of(context)!;
+            expect(
+              l10n.pathNotFound('/tmp/example'),
+              'Path does not exist: /tmp/example',
+            );
+            return const SizedBox.shrink();
+          },
+        ),
+      ),
+    );
+  });
+
+  testWidgets('AppLocalizations uses strict pathNotFound message in Chinese', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('zh'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Builder(
+          builder: (context) {
+            final l10n = AppLocalizations.of(context)!;
+            expect(l10n.pathNotFound('/tmp/example'), '路径不存在：/tmp/example');
+            return const SizedBox.shrink();
+          },
+        ),
+      ),
+    );
+  });
+
+  testWidgets(
+    'AppLocalizations uses strict pathNotFound message in Chinese Traditional',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale.fromSubtags(
+            languageCode: 'zh',
+            scriptCode: 'Hant',
+          ),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Builder(
+            builder: (context) {
+              final l10n = AppLocalizations.of(context)!;
+              expect(l10n.pathNotFound('/tmp/example'), '路徑不存在：/tmp/example');
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+    },
+  );
+
+  testWidgets('AppLocalizations uses strict openFailedGeneral in English', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Builder(
+          builder: (context) {
+            final l10n = AppLocalizations.of(context)!;
+            expect(
+              l10n.openFailedGeneral,
+              'Couldn\'t open this location. Check permissions and try again.',
+            );
+            expect(
+              l10n.macosMenuLanguageRestartHint,
+              'Menu bar language may require restarting the app to fully apply.',
+            );
+            return const SizedBox.shrink();
+          },
+        ),
+      ),
+    );
+  });
+
+  testWidgets('AppLocalizations uses strict openFailedGeneral in Chinese', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('zh'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Builder(
+          builder: (context) {
+            final l10n = AppLocalizations.of(context)!;
+            expect(l10n.openFailedGeneral, '无法打开该位置，请检查权限或稍后重试。');
+            expect(l10n.macosMenuLanguageRestartHint, '菜单栏语言可能需要重启应用才能完全生效。');
+            return const SizedBox.shrink();
+          },
+        ),
+      ),
+    );
+  });
+
+  testWidgets(
+    'AppLocalizations uses strict openFailedGeneral in Chinese Traditional',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale.fromSubtags(
+            languageCode: 'zh',
+            scriptCode: 'Hant',
+          ),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Builder(
+            builder: (context) {
+              final l10n = AppLocalizations.of(context)!;
+              expect(l10n.openFailedGeneral, '無法打開該位置，請檢查權限或稍後重試。');
+              expect(
+                l10n.macosMenuLanguageRestartHint,
+                '選單列語言可能需要重新啟動應用程式才能完全生效。',
+              );
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+    },
+  );
 }

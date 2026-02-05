@@ -411,9 +411,20 @@ class _AppPreferencesTab extends ConsumerWidget {
                           child: Text(l10n.chineseTraditional),
                         ),
                       ],
-                      onChanged: (v) => unawaited(
-                        ref.read(appSettingsProvider.notifier).setLocaleTag(v),
-                      ),
+                      onChanged: (v) {
+                        unawaited(() async {
+                          await ref
+                              .read(appSettingsProvider.notifier)
+                              .setLocaleTag(v);
+                          if (!context.mounted) return;
+                          if (!Platform.isMacOS) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(l10n.macosMenuLanguageRestartHint),
+                            ),
+                          );
+                        }());
+                      },
                     ),
                   ),
                 ),
@@ -777,26 +788,102 @@ class _AboutTabState extends State<_AboutTab> {
   Future<void> _openFolder(String path) async {
     final trimmed = path.trim();
     if (trimmed.isEmpty) return;
+    String? resolvedPath;
     try {
+      final entityType = await FileSystemEntity.type(trimmed);
+      if (entityType == FileSystemEntityType.notFound) {
+        throw FileSystemException('Path does not exist', trimmed);
+      }
+      final isFile = entityType == FileSystemEntityType.file;
+      resolvedPath = isFile ? File(trimmed).parent.path : trimmed;
+      String normalizeWindowsPath(String input) {
+        var normalized = input.trim();
+        if (normalized.length > 1 &&
+            normalized.startsWith('"') &&
+            normalized.endsWith('"')) {
+          normalized = normalized.substring(1, normalized.length - 1);
+        }
+        return normalized.replaceAll('/', '\\');
+      }
+
       if (Platform.isWindows) {
-        await Process.start('explorer', [trimmed]);
+        final targetPath = normalizeWindowsPath(
+          isFile ? trimmed : resolvedPath,
+        );
+        final args = isFile ? ['/select,$targetPath'] : [targetPath];
+        final result = await Process.run('explorer', args);
+        if (result.exitCode != 0) {
+          final stderrText = result.stderr is String
+              ? result.stderr as String
+              : '${result.stderr}';
+          throw ProcessException('explorer', args, stderrText, result.exitCode);
+        }
         return;
       }
       if (Platform.isMacOS) {
-        await Process.start('open', [trimmed]);
+        final launched = await launchUrl(
+          Uri.file(resolvedPath),
+          mode: LaunchMode.externalApplication,
+        );
+        if (launched) return;
+        final args = isFile ? ['-R', trimmed] : [resolvedPath];
+        final result = await Process.run('open', args);
+        if (result.exitCode != 0) {
+          final stderrText = result.stderr is String
+              ? result.stderr as String
+              : '${result.stderr}';
+          throw ProcessException('open', args, stderrText, result.exitCode);
+        }
         return;
       }
       if (Platform.isLinux) {
-        await Process.start('xdg-open', [trimmed]);
+        final launched = await launchUrl(
+          Uri.file(resolvedPath),
+          mode: LaunchMode.externalApplication,
+        );
+        if (launched) return;
+        final result = await Process.run('xdg-open', [resolvedPath]);
+        if (result.exitCode != 0) {
+          final stderrText = result.stderr is String
+              ? result.stderr as String
+              : '${result.stderr}';
+          throw ProcessException(
+            'xdg-open',
+            [resolvedPath],
+            stderrText,
+            result.exitCode,
+          );
+        }
         return;
       }
-      await launchUrl(Uri.file(trimmed), mode: LaunchMode.externalApplication);
+      final launched = await launchUrl(
+        Uri.file(resolvedPath),
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched) {
+        throw StateError('launchUrl failed for $resolvedPath');
+      }
     } catch (e) {
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
+      String message;
+      if (e is FileSystemException) {
+        final isNotFound =
+            (e.osError?.errorCode == 2) || e.message == 'Path does not exist';
+        if (isNotFound) {
+          final missingPath = e.path ?? trimmed;
+          message = l10n.errorMessage(l10n.pathNotFound(missingPath));
+        } else {
+          message = l10n.errorMessage(l10n.openFailedGeneral);
+        }
+      } else {
+        // In sandboxed environments, open/launch failures are frequently caused
+        // by permission issues rather than the path being missing.
+        message = l10n.errorMessage(l10n.openFailedGeneral);
+      }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(l10n.errorMessage(e.toString()))));
+      ).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 

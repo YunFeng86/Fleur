@@ -8,6 +8,21 @@
   "@notFound": {
     "description": "notFound"
   },
+  "openFailedGeneral": "无法打开该位置，请检查权限或稍后重试。",
+  "@openFailedGeneral": {
+    "description": "openFailedGeneral"
+  },
+  "macosMenuLanguageRestartHint": "菜单栏语言可能需要重启应用才能完全生效。",
+  "@macosMenuLanguageRestartHint": {
+    "description": "macosMenuLanguageRestartHint"
+  },
+  "pathNotFound": "路径不存在：{path}",
+  "@pathNotFound": {
+    "description": "pathNotFound",
+    "placeholders": {
+      "path": {}
+    }
+  },
   "settings": "设置",
   "@settings": {
     "description": "settings"

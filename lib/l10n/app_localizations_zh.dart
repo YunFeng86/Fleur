@@ -15,6 +15,17 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notFound => '未找到';
 
   @override
+  String get openFailedGeneral => '无法打开该位置，请检查权限或稍后重试。';
+
+  @override
+  String get macosMenuLanguageRestartHint => '菜单栏语言可能需要重启应用才能完全生效。';
+
+  @override
+  String pathNotFound(Object path) {
+    return '路径不存在：$path';
+  }
+
+  @override
   String get settings => '设置';
 
   @override
@@ -477,6 +488,17 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get notFound => '未找到';
+
+  @override
+  String get openFailedGeneral => '無法打開該位置，請檢查權限或稍後重試。';
+
+  @override
+  String get macosMenuLanguageRestartHint => '選單列語言可能需要重新啟動應用程式才能完全生效。';
+
+  @override
+  String pathNotFound(Object path) {
+    return '路徑不存在：$path';
+  }
 
   @override
   String get settings => '設定';

@@ -8,6 +8,21 @@
   "@notFound": {
     "description": "notFound"
   },
+  "openFailedGeneral": "無法打開該位置，請檢查權限或稍後重試。",
+  "@openFailedGeneral": {
+    "description": "openFailedGeneral"
+  },
+  "macosMenuLanguageRestartHint": "選單列語言可能需要重新啟動應用程式才能完全生效。",
+  "@macosMenuLanguageRestartHint": {
+    "description": "macosMenuLanguageRestartHint"
+  },
+  "pathNotFound": "路徑不存在：{path}",
+  "@pathNotFound": {
+    "description": "pathNotFound",
+    "placeholders": {
+      "path": {}
+    }
+  },
   "settings": "設定",
   "@settings": {
     "description": "settings"
