@@ -40,22 +40,14 @@ void main() {
     test('getAppDataDirectory 应返回包含 fleur 的目录', () async {
       final dir = await PathUtils.getAppDataDirectory();
 
-      expect(
-        dir.path.contains('fleur'),
-        isTrue,
-        reason: '应用数据目录应包含 fleur 文件夹',
-      );
+      expect(dir.path.contains('fleur'), isTrue, reason: '应用数据目录应包含 fleur 文件夹');
     });
 
     test('getAppDataPath 应返回字符串路径', () async {
       final path = await PathUtils.getAppDataPath();
 
       expect(path, isA<String>(), reason: '应返回字符串类型的路径');
-      expect(
-        path.contains('fleur'),
-        isTrue,
-        reason: '路径应包含 fleur 文件夹',
-      );
+      expect(path.contains('fleur'), isTrue, reason: '路径应包含 fleur 文件夹');
     });
 
     test('getAppDataDirectory 应创建目录如果不存在', () async {
