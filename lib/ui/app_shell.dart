@@ -57,9 +57,28 @@ class AppShell extends StatelessWidget {
         hasGlobalNav: true,
         child: Column(
           children: [
-            Expanded(child: child),
+            // When we render our own bottom nav outside the page Scaffold, the
+            // default MediaQuery bottom padding (safe area) can create an extra
+            // blank region above the nav bar on iOS. Remove it so the page body
+            // uses the full height that's already constrained by this Column.
+            Expanded(
+              child: MediaQuery.removePadding(
+                context: context,
+                removeBottom: true,
+                child: child,
+              ),
+            ),
             const Divider(height: 1),
-            SafeArea(top: false, child: GlobalNavBar(currentUri: currentUri)),
+            // NavigationBar includes its own SafeArea internally. When used
+            // outside Scaffold.bottomNavigationBar, we must remove the *top*
+            // system padding from MediaQuery, otherwise NavigationBar's internal
+            // SafeArea will add status-bar padding and create a large blank
+            // region above the icons/labels (notably on iOS).
+            MediaQuery.removePadding(
+              context: context,
+              removeTop: true,
+              child: GlobalNavBar(currentUri: currentUri),
+            ),
           ],
         ),
       ),
