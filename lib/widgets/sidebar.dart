@@ -149,17 +149,6 @@ class _SidebarState extends ConsumerState<Sidebar> {
                     decoration: InputDecoration(
                       hintText: l10n.search,
                       prefixIcon: const Icon(Icons.search, size: 20),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                      isDense: true,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: Theme.of(context)
-                          .colorScheme
-                          .surfaceContainerHighest
-                          .withValues(alpha: 0.5),
                     ),
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),

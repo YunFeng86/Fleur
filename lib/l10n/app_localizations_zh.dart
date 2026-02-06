@@ -494,6 +494,18 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get notificationNewArticlesChannelDescription => '同步时发现新文章的通知';
+
+  @override
+  String get windowMinimize => '最小化';
+
+  @override
+  String get windowMaximize => '最大化';
+
+  @override
+  String get windowRestore => '还原';
+
+  @override
+  String get windowClose => '关闭';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -986,4 +998,16 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get notificationNewArticlesChannelDescription => '同步時發現新文章的通知';
+
+  @override
+  String get windowMinimize => '最小化';
+
+  @override
+  String get windowMaximize => '最大化';
+
+  @override
+  String get windowRestore => '還原';
+
+  @override
+  String get windowClose => '關閉';
 }

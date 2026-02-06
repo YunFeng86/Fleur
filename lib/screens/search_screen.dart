@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import '../providers/app_settings_providers.dart';
 import '../providers/query_providers.dart';
 import '../providers/unread_providers.dart';
-import '../ui/global_nav.dart';
 import '../ui/layout.dart';
 import '../utils/platform.dart';
 import '../widgets/article_list.dart';
@@ -73,9 +72,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final totalWidth = MediaQuery.sizeOf(context).width;
-    final useCompactTopBar =
-        !isDesktop || globalNavModeForWidth(totalWidth) == GlobalNavMode.bottom;
+    // Desktop has a top title bar provided by App chrome; avoid in-page AppBar.
+    final useCompactTopBar = !isDesktop;
 
     if (!_initialized) {
       final loading = Container(
@@ -129,7 +127,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         decoration: InputDecoration(
                           hintText: l10n.search,
                           prefixIcon: const Icon(Icons.search),
-                          filled: true,
                           suffixIcon: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -169,7 +166,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       decoration: InputDecoration(
                         hintText: l10n.search,
                         prefixIcon: const Icon(Icons.search),
-                        filled: true,
                         suffixIcon: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_reader/l10n/app_localizations.dart';
@@ -9,7 +10,6 @@ import '../models/article.dart';
 import '../models/feed.dart';
 import '../providers/app_settings_providers.dart';
 import '../providers/query_providers.dart';
-import '../ui/global_nav.dart';
 import '../ui/settings/subscriptions/subscription_actions.dart';
 import '../utils/platform.dart';
 import '../utils/timeago_locale.dart';
@@ -88,9 +88,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final totalWidth = MediaQuery.sizeOf(context).width;
-    final useCompactTopBar =
-        !isDesktop || globalNavModeForWidth(totalWidth) == GlobalNavMode.bottom;
+    // On desktop we already have a top title bar (DesktopTitleBar) from App
+    // chrome, so don't add a second (compact) app bar inside the page.
+    final useCompactTopBar = !isDesktop;
 
     final settings = ref.watch(appSettingsProvider).valueOrNull;
     final order = _normalizeDashboardOrder(settings?.dashboardModuleOrder);
@@ -110,23 +110,32 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         final width = constraints.maxWidth;
         final wide = width >= 900;
         final gridExtent = wide ? 440.0 : 420.0;
+        final centerTitle = switch (defaultTargetPlatform) {
+          TargetPlatform.iOS || TargetPlatform.macOS => true,
+          _ => false,
+        };
 
-        final headerActions = Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              tooltip: _editing ? l10n.done : l10n.edit,
-              onPressed: _toggleEdit,
-              icon: Icon(_editing ? Icons.check : Icons.edit),
-            ),
-            IconButton(
-              tooltip: l10n.add,
-              onPressed: () =>
-                  _showManageModules(order: order, hidden: hidden, l10n: l10n),
-              icon: const Icon(Icons.add),
-            ),
-          ],
-        );
+        Widget buildHeaderActions() {
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                tooltip: _editing ? l10n.done : l10n.edit,
+                onPressed: _toggleEdit,
+                icon: Icon(_editing ? Icons.check : Icons.edit),
+              ),
+              IconButton(
+                tooltip: l10n.add,
+                onPressed: () => _showManageModules(
+                  order: order,
+                  hidden: hidden,
+                  l10n: l10n,
+                ),
+                icon: const Icon(Icons.add),
+              ),
+            ],
+          );
+        }
 
         Widget grid;
         if (visible.isEmpty) {
@@ -251,21 +260,49 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (!useCompactTopBar) ...[
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        l10n.dashboard,
-                        style: theme.textTheme.headlineSmall,
+                // Desktop already shows the section title in DesktopTitleBar.
+                // Keep only actions here to avoid a double title bar effect.
+                if (isDesktop)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: buildHeaderActions(),
+                  )
+                else if (centerTitle)
+                  Row(
+                    children: [
+                      ExcludeSemantics(
+                        child: IgnorePointer(
+                          child: Opacity(
+                            opacity: 0,
+                            child: buildHeaderActions(),
+                          ),
+                        ),
                       ),
-                    ),
-                    headerActions,
-                  ],
-                ),
-                const SizedBox(height: 12),
-              ],
-              if (useCompactTopBar) ...[
-                Row(children: [const Spacer(), headerActions]),
+                      Expanded(
+                        child: Center(
+                          child: Text(
+                            l10n.dashboard,
+                            style: theme.textTheme.headlineSmall,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                      buildHeaderActions(),
+                    ],
+                  )
+                else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          l10n.dashboard,
+                          style: theme.textTheme.headlineSmall,
+                        ),
+                      ),
+                      buildHeaderActions(),
+                    ],
+                  ),
                 const SizedBox(height: 12),
               ],
               grid,

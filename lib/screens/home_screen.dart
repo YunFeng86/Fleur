@@ -14,7 +14,6 @@ import '../widgets/article_list.dart';
 import '../widgets/reader_view.dart';
 import '../widgets/sidebar.dart';
 import '../utils/platform.dart';
-import '../ui/global_nav.dart';
 import '../ui/layout.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -25,9 +24,8 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final totalWidth = MediaQuery.sizeOf(context).width;
-    final useCompactTopBar =
-        !isDesktop || globalNavModeForWidth(totalWidth) == GlobalNavMode.bottom;
+    // Desktop has a top title bar provided by App chrome; avoid in-page AppBar.
+    final useCompactTopBar = !isDesktop;
 
     Future<void> refreshAll() async {
       Object? err;

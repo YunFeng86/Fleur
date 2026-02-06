@@ -673,5 +673,21 @@
   "notificationNewArticlesChannelDescription": "Notifications for new articles found during sync",
   "@notificationNewArticlesChannelDescription": {
     "description": "Android notification channel description for new articles"
+  },
+  "windowMinimize": "Minimize",
+  "@windowMinimize": {
+    "description": "Tooltip for the window minimize button on desktop"
+  },
+  "windowMaximize": "Maximize",
+  "@windowMaximize": {
+    "description": "Tooltip for the window maximize button on desktop"
+  },
+  "windowRestore": "Restore",
+  "@windowRestore": {
+    "description": "Tooltip for the window restore button on desktop"
+  },
+  "windowClose": "Close",
+  "@windowClose": {
+    "description": "Tooltip for the window close button on desktop"
   }
 }

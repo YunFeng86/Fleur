@@ -674,5 +674,21 @@
   "notificationNewArticlesChannelDescription": "同步時發現新文章的通知",
   "@notificationNewArticlesChannelDescription": {
     "description": "Android 新文章通知頻道描述"
+  },
+  "windowMinimize": "最小化",
+  "@windowMinimize": {
+    "description": "桌面端視窗「最小化」按鈕提示"
+  },
+  "windowMaximize": "最大化",
+  "@windowMaximize": {
+    "description": "桌面端視窗「最大化」按鈕提示"
+  },
+  "windowRestore": "還原",
+  "@windowRestore": {
+    "description": "桌面端視窗「還原」按鈕提示"
+  },
+  "windowClose": "關閉",
+  "@windowClose": {
+    "description": "桌面端視窗「關閉」按鈕提示"
   }
 }

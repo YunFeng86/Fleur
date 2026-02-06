@@ -1,8 +1,11 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
+import '../l10n/app_localizations.dart';
+import '../theme/app_theme.dart';
 import '../utils/platform.dart';
 
 class DesktopTitleBar extends StatefulWidget {
@@ -11,7 +14,7 @@ class DesktopTitleBar extends StatefulWidget {
     required this.title,
     this.leading,
     this.actions = const [],
-    this.height = 40,
+    this.height = AppTheme.desktopTitleBarHeight,
   });
 
   final String title;
@@ -58,6 +61,7 @@ class _DesktopTitleBarState extends State<DesktopTitleBar> with WindowListener {
 
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final centerTitle = defaultTargetPlatform == TargetPlatform.macOS;
 
     final titleStyle = theme.textTheme.titleSmall?.copyWith(
       color: cs.onSurface,
@@ -68,29 +72,78 @@ class _DesktopTitleBarState extends State<DesktopTitleBar> with WindowListener {
       color: cs.surface,
       child: SizedBox(
         height: widget.height,
-        child: Row(
-          children: [
-            if (isMacOS) const SizedBox(width: 72), // avoid traffic lights
-            if (widget.leading != null) widget.leading!,
-            Expanded(
-              child: DragToMoveArea(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      widget.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: titleStyle,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Keep the title truly centered in the *full* title bar width.
+            // A plain Row/Expanded centers relative to the remaining space
+            // after leading/actions, which looks visually off on macOS when
+            // traffic lights + actions are asymmetric.
+            final leftReserved =
+                (isMacOS ? 72.0 : 0.0) + (widget.leading == null ? 0.0 : 48.0);
+            final rightReserved =
+                (widget.actions.length * 48.0) + (isMacOS ? 0.0 : 46.0 * 3);
+            final sideReserved = centerTitle
+                ? (leftReserved > rightReserved ? leftReserved : rightReserved)
+                : 0.0;
+            final leftPadding = centerTitle
+                ? sideReserved + 12
+                : leftReserved + 12;
+            final rightPadding = centerTitle
+                ? sideReserved + 12
+                : rightReserved + 12;
+
+            return Stack(
+              alignment: Alignment.center,
+              children: [
+                // Center title + drag region (padded to avoid overlapping
+                // interactive controls on either side).
+                Positioned.fill(
+                  child: DragToMoveArea(
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        left: leftPadding,
+                        right: rightPadding,
+                      ),
+                      child: Align(
+                        alignment: centerTitle
+                            ? Alignment.center
+                            : Alignment.centerLeft,
+                        child: Text(
+                          widget.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: centerTitle ? TextAlign.center : null,
+                          style: titleStyle,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
-            ...widget.actions,
-            if (!isMacOS) _WindowButtons(isMaximized: _isMaximized),
-          ],
+                // Leading region (traffic lights safe area + optional button).
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isMacOS) const SizedBox(width: 72),
+                      if (widget.leading != null) widget.leading!,
+                    ],
+                  ),
+                ),
+                // Actions + window buttons on the right.
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ...widget.actions,
+                      if (!isMacOS) _WindowButtons(isMaximized: _isMaximized),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -106,6 +159,7 @@ class _WindowButtons extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     Widget btn({
       required IconData icon,
@@ -132,12 +186,12 @@ class _WindowButtons extends StatelessWidget {
       children: [
         btn(
           icon: Icons.remove,
-          tooltip: 'Minimize',
+          tooltip: l10n.windowMinimize,
           onPressed: () => windowManager.minimize(),
         ),
         btn(
           icon: isMaximized ? Icons.filter_none : Icons.crop_square,
-          tooltip: isMaximized ? 'Restore' : 'Maximize',
+          tooltip: isMaximized ? l10n.windowRestore : l10n.windowMaximize,
           onPressed: () async {
             final v = await windowManager.isMaximized();
             if (v) {
@@ -149,7 +203,7 @@ class _WindowButtons extends StatelessWidget {
         ),
         btn(
           icon: Icons.close,
-          tooltip: 'Close',
+          tooltip: l10n.windowClose,
           hover: Colors.red.withAlpha(38),
           onPressed: () => windowManager.close(),
         ),

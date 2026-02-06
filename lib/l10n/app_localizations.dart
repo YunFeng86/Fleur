@@ -1028,6 +1028,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Notifications for new articles found during sync'**
   String get notificationNewArticlesChannelDescription;
+
+  /// Tooltip for the window minimize button on desktop
+  ///
+  /// In en, this message translates to:
+  /// **'Minimize'**
+  String get windowMinimize;
+
+  /// Tooltip for the window maximize button on desktop
+  ///
+  /// In en, this message translates to:
+  /// **'Maximize'**
+  String get windowMaximize;
+
+  /// Tooltip for the window restore button on desktop
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get windowRestore;
+
+  /// Tooltip for the window close button on desktop
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get windowClose;
 }
 
 class _AppLocalizationsDelegate

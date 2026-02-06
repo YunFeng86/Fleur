@@ -180,9 +180,9 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
         final width = effectiveContentWidth(totalWidth);
         final uri = widget.router.routerDelegate.currentConfiguration.uri;
         final sectionTitle = _sectionTitleForUri(l10n, uri);
-        final useCompactTopBar =
-            globalNavModeForWidth(totalWidth) == GlobalNavMode.bottom;
-        final title = useCompactTopBar ? l10n.appTitle : sectionTitle;
+        // Desktop always has a top chrome (DesktopTitleBar), so avoid creating
+        // a second in-page "compact" app bar even when the window is narrow.
+        final title = sectionTitle;
         final isArticleRoute =
             uri.pathSegments.isNotEmpty && uri.pathSegments.first == 'article';
         final isFeedsSection = uri.pathSegments.isEmpty || isArticleRoute;
@@ -191,7 +191,6 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
             isArticleRoute && !desktopReaderEmbedded(mode);
         final sidebarVisible = ref.watch(sidebarVisibleProvider);
         final drawerEnabled =
-            !useCompactTopBar &&
             isFeedsSection &&
             sidebarVisible &&
             desktopSidebarInDrawer(mode) &&
@@ -246,7 +245,14 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
         return Scaffold(
           drawer: drawerEnabled
               ? Drawer(
-                  child: Sidebar(onSelectFeed: (_) {}, router: widget.router),
+                  child: Padding(
+                    // On macOS (hidden title bar), the drawer can overlap the
+                    // system traffic lights and our custom title bar.
+                    padding: EdgeInsets.only(
+                      top: isMacOS ? AppTheme.desktopTitleBarHeight : 0,
+                    ),
+                    child: Sidebar(onSelectFeed: (_) {}, router: widget.router),
+                  ),
                 )
               : null,
           body: Column(
@@ -255,7 +261,7 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
                 title: title,
                 leading: leading,
                 actions: [
-                  if (!useCompactTopBar && isFeedsSection) ...[
+                  if (isFeedsSection) ...[
                     IconButton(
                       tooltip: l10n.refreshAll,
                       onPressed: () async {

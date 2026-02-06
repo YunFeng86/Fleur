@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -11,20 +12,15 @@ class SubscriptionToolbar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final centerTitle = switch (defaultTargetPlatform) {
+      TargetPlatform.iOS || TargetPlatform.macOS => true,
+      _ => false,
+    };
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
+    Widget buildActions() {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Title
-          Text(
-            l10n.subscriptions,
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const Spacer(),
-
-          // Action Buttons
-          // Add Feed
           FilledButton.icon(
             onPressed: () {
               unawaited(SubscriptionActions.showAddFeedDialog(context, ref));
@@ -33,8 +29,6 @@ class SubscriptionToolbar extends ConsumerWidget {
             label: Text(l10n.addSubscription),
           ),
           const SizedBox(width: 8),
-
-          // Add Category
           IconButton(
             tooltip: l10n.newCategory,
             icon: const Icon(Icons.create_new_folder_outlined),
@@ -44,8 +38,6 @@ class SubscriptionToolbar extends ConsumerWidget {
               );
             },
           ),
-
-          // Refresh All
           IconButton(
             tooltip: l10n.refreshAll,
             icon: const Icon(Icons.refresh),
@@ -53,8 +45,6 @@ class SubscriptionToolbar extends ConsumerWidget {
               unawaited(SubscriptionActions.refreshAll(context, ref));
             },
           ),
-
-          // More Menu (Import/Export)
           PopupMenuButton<int>(
             icon: const Icon(Icons.more_vert),
             tooltip: l10n.more,
@@ -86,7 +76,44 @@ class SubscriptionToolbar extends ConsumerWidget {
             ],
           ),
         ],
-      ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: centerTitle
+          ? Row(
+              children: [
+                // Balance trailing actions so the title is truly centered in the
+                // full toolbar width (not just centered between start/end slots).
+                ExcludeSemantics(
+                  child: IgnorePointer(
+                    child: Opacity(opacity: 0, child: buildActions()),
+                  ),
+                ),
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      l10n.subscriptions,
+                      style: Theme.of(context).textTheme.titleLarge,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+                buildActions(),
+              ],
+            )
+          : Row(
+              children: [
+                Text(
+                  l10n.subscriptions,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const Spacer(),
+                buildActions(),
+              ],
+            ),
     );
   }
 }

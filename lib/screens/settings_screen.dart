@@ -16,6 +16,7 @@ import '../providers/settings_providers.dart';
 import '../services/settings/app_settings.dart';
 import '../services/settings/reader_settings.dart';
 
+import '../theme/app_theme.dart';
 import '../utils/path_utils.dart';
 import '../utils/platform.dart';
 import '../ui/settings/subscriptions/subscriptions_settings_tab.dart';
@@ -76,9 +77,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final theme = Theme.of(context);
     final items = _buildItems(context);
     final hasGlobalNav = GlobalNavScope.maybeOf(context)?.hasGlobalNav ?? false;
-    final totalWidth = MediaQuery.sizeOf(context).width;
-    final useCompactTopBar =
-        !isDesktop || globalNavModeForWidth(totalWidth) == GlobalNavMode.bottom;
+    // Desktop has a top title bar provided by App chrome; avoid in-page AppBar.
+    final useCompactTopBar = !isDesktop;
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
@@ -289,7 +289,7 @@ class _GroupingSortingTab extends ConsumerWidget {
             Container(
               decoration: BoxDecoration(
                 border: Border.all(color: Theme.of(context).dividerColor),
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(AppTheme.radiusCard),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: DropdownButtonHideUnderline(
@@ -325,7 +325,7 @@ class _GroupingSortingTab extends ConsumerWidget {
             Container(
               decoration: BoxDecoration(
                 border: Border.all(color: Theme.of(context).dividerColor),
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(AppTheme.radiusCard),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: DropdownButtonHideUnderline(
@@ -386,7 +386,7 @@ class _AppPreferencesTab extends ConsumerWidget {
                 Container(
                   decoration: BoxDecoration(
                     border: Border.all(color: Theme.of(context).dividerColor),
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusCard),
                   ),
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: DropdownButtonHideUnderline(
@@ -504,7 +504,7 @@ class _AppPreferencesTab extends ConsumerWidget {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     border: Border.all(color: Theme.of(context).dividerColor),
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusCard),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -534,7 +534,7 @@ class _AppPreferencesTab extends ConsumerWidget {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     border: Border.all(color: Theme.of(context).dividerColor),
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusCard),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -693,7 +693,7 @@ class _ServicesTab extends ConsumerWidget {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     border: Border.all(color: Theme.of(context).dividerColor),
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusCard),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -907,7 +907,7 @@ class _AboutTabState extends State<_AboutTab> {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     border: Border.all(color: theme.dividerColor),
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusCard),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -973,7 +973,7 @@ class _AboutTabState extends State<_AboutTab> {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     border: Border.all(color: theme.dividerColor),
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusCard),
                   ),
                   child: DefaultTextStyle(
                     style: theme.textTheme.bodyMedium!,

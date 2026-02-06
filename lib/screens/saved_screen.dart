@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 
 import '../providers/query_providers.dart';
 import '../providers/unread_providers.dart';
-import '../ui/global_nav.dart';
 import '../ui/layout.dart';
 import '../utils/platform.dart';
 import '../widgets/article_list.dart';
@@ -73,9 +72,8 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
     final starredCount = ref.watch(starredCountProvider).valueOrNull;
     final readLaterCount = ref.watch(readLaterCountProvider).valueOrNull;
     final searchQuery = ref.watch(articleSearchQueryProvider);
-    final totalWidth = MediaQuery.sizeOf(context).width;
-    final useCompactTopBar =
-        !isDesktop || globalNavModeForWidth(totalWidth) == GlobalNavMode.bottom;
+    // Desktop has a top title bar provided by App chrome; avoid in-page AppBar.
+    final useCompactTopBar = !isDesktop;
 
     if (!_initialized) {
       final loading = Container(
@@ -116,16 +114,6 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
                     },
                     icon: const Icon(Icons.clear),
                   ),
-            filled: true,
-            fillColor: theme.colorScheme.surfaceContainerLow,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: theme.colorScheme.outlineVariant),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: theme.colorScheme.outlineVariant),
-            ),
           ),
         );
 
@@ -134,7 +122,8 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (!useCompactTopBar) ...[
+              // Desktop already shows the section title in DesktopTitleBar.
+              if (!useCompactTopBar && !isDesktop) ...[
                 Text(l10n.saved, style: theme.textTheme.headlineSmall),
                 const SizedBox(height: 12),
               ],

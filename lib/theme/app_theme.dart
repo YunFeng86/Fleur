@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 
 class AppTheme {
   static const _seed = Color(0xFF1A73E8); // neutral Google-ish blue
+  // Simple design tokens to keep UI consistent across pages.
+  static const double radiusCard = 8;
+  static const double radiusField = 12;
+  static const double desktopTitleBarHeight = 40;
 
   static ThemeData light({ColorScheme? scheme}) =>
       _build(Brightness.light, dynamicScheme: scheme);
@@ -92,12 +96,15 @@ class AppTheme {
       appBarTheme: AppBarTheme(
         elevation: 0,
         scrolledUnderElevation: 0,
+        // Only center titles on iOS/macOS to match platform conventions.
+        // Other platforms keep left-aligned titles.
+        centerTitle: switch (defaultTargetPlatform) {
+          TargetPlatform.iOS || TargetPlatform.macOS => true,
+          _ => false,
+        },
         surfaceTintColor: Colors.transparent,
         backgroundColor: cs.surface,
         foregroundColor: cs.onSurface,
-        titleTextStyle: base.textTheme.titleMedium?.copyWith(
-          color: cs.onSurface,
-        ),
       ),
       listTileTheme: ListTileThemeData(
         dense: true,
@@ -106,7 +113,9 @@ class AppTheme {
         textColor: cs.onSurface,
         selectedTileColor: cs.primaryContainer.withAlpha(153),
         selectedColor: cs.onPrimaryContainer,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radiusCard),
+        ),
       ),
       drawerTheme: DrawerThemeData(
         backgroundColor: cs.surface,
@@ -120,7 +129,7 @@ class AppTheme {
         fillColor: cs.surfaceContainerHighest.withAlpha(128),
         isDense: true,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(radiusField),
           borderSide: BorderSide.none,
         ),
       ),
