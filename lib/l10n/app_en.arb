@@ -648,5 +648,30 @@
   "resetToDefault": "Reset to default",
   "@resetToDefault": {
     "description": "resetToDefault"
+  },
+  "notificationNewArticleTitle": "New Article",
+  "@notificationNewArticleTitle": {
+    "description": "Notification title when exactly one new article is found"
+  },
+  "notificationNewArticlesTitle": "New Articles",
+  "@notificationNewArticlesTitle": {
+    "description": "Notification title when multiple new articles are found"
+  },
+  "notificationNewArticlesBody": "Found {count} new articles",
+  "@notificationNewArticlesBody": {
+    "description": "Notification body when multiple new articles are found",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationNewArticlesChannelName": "New Articles",
+  "@notificationNewArticlesChannelName": {
+    "description": "Android notification channel name for new articles"
+  },
+  "notificationNewArticlesChannelDescription": "Notifications for new articles found during sync",
+  "@notificationNewArticlesChannelDescription": {
+    "description": "Android notification channel description for new articles"
   }
 }

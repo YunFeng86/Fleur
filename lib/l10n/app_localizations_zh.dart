@@ -477,6 +477,23 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get resetToDefault => '恢复默认';
+
+  @override
+  String get notificationNewArticleTitle => '新文章';
+
+  @override
+  String get notificationNewArticlesTitle => '新文章';
+
+  @override
+  String notificationNewArticlesBody(int count) {
+    return '发现 $count 篇新文章';
+  }
+
+  @override
+  String get notificationNewArticlesChannelName => '新文章';
+
+  @override
+  String get notificationNewArticlesChannelDescription => '同步时发现新文章的通知';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -952,4 +969,21 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get resetToDefault => '恢復預設';
+
+  @override
+  String get notificationNewArticleTitle => '新文章';
+
+  @override
+  String get notificationNewArticlesTitle => '新文章';
+
+  @override
+  String notificationNewArticlesBody(int count) {
+    return '發現 $count 篇新文章';
+  }
+
+  @override
+  String get notificationNewArticlesChannelName => '新文章';
+
+  @override
+  String get notificationNewArticlesChannelDescription => '同步時發現新文章的通知';
 }

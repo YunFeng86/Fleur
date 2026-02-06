@@ -158,6 +158,7 @@ class SyncService {
   Future<_RefreshOutcome> _refreshFeedOnce(
     Feed feed,
     _EffectiveFeedSettings settings,
+    AppSettings appSettings,
   ) async {
     final feedId = feed.id;
 
@@ -233,7 +234,10 @@ class SyncService {
     }
 
     if (newArticles.isNotEmpty) {
-      await _notifications.showNewArticlesNotification(newArticles);
+      await _notifications.showNewArticlesNotification(
+        newArticles,
+        localeTag: appSettings.localeTag,
+      );
     }
 
     return _RefreshOutcome(
@@ -259,7 +263,11 @@ class SyncService {
       );
     }
 
-    final settings = await _resolveSettings(feed, appSettings: appSettings);
+    final resolvedAppSettings = appSettings ?? await _appSettingsStore.load();
+    final settings = await _resolveSettings(
+      feed,
+      appSettings: resolvedAppSettings,
+    );
     if (!settings.syncEnabled) {
       // Skip network refresh when sync is disabled for this feed (effective).
       return FeedRefreshResult(feedId: feedId, incomingCount: 0);
@@ -271,7 +279,7 @@ class SyncService {
     for (var i = 0; i < attempts; i++) {
       final checkedAt = DateTime.now();
       try {
-        final out = await _refreshFeedOnce(feed, settings);
+        final out = await _refreshFeedOnce(feed, settings, resolvedAppSettings);
         sw.stop();
 
         await _feeds.updateSyncState(

@@ -998,6 +998,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reset to default'**
   String get resetToDefault;
+
+  /// Notification title when exactly one new article is found
+  ///
+  /// In en, this message translates to:
+  /// **'New Article'**
+  String get notificationNewArticleTitle;
+
+  /// Notification title when multiple new articles are found
+  ///
+  /// In en, this message translates to:
+  /// **'New Articles'**
+  String get notificationNewArticlesTitle;
+
+  /// Notification body when multiple new articles are found
+  ///
+  /// In en, this message translates to:
+  /// **'Found {count} new articles'**
+  String notificationNewArticlesBody(int count);
+
+  /// Android notification channel name for new articles
+  ///
+  /// In en, this message translates to:
+  /// **'New Articles'**
+  String get notificationNewArticlesChannelName;
+
+  /// Android notification channel description for new articles
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications for new articles found during sync'**
+  String get notificationNewArticlesChannelDescription;
 }
 
 class _AppLocalizationsDelegate

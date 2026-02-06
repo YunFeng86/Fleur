@@ -485,4 +485,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get resetToDefault => 'Reset to default';
+
+  @override
+  String get notificationNewArticleTitle => 'New Article';
+
+  @override
+  String get notificationNewArticlesTitle => 'New Articles';
+
+  @override
+  String notificationNewArticlesBody(int count) {
+    return 'Found $count new articles';
+  }
+
+  @override
+  String get notificationNewArticlesChannelName => 'New Articles';
+
+  @override
+  String get notificationNewArticlesChannelDescription =>
+      'Notifications for new articles found during sync';
 }

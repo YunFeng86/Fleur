@@ -649,5 +649,30 @@
   "resetToDefault": "恢复默认",
   "@resetToDefault": {
     "description": "resetToDefault"
+  },
+  "notificationNewArticleTitle": "新文章",
+  "@notificationNewArticleTitle": {
+    "description": "发现 1 篇新文章时的通知标题"
+  },
+  "notificationNewArticlesTitle": "新文章",
+  "@notificationNewArticlesTitle": {
+    "description": "发现多篇新文章时的通知标题"
+  },
+  "notificationNewArticlesBody": "发现 {count} 篇新文章",
+  "@notificationNewArticlesBody": {
+    "description": "发现多篇新文章时的通知内容",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationNewArticlesChannelName": "新文章",
+  "@notificationNewArticlesChannelName": {
+    "description": "Android 新文章通知渠道名称"
+  },
+  "notificationNewArticlesChannelDescription": "同步时发现新文章的通知",
+  "@notificationNewArticlesChannelDescription": {
+    "description": "Android 新文章通知渠道描述"
   }
 }
