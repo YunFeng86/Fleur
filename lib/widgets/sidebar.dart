@@ -17,6 +17,7 @@ import '../providers/unread_providers.dart';
 import '../utils/platform.dart';
 import '../utils/tag_colors.dart';
 import '../services/opml/opml_service.dart';
+import 'favicon_avatar.dart';
 
 class Sidebar extends ConsumerStatefulWidget {
   const Sidebar({super.key, required this.onSelectFeed, this.router});
@@ -456,14 +457,32 @@ class _SidebarState extends ConsumerState<Sidebar> {
     double indent = 0,
     Key? key,
   }) {
+    final theme = Theme.of(context);
     final displayTitle = f.userTitle?.trim().isNotEmpty == true
         ? f.userTitle!
         : (f.title?.trim().isNotEmpty == true ? f.title! : f.url);
+    final siteUri = Uri.tryParse(
+      (f.siteUrl?.trim().isNotEmpty == true) ? f.siteUrl!.trim() : f.url,
+    );
     return ListTile(
       key: key,
       selected: selectedFeedId == f.id,
       contentPadding: EdgeInsets.only(left: 16 + indent, right: 8),
-      leading: const Icon(Icons.rss_feed),
+      leading: Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHigh,
+          shape: BoxShape.circle,
+        ),
+        alignment: Alignment.center,
+        child: FaviconAvatar(
+          siteUri: siteUri,
+          size: 18,
+          fallbackIcon: Icons.rss_feed,
+          fallbackColor: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
       title: Text(displayTitle),
       subtitle:
           (f.userTitle?.trim().isNotEmpty == true ||

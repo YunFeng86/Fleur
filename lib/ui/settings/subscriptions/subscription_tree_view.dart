@@ -6,6 +6,7 @@ import '../../../../models/category.dart';
 import '../../../../models/feed.dart';
 import '../../../../providers/query_providers.dart';
 import '../../../../providers/subscription_settings_provider.dart';
+import '../../../../widgets/favicon_avatar.dart';
 
 class SubscriptionTreeView extends ConsumerWidget {
   const SubscriptionTreeView({super.key});
@@ -75,6 +76,29 @@ class SubscriptionTreeView extends ConsumerWidget {
                     children: [
                       for (final feed in uncategorized)
                         ListTile(
+                          leading: Container(
+                            width: 22,
+                            height: 22,
+                            decoration: BoxDecoration(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerHigh,
+                              shape: BoxShape.circle,
+                            ),
+                            alignment: Alignment.center,
+                            child: FaviconAvatar(
+                              siteUri: Uri.tryParse(
+                                (feed.siteUrl?.trim().isNotEmpty == true)
+                                    ? feed.siteUrl!.trim()
+                                    : feed.url,
+                              ),
+                              size: 16,
+                              fallbackIcon: Icons.rss_feed,
+                              fallbackColor: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
                           title: Text(feed.userTitle ?? feed.title ?? feed.url),
                           selected: selection.selectedFeedId == feed.id,
                           contentPadding: const EdgeInsets.only(
@@ -115,6 +139,7 @@ class _CategoryExpansionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return ExpansionTile(
       key: PageStorageKey(category.id),
       initiallyExpanded: isSelected,
@@ -138,6 +163,25 @@ class _CategoryExpansionTile extends StatelessWidget {
       children: [
         for (final feed in feeds)
           ListTile(
+            leading: Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHigh,
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: FaviconAvatar(
+                siteUri: Uri.tryParse(
+                  (feed.siteUrl?.trim().isNotEmpty == true)
+                      ? feed.siteUrl!.trim()
+                      : feed.url,
+                ),
+                size: 16,
+                fallbackIcon: Icons.rss_feed,
+                fallbackColor: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
             title: Text(feed.userTitle ?? feed.title ?? feed.url),
             selected: selectedFeedId == feed.id,
             contentPadding: const EdgeInsets.only(left: 56, right: 16),

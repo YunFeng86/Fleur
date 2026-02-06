@@ -5,6 +5,7 @@ import 'package:timeago/timeago.dart' as timeago;
 import '../models/article.dart';
 import '../providers/query_providers.dart';
 import '../utils/timeago_locale.dart';
+import 'favicon_avatar.dart';
 
 class ArticleListItem extends ConsumerWidget {
   const ArticleListItem({
@@ -39,6 +40,11 @@ class ArticleListItem extends ConsumerWidget {
     final isUnread = !article.isRead;
     final feedMap = ref.watch(feedMapProvider);
     final feed = feedMap[article.feedId];
+    final siteUri = Uri.tryParse(
+      (feed?.siteUrl?.trim().isNotEmpty == true)
+          ? feed!.siteUrl!.trim()
+          : article.link,
+    );
 
     final title = (article.title ?? '').trim();
     final timeStr = timeago.format(
@@ -112,10 +118,12 @@ class ArticleListItem extends ConsumerWidget {
                                     color: theme.colorScheme.surfaceContainer,
                                     shape: BoxShape.circle,
                                   ),
-                                  child: Icon(
-                                    Icons.rss_feed,
+                                  child: FaviconAvatar(
+                                    siteUri: siteUri,
                                     size: 10,
-                                    color: theme.colorScheme.onSurfaceVariant,
+                                    fallbackIcon: Icons.rss_feed,
+                                    fallbackColor:
+                                        theme.colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                                 const SizedBox(width: 6),

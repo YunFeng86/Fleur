@@ -9,7 +9,9 @@ import '../services/sync/sync_service.dart';
 import '../services/extract/article_extractor.dart';
 import '../services/cache/article_cache_service.dart';
 import '../services/cache/image_meta_store.dart';
+import '../services/cache/favicon_store.dart';
 import '../services/notifications/notification_service.dart';
+import '../services/network/favicon_service.dart';
 import 'repository_providers.dart';
 import 'app_settings_providers.dart';
 
@@ -77,6 +79,17 @@ final cacheManagerProvider = Provider<BaseCacheManager>((ref) {
       stalePeriod: const Duration(days: 45),
       maxNrOfCacheObjects: 1200,
     ),
+  );
+});
+
+final faviconStoreProvider = Provider<FaviconStore>((ref) {
+  return FaviconStore();
+});
+
+final faviconServiceProvider = Provider<FaviconService>((ref) {
+  return FaviconService(
+    dio: ref.watch(dioProvider),
+    store: ref.watch(faviconStoreProvider),
   );
 });
 

@@ -10,6 +10,7 @@ import '../models/article.dart';
 import '../models/tag.dart';
 import '../repositories/tag_repository.dart';
 import '../utils/tag_colors.dart';
+import 'favicon_avatar.dart';
 
 class ReaderBottomBar extends ConsumerWidget {
   const ReaderBottomBar({
@@ -33,6 +34,11 @@ class ReaderBottomBar extends ConsumerWidget {
               ? feed.userTitle!
               : feed.title);
     final feedTitle = feedTitleRaw?.trim();
+    final siteUri = Uri.tryParse(
+      (feed?.siteUrl?.trim().isNotEmpty == true)
+          ? feed!.siteUrl!.trim()
+          : article.link,
+    );
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -67,14 +73,12 @@ class ReaderBottomBar extends ConsumerWidget {
                       color: theme.colorScheme.surfaceContainerHigh,
                       shape: BoxShape.circle,
                     ),
-                    child: Center(
-                      child: Text(
-                        feedTitle.substring(0, 1).toUpperCase(),
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
+                    alignment: Alignment.center,
+                    child: FaviconAvatar(
+                      siteUri: siteUri,
+                      size: 16,
+                      fallbackIcon: Icons.rss_feed,
+                      fallbackColor: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(width: 8),
