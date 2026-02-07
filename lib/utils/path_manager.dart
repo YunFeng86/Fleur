@@ -25,6 +25,8 @@ class PathManager {
   static const String _isarName = 'fleur';
 
   static const String _migrationStateFileName = '.migration_v2_state.json';
+  static const String _flattenStateFileName =
+      '.migration_v3_flatten_state.json';
   static const int _md5VerifyMaxBytes = 50 * 1024 * 1024; // 50 MB
 
   static Future<void>? _initFuture;
@@ -54,19 +56,166 @@ class PathManager {
     final supportRoot = await getApplicationSupportDirectory();
     final cacheRoot = await getApplicationCacheDirectory();
 
-    _supportDir = Directory(p.join(supportRoot.path, _appFolderName));
-    _cacheDir = Directory(p.join(cacheRoot.path, _appFolderName));
+    // PathProvider already returns an app-specific directory on all supported
+    // platforms, so avoid creating an extra nested "<app>/<app>" folder.
+    _supportDir = Directory(supportRoot.path);
+    _cacheDir = Directory(cacheRoot.path);
 
     await _supportDir.create(recursive: true);
     await _cacheDir.create(recursive: true);
 
     try {
+      await _ensureFlattenedFromNestedV2Dirs();
       await _ensureMigration();
     } catch (e) {
       // Migration failures should never block app startup.
       if (kDebugMode) {
         debugPrint('warning: migration v2 failed: $e');
       }
+    }
+  }
+
+  static Future<void> _ensureFlattenedFromNestedV2Dirs() async {
+    // This migration flattens the previous v2 layout where we created an extra
+    // "fleur/" directory inside the app-specific support/cache directories.
+    //
+    // Before (v2):
+    //   Support: <supportRoot>/fleur/{db,settings,state,...}
+    //   Cache:   <cacheRoot>/fleur/{favicons.json,image_meta.json}
+    // After (v3):
+    //   Support: <supportRoot>/{db,settings,state,...}
+    //   Cache:   <cacheRoot>/{favicons.json,image_meta.json}
+    final stateFile = File(p.join(_supportDir.path, _flattenStateFileName));
+    if (await stateFile.exists()) return;
+
+    final nestedSupport = Directory(p.join(_supportDir.path, _appFolderName));
+    final nestedCache = Directory(p.join(_cacheDir.path, _appFolderName));
+
+    if (await nestedSupport.exists()) {
+      await _moveDirIfAbsent(
+        src: Directory(p.join(nestedSupport.path, 'db')),
+        dst: Directory(p.join(_supportDir.path, 'db')),
+      );
+      await _moveDirIfAbsent(
+        src: Directory(p.join(nestedSupport.path, 'settings')),
+        dst: Directory(p.join(_supportDir.path, 'settings')),
+      );
+      await _moveDirIfAbsent(
+        src: Directory(p.join(nestedSupport.path, 'state')),
+        dst: Directory(p.join(_supportDir.path, 'state')),
+      );
+      // Preserve v2 migration state (pending deletes, etc.) if present.
+      await _moveFileIfAbsent(
+        src: File(p.join(nestedSupport.path, _migrationStateFileName)),
+        dst: File(p.join(_supportDir.path, _migrationStateFileName)),
+      );
+
+      await _tryDeleteDirIfEmpty(nestedSupport);
+    }
+
+    if (await nestedCache.exists()) {
+      await _moveFileIfAbsent(
+        src: File(p.join(nestedCache.path, 'favicons.json')),
+        dst: File(p.join(_cacheDir.path, 'favicons.json')),
+      );
+      await _moveFileIfAbsent(
+        src: File(p.join(nestedCache.path, 'image_meta.json')),
+        dst: File(p.join(_cacheDir.path, 'image_meta.json')),
+      );
+      await _tryDeleteDirIfEmpty(nestedCache);
+    }
+
+    // Mark flatten migration as complete (best-effort).
+    try {
+      final encoded = <String, Object?>{
+        'version': 3,
+        'flattened': true,
+        'updatedAt': DateTime.now().toIso8601String(),
+      };
+      await stateFile.writeAsString(jsonEncode(encoded), encoding: utf8);
+    } catch (_) {
+      // best-effort
+    }
+  }
+
+  static Future<void> _moveDirIfAbsent({
+    required Directory src,
+    required Directory dst,
+  }) async {
+    try {
+      if (!await src.exists()) return;
+      if (await dst.exists()) return;
+      await dst.parent.create(recursive: true);
+      try {
+        await src.rename(dst.path);
+        return;
+      } catch (_) {
+        // Fall through to copy+delete.
+      }
+      await _copyDirectory(src: src, dst: dst);
+      try {
+        await src.delete(recursive: true);
+      } catch (_) {
+        // best-effort
+      }
+    } catch (_) {
+      // best-effort
+    }
+  }
+
+  static Future<void> _moveFileIfAbsent({
+    required File src,
+    required File dst,
+  }) async {
+    try {
+      if (!await src.exists()) return;
+      if (await dst.exists()) return;
+      await dst.parent.create(recursive: true);
+      try {
+        await src.rename(dst.path);
+        return;
+      } catch (_) {
+        // Fall through to copy+delete.
+      }
+      await src.copy(dst.path);
+      try {
+        await src.delete();
+      } catch (_) {
+        // best-effort
+      }
+    } catch (_) {
+      // best-effort
+    }
+  }
+
+  static Future<void> _copyDirectory({
+    required Directory src,
+    required Directory dst,
+  }) async {
+    await dst.create(recursive: true);
+    await for (final entity in src.list(followLinks: false)) {
+      final name = p.basename(entity.path);
+      if (entity is File) {
+        final out = File(p.join(dst.path, name));
+        if (await out.exists()) continue;
+        await entity.copy(out.path);
+      } else if (entity is Directory) {
+        await _copyDirectory(
+          src: entity,
+          dst: Directory(p.join(dst.path, name)),
+        );
+      }
+    }
+  }
+
+  static Future<void> _tryDeleteDirIfEmpty(Directory dir) async {
+    try {
+      if (!await dir.exists()) return;
+      final items = await dir.list(followLinks: false).toList();
+      if (items.isNotEmpty) return;
+      await dir.delete();
+    } catch (_) {
+      // best-effort
     }
   }
 

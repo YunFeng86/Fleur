@@ -37,18 +37,13 @@ class ShellService {
       // Explorer needs the path quoted when it contains spaces/special chars.
       // Note: No space after `/select,`.
       final args = ['/select,"$targetPath"'];
-      final result = await Process.run('explorer.exe', args);
-      if (result.exitCode != 0) {
-        final stderrText = result.stderr is String
-            ? result.stderr as String
-            : '${result.stderr}';
-        throw ProcessException(
-          'explorer.exe',
-          args,
-          stderrText,
-          result.exitCode,
-        );
-      }
+      // Explorer may return a non-zero exit code even when the window opens
+      // successfully. Detach to avoid false error toasts.
+      await Process.start(
+        'explorer.exe',
+        args,
+        mode: ProcessStartMode.detached,
+      );
       return;
     }
 
@@ -78,18 +73,9 @@ class ShellService {
 
     if (Platform.isWindows) {
       final targetPath = abs.replaceAll('/', r'\');
-      final result = await Process.run('explorer.exe', [targetPath]);
-      if (result.exitCode != 0) {
-        final stderrText = result.stderr is String
-            ? result.stderr as String
-            : '${result.stderr}';
-        throw ProcessException(
-          'explorer.exe',
-          [targetPath],
-          stderrText,
-          result.exitCode,
-        );
-      }
+      await Process.start('explorer.exe', [
+        targetPath,
+      ], mode: ProcessStartMode.detached);
       return;
     }
 
