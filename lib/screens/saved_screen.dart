@@ -68,7 +68,6 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
     final starredCount = ref.watch(starredCountProvider).valueOrNull;
     final readLaterCount = ref.watch(readLaterCountProvider).valueOrNull;
     final searchQuery = ref.watch(articleSearchQueryProvider);
@@ -122,11 +121,6 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Desktop already shows the section title in DesktopTitleBar.
-              if (!useCompactTopBar && !isDesktop) ...[
-                Text(l10n.saved, style: theme.textTheme.headlineSmall),
-                const SizedBox(height: 12),
-              ],
               LayoutBuilder(
                 builder: (context, headerConstraints) {
                   final narrow = headerConstraints.maxWidth < 760;

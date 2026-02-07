@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fleur/l10n/app_localizations.dart';
@@ -104,11 +103,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final unreadPreview = ref.watch(dashboardUnreadPreviewProvider);
     final starredPreview = ref.watch(dashboardStarredPreviewProvider);
     final readLaterPreview = ref.watch(dashboardReadLaterPreviewProvider);
-
-    final centerTitle = switch (defaultTargetPlatform) {
-      TargetPlatform.iOS || TargetPlatform.macOS => true,
-      _ => false,
-    };
 
     List<Widget> buildHeaderActionButtons() {
       return [
@@ -264,47 +258,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               if (!useCompactTopBar) ...[
                 // Desktop already shows the section title in DesktopTitleBar.
                 // Keep only actions here to avoid a double title bar effect.
-                if (isDesktop)
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: buildHeaderActions(),
-                  )
-                else if (centerTitle)
-                  Row(
-                    children: [
-                      ExcludeSemantics(
-                        child: IgnorePointer(
-                          child: Opacity(
-                            opacity: 0,
-                            child: buildHeaderActions(),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Center(
-                          child: Text(
-                            l10n.dashboard,
-                            style: theme.textTheme.headlineSmall,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ),
-                      buildHeaderActions(),
-                    ],
-                  )
-                else
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          l10n.dashboard,
-                          style: theme.textTheme.headlineSmall,
-                        ),
-                      ),
-                      buildHeaderActions(),
-                    ],
-                  ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: buildHeaderActions(),
+                ),
                 const SizedBox(height: 12),
               ],
               grid,

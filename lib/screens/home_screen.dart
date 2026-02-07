@@ -101,42 +101,35 @@ class HomeScreen extends ConsumerWidget {
         if (columns == 1) {
           final unreadOnly = ref.watch(unreadOnlyProvider);
           return Scaffold(
-            appBar: isDesktop
-                ? null
-                : AppBar(
-                    title: Text(l10n.feeds),
-                    actions: [
-                      IconButton(
-                        tooltip: l10n.refreshAll,
-                        onPressed: refreshAll,
-                        icon: const Icon(Icons.refresh),
-                      ),
-                      // On mobile we have dedicated Saved/Search tabs in the
-                      // global bottom navigation. Avoid duplicating those
-                      // shortcuts here to keep the AppBar focused on feed-only
-                      // actions.
-                      IconButton(
-                        tooltip: unreadOnly ? l10n.showAll : l10n.unreadOnly,
-                        onPressed: () =>
-                            ref.read(unreadOnlyProvider.notifier).state =
-                                !unreadOnly,
-                        icon: Icon(
-                          unreadOnly
-                              ? Icons.filter_alt
-                              : Icons.filter_alt_outlined,
-                        ),
-                      ),
-                    ],
+            appBar: AppBar(
+              title: Text(l10n.feeds),
+              actions: [
+                IconButton(
+                  tooltip: l10n.refreshAll,
+                  onPressed: refreshAll,
+                  icon: const Icon(Icons.refresh),
+                ),
+                // On mobile we have dedicated Saved/Search tabs in the
+                // global bottom navigation. Avoid duplicating those
+                // shortcuts here to keep the AppBar focused on feed-only
+                // actions.
+                IconButton(
+                  tooltip: unreadOnly ? l10n.showAll : l10n.unreadOnly,
+                  onPressed: () =>
+                      ref.read(unreadOnlyProvider.notifier).state = !unreadOnly,
+                  icon: Icon(
+                    unreadOnly ? Icons.filter_alt : Icons.filter_alt_outlined,
                   ),
-            drawer: isDesktop
-                ? null
-                : Drawer(
-                    child: Sidebar(
-                      onSelectFeed: (_) async {
-                        await Navigator.of(context).maybePop(); // close drawer
-                      },
-                    ),
-                  ),
+                ),
+              ],
+            ),
+            drawer: Drawer(
+              child: Sidebar(
+                onSelectFeed: (_) async {
+                  await Navigator.of(context).maybePop(); // close drawer
+                },
+              ),
+            ),
             floatingActionButton: useCompactTopBar ? markAllReadFab() : null,
             body: ArticleList(selectedArticleId: selectedArticleId),
           );
@@ -301,7 +294,7 @@ class HomeScreen extends ConsumerWidget {
                 floatingActionButton: useCompactTopBar
                     ? markAllReadFab()
                     : null,
-                drawer: (!isDesktop && columns == 2)
+                drawer: columns == 2
                     ? Drawer(
                         child: Sidebar(
                           onSelectFeed: (_) async {
@@ -329,46 +322,6 @@ class HomeScreen extends ConsumerWidget {
                       width: 420,
                       child: Column(
                         children: [
-                          SizedBox(
-                            height: 56,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                              ),
-                              child: Row(
-                                children: [
-                                  if (!useCompactTopBar)
-                                    Consumer(
-                                      builder: (context, ref, _) {
-                                        final l10n = AppLocalizations.of(
-                                          context,
-                                        )!;
-                                        final unreadOnly = ref.watch(
-                                          unreadOnlyProvider,
-                                        );
-                                        return FilterChip(
-                                          selected: unreadOnly,
-                                          label: Text(l10n.unread),
-                                          onSelected: (v) =>
-                                              ref
-                                                      .read(
-                                                        unreadOnlyProvider
-                                                            .notifier,
-                                                      )
-                                                      .state =
-                                                  v,
-                                        );
-                                      },
-                                    ),
-                                  const Spacer(),
-                                  // On mobile/tablet we have Saved/Search tabs
-                                  // in global navigation, so keep this header
-                                  // limited to feed-specific controls.
-                                ],
-                              ),
-                            ),
-                          ),
-                          const Divider(height: 1),
                           Expanded(
                             child: ArticleList(
                               selectedArticleId: selectedArticleId,

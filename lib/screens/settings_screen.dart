@@ -416,7 +416,7 @@ class _AppPreferencesTab extends ConsumerWidget {
                               .read(appSettingsProvider.notifier)
                               .setLocaleTag(v);
                           if (!context.mounted) return;
-                          if (!Platform.isMacOS) return;
+                          if (!isMacOS) return;
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(l10n.macosMenuLanguageRestartHint),
