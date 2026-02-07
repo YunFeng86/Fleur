@@ -35,11 +35,6 @@ class GlobalNavRail extends ConsumerWidget {
         ),
         destinations: [
           NavigationRailDestination(
-            icon: const Icon(Icons.dashboard_outlined),
-            selectedIcon: const Icon(Icons.dashboard),
-            label: Text(l10n.dashboard),
-          ),
-          NavigationRailDestination(
             icon: const Icon(Icons.rss_feed_outlined),
             selectedIcon: const Icon(Icons.rss_feed),
             label: Text(l10n.feeds),

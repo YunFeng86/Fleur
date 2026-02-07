@@ -1,11 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:isar/isar.dart';
-
 import '../models/article.dart';
 import '../models/category.dart';
 import '../models/feed.dart';
 import '../models/tag.dart';
-import 'core_providers.dart';
 import 'repository_providers.dart';
 
 final feedsProvider = StreamProvider<List<Feed>>((ref) {
@@ -55,34 +52,4 @@ final articleProvider = StreamProvider.family<Article?, int>((ref, id) {
 final feedMapProvider = Provider<Map<int, Feed>>((ref) {
   final feeds = ref.watch(feedsProvider).valueOrNull ?? [];
   return {for (final feed in feeds) feed.id: feed};
-});
-
-final dashboardUnreadPreviewProvider = StreamProvider<List<Article>>((ref) {
-  final isar = ref.watch(isarProvider);
-  return isar.articles
-      .filter()
-      .isReadEqualTo(false)
-      .sortByPublishedAtDesc()
-      .limit(5)
-      .watch(fireImmediately: true);
-});
-
-final dashboardStarredPreviewProvider = StreamProvider<List<Article>>((ref) {
-  final isar = ref.watch(isarProvider);
-  return isar.articles
-      .filter()
-      .isStarredEqualTo(true)
-      .sortByPublishedAtDesc()
-      .limit(5)
-      .watch(fireImmediately: true);
-});
-
-final dashboardReadLaterPreviewProvider = StreamProvider<List<Article>>((ref) {
-  final isar = ref.watch(isarProvider);
-  return isar.articles
-      .filter()
-      .isReadLaterEqualTo(true)
-      .sortByPublishedAtDesc()
-      .limit(5)
-      .watch(fireImmediately: true);
 });

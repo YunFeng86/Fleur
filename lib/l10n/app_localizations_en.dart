@@ -31,9 +31,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settings => 'Settings';
 
   @override
-  String get dashboard => 'Dashboard';
-
-  @override
   String get feeds => 'Feeds';
 
   @override

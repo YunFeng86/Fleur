@@ -103,19 +103,6 @@ class AppSettingsController extends AsyncNotifier<AppSettings> {
     final cur = state.valueOrNull ?? const AppSettings();
     await save(cur.copyWith(webUserAgent: value));
   }
-
-  Future<void> setDashboardLayout({
-    List<String>? moduleOrder,
-    List<String>? hiddenModules,
-  }) async {
-    final cur = state.valueOrNull ?? const AppSettings();
-    await save(
-      cur.copyWith(
-        dashboardModuleOrder: moduleOrder ?? cur.dashboardModuleOrder,
-        dashboardHiddenModules: hiddenModules ?? cur.dashboardHiddenModules,
-      ),
-    );
-  }
 }
 
 final appSettingsProvider =

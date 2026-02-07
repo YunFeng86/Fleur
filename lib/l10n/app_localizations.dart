@@ -135,12 +135,6 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get settings;
 
-  /// Global navigation label: dashboard
-  ///
-  /// In en, this message translates to:
-  /// **'Dashboard'**
-  String get dashboard;
-
   /// Global navigation label: feeds
   ///
   /// In en, this message translates to:

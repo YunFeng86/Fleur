@@ -24,11 +24,6 @@ class GlobalNavBar extends ConsumerWidget {
       },
       destinations: [
         NavigationDestination(
-          icon: const Icon(Icons.dashboard_outlined),
-          selectedIcon: const Icon(Icons.dashboard),
-          label: l10n.dashboard,
-        ),
-        NavigationDestination(
           icon: const Icon(Icons.rss_feed_outlined),
           selectedIcon: const Icon(Icons.rss_feed),
           label: l10n.feeds,

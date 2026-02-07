@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fleur/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
-import '../screens/dashboard_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/reader_screen.dart';
 import '../screens/saved_screen.dart';
@@ -65,13 +64,6 @@ final routerProvider = Provider<GoRouter>((ref) {
               // Narrow/mobile: dedicated reader screen with default Material
               // route transition.
               return MaterialPage(child: ReaderScreen(articleId: id));
-            },
-          ),
-          GoRoute(
-            path: '/dashboard',
-            name: 'dashboard',
-            pageBuilder: (context, state) {
-              return const NoTransitionPage(child: DashboardScreen());
             },
           ),
           GoRoute(

@@ -27,10 +27,6 @@
   "@settings": {
     "description": "settings"
   },
-  "dashboard": "Dashboard",
-  "@dashboard": {
-    "description": "Global navigation label: dashboard"
-  },
   "feeds": "Feeds",
   "@feeds": {
     "description": "Global navigation label: feeds"

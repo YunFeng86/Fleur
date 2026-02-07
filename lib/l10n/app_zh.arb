@@ -27,10 +27,6 @@
   "@settings": {
     "description": "settings"
   },
-  "dashboard": "仪表盘",
-  "@dashboard": {
-    "description": "Global navigation label: dashboard"
-  },
   "feeds": "订阅",
   "@feeds": {
     "description": "Global navigation label: feeds"

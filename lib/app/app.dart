@@ -161,7 +161,6 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
   String _sectionTitleForUri(AppLocalizations l10n, Uri uri) {
     final seg = uri.pathSegments.isEmpty ? '' : uri.pathSegments.first;
     return switch (seg) {
-      'dashboard' => l10n.dashboard,
       'saved' => l10n.saved,
       'search' => l10n.search,
       'settings' => l10n.settings,

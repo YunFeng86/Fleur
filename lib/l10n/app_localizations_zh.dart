@@ -29,9 +29,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settings => '设置';
 
   @override
-  String get dashboard => '仪表盘';
-
-  @override
   String get feeds => '订阅';
 
   @override
@@ -531,9 +528,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get settings => '設定';
-
-  @override
-  String get dashboard => '儀表板';
 
   @override
   String get feeds => '訂閱';

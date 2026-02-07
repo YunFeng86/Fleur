@@ -11,9 +11,6 @@ void handleGlobalNavSelection(
   GlobalNavDestination dest,
 ) {
   switch (dest) {
-    case GlobalNavDestination.dashboard:
-      context.go(destinationLocation(dest));
-      return;
     case GlobalNavDestination.feeds:
       // Leaving other top-level sections should bring you back to the normal
       // feed browsing state.
