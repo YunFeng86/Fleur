@@ -728,9 +728,17 @@
   "@fieldName": {
     "description": "fieldName"
   },
+  "nameRequired": "Enter a name",
+  "@nameRequired": {
+    "description": "Validation message shown when the name field is empty"
+  },
   "baseUrl": "Base URL",
   "@baseUrl": {
     "description": "baseUrl"
+  },
+  "baseUrlRequired": "Enter base URL",
+  "@baseUrlRequired": {
+    "description": "Validation message shown when the base URL field is empty"
   },
   "minifluxBaseUrlHint": "https://miniflux.example.com",
   "@minifluxBaseUrlHint": {
@@ -744,9 +752,25 @@
   "@apiToken": {
     "description": "apiToken"
   },
+  "apiTokenRequired": "Enter API token",
+  "@apiTokenRequired": {
+    "description": "Validation message shown when the API token field is empty"
+  },
   "apiKey": "API Key",
   "@apiKey": {
     "description": "apiKey"
+  },
+  "appId": "App ID",
+  "@appId": {
+    "description": "Label for App ID fields"
+  },
+  "appKey": "App Key",
+  "@appKey": {
+    "description": "Label for App Key fields"
+  },
+  "apiKeyRequired": "Enter API key",
+  "@apiKeyRequired": {
+    "description": "Validation message shown when the API key field is empty"
   },
   "authenticationMethod": "Authentication method",
   "@authenticationMethod": {
@@ -768,9 +792,42 @@
   "@username": {
     "description": "username"
   },
+  "usernameRequired": "Enter username",
+  "@usernameRequired": {
+    "description": "Validation message shown when the username field is empty"
+  },
   "password": "Password",
   "@password": {
     "description": "password"
+  },
+  "passwordRequired": "Enter password",
+  "@passwordRequired": {
+    "description": "Validation message shown when the password field is empty"
+  },
+  "defaultModel": "Default model",
+  "@defaultModel": {
+    "description": "Label for the default model field in the AI service editor"
+  },
+  "savedApiKeyClearHint": "Leave blank to clear the saved API key.",
+  "@savedApiKeyClearHint": {
+    "description": "Helper text explaining that an empty API key field clears the saved value"
+  },
+  "savedCredentialsClearHint": "Leave blank to clear the saved credentials.",
+  "@savedCredentialsClearHint": {
+    "description": "Helper text explaining that empty credential fields clear the saved values"
+  },
+  "aiServicesEmptyState": "No AI services added yet.",
+  "@aiServicesEmptyState": {
+    "description": "Empty state shown when no custom AI services have been configured"
+  },
+  "modelSummary": "Model: {model}",
+  "@modelSummary": {
+    "description": "Summary text showing the configured model for an AI service",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
   },
   "show": "Show",
   "@show": {

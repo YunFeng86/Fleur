@@ -1125,11 +1125,23 @@ abstract class AppLocalizations {
   /// **'Name'**
   String get fieldName;
 
+  /// Validation message shown when the name field is empty
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a name'**
+  String get nameRequired;
+
   /// baseUrl
   ///
   /// In en, this message translates to:
   /// **'Base URL'**
   String get baseUrl;
+
+  /// Validation message shown when the base URL field is empty
+  ///
+  /// In en, this message translates to:
+  /// **'Enter base URL'**
+  String get baseUrlRequired;
 
   /// minifluxBaseUrlHint
   ///
@@ -1149,11 +1161,35 @@ abstract class AppLocalizations {
   /// **'API Token'**
   String get apiToken;
 
+  /// Validation message shown when the API token field is empty
+  ///
+  /// In en, this message translates to:
+  /// **'Enter API token'**
+  String get apiTokenRequired;
+
   /// apiKey
   ///
   /// In en, this message translates to:
   /// **'API Key'**
   String get apiKey;
+
+  /// Label for App ID fields
+  ///
+  /// In en, this message translates to:
+  /// **'App ID'**
+  String get appId;
+
+  /// Label for App Key fields
+  ///
+  /// In en, this message translates to:
+  /// **'App Key'**
+  String get appKey;
+
+  /// Validation message shown when the API key field is empty
+  ///
+  /// In en, this message translates to:
+  /// **'Enter API key'**
+  String get apiKeyRequired;
 
   /// authenticationMethod
   ///
@@ -1185,11 +1221,53 @@ abstract class AppLocalizations {
   /// **'Username'**
   String get username;
 
+  /// Validation message shown when the username field is empty
+  ///
+  /// In en, this message translates to:
+  /// **'Enter username'**
+  String get usernameRequired;
+
   /// password
   ///
   /// In en, this message translates to:
   /// **'Password'**
   String get password;
+
+  /// Validation message shown when the password field is empty
+  ///
+  /// In en, this message translates to:
+  /// **'Enter password'**
+  String get passwordRequired;
+
+  /// Label for the default model field in the AI service editor
+  ///
+  /// In en, this message translates to:
+  /// **'Default model'**
+  String get defaultModel;
+
+  /// Helper text explaining that an empty API key field clears the saved value
+  ///
+  /// In en, this message translates to:
+  /// **'Leave blank to clear the saved API key.'**
+  String get savedApiKeyClearHint;
+
+  /// Helper text explaining that empty credential fields clear the saved values
+  ///
+  /// In en, this message translates to:
+  /// **'Leave blank to clear the saved credentials.'**
+  String get savedCredentialsClearHint;
+
+  /// Empty state shown when no custom AI services have been configured
+  ///
+  /// In en, this message translates to:
+  /// **'No AI services added yet.'**
+  String get aiServicesEmptyState;
+
+  /// Summary text showing the configured model for an AI service
+  ///
+  /// In en, this message translates to:
+  /// **'Model: {model}'**
+  String modelSummary(String model);
 
   /// show
   ///

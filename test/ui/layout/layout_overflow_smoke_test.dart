@@ -67,6 +67,36 @@ Future<void> _pumpTestApp(
   await tester.pump(const Duration(milliseconds: 50));
 }
 
+Widget _buildAccountDialogLauncher() {
+  return Scaffold(
+    body: Center(
+      child: Consumer(
+        builder: (context, ref, _) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ElevatedButton(
+                key: const Key('open_fever'),
+                onPressed: () async {
+                  await showAddFeverAccountDialog(context, ref);
+                },
+                child: const Text('open fever'),
+              ),
+              ElevatedButton(
+                key: const Key('open_miniflux'),
+                onPressed: () async {
+                  await showAddMinifluxAccountDialog(context, ref);
+                },
+                child: const Text('open miniflux'),
+              ),
+            ],
+          );
+        },
+      ),
+    ),
+  );
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -85,33 +115,7 @@ void main() {
         tester,
         size: const Size(320, 640),
         textScale: 2.0,
-        home: Scaffold(
-          body: Center(
-            child: Consumer(
-              builder: (context, ref, _) {
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ElevatedButton(
-                      key: const Key('open_fever'),
-                      onPressed: () async {
-                        await showAddFeverAccountDialog(context, ref);
-                      },
-                      child: const Text('open fever'),
-                    ),
-                    ElevatedButton(
-                      key: const Key('open_miniflux'),
-                      onPressed: () async {
-                        await showAddMinifluxAccountDialog(context, ref);
-                      },
-                      child: const Text('open miniflux'),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-        ),
+        home: _buildAccountDialogLauncher(),
       );
 
       await tester.tap(find.byKey(const Key('open_fever')));
@@ -140,6 +144,59 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(errors, isEmpty);
   });
+
+  testWidgets('Fever dialog shows inline errors and focuses base URL first', (
+    tester,
+  ) async {
+    await _pumpTestApp(
+      tester,
+      size: const Size(360, 720),
+      textScale: 1.0,
+      home: _buildAccountDialogLauncher(),
+    );
+
+    await tester.tap(find.byKey(const Key('open_fever')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Enter base URL'), findsOneWidget);
+    expect(find.text('Enter API key'), findsOneWidget);
+    expect(
+      tester
+          .widget<TextField>(find.byType(TextField).at(1))
+          .focusNode
+          ?.hasFocus,
+      isTrue,
+    );
+  });
+
+  testWidgets(
+    'Miniflux dialog shows inline errors and focuses base URL first',
+    (tester) async {
+      await _pumpTestApp(
+        tester,
+        size: const Size(360, 720),
+        textScale: 1.0,
+        home: _buildAccountDialogLauncher(),
+      );
+
+      await tester.tap(find.byKey(const Key('open_miniflux')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Enter base URL'), findsOneWidget);
+      expect(find.text('Enter API token'), findsOneWidget);
+      expect(
+        tester
+            .widget<TextField>(find.byType(TextField).at(1))
+            .focusNode
+            ?.hasFocus,
+        isTrue,
+      );
+    },
+  );
 
   testWidgets('SettingsScreen: header does not overflow at large text scale', (
     tester,

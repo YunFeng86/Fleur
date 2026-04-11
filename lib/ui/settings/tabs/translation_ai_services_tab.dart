@@ -216,7 +216,7 @@ class TranslationAiServicesTab extends ConsumerWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Leave empty to clear saved API Key.',
+                            l10n.savedApiKeyClearHint,
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(
                                   color: Theme.of(
@@ -307,16 +307,14 @@ class TranslationAiServicesTab extends ConsumerWidget {
                         children: [
                           TextField(
                             controller: appIdCtrl,
-                            decoration: const InputDecoration(
-                              labelText: 'App ID',
-                            ),
+                            decoration: InputDecoration(labelText: l10n.appId),
                           ),
                           const SizedBox(height: 12),
                           TextField(
                             controller: appKeyCtrl,
                             obscureText: obscure,
                             decoration: InputDecoration(
-                              labelText: 'App Key',
+                              labelText: l10n.appKey,
                               suffixIcon: IconButton(
                                 tooltip: obscure ? l10n.show : l10n.hide,
                                 icon: Icon(
@@ -331,7 +329,7 @@ class TranslationAiServicesTab extends ConsumerWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Leave empty to clear saved credentials.',
+                            l10n.savedCredentialsClearHint,
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(
                                   color: Theme.of(
@@ -978,7 +976,7 @@ class TranslationAiServicesTab extends ConsumerWidget {
                         : EdgeInsets.zero,
                     child: settings.aiServices.isEmpty
                         ? Text(
-                            '还没有添加任何 AI 服务。',
+                            l10n.aiServicesEmptyState,
                             style: Theme.of(context).textTheme.bodyMedium,
                           )
                         : ListView.separated(
@@ -997,7 +995,7 @@ class TranslationAiServicesTab extends ConsumerWidget {
                                 if (s.baseUrl.trim().isNotEmpty)
                                   s.baseUrl.trim(),
                                 if (s.defaultModel.trim().isNotEmpty)
-                                  'Model: ${s.defaultModel.trim()}',
+                                  l10n.modelSummary(s.defaultModel.trim()),
                               ].join(' · ');
 
                               Future<void> handleAction(

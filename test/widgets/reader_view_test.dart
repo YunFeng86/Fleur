@@ -3,22 +3,28 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:isar/isar.dart';
 
 import 'package:fleur/models/article.dart';
 import 'package:fleur/models/feed.dart';
+import 'package:fleur/models/tag.dart';
 import 'package:fleur/providers/app_settings_providers.dart';
 import 'package:fleur/providers/article_ai_providers.dart';
 import 'package:fleur/providers/query_providers.dart';
 import 'package:fleur/providers/reader_providers.dart';
 import 'package:fleur/providers/reader_search_providers.dart';
+import 'package:fleur/providers/repository_providers.dart';
 import 'package:fleur/providers/service_providers.dart';
 import 'package:fleur/providers/settings_providers.dart';
 import 'package:fleur/providers/translation_ai_settings_providers.dart';
+import 'package:fleur/repositories/article_repository.dart';
+import 'package:fleur/repositories/tag_repository.dart';
 import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/settings/reader_progress_store.dart';
 import 'package:fleur/services/settings/reader_settings.dart';
 import 'package:fleur/services/settings/translation_ai_settings.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
+import 'package:fleur/utils/tag_colors.dart';
 import 'package:fleur/widgets/reader_bottom_bar.dart';
 import 'package:fleur/widgets/reader_search_bar.dart';
 import 'package:fleur/widgets/reader_view.dart';
@@ -44,6 +50,15 @@ class _FakeFullTextController extends FullTextController {
       return handler(this, articleId);
     }
     return false;
+  }
+}
+
+class _StubIsar implements Isar {
+  @override
+  dynamic noSuchMethod(Invocation invocation) {
+    throw UnimplementedError(
+      'Unexpected Isar access: ${invocation.memberName}',
+    );
   }
 }
 
@@ -94,6 +109,7 @@ void main() {
     ImmediateAiRequestQueue? aiQueue,
     InMemoryAiContentCacheStore? cacheStore,
     FakeTranslationAiSecretStore? secretStore,
+    List<Override> extraOverrides = const <Override>[],
     Size size = const Size(800, 1200),
   }) async {
     _FakeFullTextController.onFetch = null;
@@ -139,6 +155,7 @@ void main() {
           aiQueue ?? ImmediateAiRequestQueue(),
         ),
         fullTextControllerProvider.overrideWith(_FakeFullTextController.new),
+        ...extraOverrides,
       ],
       size: size,
     );
@@ -393,4 +410,62 @@ void main() {
     expect(restoredPixels, greaterThan(0));
     expect(restoredPixels, closeTo(expectedOffset, 40));
   });
+
+  testWidgets(
+    'manage tags dialog keeps 48dp color swatches with semantic labels',
+    (tester) async {
+      final stubIsar = _StubIsar();
+      final tag = Tag()
+        ..id = 1
+        ..name = 'Important'
+        ..color = kTagColorPalette.first;
+
+      await pumpReader(
+        tester,
+        article: buildArticle(),
+        appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+        extraOverrides: [
+          articleRepositoryProvider.overrideWithValue(
+            ArticleRepository(stubIsar),
+          ),
+          tagRepositoryProvider.overrideWithValue(TagRepository(stubIsar)),
+          tagsProvider.overrideWith((ref) => Stream.value([tag])),
+          articleTagsProvider(
+            articleId,
+          ).overrideWith((ref) => Stream.value(<Tag>[])),
+        ],
+      );
+
+      await tester.tap(find.byTooltip('Manage Tags'));
+      await tester.pump();
+      await settleReader(tester, rounds: 4);
+
+      final colorLabel = 'Tag color: ${kTagColorPalette.first.toUpperCase()}';
+      final tooltipFinder = find.byTooltip(colorLabel);
+      expect(tooltipFinder, findsOneWidget);
+
+      final colorTarget = find.descendant(
+        of: tooltipFinder,
+        matching: find.byWidgetPredicate(
+          (widget) =>
+              widget is SizedBox && widget.width == 48 && widget.height == 48,
+        ),
+      );
+      expect(colorTarget, findsOneWidget);
+      expect(tester.getSize(colorTarget), const Size(48, 48));
+      expect(
+        find.descendant(of: tooltipFinder, matching: find.byIcon(Icons.check)),
+        findsNothing,
+      );
+
+      await tester.tap(colorTarget);
+      await tester.pump();
+      await settleReader(tester, rounds: 2);
+
+      expect(
+        find.descendant(of: tooltipFinder, matching: find.byIcon(Icons.check)),
+        findsOneWidget,
+      );
+    },
+  );
 }

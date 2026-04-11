@@ -616,25 +616,46 @@ class _TagsDialogState extends ConsumerState<_TagsDialog> {
                     final checkColor = color.computeLuminance() > 0.5
                         ? Colors.black
                         : Colors.white;
-                    return InkWell(
-                      borderRadius: BorderRadius.circular(999),
-                      onTap: () {
-                        setState(() => _selectedColor = hex);
-                      },
-                      child: Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          color: color,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: borderColor,
-                            width: selected ? 2 : 1,
+                    final semanticLabel =
+                        '${l10n.tagColor}: ${hex.toUpperCase()}';
+                    return Semantics(
+                      button: true,
+                      selected: selected,
+                      label: semanticLabel,
+                      child: Tooltip(
+                        message: semanticLabel,
+                        child: SizedBox.square(
+                          dimension: 48,
+                          child: InkResponse(
+                            onTap: () {
+                              setState(() => _selectedColor = hex);
+                            },
+                            containedInkWell: true,
+                            highlightShape: BoxShape.circle,
+                            radius: 24,
+                            child: Center(
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  color: color,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: borderColor,
+                                    width: selected ? 2 : 1,
+                                  ),
+                                ),
+                                child: selected
+                                    ? Icon(
+                                        Icons.check,
+                                        size: 16,
+                                        color: checkColor,
+                                      )
+                                    : null,
+                              ),
+                            ),
                           ),
                         ),
-                        child: selected
-                            ? Icon(Icons.check, size: 16, color: checkColor)
-                            : null,
                       ),
                     );
                   }),

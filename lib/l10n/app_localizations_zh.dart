@@ -540,7 +540,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fieldName => '名称';
 
   @override
+  String get nameRequired => '请输入名称';
+
+  @override
   String get baseUrl => 'Base URL';
+
+  @override
+  String get baseUrlRequired => '请输入 Base URL';
 
   @override
   String get minifluxBaseUrlHint => 'https://miniflux.example.com';
@@ -552,7 +558,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get apiToken => 'API Token';
 
   @override
+  String get apiTokenRequired => '请输入 API Token';
+
+  @override
   String get apiKey => 'API Key';
+
+  @override
+  String get appId => 'App ID';
+
+  @override
+  String get appKey => 'App Key';
+
+  @override
+  String get apiKeyRequired => '请输入 API Key';
 
   @override
   String get authenticationMethod => '认证方式';
@@ -570,7 +588,30 @@ class AppLocalizationsZh extends AppLocalizations {
   String get username => '用户名';
 
   @override
+  String get usernameRequired => '请输入用户名';
+
+  @override
   String get password => '密码';
+
+  @override
+  String get passwordRequired => '请输入密码';
+
+  @override
+  String get defaultModel => '默认模型';
+
+  @override
+  String get savedApiKeyClearHint => '留空会清除已保存的 API Key。';
+
+  @override
+  String get savedCredentialsClearHint => '留空会清除已保存的凭据。';
+
+  @override
+  String get aiServicesEmptyState => '还没有添加任何 AI 服务。';
+
+  @override
+  String modelSummary(String model) {
+    return '模型：$model';
+  }
 
   @override
   String get show => '显示';
@@ -1470,7 +1511,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get fieldName => '名稱';
 
   @override
+  String get nameRequired => '請輸入名稱';
+
+  @override
   String get baseUrl => 'Base URL';
+
+  @override
+  String get baseUrlRequired => '請輸入 Base URL';
 
   @override
   String get minifluxBaseUrlHint => 'https://miniflux.example.com';
@@ -1482,7 +1529,19 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get apiToken => 'API Token';
 
   @override
+  String get apiTokenRequired => '請輸入 API Token';
+
+  @override
   String get apiKey => 'API Key';
+
+  @override
+  String get appId => 'App ID';
+
+  @override
+  String get appKey => 'App Key';
+
+  @override
+  String get apiKeyRequired => '請輸入 API Key';
 
   @override
   String get authenticationMethod => '驗證方式';
@@ -1500,7 +1559,30 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get username => '使用者名稱';
 
   @override
+  String get usernameRequired => '請輸入使用者名稱';
+
+  @override
   String get password => '密碼';
+
+  @override
+  String get passwordRequired => '請輸入密碼';
+
+  @override
+  String get defaultModel => '預設模型';
+
+  @override
+  String get savedApiKeyClearHint => '留空會清除已儲存的 API Key。';
+
+  @override
+  String get savedCredentialsClearHint => '留空會清除已儲存的憑證。';
+
+  @override
+  String get aiServicesEmptyState => '尚未新增任何 AI 服務。';
+
+  @override
+  String modelSummary(String model) {
+    return '模型：$model';
+  }
 
   @override
   String get show => '顯示';

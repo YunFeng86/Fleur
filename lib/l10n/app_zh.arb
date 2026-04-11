@@ -729,9 +729,17 @@
   "@fieldName": {
     "description": "fieldName"
   },
+  "nameRequired": "请输入名称",
+  "@nameRequired": {
+    "description": "Validation message shown when the name field is empty"
+  },
   "baseUrl": "Base URL",
   "@baseUrl": {
     "description": "baseUrl"
+  },
+  "baseUrlRequired": "请输入 Base URL",
+  "@baseUrlRequired": {
+    "description": "Validation message shown when the base URL field is empty"
   },
   "minifluxBaseUrlHint": "https://miniflux.example.com",
   "@minifluxBaseUrlHint": {
@@ -745,9 +753,25 @@
   "@apiToken": {
     "description": "apiToken"
   },
+  "apiTokenRequired": "请输入 API Token",
+  "@apiTokenRequired": {
+    "description": "Validation message shown when the API token field is empty"
+  },
   "apiKey": "API Key",
   "@apiKey": {
     "description": "apiKey"
+  },
+  "appId": "App ID",
+  "@appId": {
+    "description": "App ID 字段标签"
+  },
+  "appKey": "App Key",
+  "@appKey": {
+    "description": "App Key 字段标签"
+  },
+  "apiKeyRequired": "请输入 API Key",
+  "@apiKeyRequired": {
+    "description": "Validation message shown when the API key field is empty"
   },
   "authenticationMethod": "认证方式",
   "@authenticationMethod": {
@@ -769,9 +793,42 @@
   "@username": {
     "description": "username"
   },
+  "usernameRequired": "请输入用户名",
+  "@usernameRequired": {
+    "description": "Validation message shown when the username field is empty"
+  },
   "password": "密码",
   "@password": {
     "description": "password"
+  },
+  "passwordRequired": "请输入密码",
+  "@passwordRequired": {
+    "description": "Validation message shown when the password field is empty"
+  },
+  "defaultModel": "默认模型",
+  "@defaultModel": {
+    "description": "Label for the default model field in the AI service editor"
+  },
+  "savedApiKeyClearHint": "留空会清除已保存的 API Key。",
+  "@savedApiKeyClearHint": {
+    "description": "Helper text explaining that an empty API key field clears the saved value"
+  },
+  "savedCredentialsClearHint": "留空会清除已保存的凭据。",
+  "@savedCredentialsClearHint": {
+    "description": "说明留空会清除已保存凭据的辅助文案"
+  },
+  "aiServicesEmptyState": "还没有添加任何 AI 服务。",
+  "@aiServicesEmptyState": {
+    "description": "尚未配置自定义 AI 服务时的空状态文案"
+  },
+  "modelSummary": "模型：{model}",
+  "@modelSummary": {
+    "description": "展示 AI 服务默认模型的摘要文案",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
   },
   "show": "显示",
   "@show": {

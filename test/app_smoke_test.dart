@@ -35,6 +35,7 @@ import 'package:fleur/widgets/article_list.dart';
 import 'package:fleur/widgets/article_list_item.dart';
 import 'package:fleur/widgets/global_nav_bar.dart';
 import 'package:fleur/widgets/global_nav_rail.dart';
+import 'package:fleur/widgets/overflow_marquee.dart';
 import 'package:fleur/widgets/sidebar.dart';
 import 'package:fleur/widgets/sync_status_capsule.dart';
 
@@ -815,6 +816,225 @@ void main() {
       expect(syncService.refreshCalls, [
         [feed.id],
       ]);
+    },
+  );
+
+  testWidgets(
+    'Sidebar mobile exposes explicit item menus and keeps header actions touch-friendly',
+    (tester) async {
+      debugFleurTargetPlatformOverride = TargetPlatform.android;
+      addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+      final feed = _buildFeed()..categoryId = 1;
+      final category = Category()
+        ..id = 1
+        ..name = 'News';
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            activeAccountProvider.overrideWithValue(buildTestAccount()),
+            feedsProvider.overrideWith((ref) => Stream.value([feed])),
+            categoriesProvider.overrideWith((ref) => Stream.value([category])),
+            tagsProvider.overrideWith((ref) => Stream.value(<Tag>[])),
+            allUnreadCountsProvider.overrideWith(
+              (ref) => Stream.value(<int?, int>{null: 0, category.id: 1}),
+            ),
+          ],
+          child: MaterialApp(
+            locale: const Locale('en'),
+            theme: AppTheme.light(),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const Scaffold(
+              body: SizedBox(
+                width: 400,
+                child: Sidebar(onSelectFeed: _noopSelectFeed),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final addSubscriptionButton = find.byWidgetPredicate(
+        (widget) =>
+            widget is IconButton && widget.tooltip == 'Add subscription',
+      );
+      final newCategoryButton = find.byWidgetPredicate(
+        (widget) => widget is IconButton && widget.tooltip == 'New category',
+      );
+
+      expect(
+        tester.getSize(addSubscriptionButton).width,
+        greaterThanOrEqualTo(48),
+      );
+      expect(
+        tester.getSize(addSubscriptionButton).height,
+        greaterThanOrEqualTo(48),
+      );
+      expect(tester.getSize(newCategoryButton).width, greaterThanOrEqualTo(48));
+      expect(
+        tester.getSize(newCategoryButton).height,
+        greaterThanOrEqualTo(48),
+      );
+
+      await tester.tap(
+        find.byWidgetPredicate(
+          (widget) => widget is IconButton && widget.tooltip == 'Expand',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final moreButtonFinder = find.byWidgetPredicate(
+        (widget) => widget is IconButton && widget.tooltip == 'More',
+      );
+      final categoryTile = find.ancestor(
+        of: find.text('News'),
+        matching: find.byType(ListTile),
+      );
+      final categoryMoreButton = find.descendant(
+        of: categoryTile,
+        matching: moreButtonFinder,
+      );
+      expect(categoryMoreButton, findsOneWidget);
+
+      await tester.tap(categoryMoreButton);
+      await tester.pumpAndSettle();
+      expect(find.text('Rename'), findsOneWidget);
+      await tester.tapAt(const Offset(8, 8));
+      await tester.pumpAndSettle();
+
+      final feedTile = find.ancestor(
+        of: find.text('Fleur Feed'),
+        matching: find.byType(ListTile),
+      );
+      final feedMoreButton = find.descendant(
+        of: feedTile,
+        matching: moreButtonFinder,
+      );
+      expect(feedMoreButton, findsOneWidget);
+
+      await tester.tap(feedMoreButton);
+      await tester.pumpAndSettle();
+      expect(find.text('Refresh'), findsOneWidget);
+    },
+  );
+
+  testWidgets('OverflowMarquee respects reduced motion accessibility signals', (
+    tester,
+  ) async {
+    const text = 'This is a long reader title that should normally animate.';
+
+    Future<void> pumpReducedMotion(MediaQueryData mediaQuery) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MediaQuery(
+            data: mediaQuery,
+            child: const Scaffold(
+              body: SizedBox(width: 120, child: OverflowMarquee(text: text)),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+    }
+
+    for (final mediaQuery in <MediaQueryData>[
+      const MediaQueryData(disableAnimations: true),
+      const MediaQueryData(accessibleNavigation: true),
+    ]) {
+      await pumpReducedMotion(mediaQuery);
+
+      expect(
+        find.descendant(
+          of: find.byType(OverflowMarquee),
+          matching: find.byType(AnimatedBuilder),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(OverflowMarquee),
+          matching: find.text(text),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<Text>(
+              find.descendant(
+                of: find.byType(OverflowMarquee),
+                matching: find.byType(Text),
+              ),
+            )
+            .overflow,
+        TextOverflow.ellipsis,
+      );
+    }
+  });
+
+  testWidgets(
+    'OverflowMarquee resumes after reduced motion is turned back off',
+    (tester) async {
+      const text = 'This is a long reader title that should normally animate.';
+      final mediaQuery = ValueNotifier(const MediaQueryData());
+      addTearDown(mediaQuery.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ValueListenableBuilder<MediaQueryData>(
+            valueListenable: mediaQuery,
+            builder: (context, data, _) {
+              return MediaQuery(
+                data: data,
+                child: const Scaffold(
+                  body: SizedBox(
+                    width: 120,
+                    child: OverflowMarquee(
+                      key: ValueKey('overflow_marquee'),
+                      text: text,
+                      pause: Duration(milliseconds: 1),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+      await tester.pump();
+
+      double currentDx() {
+        final transform = tester.widget<Transform>(
+          find.descendant(
+            of: find.byKey(const ValueKey('overflow_marquee')),
+            matching: find.byType(Transform),
+          ),
+        );
+        return transform.transform.storage[12];
+      }
+
+      await tester.pump(const Duration(milliseconds: 20));
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(currentDx(), lessThan(0));
+
+      mediaQuery.value = const MediaQueryData(disableAnimations: true);
+      await tester.pump();
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('overflow_marquee')),
+          matching: find.byType(Transform),
+        ),
+        findsNothing,
+      );
+
+      mediaQuery.value = const MediaQueryData();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 20));
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(currentDx(), lessThan(0));
     },
   );
 

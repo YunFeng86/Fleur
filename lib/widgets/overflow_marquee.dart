@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'dart:async' show unawaited;
 
+import '../ui/motion.dart';
+
 /// A tiny, dependency-free marquee that only animates when the text overflows.
 ///
 /// This is intentionally simple: it "ping-pongs" left/right so users can read
@@ -32,6 +34,13 @@ class _OverflowMarqueeState extends State<OverflowMarquee>
   double _lastWidth = -1;
   TextStyle? _lastStyle;
   TextDirection? _lastDirection;
+
+  void _invalidateMeasurementCache() {
+    _lastText = '';
+    _lastWidth = -1;
+    _lastStyle = null;
+    _lastDirection = null;
+  }
 
   @override
   void initState() {
@@ -111,6 +120,19 @@ class _OverflowMarqueeState extends State<OverflowMarquee>
 
   @override
   Widget build(BuildContext context) {
+    if (AppMotion.reduceMotion(context)) {
+      _stop();
+      // Reduced-motion can toggle at runtime. Clear the cached measurement so
+      // we re-measure and restart the marquee if motion is later re-enabled.
+      _invalidateMeasurementCache();
+      return Text(
+        widget.text,
+        style: widget.style,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      );
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
         _measureAndMaybeAnimate(constraints);

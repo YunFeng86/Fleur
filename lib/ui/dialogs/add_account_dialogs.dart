@@ -19,30 +19,64 @@ Future<String?> showAddLocalAccountDialog(
 ) async {
   final l10n = AppLocalizations.of(context)!;
   final nameCtrl = TextEditingController(text: l10n.local);
+  final nameFocus = FocusNode();
+  String? nameError;
   if (!context.mounted) return null;
   final name = await showDialog<String?>(
     context: context,
     builder: (context) {
-      return AlertDialog(
-        title: Text(l10n.addLocalAccount),
-        content: TextField(
-          controller: nameCtrl,
-          decoration: InputDecoration(labelText: l10n.fieldName),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(null),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(nameCtrl.text),
-            child: Text(l10n.add),
-          ),
-        ],
+      return StatefulBuilder(
+        builder: (dialogContext, setState) {
+          return AlertDialog(
+            title: Text(l10n.addLocalAccount),
+            content: TextField(
+              controller: nameCtrl,
+              focusNode: nameFocus,
+              autofocus: true,
+              textInputAction: TextInputAction.done,
+              onChanged: (_) {
+                if (nameError == null) return;
+                setState(() => nameError = null);
+              },
+              onSubmitted: (_) {
+                final trimmed = nameCtrl.text.trim();
+                if (trimmed.isEmpty) {
+                  setState(() => nameError = l10n.nameRequired);
+                  FocusScope.of(dialogContext).requestFocus(nameFocus);
+                  return;
+                }
+                Navigator.of(dialogContext).pop(trimmed);
+              },
+              decoration: InputDecoration(
+                labelText: l10n.fieldName,
+                errorText: nameError,
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(null),
+                child: Text(l10n.cancel),
+              ),
+              FilledButton(
+                onPressed: () {
+                  final trimmed = nameCtrl.text.trim();
+                  if (trimmed.isEmpty) {
+                    setState(() => nameError = l10n.nameRequired);
+                    FocusScope.of(dialogContext).requestFocus(nameFocus);
+                    return;
+                  }
+                  Navigator.of(dialogContext).pop(trimmed);
+                },
+                child: Text(l10n.add),
+              ),
+            ],
+          );
+        },
       );
     },
   );
+  nameCtrl.dispose();
+  nameFocus.dispose();
 
   final trimmed = (name ?? '').trim();
   if (trimmed.isEmpty) return null;
@@ -67,10 +101,20 @@ Future<String?> showAddFeverAccountDialog(
   final apiKeyCtrl = TextEditingController();
   final usernameCtrl = TextEditingController();
   final passwordCtrl = TextEditingController();
+  final nameFocus = FocusNode();
+  final baseUrlFocus = FocusNode();
+  final apiKeyFocus = FocusNode();
+  final usernameFocus = FocusNode();
+  final passwordFocus = FocusNode();
   bool obscureApiKey = true;
   bool obscurePassword = true;
   var authMode = _FeverAuthMode.apiKey;
   var submitting = false;
+  String? nameError;
+  String? baseUrlError;
+  String? apiKeyError;
+  String? usernameError;
+  String? passwordError;
 
   String? createdId;
 
@@ -82,21 +126,71 @@ Future<String?> showAddFeverAccountDialog(
     final username = usernameCtrl.text.trim();
     final password = passwordCtrl.text;
     final uri = Uri.tryParse(baseUrl);
-    final hasCreds = switch (authMode) {
-      _FeverAuthMode.apiKey => apiKey.isNotEmpty,
-      _FeverAuthMode.basicAuth => username.isNotEmpty && password.isNotEmpty,
+    String? nextNameError;
+    String? nextBaseUrlError;
+    String? nextApiKeyError;
+    String? nextUsernameError;
+    String? nextPasswordError;
+
+    if (name.isEmpty) nextNameError = l10n.nameRequired;
+    if (baseUrl.isEmpty) {
+      nextBaseUrlError = l10n.baseUrlRequired;
+    } else if (uri == null ||
+        !(uri.scheme == 'http' || uri.scheme == 'https')) {
+      nextBaseUrlError = l10n.invalidBaseUrl;
+    }
+    switch (authMode) {
+      case _FeverAuthMode.apiKey:
+        if (apiKey.isEmpty) nextApiKeyError = l10n.apiKeyRequired;
+        break;
+      case _FeverAuthMode.basicAuth:
+        if (username.isEmpty) nextUsernameError = l10n.usernameRequired;
+        if (password.isEmpty) nextPasswordError = l10n.passwordRequired;
+        break;
+    }
+
+    final hasErrors = switch (authMode) {
+      _FeverAuthMode.apiKey =>
+        nextNameError != null ||
+            nextBaseUrlError != null ||
+            nextApiKeyError != null,
+      _FeverAuthMode.basicAuth =>
+        nextNameError != null ||
+            nextBaseUrlError != null ||
+            nextUsernameError != null ||
+            nextPasswordError != null,
     };
 
-    if (name.isEmpty || baseUrl.isEmpty || !hasCreds) {
-      dialogContext.showSnack(l10n.errorMessage(l10n.missingRequiredFields));
-      return;
-    }
-    if (uri == null || !(uri.scheme == 'http' || uri.scheme == 'https')) {
-      dialogContext.showSnack(l10n.errorMessage(l10n.invalidBaseUrl));
+    if (hasErrors) {
+      setState(() {
+        nameError = nextNameError;
+        baseUrlError = nextBaseUrlError;
+        apiKeyError = nextApiKeyError;
+        usernameError = nextUsernameError;
+        passwordError = nextPasswordError;
+      });
+      if (nextNameError != null) {
+        FocusScope.of(dialogContext).requestFocus(nameFocus);
+      } else if (nextBaseUrlError != null) {
+        FocusScope.of(dialogContext).requestFocus(baseUrlFocus);
+      } else if (nextApiKeyError != null) {
+        FocusScope.of(dialogContext).requestFocus(apiKeyFocus);
+      } else if (nextUsernameError != null) {
+        FocusScope.of(dialogContext).requestFocus(usernameFocus);
+      } else if (nextPasswordError != null) {
+        FocusScope.of(dialogContext).requestFocus(passwordFocus);
+      }
       return;
     }
 
-    setState(() => submitting = true);
+    setState(() {
+      nameError = null;
+      baseUrlError = null;
+      apiKeyError = null;
+      usernameError = null;
+      passwordError = null;
+      submitting = true;
+    });
     try {
       final id = await ref
           .read(accountsControllerProvider.notifier)
@@ -131,137 +225,213 @@ Future<String?> showAddFeverAccountDialog(
   }
 
   if (!context.mounted) return null;
-  await showDialog<void>(
-    context: context,
-    builder: (context) {
-      return StatefulBuilder(
-        builder: (dialogContext, setState) {
-          return AlertDialog(
-            scrollable: true,
-            title: Text(l10n.addFever),
-            content: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 520),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: nameCtrl,
-                    decoration: InputDecoration(labelText: l10n.fieldName),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: baseUrlCtrl,
-                    decoration: InputDecoration(
-                      labelText: l10n.baseUrl,
-                      hintText: l10n.feverBaseUrlHint,
-                    ),
-                    keyboardType: TextInputType.url,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    l10n.authenticationMethod,
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      ChoiceChip(
-                        label: Text(l10n.apiKey),
-                        selected: authMode == _FeverAuthMode.apiKey,
-                        onSelected: (v) {
-                          if (!v) return;
-                          setState(() => authMode = _FeverAuthMode.apiKey);
-                        },
-                      ),
-                      ChoiceChip(
-                        label: Text(l10n.usernamePassword),
-                        selected: authMode == _FeverAuthMode.basicAuth,
-                        onSelected: (v) {
-                          if (!v) return;
-                          setState(() => authMode = _FeverAuthMode.basicAuth);
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    l10n.feverAuthHint,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const SizedBox(height: 12),
-                  if (authMode == _FeverAuthMode.apiKey) ...[
+  try {
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (dialogContext, setState) {
+            return AlertDialog(
+              scrollable: true,
+              title: Text(l10n.addFever),
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
                     TextField(
-                      controller: apiKeyCtrl,
-                      obscureText: obscureApiKey,
+                      controller: nameCtrl,
+                      focusNode: nameFocus,
+                      autofocus: true,
+                      textInputAction: TextInputAction.next,
+                      onChanged: (_) {
+                        if (nameError == null) return;
+                        setState(() => nameError = null);
+                      },
+                      onSubmitted: (_) => FocusScope.of(
+                        dialogContext,
+                      ).requestFocus(baseUrlFocus),
                       decoration: InputDecoration(
-                        labelText: l10n.apiKey,
-                        suffixIcon: IconButton(
-                          tooltip: obscureApiKey ? l10n.show : l10n.hide,
-                          icon: Icon(
-                            obscureApiKey
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                          ),
-                          onPressed: () =>
-                              setState(() => obscureApiKey = !obscureApiKey),
-                        ),
+                        labelText: l10n.fieldName,
+                        errorText: nameError,
                       ),
-                    ),
-                  ] else ...[
-                    TextField(
-                      controller: usernameCtrl,
-                      decoration: InputDecoration(labelText: l10n.username),
                     ),
                     const SizedBox(height: 12),
                     TextField(
-                      controller: passwordCtrl,
-                      obscureText: obscurePassword,
+                      controller: baseUrlCtrl,
+                      focusNode: baseUrlFocus,
+                      textInputAction: TextInputAction.next,
+                      onChanged: (_) {
+                        if (baseUrlError == null) return;
+                        setState(() => baseUrlError = null);
+                      },
+                      onSubmitted: (_) {
+                        final nextFocus = authMode == _FeverAuthMode.apiKey
+                            ? apiKeyFocus
+                            : usernameFocus;
+                        FocusScope.of(dialogContext).requestFocus(nextFocus);
+                      },
                       decoration: InputDecoration(
-                        labelText: l10n.password,
-                        suffixIcon: IconButton(
-                          tooltip: obscurePassword ? l10n.show : l10n.hide,
-                          icon: Icon(
-                            obscurePassword
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                          ),
-                          onPressed: () => setState(
-                            () => obscurePassword = !obscurePassword,
+                        labelText: l10n.baseUrl,
+                        hintText: l10n.feverBaseUrlHint,
+                        errorText: baseUrlError,
+                      ),
+                      keyboardType: TextInputType.url,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      l10n.authenticationMethod,
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        ChoiceChip(
+                          label: Text(l10n.apiKey),
+                          selected: authMode == _FeverAuthMode.apiKey,
+                          onSelected: (v) {
+                            if (!v) return;
+                            setState(() {
+                              authMode = _FeverAuthMode.apiKey;
+                              usernameError = null;
+                              passwordError = null;
+                            });
+                          },
+                        ),
+                        ChoiceChip(
+                          label: Text(l10n.usernamePassword),
+                          selected: authMode == _FeverAuthMode.basicAuth,
+                          onSelected: (v) {
+                            if (!v) return;
+                            setState(() {
+                              authMode = _FeverAuthMode.basicAuth;
+                              apiKeyError = null;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.feverAuthHint,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 12),
+                    if (authMode == _FeverAuthMode.apiKey) ...[
+                      TextField(
+                        controller: apiKeyCtrl,
+                        focusNode: apiKeyFocus,
+                        obscureText: obscureApiKey,
+                        textInputAction: TextInputAction.done,
+                        onChanged: (_) {
+                          if (apiKeyError == null) return;
+                          setState(() => apiKeyError = null);
+                        },
+                        onSubmitted: (_) =>
+                            unawaited(submit(setState, dialogContext)),
+                        decoration: InputDecoration(
+                          labelText: l10n.apiKey,
+                          errorText: apiKeyError,
+                          suffixIcon: IconButton(
+                            tooltip: obscureApiKey ? l10n.show : l10n.hide,
+                            icon: Icon(
+                              obscureApiKey
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                            ),
+                            onPressed: () =>
+                                setState(() => obscureApiKey = !obscureApiKey),
                           ),
                         ),
                       ),
-                    ),
+                    ] else ...[
+                      TextField(
+                        controller: usernameCtrl,
+                        focusNode: usernameFocus,
+                        textInputAction: TextInputAction.next,
+                        onChanged: (_) {
+                          if (usernameError == null) return;
+                          setState(() => usernameError = null);
+                        },
+                        onSubmitted: (_) => FocusScope.of(
+                          dialogContext,
+                        ).requestFocus(passwordFocus),
+                        decoration: InputDecoration(
+                          labelText: l10n.username,
+                          errorText: usernameError,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: passwordCtrl,
+                        focusNode: passwordFocus,
+                        obscureText: obscurePassword,
+                        textInputAction: TextInputAction.done,
+                        onChanged: (_) {
+                          if (passwordError == null) return;
+                          setState(() => passwordError = null);
+                        },
+                        onSubmitted: (_) =>
+                            unawaited(submit(setState, dialogContext)),
+                        decoration: InputDecoration(
+                          labelText: l10n.password,
+                          errorText: passwordError,
+                          suffixIcon: IconButton(
+                            tooltip: obscurePassword ? l10n.show : l10n.hide,
+                            icon: Icon(
+                              obscurePassword
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                            ),
+                            onPressed: () => setState(
+                              () => obscurePassword = !obscurePassword,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: submitting
-                    ? null
-                    : () => Navigator.of(dialogContext).pop(),
-                child: Text(l10n.cancel),
-              ),
-              FilledButton(
-                onPressed: submitting
-                    ? null
-                    : () => unawaited(submit(setState, dialogContext)),
-                child: submitting
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(l10n.add),
-              ),
-            ],
-          );
-        },
-      );
-    },
-  );
+              actions: [
+                TextButton(
+                  onPressed: submitting
+                      ? null
+                      : () => Navigator.of(dialogContext).pop(),
+                  child: Text(l10n.cancel),
+                ),
+                FilledButton(
+                  onPressed: submitting
+                      ? null
+                      : () => unawaited(submit(setState, dialogContext)),
+                  child: submitting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(l10n.add),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  } finally {
+    nameCtrl.dispose();
+    baseUrlCtrl.dispose();
+    apiKeyCtrl.dispose();
+    usernameCtrl.dispose();
+    passwordCtrl.dispose();
+    nameFocus.dispose();
+    baseUrlFocus.dispose();
+    apiKeyFocus.dispose();
+    usernameFocus.dispose();
+    passwordFocus.dispose();
+  }
 
   final id = createdId;
   if (id == null) return null;
@@ -281,10 +451,20 @@ Future<String?> showAddMinifluxAccountDialog(
   final tokenCtrl = TextEditingController();
   final usernameCtrl = TextEditingController();
   final passwordCtrl = TextEditingController();
+  final nameFocus = FocusNode();
+  final baseUrlFocus = FocusNode();
+  final tokenFocus = FocusNode();
+  final usernameFocus = FocusNode();
+  final passwordFocus = FocusNode();
   bool obscureToken = true;
   bool obscurePassword = true;
   var authMode = _MinifluxAuthMode.apiToken;
   var submitting = false;
+  String? nameError;
+  String? baseUrlError;
+  String? tokenError;
+  String? usernameError;
+  String? passwordError;
 
   String? createdId;
 
@@ -296,21 +476,71 @@ Future<String?> showAddMinifluxAccountDialog(
     final username = usernameCtrl.text.trim();
     final password = passwordCtrl.text;
     final uri = Uri.tryParse(baseUrl);
-    final hasCreds = switch (authMode) {
-      _MinifluxAuthMode.apiToken => token.isNotEmpty,
-      _MinifluxAuthMode.basicAuth => username.isNotEmpty && password.isNotEmpty,
+    String? nextNameError;
+    String? nextBaseUrlError;
+    String? nextTokenError;
+    String? nextUsernameError;
+    String? nextPasswordError;
+
+    if (name.isEmpty) nextNameError = l10n.nameRequired;
+    if (baseUrl.isEmpty) {
+      nextBaseUrlError = l10n.baseUrlRequired;
+    } else if (uri == null ||
+        !(uri.scheme == 'http' || uri.scheme == 'https')) {
+      nextBaseUrlError = l10n.invalidBaseUrl;
+    }
+    switch (authMode) {
+      case _MinifluxAuthMode.apiToken:
+        if (token.isEmpty) nextTokenError = l10n.apiTokenRequired;
+        break;
+      case _MinifluxAuthMode.basicAuth:
+        if (username.isEmpty) nextUsernameError = l10n.usernameRequired;
+        if (password.isEmpty) nextPasswordError = l10n.passwordRequired;
+        break;
+    }
+
+    final hasErrors = switch (authMode) {
+      _MinifluxAuthMode.apiToken =>
+        nextNameError != null ||
+            nextBaseUrlError != null ||
+            nextTokenError != null,
+      _MinifluxAuthMode.basicAuth =>
+        nextNameError != null ||
+            nextBaseUrlError != null ||
+            nextUsernameError != null ||
+            nextPasswordError != null,
     };
 
-    if (name.isEmpty || baseUrl.isEmpty || !hasCreds) {
-      dialogContext.showSnack(l10n.errorMessage(l10n.missingRequiredFields));
-      return;
-    }
-    if (uri == null || !(uri.scheme == 'http' || uri.scheme == 'https')) {
-      dialogContext.showSnack(l10n.errorMessage(l10n.invalidBaseUrl));
+    if (hasErrors) {
+      setState(() {
+        nameError = nextNameError;
+        baseUrlError = nextBaseUrlError;
+        tokenError = nextTokenError;
+        usernameError = nextUsernameError;
+        passwordError = nextPasswordError;
+      });
+      if (nextNameError != null) {
+        FocusScope.of(dialogContext).requestFocus(nameFocus);
+      } else if (nextBaseUrlError != null) {
+        FocusScope.of(dialogContext).requestFocus(baseUrlFocus);
+      } else if (nextTokenError != null) {
+        FocusScope.of(dialogContext).requestFocus(tokenFocus);
+      } else if (nextUsernameError != null) {
+        FocusScope.of(dialogContext).requestFocus(usernameFocus);
+      } else if (nextPasswordError != null) {
+        FocusScope.of(dialogContext).requestFocus(passwordFocus);
+      }
       return;
     }
 
-    setState(() => submitting = true);
+    setState(() {
+      nameError = null;
+      baseUrlError = null;
+      tokenError = null;
+      usernameError = null;
+      passwordError = null;
+      submitting = true;
+    });
     try {
       final id = await ref
           .read(accountsControllerProvider.notifier)
@@ -346,139 +576,213 @@ Future<String?> showAddMinifluxAccountDialog(
   }
 
   if (!context.mounted) return null;
-  await showDialog<void>(
-    context: context,
-    builder: (context) {
-      return StatefulBuilder(
-        builder: (dialogContext, setState) {
-          return AlertDialog(
-            scrollable: true,
-            title: Text(l10n.addMiniflux),
-            content: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 520),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: nameCtrl,
-                    decoration: InputDecoration(labelText: l10n.fieldName),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: baseUrlCtrl,
-                    decoration: InputDecoration(
-                      labelText: l10n.baseUrl,
-                      hintText: l10n.minifluxBaseUrlHint,
-                    ),
-                    keyboardType: TextInputType.url,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    l10n.authenticationMethod,
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      ChoiceChip(
-                        label: Text(l10n.apiToken),
-                        selected: authMode == _MinifluxAuthMode.apiToken,
-                        onSelected: (v) {
-                          if (!v) return;
-                          setState(() => authMode = _MinifluxAuthMode.apiToken);
-                        },
-                      ),
-                      ChoiceChip(
-                        label: Text(l10n.usernamePassword),
-                        selected: authMode == _MinifluxAuthMode.basicAuth,
-                        onSelected: (v) {
-                          if (!v) return;
-                          setState(
-                            () => authMode = _MinifluxAuthMode.basicAuth,
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    l10n.minifluxAuthHint,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const SizedBox(height: 12),
-                  if (authMode == _MinifluxAuthMode.apiToken) ...[
+  try {
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (dialogContext, setState) {
+            return AlertDialog(
+              scrollable: true,
+              title: Text(l10n.addMiniflux),
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
                     TextField(
-                      controller: tokenCtrl,
-                      obscureText: obscureToken,
+                      controller: nameCtrl,
+                      focusNode: nameFocus,
+                      autofocus: true,
+                      textInputAction: TextInputAction.next,
+                      onChanged: (_) {
+                        if (nameError == null) return;
+                        setState(() => nameError = null);
+                      },
+                      onSubmitted: (_) => FocusScope.of(
+                        dialogContext,
+                      ).requestFocus(baseUrlFocus),
                       decoration: InputDecoration(
-                        labelText: l10n.apiToken,
-                        suffixIcon: IconButton(
-                          tooltip: obscureToken ? l10n.show : l10n.hide,
-                          icon: Icon(
-                            obscureToken
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                          ),
-                          onPressed: () =>
-                              setState(() => obscureToken = !obscureToken),
-                        ),
+                        labelText: l10n.fieldName,
+                        errorText: nameError,
                       ),
-                    ),
-                  ] else ...[
-                    TextField(
-                      controller: usernameCtrl,
-                      decoration: InputDecoration(labelText: l10n.username),
                     ),
                     const SizedBox(height: 12),
                     TextField(
-                      controller: passwordCtrl,
-                      obscureText: obscurePassword,
+                      controller: baseUrlCtrl,
+                      focusNode: baseUrlFocus,
+                      textInputAction: TextInputAction.next,
+                      onChanged: (_) {
+                        if (baseUrlError == null) return;
+                        setState(() => baseUrlError = null);
+                      },
+                      onSubmitted: (_) {
+                        final nextFocus = authMode == _MinifluxAuthMode.apiToken
+                            ? tokenFocus
+                            : usernameFocus;
+                        FocusScope.of(dialogContext).requestFocus(nextFocus);
+                      },
                       decoration: InputDecoration(
-                        labelText: l10n.password,
-                        suffixIcon: IconButton(
-                          tooltip: obscurePassword ? l10n.show : l10n.hide,
-                          icon: Icon(
-                            obscurePassword
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                          ),
-                          onPressed: () => setState(
-                            () => obscurePassword = !obscurePassword,
+                        labelText: l10n.baseUrl,
+                        hintText: l10n.minifluxBaseUrlHint,
+                        errorText: baseUrlError,
+                      ),
+                      keyboardType: TextInputType.url,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      l10n.authenticationMethod,
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        ChoiceChip(
+                          label: Text(l10n.apiToken),
+                          selected: authMode == _MinifluxAuthMode.apiToken,
+                          onSelected: (v) {
+                            if (!v) return;
+                            setState(() {
+                              authMode = _MinifluxAuthMode.apiToken;
+                              usernameError = null;
+                              passwordError = null;
+                            });
+                          },
+                        ),
+                        ChoiceChip(
+                          label: Text(l10n.usernamePassword),
+                          selected: authMode == _MinifluxAuthMode.basicAuth,
+                          onSelected: (v) {
+                            if (!v) return;
+                            setState(() {
+                              authMode = _MinifluxAuthMode.basicAuth;
+                              tokenError = null;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.minifluxAuthHint,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 12),
+                    if (authMode == _MinifluxAuthMode.apiToken) ...[
+                      TextField(
+                        controller: tokenCtrl,
+                        focusNode: tokenFocus,
+                        obscureText: obscureToken,
+                        textInputAction: TextInputAction.done,
+                        onChanged: (_) {
+                          if (tokenError == null) return;
+                          setState(() => tokenError = null);
+                        },
+                        onSubmitted: (_) =>
+                            unawaited(submit(setState, dialogContext)),
+                        decoration: InputDecoration(
+                          labelText: l10n.apiToken,
+                          errorText: tokenError,
+                          suffixIcon: IconButton(
+                            tooltip: obscureToken ? l10n.show : l10n.hide,
+                            icon: Icon(
+                              obscureToken
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                            ),
+                            onPressed: () =>
+                                setState(() => obscureToken = !obscureToken),
                           ),
                         ),
                       ),
-                    ),
+                    ] else ...[
+                      TextField(
+                        controller: usernameCtrl,
+                        focusNode: usernameFocus,
+                        textInputAction: TextInputAction.next,
+                        onChanged: (_) {
+                          if (usernameError == null) return;
+                          setState(() => usernameError = null);
+                        },
+                        onSubmitted: (_) => FocusScope.of(
+                          dialogContext,
+                        ).requestFocus(passwordFocus),
+                        decoration: InputDecoration(
+                          labelText: l10n.username,
+                          errorText: usernameError,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: passwordCtrl,
+                        focusNode: passwordFocus,
+                        obscureText: obscurePassword,
+                        textInputAction: TextInputAction.done,
+                        onChanged: (_) {
+                          if (passwordError == null) return;
+                          setState(() => passwordError = null);
+                        },
+                        onSubmitted: (_) =>
+                            unawaited(submit(setState, dialogContext)),
+                        decoration: InputDecoration(
+                          labelText: l10n.password,
+                          errorText: passwordError,
+                          suffixIcon: IconButton(
+                            tooltip: obscurePassword ? l10n.show : l10n.hide,
+                            icon: Icon(
+                              obscurePassword
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                            ),
+                            onPressed: () => setState(
+                              () => obscurePassword = !obscurePassword,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: submitting
-                    ? null
-                    : () => Navigator.of(dialogContext).pop(),
-                child: Text(l10n.cancel),
-              ),
-              FilledButton(
-                onPressed: submitting
-                    ? null
-                    : () => unawaited(submit(setState, dialogContext)),
-                child: submitting
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(l10n.add),
-              ),
-            ],
-          );
-        },
-      );
-    },
-  );
+              actions: [
+                TextButton(
+                  onPressed: submitting
+                      ? null
+                      : () => Navigator.of(dialogContext).pop(),
+                  child: Text(l10n.cancel),
+                ),
+                FilledButton(
+                  onPressed: submitting
+                      ? null
+                      : () => unawaited(submit(setState, dialogContext)),
+                  child: submitting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(l10n.add),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  } finally {
+    nameCtrl.dispose();
+    baseUrlCtrl.dispose();
+    tokenCtrl.dispose();
+    usernameCtrl.dispose();
+    passwordCtrl.dispose();
+    nameFocus.dispose();
+    baseUrlFocus.dispose();
+    tokenFocus.dispose();
+    usernameFocus.dispose();
+    passwordFocus.dispose();
+  }
 
   final id = createdId;
   if (id == null) return null;

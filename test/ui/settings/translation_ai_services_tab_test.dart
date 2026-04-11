@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:fleur/providers/app_settings_providers.dart';
 import 'package:fleur/providers/translation_ai_settings_providers.dart';
 import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/settings/translation_ai_settings.dart';
+import 'package:fleur/ui/settings/translation_ai/ai_service_editor_dialog.dart';
+import 'package:fleur/ui/settings/translation_ai/ai_service_templates.dart';
 import 'package:fleur/ui/settings/tabs/translation_ai_services_tab.dart';
 
 import '../../test_utils/critical_workflow_test_support.dart';
@@ -32,6 +35,47 @@ void main() {
       ],
       locale: locale,
       size: size,
+    );
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> pumpEditorLauncher(
+    WidgetTester tester, {
+    required FakeTranslationAiSettingsStore store,
+    FakeTranslationAiSecretStore? secrets,
+    Locale locale = const Locale('en'),
+    AiServiceTemplate? template,
+  }) async {
+    await pumpLocalizedTestApp(
+      tester,
+      locale: locale,
+      home: Scaffold(
+        body: Center(
+          child: Consumer(
+            builder: (context, ref, _) {
+              return FilledButton(
+                onPressed: () async {
+                  await showAiServiceEditorDialog(
+                    context,
+                    ref,
+                    template: template ?? aiServiceTemplates.first,
+                  );
+                },
+                child: const Text('open ai editor'),
+              );
+            },
+          ),
+        ),
+      ),
+      overrides: [
+        appSettingsStoreProvider.overrideWithValue(
+          FakeAppSettingsStore(AppSettings.defaults()),
+        ),
+        translationAiSettingsStoreProvider.overrideWithValue(store),
+        translationAiSecretStoreProvider.overrideWithValue(
+          secrets ?? FakeTranslationAiSecretStore(),
+        ),
+      ],
     );
     await tester.pumpAndSettle();
   }
@@ -203,4 +247,93 @@ void main() {
       expect(errors, isEmpty);
     },
   );
+
+  testWidgets('AI service editor shows inline URL errors and refocuses URL', (
+    tester,
+  ) async {
+    final store = FakeTranslationAiSettingsStore(
+      TranslationAiSettings.defaults(),
+    );
+
+    await pumpEditorLauncher(tester, store: store);
+
+    await tester.tap(find.text('open ai editor'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(1), 'notaurl');
+    await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Invalid base URL'), findsOneWidget);
+    expect(
+      tester
+          .widget<TextField>(find.byType(TextField).at(1))
+          .focusNode
+          ?.hasFocus,
+      isTrue,
+    );
+  });
+
+  for (final testCase
+      in <
+        ({
+          Locale locale,
+          String languageTag,
+          String nameLabel,
+          String defaultModelLabel,
+          String helperText,
+          String unexpectedLabel,
+          String unexpectedHelper,
+        })
+      >[
+        (
+          locale: const Locale('en'),
+          languageTag: 'en',
+          nameLabel: 'Name',
+          defaultModelLabel: 'Default model',
+          helperText: 'Leave blank to clear the saved API key.',
+          unexpectedLabel: 'Default Model',
+          unexpectedHelper: '留空将清除已保存的 API Key。',
+        ),
+        (
+          locale: const Locale('zh'),
+          languageTag: 'zh',
+          nameLabel: '名称',
+          defaultModelLabel: '默认模型',
+          helperText: '留空会清除已保存的 API Key。',
+          unexpectedLabel: 'Name',
+          unexpectedHelper: 'Leave blank to clear the saved API key.',
+        ),
+        (
+          locale: const Locale.fromSubtags(
+            languageCode: 'zh',
+            scriptCode: 'Hant',
+          ),
+          languageTag: 'zh_Hant',
+          nameLabel: '名稱',
+          defaultModelLabel: '預設模型',
+          helperText: '留空會清除已儲存的 API Key。',
+          unexpectedLabel: '名称',
+          unexpectedHelper: '留空将清除已保存的 API Key。',
+        ),
+      ]) {
+    testWidgets(
+      'AI service editor localizes labels in ${testCase.languageTag}',
+      (tester) async {
+        final store = FakeTranslationAiSettingsStore(
+          TranslationAiSettings.defaults(),
+        );
+
+        await pumpEditorLauncher(tester, store: store, locale: testCase.locale);
+
+        await tester.tap(find.text('open ai editor'));
+        await tester.pumpAndSettle();
+
+        expect(find.text(testCase.nameLabel), findsOneWidget);
+        expect(find.text(testCase.defaultModelLabel), findsOneWidget);
+        expect(find.text(testCase.helperText), findsOneWidget);
+        expect(find.text(testCase.unexpectedLabel), findsNothing);
+        expect(find.text(testCase.unexpectedHelper), findsNothing);
+      },
+    );
+  }
 }

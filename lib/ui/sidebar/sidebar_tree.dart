@@ -219,7 +219,7 @@ class SidebarNavigationTree extends StatelessWidget {
                     PopupMenuButton<_SidebarTreeMenu>(
                       icon: const Icon(Icons.more_horiz, size: 20),
                       tooltip: l10n.more,
-                      padding: EdgeInsets.zero,
+                      iconSize: 20,
                       onSelected: (value) async {
                         switch (value) {
                           case _SidebarTreeMenu.settings:
@@ -255,10 +255,13 @@ class SidebarNavigationTree extends StatelessWidget {
                         ),
                       ],
                     ),
+                    const SizedBox(width: 8),
                     IconButton(
                       iconSize: 20,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
+                      constraints: const BoxConstraints(
+                        minWidth: 48,
+                        minHeight: 48,
+                      ),
                       tooltip: l10n.addSubscription,
                       onPressed: onAddFeed,
                       icon: const Icon(Icons.add),
@@ -266,8 +269,10 @@ class SidebarNavigationTree extends StatelessWidget {
                     const SizedBox(width: 8),
                     IconButton(
                       iconSize: 20,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
+                      constraints: const BoxConstraints(
+                        minWidth: 48,
+                        minHeight: 48,
+                      ),
                       tooltip: l10n.newCategory,
                       onPressed: onAddCategory,
                       icon: const Icon(Icons.create_new_folder_outlined),
@@ -386,6 +391,12 @@ class _SidebarCategoryTile extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               _UnreadBadge(unreadCount),
+              if (!isDesktop)
+                IconButton(
+                  tooltip: l10n.more,
+                  onPressed: () => onShowCategoryMenu(category),
+                  icon: const Icon(Icons.more_vert),
+                ),
               if (isDesktop)
                 MenuAnchor(
                   menuChildren: [
@@ -542,7 +553,17 @@ class _SidebarFeedTile extends StatelessWidget {
                 ),
               ],
             )
-          : (unreadCount == null ? null : _UnreadBadge(unreadCount!)),
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (unreadCount != null) _UnreadBadge(unreadCount!),
+                IconButton(
+                  tooltip: l10n.more,
+                  onPressed: () => onShowFeedMenu(feed),
+                  icon: const Icon(Icons.more_vert),
+                ),
+              ],
+            ),
       onTap: () => selectionActions.selectFeed(feed.id),
       onLongPress: isDesktop ? null : () => onShowFeedMenu(feed),
     );

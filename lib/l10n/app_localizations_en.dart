@@ -558,7 +558,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fieldName => 'Name';
 
   @override
+  String get nameRequired => 'Enter a name';
+
+  @override
   String get baseUrl => 'Base URL';
+
+  @override
+  String get baseUrlRequired => 'Enter base URL';
 
   @override
   String get minifluxBaseUrlHint => 'https://miniflux.example.com';
@@ -570,7 +576,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get apiToken => 'API Token';
 
   @override
+  String get apiTokenRequired => 'Enter API token';
+
+  @override
   String get apiKey => 'API Key';
+
+  @override
+  String get appId => 'App ID';
+
+  @override
+  String get appKey => 'App Key';
+
+  @override
+  String get apiKeyRequired => 'Enter API key';
 
   @override
   String get authenticationMethod => 'Authentication method';
@@ -590,7 +608,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get username => 'Username';
 
   @override
+  String get usernameRequired => 'Enter username';
+
+  @override
   String get password => 'Password';
+
+  @override
+  String get passwordRequired => 'Enter password';
+
+  @override
+  String get defaultModel => 'Default model';
+
+  @override
+  String get savedApiKeyClearHint => 'Leave blank to clear the saved API key.';
+
+  @override
+  String get savedCredentialsClearHint =>
+      'Leave blank to clear the saved credentials.';
+
+  @override
+  String get aiServicesEmptyState => 'No AI services added yet.';
+
+  @override
+  String modelSummary(String model) {
+    return 'Model: $model';
+  }
 
   @override
   String get show => 'Show';
