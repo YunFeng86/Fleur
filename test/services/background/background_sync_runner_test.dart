@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar/isar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -32,6 +33,8 @@ class _FakeIsar extends Fake implements Isar {
     return true;
   }
 }
+
+class _FakeCacheManager extends Fake implements BaseCacheManager {}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -281,7 +284,9 @@ void main() {
     () {
       final isar = _FakeIsar();
       final dio = createAppDio();
-      final cache = createArticleCacheService();
+      final cache = createArticleCacheService(
+        cacheManager: _FakeCacheManager(),
+      );
       final extractor = createArticleExtractor(dio: dio);
       final notifications = createNotificationService();
       final outbox = FakeOutboxStore();
