@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../models/feed.dart';
-import '../../../../providers/subscription_settings_provider.dart';
-import '../../../../providers/query_providers.dart';
+
 import '../../../../l10n/app_localizations.dart';
+import '../../../../providers/query_providers.dart';
+import '../../../../providers/subscription_settings_provider.dart';
+import '../../../../theme/fleur_theme_extensions.dart';
 import '../../../../widgets/favicon_avatar.dart';
 import '../widgets/section_header.dart';
 
@@ -13,83 +14,95 @@ class FeedListComponent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selection = ref.watch(subscriptionSelectionProvider);
+    final categories = ref.watch(categoriesProvider).valueOrNull ?? const [];
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final surfaces = theme.fleurSurface;
 
-    // Using filtered list based on selection
     final feedsAsync = ref.watch(feedsProvider);
 
     return feedsAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text(e.toString())),
+      loading: () => SettingsPane(
+        color: surfaces.list,
+        title: l10n.subscriptions,
+        child: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => SettingsPane(
+        color: surfaces.list,
+        title: l10n.subscriptions,
+        child: Center(child: Text(e.toString())),
+      ),
       data: (allFeeds) {
-        List<Feed> visibleFeeds;
-        if (selection.isAll) {
-          // If no folder selected, show empty or maybe all?
-          // Per requirements: "No folder -> Show feeds".
-          // If layout logic says we are visible, we should show all if uncategorized isn't explicitly active?
-          // Actually, if activeCategoryId is null, we might be in "Global" mode (no specific filter).
-          // But strict 3-pane usually implies selecting a folder to see feeds.
-          // IF we are in NARROW mode, `activeCategoryId` might be null but we want to show feeds?
-          // But `SubscriptionLayoutManager` will handle hiding/showing columns.
-          // Here we just render what is asked.
-          // Let's assume if null, we show *all* feeds (default behavior) or empty?
-          // Let's show ALL feeds if category is null.
-          visibleFeeds = allFeeds;
-        } else if (selection.isUncategorized) {
-          visibleFeeds = allFeeds.where((f) => f.categoryId == null).toList();
-        } else {
-          visibleFeeds = allFeeds
-              .where((f) => f.categoryId == selection.activeCategoryId)
-              .toList();
-        }
+        final visibleFeeds = allFeeds
+            .where((feed) => selection.matchesCategoryId(feed.categoryId))
+            .toList();
 
-        if (visibleFeeds.isEmpty) {
-          return Center(child: Text(l10n.notFound));
-        }
+        final scopeTitle = switch (selection.categoryScope) {
+          SubscriptionCategoryAll() => l10n.subscriptions,
+          SubscriptionCategoryUncategorized() => l10n.uncategorized,
+          SubscriptionCategoryId(:final id) =>
+            categories
+                    .where((category) => category.id == id)
+                    .firstOrNull
+                    ?.name ??
+                l10n.subscriptions,
+        };
 
-        return Scrollbar(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            itemCount: visibleFeeds.length,
-            itemBuilder: (context, index) {
-              final feed = visibleFeeds[index];
-              final isSelected = selection.selectedFeedId == feed.id;
-              final siteUri = Uri.tryParse(
-                (feed.siteUrl?.trim().isNotEmpty == true)
-                    ? feed.siteUrl!.trim()
-                    : feed.url,
-              );
+        return SettingsPane(
+          color: surfaces.list,
+          title: scopeTitle,
+          subtitle: '${visibleFeeds.length} ${l10n.subscriptions}',
+          child: visibleFeeds.isEmpty
+              ? Center(
+                  child: Text(
+                    l10n.notFound,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                )
+              : Scrollbar(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: visibleFeeds.length,
+                    itemBuilder: (context, index) {
+                      final feed = visibleFeeds[index];
+                      final isSelected = selection.selectedFeedId == feed.id;
+                      final siteUri = Uri.tryParse(
+                        (feed.siteUrl?.trim().isNotEmpty == true)
+                            ? feed.siteUrl!.trim()
+                            : feed.url,
+                      );
 
-              return SettingsTile(
-                leading: SettingsLeadingAvatar(
-                  child: FaviconAvatar(
-                    siteUri: siteUri,
-                    size: 16,
-                    fallbackIcon: Icons.rss_feed,
-                    fallbackColor: Theme.of(
-                      context,
-                    ).colorScheme.onSurfaceVariant,
+                      return SettingsTile(
+                        leading: SettingsLeadingAvatar(
+                          child: FaviconAvatar(
+                            siteUri: siteUri,
+                            size: 16,
+                            fallbackIcon: Icons.rss_feed,
+                            fallbackColor: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        title: Text(
+                          feed.userTitle ?? feed.title ?? feed.url,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text(
+                          feed.url,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        selected: isSelected,
+                        onTap: () {
+                          ref
+                              .read(subscriptionSelectionProvider.notifier)
+                              .selectFeed(feed.id);
+                        },
+                      );
+                    },
                   ),
                 ),
-                title: Text(
-                  feed.userTitle ?? feed.title ?? feed.url,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                subtitle: Text(
-                  feed.url,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                selected: isSelected,
-                onTap: () {
-                  ref
-                      .read(subscriptionSelectionProvider.notifier)
-                      .selectFeed(feed.id);
-                },
-              );
-            },
-          ),
         );
       },
     );

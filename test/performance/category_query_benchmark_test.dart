@@ -8,6 +8,7 @@ import 'package:fleur/models/category.dart';
 import 'package:fleur/models/feed.dart';
 import 'package:fleur/models/tag.dart';
 
+import '../test_utils/category_query_benchmark_support.dart';
 import '../test_utils/isar_test_utils.dart';
 
 /// Performance benchmark test to validate the value of categoryId denormalization.
@@ -28,7 +29,6 @@ void main() {
   setUpAll(() async {
     await ensureIsarCoreInitialized();
 
-    // Create temporary directory for test database
     tempDir = await Directory.systemTemp.createTemp('isar_benchmark_');
     isar = await Isar.open([
       FeedSchema,
@@ -37,9 +37,8 @@ void main() {
       TagSchema,
     ], directory: tempDir!.path);
 
-    // Seed test data: 50 feeds with 500 articles each = 25000 articles
-    // This simulates a moderate RSS reader usage
-    await _seedTestData(isar!);
+    stdout.writeln('\n🏗️  Setting up benchmark database...');
+    await seedCategoryQueryBenchmarkData(isar!);
   });
 
   tearDownAll(() async {
@@ -47,160 +46,34 @@ void main() {
     await tempDir?.delete(recursive: true);
   });
 
-  test('Benchmark: categoryId direct query vs feedId two-step query', () async {
-    const categoryId = 5;
-    const iterations = 10;
+  test('Top-N benchmark slice keeps unique publishedAt ordering', () async {
+    final articles = await isar!.articles
+        .filter()
+        .categoryIdEqualTo(kCategoryQueryBenchmarkDefaultCategoryId)
+        .sortByPublishedAtDesc()
+        .limit(50)
+        .findAll();
 
-    // Warmup (JIT compilation, cache warming)
-    await _queryWithCategoryId(isar!, categoryId);
-    await _queryWithFeedIds(isar!, categoryId);
+    final timestamps = articles
+        .map((article) => article.publishedAt.microsecondsSinceEpoch)
+        .toSet();
 
-    // Method 1: Direct categoryId query (current implementation)
-    final stopwatch1 = Stopwatch()..start();
-    for (var i = 0; i < iterations; i++) {
-      await _queryWithCategoryId(isar!, categoryId);
-    }
-    stopwatch1.stop();
-    final avg1 = stopwatch1.elapsedMicroseconds / iterations;
-
-    // Method 2: Two-step query via feedId (alternative approach)
-    final stopwatch2 = Stopwatch()..start();
-    for (var i = 0; i < iterations; i++) {
-      await _queryWithFeedIds(isar!, categoryId);
-    }
-    stopwatch2.stop();
-    final avg2 = stopwatch2.elapsedMicroseconds / iterations;
-
-    // Calculate performance difference
-    final savedPercent = (avg2 - avg1) / avg2 * 100;
-    final savedPercentText = savedPercent.toStringAsFixed(1);
-    final diff = (avg2 - avg1).toStringAsFixed(0);
-    final speedupRatio = (avg2 / avg1).toStringAsFixed(2);
-    const retentionBarPercent = 30.0;
-
-    stdout.writeln('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    stdout.writeln('📊 Category Query Performance Benchmark');
-    stdout.writeln('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    stdout.writeln('Dataset: 50 feeds × 500 articles = 25,000 total articles');
-    stdout.writeln('Category: $categoryId (contains 10 feeds)');
-    stdout.writeln('Iterations: $iterations');
-    stdout.writeln();
-    stdout.writeln(
-      'Method 1 (Direct categoryId):  ${avg1.toStringAsFixed(0)} μs/query',
-    );
-    stdout.writeln(
-      'Method 2 (Two-step via feedId): ${avg2.toStringAsFixed(0)} μs/query',
-    );
-    stdout.writeln();
-    stdout.writeln(
-      'Primary retention metric: $savedPercentText% time saved ($diff μs improvement)',
-    );
-    stdout.writeln('Speedup ratio (diagnostic only): ${speedupRatio}x');
-    stdout.writeln(
-      'Retention bar: >= ${retentionBarPercent.toStringAsFixed(0)}%',
-    );
-    stdout.writeln('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-
-    // Assert that Method 1 is faster
+    expect(articles, hasLength(50));
     expect(
-      avg1,
-      lessThan(avg2),
+      timestamps,
+      hasLength(articles.length),
+      reason: 'Benchmark top-N should not rely on ambiguous timestamp ties',
+    );
+  });
+
+  test('Benchmark: categoryId direct query vs feedId two-step query', () async {
+    final report = await runCategoryQueryBenchmark(isar!);
+    report.writeSummary();
+
+    expect(
+      report.avgDirectMicros,
+      lessThan(report.avgTwoStepMicros),
       reason: 'Direct categoryId query should be faster than two-step approach',
     );
-
-    // Below the retention bar, keep the denormalization under review instead
-    // of treating it as self-justifying.
-    if (savedPercent >= retentionBarPercent) {
-      stdout.writeln(
-        '✅ Saved time ($savedPercentText%) clears the retention bar',
-      );
-    } else {
-      stdout.writeln(
-        '⚠️  Saved time ($savedPercentText%) is below the retention bar',
-      );
-      stdout.writeln(
-        '   Keep denormalization under review before adding more maintenance complexity',
-      );
-    }
   });
-}
-
-/// Method 1: Query articles directly by categoryId (current implementation)
-Future<List<Article>> _queryWithCategoryId(Isar isar, int categoryId) async {
-  return isar.articles
-      .filter()
-      .categoryIdEqualTo(categoryId)
-      .sortByPublishedAtDesc()
-      .limit(50)
-      .findAll();
-}
-
-/// Method 2: Query articles via two-step process (alternative without denormalization)
-Future<List<Article>> _queryWithFeedIds(Isar isar, int categoryId) async {
-  // Step 1: Get feed IDs in this category
-  final feedIds = await isar.feeds
-      .filter()
-      .categoryIdEqualTo(categoryId)
-      .idProperty()
-      .findAll();
-
-  if (feedIds.isEmpty) return [];
-
-  // Step 2: Query articles using feedId IN (...)
-  return isar.articles
-      .filter()
-      .anyOf(feedIds, (q, id) => q.feedIdEqualTo(id))
-      .sortByPublishedAtDesc()
-      .limit(50)
-      .findAll();
-}
-
-/// Seed test data: 50 feeds with 500 articles each
-Future<void> _seedTestData(Isar isar) async {
-  await isar.writeTxn(() async {
-    // Create 10 categories
-    for (var i = 1; i <= 10; i++) {
-      final category = Category()
-        ..id = i
-        ..name = 'Category $i'
-        ..createdAt = DateTime.now();
-      await isar.categorys.put(category);
-    }
-
-    // Create 50 feeds (5 feeds per category)
-    for (var i = 1; i <= 50; i++) {
-      final categoryId = ((i - 1) ~/ 5) + 1; // Distribute evenly
-      final feed = Feed()
-        ..id = i
-        ..url = 'https://example.com/feed$i.xml'
-        ..title = 'Feed $i'
-        ..categoryId = categoryId
-        ..createdAt = DateTime.now()
-        ..updatedAt = DateTime.now();
-      await isar.feeds.put(feed);
-    }
-
-    // Create 500 articles per feed (25000 total)
-    for (var feedId = 1; feedId <= 50; feedId++) {
-      final feed = await isar.feeds.get(feedId);
-      final categoryId = feed!.categoryId;
-
-      for (var j = 1; j <= 500; j++) {
-        final article = Article()
-          ..feedId = feedId
-          ..categoryId =
-              categoryId // Denormalized field
-          ..link = 'https://example.com/feed$feedId/article$j'
-          ..title = 'Article $j from Feed $feedId'
-          ..publishedAt = DateTime.now().subtract(Duration(hours: j))
-          ..fetchedAt = DateTime.now()
-          ..updatedAt = DateTime.now();
-        await isar.articles.put(article);
-      }
-    }
-  });
-
-  stdout.writeln('📦 Seeded ${await isar.feeds.count()} feeds');
-  stdout.writeln('📦 Seeded ${await isar.articles.count()} articles');
-  stdout.writeln('📦 Seeded ${await isar.categorys.count()} categories\n');
 }

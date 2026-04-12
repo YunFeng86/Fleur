@@ -155,6 +155,46 @@
   "@subscriptions": {
     "description": "subscriptions"
   },
+  "defaultsGroup": "全局",
+  "@defaultsGroup": {
+    "description": "Section label for default settings entries"
+  },
+  "folders": "订阅源",
+  "@folders": {
+    "description": "Section label for subscription folders"
+  },
+  "globalDefaults": "全局默认",
+  "@globalDefaults": {
+    "description": "Entry label for subscription-wide default settings"
+  },
+  "allSubscriptions": "全部项目",
+  "@allSubscriptions": {
+    "description": "Entry label for the full subscription scope"
+  },
+  "manage": "管理",
+  "@manage": {
+    "description": "Toolbar label for the management actions menu"
+  },
+  "overview": "概览",
+  "@overview": {
+    "description": "Overview section label"
+  },
+  "categoriesLabel": "分类数",
+  "@categoriesLabel": {
+    "description": "Summary label for categories count"
+  },
+  "globalDefaultsDescription": "当文件夹或订阅源未覆盖设置时，会继承这里的默认值。",
+  "@globalDefaultsDescription": {
+    "description": "Description shown for the global defaults pane"
+  },
+  "allSubscriptionsDescription": "在这里查看整体订阅结构，并选择具体项目继续编辑。",
+  "@allSubscriptionsDescription": {
+    "description": "Description shown for the all subscriptions overview"
+  },
+  "uncategorizedDescription": "未分类的订阅源会继承全局默认，直到你为它们单独覆盖设置。",
+  "@uncategorizedDescription": {
+    "description": "Description shown for the uncategorized overview"
+  },
   "tags": "标签",
   "@tags": {
     "description": "tags"
@@ -943,6 +983,38 @@
   "@viewThirdPartyLicenses": {
     "description": "viewThirdPartyLicenses"
   },
+  "licenseLoadFailed": "加载许可证失败。",
+  "@licenseLoadFailed": {
+    "description": "加载内置许可证文本失败时的错误提示"
+  },
+  "mitLicenseName": "MIT 许可证",
+  "@mitLicenseName": {
+    "description": "应用主要许可证名称"
+  },
+  "shortcutNextPreviousArticle": "J / K：下一篇 / 上一篇文章",
+  "@shortcutNextPreviousArticle": {
+    "description": "切换上一篇/下一篇文章的快捷键说明"
+  },
+  "shortcutRefreshCurrentSelection": "R：刷新（当前选中项）",
+  "@shortcutRefreshCurrentSelection": {
+    "description": "刷新当前选中项的快捷键说明"
+  },
+  "shortcutToggleUnreadOnly": "U：切换仅未读",
+  "@shortcutToggleUnreadOnly": {
+    "description": "切换仅未读筛选的快捷键说明"
+  },
+  "shortcutToggleReadUnreadSelectedArticle": "M：切换所选文章的已读 / 未读",
+  "@shortcutToggleReadUnreadSelectedArticle": {
+    "description": "切换所选文章已读状态的快捷键说明"
+  },
+  "shortcutToggleStarSelectedArticle": "S：切换所选文章的星标状态",
+  "@shortcutToggleStarSelectedArticle": {
+    "description": "切换所选文章星标状态的快捷键说明"
+  },
+  "shortcutSearchArticlesAndFindInPage": "Ctrl/Cmd+F：搜索文章（列表）；聚焦页内查找（阅读器）",
+  "@shortcutSearchArticlesAndFindInPage": {
+    "description": "列表搜索与阅读器页内查找的快捷键说明"
+  },
   "filter": "过滤",
   "@filter": {
     "description": "filter"
@@ -1155,6 +1227,61 @@
   "followAppLanguage": "跟随软件语言",
   "@followAppLanguage": {
     "description": "跟随软件语言的选项标签"
+  },
+  "translationProviderGoogleWeb": "Google 翻译（网页）",
+  "@translationProviderGoogleWeb": {
+    "description": "Google 网页翻译提供方显示名称"
+  },
+  "translationProviderBingWeb": "Bing 翻译（网页）",
+  "@translationProviderBingWeb": {
+    "description": "Bing 网页翻译提供方显示名称"
+  },
+  "translationProviderBaiduApi": "百度翻译（API）",
+  "@translationProviderBaiduApi": {
+    "description": "百度翻译 API 提供方显示名称"
+  },
+  "translationProviderDeepLApi": "DeepL（API）",
+  "@translationProviderDeepLApi": {
+    "description": "DeepL API 提供方显示名称"
+  },
+  "translationProviderDeepLX": "DeepLX",
+  "@translationProviderDeepLX": {
+    "description": "DeepLX 提供方显示名称"
+  },
+  "translationProviderAiService": "AI：{name}",
+  "@translationProviderAiService": {
+    "description": "AI 翻译提供方显示名称",
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "translationProviderBaiduApiSubtitle": "配置 App ID / App Key",
+  "@translationProviderBaiduApiSubtitle": {
+    "description": "百度翻译凭据配置副标题"
+  },
+  "deepLXBaseUrlTitle": "DeepLX Base URL",
+  "@deepLXBaseUrlTitle": {
+    "description": "编辑 DeepLX Base URL 的对话框标题"
+  },
+  "deepLEndpoint": "Endpoint",
+  "@deepLEndpoint": {
+    "description": "DeepL Endpoint 选择项标签"
+  },
+  "deepLEndpointFree": "免费版",
+  "@deepLEndpointFree": {
+    "description": "DeepL 免费版 Endpoint 标签"
+  },
+  "deepLEndpointPro": "专业版",
+  "@deepLEndpointPro": {
+    "description": "DeepL 专业版 Endpoint 标签"
+  },
+  "setAsDefault": "设为默认",
+  "@setAsDefault": {
+    "description": "将 AI 服务设为默认项的菜单文案"
+  },
+  "defaultAlreadySet": "默认（已设置）",
+  "@defaultAlreadySet": {
+    "description": "AI 服务已经是默认项时的菜单文案"
   },
   "aiSummaryPrompt": "AI 总结提示词",
   "@aiSummaryPrompt": {

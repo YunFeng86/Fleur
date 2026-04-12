@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../l10n/app_localizations.dart';
+import '../../../../models/feed.dart';
 import '../../../../providers/query_providers.dart';
 import '../../../../providers/subscription_settings_provider.dart';
-import '../../../../l10n/app_localizations.dart';
+import '../../../../theme/fleur_theme_extensions.dart';
+import '../../../../widgets/favicon_avatar.dart';
 import '../widgets/section_header.dart';
 
 class CategoryListComponent extends ConsumerWidget {
@@ -12,52 +15,164 @@ class CategoryListComponent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final categoriesAsync = ref.watch(categoriesProvider);
+    final feeds = ref.watch(feedsProvider).valueOrNull ?? const [];
     final selection = ref.watch(subscriptionSelectionProvider);
+    final notifier = ref.read(subscriptionSelectionProvider.notifier);
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final surfaces = theme.fleurSurface;
 
     return categoriesAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text(e.toString())),
+      loading: () => SettingsPane(
+        color: surfaces.sidebar,
+        title: l10n.subscriptions,
+        child: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => SettingsPane(
+        color: surfaces.sidebar,
+        title: l10n.subscriptions,
+        child: Center(child: Text(e.toString())),
+      ),
       data: (categories) {
-        if (categories.isEmpty) {
-          // If no categories exist at all, this column might be hidden or show empty state?
-          // For now, allow selecting "Uncategorized" or "Global" (clear).
-          // We always show "Uncategorized" if there are feeds there?
-          // We can't easily know if there are uncategorized feeds without fetching feeds.
-          // Let's assume we always show "Uncategorized" item if we are in this view.
+        final feedCounts = <int?, int>{};
+        for (final feed in feeds) {
+          feedCounts.update(
+            feed.categoryId,
+            (count) => count + 1,
+            ifAbsent: () => 1,
+          );
+        }
+        final uncategorizedFeeds = feeds
+            .where((feed) => feed.categoryId == null)
+            .toList(growable: false);
+
+        final globalSelected = selection.isGlobalDefaults;
+
+        Widget buildSectionLabel(String label) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Text(
+              label,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          );
         }
 
-        return Scrollbar(
+        Widget buildScopeTile({
+          required Widget title,
+          required Widget leading,
+          required bool selected,
+          required VoidCallback onTap,
+          int? count,
+          Widget? subtitle,
+        }) {
+          return SettingsTile(
+            leading: leading,
+            title: title,
+            subtitle: subtitle,
+            selected: selected,
+            trailing: count == null
+                ? null
+                : Text(
+                    '$count',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+            onTap: onTap,
+          );
+        }
+
+        return SettingsPane(
+          color: surfaces.sidebar,
+          title: l10n.subscriptions,
           child: ListView(
             primary: false,
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.only(top: 4, bottom: 12),
             children: [
+              buildSectionLabel(l10n.defaultsGroup),
+              buildScopeTile(
+                leading: const Icon(Icons.tune_outlined),
+                title: Text(l10n.globalDefaults),
+                subtitle: Text(
+                  l10n.globalDefaultsDescription,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                selected: globalSelected,
+                onTap: () => notifier.showGlobalDefaults(),
+              ),
+              buildSectionLabel(l10n.folders),
               for (final category in categories)
-                SettingsTile(
+                buildScopeTile(
                   leading: const Icon(Icons.folder_outlined),
                   title: Text(category.name),
-                  selected: selection.activeCategoryId == category.id,
-                  onTap: () {
-                    ref
-                        .read(subscriptionSelectionProvider.notifier)
-                        .selectCategory(category.id);
-                  },
+                  count: feedCounts[category.id] ?? 0,
+                  selected:
+                      !globalSelected &&
+                      selection.activeCategoryId == category.id,
+                  onTap: () => notifier.selectCategory(category.id),
                 ),
-              const SizedBox(height: 8),
-              SettingsTile(
-                title: Text(l10n.uncategorized),
-                leading: const Icon(Icons.rss_feed),
-                selected: selection.isUncategorized,
-                onTap: () {
-                  ref
-                      .read(subscriptionSelectionProvider.notifier)
-                      .selectUncategorized();
-                },
-              ),
+              if (categories.isNotEmpty && uncategorizedFeeds.isNotEmpty)
+                const SizedBox(height: 4),
+              for (final feed in uncategorizedFeeds)
+                _RootFeedTile(
+                  feed: feed,
+                  selected: selection.selectedFeedId == feed.id,
+                  onTap: () => notifier.selectFeed(
+                    feed.id,
+                    categoryScope: const SubscriptionCategoryAll(),
+                  ),
+                ),
             ],
           ),
         );
       },
+    );
+  }
+}
+
+class _RootFeedTile extends StatelessWidget {
+  const _RootFeedTile({
+    required this.feed,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final Feed feed;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final siteUri = Uri.tryParse(
+      (feed.siteUrl?.trim().isNotEmpty == true)
+          ? feed.siteUrl!.trim()
+          : feed.url,
+    );
+
+    return SettingsTile(
+      leading: SettingsLeadingAvatar(
+        child: FaviconAvatar(
+          siteUri: siteUri,
+          size: 16,
+          fallbackIcon: Icons.rss_feed,
+          fallbackColor: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
+      title: Text(
+        feed.userTitle ?? feed.title ?? feed.url,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Text(feed.url, maxLines: 1, overflow: TextOverflow.ellipsis),
+      selected: selected,
+      onTap: onTap,
     );
   }
 }

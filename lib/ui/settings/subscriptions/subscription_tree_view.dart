@@ -6,117 +6,150 @@ import '../../../../models/category.dart';
 import '../../../../models/feed.dart';
 import '../../../../providers/query_providers.dart';
 import '../../../../providers/subscription_settings_provider.dart';
+import '../../../../theme/fleur_theme_extensions.dart';
 import '../../../../widgets/favicon_avatar.dart';
 import '../widgets/section_header.dart';
 
-class SubscriptionTreeView extends ConsumerWidget {
-  const SubscriptionTreeView({super.key, this.showDetailButtons = false});
+class SubscriptionTreeView extends ConsumerStatefulWidget {
+  const SubscriptionTreeView({
+    super.key,
+    this.showDetailPaneOnSelection = false,
+    this.showPaneHeader = true,
+  });
 
-  /// When true, show an explicit "enter details" button for categories/feeds.
-  ///
-  /// This is primarily used for narrow layouts where the detail panel is not
-  /// always visible.
-  final bool showDetailButtons;
+  final bool showDetailPaneOnSelection;
+  final bool showPaneHeader;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SubscriptionTreeView> createState() =>
+      _SubscriptionTreeViewState();
+}
+
+class _SubscriptionTreeViewState extends ConsumerState<SubscriptionTreeView> {
+  final Set<int> _expandedCategoryIds = <int>{};
+  final Set<int> _collapsedCategoryIds = <int>{};
+
+  @override
+  Widget build(BuildContext context) {
     final feedsAsync = ref.watch(feedsProvider);
     final categoriesAsync = ref.watch(categoriesProvider);
     final l10n = AppLocalizations.of(context)!;
     final selection = ref.watch(subscriptionSelectionProvider);
     final notifier = ref.read(subscriptionSelectionProvider.notifier);
+    final theme = Theme.of(context);
+    final surfaces = theme.fleurSurface;
 
     return feedsAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text(e.toString())),
+      loading: () => SettingsPane(
+        color: surfaces.sidebar,
+        title: widget.showPaneHeader ? l10n.subscriptions : null,
+        child: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => SettingsPane(
+        color: surfaces.sidebar,
+        title: widget.showPaneHeader ? l10n.subscriptions : null,
+        child: Center(child: Text(e.toString())),
+      ),
       data: (feeds) {
         return categoriesAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text(e.toString())),
+          loading: () => SettingsPane(
+            color: surfaces.sidebar,
+            title: widget.showPaneHeader ? l10n.subscriptions : null,
+            child: const Center(child: CircularProgressIndicator()),
+          ),
+          error: (e, _) => SettingsPane(
+            color: surfaces.sidebar,
+            title: widget.showPaneHeader ? l10n.subscriptions : null,
+            child: Center(child: Text(e.toString())),
+          ),
           data: (categories) {
-            // Group feeds
-            final byCat = <int?, List<Feed>>{};
-            for (final f in feeds) {
-              byCat.putIfAbsent(f.categoryId, () => []).add(f);
+            final feedsByCategory = <int?, List<Feed>>{};
+            for (final feed in feeds) {
+              feedsByCategory.putIfAbsent(feed.categoryId, () => []).add(feed);
+            }
+            final uncategorizedFeeds = feedsByCategory[null] ?? const <Feed>[];
+
+            final visibleExpanded = <int>{
+              ..._expandedCategoryIds,
+              ...?switch (selection.activeCategoryId) {
+                final activeCategoryId?
+                    when !_collapsedCategoryIds.contains(activeCategoryId) =>
+                  <int>{activeCategoryId},
+                _ => null,
+              },
+            };
+
+            Widget buildSectionLabel(String label) {
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Text(
+                  label,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              );
             }
 
-            final uncategorized = byCat[null] ?? [];
-
-            return Scrollbar(
+            return SettingsPane(
+              color: surfaces.sidebar,
+              title: widget.showPaneHeader ? l10n.subscriptions : null,
               child: ListView(
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                padding: const EdgeInsets.only(top: 4, bottom: 12),
                 children: [
-                  for (final category in categories) ...[
-                    _CategoryExpansionTile(
-                      category: category,
-                      feeds: byCat[category.id] ?? [],
-                      isSelected: selection.activeCategoryId == category.id,
-                      selectedFeedId: selection.selectedFeedId,
-                      showDetailButton: showDetailButtons,
-                      onCategoryTap: () {
-                        notifier.selectCategory(category.id);
-                      },
-                      onOpenCategorySettings: () {
-                        notifier.openCategorySettings(category.id);
-                      },
-                      onFeedTap: (feedId) {
-                        notifier.selectFeed(
-                          feedId,
-                          categoryScope: SubscriptionCategoryId(category.id),
-                        );
-                      },
-                      onOpenFeedSettings: (feedId) {
-                        notifier.selectFeed(
-                          feedId,
-                          categoryScope: SubscriptionCategoryId(category.id),
-                        );
-                      },
+                  buildSectionLabel(l10n.defaultsGroup),
+                  _ScopeTreeRow(
+                    icon: Icons.tune_outlined,
+                    title: l10n.globalDefaults,
+                    subtitle: l10n.globalDefaultsDescription,
+                    selected: selection.isGlobalDefaults,
+                    onTap: () => notifier.showGlobalDefaults(
+                      showDetailPane: widget.showDetailPaneOnSelection,
                     ),
-                  ],
-                  if (uncategorized.isNotEmpty) ...[
-                    ExpansionTile(
-                      initiallyExpanded: true,
-                      controlAffinity: ListTileControlAffinity.leading,
-                      title: Text(l10n.uncategorized),
-                      subtitle: Text(
-                        '${uncategorized.length} ${l10n.subscriptions}',
-                        style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  buildSectionLabel(l10n.folders),
+                  for (final category in categories)
+                    () {
+                      final isExpanded = visibleExpanded.contains(category.id);
+
+                      return _CategoryTreeNode(
+                        category: category,
+                        feeds: feedsByCategory[category.id] ?? const [],
+                        expanded: isExpanded,
+                        isSelected:
+                            !selection.isGlobalDefaults &&
+                            selection.activeCategoryId == category.id &&
+                            selection.selectedFeedId == null,
+                        selectedFeedId: selection.selectedFeedId,
+                        showDetailPaneOnSelection:
+                            widget.showDetailPaneOnSelection,
+                        onToggleExpanded: () {
+                          setState(() {
+                            if (isExpanded) {
+                              _expandedCategoryIds.remove(category.id);
+                              _collapsedCategoryIds.add(category.id);
+                            } else {
+                              _expandedCategoryIds.add(category.id);
+                              _collapsedCategoryIds.remove(category.id);
+                            }
+                          });
+                        },
+                      );
+                    }(),
+                  if (categories.isNotEmpty && uncategorizedFeeds.isNotEmpty)
+                    const SizedBox(height: 4),
+                  for (final feed in uncategorizedFeeds)
+                    _FeedTreeRow(
+                      feed: feed,
+                      selected: selection.selectedFeedId == feed.id,
+                      indent: 0,
+                      onTap: () => notifier.selectFeed(
+                        feed.id,
+                        categoryScope: const SubscriptionCategoryAll(),
+                        showDetailPane: widget.showDetailPaneOnSelection,
                       ),
-                      leading: null,
-                      shape: const Border(),
-                      collapsedShape: const Border(),
-                      children: [
-                        for (final feed in uncategorized)
-                          SettingsTile(
-                            leading: _FeedLeadingAvatar(feed: feed),
-                            title: Text(
-                              feed.userTitle ?? feed.title ?? feed.url,
-                            ),
-                            selected: selection.selectedFeedId == feed.id,
-                            contentPadding: const EdgeInsets.only(
-                              left: 56,
-                              right: 16,
-                            ),
-                            onTap: () => notifier.selectFeed(
-                              feed.id,
-                              categoryScope:
-                                  const SubscriptionCategoryUncategorized(),
-                            ),
-                            trailing: showDetailButtons
-                                ? IconButton(
-                                    tooltip: l10n.settings,
-                                    icon: const Icon(Icons.chevron_right),
-                                    onPressed: () => notifier.selectFeed(
-                                      feed.id,
-                                      categoryScope:
-                                          const SubscriptionCategoryUncategorized(),
-                                    ),
-                                  )
-                                : null,
-                          ),
-                      ],
                     ),
-                  ],
                 ],
               ),
             );
@@ -127,89 +160,129 @@ class SubscriptionTreeView extends ConsumerWidget {
   }
 }
 
-class _CategoryExpansionTile extends StatelessWidget {
-  final Category category;
-  final List<Feed> feeds;
-  final bool isSelected;
-  final int? selectedFeedId;
-  final bool showDetailButton;
-  final VoidCallback onCategoryTap;
-  final VoidCallback onOpenCategorySettings;
-  final ValueChanged<int> onFeedTap;
-  final ValueChanged<int> onOpenFeedSettings;
-
-  const _CategoryExpansionTile({
-    required this.category,
-    required this.feeds,
-    required this.isSelected,
-    required this.selectedFeedId,
-    required this.showDetailButton,
-    required this.onCategoryTap,
-    required this.onOpenCategorySettings,
-    required this.onFeedTap,
-    required this.onOpenFeedSettings,
+class _ScopeTreeRow extends StatelessWidget {
+  const _ScopeTreeRow({
+    required this.icon,
+    required this.title,
+    required this.selected,
+    required this.onTap,
+    this.subtitle,
   });
+
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return ExpansionTile(
-      key: PageStorageKey(category.id),
-      initiallyExpanded: isSelected,
-      controlAffinity: ListTileControlAffinity.leading,
-      title: Text(category.name),
-      subtitle: Text(
-        '${feeds.length} ${AppLocalizations.of(context)!.subscriptions}',
-        style: Theme.of(context).textTheme.bodySmall,
-      ),
-      // Remove default leading icon as arrow is now leading
-      leading: null,
-      trailing: showDetailButton
-          ? IconButton(
-              tooltip: l10n.settings,
-              icon: const Icon(Icons.chevron_right),
-              onPressed: onOpenCategorySettings,
-            )
-          : null,
-      shape: const Border(), // Remove default borders
-      collapsedShape: const Border(),
-
-      onExpansionChanged: (expanded) {
-        onCategoryTap();
-      },
-      children: [
-        for (final feed in feeds)
-          SettingsTile(
-            leading: _FeedLeadingAvatar(feed: feed),
-            title: Text(feed.userTitle ?? feed.title ?? feed.url),
-            selected: selectedFeedId == feed.id,
-            contentPadding: const EdgeInsets.only(left: 56, right: 16),
-            onTap: () => onFeedTap(feed.id),
-            trailing: showDetailButton
-                ? IconButton(
-                    tooltip: l10n.settings,
-                    icon: const Icon(Icons.chevron_right),
-                    onPressed: () => onOpenFeedSettings(feed.id),
-                  )
-                : null,
-          ),
-        if (feeds.isEmpty)
-          SettingsTile(
-            title: Text(
-              AppLocalizations.of(context)!.notFound,
-              style: TextStyle(color: Theme.of(context).disabledColor),
-            ),
-            contentPadding: const EdgeInsets.only(left: 56, right: 16),
-          ),
-      ],
+    return SettingsTile(
+      leading: Icon(icon),
+      title: Text(title),
+      subtitle: subtitle == null
+          ? null
+          : Text(subtitle!, maxLines: 2, overflow: TextOverflow.ellipsis),
+      selected: selected,
+      onTap: onTap,
     );
   }
 }
 
-class _FeedLeadingAvatar extends StatelessWidget {
-  const _FeedLeadingAvatar({required this.feed});
+class _CategoryTreeNode extends ConsumerWidget {
+  const _CategoryTreeNode({
+    required this.category,
+    required this.feeds,
+    required this.expanded,
+    required this.isSelected,
+    required this.selectedFeedId,
+    required this.showDetailPaneOnSelection,
+    required this.onToggleExpanded,
+  });
+
+  final Category category;
+  final List<Feed> feeds;
+  final bool expanded;
+  final bool isSelected;
+  final int? selectedFeedId;
+  final bool showDetailPaneOnSelection;
+  final VoidCallback onToggleExpanded;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final notifier = ref.read(subscriptionSelectionProvider.notifier);
+
+    return Semantics(
+      container: true,
+      selected: isSelected,
+      expanded: expanded,
+      child: Column(
+        children: [
+          SettingsTile(
+            leading: const Icon(Icons.folder_outlined),
+            title: Text(category.name),
+            subtitle: Text(
+              '${feeds.length} ${l10n.subscriptions}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            selected: isSelected,
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${feeds.length}',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                IconButton(
+                  tooltip: expanded ? l10n.collapse : l10n.expand,
+                  icon: Icon(
+                    expanded ? Icons.keyboard_arrow_down : Icons.chevron_right,
+                  ),
+                  onPressed: onToggleExpanded,
+                ),
+              ],
+            ),
+            onTap: () => notifier.selectCategory(
+              category.id,
+              showDetailPane: showDetailPaneOnSelection,
+            ),
+          ),
+          if (expanded)
+            for (final feed in feeds)
+              _FeedTreeRow(
+                feed: feed,
+                selected: selectedFeedId == feed.id,
+                indent: 24,
+                onTap: () => notifier.selectFeed(
+                  feed.id,
+                  categoryScope: SubscriptionCategoryId(category.id),
+                  showDetailPane: showDetailPaneOnSelection,
+                ),
+              ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FeedTreeRow extends StatelessWidget {
+  const _FeedTreeRow({
+    required this.feed,
+    required this.selected,
+    required this.indent,
+    required this.onTap,
+  });
 
   final Feed feed;
+  final bool selected;
+  final double indent;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -219,12 +292,39 @@ class _FeedLeadingAvatar extends StatelessWidget {
           : feed.url,
     );
 
-    return SettingsLeadingAvatar(
-      child: FaviconAvatar(
-        siteUri: siteUri,
-        size: 16,
-        fallbackIcon: Icons.rss_feed,
-        fallbackColor: Theme.of(context).colorScheme.onSurfaceVariant,
+    return SettingsTile(
+      leading: _IndentedAvatar(indent: indent, siteUri: siteUri),
+      title: Text(
+        feed.userTitle ?? feed.title ?? feed.url,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Text(feed.url, maxLines: 1, overflow: TextOverflow.ellipsis),
+      selected: selected,
+      onTap: onTap,
+    );
+  }
+}
+
+class _IndentedAvatar extends StatelessWidget {
+  const _IndentedAvatar({required this.indent, required this.siteUri});
+
+  final double indent;
+  final Uri? siteUri;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: EdgeInsets.only(left: indent),
+      child: SettingsLeadingAvatar(
+        child: FaviconAvatar(
+          siteUri: siteUri,
+          size: 16,
+          fallbackIcon: Icons.rss_feed,
+          fallbackColor: theme.colorScheme.onSurfaceVariant,
+        ),
       ),
     );
   }

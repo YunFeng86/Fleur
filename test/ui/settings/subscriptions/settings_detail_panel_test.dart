@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:fleur/l10n/app_localizations.dart';
 import 'package:fleur/models/category.dart';
 import 'package:fleur/models/feed.dart';
 import 'package:fleur/providers/app_settings_providers.dart';
@@ -12,6 +13,8 @@ import 'package:fleur/providers/repository_providers.dart';
 import 'package:fleur/providers/subscription_settings_provider.dart';
 import 'package:fleur/repositories/feed_repository.dart';
 import 'package:fleur/services/settings/app_settings.dart';
+import 'package:fleur/theme/app_theme.dart';
+import 'package:fleur/ui/settings/subscriptions/subscription_layout_manager.dart';
 import 'package:fleur/ui/settings/subscriptions/settings_detail_panel.dart';
 
 import '../../../test_utils/critical_workflow_test_support.dart';
@@ -97,35 +100,70 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('renders global settings and updates global auto-translate', (
-    tester,
-  ) async {
-    final category = buildCategory();
-    final feed = buildFeed();
-    final feedController = StreamController<Feed?>.broadcast();
-    addTearDown(feedController.close);
-    final fakeRepo = _FakeFeedRepository(feedController, feed);
-    final appStore = FakeAppSettingsStore(
-      AppSettings.defaults().copyWith(autoTranslate: false),
-    );
-
-    await pumpPanel(
+  Future<void> pumpLayoutManager(
+    WidgetTester tester, {
+    required FakeAppSettingsStore appStore,
+    required Feed feed,
+    required Category category,
+    required FeedRepository feedRepository,
+    required Stream<Feed?> feedStream,
+  }) async {
+    await pumpLocalizedTestApp(
       tester,
-      appStore: appStore,
-      feed: feed,
-      category: category,
-      feedRepository: fakeRepo,
-      feedStream: feedController.stream,
+      home: MaterialApp(
+        theme: AppTheme.light(),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: const Scaffold(body: SubscriptionLayoutManager()),
+      ),
+      overrides: [
+        appSettingsStoreProvider.overrideWithValue(appStore),
+        feedsProvider.overrideWith((ref) => Stream.value([feed])),
+        categoriesProvider.overrideWith((ref) => Stream.value([category])),
+        categoryProvider(
+          category.id,
+        ).overrideWith((ref) => Stream.value(category)),
+        feedProvider(feed.id).overrideWith((ref) async* {
+          yield feed;
+          yield* feedStream;
+        }),
+        feedRepositoryProvider.overrideWithValue(feedRepository),
+      ],
+      size: const Size(1280, 900),
     );
-
-    expect(find.text('Add subscription'), findsOneWidget);
-    expect(find.text('Auto translate'), findsOneWidget);
-
-    await tester.tap(find.widgetWithText(SwitchListTile, 'Auto translate'));
     await tester.pumpAndSettle();
+  }
 
-    expect(appStore.settings.autoTranslate, isTrue);
-  });
+  testWidgets(
+    'renders global defaults by default and updates global defaults',
+    (tester) async {
+      final category = buildCategory();
+      final feed = buildFeed();
+      final feedController = StreamController<Feed?>.broadcast();
+      addTearDown(feedController.close);
+      final fakeRepo = _FakeFeedRepository(feedController, feed);
+      final appStore = FakeAppSettingsStore(
+        AppSettings.defaults().copyWith(autoTranslate: false),
+      );
+
+      await pumpPanel(
+        tester,
+        appStore: appStore,
+        feed: feed,
+        category: category,
+        feedRepository: fakeRepo,
+        feedStream: feedController.stream,
+      );
+
+      expect(find.text('Global defaults'), findsOneWidget);
+      expect(find.text('Auto translate'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(SwitchListTile, 'Auto translate'));
+      await tester.pumpAndSettle();
+
+      expect(appStore.settings.autoTranslate, isTrue);
+    },
+  );
 
   testWidgets('renders category details when a category is selected', (
     tester,
@@ -186,8 +224,7 @@ void main() {
             feed.id,
             categoryScope: SubscriptionCategoryId(category.id),
           );
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pumpAndSettle();
 
       expect(find.text('Example Feed'), findsOneWidget);
       final tile = find.ancestor(
@@ -256,12 +293,68 @@ void main() {
           feed.id,
           categoryScope: SubscriptionCategoryId(category.id),
         );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pumpAndSettle();
 
     expect(find.text('Example Feed'), findsOneWidget);
     expect(find.text('https://example.com/feed.xml'), findsOneWidget);
     expect(find.text('Delete'), findsOneWidget);
     expect(find.byIcon(Icons.delete_outline), findsOneWidget);
+  });
+
+  testWidgets(
+    'wide layout starts in global defaults and keeps the feed list visible',
+    (tester) async {
+      final category = buildCategory();
+      final feed = buildFeed();
+      final feedController = StreamController<Feed?>.broadcast();
+      addTearDown(feedController.close);
+      final fakeRepo = _FakeFeedRepository(feedController, feed);
+      final appStore = FakeAppSettingsStore(AppSettings.defaults());
+
+      await pumpLayoutManager(
+        tester,
+        appStore: appStore,
+        feed: feed,
+        category: category,
+        feedRepository: fakeRepo,
+        feedStream: feedController.stream,
+      );
+
+      expect(find.text('Global defaults'), findsWidgets);
+      expect(find.text('Example Feed'), findsOneWidget);
+      expect(find.text('Auto translate'), findsOneWidget);
+    },
+  );
+
+  test(
+    'selectCategory toggles back to root when tapping the current category',
+    () {
+      final notifier = SubscriptionSelectionNotifier();
+
+      notifier.selectCategory(1);
+      expect(notifier.state.activeCategoryId, 1);
+      expect(notifier.state.isGlobalDefaults, isFalse);
+
+      notifier.selectCategory(1);
+      expect(notifier.state.categoryScope, isA<SubscriptionCategoryAll>());
+      expect(notifier.state.isGlobalDefaults, isTrue);
+      expect(notifier.state.showDetailPane, isFalse);
+    },
+  );
+
+  test('handleBack closes the detail pane before leaving narrow layouts', () {
+    final notifier = SubscriptionSelectionNotifier();
+
+    notifier.showGlobalDefaults(showDetailPane: true);
+    expect(notifier.state.showDetailPane, isTrue);
+    expect(notifier.handleBack(), isFalse);
+    expect(notifier.state.showDetailPane, isFalse);
+    expect(notifier.state.isGlobalDefaults, isTrue);
+
+    notifier.selectCategory(1, showDetailPane: true);
+    expect(notifier.state.showDetailPane, isTrue);
+    expect(notifier.handleBack(), isFalse);
+    expect(notifier.state.showDetailPane, isFalse);
+    expect(notifier.state.activeCategoryId, 1);
   });
 }

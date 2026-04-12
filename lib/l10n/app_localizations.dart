@@ -327,6 +327,66 @@ abstract class AppLocalizations {
   /// **'Subscriptions'**
   String get subscriptions;
 
+  /// Section label for default settings entries
+  ///
+  /// In en, this message translates to:
+  /// **'Global'**
+  String get defaultsGroup;
+
+  /// Section label for subscription folders
+  ///
+  /// In en, this message translates to:
+  /// **'Subscriptions'**
+  String get folders;
+
+  /// Entry label for subscription-wide default settings
+  ///
+  /// In en, this message translates to:
+  /// **'Global defaults'**
+  String get globalDefaults;
+
+  /// Entry label for the full subscription scope
+  ///
+  /// In en, this message translates to:
+  /// **'All subscriptions'**
+  String get allSubscriptions;
+
+  /// Toolbar label for the management actions menu
+  ///
+  /// In en, this message translates to:
+  /// **'Manage'**
+  String get manage;
+
+  /// Overview section label
+  ///
+  /// In en, this message translates to:
+  /// **'Overview'**
+  String get overview;
+
+  /// Summary label for categories count
+  ///
+  /// In en, this message translates to:
+  /// **'Categories'**
+  String get categoriesLabel;
+
+  /// Description shown for the global defaults pane
+  ///
+  /// In en, this message translates to:
+  /// **'Applied when a folder or subscription does not override a setting.'**
+  String get globalDefaultsDescription;
+
+  /// Description shown for the all subscriptions overview
+  ///
+  /// In en, this message translates to:
+  /// **'Review the overall subscription structure and pick a subscription to edit.'**
+  String get allSubscriptionsDescription;
+
+  /// Description shown for the uncategorized overview
+  ///
+  /// In en, this message translates to:
+  /// **'Subscriptions without a folder inherit the global defaults until overridden.'**
+  String get uncategorizedDescription;
+
   /// tags
   ///
   /// In en, this message translates to:
@@ -1431,6 +1491,54 @@ abstract class AppLocalizations {
   /// **'View all open source licenses'**
   String get viewThirdPartyLicenses;
 
+  /// Error shown when the app fails to load the bundled license text
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load license.'**
+  String get licenseLoadFailed;
+
+  /// Name of the app's primary license
+  ///
+  /// In en, this message translates to:
+  /// **'MIT License'**
+  String get mitLicenseName;
+
+  /// Keyboard shortcut help text for moving to the next or previous article
+  ///
+  /// In en, this message translates to:
+  /// **'J / K: Next / previous article'**
+  String get shortcutNextPreviousArticle;
+
+  /// Keyboard shortcut help text for refreshing the current selection
+  ///
+  /// In en, this message translates to:
+  /// **'R: Refresh (current selection)'**
+  String get shortcutRefreshCurrentSelection;
+
+  /// Keyboard shortcut help text for toggling the unread-only filter
+  ///
+  /// In en, this message translates to:
+  /// **'U: Toggle unread-only'**
+  String get shortcutToggleUnreadOnly;
+
+  /// Keyboard shortcut help text for toggling read/unread on the selected article
+  ///
+  /// In en, this message translates to:
+  /// **'M: Toggle read/unread for selected article'**
+  String get shortcutToggleReadUnreadSelectedArticle;
+
+  /// Keyboard shortcut help text for toggling the star state on the selected article
+  ///
+  /// In en, this message translates to:
+  /// **'S: Toggle star for selected article'**
+  String get shortcutToggleStarSelectedArticle;
+
+  /// Keyboard shortcut help text for searching articles or focusing find-in-page
+  ///
+  /// In en, this message translates to:
+  /// **'Ctrl/Cmd+F: Search articles (list); focus Find in page (reader)'**
+  String get shortcutSearchArticlesAndFindInPage;
+
   /// filter
   ///
   /// In en, this message translates to:
@@ -1742,6 +1850,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Follow app language'**
   String get followAppLanguage;
+
+  /// Display label for the Google web translation provider
+  ///
+  /// In en, this message translates to:
+  /// **'Google Translate (web)'**
+  String get translationProviderGoogleWeb;
+
+  /// Display label for the Bing web translation provider
+  ///
+  /// In en, this message translates to:
+  /// **'Bing Translate (web)'**
+  String get translationProviderBingWeb;
+
+  /// Display label for the Baidu API translation provider
+  ///
+  /// In en, this message translates to:
+  /// **'Baidu Translate (API)'**
+  String get translationProviderBaiduApi;
+
+  /// Display label for the DeepL API translation provider
+  ///
+  /// In en, this message translates to:
+  /// **'DeepL (API)'**
+  String get translationProviderDeepLApi;
+
+  /// Display label for the DeepLX translation provider
+  ///
+  /// In en, this message translates to:
+  /// **'DeepLX'**
+  String get translationProviderDeepLX;
+
+  /// Display label for an AI-backed translation provider
+  ///
+  /// In en, this message translates to:
+  /// **'AI: {name}'**
+  String translationProviderAiService(Object name);
+
+  /// Subtitle for configuring Baidu translation credentials
+  ///
+  /// In en, this message translates to:
+  /// **'Configure App ID / App Key'**
+  String get translationProviderBaiduApiSubtitle;
+
+  /// Dialog title for editing the DeepLX base URL
+  ///
+  /// In en, this message translates to:
+  /// **'DeepLX Base URL'**
+  String get deepLXBaseUrlTitle;
+
+  /// Label for the DeepL endpoint selection
+  ///
+  /// In en, this message translates to:
+  /// **'Endpoint'**
+  String get deepLEndpoint;
+
+  /// Label for the DeepL free endpoint
+  ///
+  /// In en, this message translates to:
+  /// **'Free'**
+  String get deepLEndpointFree;
+
+  /// Label for the DeepL pro endpoint
+  ///
+  /// In en, this message translates to:
+  /// **'Pro'**
+  String get deepLEndpointPro;
+
+  /// Menu action for making an AI service the default one
+  ///
+  /// In en, this message translates to:
+  /// **'Set as default'**
+  String get setAsDefault;
+
+  /// Menu label shown when an AI service is already the default one
+  ///
+  /// In en, this message translates to:
+  /// **'Default (already set)'**
+  String get defaultAlreadySet;
 
   /// Setting title for AI summary prompt template
   ///

@@ -1,113 +1,135 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
+
+import '../../../../l10n/app_localizations.dart';
 import '../../../../providers/subscription_settings_provider.dart';
+import '../../../../theme/fleur_theme_extensions.dart';
 import 'category_list_component.dart';
 import 'feed_list_component.dart';
 import 'settings_detail_panel.dart';
-import 'subscription_tree_view.dart';
 import 'subscription_toolbar.dart';
-import '../../layout.dart';
+import 'subscription_tree_view.dart';
+import '../widgets/section_header.dart';
 
 class SubscriptionLayoutManager extends ConsumerWidget {
   const SubscriptionLayoutManager({super.key, this.showPageTitle = true});
 
   final bool showPageTitle;
 
+  static const double _kThreePaneBreakpoint = 1120;
+  static const double _kTwoPaneBreakpoint = 720;
+  static const double _kPaneGap = 12;
+  static const double _kSidebarWidth = 248;
+  static const double _kFeedListWidth = 320;
+  static const double _kTreeWidth = 340;
+  static const double _kMinDetailWidth = 420;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Breakpoints
-    // Wide: > 1000
-    // Medium: kCompactWidth - 1000
-    // Narrow: < kCompactWidth
-
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
         final selection = ref.watch(subscriptionSelectionProvider);
         final notifier = ref.read(subscriptionSelectionProvider.notifier);
+        final l10n = AppLocalizations.of(context)!;
+        final surfaces = Theme.of(context).fleurSurface;
 
-        final content = Builder(
-          builder: (context) {
-            if (width >= 1000) {
-              // 3 Columns
-              return Column(
-                children: [
-                  SubscriptionToolbar(showPageTitle: showPageTitle),
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child: Row(
-                      children: [
-                        const SizedBox(
-                          width: 280,
-                          child: CategoryListComponent(),
-                        ),
-                        const SizedBox(width: kPaneGap),
-                        const SizedBox(width: 320, child: FeedListComponent()),
-                        const SizedBox(width: kPaneGap),
-                        const Expanded(child: SettingsDetailPanel()),
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            } else if (width >= kCompactWidth) {
-              // 2 Columns: Nav (Tree) | Details
-              // User requested Tree View for Medium
-              // 2 Columns: Nav (Tree) | Details
-              // User requested Tree View for Medium
-              return Column(
-                children: [
-                  SubscriptionToolbar(showPageTitle: showPageTitle),
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child: Row(
-                      children: [
-                        const SizedBox(
-                          width: 320,
-                          child: SubscriptionTreeView(),
-                        ),
-                        const SizedBox(width: kPaneGap),
-                        const Expanded(child: SettingsDetailPanel()),
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            } else {
-              // Narrow: 1 Column (Stack)
-              final showDetails =
-                  selection.showGlobalSettings ||
-                  selection.showCategorySettings ||
-                  selection.selectedFeedId != null;
-              final body = showDetails
-                  ? const SettingsDetailPanel()
-                  : const SubscriptionTreeView(showDetailButtons: true);
-
-              return Column(
-                children: [
-                  SubscriptionToolbar(showPageTitle: showPageTitle),
-                  const SizedBox(height: 8),
-                  Expanded(child: body),
-                ],
-              );
-            }
+        String detailPaneSubtitle() => switch (selection.detailTarget) {
+          SubscriptionGlobalDefaults() => l10n.globalDefaults,
+          SubscriptionScopeOverview() => switch (selection.categoryScope) {
+            SubscriptionCategoryAll() => l10n.subscriptions,
+            SubscriptionCategoryUncategorized() => l10n.uncategorized,
+            SubscriptionCategoryId() => l10n.overview,
           },
+          SubscriptionCategorySettingsTarget() => l10n.subscriptions,
+          SubscriptionFeedDetailsTarget() => l10n.subscriptions,
+        };
+
+        Widget buildDetailPane({bool showHeader = true}) {
+          return SettingsPane(
+            color: surfaces.reader,
+            title: showHeader ? l10n.settings : null,
+            subtitle: showHeader ? detailPaneSubtitle() : null,
+            child: const SettingsDetailPanel(),
+          );
+        }
+
+        final resolvedContent = Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          child: Column(
+            children: [
+              SubscriptionToolbar(showPageTitle: showPageTitle),
+              const SizedBox(height: 12),
+              Expanded(
+                child: Builder(
+                  builder: (context) {
+                    if (width >= _kThreePaneBreakpoint) {
+                      return Row(
+                        children: [
+                          const SizedBox(
+                            width: _kSidebarWidth,
+                            child: CategoryListComponent(),
+                          ),
+                          const SizedBox(width: _kPaneGap),
+                          const SizedBox(
+                            width: _kFeedListWidth,
+                            child: FeedListComponent(),
+                          ),
+                          const SizedBox(width: _kPaneGap),
+                          Expanded(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(
+                                minWidth: _kMinDetailWidth,
+                              ),
+                              child: buildDetailPane(),
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+
+                    if (width >= _kTwoPaneBreakpoint) {
+                      return Row(
+                        children: [
+                          SizedBox(
+                            width: _kTreeWidth,
+                            child: SubscriptionTreeView(
+                              showPaneHeader: showPageTitle,
+                            ),
+                          ),
+                          const SizedBox(width: _kPaneGap),
+                          Expanded(
+                            child: buildDetailPane(showHeader: showPageTitle),
+                          ),
+                        ],
+                      );
+                    }
+
+                    return selection.showDetailPane
+                        ? buildDetailPane(showHeader: showPageTitle)
+                        : SubscriptionTreeView(
+                            showDetailPaneOnSelection: true,
+                            showPaneHeader: showPageTitle,
+                          );
+                  },
+                ),
+              ),
+            ],
+          ),
         );
 
-        // If the parent page is already providing title/back handling, avoid
-        // installing a nested PopScope here. This prevents "double back" when
-        // the Subscriptions tab is embedded in a stacked Settings detail page.
-        if (!showPageTitle) return content;
+        if (!showPageTitle) return resolvedContent;
 
         return PopScope(
-          // If selection exists, PopScope prevents backing out and instead goes
-          // up a level within the in-page navigation.
           canPop: !selection.canHandleBack,
           onPopInvokedWithResult: (didPop, _) {
             if (didPop) return;
-            notifier.handleBack();
+            if (notifier.handleBack()) {
+              unawaited(Navigator.of(context).maybePop());
+            }
           },
-          child: content,
+          child: resolvedContent,
         );
       },
     );

@@ -155,6 +155,46 @@
   "@subscriptions": {
     "description": "subscriptions"
   },
+  "defaultsGroup": "全域",
+  "@defaultsGroup": {
+    "description": "Section label for default settings entries"
+  },
+  "folders": "訂閱源",
+  "@folders": {
+    "description": "Section label for subscription folders"
+  },
+  "globalDefaults": "全域預設",
+  "@globalDefaults": {
+    "description": "Entry label for subscription-wide default settings"
+  },
+  "allSubscriptions": "全部項目",
+  "@allSubscriptions": {
+    "description": "Entry label for the full subscription scope"
+  },
+  "manage": "管理",
+  "@manage": {
+    "description": "Toolbar label for the management actions menu"
+  },
+  "overview": "概覽",
+  "@overview": {
+    "description": "Overview section label"
+  },
+  "categoriesLabel": "分類數",
+  "@categoriesLabel": {
+    "description": "Summary label for categories count"
+  },
+  "globalDefaultsDescription": "當資料夾或訂閱源沒有覆寫設定時，會繼承這裡的預設值。",
+  "@globalDefaultsDescription": {
+    "description": "Description shown for the global defaults pane"
+  },
+  "allSubscriptionsDescription": "在這裡查看整體訂閱結構，並選擇具體項目繼續編輯。",
+  "@allSubscriptionsDescription": {
+    "description": "Description shown for the all subscriptions overview"
+  },
+  "uncategorizedDescription": "未分類的訂閱源會繼承全域預設，直到你為它們單獨覆寫設定。",
+  "@uncategorizedDescription": {
+    "description": "Description shown for the uncategorized overview"
+  },
   "tags": "標籤",
   "@tags": {
     "description": "tags"
@@ -943,6 +983,38 @@
   "@viewThirdPartyLicenses": {
     "description": "viewThirdPartyLicenses"
   },
+  "licenseLoadFailed": "載入授權失敗。",
+  "@licenseLoadFailed": {
+    "description": "載入內建授權文字失敗時的錯誤提示"
+  },
+  "mitLicenseName": "MIT 授權",
+  "@mitLicenseName": {
+    "description": "應用主要授權名稱"
+  },
+  "shortcutNextPreviousArticle": "J / K：下一篇 / 上一篇文章",
+  "@shortcutNextPreviousArticle": {
+    "description": "切換上一篇/下一篇文章的快速鍵說明"
+  },
+  "shortcutRefreshCurrentSelection": "R：重新整理（目前選取項）",
+  "@shortcutRefreshCurrentSelection": {
+    "description": "重新整理目前選取項的快速鍵說明"
+  },
+  "shortcutToggleUnreadOnly": "U：切換僅未讀",
+  "@shortcutToggleUnreadOnly": {
+    "description": "切換僅未讀篩選的快速鍵說明"
+  },
+  "shortcutToggleReadUnreadSelectedArticle": "M：切換所選文章的已讀 / 未讀",
+  "@shortcutToggleReadUnreadSelectedArticle": {
+    "description": "切換所選文章已讀狀態的快速鍵說明"
+  },
+  "shortcutToggleStarSelectedArticle": "S：切換所選文章的星號狀態",
+  "@shortcutToggleStarSelectedArticle": {
+    "description": "切換所選文章星號狀態的快速鍵說明"
+  },
+  "shortcutSearchArticlesAndFindInPage": "Ctrl/Cmd+F：搜尋文章（清單）；聚焦頁內尋找（閱讀器）",
+  "@shortcutSearchArticlesAndFindInPage": {
+    "description": "清單搜尋與閱讀器頁內尋找的快速鍵說明"
+  },
   "filter": "過濾",
   "@filter": {
     "description": "filter"
@@ -1155,6 +1227,61 @@
   "followAppLanguage": "跟隨軟體語言",
   "@followAppLanguage": {
     "description": "跟隨軟體語言的選項標籤"
+  },
+  "translationProviderGoogleWeb": "Google 翻譯（網頁）",
+  "@translationProviderGoogleWeb": {
+    "description": "Google 網頁翻譯提供方顯示名稱"
+  },
+  "translationProviderBingWeb": "Bing 翻譯（網頁）",
+  "@translationProviderBingWeb": {
+    "description": "Bing 網頁翻譯提供方顯示名稱"
+  },
+  "translationProviderBaiduApi": "百度翻譯（API）",
+  "@translationProviderBaiduApi": {
+    "description": "百度翻譯 API 提供方顯示名稱"
+  },
+  "translationProviderDeepLApi": "DeepL（API）",
+  "@translationProviderDeepLApi": {
+    "description": "DeepL API 提供方顯示名稱"
+  },
+  "translationProviderDeepLX": "DeepLX",
+  "@translationProviderDeepLX": {
+    "description": "DeepLX 提供方顯示名稱"
+  },
+  "translationProviderAiService": "AI：{name}",
+  "@translationProviderAiService": {
+    "description": "AI 翻譯提供方顯示名稱",
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "translationProviderBaiduApiSubtitle": "設定 App ID / App Key",
+  "@translationProviderBaiduApiSubtitle": {
+    "description": "百度翻譯憑證設定副標題"
+  },
+  "deepLXBaseUrlTitle": "DeepLX Base URL",
+  "@deepLXBaseUrlTitle": {
+    "description": "編輯 DeepLX Base URL 的對話框標題"
+  },
+  "deepLEndpoint": "Endpoint",
+  "@deepLEndpoint": {
+    "description": "DeepL Endpoint 選擇項標籤"
+  },
+  "deepLEndpointFree": "免費版",
+  "@deepLEndpointFree": {
+    "description": "DeepL 免費版 Endpoint 標籤"
+  },
+  "deepLEndpointPro": "專業版",
+  "@deepLEndpointPro": {
+    "description": "DeepL 專業版 Endpoint 標籤"
+  },
+  "setAsDefault": "設為預設",
+  "@setAsDefault": {
+    "description": "將 AI 服務設為預設項的選單文案"
+  },
+  "defaultAlreadySet": "預設（已設定）",
+  "@defaultAlreadySet": {
+    "description": "AI 服務已經是預設項時的選單文案"
   },
   "aiSummaryPrompt": "AI 總結提示詞",
   "@aiSummaryPrompt": {

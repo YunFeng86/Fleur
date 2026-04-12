@@ -19,6 +19,31 @@ final class SubscriptionCategoryId extends SubscriptionCategoryScope {
   final int id;
 }
 
+sealed class SubscriptionDetailTarget {
+  const SubscriptionDetailTarget();
+}
+
+final class SubscriptionScopeOverview extends SubscriptionDetailTarget {
+  const SubscriptionScopeOverview();
+}
+
+final class SubscriptionGlobalDefaults extends SubscriptionDetailTarget {
+  const SubscriptionGlobalDefaults();
+}
+
+final class SubscriptionCategorySettingsTarget
+    extends SubscriptionDetailTarget {
+  const SubscriptionCategorySettingsTarget(this.categoryId);
+
+  final int categoryId;
+}
+
+final class SubscriptionFeedDetailsTarget extends SubscriptionDetailTarget {
+  const SubscriptionFeedDetailsTarget(this.feedId);
+
+  final int feedId;
+}
+
 class SubscriptionState {
   /// The currently active category scope for the middle column (Feed List).
   ///
@@ -26,45 +51,28 @@ class SubscriptionState {
   /// for "Uncategorized".
   final SubscriptionCategoryScope categoryScope;
 
-  /// The currently selected feed for the right column (Settings/Details).
-  /// - `null`: No feed selected.
-  final int? selectedFeedId;
+  /// The active detail target shown in the detail pane.
+  final SubscriptionDetailTarget detailTarget;
 
-  /// When true, show the global subscription settings in the detail panel.
-  ///
-  /// This lets users open global defaults without losing their current
-  /// category/feed context (useful for 3-pane layouts).
-  final bool showGlobalSettings;
-
-  /// When true, show the selected category settings in the detail panel.
-  ///
-  /// This is primarily used for narrow layouts that reuse the tree view:
-  /// expanding/collapsing a category should not automatically navigate away from
-  /// the tree. Instead, users enter category settings explicitly via a "details"
-  /// button.
-  final bool showCategorySettings;
+  /// Whether stacked layouts should currently show the detail pane instead of
+  /// the navigation tree.
+  final bool showDetailPane;
 
   const SubscriptionState({
     this.categoryScope = const SubscriptionCategoryAll(),
-    this.selectedFeedId,
-    this.showGlobalSettings = false,
-    this.showCategorySettings = false,
+    this.detailTarget = const SubscriptionGlobalDefaults(),
+    this.showDetailPane = false,
   });
 
   SubscriptionState copyWith({
     SubscriptionCategoryScope? categoryScope,
-    int? selectedFeedId,
-    bool clearFeed = false,
-    bool? showGlobalSettings,
-    bool? showCategorySettings,
+    SubscriptionDetailTarget? detailTarget,
+    bool? showDetailPane,
   }) {
     return SubscriptionState(
       categoryScope: categoryScope ?? this.categoryScope,
-      selectedFeedId: clearFeed
-          ? null
-          : (selectedFeedId ?? this.selectedFeedId),
-      showGlobalSettings: showGlobalSettings ?? this.showGlobalSettings,
-      showCategorySettings: showCategorySettings ?? this.showCategorySettings,
+      detailTarget: detailTarget ?? this.detailTarget,
+      showDetailPane: showDetailPane ?? this.showDetailPane,
     );
   }
 
@@ -82,113 +90,128 @@ class SubscriptionState {
   /// Whether a real, editable category is selected.
   bool get isRealCategory => categoryScope is SubscriptionCategoryId;
 
-  /// Whether the current state represents an in-page selection that can be
-  /// cleared via back navigation.
-  bool get canHandleBack =>
-      showGlobalSettings ||
-      showCategorySettings ||
-      selectedFeedId != null ||
-      !isAll;
+  bool get isScopeOverview => detailTarget is SubscriptionScopeOverview;
+
+  bool get isGlobalDefaults => detailTarget is SubscriptionGlobalDefaults;
+
+  bool get isCategorySettings =>
+      detailTarget is SubscriptionCategorySettingsTarget;
+
+  int? get selectedFeedId => switch (detailTarget) {
+    SubscriptionFeedDetailsTarget(:final feedId) => feedId,
+    _ => null,
+  };
+
+  bool get isRootState => isAll && isGlobalDefaults && !showDetailPane;
+
+  bool get canHandleBack => !isRootState;
+
+  bool matchesCategoryId(int? categoryId) => switch (categoryScope) {
+    SubscriptionCategoryAll() => true,
+    SubscriptionCategoryUncategorized() => categoryId == null,
+    SubscriptionCategoryId(:final id) => categoryId == id,
+  };
+
+  SubscriptionDetailTarget detailTargetForScope() => switch (categoryScope) {
+    SubscriptionCategoryId(:final id) => SubscriptionCategorySettingsTarget(id),
+    _ => const SubscriptionGlobalDefaults(),
+  };
 }
 
 class SubscriptionSelectionNotifier extends StateNotifier<SubscriptionState> {
   SubscriptionSelectionNotifier() : super(const SubscriptionState());
 
-  void selectCategory(int? id) {
-    if (state.activeCategoryId == id && state.selectedFeedId == null) {
-      // Toggle off if clicking the currently active category (and no feed is selected)
-      state = const SubscriptionState();
-      return;
-    }
+  void selectAll({bool showDetailPane = false}) {
     state = SubscriptionState(
-      categoryScope: (id == null)
-          ? const SubscriptionCategoryAll()
-          : SubscriptionCategoryId(id),
-      selectedFeedId: null,
-      showGlobalSettings: false,
-      showCategorySettings: false,
+      categoryScope: const SubscriptionCategoryAll(),
+      detailTarget: const SubscriptionGlobalDefaults(),
+      showDetailPane: showDetailPane,
     );
   }
 
-  void selectUncategorized() {
-    if (state.isUncategorized && state.selectedFeedId == null) {
-      state = const SubscriptionState();
-      return;
-    }
-    state = const SubscriptionState(
+  void selectUncategorized({bool showDetailPane = false}) {
+    state = SubscriptionState(
       categoryScope: SubscriptionCategoryUncategorized(),
-      selectedFeedId: null,
-      showGlobalSettings: false,
-      showCategorySettings: false,
+      detailTarget: const SubscriptionScopeOverview(),
+      showDetailPane: showDetailPane,
     );
   }
 
-  void selectFeed(int feedId, {SubscriptionCategoryScope? categoryScope}) {
-    // If clicking the currently selected feed, toggle it off.
-    if (state.selectedFeedId == feedId) {
-      state = state.copyWith(clearFeed: true, showGlobalSettings: false);
+  void selectCategory(int id, {bool showDetailPane = false}) {
+    final isSelectedCategoryDetails =
+        state.activeCategoryId == id &&
+        state.detailTarget is SubscriptionCategorySettingsTarget &&
+        state.selectedFeedId == null;
+
+    if (isSelectedCategoryDetails) {
+      selectAll(showDetailPane: showDetailPane);
       return;
     }
+
+    state = SubscriptionState(
+      categoryScope: SubscriptionCategoryId(id),
+      detailTarget: SubscriptionCategorySettingsTarget(id),
+      showDetailPane: showDetailPane,
+    );
+  }
+
+  void showGlobalDefaults({bool showDetailPane = false}) {
+    state = state.copyWith(
+      detailTarget: const SubscriptionGlobalDefaults(),
+      showDetailPane: showDetailPane,
+    );
+  }
+
+  void showScopeOverview({bool showDetailPane = false}) {
+    state = state.copyWith(
+      detailTarget: const SubscriptionScopeOverview(),
+      showDetailPane: showDetailPane,
+    );
+  }
+
+  void returnToScopeDetails({bool? showDetailPane}) {
+    state = state.copyWith(
+      detailTarget: state.detailTargetForScope(),
+      showDetailPane: showDetailPane ?? state.showDetailPane,
+    );
+  }
+
+  void selectFeed(
+    int feedId, {
+    SubscriptionCategoryScope? categoryScope,
+    bool showDetailPane = false,
+  }) {
     state = SubscriptionState(
       categoryScope: categoryScope ?? state.categoryScope,
-      selectedFeedId: feedId,
-      showGlobalSettings: false,
-      showCategorySettings: false,
+      detailTarget: SubscriptionFeedDetailsTarget(feedId),
+      showDetailPane: showDetailPane,
     );
   }
 
-  void clearSelection() {
-    state = const SubscriptionState();
-  }
-
-  void clearFeedSelection() {
-    state = state.copyWith(clearFeed: true, showGlobalSettings: false);
-  }
-
-  void openCategorySettings(int categoryId) {
-    state = SubscriptionState(
-      categoryScope: SubscriptionCategoryId(categoryId),
-      selectedFeedId: null,
-      showGlobalSettings: false,
-      showCategorySettings: true,
-    );
-  }
-
-  void closeCategorySettings() {
-    if (!state.showCategorySettings) return;
-    state = state.copyWith(showCategorySettings: false);
-  }
-
-  void toggleGlobalSettings() {
-    state = state.copyWith(showGlobalSettings: !state.showGlobalSettings);
-  }
-
-  void closeGlobalSettings() {
-    if (!state.showGlobalSettings) return;
-    state = state.copyWith(showGlobalSettings: false);
-  }
-
-  /// Handles a single "back" step within the subscription settings UI.
-  ///
-  /// Returns `true` when there is nothing to handle and callers should allow
-  /// the surrounding route to pop.
   bool handleBack() {
-    if (state.showGlobalSettings) {
-      closeGlobalSettings();
+    if (state.detailTarget case SubscriptionFeedDetailsTarget()) {
+      state = state.copyWith(
+        detailTarget: state.detailTargetForScope(),
+        showDetailPane: state.showDetailPane,
+      );
       return false;
     }
-    if (state.showCategorySettings) {
-      closeCategorySettings();
+
+    if (state.showDetailPane) {
+      state = state.copyWith(showDetailPane: false);
       return false;
     }
-    if (state.selectedFeedId != null) {
-      clearFeedSelection();
+
+    if (state.detailTarget case SubscriptionGlobalDefaults()) {
+      state = state.copyWith(detailTarget: state.detailTargetForScope());
       return false;
     }
+
     if (!state.isAll) {
       state = const SubscriptionState();
       return false;
     }
+
     return true;
   }
 }

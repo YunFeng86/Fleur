@@ -134,6 +134,77 @@ class SettingsCard extends StatelessWidget {
   }
 }
 
+class SettingsPane extends StatelessWidget {
+  const SettingsPane({
+    super.key,
+    required this.child,
+    this.title,
+    this.subtitle,
+    this.trailing,
+    this.color,
+  });
+
+  final Widget child;
+  final String? title;
+  final String? subtitle;
+  final Widget? trailing;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final surfaces = theme.fleurSurface;
+    final hasHeader = title != null || subtitle != null || trailing != null;
+
+    return Card(
+      color: color,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (hasHeader)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (title case final title?)
+                          Text(
+                            title,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        if (subtitle case final subtitle?) ...[
+                          if (title != null) const SizedBox(height: 4),
+                          Text(
+                            subtitle,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  if (trailing != null) ...[
+                    const SizedBox(width: 12),
+                    trailing!,
+                  ],
+                ],
+              ),
+            ),
+          if (hasHeader) Divider(color: surfaces.subtleDivider, height: 1),
+          Expanded(child: child),
+        ],
+      ),
+    );
+  }
+}
+
 class SettingsTileGroup extends StatelessWidget {
   const SettingsTileGroup({super.key, required this.children});
 

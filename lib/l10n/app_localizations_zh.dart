@@ -125,6 +125,36 @@ class AppLocalizationsZh extends AppLocalizations {
   String get subscriptions => '订阅源';
 
   @override
+  String get defaultsGroup => '全局';
+
+  @override
+  String get folders => '订阅源';
+
+  @override
+  String get globalDefaults => '全局默认';
+
+  @override
+  String get allSubscriptions => '全部项目';
+
+  @override
+  String get manage => '管理';
+
+  @override
+  String get overview => '概览';
+
+  @override
+  String get categoriesLabel => '分类数';
+
+  @override
+  String get globalDefaultsDescription => '当文件夹或订阅源未覆盖设置时，会继承这里的默认值。';
+
+  @override
+  String get allSubscriptionsDescription => '在这里查看整体订阅结构，并选择具体项目继续编辑。';
+
+  @override
+  String get uncategorizedDescription => '未分类的订阅源会继承全局默认，直到你为它们单独覆盖设置。';
+
+  @override
   String get tags => '标签';
 
   @override
@@ -697,6 +727,31 @@ class AppLocalizationsZh extends AppLocalizations {
   String get viewThirdPartyLicenses => '查看所有开源许可证';
 
   @override
+  String get licenseLoadFailed => '加载许可证失败。';
+
+  @override
+  String get mitLicenseName => 'MIT 许可证';
+
+  @override
+  String get shortcutNextPreviousArticle => 'J / K：下一篇 / 上一篇文章';
+
+  @override
+  String get shortcutRefreshCurrentSelection => 'R：刷新（当前选中项）';
+
+  @override
+  String get shortcutToggleUnreadOnly => 'U：切换仅未读';
+
+  @override
+  String get shortcutToggleReadUnreadSelectedArticle => 'M：切换所选文章的已读 / 未读';
+
+  @override
+  String get shortcutToggleStarSelectedArticle => 'S：切换所选文章的星标状态';
+
+  @override
+  String get shortcutSearchArticlesAndFindInPage =>
+      'Ctrl/Cmd+F：搜索文章（列表）；聚焦页内查找（阅读器）';
+
+  @override
   String get filter => '过滤';
 
   @override
@@ -853,6 +908,47 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get followAppLanguage => '跟随软件语言';
+
+  @override
+  String get translationProviderGoogleWeb => 'Google 翻译（网页）';
+
+  @override
+  String get translationProviderBingWeb => 'Bing 翻译（网页）';
+
+  @override
+  String get translationProviderBaiduApi => '百度翻译（API）';
+
+  @override
+  String get translationProviderDeepLApi => 'DeepL（API）';
+
+  @override
+  String get translationProviderDeepLX => 'DeepLX';
+
+  @override
+  String translationProviderAiService(Object name) {
+    return 'AI：$name';
+  }
+
+  @override
+  String get translationProviderBaiduApiSubtitle => '配置 App ID / App Key';
+
+  @override
+  String get deepLXBaseUrlTitle => 'DeepLX Base URL';
+
+  @override
+  String get deepLEndpoint => 'Endpoint';
+
+  @override
+  String get deepLEndpointFree => '免费版';
+
+  @override
+  String get deepLEndpointPro => '专业版';
+
+  @override
+  String get setAsDefault => '设为默认';
+
+  @override
+  String get defaultAlreadySet => '默认（已设置）';
 
   @override
   String get aiSummaryPrompt => 'AI 总结提示词';
@@ -1094,6 +1190,36 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get subscriptions => '訂閱源';
+
+  @override
+  String get defaultsGroup => '全域';
+
+  @override
+  String get folders => '訂閱源';
+
+  @override
+  String get globalDefaults => '全域預設';
+
+  @override
+  String get allSubscriptions => '全部項目';
+
+  @override
+  String get manage => '管理';
+
+  @override
+  String get overview => '概覽';
+
+  @override
+  String get categoriesLabel => '分類數';
+
+  @override
+  String get globalDefaultsDescription => '當資料夾或訂閱源沒有覆寫設定時，會繼承這裡的預設值。';
+
+  @override
+  String get allSubscriptionsDescription => '在這裡查看整體訂閱結構，並選擇具體項目繼續編輯。';
+
+  @override
+  String get uncategorizedDescription => '未分類的訂閱源會繼承全域預設，直到你為它們單獨覆寫設定。';
 
   @override
   String get tags => '標籤';
@@ -1668,6 +1794,31 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get viewThirdPartyLicenses => '檢視所有開放原始碼授權';
 
   @override
+  String get licenseLoadFailed => '載入授權失敗。';
+
+  @override
+  String get mitLicenseName => 'MIT 授權';
+
+  @override
+  String get shortcutNextPreviousArticle => 'J / K：下一篇 / 上一篇文章';
+
+  @override
+  String get shortcutRefreshCurrentSelection => 'R：重新整理（目前選取項）';
+
+  @override
+  String get shortcutToggleUnreadOnly => 'U：切換僅未讀';
+
+  @override
+  String get shortcutToggleReadUnreadSelectedArticle => 'M：切換所選文章的已讀 / 未讀';
+
+  @override
+  String get shortcutToggleStarSelectedArticle => 'S：切換所選文章的星號狀態';
+
+  @override
+  String get shortcutSearchArticlesAndFindInPage =>
+      'Ctrl/Cmd+F：搜尋文章（清單）；聚焦頁內尋找（閱讀器）';
+
+  @override
   String get filter => '過濾';
 
   @override
@@ -1824,6 +1975,47 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get followAppLanguage => '跟隨軟體語言';
+
+  @override
+  String get translationProviderGoogleWeb => 'Google 翻譯（網頁）';
+
+  @override
+  String get translationProviderBingWeb => 'Bing 翻譯（網頁）';
+
+  @override
+  String get translationProviderBaiduApi => '百度翻譯（API）';
+
+  @override
+  String get translationProviderDeepLApi => 'DeepL（API）';
+
+  @override
+  String get translationProviderDeepLX => 'DeepLX';
+
+  @override
+  String translationProviderAiService(Object name) {
+    return 'AI：$name';
+  }
+
+  @override
+  String get translationProviderBaiduApiSubtitle => '設定 App ID / App Key';
+
+  @override
+  String get deepLXBaseUrlTitle => 'DeepLX Base URL';
+
+  @override
+  String get deepLEndpoint => 'Endpoint';
+
+  @override
+  String get deepLEndpointFree => '免費版';
+
+  @override
+  String get deepLEndpointPro => '專業版';
+
+  @override
+  String get setAsDefault => '設為預設';
+
+  @override
+  String get defaultAlreadySet => '預設（已設定）';
 
   @override
   String get aiSummaryPrompt => 'AI 總結提示詞';

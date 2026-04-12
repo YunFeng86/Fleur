@@ -95,7 +95,7 @@ class TranslationAiServicesTab extends ConsumerWidget {
         Future<void> setDeepLXBaseUrl() async {
           final next = await showTextInputDialog(
             context,
-            title: 'DeepLX Base URL',
+            title: l10n.deepLXBaseUrlTitle,
             labelText: l10n.baseUrl,
             hintText: 'https://deeplx.example.com',
             initialText: settings.deepLX.baseUrl,
@@ -162,7 +162,7 @@ class TranslationAiServicesTab extends ConsumerWidget {
                 builder: (dialogContext, setState) {
                   return AlertDialog(
                     scrollable: true,
-                    title: const Text('DeepL'),
+                    title: Text(l10n.translationProviderDeepLApi),
                     content: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 520),
                       child: Column(
@@ -170,7 +170,7 @@ class TranslationAiServicesTab extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
-                            'Endpoint',
+                            l10n.deepLEndpoint,
                             style: Theme.of(context).textTheme.titleSmall,
                           ),
                           const SizedBox(height: 8),
@@ -179,7 +179,7 @@ class TranslationAiServicesTab extends ConsumerWidget {
                             runSpacing: 8,
                             children: [
                               ChoiceChip(
-                                label: const Text('Free'),
+                                label: Text(l10n.deepLEndpointFree),
                                 selected: endpoint == DeepLEndpoint.free,
                                 onSelected: (v) {
                                   if (!v) return;
@@ -187,7 +187,7 @@ class TranslationAiServicesTab extends ConsumerWidget {
                                 },
                               ),
                               ChoiceChip(
-                                label: const Text('Pro'),
+                                label: Text(l10n.deepLEndpointPro),
                                 selected: endpoint == DeepLEndpoint.pro,
                                 onSelected: (v) {
                                   if (!v) return;
@@ -299,7 +299,7 @@ class TranslationAiServicesTab extends ConsumerWidget {
                 builder: (dialogContext, setState) {
                   return AlertDialog(
                     scrollable: true,
-                    title: const Text('百度翻译（API）'),
+                    title: Text(l10n.translationProviderBaiduApi),
                     content: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 520),
                       child: Column(
@@ -889,21 +889,21 @@ class TranslationAiServicesTab extends ConsumerWidget {
                       onTap: editAiTranslationPrompt,
                     ),
                     SettingsTile(
-                      title: const Text('百度翻译（API）'),
-                      subtitle: const Text('配置 App ID / App Key'),
+                      title: Text(l10n.translationProviderBaiduApi),
+                      subtitle: Text(l10n.translationProviderBaiduApiSubtitle),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: configureBaidu,
                     ),
                     SettingsTile(
-                      title: const Text('DeepL（API）'),
+                      title: Text(l10n.translationProviderDeepLApi),
                       subtitle: Text(
-                        'Endpoint: ${settings.deepL.endpoint.name.toUpperCase()} · ${l10n.apiKey}',
+                        '${l10n.deepLEndpoint}: ${_deepLEndpointLabel(l10n, settings.deepL.endpoint)} · ${l10n.apiKey}',
                       ),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: configureDeepL,
                     ),
                     SettingsTile(
-                      title: const Text('DeepLX'),
+                      title: Text(l10n.translationProviderDeepLX),
                       subtitle: Text(
                         settings.deepLX.baseUrl.trim().isEmpty
                             ? l10n.baseUrl
@@ -1031,7 +1031,9 @@ class TranslationAiServicesTab extends ConsumerWidget {
                                     PopupMenuItem(
                                       value: _AiServiceAction.setDefault,
                                       child: Text(
-                                        isDefault ? '默认（已设置）' : '设为默认',
+                                        isDefault
+                                            ? l10n.defaultAlreadySet
+                                            : l10n.setAsDefault,
                                       ),
                                     ),
                                     PopupMenuItem(
@@ -1239,11 +1241,11 @@ String _translationProviderLabel(
   TranslationAiSettings settings,
 ) {
   return switch (selection.kind) {
-    TranslationProviderKind.googleWeb => 'Google 翻译（网页）',
-    TranslationProviderKind.bingWeb => 'Bing 翻译（网页）',
-    TranslationProviderKind.baiduApi => '百度翻译（API）',
-    TranslationProviderKind.deepLApi => 'DeepL（API）',
-    TranslationProviderKind.deepLX => 'DeepLX',
+    TranslationProviderKind.googleWeb => l10n.translationProviderGoogleWeb,
+    TranslationProviderKind.bingWeb => l10n.translationProviderBingWeb,
+    TranslationProviderKind.baiduApi => l10n.translationProviderBaiduApi,
+    TranslationProviderKind.deepLApi => l10n.translationProviderDeepLApi,
+    TranslationProviderKind.deepLX => l10n.translationProviderDeepLX,
     TranslationProviderKind.aiService => _aiServiceTranslationLabel(
       l10n,
       settings,
@@ -1260,7 +1262,14 @@ String _aiServiceTranslationLabel(
   final id = (serviceId ?? '').trim();
   if (id.isEmpty) return l10n.aiService;
   for (final s in settings.aiServices) {
-    if (s.id == id) return 'AI：${s.name}';
+    if (s.id == id) return l10n.translationProviderAiService(s.name);
   }
   return l10n.aiService;
+}
+
+String _deepLEndpointLabel(AppLocalizations l10n, DeepLEndpoint endpoint) {
+  return switch (endpoint) {
+    DeepLEndpoint.free => l10n.deepLEndpointFree,
+    DeepLEndpoint.pro => l10n.deepLEndpointPro,
+  };
 }

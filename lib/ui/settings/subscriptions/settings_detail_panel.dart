@@ -24,41 +24,107 @@ class SettingsDetailPanel extends ConsumerWidget {
     final selection = ref.watch(subscriptionSelectionProvider);
     final l10n = AppLocalizations.of(context)!;
 
-    // Global Settings explicitly requested (do not lose current selection context).
-    if (selection.showGlobalSettings) {
-      return const _GlobalSettings();
-    }
+    return switch (selection.detailTarget) {
+      SubscriptionGlobalDefaults() => const _GlobalSettings(),
+      SubscriptionScopeOverview() => _ScopeOverview(
+        scope: selection.categoryScope,
+      ),
+      SubscriptionCategorySettingsTarget(:final categoryId) =>
+        ref
+            .watch(categoryProvider(categoryId))
+            .when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, s) =>
+                  Center(child: Text(l10n.errorMessage(e.toString()))),
+              data: (category) {
+                if (category == null) return Center(child: Text(l10n.notFound));
+                return _CategorySettings(category: category);
+              },
+            ),
+      SubscriptionFeedDetailsTarget(:final feedId) =>
+        ref
+            .watch(feedProvider(feedId))
+            .when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, s) =>
+                  Center(child: Text(l10n.errorMessage(e.toString()))),
+              data: (feed) {
+                if (feed == null) return Center(child: Text(l10n.notFound));
+                return _FeedSettings(feed: feed);
+              },
+            ),
+    };
+  }
+}
 
-    // 1. Feed Selected -> Show Feed Settings
-    if (selection.selectedFeedId != null) {
-      final feedId = selection.selectedFeedId!;
-      final feedAsync = ref.watch(feedProvider(feedId));
-      return feedAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, s) => Center(child: Text('Error: $e')),
-        data: (feed) {
-          if (feed == null) return Center(child: Text(l10n.notFound));
-          return _FeedSettings(feed: feed);
-        },
-      );
-    }
-    // 2. Category Selected (and NO Feed selected) -> Show Category Settings
-    else if (selection.isRealCategory) {
-      final categoryId = selection.activeCategoryId!;
-      final categoryAsync = ref.watch(categoryProvider(categoryId));
-      return categoryAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, s) => Center(child: Text('Error: $e')),
-        data: (category) {
-          if (category == null) return Center(child: Text(l10n.notFound));
-          return _CategorySettings(category: category);
-        },
-      );
-    }
-    // 3. Fallback -> Global Settings
-    else {
-      return const _GlobalSettings();
-    }
+class _ScopeOverview extends ConsumerWidget {
+  const _ScopeOverview({required this.scope});
+
+  final SubscriptionCategoryScope scope;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final categories = ref.watch(categoriesProvider).valueOrNull ?? const [];
+    final feeds = ref.watch(feedsProvider).valueOrNull ?? const <Feed>[];
+
+    final scopedFeeds = feeds.where((feed) {
+      return switch (scope) {
+        SubscriptionCategoryAll() => true,
+        SubscriptionCategoryUncategorized() => feed.categoryId == null,
+        SubscriptionCategoryId(:final id) => feed.categoryId == id,
+      };
+    }).toList();
+
+    final last = () {
+      DateTime? out;
+      for (final feed in scopedFeeds) {
+        final stamp = feed.lastCheckedAt ?? feed.lastSyncedAt;
+        if (stamp == null) continue;
+        if (out == null || stamp.isAfter(out)) out = stamp;
+      }
+      return out;
+    }();
+
+    final title = switch (scope) {
+      SubscriptionCategoryAll() => l10n.allSubscriptions,
+      SubscriptionCategoryUncategorized() => l10n.uncategorized,
+      SubscriptionCategoryId(:final id) =>
+        categories.where((category) => category.id == id).firstOrNull?.name ??
+            l10n.subscriptions,
+    };
+
+    final description = switch (scope) {
+      SubscriptionCategoryAll() => l10n.allSubscriptionsDescription,
+      SubscriptionCategoryUncategorized() => l10n.uncategorizedDescription,
+      SubscriptionCategoryId() => l10n.allSubscriptionsDescription,
+    };
+
+    final lastText = last == null
+        ? l10n.never
+        : timeago.format(last.toLocal(), locale: timeagoLocale(context));
+    final overviewValues = <_OverviewValue>[
+      _OverviewValue(label: l10n.subscriptions, value: '${scopedFeeds.length}'),
+      if (scope case SubscriptionCategoryAll())
+        _OverviewValue(
+          label: l10n.categoriesLabel,
+          value: '${categories.length}',
+        ),
+      if (scope case SubscriptionCategoryAll())
+        _OverviewValue(
+          label: l10n.uncategorized,
+          value: '${feeds.where((feed) => feed.categoryId == null).length}',
+        ),
+      _OverviewValue(label: l10n.lastSynced, value: lastText),
+    ];
+
+    return SettingsPageBody(
+      maxWidth: 920,
+      children: [
+        SettingsDetailHeader(title: title, subtitle: description),
+        _OverviewSection(values: overviewValues, bottomSpacing: 0),
+      ],
+    );
   }
 }
 
@@ -83,57 +149,113 @@ class _GlobalSettings extends ConsumerWidget {
 
     return appSettingsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, s) => Center(child: Text('Error: $e')),
+      error: (e, s) => Center(child: Text(l10n.errorMessage(e.toString()))),
       data: (appSettings) {
         final last = lastSyncedAt();
-        final lastText = last == null
-            ? l10n.never
-            : timeago.format(last.toLocal(), locale: timeagoLocale(context));
+
         return SettingsPageBody(
           maxWidth: 920,
           children: [
-            SettingsCard(
-              padding: EdgeInsets.zero,
-              child: SettingsTileGroup(
-                children: [
-                  SettingsTile(
-                    leading: const Icon(Icons.add),
-                    title: Text(l10n.addSubscription),
-                    onTap: () =>
-                        SubscriptionActions.showAddFeedDialog(context, ref),
-                  ),
-                  SettingsTile(
-                    leading: const Icon(Icons.create_new_folder_outlined),
-                    title: Text(l10n.newCategory),
-                    onTap: () =>
-                        SubscriptionActions.showAddCategoryDialog(context, ref),
-                  ),
-                  SettingsTile(
-                    leading: const Icon(Icons.refresh),
-                    title: Text(l10n.refreshAll),
-                    subtitle: Text('${l10n.lastSynced}: $lastText'),
-                    onTap: () => SubscriptionActions.refreshAll(context, ref),
-                  ),
-                  SettingsTile(
-                    leading: const Icon(Icons.file_upload_outlined),
-                    title: Text(l10n.importOpml),
-                    onTap: () => SubscriptionActions.importOpml(context, ref),
-                  ),
-                  SettingsTile(
-                    leading: const Icon(Icons.file_download_outlined),
-                    title: Text(l10n.exportOpml),
-                    onTap: () => SubscriptionActions.exportOpml(context, ref),
-                  ),
-                ],
-              ),
+            SettingsDetailHeader(
+              title: l10n.globalDefaults,
+              subtitle: l10n.globalDefaultsDescription,
             ),
-            const SizedBox(height: 24),
+            _OverviewSection(
+              values: [
+                _OverviewValue(
+                  label: l10n.subscriptions,
+                  value: '${feeds.length}',
+                ),
+                _OverviewValue(
+                  label: l10n.lastSynced,
+                  value: last == null
+                      ? l10n.never
+                      : timeago.format(
+                          last.toLocal(),
+                          locale: timeagoLocale(context),
+                        ),
+                ),
+              ],
+            ),
             _FilterSection(appSettings: appSettings),
             _SyncSection(appSettings: appSettings),
             _UserAgentSection(appSettings: appSettings),
           ],
         );
       },
+    );
+  }
+}
+
+class _OverviewValue {
+  const _OverviewValue({required this.label, required this.value});
+
+  final String label;
+  final String value;
+}
+
+class _OverviewSection extends StatelessWidget {
+  const _OverviewSection({required this.values, this.bottomSpacing = 24});
+
+  final List<_OverviewValue> values;
+  final double bottomSpacing;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return SettingsSection(
+      title: l10n.overview,
+      bottomSpacing: bottomSpacing,
+      child: SettingsCard(
+        padding: EdgeInsets.zero,
+        child: SettingsTileGroup(
+          children: [
+            for (final value in values)
+              _OverviewValueRow(label: value.label, value: value.value),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _OverviewValueRow extends StatelessWidget {
+  const _OverviewValueRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 24),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -155,7 +277,11 @@ class _CategorySettings extends ConsumerWidget {
     return SettingsPageBody(
       maxWidth: 920,
       children: [
-        SettingsDetailHeader(title: category.name),
+        SettingsDetailHeader(
+          title: category.name,
+          subtitle:
+              '${ref.watch(feedsProvider).valueOrNull?.where((feed) => feed.categoryId == category.id).length ?? 0} ${l10n.subscriptions}',
+        ),
         SettingsCard(
           padding: EdgeInsets.zero,
           child: SettingsTileGroup(
@@ -181,9 +307,7 @@ class _CategorySettings extends ConsumerWidget {
                     categoryId: category.id,
                   );
                   if (!deleted || !context.mounted) return;
-                  ref
-                      .read(subscriptionSelectionProvider.notifier)
-                      .selectCategory(null);
+                  ref.read(subscriptionSelectionProvider.notifier).selectAll();
                 },
               ),
             ],
@@ -220,7 +344,24 @@ class _FeedSettings extends ConsumerWidget {
       children: [
         SettingsDetailHeader(
           title: feed.userTitle ?? feed.title ?? 'Feed',
-          subtitle: feed.url,
+          subtitleWidget: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SelectableText(
+                feed.url,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                category?.name ?? l10n.uncategorized,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
         ),
         SettingsCard(
           padding: EdgeInsets.zero,
@@ -263,9 +404,12 @@ class _FeedSettings extends ConsumerWidget {
                     feedId: feed.id,
                   );
                   if (!deleted || !context.mounted) return;
+                  final selection = ref.read(subscriptionSelectionProvider);
                   ref
                       .read(subscriptionSelectionProvider.notifier)
-                      .clearFeedSelection();
+                      .returnToScopeDetails(
+                        showDetailPane: selection.showDetailPane,
+                      );
                 },
               ),
             ],

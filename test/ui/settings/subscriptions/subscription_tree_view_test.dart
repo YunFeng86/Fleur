@@ -142,4 +142,159 @@ void main() {
     expect(find.byType(SettingsTile), findsWidgets);
     expect(find.byType(SettingsLeadingAvatar), findsAtLeastNWidgets(1));
   });
+
+  testWidgets('expand button only expands tree and body tap changes scope', (
+    tester,
+  ) async {
+    final category = Category()
+      ..id = 1
+      ..name = 'Tech';
+
+    final feed = Feed()
+      ..id = 101
+      ..url = 'http://tech.com/rss'
+      ..title = 'Tech News'
+      ..categoryId = 1;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          categoriesProvider.overrideWith((ref) => Stream.value([category])),
+          feedsProvider.overrideWith((ref) => Stream.value([feed])),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const Scaffold(body: SubscriptionTreeView()),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(SubscriptionTreeView)),
+    );
+
+    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tech News'), findsOneWidget);
+    expect(
+      container.read(subscriptionSelectionProvider).activeCategoryId,
+      isNull,
+    );
+
+    await tester.tap(find.text('Tech'));
+    await tester.pumpAndSettle();
+
+    expect(container.read(subscriptionSelectionProvider).activeCategoryId, 1);
+  });
+
+  testWidgets(
+    'uncategorized feeds are flattened to the root level at the bottom of the folder list',
+    (tester) async {
+      final category = Category()
+        ..id = 1
+        ..name = 'Tech';
+
+      final uncategorizedFeed = Feed()
+        ..id = 7
+        ..url = 'https://example.com/root.xml'
+        ..title = 'Root Feed';
+
+      final categorizedFeed = Feed()
+        ..id = 101
+        ..url = 'http://tech.com/rss'
+        ..title = 'Tech News'
+        ..categoryId = 1;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            categoriesProvider.overrideWith((ref) => Stream.value([category])),
+            feedsProvider.overrideWith(
+              (ref) => Stream.value([uncategorizedFeed, categorizedFeed]),
+            ),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const Scaffold(body: SubscriptionTreeView()),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('All subscriptions'), findsNothing);
+      expect(find.text('Uncategorized'), findsNothing);
+      expect(find.text('Root Feed'), findsOneWidget);
+      expect(find.text('Tech'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text('Root Feed')).dy,
+        greaterThan(tester.getTopLeft(find.text('Tech')).dy),
+      );
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(SubscriptionTreeView)),
+      );
+
+      await tester.tap(find.text('Root Feed'));
+      await tester.pumpAndSettle();
+
+      final selection = container.read(subscriptionSelectionProvider);
+      expect(selection.selectedFeedId, 7);
+      expect(selection.activeCategoryId, isNull);
+      expect(selection.categoryScope, isA<SubscriptionCategoryAll>());
+    },
+  );
+
+  testWidgets('selected expanded category can be collapsed again', (
+    tester,
+  ) async {
+    final category = Category()
+      ..id = 1
+      ..name = 'Tech';
+
+    final feed = Feed()
+      ..id = 101
+      ..url = 'http://tech.com/rss'
+      ..title = 'Tech News'
+      ..categoryId = 1;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          categoriesProvider.overrideWith((ref) => Stream.value([category])),
+          feedsProvider.overrideWith((ref) => Stream.value([feed])),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Consumer(
+            builder: (context, ref, _) {
+              unawaited(
+                Future.microtask(() {
+                  ref
+                      .read(subscriptionSelectionProvider.notifier)
+                      .selectCategory(1);
+                }),
+              );
+              return const Scaffold(body: SubscriptionTreeView());
+            },
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tech News'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.keyboard_arrow_down));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tech News'), findsNothing);
+  });
 }

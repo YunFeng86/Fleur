@@ -129,6 +129,39 @@ class AppLocalizationsEn extends AppLocalizations {
   String get subscriptions => 'Subscriptions';
 
   @override
+  String get defaultsGroup => 'Global';
+
+  @override
+  String get folders => 'Subscriptions';
+
+  @override
+  String get globalDefaults => 'Global defaults';
+
+  @override
+  String get allSubscriptions => 'All subscriptions';
+
+  @override
+  String get manage => 'Manage';
+
+  @override
+  String get overview => 'Overview';
+
+  @override
+  String get categoriesLabel => 'Categories';
+
+  @override
+  String get globalDefaultsDescription =>
+      'Applied when a folder or subscription does not override a setting.';
+
+  @override
+  String get allSubscriptionsDescription =>
+      'Review the overall subscription structure and pick a subscription to edit.';
+
+  @override
+  String get uncategorizedDescription =>
+      'Subscriptions without a folder inherit the global defaults until overridden.';
+
+  @override
   String get tags => 'Tags';
 
   @override
@@ -718,6 +751,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get viewThirdPartyLicenses => 'View all open source licenses';
 
   @override
+  String get licenseLoadFailed => 'Failed to load license.';
+
+  @override
+  String get mitLicenseName => 'MIT License';
+
+  @override
+  String get shortcutNextPreviousArticle => 'J / K: Next / previous article';
+
+  @override
+  String get shortcutRefreshCurrentSelection =>
+      'R: Refresh (current selection)';
+
+  @override
+  String get shortcutToggleUnreadOnly => 'U: Toggle unread-only';
+
+  @override
+  String get shortcutToggleReadUnreadSelectedArticle =>
+      'M: Toggle read/unread for selected article';
+
+  @override
+  String get shortcutToggleStarSelectedArticle =>
+      'S: Toggle star for selected article';
+
+  @override
+  String get shortcutSearchArticlesAndFindInPage =>
+      'Ctrl/Cmd+F: Search articles (list); focus Find in page (reader)';
+
+  @override
   String get filter => 'Filter';
 
   @override
@@ -878,6 +939,48 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get followAppLanguage => 'Follow app language';
+
+  @override
+  String get translationProviderGoogleWeb => 'Google Translate (web)';
+
+  @override
+  String get translationProviderBingWeb => 'Bing Translate (web)';
+
+  @override
+  String get translationProviderBaiduApi => 'Baidu Translate (API)';
+
+  @override
+  String get translationProviderDeepLApi => 'DeepL (API)';
+
+  @override
+  String get translationProviderDeepLX => 'DeepLX';
+
+  @override
+  String translationProviderAiService(Object name) {
+    return 'AI: $name';
+  }
+
+  @override
+  String get translationProviderBaiduApiSubtitle =>
+      'Configure App ID / App Key';
+
+  @override
+  String get deepLXBaseUrlTitle => 'DeepLX Base URL';
+
+  @override
+  String get deepLEndpoint => 'Endpoint';
+
+  @override
+  String get deepLEndpointFree => 'Free';
+
+  @override
+  String get deepLEndpointPro => 'Pro';
+
+  @override
+  String get setAsDefault => 'Set as default';
+
+  @override
+  String get defaultAlreadySet => 'Default (already set)';
 
   @override
   String get aiSummaryPrompt => 'AI summary prompt';

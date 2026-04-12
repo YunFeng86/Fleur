@@ -155,6 +155,46 @@
   "@subscriptions": {
     "description": "subscriptions"
   },
+  "defaultsGroup": "Global",
+  "@defaultsGroup": {
+    "description": "Section label for default settings entries"
+  },
+  "folders": "Subscriptions",
+  "@folders": {
+    "description": "Section label for subscription folders"
+  },
+  "globalDefaults": "Global defaults",
+  "@globalDefaults": {
+    "description": "Entry label for subscription-wide default settings"
+  },
+  "allSubscriptions": "All subscriptions",
+  "@allSubscriptions": {
+    "description": "Entry label for the full subscription scope"
+  },
+  "manage": "Manage",
+  "@manage": {
+    "description": "Toolbar label for the management actions menu"
+  },
+  "overview": "Overview",
+  "@overview": {
+    "description": "Overview section label"
+  },
+  "categoriesLabel": "Categories",
+  "@categoriesLabel": {
+    "description": "Summary label for categories count"
+  },
+  "globalDefaultsDescription": "Applied when a folder or subscription does not override a setting.",
+  "@globalDefaultsDescription": {
+    "description": "Description shown for the global defaults pane"
+  },
+  "allSubscriptionsDescription": "Review the overall subscription structure and pick a subscription to edit.",
+  "@allSubscriptionsDescription": {
+    "description": "Description shown for the all subscriptions overview"
+  },
+  "uncategorizedDescription": "Subscriptions without a folder inherit the global defaults until overridden.",
+  "@uncategorizedDescription": {
+    "description": "Description shown for the uncategorized overview"
+  },
   "tags": "Tags",
   "@tags": {
     "description": "tags"
@@ -942,6 +982,38 @@
   "@viewThirdPartyLicenses": {
     "description": "viewThirdPartyLicenses"
   },
+  "licenseLoadFailed": "Failed to load license.",
+  "@licenseLoadFailed": {
+    "description": "Error shown when the app fails to load the bundled license text"
+  },
+  "mitLicenseName": "MIT License",
+  "@mitLicenseName": {
+    "description": "Name of the app's primary license"
+  },
+  "shortcutNextPreviousArticle": "J / K: Next / previous article",
+  "@shortcutNextPreviousArticle": {
+    "description": "Keyboard shortcut help text for moving to the next or previous article"
+  },
+  "shortcutRefreshCurrentSelection": "R: Refresh (current selection)",
+  "@shortcutRefreshCurrentSelection": {
+    "description": "Keyboard shortcut help text for refreshing the current selection"
+  },
+  "shortcutToggleUnreadOnly": "U: Toggle unread-only",
+  "@shortcutToggleUnreadOnly": {
+    "description": "Keyboard shortcut help text for toggling the unread-only filter"
+  },
+  "shortcutToggleReadUnreadSelectedArticle": "M: Toggle read/unread for selected article",
+  "@shortcutToggleReadUnreadSelectedArticle": {
+    "description": "Keyboard shortcut help text for toggling read/unread on the selected article"
+  },
+  "shortcutToggleStarSelectedArticle": "S: Toggle star for selected article",
+  "@shortcutToggleStarSelectedArticle": {
+    "description": "Keyboard shortcut help text for toggling the star state on the selected article"
+  },
+  "shortcutSearchArticlesAndFindInPage": "Ctrl/Cmd+F: Search articles (list); focus Find in page (reader)",
+  "@shortcutSearchArticlesAndFindInPage": {
+    "description": "Keyboard shortcut help text for searching articles or focusing find-in-page"
+  },
   "filter": "Filter",
   "@filter": {
     "description": "filter"
@@ -1154,6 +1226,61 @@
   "followAppLanguage": "Follow app language",
   "@followAppLanguage": {
     "description": "Option label for following the app language"
+  },
+  "translationProviderGoogleWeb": "Google Translate (web)",
+  "@translationProviderGoogleWeb": {
+    "description": "Display label for the Google web translation provider"
+  },
+  "translationProviderBingWeb": "Bing Translate (web)",
+  "@translationProviderBingWeb": {
+    "description": "Display label for the Bing web translation provider"
+  },
+  "translationProviderBaiduApi": "Baidu Translate (API)",
+  "@translationProviderBaiduApi": {
+    "description": "Display label for the Baidu API translation provider"
+  },
+  "translationProviderDeepLApi": "DeepL (API)",
+  "@translationProviderDeepLApi": {
+    "description": "Display label for the DeepL API translation provider"
+  },
+  "translationProviderDeepLX": "DeepLX",
+  "@translationProviderDeepLX": {
+    "description": "Display label for the DeepLX translation provider"
+  },
+  "translationProviderAiService": "AI: {name}",
+  "@translationProviderAiService": {
+    "description": "Display label for an AI-backed translation provider",
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "translationProviderBaiduApiSubtitle": "Configure App ID / App Key",
+  "@translationProviderBaiduApiSubtitle": {
+    "description": "Subtitle for configuring Baidu translation credentials"
+  },
+  "deepLXBaseUrlTitle": "DeepLX Base URL",
+  "@deepLXBaseUrlTitle": {
+    "description": "Dialog title for editing the DeepLX base URL"
+  },
+  "deepLEndpoint": "Endpoint",
+  "@deepLEndpoint": {
+    "description": "Label for the DeepL endpoint selection"
+  },
+  "deepLEndpointFree": "Free",
+  "@deepLEndpointFree": {
+    "description": "Label for the DeepL free endpoint"
+  },
+  "deepLEndpointPro": "Pro",
+  "@deepLEndpointPro": {
+    "description": "Label for the DeepL pro endpoint"
+  },
+  "setAsDefault": "Set as default",
+  "@setAsDefault": {
+    "description": "Menu action for making an AI service the default one"
+  },
+  "defaultAlreadySet": "Default (already set)",
+  "@defaultAlreadySet": {
+    "description": "Menu label shown when an AI service is already the default one"
   },
   "aiSummaryPrompt": "AI summary prompt",
   "@aiSummaryPrompt": {

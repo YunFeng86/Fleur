@@ -40,6 +40,7 @@ Future<void> _pumpTestApp(
   required Widget home,
   required Size size,
   double textScale = 2.0,
+  Locale locale = const Locale('en'),
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
@@ -49,7 +50,7 @@ Future<void> _pumpTestApp(
   await tester.pumpWidget(
     ProviderScope(
       child: MaterialApp(
-        locale: const Locale('en'),
+        locale: locale,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Builder(
@@ -333,6 +334,29 @@ void main() {
 
       expect(tester.takeException(), isNull);
       expect(errors, isEmpty);
+    });
+
+    testWidgets('localizes AboutTab license and shortcuts in zh', (
+      tester,
+    ) async {
+      await _pumpTestApp(
+        tester,
+        size: const Size(800, 900),
+        textScale: 1.0,
+        locale: const Locale('zh'),
+        home: const Scaffold(body: AboutTab()),
+      );
+
+      await tester.scrollUntilVisible(
+        find.text('MIT 许可证'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+
+      expect(find.text('MIT 许可证'), findsOneWidget);
+      expect(find.text('J / K：下一篇 / 上一篇文章'), findsOneWidget);
+      expect(find.text('MIT License'), findsNothing);
+      expect(find.text('J / K: Next / previous article'), findsNothing);
     });
   });
 }

@@ -91,7 +91,7 @@ void main() {
 
     await tester.tap(find.text('Translation provider'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Bing 翻译（网页）').last);
+    await tester.tap(find.text('Bing Translate (web)').last);
     await tester.pumpAndSettle();
 
     expect(
@@ -153,7 +153,7 @@ void main() {
 
     await pumpTab(tester, store: store, secrets: secrets);
 
-    await tester.tap(find.text('DeepL（API）'));
+    await tester.tap(find.text('DeepL (API)'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Pro'));
@@ -198,6 +198,46 @@ void main() {
       expect(find.text('Follow app language · French'), findsOneWidget);
     },
   );
+
+  testWidgets('localizes translation provider labels in zh_Hant', (
+    tester,
+  ) async {
+    final store = FakeTranslationAiSettingsStore(
+      TranslationAiSettings.defaults().copyWith(
+        translationProvider: const TranslationProviderSelection.aiService(
+          'svc-1',
+        ),
+        aiServices: const [
+          AiServiceConfig(
+            id: 'svc-1',
+            name: '主要服務',
+            apiType: AiServiceApiType.openAiResponses,
+            baseUrl: 'https://api.example.com/v1',
+            defaultModel: 'gpt-test',
+            enabled: true,
+          ),
+        ],
+      ),
+    );
+
+    await pumpTab(
+      tester,
+      store: store,
+      locale: const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
+    );
+
+    expect(find.text('AI：主要服務'), findsOneWidget);
+
+    await tester.tap(find.text('翻譯提供方'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Google 翻譯（網頁）'), findsWidgets);
+    expect(find.text('Bing 翻譯（網頁）'), findsWidgets);
+    expect(find.text('百度翻譯（API）'), findsWidgets);
+    expect(find.text('DeepL（API）'), findsWidgets);
+    expect(find.text('DeepLX'), findsWidgets);
+    expect(find.text('Bing Translate (web)'), findsNothing);
+  });
 
   testWidgets(
     'ai service rows stay operable without overflow on narrow widths',

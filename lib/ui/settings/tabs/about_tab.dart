@@ -154,14 +154,14 @@ class _AboutTabState extends State<AboutTab> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('OK'),
+              child: Text(l10n.done),
             ),
           ],
         ),
       );
     } catch (e) {
       if (!mounted) return;
-      context.showErrorMessage(l10n.errorMessage('Failed to load license'));
+      context.showErrorMessage(l10n.errorMessage(l10n.licenseLoadFailed));
     }
   }
 
@@ -341,7 +341,10 @@ class _AboutTabState extends State<AboutTab> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('MIT License', style: theme.textTheme.titleSmall),
+                    Text(
+                      l10n.mitLicenseName,
+                      style: theme.textTheme.titleSmall,
+                    ),
                     const SizedBox(height: 12),
                     OutlinedButton(
                       onPressed: _showLicenseDialog,
@@ -396,17 +399,15 @@ class _AboutTabState extends State<AboutTab> {
               child: SettingsCard(
                 child: DefaultTextStyle(
                   style: theme.textTheme.bodyMedium!,
-                  child: const Column(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('J / K: Next / previous article'),
-                      Text('R: Refresh (current selection)'),
-                      Text('U: Toggle unread-only'),
-                      Text('M: Toggle read/unread for selected article'),
-                      Text('S: Toggle star for selected article'),
-                      Text(
-                        'Ctrl/Cmd+F: Search articles (list); focus Find in page (reader)',
-                      ),
+                      Text(l10n.shortcutNextPreviousArticle),
+                      Text(l10n.shortcutRefreshCurrentSelection),
+                      Text(l10n.shortcutToggleUnreadOnly),
+                      Text(l10n.shortcutToggleReadUnreadSelectedArticle),
+                      Text(l10n.shortcutToggleStarSelectedArticle),
+                      Text(l10n.shortcutSearchArticlesAndFindInPage),
                     ],
                   ),
                 ),

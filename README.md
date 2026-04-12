@@ -130,8 +130,11 @@ lib/
 # 运行单元测试
 flutter test
 
-# 运行集成测试
-flutter test integration_test
+# 运行集成测试（需显式指定设备）
+flutter test -d macos integration_test/category_query_benchmark_test.dart # macos可替换为所需集成测试的平台
+
+# 或使用其他设备 ID
+flutter test -d <device-id> integration_test/category_query_benchmark_test.dart
 ```
 
 ## ✅ 质量检查
