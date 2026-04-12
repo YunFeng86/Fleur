@@ -9,6 +9,7 @@ import 'package:fleur/services/settings/translation_ai_settings.dart';
 import 'package:fleur/ui/settings/translation_ai/ai_service_editor_dialog.dart';
 import 'package:fleur/ui/settings/translation_ai/ai_service_templates.dart';
 import 'package:fleur/ui/settings/tabs/translation_ai_services_tab.dart';
+import 'package:fleur/widgets/app_scrollbar.dart';
 
 import '../../test_utils/critical_workflow_test_support.dart';
 
@@ -105,6 +106,25 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(store.settings.targetLanguageTag, 'ja');
+  });
+
+  testWidgets('translation provider sheet uses AppScrollbar', (tester) async {
+    final store = FakeTranslationAiSettingsStore(
+      TranslationAiSettings.defaults(),
+    );
+
+    await pumpTab(tester, store: store);
+
+    await tester.tap(find.text('Translation provider'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.byType(AppScrollbar),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('resets custom AI translation prompt to default', (tester) async {

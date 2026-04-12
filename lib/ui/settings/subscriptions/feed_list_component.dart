@@ -5,6 +5,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../providers/query_providers.dart';
 import '../../../../providers/subscription_settings_provider.dart';
 import '../../../../theme/fleur_theme_extensions.dart';
+import '../../../../widgets/app_scrollbar.dart';
 import '../../../../widgets/favicon_avatar.dart';
 import '../widgets/section_header.dart';
 
@@ -61,7 +62,7 @@ class FeedListComponent extends ConsumerWidget {
                     ),
                   ),
                 )
-              : Scrollbar(
+              : AppScrollbar(
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     itemCount: visibleFeeds.length,

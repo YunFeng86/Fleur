@@ -19,6 +19,7 @@ import '../ui/layout_spec.dart';
 import '../ui/motion.dart';
 import '../utils/platform.dart';
 import '../models/article.dart';
+import 'app_scrollbar.dart';
 import 'appear.dart';
 import 'article_list_item.dart';
 
@@ -196,7 +197,7 @@ class _ArticleListState extends ConsumerState<ArticleList> {
 
         Widget list = Container(
           color: surfaces.list,
-          child: Scrollbar(
+          child: AppScrollbar(
             controller: _controller,
             thumbVisibility: isDesktop,
             interactive: true,

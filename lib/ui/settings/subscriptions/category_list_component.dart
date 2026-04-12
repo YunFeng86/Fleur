@@ -6,6 +6,7 @@ import '../../../../models/feed.dart';
 import '../../../../providers/query_providers.dart';
 import '../../../../providers/subscription_settings_provider.dart';
 import '../../../../theme/fleur_theme_extensions.dart';
+import '../../../../widgets/app_scrollbar.dart';
 import '../../../../widgets/favicon_avatar.dart';
 import '../widgets/section_header.dart';
 
@@ -90,45 +91,46 @@ class CategoryListComponent extends ConsumerWidget {
         return SettingsPane(
           color: surfaces.sidebar,
           title: l10n.subscriptions,
-          child: ListView(
-            primary: false,
-            padding: const EdgeInsets.only(top: 4, bottom: 12),
-            children: [
-              buildSectionLabel(l10n.defaultsGroup),
-              buildScopeTile(
-                leading: const Icon(Icons.tune_outlined),
-                title: Text(l10n.globalDefaults),
-                subtitle: Text(
-                  l10n.globalDefaultsDescription,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                selected: globalSelected,
-                onTap: () => notifier.showGlobalDefaults(),
-              ),
-              buildSectionLabel(l10n.folders),
-              for (final category in categories)
+          child: AppScrollbar(
+            child: ListView(
+              padding: const EdgeInsets.only(top: 4, bottom: 12),
+              children: [
+                buildSectionLabel(l10n.defaultsGroup),
                 buildScopeTile(
-                  leading: const Icon(Icons.folder_outlined),
-                  title: Text(category.name),
-                  count: feedCounts[category.id] ?? 0,
-                  selected:
-                      !globalSelected &&
-                      selection.activeCategoryId == category.id,
-                  onTap: () => notifier.selectCategory(category.id),
-                ),
-              if (categories.isNotEmpty && uncategorizedFeeds.isNotEmpty)
-                const SizedBox(height: 4),
-              for (final feed in uncategorizedFeeds)
-                _RootFeedTile(
-                  feed: feed,
-                  selected: selection.selectedFeedId == feed.id,
-                  onTap: () => notifier.selectFeed(
-                    feed.id,
-                    categoryScope: const SubscriptionCategoryAll(),
+                  leading: const Icon(Icons.tune_outlined),
+                  title: Text(l10n.globalDefaults),
+                  subtitle: Text(
+                    l10n.globalDefaultsDescription,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
+                  selected: globalSelected,
+                  onTap: () => notifier.showGlobalDefaults(),
                 ),
-            ],
+                buildSectionLabel(l10n.folders),
+                for (final category in categories)
+                  buildScopeTile(
+                    leading: const Icon(Icons.folder_outlined),
+                    title: Text(category.name),
+                    count: feedCounts[category.id] ?? 0,
+                    selected:
+                        !globalSelected &&
+                        selection.activeCategoryId == category.id,
+                    onTap: () => notifier.selectCategory(category.id),
+                  ),
+                if (categories.isNotEmpty && uncategorizedFeeds.isNotEmpty)
+                  const SizedBox(height: 4),
+                for (final feed in uncategorizedFeeds)
+                  _RootFeedTile(
+                    feed: feed,
+                    selected: selection.selectedFeedId == feed.id,
+                    onTap: () => notifier.selectFeed(
+                      feed.id,
+                      categoryScope: const SubscriptionCategoryAll(),
+                    ),
+                  ),
+              ],
+            ),
           ),
         );
       },

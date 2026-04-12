@@ -13,6 +13,7 @@ import '../ui/settings/widgets/section_header.dart';
 import '../providers/subscription_settings_provider.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../utils/platform.dart';
+import '../widgets/app_scrollbar.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -215,7 +216,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       color: theme.fleurSurface.sidebar,
                       child: SizedBox(
                         width: 280,
-                        child: Scrollbar(
+                        child: AppScrollbar(
                           child: ListView(
                             padding: const EdgeInsets.all(12),
                             children: [

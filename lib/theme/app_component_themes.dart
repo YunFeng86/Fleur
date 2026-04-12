@@ -149,11 +149,6 @@ class AppComponentThemes {
           foregroundColor: WidgetStatePropertyAll(scheme.onSurfaceVariant),
           overlayColor: stateLayer(Colors.transparent),
           iconSize: const WidgetStatePropertyAll(20),
-          shape: WidgetStatePropertyAll(
-            RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(profile.cardRadius - 2),
-            ),
-          ),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
@@ -206,17 +201,17 @@ class AppComponentThemes {
         thumbVisibility: WidgetStatePropertyAll(profile.persistentScrollbar),
         trackVisibility: const WidgetStatePropertyAll(false),
         radius: Radius.circular(profile.cardRadius),
-        thickness: WidgetStatePropertyAll(profile.isDesktop ? 10 : 8),
+        thickness: WidgetStatePropertyAll(profile.isDesktop ? 6 : 8),
         thumbColor: WidgetStateProperty.resolveWith((statesSet) {
           if (statesSet.contains(WidgetState.dragged)) {
-            return scheme.primary.withAlpha(188);
+            return scheme.primary.withAlpha(profile.isDesktop ? 148 : 176);
           }
           if (statesSet.contains(WidgetState.hovered)) {
-            return scheme.primary.withAlpha(148);
+            return scheme.onSurfaceVariant.withAlpha(
+              profile.isDesktop ? 112 : 140,
+            );
           }
-          return scheme.onSurfaceVariant.withAlpha(
-            profile.isDesktop ? 112 : 88,
-          );
+          return scheme.outlineVariant.withAlpha(profile.isDesktop ? 72 : 84);
         }),
       ),
       popupMenuTheme: PopupMenuThemeData(

@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -33,6 +34,7 @@ import 'package:fleur/ui/sidebar/sidebar_selection_actions.dart';
 import 'package:fleur/utils/platform.dart';
 import 'package:fleur/widgets/article_list.dart';
 import 'package:fleur/widgets/article_list_item.dart';
+import 'package:fleur/widgets/app_scrollbar.dart';
 import 'package:fleur/widgets/global_nav_bar.dart';
 import 'package:fleur/widgets/global_nav_rail.dart';
 import 'package:fleur/widgets/overflow_marquee.dart';
@@ -224,6 +226,31 @@ void main() {
       desktopTheme.scrollbarTheme.thumbVisibility?.resolve(<WidgetState>{}),
       isTrue,
     );
+    expect(desktopTheme.scrollbarTheme.thickness?.resolve(<WidgetState>{}), 6);
+    expect(
+      desktopTheme.scrollbarTheme.thickness?.resolve(<WidgetState>{
+        WidgetState.hovered,
+      }),
+      6,
+    );
+    expect(
+      desktopTheme.scrollbarTheme.thickness?.resolve(<WidgetState>{
+        WidgetState.dragged,
+      }),
+      6,
+    );
+    expect(
+      desktopTheme.iconButtonTheme.style?.shape?.resolve(<WidgetState>{}),
+      isNull,
+    );
+    expect(
+      desktopTheme.scrollbarTheme.thumbColor?.resolve(<WidgetState>{}),
+      isNot(
+        desktopTheme.scrollbarTheme.thumbColor?.resolve(<WidgetState>{
+          WidgetState.hovered,
+        }),
+      ),
+    );
 
     debugFleurTargetPlatformOverride = TargetPlatform.android;
     final mobileTheme = AppTheme.light();
@@ -231,6 +258,7 @@ void main() {
       mobileTheme.scrollbarTheme.thumbVisibility?.resolve(<WidgetState>{}),
       isFalse,
     );
+    expect(mobileTheme.scrollbarTheme.thickness?.resolve(<WidgetState>{}), 8);
     expect(
       mobileTheme.navigationBarTheme.height,
       greaterThan(desktopTheme.navigationBarTheme.height ?? 0),
@@ -258,6 +286,143 @@ void main() {
     expect(macTheme.fleurReader.titleStyle.fontWeight, FontWeight.w700);
     expect(macTheme.fleurReader.metaStyle.fontWeight, FontWeight.w600);
   });
+
+  test('Reader title scale stays above body text and caps growth', () {
+    final theme = AppTheme.light();
+    final defaultTitle = theme.fleurReader.titleStyleForBodyFontSize(16);
+    final largeTitle = theme.fleurReader.titleStyleForBodyFontSize(28);
+
+    expect(defaultTitle.fontSize, greaterThan(16));
+    expect(largeTitle.fontSize, greaterThan(28));
+    expect(largeTitle.fontSize, lessThanOrEqualTo(40));
+    expect(largeTitle.height, greaterThanOrEqualTo(defaultTitle.height ?? 0));
+  });
+
+  testWidgets('AppScrollbar darkens when hovering the scrollable region', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    final controller = ScrollController();
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: Scaffold(
+          body: SizedBox(
+            width: 240,
+            height: 240,
+            child: AppScrollbar(
+              controller: controller,
+              thumbVisibility: true,
+              interactive: true,
+              child: ListView.builder(
+                controller: controller,
+                itemCount: 50,
+                itemBuilder: (context, index) =>
+                    SizedBox(height: 40, child: Text('Item $index')),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    ScrollbarTheme scrollbarTheme() =>
+        tester.widget<ScrollbarTheme>(find.byType(ScrollbarTheme).first);
+
+    final idleThumbColor = scrollbarTheme().data.thumbColor?.resolve(
+      <WidgetState>{},
+    );
+    final idleThickness = scrollbarTheme().data.thickness?.resolve(
+      <WidgetState>{},
+    );
+
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(mouse.removePointer);
+    await mouse.addPointer(location: const Offset(1, 1));
+    await mouse.moveTo(tester.getCenter(find.byType(AppScrollbar)));
+    await tester.pumpAndSettle();
+
+    final hoveredThumbColor = scrollbarTheme().data.thumbColor?.resolve(
+      <WidgetState>{},
+    );
+    final hoveredThickness = scrollbarTheme().data.thickness?.resolve(
+      <WidgetState>{},
+    );
+
+    expect(hoveredThumbColor, isNot(idleThumbColor));
+    expect(hoveredThickness, idleThickness);
+  });
+
+  testWidgets(
+    'AppScrollbar defers interactive behavior to Flutter by default',
+    (tester) async {
+      debugFleurTargetPlatformOverride = TargetPlatform.windows;
+      addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light(),
+          home: Scaffold(
+            body: SizedBox(
+              width: 240,
+              height: 240,
+              child: AppScrollbar(
+                child: ListView.builder(
+                  itemCount: 20,
+                  itemBuilder: (context, index) =>
+                      SizedBox(height: 40, child: Text('Item $index')),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final scrollbar = tester.widget<Scrollbar>(find.byType(Scrollbar).first);
+      expect(scrollbar.controller, isNotNull);
+      expect(scrollbar.interactive, isNull);
+    },
+  );
+
+  testWidgets(
+    'AppScrollbar safely falls back when the child scroll view opts out of primary binding',
+    (tester) async {
+      debugFleurTargetPlatformOverride = TargetPlatform.windows;
+      addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light(),
+          home: Scaffold(
+            body: SizedBox(
+              width: 240,
+              height: 240,
+              child: AppScrollbar(
+                child: ListView.builder(
+                  primary: false,
+                  itemCount: 20,
+                  itemBuilder: (context, index) =>
+                      SizedBox(height: 40, child: Text('Item $index')),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final scrollbar = tester.widget<Scrollbar>(find.byType(Scrollbar).first);
+      expect(scrollbar.controller, isNull);
+      expect(scrollbar.thumbVisibility, isFalse);
+      expect(scrollbar.interactive, isFalse);
+    },
+  );
 
   testWidgets('App shell switches between rail and bottom navigation', (
     tester,

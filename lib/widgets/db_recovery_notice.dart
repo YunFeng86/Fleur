@@ -10,6 +10,7 @@ import 'package:path/path.dart' as p;
 
 import '../l10n/app_localizations.dart';
 import '../providers/core_providers.dart';
+import 'app_scrollbar.dart';
 
 class DbRecoveryNoticeOverlay extends ConsumerStatefulWidget {
   const DbRecoveryNoticeOverlay({super.key, required this.child});
@@ -129,38 +130,43 @@ class _DbRecoveryNoticeOverlayState
 
         return AlertDialog(
           title: Text(l10n.dbRecoveryTitle),
-          content: SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 560),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(l10n.dbRecoveryDescription),
-                  const SizedBox(height: 16),
-                  row(label: l10n.dbRecoveryTimeLabel, value: createdAt ?? ''),
-                  row(label: l10n.account, value: accountId ?? ''),
-                  row(label: l10n.dbRecoveryDbNameLabel, value: dbName ?? ''),
-                  row(
-                    label: l10n.dbRecoveryOpenedAsLabel,
-                    value: fallbackDbName ?? '',
-                  ),
-                  row(
-                    label: l10n.dbRecoveryBackupPathLabel,
-                    value: backupPath ?? '',
-                  ),
-                  row(
-                    label: l10n.dbRecoveryMovedOriginalPathLabel,
-                    value: movedPath ?? '',
-                  ),
-                  row(label: l10n.dbRecoveryErrorLabel, value: error ?? ''),
-                  const SizedBox(height: 4),
-                  Text(
-                    l10n.dbRecoveryDataPreservedHint,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: AppScrollbar(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l10n.dbRecoveryDescription),
+                    const SizedBox(height: 16),
+                    row(
+                      label: l10n.dbRecoveryTimeLabel,
+                      value: createdAt ?? '',
                     ),
-                  ),
-                ],
+                    row(label: l10n.account, value: accountId ?? ''),
+                    row(label: l10n.dbRecoveryDbNameLabel, value: dbName ?? ''),
+                    row(
+                      label: l10n.dbRecoveryOpenedAsLabel,
+                      value: fallbackDbName ?? '',
+                    ),
+                    row(
+                      label: l10n.dbRecoveryBackupPathLabel,
+                      value: backupPath ?? '',
+                    ),
+                    row(
+                      label: l10n.dbRecoveryMovedOriginalPathLabel,
+                      value: movedPath ?? '',
+                    ),
+                    row(label: l10n.dbRecoveryErrorLabel, value: error ?? ''),
+                    const SizedBox(height: 4),
+                    Text(
+                      l10n.dbRecoveryDataPreservedHint,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

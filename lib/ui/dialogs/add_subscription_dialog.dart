@@ -12,6 +12,7 @@ import '../../services/accounts/account.dart';
 import '../../services/sync/miniflux/miniflux_client.dart';
 import '../../services/sync/sync_service.dart';
 import '../../services/sync/sync_mutex.dart';
+import '../../widgets/app_scrollbar.dart';
 import '../actions/remote_structure_feedback.dart' as remote_feedback;
 import '../../utils/context_extensions.dart';
 import 'text_input_dialog.dart';
@@ -186,6 +187,9 @@ Future<int?> showAddSubscriptionDialog(
     }
 
     if (!context.mounted) return null;
+    final candidateDialogHeight = (MediaQuery.sizeOf(context).height * 0.6)
+        .clamp(200.0, 420.0)
+        .toDouble();
     final picked = await showDialog<String?>(
       context: context,
       builder: (context) {
@@ -194,33 +198,38 @@ Future<int?> showAddSubscriptionDialog(
           content: ConstrainedBox(
             constraints: BoxConstraints(
               maxWidth: 520,
-              maxHeight: MediaQuery.sizeOf(context).height * 0.6,
+              maxHeight: candidateDialogHeight,
             ),
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: candidates.length,
-              itemBuilder: (context, index) {
-                final c = candidates[index];
-                final title = (c.title ?? '').trim().isEmpty
-                    ? c.url
-                    : c.title!.trim();
-                final subtitle = title == c.url ? null : c.url;
-                return ListTile(
-                  title: Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  subtitle: subtitle == null
-                      ? null
-                      : Text(
-                          subtitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                  onTap: () => Navigator.of(context).pop(c.url),
-                );
-              },
+            child: AppScrollbar(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final c in candidates)
+                      () {
+                        final title = (c.title ?? '').trim().isEmpty
+                            ? c.url
+                            : c.title!.trim();
+                        final subtitle = title == c.url ? null : c.url;
+                        return ListTile(
+                          title: Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          subtitle: subtitle == null
+                              ? null
+                              : Text(
+                                  subtitle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                          onTap: () => Navigator.of(context).pop(c.url),
+                        );
+                      }(),
+                  ],
+                ),
+              ),
             ),
           ),
           actions: [

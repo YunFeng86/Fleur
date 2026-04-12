@@ -10,7 +10,9 @@ import '../../ui/sidebar/sidebar_management_actions.dart';
 import '../../ui/sidebar/sidebar_selection_actions.dart';
 import '../../utils/platform.dart';
 import '../../utils/tag_colors.dart';
+import '../../widgets/app_scrollbar.dart';
 import '../../widgets/favicon_circle.dart';
+import '../../widgets/tree_disclosure_button.dart';
 
 class SidebarSearchField extends StatelessWidget {
   const SidebarSearchField({
@@ -323,7 +325,7 @@ class SidebarNavigationTree extends StatelessWidget {
               }
             }
 
-            return Scrollbar(
+            return AppScrollbar(
               controller: scrollController,
               thumbVisibility: isDesktop,
               interactive: true,
@@ -381,75 +383,81 @@ class _SidebarCategoryTile extends StatelessWidget {
         selectedFeedId == null &&
         selectedCategoryId == category.id;
 
-    return Column(
-      children: [
-        ListTile(
-          selected: selected,
-          leading: const Icon(Icons.folder_outlined),
-          title: Text(category.name),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _UnreadBadge(unreadCount),
-              if (!isDesktop)
-                IconButton(
-                  tooltip: l10n.more,
-                  onPressed: () => onShowCategoryMenu(category),
-                  icon: const Icon(Icons.more_vert),
-                ),
-              if (isDesktop)
-                MenuAnchor(
-                  menuChildren: [
-                    MenuItemButton(
-                      leadingIcon: const Icon(Icons.edit_outlined),
-                      onPressed: () =>
-                          managementActions.renameCategory(category),
-                      child: Text(l10n.rename),
-                    ),
-                    MenuItemButton(
-                      leadingIcon: const Icon(Icons.delete_outline),
-                      onPressed: () =>
-                          managementActions.deleteCategory(category),
-                      child: Text(l10n.deleteCategory),
-                    ),
-                  ],
-                  builder: (context, controller, child) {
-                    return IconButton(
-                      tooltip: l10n.more,
-                      onPressed: () {
-                        controller.isOpen
-                            ? controller.close()
-                            : controller.open();
-                      },
-                      icon: const Icon(Icons.more_vert),
-                    );
-                  },
-                ),
-              IconButton(
-                tooltip: expanded ? l10n.collapse : l10n.expand,
-                onPressed: () =>
-                    onExpandedCategoryChanged(expanded ? null : category.id),
-                icon: Icon(expanded ? Icons.expand_less : Icons.expand_more),
-              ),
-            ],
-          ),
-          onTap: () => selectionActions.selectCategory(category.id),
-          onLongPress: isDesktop ? null : () => onShowCategoryMenu(category),
-        ),
-        if (expanded)
-          ...feeds.map(
-            (feed) => _SidebarFeedTile(
-              key: ValueKey('feed_${feed.id}'),
-              feed: feed,
-              selectedFeedId: selectedFeedId,
-              unreadCount: unreadCounts?[feed.id],
-              indent: 16,
-              selectionActions: selectionActions,
-              managementActions: managementActions,
-              onShowFeedMenu: onShowFeedMenu,
+    return Semantics(
+      container: true,
+      selected: selected,
+      expanded: expanded,
+      child: Column(
+        children: [
+          ListTile(
+            selected: selected,
+            minLeadingWidth: 0,
+            horizontalTitleGap: 4,
+            leading: TreeDisclosureButton(
+              expanded: expanded,
+              tooltip: expanded ? l10n.collapse : l10n.expand,
+              onPressed: () =>
+                  onExpandedCategoryChanged(expanded ? null : category.id),
             ),
+            title: Text(category.name),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _UnreadBadge(unreadCount),
+                if (!isDesktop)
+                  IconButton(
+                    tooltip: l10n.more,
+                    onPressed: () => onShowCategoryMenu(category),
+                    icon: const Icon(Icons.more_vert),
+                  ),
+                if (isDesktop)
+                  MenuAnchor(
+                    menuChildren: [
+                      MenuItemButton(
+                        leadingIcon: const Icon(Icons.edit_outlined),
+                        onPressed: () =>
+                            managementActions.renameCategory(category),
+                        child: Text(l10n.rename),
+                      ),
+                      MenuItemButton(
+                        leadingIcon: const Icon(Icons.delete_outline),
+                        onPressed: () =>
+                            managementActions.deleteCategory(category),
+                        child: Text(l10n.deleteCategory),
+                      ),
+                    ],
+                    builder: (context, controller, child) {
+                      return IconButton(
+                        tooltip: l10n.more,
+                        onPressed: () {
+                          controller.isOpen
+                              ? controller.close()
+                              : controller.open();
+                        },
+                        icon: const Icon(Icons.more_vert),
+                      );
+                    },
+                  ),
+              ],
+            ),
+            onTap: () => selectionActions.selectCategory(category.id),
+            onLongPress: isDesktop ? null : () => onShowCategoryMenu(category),
           ),
-      ],
+          if (expanded)
+            ...feeds.map(
+              (feed) => _SidebarFeedTile(
+                key: ValueKey('feed_${feed.id}'),
+                feed: feed,
+                selectedFeedId: selectedFeedId,
+                unreadCount: unreadCounts?[feed.id],
+                indent: 16,
+                selectionActions: selectionActions,
+                managementActions: managementActions,
+                onShowFeedMenu: onShowFeedMenu,
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

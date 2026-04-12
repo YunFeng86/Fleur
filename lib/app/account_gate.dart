@@ -8,6 +8,7 @@ import '../db/isar_db.dart';
 import '../providers/account_providers.dart';
 import '../providers/core_providers.dart';
 import '../providers/service_providers.dart';
+import '../widgets/app_scrollbar.dart';
 import '../services/accounts/account.dart';
 import '../services/data_integrity_startup_service.dart';
 import 'app.dart';
@@ -126,8 +127,10 @@ class _AccountGateState extends ConsumerState<AccountGate> {
                     const SizedBox(height: 8),
                     ConstrainedBox(
                       constraints: const BoxConstraints(maxHeight: 320),
-                      child: SingleChildScrollView(
-                        child: SelectableText(details),
+                      child: AppScrollbar(
+                        child: SingleChildScrollView(
+                          child: SelectableText(details),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),

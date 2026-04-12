@@ -40,6 +40,7 @@ extension _ReaderSceneScaffold on _ReaderViewState {
       l10n: l10n,
       title: title,
       dateText: dateStr,
+      settings: settings,
       aiState: aiState,
       sceneTheme: sceneTheme,
       sceneStates: sceneStates,
@@ -147,6 +148,7 @@ extension _ReaderSceneScaffold on _ReaderViewState {
     required AppLocalizations l10n,
     required String title,
     required String dateText,
+    required ReaderSettings settings,
     required ArticleAiState aiState,
     required ThemeData sceneTheme,
     required FleurStateTheme sceneStates,
@@ -162,7 +164,10 @@ extension _ReaderSceneScaffold on _ReaderViewState {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: readerTokens.titleStyle),
+        Text(
+          title,
+          style: readerTokens.titleStyleForBodyFontSize(settings.fontSize),
+        ),
         const SizedBox(height: 8),
         Text(dateText, style: readerTokens.metaStyle),
         if (showSummarySection) ...[

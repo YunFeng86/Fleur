@@ -10,6 +10,7 @@ import 'package:fleur/providers/query_providers.dart';
 import 'package:fleur/providers/subscription_settings_provider.dart';
 import 'package:fleur/ui/settings/subscriptions/subscription_tree_view.dart';
 import 'package:fleur/ui/settings/widgets/section_header.dart';
+import 'package:fleur/widgets/app_scrollbar.dart';
 
 void main() {
   testWidgets('SubscriptionTreeView starts expanded when category is selected', (
@@ -143,6 +144,37 @@ void main() {
     expect(find.byType(SettingsLeadingAvatar), findsAtLeastNWidgets(1));
   });
 
+  testWidgets('SubscriptionTreeView uses AppScrollbar for the tree pane', (
+    tester,
+  ) async {
+    final category = Category()
+      ..id = 1
+      ..name = 'Tech';
+    final feed = Feed()
+      ..id = 101
+      ..url = 'http://tech.com/rss'
+      ..title = 'Tech News'
+      ..categoryId = 1;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          categoriesProvider.overrideWith((ref) => Stream.value([category])),
+          feedsProvider.overrideWith((ref) => Stream.value([feed])),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const Scaffold(body: SubscriptionTreeView()),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AppScrollbar), findsOneWidget);
+  });
+
   testWidgets('expand button only expands tree and body tap changes scope', (
     tester,
   ) async {
@@ -176,6 +208,12 @@ void main() {
       tester.element(find.byType(SubscriptionTreeView)),
     );
 
+    expect(find.byIcon(Icons.folder_outlined), findsNothing);
+    expect(
+      tester.getCenter(find.byIcon(Icons.chevron_right)).dx,
+      lessThan(tester.getCenter(find.text('Tech')).dx),
+    );
+
     await tester.tap(find.byIcon(Icons.chevron_right));
     await tester.pumpAndSettle();
 
@@ -189,6 +227,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(container.read(subscriptionSelectionProvider).activeCategoryId, 1);
+    expect(find.byIcon(Icons.keyboard_arrow_down), findsOneWidget);
   });
 
   testWidgets(

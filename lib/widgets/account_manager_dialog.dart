@@ -11,6 +11,7 @@ import '../services/accounts/account.dart';
 import '../ui/dialogs/add_account_dialogs.dart';
 import '../ui/dialogs/text_input_dialog.dart';
 import '../utils/context_extensions.dart';
+import 'app_scrollbar.dart';
 import 'account_avatar.dart';
 
 class AccountManagerDialog extends ConsumerWidget {
@@ -228,114 +229,122 @@ class AccountManagerDialog extends ConsumerWidget {
                       ),
                       child: SizedBox(
                         height: listHeight,
-                        child: ListView.separated(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 4,
-                            horizontal: 4,
-                          ),
-                          itemCount: accounts.length,
-                          separatorBuilder: (_, _) => const SizedBox(height: 8),
-                          itemBuilder: (context, index) {
-                            final a = accounts[index];
-                            final isActive = a.id == active.id;
-                            final subtitle = switch (a.type) {
-                              AccountType.local => l10n.local,
-                              AccountType.miniflux =>
-                                (a.baseUrl ?? '').trim().isEmpty
-                                    ? l10n.miniflux
-                                    : a.baseUrl!.trim(),
-                              AccountType.fever =>
-                                (a.baseUrl ?? '').trim().isEmpty
-                                    ? l10n.fever
-                                    : a.baseUrl!.trim(),
-                            };
+                        child: AppScrollbar(
+                          child: ListView.separated(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 4,
+                              horizontal: 4,
+                            ),
+                            itemCount: accounts.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: 8),
+                            itemBuilder: (context, index) {
+                              final a = accounts[index];
+                              final isActive = a.id == active.id;
+                              final subtitle = switch (a.type) {
+                                AccountType.local => l10n.local,
+                                AccountType.miniflux =>
+                                  (a.baseUrl ?? '').trim().isEmpty
+                                      ? l10n.miniflux
+                                      : a.baseUrl!.trim(),
+                                AccountType.fever =>
+                                  (a.baseUrl ?? '').trim().isEmpty
+                                      ? l10n.fever
+                                      : a.baseUrl!.trim(),
+                              };
 
-                            return AnimatedContainer(
-                              duration: const Duration(milliseconds: 180),
-                              curve: Curves.easeOutCubic,
-                              decoration: BoxDecoration(
-                                color: isActive
-                                    ? scheme.primaryContainer
-                                    : scheme.surfaceContainerLowest,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
+                              return AnimatedContainer(
+                                duration: const Duration(milliseconds: 180),
+                                curve: Curves.easeOutCubic,
+                                decoration: BoxDecoration(
                                   color: isActive
-                                      ? scheme.primary
-                                      : scheme.outlineVariant,
+                                      ? scheme.primaryContainer
+                                      : scheme.surfaceContainerLowest,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isActive
+                                        ? scheme.primary
+                                        : scheme.outlineVariant,
+                                  ),
                                 ),
-                              ),
-                              child: ListTile(
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                leading: AccountAvatar(
-                                  account: a,
-                                  radius: 18,
-                                  showTypeBadge: true,
-                                ),
-                                title: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        a.name,
-                                        style: TextStyle(
-                                          fontWeight: isActive
-                                              ? FontWeight.w600
-                                              : FontWeight.w500,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    if (isActive)
-                                      Padding(
-                                        padding: const EdgeInsets.only(
-                                          left: 8.0,
-                                        ),
-                                        child: Icon(
-                                          Icons.check_circle,
-                                          size: 18,
-                                          color: scheme.primary,
+                                child: ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  leading: AccountAvatar(
+                                    account: a,
+                                    radius: 18,
+                                    showTypeBadge: true,
+                                  ),
+                                  title: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          a.name,
+                                          style: TextStyle(
+                                            fontWeight: isActive
+                                                ? FontWeight.w600
+                                                : FontWeight.w500,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
-                                  ],
+                                      if (isActive)
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            left: 8.0,
+                                          ),
+                                          child: Icon(
+                                            Icons.check_circle,
+                                            size: 18,
+                                            color: scheme.primary,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                  subtitle: Text(
+                                    subtitle,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        tooltip: l10n.rename,
+                                        onPressed: () =>
+                                            _renameAccount(context, ref, a),
+                                        icon: const Icon(Icons.edit_outlined),
+                                      ),
+                                      IconButton(
+                                        tooltip: l10n.delete,
+                                        onPressed: a.isPrimary
+                                            ? null
+                                            : () => _deleteAccount(
+                                                context,
+                                                ref,
+                                                a,
+                                              ),
+                                        icon: const Icon(Icons.delete_outline),
+                                      ),
+                                    ],
+                                  ),
+                                  onTap: () async {
+                                    if (isActive) return;
+                                    await ref
+                                        .read(
+                                          accountsControllerProvider.notifier,
+                                        )
+                                        .setActive(a.id);
+                                    if (!context.mounted) return;
+                                    Navigator.of(context).pop();
+                                  },
                                 ),
-                                subtitle: Text(
-                                  subtitle,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    IconButton(
-                                      tooltip: l10n.rename,
-                                      onPressed: () =>
-                                          _renameAccount(context, ref, a),
-                                      icon: const Icon(Icons.edit_outlined),
-                                    ),
-                                    IconButton(
-                                      tooltip: l10n.delete,
-                                      onPressed: a.isPrimary
-                                          ? null
-                                          : () =>
-                                                _deleteAccount(context, ref, a),
-                                      icon: const Icon(Icons.delete_outline),
-                                    ),
-                                  ],
-                                ),
-                                onTap: () async {
-                                  if (isActive) return;
-                                  await ref
-                                      .read(accountsControllerProvider.notifier)
-                                      .setActive(a.id);
-                                  if (!context.mounted) return;
-                                  Navigator.of(context).pop();
-                                },
-                              ),
-                            );
-                          },
+                              );
+                            },
+                          ),
                         ),
                       ),
                     ),

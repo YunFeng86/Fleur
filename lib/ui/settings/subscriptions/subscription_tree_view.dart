@@ -7,7 +7,9 @@ import '../../../../models/feed.dart';
 import '../../../../providers/query_providers.dart';
 import '../../../../providers/subscription_settings_provider.dart';
 import '../../../../theme/fleur_theme_extensions.dart';
+import '../../../../widgets/app_scrollbar.dart';
 import '../../../../widgets/favicon_avatar.dart';
+import '../../../../widgets/tree_disclosure_button.dart';
 import '../widgets/section_header.dart';
 
 class SubscriptionTreeView extends ConsumerStatefulWidget {
@@ -95,62 +97,66 @@ class _SubscriptionTreeViewState extends ConsumerState<SubscriptionTreeView> {
             return SettingsPane(
               color: surfaces.sidebar,
               title: widget.showPaneHeader ? l10n.subscriptions : null,
-              child: ListView(
-                padding: const EdgeInsets.only(top: 4, bottom: 12),
-                children: [
-                  buildSectionLabel(l10n.defaultsGroup),
-                  _ScopeTreeRow(
-                    icon: Icons.tune_outlined,
-                    title: l10n.globalDefaults,
-                    subtitle: l10n.globalDefaultsDescription,
-                    selected: selection.isGlobalDefaults,
-                    onTap: () => notifier.showGlobalDefaults(
-                      showDetailPane: widget.showDetailPaneOnSelection,
-                    ),
-                  ),
-                  buildSectionLabel(l10n.folders),
-                  for (final category in categories)
-                    () {
-                      final isExpanded = visibleExpanded.contains(category.id);
-
-                      return _CategoryTreeNode(
-                        category: category,
-                        feeds: feedsByCategory[category.id] ?? const [],
-                        expanded: isExpanded,
-                        isSelected:
-                            !selection.isGlobalDefaults &&
-                            selection.activeCategoryId == category.id &&
-                            selection.selectedFeedId == null,
-                        selectedFeedId: selection.selectedFeedId,
-                        showDetailPaneOnSelection:
-                            widget.showDetailPaneOnSelection,
-                        onToggleExpanded: () {
-                          setState(() {
-                            if (isExpanded) {
-                              _expandedCategoryIds.remove(category.id);
-                              _collapsedCategoryIds.add(category.id);
-                            } else {
-                              _expandedCategoryIds.add(category.id);
-                              _collapsedCategoryIds.remove(category.id);
-                            }
-                          });
-                        },
-                      );
-                    }(),
-                  if (categories.isNotEmpty && uncategorizedFeeds.isNotEmpty)
-                    const SizedBox(height: 4),
-                  for (final feed in uncategorizedFeeds)
-                    _FeedTreeRow(
-                      feed: feed,
-                      selected: selection.selectedFeedId == feed.id,
-                      indent: 0,
-                      onTap: () => notifier.selectFeed(
-                        feed.id,
-                        categoryScope: const SubscriptionCategoryAll(),
+              child: AppScrollbar(
+                child: ListView(
+                  padding: const EdgeInsets.only(top: 4, bottom: 12),
+                  children: [
+                    buildSectionLabel(l10n.defaultsGroup),
+                    _ScopeTreeRow(
+                      icon: Icons.tune_outlined,
+                      title: l10n.globalDefaults,
+                      subtitle: l10n.globalDefaultsDescription,
+                      selected: selection.isGlobalDefaults,
+                      onTap: () => notifier.showGlobalDefaults(
                         showDetailPane: widget.showDetailPaneOnSelection,
                       ),
                     ),
-                ],
+                    buildSectionLabel(l10n.folders),
+                    for (final category in categories)
+                      () {
+                        final isExpanded = visibleExpanded.contains(
+                          category.id,
+                        );
+
+                        return _CategoryTreeNode(
+                          category: category,
+                          feeds: feedsByCategory[category.id] ?? const [],
+                          expanded: isExpanded,
+                          isSelected:
+                              !selection.isGlobalDefaults &&
+                              selection.activeCategoryId == category.id &&
+                              selection.selectedFeedId == null,
+                          selectedFeedId: selection.selectedFeedId,
+                          showDetailPaneOnSelection:
+                              widget.showDetailPaneOnSelection,
+                          onToggleExpanded: () {
+                            setState(() {
+                              if (isExpanded) {
+                                _expandedCategoryIds.remove(category.id);
+                                _collapsedCategoryIds.add(category.id);
+                              } else {
+                                _expandedCategoryIds.add(category.id);
+                                _collapsedCategoryIds.remove(category.id);
+                              }
+                            });
+                          },
+                        );
+                      }(),
+                    if (categories.isNotEmpty && uncategorizedFeeds.isNotEmpty)
+                      const SizedBox(height: 4),
+                    for (final feed in uncategorizedFeeds)
+                      _FeedTreeRow(
+                        feed: feed,
+                        selected: selection.selectedFeedId == feed.id,
+                        indent: 0,
+                        onTap: () => notifier.selectFeed(
+                          feed.id,
+                          categoryScope: const SubscriptionCategoryAll(),
+                          showDetailPane: widget.showDetailPaneOnSelection,
+                        ),
+                      ),
+                  ],
+                ),
               ),
             );
           },
@@ -221,7 +227,12 @@ class _CategoryTreeNode extends ConsumerWidget {
       child: Column(
         children: [
           SettingsTile(
-            leading: const Icon(Icons.folder_outlined),
+            contentPadding: const EdgeInsets.only(left: 8, right: 16),
+            leading: TreeDisclosureButton(
+              expanded: expanded,
+              tooltip: expanded ? l10n.collapse : l10n.expand,
+              onPressed: onToggleExpanded,
+            ),
             title: Text(category.name),
             subtitle: Text(
               '${feeds.length} ${l10n.subscriptions}',
@@ -229,24 +240,12 @@ class _CategoryTreeNode extends ConsumerWidget {
               overflow: TextOverflow.ellipsis,
             ),
             selected: isSelected,
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '${feeds.length}',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                IconButton(
-                  tooltip: expanded ? l10n.collapse : l10n.expand,
-                  icon: Icon(
-                    expanded ? Icons.keyboard_arrow_down : Icons.chevron_right,
-                  ),
-                  onPressed: onToggleExpanded,
-                ),
-              ],
+            trailing: Text(
+              '${feeds.length}',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w700,
+              ),
             ),
             onTap: () => notifier.selectCategory(
               category.id,

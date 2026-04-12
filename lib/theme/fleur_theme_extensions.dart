@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/material.dart';
@@ -8,6 +9,10 @@ import 'app_typography.dart';
 
 Color _blend(Color base, Color tint, int alpha) {
   return Color.alphaBlend(tint.withAlpha(alpha), base);
+}
+
+double _clampDouble(double value, double min, double max) {
+  return value.clamp(min, max).toDouble();
 }
 
 @immutable
@@ -241,6 +246,24 @@ class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
   final Color bannerSurface;
   final Color blockquoteAccent;
   final Color codeBlockSurface;
+
+  TextStyle titleStyleForBodyFontSize(double bodyFontSize) {
+    final baseFontSize = titleStyle.fontSize ?? 28;
+    final effectiveTitleSize = _clampDouble(
+      math.max(baseFontSize, bodyFontSize + 10),
+      baseFontSize,
+      40,
+    );
+    final height = lerpDouble(
+      titleStyle.height ?? 1.12,
+      1.16,
+      ((effectiveTitleSize - baseFontSize) / 12).clamp(0.0, 1.0),
+    );
+    return titleStyle.copyWith(
+      fontSize: effectiveTitleSize,
+      height: height ?? titleStyle.height,
+    );
+  }
 
   factory FleurReaderTheme.fromTheme({
     required TextTheme textTheme,

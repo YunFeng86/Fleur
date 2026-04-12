@@ -18,6 +18,7 @@ import 'package:fleur/l10n/app_localizations.dart';
 
 import 'reader_bottom_bar.dart';
 import 'reader_search_bar.dart';
+import 'app_scrollbar.dart';
 import '../models/article.dart';
 import '../providers/app_settings_providers.dart';
 import '../providers/article_ai_providers.dart';

@@ -511,7 +511,7 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
         onPointerHover: _handlePointerHover,
         onPointerCancel: _handlePointerCancel,
         onPointerSignal: _handlePointerSignal,
-        child: Scrollbar(
+        child: AppScrollbar(
           controller: _scrollController,
           thumbVisibility: isDesktop,
           interactive: true,

@@ -19,6 +19,7 @@ import '../theme/app_typography.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../utils/platform.dart';
 import '../utils/tag_colors.dart';
+import 'app_scrollbar.dart';
 import 'favicon_avatar.dart';
 
 class ReaderBottomBar extends ConsumerWidget {
@@ -517,7 +518,7 @@ class _TagsDialogState extends ConsumerState<_TagsDialog> {
     } else if (isLoading) {
       listChild = const Center(child: CircularProgressIndicator());
     } else {
-      listChild = Scrollbar(
+      listChild = AppScrollbar(
         controller: _scrollController,
         thumbVisibility: isDesktop,
         interactive: true,

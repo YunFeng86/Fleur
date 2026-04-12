@@ -13,6 +13,7 @@ import '../../../services/settings/translation_ai_settings.dart';
 import '../../../utils/context_extensions.dart';
 import '../../../utils/language_utils.dart';
 import '../../../utils/prompt_template.dart';
+import '../../../widgets/app_scrollbar.dart';
 import '../../dialogs/side_panel.dart';
 import '../../dialogs/text_input_dialog.dart';
 import '../translation_ai/ai_service_editor_dialog.dart';
@@ -61,27 +62,33 @@ class TranslationAiServicesTab extends ConsumerWidget {
 
                   return SafeArea(
                     top: false,
-                    child: ListView(
-                      shrinkWrap: true,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                          child: Text(
-                            l10n.translationProvider,
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                        ),
-                        for (final option in options)
-                          ListTile(
-                            title: Text(
-                              _translationProviderLabel(l10n, option, settings),
+                    child: AppScrollbar(
+                      child: ListView(
+                        shrinkWrap: true,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                            child: Text(
+                              l10n.translationProvider,
+                              style: Theme.of(context).textTheme.titleMedium,
                             ),
-                            trailing: option == current
-                                ? const Icon(Icons.check)
-                                : null,
-                            onTap: () => Navigator.of(context).pop(option),
                           ),
-                      ],
+                          for (final option in options)
+                            ListTile(
+                              title: Text(
+                                _translationProviderLabel(
+                                  l10n,
+                                  option,
+                                  settings,
+                                ),
+                              ),
+                              trailing: option == current
+                                  ? const Icon(Icons.check)
+                                  : null,
+                              onTap: () => Navigator.of(context).pop(option),
+                            ),
+                        ],
+                      ),
                     ),
                   );
                 },
@@ -387,16 +394,18 @@ class TranslationAiServicesTab extends ConsumerWidget {
                     ),
                   ],
                 ),
-                body: ListView(
-                  children: [
-                    for (final t in aiServiceTemplates)
-                      ListTile(
-                        leading: Icon(apiTypeIcon(t.apiType)),
-                        title: Text(t.name),
-                        subtitle: Text(apiTypeLabel(t.apiType)),
-                        onTap: () => Navigator.of(context).pop(t),
-                      ),
-                  ],
+                body: AppScrollbar(
+                  child: ListView(
+                    children: [
+                      for (final t in aiServiceTemplates)
+                        ListTile(
+                          leading: Icon(apiTypeIcon(t.apiType)),
+                          title: Text(t.name),
+                          subtitle: Text(apiTypeLabel(t.apiType)),
+                          onTap: () => Navigator.of(context).pop(t),
+                        ),
+                    ],
+                  ),
                 ),
               );
             },
@@ -534,45 +543,47 @@ class TranslationAiServicesTab extends ConsumerWidget {
                 builder: (context) {
                   return SafeArea(
                     top: false,
-                    child: ListView(
-                      shrinkWrap: true,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                          child: Text(
-                            l10n.targetLanguage,
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                        ),
-                        ListTile(
-                          title: Text(l10n.followAppLanguage),
-                          subtitle: Text(
-                            localizedLanguageNameForTag(
-                              uiLocale,
-                              followAppTargetLanguageTag,
+                    child: AppScrollbar(
+                      child: ListView(
+                        shrinkWrap: true,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                            child: Text(
+                              l10n.targetLanguage,
+                              style: Theme.of(context).textTheme.titleMedium,
                             ),
                           ),
-                          trailing: settings.targetLanguageTag == null
-                              ? const Icon(Icons.check)
-                              : null,
-                          onTap: () => Navigator.of(
-                            context,
-                          ).pop(const (isDefault: true, value: null)),
-                        ),
-                        for (final tag in commonLanguageTags)
                           ListTile(
-                            title: Text(
-                              localizedLanguageNameForTag(uiLocale, tag),
+                            title: Text(l10n.followAppLanguage),
+                            subtitle: Text(
+                              localizedLanguageNameForTag(
+                                uiLocale,
+                                followAppTargetLanguageTag,
+                              ),
                             ),
-                            subtitle: Text(tag),
-                            trailing: current == tag
+                            trailing: settings.targetLanguageTag == null
                                 ? const Icon(Icons.check)
                                 : null,
                             onTap: () => Navigator.of(
                               context,
-                            ).pop((isDefault: false, value: tag)),
+                            ).pop(const (isDefault: true, value: null)),
                           ),
-                      ],
+                          for (final tag in commonLanguageTags)
+                            ListTile(
+                              title: Text(
+                                localizedLanguageNameForTag(uiLocale, tag),
+                              ),
+                              subtitle: Text(tag),
+                              trailing: current == tag
+                                  ? const Icon(Icons.check)
+                                  : null,
+                              onTap: () => Navigator.of(
+                                context,
+                              ).pop((isDefault: false, value: tag)),
+                            ),
+                        ],
+                      ),
                     ),
                   );
                 },
@@ -597,70 +608,72 @@ class TranslationAiServicesTab extends ConsumerWidget {
                 builder: (context) {
                   return SafeArea(
                     top: false,
-                    child: ListView(
-                      shrinkWrap: true,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                          child: Text(
-                            l10n.aiSummaryService,
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                        ),
-                        ListTile(
-                          title: Text(l10n.defaultOption),
-                          subtitle: Text(
-                            defaultAiServiceName ?? l10n.aiNotConfigured,
-                          ),
-                          trailing: explicitAiSummaryServiceId == null
-                              ? const Icon(Icons.check)
-                              : null,
-                          onTap: () => Navigator.of(
-                            context,
-                          ).pop(const (isDefault: true, value: null)),
-                        ),
-                        for (final s in enabled)
-                          ListTile(
-                            title: Row(
-                              children: [
-                                Expanded(child: Text(s.name)),
-                                if (s.id == defaultAiServiceId)
-                                  const Padding(
-                                    padding: EdgeInsets.only(left: 8),
-                                    child: Icon(Icons.star, size: 18),
-                                  ),
-                              ],
+                    child: AppScrollbar(
+                      child: ListView(
+                        shrinkWrap: true,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                            child: Text(
+                              l10n.aiSummaryService,
+                              style: Theme.of(context).textTheme.titleMedium,
                             ),
-                            subtitle: Text(apiTypeLabel(s.apiType)),
-                            trailing: explicitAiSummaryServiceId == s.id
+                          ),
+                          ListTile(
+                            title: Text(l10n.defaultOption),
+                            subtitle: Text(
+                              defaultAiServiceName ?? l10n.aiNotConfigured,
+                            ),
+                            trailing: explicitAiSummaryServiceId == null
                                 ? const Icon(Icons.check)
                                 : null,
                             onTap: () => Navigator.of(
                               context,
-                            ).pop((isDefault: false, value: s.id)),
+                            ).pop(const (isDefault: true, value: null)),
                           ),
-                        if (enabled.isEmpty)
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                            child: Text(
-                              l10n.aiNotConfigured,
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                                  ),
+                          for (final s in enabled)
+                            ListTile(
+                              title: Row(
+                                children: [
+                                  Expanded(child: Text(s.name)),
+                                  if (s.id == defaultAiServiceId)
+                                    const Padding(
+                                      padding: EdgeInsets.only(left: 8),
+                                      child: Icon(Icons.star, size: 18),
+                                    ),
+                                ],
+                              ),
+                              subtitle: Text(apiTypeLabel(s.apiType)),
+                              trailing: explicitAiSummaryServiceId == s.id
+                                  ? const Icon(Icons.check)
+                                  : null,
+                              onTap: () => Navigator.of(
+                                context,
+                              ).pop((isDefault: false, value: s.id)),
                             ),
+                          if (enabled.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                              child: Text(
+                                l10n.aiNotConfigured,
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                    ),
+                              ),
+                            ),
+                          ListTile(
+                            leading: const Icon(Icons.add),
+                            title: Text(l10n.addAiService),
+                            onTap: () {
+                              Navigator.of(context).pop();
+                              unawaited(addAiService());
+                            },
                           ),
-                        ListTile(
-                          leading: const Icon(Icons.add),
-                          title: Text(l10n.addAiService),
-                          onTap: () {
-                            Navigator.of(context).pop();
-                            unawaited(addAiService());
-                          },
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   );
                 },

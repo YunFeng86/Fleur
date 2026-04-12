@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../theme/fleur_theme_extensions.dart';
+import '../../../widgets/app_scrollbar.dart';
 
 class SectionHeader extends StatelessWidget {
   const SectionHeader({
@@ -63,7 +64,7 @@ class SettingsPageBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scrollbar(
+    return AppScrollbar(
       controller: scrollController,
       child: SingleChildScrollView(
         controller: scrollController,

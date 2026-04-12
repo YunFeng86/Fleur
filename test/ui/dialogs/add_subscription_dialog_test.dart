@@ -10,14 +10,20 @@ import 'package:path_provider_platform_interface/path_provider_platform_interfac
 
 import 'package:fleur/app/app.dart';
 import 'package:fleur/app/router.dart';
+import 'package:fleur/l10n/app_localizations.dart';
 import 'package:fleur/l10n/app_localizations_en.dart';
 import 'package:fleur/models/article.dart';
 import 'package:fleur/models/category.dart';
 import 'package:fleur/models/feed.dart';
 import 'package:fleur/models/tag.dart';
+import 'package:fleur/providers/account_providers.dart';
 import 'package:fleur/providers/core_providers.dart';
+import 'package:fleur/providers/service_providers.dart';
+import 'package:fleur/services/accounts/account.dart';
+import 'package:fleur/services/rss/feed_discovery_service.dart';
 import 'package:fleur/ui/dialogs/add_subscription_dialog.dart';
 import 'package:fleur/utils/path_manager.dart';
+import 'package:fleur/widgets/app_scrollbar.dart';
 
 import '../../test_utils/isar_test_utils.dart';
 
@@ -42,6 +48,20 @@ class _FakePathProviderPlatform extends PathProviderPlatform {
 
   @override
   Future<String?> getApplicationCachePath() async => _cachePath;
+}
+
+class _FakeFeedDiscoveryService extends FeedDiscoveryService {
+  _FakeFeedDiscoveryService(this.candidates) : super(Dio());
+
+  final List<DiscoveredFeed> candidates;
+
+  @override
+  Future<List<DiscoveredFeed>> discover(
+    String input, {
+    String? userAgent,
+  }) async {
+    return candidates;
+  }
 }
 
 void main() {
@@ -155,6 +175,71 @@ void main() {
     expect(find.byType(AlertDialog), findsNothing);
     expect(tester.takeException(), isNull);
     expect(errors, isEmpty);
+  });
+
+  testWidgets('feed candidate picker uses AppScrollbar', (tester) async {
+    final service = _FakeFeedDiscoveryService(const [
+      DiscoveredFeed(url: 'https://example.com/feed-a.xml', title: 'Feed A'),
+      DiscoveredFeed(url: 'https://example.com/feed-b.xml', title: 'Feed B'),
+    ]);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          activeAccountProvider.overrideWithValue(
+            Account(
+              id: 'local-test',
+              type: AccountType.local,
+              name: 'Local',
+              isPrimary: true,
+              createdAt: DateTime.fromMillisecondsSinceEpoch(0),
+              updatedAt: DateTime.fromMillisecondsSinceEpoch(0),
+            ),
+          ),
+          feedDiscoveryServiceProvider.overrideWithValue(service),
+        ],
+        child: MaterialApp(
+          locale: const Locale('en'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: Consumer(
+              builder: (context, ref, _) {
+                return FilledButton(
+                  onPressed: () async {
+                    await showAddSubscriptionDialog(context, ref);
+                  },
+                  child: const Text('open'),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'https://example.com');
+    await tester.tap(find.text('Add'));
+    await tester.pump();
+    for (var i = 0; i < 10; i++) {
+      if (find.text('Select a feed').evaluate().isNotEmpty) break;
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    expect(find.text('Select a feed'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(AppScrollbar),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('Cancel').last);
+    await tester.pumpAndSettle();
   });
 
   test(

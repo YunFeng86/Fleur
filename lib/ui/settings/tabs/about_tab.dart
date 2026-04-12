@@ -13,6 +13,7 @@ import '../../../services/platform/shell_service.dart';
 import '../../../utils/context_extensions.dart';
 import '../../../utils/path_manager.dart';
 import '../../../utils/platform.dart';
+import '../../../widgets/app_scrollbar.dart';
 import '../widgets/section_header.dart';
 
 class AboutTab extends StatefulWidget {
@@ -140,7 +141,7 @@ class _AboutTabState extends State<AboutTab> {
           title: Text(l10n.openSourceLicense),
           content: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 600, maxHeight: 400),
-            child: Scrollbar(
+            child: AppScrollbar(
               child: SingleChildScrollView(
                 child: SelectableText(
                   licenseText,

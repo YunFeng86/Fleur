@@ -23,6 +23,7 @@ import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/settings/reader_progress_store.dart';
 import 'package:fleur/services/settings/reader_settings.dart';
 import 'package:fleur/services/settings/translation_ai_settings.dart';
+import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
 import 'package:fleur/utils/tag_colors.dart';
 import 'package:fleur/widgets/reader_bottom_bar.dart';
@@ -101,6 +102,7 @@ void main() {
     WidgetTester tester, {
     required Article article,
     AppSettings? appSettings,
+    ReaderSettings? readerSettings,
     TranslationAiSettings? translationSettings,
     RecordingArticleActionService? actionService,
     InMemoryReaderProgressStore? progressStore,
@@ -124,7 +126,7 @@ void main() {
           FakeAppSettingsStore(appSettings ?? AppSettings.defaults()),
         ),
         readerSettingsStoreProvider.overrideWithValue(
-          FakeReaderSettingsStore(const ReaderSettings()),
+          FakeReaderSettingsStore(readerSettings ?? const ReaderSettings()),
         ),
         translationAiSettingsStoreProvider.overrideWithValue(
           FakeTranslationAiSettingsStore(
@@ -174,6 +176,39 @@ void main() {
 
     expect(actionService.markReadCalls, [(articleId: articleId, isRead: true)]);
   });
+
+  testWidgets(
+    'reader title remains larger than body at default and large sizes',
+    (tester) async {
+      Future<double> pumpAndReadTitleSize(ReaderSettings settings) async {
+        await pumpReader(
+          tester,
+          article: buildArticle(),
+          appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+          readerSettings: settings,
+        );
+
+        final readerElement = tester.element(find.byType(ReaderView));
+        final sceneTheme = AppTheme.readerScene(Theme.of(readerElement));
+        final titleStyle = sceneTheme.fleurReader.titleStyleForBodyFontSize(
+          settings.fontSize,
+        );
+
+        expect(titleStyle.fontSize, greaterThan(settings.fontSize));
+        return titleStyle.fontSize ?? 0;
+      }
+
+      final defaultTitleSize = await pumpAndReadTitleSize(
+        const ReaderSettings(),
+      );
+      final largeTitleSize = await pumpAndReadTitleSize(
+        const ReaderSettings(fontSize: 28),
+      );
+
+      expect(largeTitleSize, greaterThan(defaultTitleSize));
+      expect(largeTitleSize, lessThanOrEqualTo(40));
+    },
+  );
 
   testWidgets('full-text button triggers fetch from reader action', (
     tester,
