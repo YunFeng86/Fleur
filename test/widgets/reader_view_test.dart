@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:isar/isar.dart';
 
 import 'package:fleur/models/article.dart';
@@ -82,6 +84,7 @@ void main() {
 
   Article buildArticle({
     String? html,
+    String? title,
     bool isRead = false,
     String? contentHash = 'reader-hash',
   }) {
@@ -90,7 +93,7 @@ void main() {
       ..feedId = 70
       ..categoryId = 5
       ..link = 'https://example.com/article'
-      ..title = 'Reader Article'
+      ..title = title ?? 'Reader Article'
       ..contentHtml = html ?? '<p>Hello world</p>'
       ..contentHash = contentHash
       ..isRead = isRead
@@ -164,6 +167,22 @@ void main() {
     await settleReader(tester, rounds: 8);
   }
 
+  double expectedReaderContentLeft(
+    WidgetTester tester,
+    ReaderSettings settings,
+  ) {
+    final readerElement = tester.element(find.byType(ReaderView));
+    final sceneTheme = AppTheme.readerScene(Theme.of(readerElement));
+    final reader = sceneTheme.fleurReader;
+    final readerViewWidth = tester.getSize(find.byType(ReaderView)).width;
+    final readingWidth = math.min(readerViewWidth, reader.maxWidth);
+    final horizontalPadding = math.max(
+      settings.horizontalPadding,
+      reader.contentPaddingHorizontal,
+    );
+    return (readerViewWidth - readingWidth) / 2 + horizontalPadding;
+  }
+
   testWidgets('marks article as read when opening the reader', (tester) async {
     final actionService = RecordingArticleActionService();
 
@@ -209,6 +228,55 @@ void main() {
       expect(largeTitleSize, lessThanOrEqualTo(40));
     },
   );
+
+  testWidgets('short reader content starts at the left edge of the measure', (
+    tester,
+  ) async {
+    const settings = ReaderSettings(horizontalPadding: 20);
+
+    await pumpReader(
+      tester,
+      article: buildArticle(title: 'A', html: '<p>B</p>'),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      readerSettings: settings,
+      size: const Size(1000, 800),
+    );
+
+    final expectedLeft = expectedReaderContentLeft(tester, settings);
+    final titleFinder = find.text('A');
+    final bodyFinder = find.byType(HtmlWidget);
+
+    expect(titleFinder, findsOneWidget);
+    expect(bodyFinder, findsOneWidget);
+    expect(tester.getTopLeft(titleFinder).dx, closeTo(expectedLeft, 1));
+    expect(tester.getTopLeft(bodyFinder).dx, closeTo(expectedLeft, 1));
+  });
+
+  testWidgets('chunked reader content keeps the same left edge', (
+    tester,
+  ) async {
+    const settings = ReaderSettings(horizontalPadding: 20);
+    final longHtml = List<String>.generate(
+      900,
+      (index) => '<p>Chunk ${index + 1} ${'content ' * 8}</p>',
+    ).join();
+
+    await pumpReader(
+      tester,
+      article: buildArticle(title: 'A', html: longHtml),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      readerSettings: settings,
+      size: const Size(1000, 800),
+    );
+    await settleReader(tester, rounds: 20);
+
+    final expectedLeft = expectedReaderContentLeft(tester, settings);
+    final titleFinder = find.text('A');
+
+    expect(titleFinder, findsOneWidget);
+    expect(tester.getTopLeft(titleFinder).dx, closeTo(expectedLeft, 1));
+    expect(find.byType(ListView), findsOneWidget);
+  });
 
   testWidgets('full-text button triggers fetch from reader action', (
     tester,

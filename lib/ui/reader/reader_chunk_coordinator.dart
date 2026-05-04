@@ -395,27 +395,102 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
         key: _selectionAreaKey,
         onSelectionChanged: _handleSelectionChanged,
         contextMenuBuilder: _buildContextMenu,
-        child: _wrapScrollable(
-          child: SingleChildScrollView(
-            controller: _scrollController,
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: reader.maxWidth),
-                child: Padding(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final readingWidth = _resolveReadingWidth(
+              constraints,
+              reader.maxWidth,
+            );
+            return _wrapScrollable(
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: SizedBox(
+                    width: readingWidth,
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        contentHorizontalPadding,
+                        reader.contentPaddingTop,
+                        contentHorizontalPadding,
+                        reader.contentPaddingBottom,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          inlineHeader,
+                          HtmlWidget(
+                            html,
+                            key: _fullHtmlKey,
+                            baseUrl: Uri.tryParse(article.link),
+                            factoryBuilder: () =>
+                                _ReaderWidgetFactory(cacheManager),
+                            renderMode: RenderMode.column,
+                            buildAsync: true,
+                            onLoadingBuilder: _buildImageLoadingPlaceholder,
+                            customStylesBuilder: searchStyles,
+                            textStyle: reader.bodyStyle.copyWith(
+                              fontSize: settings.fontSize,
+                              height: settings.lineHeight,
+                            ),
+                            onTapUrl: _onTapUrl,
+                            onTapImage: _onTapImage,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    }
+
+    _currentChunks = chunks;
+    return SelectionArea(
+      key: _selectionAreaKey,
+      onSelectionChanged: _handleSelectionChanged,
+      contextMenuBuilder: _buildContextMenu,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final readingWidth = _resolveReadingWidth(
+            constraints,
+            reader.maxWidth,
+          );
+          return Center(
+            child: SizedBox(
+              width: readingWidth,
+              child: _wrapScrollable(
+                child: ListView.builder(
+                  key: _listViewKey,
+                  controller: _scrollController,
+                  cacheExtent: 1200,
                   padding: EdgeInsets.fromLTRB(
                     contentHorizontalPadding,
                     reader.contentPaddingTop,
                     contentHorizontalPadding,
                     reader.contentPaddingBottom,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      inlineHeader,
-                      HtmlWidget(
-                        html,
-                        key: _fullHtmlKey,
+                  itemCount: chunks.length + 1,
+                  itemBuilder: (context, index) {
+                    final key = _chunkKeys.putIfAbsent(
+                      index,
+                      () => GlobalKey(),
+                    );
+                    if (index == 0) {
+                      return KeyedSubtree(key: key, child: inlineHeader);
+                    }
+                    final htmlKey = _chunkHtmlKeys.putIfAbsent(
+                      index,
+                      () => GlobalKey<HtmlWidgetState>(),
+                    );
+                    return KeyedSubtree(
+                      key: key,
+                      child: HtmlWidget(
+                        chunks[index - 1],
+                        key: htmlKey,
                         baseUrl: Uri.tryParse(article.link),
                         factoryBuilder: () =>
                             _ReaderWidgetFactory(cacheManager),
@@ -430,70 +505,22 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
                         onTapUrl: _onTapUrl,
                         onTapImage: _onTapImage,
                       ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
               ),
             ),
-          ),
-        ),
-      );
-    }
-
-    _currentChunks = chunks;
-    return SelectionArea(
-      key: _selectionAreaKey,
-      onSelectionChanged: _handleSelectionChanged,
-      contextMenuBuilder: _buildContextMenu,
-      child: Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: reader.maxWidth),
-          child: _wrapScrollable(
-            child: ListView.builder(
-              key: _listViewKey,
-              controller: _scrollController,
-              cacheExtent: 1200,
-              padding: EdgeInsets.fromLTRB(
-                contentHorizontalPadding,
-                reader.contentPaddingTop,
-                contentHorizontalPadding,
-                reader.contentPaddingBottom,
-              ),
-              itemCount: chunks.length + 1,
-              itemBuilder: (context, index) {
-                final key = _chunkKeys.putIfAbsent(index, () => GlobalKey());
-                if (index == 0) {
-                  return KeyedSubtree(key: key, child: inlineHeader);
-                }
-                final htmlKey = _chunkHtmlKeys.putIfAbsent(
-                  index,
-                  () => GlobalKey<HtmlWidgetState>(),
-                );
-                return KeyedSubtree(
-                  key: key,
-                  child: HtmlWidget(
-                    chunks[index - 1],
-                    key: htmlKey,
-                    baseUrl: Uri.tryParse(article.link),
-                    factoryBuilder: () => _ReaderWidgetFactory(cacheManager),
-                    renderMode: RenderMode.column,
-                    buildAsync: true,
-                    onLoadingBuilder: _buildImageLoadingPlaceholder,
-                    customStylesBuilder: searchStyles,
-                    textStyle: reader.bodyStyle.copyWith(
-                      fontSize: settings.fontSize,
-                      height: settings.lineHeight,
-                    ),
-                    onTapUrl: _onTapUrl,
-                    onTapImage: _onTapImage,
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
+          );
+        },
       ),
     );
+  }
+
+  double _resolveReadingWidth(BoxConstraints constraints, double maxWidth) {
+    if (!constraints.hasBoundedWidth || !constraints.maxWidth.isFinite) {
+      return maxWidth;
+    }
+    return math.min(constraints.maxWidth, maxWidth);
   }
 
   Widget _wrapScrollable({required Widget child}) {
