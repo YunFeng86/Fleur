@@ -223,10 +223,7 @@ void main() {
       appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
     );
 
-    await tester.tap(find.byKey(const Key('reader_more_actions_button')));
-    await tester.pump();
-    await settleReader(tester, rounds: 2);
-    await tester.tap(find.byKey(const Key('reader_overflow_full_text')).last);
+    await tester.tap(find.byKey(const Key('reader_full_text_button')));
     await tester.pump();
     await settleReader(tester, rounds: 4);
     expect(_FakeFullTextController.fetchCalls, 1);
@@ -293,6 +290,7 @@ void main() {
       );
 
       expect(find.byKey(const Key('reader_translate_button')), findsOneWidget);
+      expect(find.byKey(const Key('reader_full_text_button')), findsOneWidget);
       expect(
         find.byKey(const Key('reader_more_actions_button')),
         findsOneWidget,
@@ -306,10 +304,7 @@ void main() {
 
       expect(find.byKey(const Key('reader_overflow_settings')), findsOneWidget);
       expect(find.byKey(const Key('reader_overflow_summary')), findsOneWidget);
-      expect(
-        find.byKey(const Key('reader_overflow_full_text')),
-        findsOneWidget,
-      );
+      expect(find.byKey(const Key('reader_overflow_full_text')), findsNothing);
       expect(find.byKey(const Key('reader_overflow_tags')), findsOneWidget);
       expect(find.byKey(const Key('reader_overflow_share')), findsOneWidget);
     } finally {

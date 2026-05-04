@@ -125,6 +125,26 @@ class ReaderBottomBar extends ConsumerWidget {
       );
     }
 
+    Future<void> handleFullTextAction() async {
+      if (fullTextController.isLoading) return;
+      if (hasFull) {
+        final next = showFull
+            ? ArticleContentView.feed
+            : ArticleContentView.extracted;
+        await ref
+            .read(articleRepositoryProvider)
+            .setPreferredContentView(article.id, next);
+        return;
+      }
+      final ok = await ref
+          .read(fullTextControllerProvider.notifier)
+          .fetch(article.id);
+      if (!ok || !context.mounted) return;
+      await ref
+          .read(articleRepositoryProvider)
+          .setPreferredContentView(article.id, ArticleContentView.extracted);
+    }
+
     Future<void> handleOverflowAction(_ReaderOverflowAction action) async {
       switch (action) {
         case _ReaderOverflowAction.settings:
@@ -133,28 +153,6 @@ class ReaderBottomBar extends ConsumerWidget {
         case _ReaderOverflowAction.summary:
           if (isSummaryBusy) return;
           await aiController.ensureSummary(force: aiState.summaryOutdated);
-          return;
-        case _ReaderOverflowAction.fullText:
-          if (fullTextController.isLoading) return;
-          if (hasFull) {
-            final next = showFull
-                ? ArticleContentView.feed
-                : ArticleContentView.extracted;
-            await ref
-                .read(articleRepositoryProvider)
-                .setPreferredContentView(article.id, next);
-            return;
-          }
-          final ok = await ref
-              .read(fullTextControllerProvider.notifier)
-              .fetch(article.id);
-          if (!ok || !context.mounted) return;
-          await ref
-              .read(articleRepositoryProvider)
-              .setPreferredContentView(
-                article.id,
-                ArticleContentView.extracted,
-              );
           return;
         case _ReaderOverflowAction.readLater:
           await ref
@@ -185,6 +183,9 @@ class ReaderBottomBar extends ConsumerWidget {
       }
     }
 
+    final hasFeedInfo =
+        feed != null && feedTitle != null && feedTitle.isNotEmpty;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
@@ -200,219 +201,222 @@ class ReaderBottomBar extends ConsumerWidget {
       ),
       child: SafeArea(
         top: false,
-        child: Row(
-          children: [
-            Expanded(
-              child: Row(
-                children: [
-                  if (feed != null && feedTitle != null && feedTitle.isNotEmpty)
-                    Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: surfaces.card,
-                        shape: BoxShape.circle,
-                      ),
-                      alignment: Alignment.center,
-                      child: FaviconAvatar(
-                        siteUri: siteUri,
-                        size: 16,
-                        fallbackIcon: Icons.rss_feed,
-                        fallbackColor: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  if (feed != null && feedTitle != null && feedTitle.isNotEmpty)
-                    const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      feedTitle ?? '',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: theme.colorScheme.onSurface,
-                        fontWeight: AppTypography.platformWeight(
-                          FontWeight.w700,
-                        ),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Row(
-              mainAxisSize: MainAxisSize.min,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final showFeedInfo = hasFeedInfo && constraints.maxWidth >= 360;
+
+            return Row(
               children: [
-                IconButton(
-                  key: const Key('reader_translate_button'),
-                  tooltip: l10n.translateAction,
-                  onPressed: isTranslationBusy
-                      ? null
-                      : () => unawaited(openTranslationSheet()),
-                  icon: isTranslationBusy
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                Expanded(
+                  child: showFeedInfo
+                      ? Row(
+                          children: [
+                            Container(
+                              width: 24,
+                              height: 24,
+                              decoration: BoxDecoration(
+                                color: surfaces.card,
+                                shape: BoxShape.circle,
+                              ),
+                              alignment: Alignment.center,
+                              child: FaviconAvatar(
+                                siteUri: siteUri,
+                                size: 16,
+                                fallbackIcon: Icons.rss_feed,
+                                fallbackColor:
+                                    theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                feedTitle,
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: theme.colorScheme.onSurface,
+                                  fontWeight: AppTypography.platformWeight(
+                                    FontWeight.w700,
+                                  ),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         )
-                      : Icon(
-                          Icons.translate,
-                          color: hasTranslation ? states.syncAccent : null,
+                      : const SizedBox.shrink(),
+                ),
+                if (showFeedInfo) const SizedBox(width: 8),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      key: const Key('reader_translate_button'),
+                      tooltip: l10n.translateAction,
+                      onPressed: isTranslationBusy
+                          ? null
+                          : () => unawaited(openTranslationSheet()),
+                      icon: isTranslationBusy
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Icon(
+                              Icons.translate,
+                              color: hasTranslation ? states.syncAccent : null,
+                            ),
+                    ),
+                    IconButton(
+                      key: const Key('reader_full_text_button'),
+                      tooltip: extractionFailed
+                          ? l10n.fullTextRetry
+                          : hasFull && showFull
+                          ? l10n.collapse
+                          : l10n.fullText,
+                      onPressed: fullTextController.isLoading
+                          ? null
+                          : () => unawaited(handleFullTextAction()),
+                      icon: fullTextController.isLoading
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Icon(
+                              extractionFailed
+                                  ? Icons.refresh
+                                  : Icons.chrome_reader_mode,
+                              color: extractionFailed
+                                  ? states.errorAccent
+                                  : showFull
+                                  ? states.syncAccent
+                                  : null,
+                            ),
+                    ),
+                    IconButton(
+                      tooltip: article.isStarred ? l10n.unstar : l10n.star,
+                      onPressed: () => ref
+                          .read(articleActionServiceProvider)
+                          .toggleStar(article.id),
+                      icon: Icon(
+                        article.isStarred ? Icons.star : Icons.star_border,
+                        color: article.isStarred ? states.savedAccent : null,
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: article.isRead ? l10n.markUnread : l10n.markRead,
+                      onPressed: () => ref
+                          .read(articleActionServiceProvider)
+                          .markRead(article.id, !article.isRead),
+                      icon: Icon(
+                        article.isRead
+                            ? Icons.mark_email_unread
+                            : Icons.mark_email_read,
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: l10n.openInBrowser,
+                      onPressed: () async {
+                        final uri = Uri.tryParse(article.link);
+                        if (uri != null) {
+                          await launchUrl(
+                            uri,
+                            mode: LaunchMode.externalApplication,
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.open_in_browser),
+                    ),
+                    PopupMenuButton<_ReaderOverflowAction>(
+                      key: const Key('reader_more_actions_button'),
+                      tooltip: l10n.more,
+                      icon: const Icon(Icons.more_horiz),
+                      onSelected: (value) {
+                        unawaited(handleOverflowAction(value));
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem<_ReaderOverflowAction>(
+                          key: const Key('reader_overflow_settings'),
+                          value: _ReaderOverflowAction.settings,
+                          child: ListTile(
+                            leading: const Icon(Icons.text_fields),
+                            title: Text(l10n.readerSettings),
+                            contentPadding: EdgeInsets.zero,
+                          ),
                         ),
-                ),
-                IconButton(
-                  tooltip: article.isStarred ? l10n.unstar : l10n.star,
-                  onPressed: () => ref
-                      .read(articleActionServiceProvider)
-                      .toggleStar(article.id),
-                  icon: Icon(
-                    article.isStarred ? Icons.star : Icons.star_border,
-                    color: article.isStarred ? states.savedAccent : null,
-                  ),
-                ),
-                IconButton(
-                  tooltip: article.isRead ? l10n.markUnread : l10n.markRead,
-                  onPressed: () => ref
-                      .read(articleActionServiceProvider)
-                      .markRead(article.id, !article.isRead),
-                  icon: Icon(
-                    article.isRead
-                        ? Icons.mark_email_unread
-                        : Icons.mark_email_read,
-                  ),
-                ),
-                IconButton(
-                  tooltip: l10n.openInBrowser,
-                  onPressed: () async {
-                    final uri = Uri.tryParse(article.link);
-                    if (uri != null) {
-                      await launchUrl(
-                        uri,
-                        mode: LaunchMode.externalApplication,
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.open_in_browser),
-                ),
-                PopupMenuButton<_ReaderOverflowAction>(
-                  key: const Key('reader_more_actions_button'),
-                  tooltip: l10n.more,
-                  icon: const Icon(Icons.more_horiz),
-                  onSelected: (value) {
-                    unawaited(handleOverflowAction(value));
-                  },
-                  itemBuilder: (context) => [
-                    PopupMenuItem<_ReaderOverflowAction>(
-                      key: const Key('reader_overflow_settings'),
-                      value: _ReaderOverflowAction.settings,
-                      child: ListTile(
-                        leading: const Icon(Icons.text_fields),
-                        title: Text(l10n.readerSettings),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                    PopupMenuItem<_ReaderOverflowAction>(
-                      key: const Key('reader_overflow_summary'),
-                      value: _ReaderOverflowAction.summary,
-                      enabled: !isSummaryBusy,
-                      child: ListTile(
-                        leading: isSummaryBusy
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : Icon(
-                                Icons.summarize_outlined,
-                                color: hasSummary ? states.syncAccent : null,
-                              ),
-                        title: Text(l10n.aiSummaryAction),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                    PopupMenuItem<_ReaderOverflowAction>(
-                      key: const Key('reader_overflow_full_text'),
-                      value: _ReaderOverflowAction.fullText,
-                      enabled: !fullTextController.isLoading,
-                      child: ListTile(
-                        leading: fullTextController.isLoading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : Icon(
-                                extractionFailed
-                                    ? Icons.refresh
-                                    : Icons.chrome_reader_mode,
-                                color: extractionFailed
-                                    ? states.errorAccent
-                                    : showFull
-                                    ? states.syncAccent
-                                    : null,
-                              ),
-                        title: Text(
-                          extractionFailed
-                              ? l10n.fullTextRetry
-                              : hasFull && showFull
-                              ? l10n.collapse
-                              : l10n.fullText,
+                        PopupMenuItem<_ReaderOverflowAction>(
+                          key: const Key('reader_overflow_summary'),
+                          value: _ReaderOverflowAction.summary,
+                          enabled: !isSummaryBusy,
+                          child: ListTile(
+                            leading: isSummaryBusy
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Icon(
+                                    Icons.summarize_outlined,
+                                    color: hasSummary
+                                        ? states.syncAccent
+                                        : null,
+                                  ),
+                            title: Text(l10n.aiSummaryAction),
+                            contentPadding: EdgeInsets.zero,
+                          ),
                         ),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                    PopupMenuItem<_ReaderOverflowAction>(
-                      key: const Key('reader_overflow_read_later'),
-                      value: _ReaderOverflowAction.readLater,
-                      child: ListTile(
-                        leading: Icon(
-                          article.isReadLater
-                              ? Icons.watch_later
-                              : Icons.watch_later_outlined,
-                          color: article.isReadLater
-                              ? states.savedAccent
-                              : null,
+                        PopupMenuItem<_ReaderOverflowAction>(
+                          key: const Key('reader_overflow_read_later'),
+                          value: _ReaderOverflowAction.readLater,
+                          child: ListTile(
+                            leading: Icon(
+                              article.isReadLater
+                                  ? Icons.watch_later
+                                  : Icons.watch_later_outlined,
+                              color: article.isReadLater
+                                  ? states.savedAccent
+                                  : null,
+                            ),
+                            title: Text(l10n.readLater),
+                            contentPadding: EdgeInsets.zero,
+                          ),
                         ),
-                        title: Text(l10n.readLater),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                    PopupMenuItem<_ReaderOverflowAction>(
-                      key: const Key('reader_overflow_tags'),
-                      value: _ReaderOverflowAction.tags,
-                      child: ListTile(
-                        leading: const Icon(Icons.label_outline),
-                        title: Text(l10n.manageTags),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                    PopupMenuItem<_ReaderOverflowAction>(
-                      key: const Key('reader_overflow_copy_link'),
-                      value: _ReaderOverflowAction.copyLink,
-                      child: ListTile(
-                        leading: const Icon(Icons.content_copy),
-                        title: Text(l10n.copyLink),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                    PopupMenuItem<_ReaderOverflowAction>(
-                      key: const Key('reader_overflow_share'),
-                      value: _ReaderOverflowAction.share,
-                      child: ListTile(
-                        leading: const Icon(Icons.share_outlined),
-                        title: Text(l10n.share),
-                        contentPadding: EdgeInsets.zero,
-                      ),
+                        PopupMenuItem<_ReaderOverflowAction>(
+                          key: const Key('reader_overflow_tags'),
+                          value: _ReaderOverflowAction.tags,
+                          child: ListTile(
+                            leading: const Icon(Icons.label_outline),
+                            title: Text(l10n.manageTags),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
+                        PopupMenuItem<_ReaderOverflowAction>(
+                          key: const Key('reader_overflow_copy_link'),
+                          value: _ReaderOverflowAction.copyLink,
+                          child: ListTile(
+                            leading: const Icon(Icons.content_copy),
+                            title: Text(l10n.copyLink),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
+                        PopupMenuItem<_ReaderOverflowAction>(
+                          key: const Key('reader_overflow_share'),
+                          value: _ReaderOverflowAction.share,
+                          child: ListTile(
+                            leading: const Icon(Icons.share_outlined),
+                            title: Text(l10n.share),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ],
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
@@ -435,7 +439,6 @@ class ReaderBottomBar extends ConsumerWidget {
 enum _ReaderOverflowAction {
   settings,
   summary,
-  fullText,
   readLater,
   tags,
   copyLink,
