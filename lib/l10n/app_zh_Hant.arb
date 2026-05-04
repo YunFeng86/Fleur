@@ -531,6 +531,14 @@
   "@noArticles": {
     "description": "noArticles"
   },
+  "noStarredArticles": "暫無收藏文章",
+  "@noStarredArticles": {
+    "description": "Empty state message for the starred articles view"
+  },
+  "noReadLaterArticles": "暫無稍後讀文章",
+  "@noReadLaterArticles": {
+    "description": "Empty state message for the read-later articles view"
+  },
   "noUnreadArticles": "暫無未讀文章",
   "@noUnreadArticles": {
     "description": "noUnreadArticles"

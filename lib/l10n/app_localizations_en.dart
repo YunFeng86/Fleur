@@ -394,6 +394,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noArticles => 'No articles';
 
   @override
+  String get noStarredArticles => 'No starred articles yet';
+
+  @override
+  String get noReadLaterArticles => 'No read-later articles yet';
+
+  @override
   String get noUnreadArticles => 'No unread articles';
 
   @override

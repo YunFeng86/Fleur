@@ -502,6 +502,14 @@
   "@noArticles": {
     "description": "noArticles"
   },
+  "noStarredArticles": "No starred articles yet",
+  "@noStarredArticles": {
+    "description": "Empty state message for the starred articles view"
+  },
+  "noReadLaterArticles": "No read-later articles yet",
+  "@noReadLaterArticles": {
+    "description": "Empty state message for the read-later articles view"
+  },
   "noUnreadArticles": "No unread articles",
   "@noUnreadArticles": {
     "description": "noUnreadArticles"

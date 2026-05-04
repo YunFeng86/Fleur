@@ -276,7 +276,16 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
     final title = isStarred
         ? l10n.starred
         : (state.readLaterOnly ? l10n.readLater : l10n.saved);
-    final subtitle = state.hasSearch ? l10n.notFound : l10n.noArticles;
+    final subtitle = switch ((
+      state.hasSearch,
+      isStarred,
+      state.readLaterOnly,
+    )) {
+      (true, _, _) => l10n.notFound,
+      (false, true, _) => l10n.noStarredArticles,
+      (false, false, true) => l10n.noReadLaterArticles,
+      _ => l10n.noArticles,
+    };
     final icon = isStarred ? Icons.star_border : Icons.bookmark_border;
 
     return Container(

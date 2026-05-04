@@ -807,6 +807,18 @@ abstract class AppLocalizations {
   /// **'No articles'**
   String get noArticles;
 
+  /// Empty state message for the starred articles view
+  ///
+  /// In en, this message translates to:
+  /// **'No starred articles yet'**
+  String get noStarredArticles;
+
+  /// Empty state message for the read-later articles view
+  ///
+  /// In en, this message translates to:
+  /// **'No read-later articles yet'**
+  String get noReadLaterArticles;
+
   /// noUnreadArticles
   ///
   /// In en, this message translates to:

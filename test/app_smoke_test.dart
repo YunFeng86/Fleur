@@ -21,6 +21,7 @@ import 'package:fleur/providers/query_providers.dart';
 import 'package:fleur/providers/service_providers.dart';
 import 'package:fleur/providers/sync_status_providers.dart';
 import 'package:fleur/providers/unread_providers.dart';
+import 'package:fleur/screens/saved_screen.dart';
 import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/sync/sync_service.dart';
 import 'package:fleur/services/sync/sync_status_reporter.dart';
@@ -1306,6 +1307,61 @@ void main() {
       expect(container.color, theme.fleurSurface.list);
     },
   );
+
+  testWidgets('Saved screen shows mode-specific empty feedback', (
+    tester,
+  ) async {
+    const savedSectionKey = ValueKey<String>('saved-section-test');
+    final router = GoRouter(
+      initialLocation: '/saved',
+      routes: [
+        GoRoute(path: '/', builder: (context, state) => const SizedBox()),
+        GoRoute(
+          path: '/saved',
+          pageBuilder: (context, state) => const NoTransitionPage(
+            key: savedSectionKey,
+            child: SavedScreen(selectedArticleId: null),
+          ),
+        ),
+        GoRoute(path: '/search', builder: (context, state) => const SizedBox()),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appSettingsStoreProvider.overrideWithValue(
+            FakeAppSettingsStore(AppSettings.defaults()),
+          ),
+          starredCountProvider.overrideWith((ref) => Stream.value(0)),
+          readLaterCountProvider.overrideWith((ref) => Stream.value(0)),
+          articleListControllerProvider.overrideWith(
+            _EmptyArticleListController.new,
+          ),
+        ],
+        child: MaterialApp.router(
+          routerConfig: router,
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final element = tester.element(find.byType(SavedScreen));
+    final l10n = AppLocalizations.of(element)!;
+
+    expect(find.text(l10n.noStarredArticles), findsOneWidget);
+    expect(find.text(l10n.noReadLaterArticles), findsNothing);
+
+    await tester.tap(find.text('${l10n.readLater} (0)'));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.noReadLaterArticles), findsOneWidget);
+    expect(find.text(l10n.noStarredArticles), findsNothing);
+  });
 }
 
 void _noopSelectFeed(int? _) {}

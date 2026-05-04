@@ -375,6 +375,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noArticles => '暂无文章';
 
   @override
+  String get noStarredArticles => '暂无收藏文章';
+
+  @override
+  String get noReadLaterArticles => '暂无稍后读文章';
+
+  @override
   String get noUnreadArticles => '暂无未读文章';
 
   @override
@@ -1440,6 +1446,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get noArticles => '暫無文章';
+
+  @override
+  String get noStarredArticles => '暫無收藏文章';
+
+  @override
+  String get noReadLaterArticles => '暫無稍後讀文章';
 
   @override
   String get noUnreadArticles => '暫無未讀文章';
