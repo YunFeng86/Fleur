@@ -110,10 +110,10 @@ class ArticleListController extends AutoDisposeAsyncNotifier<ArticleListState> {
   Future<void> refresh() async {
     final repo = ref.read(articleRepositoryProvider);
     final query = _currentQuery();
-    final ids = await repo.fetchPageIds(query, offset: 0, limit: _pageSize);
     final current = state.valueOrNull;
-    final hasMore = ids.length == _pageSize;
     if (current == null) {
+      final ids = await repo.fetchPageIds(query, offset: 0, limit: _pageSize);
+      final hasMore = ids.length == _pageSize;
       final items = await repo.fetchPage(query, offset: 0, limit: _pageSize);
       state = AsyncValue.data(
         ArticleListState(
@@ -124,28 +124,49 @@ class ArticleListController extends AutoDisposeAsyncNotifier<ArticleListState> {
       );
       return;
     }
-    if (current.startOffset == 0 && _sameIds(current.items, ids)) {
+
+    var offset = current.startOffset;
+    var limit = current.items.isEmpty ? _pageSize : current.items.length;
+    var ids = await repo.fetchPageIds(query, offset: offset, limit: limit + 1);
+    var hasMore = ids.length > limit;
+    var windowIds = hasMore ? ids.sublist(0, limit) : ids;
+
+    if (offset > 0 && windowIds.isEmpty) {
+      offset = 0;
+      limit = _pageSize;
+      ids = await repo.fetchPageIds(query, offset: offset, limit: limit + 1);
+      hasMore = ids.length > limit;
+      windowIds = hasMore ? ids.sublist(0, limit) : ids;
+    }
+
+    final nextOffset = offset + windowIds.length;
+    if (_sameIds(current.items, windowIds)) {
       if (current.hasMore == hasMore &&
-          current.nextOffset == ids.length &&
-          current.startOffset == 0) {
+          current.nextOffset == nextOffset &&
+          current.startOffset == offset &&
+          !current.isLoadingMore) {
         return;
       }
       state = AsyncValue.data(
         current.copyWith(
           hasMore: hasMore,
-          startOffset: 0,
-          nextOffset: ids.length,
+          isLoadingMore: false,
+          startOffset: offset,
+          nextOffset: nextOffset,
         ),
       );
       return;
     }
-    final items = await repo.fetchPage(query, offset: 0, limit: _pageSize);
+    final items = windowIds.isEmpty
+        ? const <Article>[]
+        : await repo.fetchPage(query, offset: offset, limit: windowIds.length);
     state = AsyncValue.data(
       current.copyWith(
         items: items,
         hasMore: hasMore,
-        startOffset: 0,
-        nextOffset: items.length,
+        isLoadingMore: false,
+        startOffset: offset,
+        nextOffset: nextOffset,
       ),
     );
   }
