@@ -32,12 +32,12 @@ class FaviconAvatar extends ConsumerWidget {
     final uri = siteUri;
     if (uri == null) return fallback();
 
-    final key = _normalizeProviderKey(uri);
-    if (key == null) return fallback();
+    final hostKey = _normalizeHostKey(uri);
+    if (hostKey == null) return fallback();
 
-    // Important: normalize family key to site-level (scheme + host) to avoid
-    // provider instance explosion when article URLs differ by path/query.
-    final asyncUrl = ref.watch(faviconUrlProvider(key));
+    // Normalize to host-level so different article paths or schemes for the
+    // same site reuse a single favicon resolution lifecycle.
+    final asyncUrl = ref.watch(faviconUrlProvider(hostKey));
     return asyncUrl.when(
       loading: fallback,
       error: (error, stackTrace) => fallback(),
@@ -66,7 +66,7 @@ class FaviconAvatar extends ConsumerWidget {
     );
   }
 
-  Uri? _normalizeProviderKey(Uri input) {
+  String? _normalizeHostKey(Uri input) {
     Uri? parsed;
     if (input.host.isNotEmpty) {
       parsed = input;
@@ -76,10 +76,6 @@ class FaviconAvatar extends ConsumerWidget {
     }
 
     if (parsed == null || parsed.host.isEmpty) return null;
-
-    final scheme = (parsed.scheme == 'http' || parsed.scheme == 'https')
-        ? parsed.scheme
-        : 'https';
-    return Uri(scheme: scheme, host: parsed.host.toLowerCase());
+    return parsed.host.toLowerCase();
   }
 }

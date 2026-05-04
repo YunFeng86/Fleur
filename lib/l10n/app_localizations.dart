@@ -1954,7 +1954,7 @@ abstract class AppLocalizations {
   /// Default AI translation prompt template (only used for AI translation)
   ///
   /// In en, this message translates to:
-  /// **'Please translate this article into {language} (title: {title}): {content}'**
+  /// **'Please translate this article fragment into {language} (title: {title}): {content}'**
   String defaultAiTranslationPromptTemplate(
     Object language,
     Object title,

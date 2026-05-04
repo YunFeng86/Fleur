@@ -39,6 +39,11 @@ class ReaderBottomBar extends ConsumerWidget {
     final surfaces = theme.fleurSurface;
     final states = theme.fleurState;
     final reader = theme.fleurReader;
+    final aiState = ref.watch(articleAiControllerProvider(article.id));
+    final aiController = ref.read(
+      articleAiControllerProvider(article.id).notifier,
+    );
+    final fullTextController = ref.watch(fullTextControllerProvider);
     final feedMap = ref.watch(feedMapProvider);
     final feed = feedMap[article.feedId];
     final feedTitleRaw = feed == null
@@ -52,6 +57,133 @@ class ReaderBottomBar extends ConsumerWidget {
           ? feed!.siteUrl!.trim()
           : article.link,
     );
+    final isSummaryBusy =
+        aiState.summaryStatus == ArticleAiTaskStatus.queued ||
+        aiState.summaryStatus == ArticleAiTaskStatus.running;
+    final hasSummary = (aiState.summaryText ?? '').trim().isNotEmpty;
+    final isTranslationBusy =
+        aiState.translationStatus == ArticleAiTaskStatus.queued ||
+        aiState.translationStatus == ArticleAiTaskStatus.running;
+    final hasTranslation = (aiState.translationHtml ?? '').trim().isNotEmpty;
+    final hasFull = (article.extractedContentHtml ?? '').trim().isNotEmpty;
+    final preferExtracted =
+        article.preferredContentView == ArticleContentView.extracted;
+    final showFull = hasFull && preferExtracted;
+    final extractionFailed =
+        !hasFull && article.contentSource == ContentSource.extractionFailed;
+
+    Future<void> openTranslationSheet() async {
+      await showModalBottomSheet<void>(
+        context: context,
+        showDragHandle: true,
+        builder: (context) {
+          return SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(title: Text(l10n.translationMode)),
+                ListTile(
+                  leading: const Icon(Icons.auto_awesome_outlined),
+                  title: Text(l10n.immersiveTranslation),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    unawaited(
+                      aiController.ensureTranslation(
+                        mode: ArticleTranslationMode.immersive,
+                        force: aiState.translationOutdated,
+                      ),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.translate_outlined),
+                  title: Text(l10n.traditionalTranslation),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    unawaited(
+                      aiController.ensureTranslation(
+                        mode: ArticleTranslationMode.traditional,
+                        force: aiState.translationOutdated,
+                      ),
+                    );
+                  },
+                ),
+                if (hasTranslation)
+                  ListTile(
+                    leading: const Icon(Icons.close),
+                    title: Text(l10n.clearTranslation),
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      aiController.clearTranslation();
+                    },
+                  ),
+              ],
+            ),
+          );
+        },
+      );
+    }
+
+    Future<void> handleOverflowAction(_ReaderOverflowAction action) async {
+      switch (action) {
+        case _ReaderOverflowAction.settings:
+          onShowSettings();
+          return;
+        case _ReaderOverflowAction.summary:
+          if (isSummaryBusy) return;
+          await aiController.ensureSummary(force: aiState.summaryOutdated);
+          return;
+        case _ReaderOverflowAction.fullText:
+          if (fullTextController.isLoading) return;
+          if (hasFull) {
+            final next = showFull
+                ? ArticleContentView.feed
+                : ArticleContentView.extracted;
+            await ref
+                .read(articleRepositoryProvider)
+                .setPreferredContentView(article.id, next);
+            return;
+          }
+          final ok = await ref
+              .read(fullTextControllerProvider.notifier)
+              .fetch(article.id);
+          if (!ok || !context.mounted) return;
+          await ref
+              .read(articleRepositoryProvider)
+              .setPreferredContentView(
+                article.id,
+                ArticleContentView.extracted,
+              );
+          return;
+        case _ReaderOverflowAction.readLater:
+          await ref
+              .read(articleActionServiceProvider)
+              .toggleReadLater(article.id);
+          return;
+        case _ReaderOverflowAction.tags:
+          await _showManageTagsDialog(context, ref, article);
+          return;
+        case _ReaderOverflowAction.copyLink:
+          await Clipboard.setData(ClipboardData(text: article.link));
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.copiedToClipboard)));
+          return;
+        case _ReaderOverflowAction.share:
+          final uri = Uri.tryParse(article.link);
+          final subject = (article.title ?? '').trim().isEmpty
+              ? null
+              : article.title!.trim();
+          await SharePlus.instance.share(
+            uri == null
+                ? ShareParams(text: article.link, subject: subject)
+                : ShareParams(uri: uri, subject: subject),
+          );
+          return;
+      }
+    }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -68,36 +200,32 @@ class ReaderBottomBar extends ConsumerWidget {
       ),
       child: SafeArea(
         top: false,
-        child: OverflowBar(
-          alignment: MainAxisAlignment.spaceBetween,
-          overflowAlignment: OverflowBarAlignment.end,
-          spacing: 8,
-          overflowSpacing: 8,
+        child: Row(
           children: [
-            // Feed Info
-            if (feed != null && feedTitle != null && feedTitle.isNotEmpty)
-              Row(
-                mainAxisSize: MainAxisSize.min,
+            Expanded(
+              child: Row(
                 children: [
-                  Container(
-                    width: 24,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: surfaces.card,
-                      shape: BoxShape.circle,
+                  if (feed != null && feedTitle != null && feedTitle.isNotEmpty)
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: surfaces.card,
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: FaviconAvatar(
+                        siteUri: siteUri,
+                        size: 16,
+                        fallbackIcon: Icons.rss_feed,
+                        fallbackColor: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
-                    alignment: Alignment.center,
-                    child: FaviconAvatar(
-                      siteUri: siteUri,
-                      size: 16,
-                      fallbackIcon: Icons.rss_feed,
-                      fallbackColor: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Flexible(
+                  if (feed != null && feedTitle != null && feedTitle.isNotEmpty)
+                    const SizedBox(width: 8),
+                  Expanded(
                     child: Text(
-                      feedTitle,
+                      feedTitle ?? '',
                       style: theme.textTheme.labelMedium?.copyWith(
                         color: theme.colorScheme.onSurface,
                         fontWeight: AppTypography.platformWeight(
@@ -109,145 +237,28 @@ class ReaderBottomBar extends ConsumerWidget {
                     ),
                   ),
                 ],
-              )
-            else
-              const SizedBox.shrink(),
-
-            // Actions
-            Wrap(
-              spacing: 4,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
-                  tooltip: l10n.readerSettings,
-                  onPressed: onShowSettings,
-                  icon: const Icon(Icons.text_fields),
-                ),
-                Consumer(
-                  builder: (context, ref, _) {
-                    final aiState = ref.watch(
-                      articleAiControllerProvider(article.id),
-                    );
-                    final controller = ref.read(
-                      articleAiControllerProvider(article.id).notifier,
-                    );
-                    final isBusy =
-                        aiState.summaryStatus == ArticleAiTaskStatus.queued ||
-                        aiState.summaryStatus == ArticleAiTaskStatus.running;
-                    final hasSummary = (aiState.summaryText ?? '')
-                        .trim()
-                        .isNotEmpty;
-                    return IconButton(
-                      key: const Key('reader_ai_summary_button'),
-                      tooltip: l10n.aiSummaryAction,
-                      onPressed: isBusy
-                          ? null
-                          : () => unawaited(
-                              controller.ensureSummary(
-                                force: aiState.summaryOutdated,
-                              ),
-                            ),
-                      icon: isBusy
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Icon(
-                              Icons.summarize_outlined,
-                              color: hasSummary ? states.syncAccent : null,
-                            ),
-                    );
-                  },
-                ),
-                Consumer(
-                  builder: (context, ref, _) {
-                    final aiState = ref.watch(
-                      articleAiControllerProvider(article.id),
-                    );
-                    final controller = ref.read(
-                      articleAiControllerProvider(article.id).notifier,
-                    );
-                    final isBusy =
-                        aiState.translationStatus ==
-                            ArticleAiTaskStatus.queued ||
-                        aiState.translationStatus ==
-                            ArticleAiTaskStatus.running;
-                    final hasTranslation = (aiState.translationHtml ?? '')
-                        .trim()
-                        .isNotEmpty;
-
-                    Future<void> openSheet() async {
-                      await showModalBottomSheet<void>(
-                        context: context,
-                        showDragHandle: true,
-                        builder: (context) {
-                          return SafeArea(
-                            top: false,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                ListTile(title: Text(l10n.translationMode)),
-                                ListTile(
-                                  leading: const Icon(
-                                    Icons.auto_awesome_outlined,
-                                  ),
-                                  title: Text(l10n.immersiveTranslation),
-                                  onTap: () {
-                                    Navigator.of(context).pop();
-                                    unawaited(
-                                      controller.ensureTranslation(
-                                        mode: ArticleTranslationMode.immersive,
-                                        force: aiState.translationOutdated,
-                                      ),
-                                    );
-                                  },
-                                ),
-                                ListTile(
-                                  leading: const Icon(Icons.translate_outlined),
-                                  title: Text(l10n.traditionalTranslation),
-                                  onTap: () {
-                                    Navigator.of(context).pop();
-                                    unawaited(
-                                      controller.ensureTranslation(
-                                        mode:
-                                            ArticleTranslationMode.traditional,
-                                        force: aiState.translationOutdated,
-                                      ),
-                                    );
-                                  },
-                                ),
-                                if (hasTranslation)
-                                  ListTile(
-                                    leading: const Icon(Icons.close),
-                                    title: Text(l10n.clearTranslation),
-                                    onTap: () {
-                                      Navigator.of(context).pop();
-                                      controller.clearTranslation();
-                                    },
-                                  ),
-                              ],
-                            ),
-                          );
-                        },
-                      );
-                    }
-
-                    return IconButton(
-                      key: const Key('reader_translate_button'),
-                      tooltip: l10n.translateAction,
-                      onPressed: isBusy ? null : () => unawaited(openSheet()),
-                      icon: isBusy
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Icon(
-                              Icons.translate,
-                              color: hasTranslation ? states.syncAccent : null,
-                            ),
-                    );
-                  },
+                  key: const Key('reader_translate_button'),
+                  tooltip: l10n.translateAction,
+                  onPressed: isTranslationBusy
+                      ? null
+                      : () => unawaited(openTranslationSheet()),
+                  icon: isTranslationBusy
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(
+                          Icons.translate,
+                          color: hasTranslation ? states.syncAccent : null,
+                        ),
                 ),
                 IconButton(
                   tooltip: article.isStarred ? l10n.unstar : l10n.star,
@@ -260,11 +271,6 @@ class ReaderBottomBar extends ConsumerWidget {
                   ),
                 ),
                 IconButton(
-                  tooltip: l10n.manageTags,
-                  onPressed: () => _showManageTagsDialog(context, ref, article),
-                  icon: const Icon(Icons.label_outline),
-                ),
-                IconButton(
                   tooltip: article.isRead ? l10n.markUnread : l10n.markRead,
                   onPressed: () => ref
                       .read(articleActionServiceProvider)
@@ -274,82 +280,6 @@ class ReaderBottomBar extends ConsumerWidget {
                         ? Icons.mark_email_unread
                         : Icons.mark_email_read,
                   ),
-                ),
-                IconButton(
-                  tooltip: l10n.readLater,
-                  onPressed: () => ref
-                      .read(articleActionServiceProvider)
-                      .toggleReadLater(article.id),
-                  icon: Icon(
-                    article.isReadLater
-                        ? Icons.watch_later
-                        : Icons.watch_later_outlined,
-                    color: article.isReadLater ? states.savedAccent : null,
-                  ),
-                ),
-                // 原文/提取切换
-                Consumer(
-                  builder: (context, ref, _) {
-                    final controller = ref.watch(fullTextControllerProvider);
-                    final hasFull = (article.extractedContentHtml ?? '')
-                        .trim()
-                        .isNotEmpty;
-                    final preferExtracted =
-                        article.preferredContentView ==
-                        ArticleContentView.extracted;
-                    final showFull = hasFull && preferExtracted;
-                    final extractionFailed =
-                        !hasFull &&
-                        article.contentSource == ContentSource.extractionFailed;
-
-                    return IconButton(
-                      key: const Key('reader_full_text_button'),
-                      tooltip: extractionFailed
-                          ? l10n.fullTextRetry
-                          : hasFull && showFull
-                          ? l10n.collapse
-                          : l10n.fullText,
-                      onPressed: controller.isLoading
-                          ? null
-                          : hasFull
-                          ? () async {
-                              final next = showFull
-                                  ? ArticleContentView.feed
-                                  : ArticleContentView.extracted;
-                              await ref
-                                  .read(articleRepositoryProvider)
-                                  .setPreferredContentView(article.id, next);
-                            }
-                          : () async {
-                              final ok = await ref
-                                  .read(fullTextControllerProvider.notifier)
-                                  .fetch(article.id);
-                              if (!ok || !context.mounted) return;
-                              await ref
-                                  .read(articleRepositoryProvider)
-                                  .setPreferredContentView(
-                                    article.id,
-                                    ArticleContentView.extracted,
-                                  );
-                            },
-                      icon: controller.isLoading
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Icon(
-                              extractionFailed
-                                  ? Icons.refresh
-                                  : Icons.chrome_reader_mode,
-                              color: extractionFailed
-                                  ? states.errorAccent
-                                  : showFull
-                                  ? states.syncAccent
-                                  : null,
-                            ),
-                    );
-                  },
                 ),
                 IconButton(
                   tooltip: l10n.openInBrowser,
@@ -364,31 +294,121 @@ class ReaderBottomBar extends ConsumerWidget {
                   },
                   icon: const Icon(Icons.open_in_browser),
                 ),
-                IconButton(
-                  tooltip: l10n.copyLink,
-                  onPressed: () async {
-                    await Clipboard.setData(ClipboardData(text: article.link));
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(l10n.copiedToClipboard)),
-                    );
+                PopupMenuButton<_ReaderOverflowAction>(
+                  key: const Key('reader_more_actions_button'),
+                  tooltip: l10n.more,
+                  icon: const Icon(Icons.more_horiz),
+                  onSelected: (value) {
+                    unawaited(handleOverflowAction(value));
                   },
-                  icon: const Icon(Icons.content_copy),
-                ),
-                IconButton(
-                  tooltip: l10n.share,
-                  onPressed: () async {
-                    final uri = Uri.tryParse(article.link);
-                    final subject = (article.title ?? '').trim().isEmpty
-                        ? null
-                        : article.title!.trim();
-                    await SharePlus.instance.share(
-                      uri == null
-                          ? ShareParams(text: article.link, subject: subject)
-                          : ShareParams(uri: uri, subject: subject),
-                    );
-                  },
-                  icon: const Icon(Icons.share_outlined),
+                  itemBuilder: (context) => [
+                    PopupMenuItem<_ReaderOverflowAction>(
+                      key: const Key('reader_overflow_settings'),
+                      value: _ReaderOverflowAction.settings,
+                      child: ListTile(
+                        leading: const Icon(Icons.text_fields),
+                        title: Text(l10n.readerSettings),
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                    PopupMenuItem<_ReaderOverflowAction>(
+                      key: const Key('reader_overflow_summary'),
+                      value: _ReaderOverflowAction.summary,
+                      enabled: !isSummaryBusy,
+                      child: ListTile(
+                        leading: isSummaryBusy
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Icon(
+                                Icons.summarize_outlined,
+                                color: hasSummary ? states.syncAccent : null,
+                              ),
+                        title: Text(l10n.aiSummaryAction),
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                    PopupMenuItem<_ReaderOverflowAction>(
+                      key: const Key('reader_overflow_full_text'),
+                      value: _ReaderOverflowAction.fullText,
+                      enabled: !fullTextController.isLoading,
+                      child: ListTile(
+                        leading: fullTextController.isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Icon(
+                                extractionFailed
+                                    ? Icons.refresh
+                                    : Icons.chrome_reader_mode,
+                                color: extractionFailed
+                                    ? states.errorAccent
+                                    : showFull
+                                    ? states.syncAccent
+                                    : null,
+                              ),
+                        title: Text(
+                          extractionFailed
+                              ? l10n.fullTextRetry
+                              : hasFull && showFull
+                              ? l10n.collapse
+                              : l10n.fullText,
+                        ),
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                    PopupMenuItem<_ReaderOverflowAction>(
+                      key: const Key('reader_overflow_read_later'),
+                      value: _ReaderOverflowAction.readLater,
+                      child: ListTile(
+                        leading: Icon(
+                          article.isReadLater
+                              ? Icons.watch_later
+                              : Icons.watch_later_outlined,
+                          color: article.isReadLater
+                              ? states.savedAccent
+                              : null,
+                        ),
+                        title: Text(l10n.readLater),
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                    PopupMenuItem<_ReaderOverflowAction>(
+                      key: const Key('reader_overflow_tags'),
+                      value: _ReaderOverflowAction.tags,
+                      child: ListTile(
+                        leading: const Icon(Icons.label_outline),
+                        title: Text(l10n.manageTags),
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                    PopupMenuItem<_ReaderOverflowAction>(
+                      key: const Key('reader_overflow_copy_link'),
+                      value: _ReaderOverflowAction.copyLink,
+                      child: ListTile(
+                        leading: const Icon(Icons.content_copy),
+                        title: Text(l10n.copyLink),
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                    PopupMenuItem<_ReaderOverflowAction>(
+                      key: const Key('reader_overflow_share'),
+                      value: _ReaderOverflowAction.share,
+                      child: ListTile(
+                        leading: const Icon(Icons.share_outlined),
+                        title: Text(l10n.share),
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -410,6 +430,16 @@ class ReaderBottomBar extends ConsumerWidget {
       },
     );
   }
+}
+
+enum _ReaderOverflowAction {
+  settings,
+  summary,
+  fullText,
+  readLater,
+  tags,
+  copyLink,
+  share,
 }
 
 class _TagsDialog extends ConsumerStatefulWidget {

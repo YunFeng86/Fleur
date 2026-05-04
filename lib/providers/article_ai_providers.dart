@@ -130,6 +130,24 @@ class ArticleAiState {
 }
 
 const Object _unset = Object();
+const String _summaryPromptContractVersion = 'summary-v2';
+const String _translationPromptContractVersion = 'translation-v2';
+const String _summarySystemInstruction = '''
+You are a careful article summarizer.
+Use only the information provided by the user prompt.
+Return only the final summary in plain text.
+Keep the summary concise, factual, and easy to scan.
+Follow the target language requested in the user prompt.
+Do not add preambles like "Summary:" unless the article content itself requires it.
+''';
+const String _translationSystemInstruction = '''
+You are translating a single article fragment, not an entire article.
+Return only the translated fragment in plain text.
+Do not add explanations, notes, or surrounding quotation marks.
+Do not wrap the result in code fences or markup.
+Preserve proper nouns, numbers, URLs, and the original formatting intent when possible.
+Follow the target language requested in the user prompt.
+''';
 
 final articleAiControllerProvider =
     AutoDisposeNotifierProviderFamily<ArticleAiController, ArticleAiState, int>(
@@ -503,7 +521,11 @@ class ArticleAiController
             PromptTemplate.token(PromptTemplate.varTitle),
             PromptTemplate.token(PromptTemplate.varContent),
           );
-    final promptHash = PromptTemplate.hash(template);
+    final promptHash = _promptContractHash(
+      version: _summaryPromptContractVersion,
+      systemInstruction: _summarySystemInstruction,
+      userTemplate: template,
+    );
 
     final accountId = ref.read(activeAccountProvider).id;
     final cacheKey = AiContentCacheKey.summary(
@@ -518,8 +540,7 @@ class ArticleAiController
     if (cached != null && cached.contentHash == contentHash) {
       final cachedText = cached.data.trim();
       if (cachedText.isNotEmpty) {
-        final outdated =
-            cached.promptHash != null && cached.promptHash != promptHash;
+        final outdated = cached.promptHash != promptHash;
         state = state.copyWith(
           summaryText: cachedText,
           summaryStatus: ArticleAiTaskStatus.ready,
@@ -552,13 +573,11 @@ class ArticleAiController
       _targetLanguageTag,
     );
     final content = _extractPlainText(_activeHtml);
-    final clipped = content.length > 40000
-        ? content.substring(0, 40000)
-        : content;
-    final prompt = PromptTemplate.render(
+    final sampledContent = _sampleSummaryContent(content);
+    final userPrompt = PromptTemplate.render(
       template,
       variables: <String, String>{
-        PromptTemplate.varContent: clipped,
+        PromptTemplate.varContent: sampledContent,
         PromptTemplate.varLanguage: languageName,
         PromptTemplate.varTitle: title,
       },
@@ -574,7 +593,9 @@ class ArticleAiController
 
     try {
       final out = await queue.schedule<String>(
-        estimatedTokens: estimateTokens(prompt),
+        estimatedTokens: estimateTokens(
+          '$_summarySystemInstruction\n$userPrompt',
+        ),
         priority: priority,
         onStart: () {
           if (requestId != _summaryRequestId) return;
@@ -585,7 +606,8 @@ class ArticleAiController
           return client.generateText(
             service: service,
             apiKey: apiKey,
-            prompt: prompt,
+            systemInstruction: _summarySystemInstruction,
+            userPrompt: userPrompt,
             maxOutputTokens: 800,
           );
         },
@@ -658,17 +680,18 @@ class ArticleAiController
         : null;
     final promptHash = promptTemplate == null
         ? null
-        : PromptTemplate.hash(promptTemplate);
+        : _promptContractHash(
+            version: _translationPromptContractVersion,
+            systemInstruction: _translationSystemInstruction,
+            userTemplate: promptTemplate,
+          );
 
     final cached = await cacheStore.read(cacheKey);
     if (requestId != _translationRequestId) return;
     if (cached != null && cached.contentHash == contentHash) {
       final cachedHtml = cached.data.trim();
       if (cachedHtml.isNotEmpty) {
-        final outdated =
-            promptHash != null &&
-            cached.promptHash != null &&
-            cached.promptHash != promptHash;
+        final outdated = promptHash != null && cached.promptHash != promptHash;
         state = state.copyWith(
           translationHtml: cachedHtml,
           translationMode: mode,
@@ -736,7 +759,7 @@ class ArticleAiController
     final body = doc.body;
     if (body == null) return;
 
-    final elements = body.querySelectorAll('p,li,h1,h2,h3,h4,h5,h6');
+    final elements = _translationTargets(body);
     if (elements.isEmpty) return;
 
     final l10n = _l10n!;
@@ -783,7 +806,7 @@ class ArticleAiController
       if (provider.kind == TranslationProviderKind.aiService) {
         final template = promptTemplate;
         if (template == null) throw StateError(l10n.aiNotConfigured);
-        final prompt = PromptTemplate.render(
+        final userPrompt = PromptTemplate.render(
           template,
           variables: <String, String>{
             PromptTemplate.varContent: src,
@@ -792,7 +815,9 @@ class ArticleAiController
           },
         );
         out = await queue.schedule<String>(
-          estimatedTokens: estimateTokens(prompt),
+          estimatedTokens: estimateTokens(
+            '$_translationSystemInstruction\n$userPrompt',
+          ),
           priority: priority,
           onStart: () {
             if (requestId != _translationRequestId) return;
@@ -805,7 +830,8 @@ class ArticleAiController
           task: () => aiClient.generateText(
             service: aiService!,
             apiKey: aiApiKey!,
-            prompt: prompt,
+            systemInstruction: _translationSystemInstruction,
+            userPrompt: userPrompt,
             maxOutputTokens: 800,
           ),
         );
@@ -840,7 +866,7 @@ class ArticleAiController
         el.text = translated;
       } else {
         final tag = el.localName?.toLowerCase() ?? '';
-        if (tag == 'li') {
+        if (_appendTranslationInside(tag)) {
           final node = dom.Element.tag('div')
             ..attributes['data-fleur-translation'] = '1'
             ..attributes['style'] = 'opacity:0.75;font-style:italic;'
@@ -917,5 +943,79 @@ class ArticleAiController
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
     return text;
+  }
+
+  static String _promptContractHash({
+    required String version,
+    required String systemInstruction,
+    required String userTemplate,
+  }) {
+    return PromptTemplate.hash(
+      [
+        version.trim(),
+        systemInstruction.trim(),
+        userTemplate.trim(),
+      ].join('\n\n'),
+    );
+  }
+
+  static String _sampleSummaryContent(String content) {
+    const maxChars = 40000;
+    const separator = '\n\n[...]\n\n';
+    final normalized = content.trim();
+    if (normalized.length <= maxChars) return normalized;
+
+    final available = maxChars - separator.length;
+    final headChars = (available * 0.6).round();
+    final tailChars = available - headChars;
+    final head = normalized.substring(0, headChars).trimRight();
+    final tail = normalized.substring(normalized.length - tailChars).trimLeft();
+    return '$head$separator$tail';
+  }
+
+  static List<dom.Element> _translationTargets(dom.Element body) {
+    const selector =
+        'p,li,h1,h2,h3,h4,h5,h6,blockquote,figcaption,caption,td,th';
+    const nestedBlockSelector =
+        'p,li,h1,h2,h3,h4,h5,h6,blockquote,figcaption,caption,td,th';
+    final out = <dom.Element>[];
+
+    for (final el in body.querySelectorAll(selector)) {
+      final tag = el.localName?.toLowerCase() ?? '';
+      if (tag.isEmpty) continue;
+      if (_isInsideCodeBlock(el)) continue;
+      if (el.attributes.containsKey('data-fleur-translation')) continue;
+      if (_isContainerTag(tag) &&
+          el.querySelector(nestedBlockSelector) != null) {
+        continue;
+      }
+      out.add(el);
+    }
+    return out;
+  }
+
+  static bool _isInsideCodeBlock(dom.Element element) {
+    for (
+      dom.Node? current = element.parent;
+      current != null;
+      current = current.parent
+    ) {
+      if (current is! dom.Element) continue;
+      final tag = current.localName?.toLowerCase() ?? '';
+      if (tag == 'pre' || tag == 'code') return true;
+    }
+    return false;
+  }
+
+  static bool _isContainerTag(String tag) {
+    return tag == 'blockquote' ||
+        tag == 'figcaption' ||
+        tag == 'caption' ||
+        tag == 'td' ||
+        tag == 'th';
+  }
+
+  static bool _appendTranslationInside(String tag) {
+    return tag == 'li' || _isContainerTag(tag);
   }
 }

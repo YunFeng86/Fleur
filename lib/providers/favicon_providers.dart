@@ -10,9 +10,9 @@ import 'service_providers.dart';
 /// This provider is intentionally cached by Riverpod (family param) and
 /// additionally persisted on disk via [FaviconStore] to avoid frequent network
 /// fetches when scrolling.
-final faviconUrlProvider = FutureProvider.family<String?, Uri>((
+final faviconUrlProvider = FutureProvider.family<String?, String>((
   ref,
-  siteUri,
+  hostKey,
 ) async {
   final settings = ref.watch(appSettingsProvider).valueOrNull;
   final ua = settings?.webUserAgent.trim();
@@ -20,7 +20,7 @@ final faviconUrlProvider = FutureProvider.family<String?, Uri>((
 
   return ref
       .watch(faviconServiceProvider)
-      .resolveFaviconUrl(siteUri, userAgent: effectiveUa);
+      .resolveFaviconUrlForHost(hostKey, userAgent: effectiveUa);
 });
 
 /// Returns a cached favicon image file for a URL (downloaded if missing).

@@ -1003,7 +1003,7 @@ class AppLocalizationsEn extends AppLocalizations {
     Object title,
     Object content,
   ) {
-    return 'Please translate this article into $language (title: $title): $content';
+    return 'Please translate this article fragment into $language (title: $title): $content';
   }
 
   @override

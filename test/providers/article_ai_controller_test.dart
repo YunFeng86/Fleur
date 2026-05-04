@@ -237,6 +237,51 @@ void main() {
     },
   );
 
+  test('summary prompt samples both head and tail of long content', () async {
+    final service = buildAiService();
+    const headMarker = 'HEAD_MARKER';
+    const middleMarker = 'MIDDLE_MARKER';
+    const tailMarker = 'TAIL_MARKER';
+    final html =
+        '<p>$headMarker ${'a' * 26000}</p>'
+        '<p>$middleMarker ${'b' * 26000}</p>'
+        '<p>${'c' * 26000} $tailMarker</p>';
+    final aiClient = FakeAiServiceClient();
+    final container = buildContainer(
+      articleStream: Stream.value(buildArticle(html: html)),
+      translationSettings: TranslationAiSettings.defaults().copyWith(
+        targetLanguageTag: 'en',
+        defaultAiServiceId: service.id,
+        aiServices: [service],
+      ),
+      secrets: FakeTranslationAiSecretStore(
+        aiServiceApiKeys: <String, String>{service.id: 'secret-key'},
+      ),
+      aiClient: aiClient,
+    );
+
+    final sub = container.listen<ArticleAiState>(
+      articleAiControllerProvider(articleId),
+      (previous, next) {},
+      fireImmediately: true,
+    );
+    addTearDown(sub.close);
+
+    await container.read(appSettingsProvider.future);
+    await container.read(translationAiSettingsProvider.future);
+    await flushAsync();
+    await container
+        .read(articleAiControllerProvider(articleId).notifier)
+        .ensureSummary();
+    await flushAsync();
+
+    expect(aiClient.userPrompts, hasLength(1));
+    expect(aiClient.userPrompts.single, contains(headMarker));
+    expect(aiClient.userPrompts.single, contains(tailMarker));
+    expect(aiClient.userPrompts.single, isNot(contains(middleMarker)));
+    expect(aiClient.systemInstructions.single, isNotNull);
+  });
+
   test('returns error when summary service is not configured', () async {
     final container = buildContainer(
       articleStream: Stream.value(buildArticle()),
@@ -555,6 +600,70 @@ void main() {
     expect(translator.translatedInputs.first, contains('Hello world'));
     expect(translator.translatedInputs.last, 'Updated article text');
   });
+
+  test(
+    'uses cached AI translation and marks outdated prompt contract',
+    () async {
+      final article = buildArticle();
+      const targetLanguageTag = 'fr';
+      final service = buildAiService();
+      final settings = TranslationAiSettings.defaults().copyWith(
+        targetLanguageTag: canonicalLanguageIdentityTag(targetLanguageTag),
+        translationProvider: TranslationProviderSelection.aiService(service.id),
+        defaultAiServiceId: service.id,
+        aiServices: [service],
+        aiTranslationPrompt: 'custom translation {{content}}',
+      );
+      final cacheStore = InMemoryAiContentCacheStore();
+      await cacheStore.write(
+        AiContentCacheEntry(
+          key: AiContentCacheKey.translation(
+            accountId: accountId,
+            articleId: article.id,
+            targetLanguageTag: canonicalLanguageIdentityTag(targetLanguageTag),
+            translationMode: ArticleTranslationMode.immersive,
+            translationProviderKind: TranslationProviderKind.aiService.name,
+            translationProviderServiceId: service.id,
+          ),
+          contentHash: 'hash-1',
+          promptHash: 'legacy-prompt-hash',
+          data: '<p>bonjour</p>',
+          updatedAt: DateTime.utc(2026, 1, 1),
+        ),
+      );
+      final aiClient = FakeAiServiceClient();
+      final container = buildContainer(
+        articleStream: Stream.value(article),
+        translationSettings: settings,
+        secrets: FakeTranslationAiSecretStore(
+          aiServiceApiKeys: <String, String>{service.id: 'secret-key'},
+        ),
+        cacheStore: cacheStore,
+        aiClient: aiClient,
+      );
+
+      final sub = container.listen<ArticleAiState>(
+        articleAiControllerProvider(articleId),
+        (previous, next) {},
+        fireImmediately: true,
+      );
+      addTearDown(sub.close);
+
+      await container.read(appSettingsProvider.future);
+      await container.read(translationAiSettingsProvider.future);
+      await flushAsync();
+      await container
+          .read(articleAiControllerProvider(articleId).notifier)
+          .ensureTranslation(mode: ArticleTranslationMode.immersive);
+      await flushAsync();
+
+      final state = container.read(articleAiControllerProvider(articleId));
+      expect(state.translationStatus, ArticleAiTaskStatus.ready);
+      expect(state.translationHtml, '<p>bonjour</p>');
+      expect(state.translationOutdated, isTrue);
+      expect(aiClient.prompts, isEmpty);
+    },
+  );
 
   test(
     'translation service maps canonical chinese identities for providers',

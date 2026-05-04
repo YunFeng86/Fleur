@@ -971,7 +971,7 @@ class AppLocalizationsZh extends AppLocalizations {
     Object title,
     Object content,
   ) {
-    return '请将这篇文章翻译成 $language（标题：$title）：$content';
+    return '请将这段文章内容翻译成 $language（标题：$title）：$content';
   }
 
   @override
@@ -2038,7 +2038,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
     Object title,
     Object content,
   ) {
-    return '請將這篇文章翻譯成 $language（標題：$title）：$content';
+    return '請將這段文章內容翻譯成 $language（標題：$title）：$content';
   }
 
   @override

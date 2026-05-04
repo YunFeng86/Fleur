@@ -13,7 +13,8 @@ class AiServiceClient {
   Future<String> generateText({
     required AiServiceConfig service,
     required String apiKey,
-    required String prompt,
+    String? systemInstruction,
+    required String userPrompt,
     int maxOutputTokens = 800,
   }) async {
     final base = service.baseUrl.trim();
@@ -26,6 +27,9 @@ class AiServiceClient {
     }
     final key = apiKey.trim();
     if (key.isEmpty) throw ArgumentError('AI service apiKey is empty');
+    final system = systemInstruction?.trim();
+    final user = userPrompt.trim();
+    if (user.isEmpty) throw ArgumentError('AI service userPrompt is empty');
 
     try {
       return switch (service.apiType) {
@@ -33,28 +37,32 @@ class AiServiceClient {
           baseUrl: base,
           model: model,
           apiKey: key,
-          prompt: prompt,
+          systemInstruction: system,
+          userPrompt: user,
           maxOutputTokens: maxOutputTokens,
         ),
         AiServiceApiType.openAiResponses => await _openAiResponses(
           baseUrl: base,
           model: model,
           apiKey: key,
-          prompt: prompt,
+          systemInstruction: system,
+          userPrompt: user,
           maxOutputTokens: maxOutputTokens,
         ),
         AiServiceApiType.gemini => await _geminiGenerateContent(
           baseUrl: base,
           model: model,
           apiKey: key,
-          prompt: prompt,
+          systemInstruction: system,
+          userPrompt: user,
           maxOutputTokens: maxOutputTokens,
         ),
         AiServiceApiType.anthropic => await _anthropicMessages(
           baseUrl: base,
           model: model,
           apiKey: key,
-          prompt: prompt,
+          systemInstruction: system,
+          userPrompt: user,
           maxOutputTokens: maxOutputTokens,
         ),
       };
@@ -73,17 +81,21 @@ class AiServiceClient {
     required String baseUrl,
     required String model,
     required String apiKey,
-    required String prompt,
+    required String? systemInstruction,
+    required String userPrompt,
     required int maxOutputTokens,
   }) async {
     final uri = _baseUri(baseUrl).resolve('chat/completions');
+    final messages = <Map<String, Object?>>[
+      if (systemInstruction != null && systemInstruction.isNotEmpty)
+        <String, Object?>{'role': 'system', 'content': systemInstruction},
+      <String, Object?>{'role': 'user', 'content': userPrompt},
+    ];
     final res = await _dio.postUri<Map<String, Object?>>(
       uri,
       data: <String, Object?>{
         'model': model,
-        'messages': [
-          <String, Object?>{'role': 'user', 'content': prompt},
-        ],
+        'messages': messages,
         'max_tokens': maxOutputTokens,
       },
       options: Options(
@@ -115,7 +127,8 @@ class AiServiceClient {
     required String baseUrl,
     required String model,
     required String apiKey,
-    required String prompt,
+    required String? systemInstruction,
+    required String userPrompt,
     required int maxOutputTokens,
   }) async {
     final uri = _baseUri(baseUrl).resolve('responses');
@@ -123,7 +136,9 @@ class AiServiceClient {
       uri,
       data: <String, Object?>{
         'model': model,
-        'input': prompt,
+        'input': userPrompt,
+        if (systemInstruction != null && systemInstruction.isNotEmpty)
+          'instructions': systemInstruction,
         'max_output_tokens': maxOutputTokens,
       },
       options: Options(
@@ -187,7 +202,8 @@ class AiServiceClient {
     required String baseUrl,
     required String model,
     required String apiKey,
-    required String prompt,
+    required String? systemInstruction,
+    required String userPrompt,
     required int maxOutputTokens,
   }) async {
     final base = _baseUri(baseUrl);
@@ -197,11 +213,17 @@ class AiServiceClient {
     final res = await _dio.postUri<Map<String, Object?>>(
       uri,
       data: <String, Object?>{
+        if (systemInstruction != null && systemInstruction.isNotEmpty)
+          'systemInstruction': <String, Object?>{
+            'parts': [
+              <String, Object?>{'text': systemInstruction},
+            ],
+          },
         'contents': [
           <String, Object?>{
             'role': 'user',
             'parts': [
-              <String, Object?>{'text': prompt},
+              <String, Object?>{'text': userPrompt},
             ],
           },
         ],
@@ -241,7 +263,8 @@ class AiServiceClient {
     required String baseUrl,
     required String model,
     required String apiKey,
-    required String prompt,
+    required String? systemInstruction,
+    required String userPrompt,
     required int maxOutputTokens,
   }) async {
     final uri = _baseUri(baseUrl).resolve('v1/messages');
@@ -250,8 +273,10 @@ class AiServiceClient {
       data: <String, Object?>{
         'model': model,
         'max_tokens': maxOutputTokens,
+        if (systemInstruction != null && systemInstruction.isNotEmpty)
+          'system': systemInstruction,
         'messages': [
-          <String, Object?>{'role': 'user', 'content': prompt},
+          <String, Object?>{'role': 'user', 'content': userPrompt},
         ],
       },
       options: Options(

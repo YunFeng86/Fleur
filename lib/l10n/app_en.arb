@@ -1299,7 +1299,7 @@
       "content": {}
     }
   },
-  "defaultAiTranslationPromptTemplate": "Please translate this article into {language} (title: {title}): {content}",
+  "defaultAiTranslationPromptTemplate": "Please translate this article fragment into {language} (title: {title}): {content}",
   "@defaultAiTranslationPromptTemplate": {
     "description": "Default AI translation prompt template (only used for AI translation)",
     "placeholders": {

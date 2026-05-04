@@ -223,7 +223,10 @@ void main() {
       appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
     );
 
-    await tester.tap(find.byKey(const Key('reader_full_text_button')));
+    await tester.tap(find.byKey(const Key('reader_more_actions_button')));
+    await tester.pump();
+    await settleReader(tester, rounds: 2);
+    await tester.tap(find.byKey(const Key('reader_overflow_full_text')).last);
     await tester.pump();
     await settleReader(tester, rounds: 4);
     expect(_FakeFullTextController.fetchCalls, 1);
@@ -239,7 +242,10 @@ void main() {
       size: const Size(800, 1200),
     );
 
-    await tester.tap(find.byTooltip('Reader settings'));
+    await tester.tap(find.byKey(const Key('reader_more_actions_button')));
+    await tester.pump();
+    await settleReader(tester, rounds: 2);
+    await tester.tap(find.byKey(const Key('reader_overflow_settings')).last);
     await tester.pump();
     await settleReader(tester, rounds: 4);
 
@@ -257,12 +263,61 @@ void main() {
       size: const Size(360, 800),
     );
 
-    await tester.tap(find.byTooltip('Reader settings'));
+    await tester.tap(find.byKey(const Key('reader_more_actions_button')));
+    await tester.pump();
+    await settleReader(tester, rounds: 2);
+    await tester.tap(find.byKey(const Key('reader_overflow_settings')).last);
     await tester.pump();
     await settleReader(tester, rounds: 4);
 
     expect(find.text('Reader settings'), findsOneWidget);
     expect(find.byType(BottomSheet), findsOneWidget);
+  });
+
+  testWidgets('reader bottom bar stays single-row on narrow layouts', (
+    tester,
+  ) async {
+    final errors = <FlutterErrorDetails>[];
+    final oldOnError = FlutterError.onError;
+    FlutterError.onError = (details) {
+      errors.add(details);
+      oldOnError?.call(details);
+    };
+
+    try {
+      await pumpReader(
+        tester,
+        article: buildArticle(),
+        appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+        size: const Size(320, 640),
+      );
+
+      expect(find.byKey(const Key('reader_translate_button')), findsOneWidget);
+      expect(
+        find.byKey(const Key('reader_more_actions_button')),
+        findsOneWidget,
+      );
+      expect(find.byTooltip('Reader settings'), findsNothing);
+      expect(find.byTooltip('Manage Tags'), findsNothing);
+
+      await tester.tap(find.byKey(const Key('reader_more_actions_button')));
+      await tester.pump();
+      await settleReader(tester, rounds: 2);
+
+      expect(find.byKey(const Key('reader_overflow_settings')), findsOneWidget);
+      expect(find.byKey(const Key('reader_overflow_summary')), findsOneWidget);
+      expect(
+        find.byKey(const Key('reader_overflow_full_text')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('reader_overflow_tags')), findsOneWidget);
+      expect(find.byKey(const Key('reader_overflow_share')), findsOneWidget);
+    } finally {
+      FlutterError.onError = oldOnError;
+    }
+
+    expect(tester.takeException(), isNull);
+    expect(errors, isEmpty);
   });
 
   testWidgets('translate button drives translation and find-in-page search', (
@@ -471,7 +526,10 @@ void main() {
         ],
       );
 
-      await tester.tap(find.byTooltip('Manage Tags'));
+      await tester.tap(find.byKey(const Key('reader_more_actions_button')));
+      await tester.pump();
+      await settleReader(tester, rounds: 2);
+      await tester.tap(find.byKey(const Key('reader_overflow_tags')).last);
       await tester.pump();
       await settleReader(tester, rounds: 4);
 

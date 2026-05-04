@@ -1300,7 +1300,7 @@
       "content": {}
     }
   },
-  "defaultAiTranslationPromptTemplate": "請將這篇文章翻譯成 {language}（標題：{title}）：{content}",
+  "defaultAiTranslationPromptTemplate": "請將這段文章內容翻譯成 {language}（標題：{title}）：{content}",
   "@defaultAiTranslationPromptTemplate": {
     "description": "預設 AI 翻譯提示詞模板（僅使用 AI 翻譯時生效）",
     "placeholders": {

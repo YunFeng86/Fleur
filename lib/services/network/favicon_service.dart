@@ -23,6 +23,21 @@ class FaviconService {
   static const Duration _rateLimitBackoff = Duration(minutes: 10);
 
   final Map<String, DateTime> _backoffUntil = <String, DateTime>{};
+  final Map<String, Future<String?>> _inFlight = <String, Future<String?>>{};
+
+  Future<String?> resolveFaviconUrlForHost(
+    String hostKey, {
+    String? userAgent,
+    bool forceRefresh = false,
+  }) async {
+    final normalizedHost = hostKey.trim().toLowerCase();
+    if (normalizedHost.isEmpty) return Future<String?>.value(null);
+    return await resolveFaviconUrl(
+      Uri(scheme: 'https', host: normalizedHost),
+      userAgent: userAgent,
+      forceRefresh: forceRefresh,
+    );
+  }
 
   Future<String?> resolveFaviconUrl(
     Uri input, {
@@ -46,6 +61,30 @@ class FaviconService {
     // If this host is in a session backoff window, avoid any network I/O.
     if (_isBackedOff(hostKey)) return null;
 
+    final existing = _inFlight[hostKey];
+    if (existing != null) return existing;
+
+    final future = _resolveAndPersist(
+      site,
+      hostKey: hostKey,
+      userAgent: userAgent,
+    );
+    _inFlight[hostKey] = future;
+    try {
+      return await future;
+    } finally {
+      if (identical(_inFlight[hostKey], future)) {
+        final ignored = _inFlight.remove(hostKey);
+        assert(ignored == null || identical(ignored, future));
+      }
+    }
+  }
+
+  Future<String?> _resolveAndPersist(
+    Uri site, {
+    required String hostKey,
+    required String? userAgent,
+  }) async {
     final resolved = await _resolveFromNetwork(site, userAgent: userAgent);
 
     // Cache policy:

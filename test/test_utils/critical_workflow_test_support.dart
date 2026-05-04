@@ -254,27 +254,34 @@ class FakeAiServiceClient extends AiServiceClient {
   Future<String> Function({
     required AiServiceConfig service,
     required String apiKey,
-    required String prompt,
+    required String? systemInstruction,
+    required String userPrompt,
     required int maxOutputTokens,
   })?
   onGenerateText;
 
   final List<String> prompts = <String>[];
+  final List<String?> systemInstructions = <String?>[];
+  final List<String> userPrompts = <String>[];
 
   @override
   Future<String> generateText({
     required AiServiceConfig service,
     required String apiKey,
-    required String prompt,
+    String? systemInstruction,
+    required String userPrompt,
     int maxOutputTokens = 800,
   }) async {
-    prompts.add(prompt);
+    prompts.add(userPrompt);
+    systemInstructions.add(systemInstruction);
+    userPrompts.add(userPrompt);
     final callback = onGenerateText;
     if (callback != null) {
       return callback(
         service: service,
         apiKey: apiKey,
-        prompt: prompt,
+        systemInstruction: systemInstruction,
+        userPrompt: userPrompt,
         maxOutputTokens: maxOutputTokens,
       );
     }

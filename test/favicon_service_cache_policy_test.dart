@@ -203,4 +203,67 @@ void main() {
     expect(requestCount, afterFirst);
     expect(store.setCalls, 0);
   });
+
+  test(
+    'same host shares one in-flight resolution across paths and schemes',
+    () async {
+      final store = _TestFaviconStore();
+      final dio = Dio();
+
+      const iconUrl = 'https://cdn.example.com/icon.png';
+      const html =
+          '''
+<!doctype html>
+<html>
+  <head>
+    <link rel="icon" href="$iconUrl">
+  </head>
+  <body>ok</body>
+</html>
+''';
+
+      var requestCount = 0;
+
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) async {
+            requestCount++;
+            final url = options.uri.toString();
+
+            if (options.method == 'GET' && url == 'https://example.com/') {
+              await Future<void>.delayed(const Duration(milliseconds: 50));
+              handler.resolve(
+                Response<String>(
+                  requestOptions: options,
+                  statusCode: 200,
+                  data: html,
+                ),
+              );
+              return;
+            }
+
+            if (options.method == 'HEAD' && url == iconUrl) {
+              handler.resolve(
+                Response<void>(requestOptions: options, statusCode: 200),
+              );
+              return;
+            }
+
+            handler.reject(DioException(requestOptions: options));
+          },
+        ),
+      );
+
+      final service = FaviconService(dio: dio, store: store);
+      final results = await Future.wait([
+        service.resolveFaviconUrl(Uri.parse('https://example.com/articles/1')),
+        service.resolveFaviconUrl(Uri.parse('http://example.com/articles/2')),
+      ]);
+
+      expect(results, [iconUrl, iconUrl]);
+      expect(requestCount, 2);
+      expect(store.setCalls, 1);
+      expect(store.peek('example.com')?.iconUrl, iconUrl);
+    },
+  );
 }
