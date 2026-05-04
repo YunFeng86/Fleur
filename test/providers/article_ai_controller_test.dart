@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:html/parser.dart' as html_parser;
 
 import 'package:fleur/models/article.dart';
 import 'package:fleur/models/category.dart';
@@ -660,6 +661,284 @@ void main() {
       final state = container.read(articleAiControllerProvider(articleId));
       expect(state.translationStatus, ArticleAiTaskStatus.ready);
       expect(state.translationHtml, '<p>bonjour</p>');
+      expect(state.translationOutdated, isTrue);
+      expect(aiClient.prompts, isEmpty);
+    },
+  );
+
+  test(
+    'translates container targets and appends immersive output inside them',
+    () async {
+      final translator = FakeTranslationService(
+        onTranslateText:
+            ({
+              required provider,
+              required settings,
+              required secrets,
+              required text,
+              required targetLanguageTag,
+            }) async {
+              return '[$text]';
+            },
+      );
+      final container = buildContainer(
+        articleStream: Stream.value(
+          buildArticle(
+            html: '''
+<blockquote>Quoted block text.</blockquote>
+<figure><figcaption>Figure caption text.</figcaption></figure>
+<table>
+  <caption>Table caption text.</caption>
+  <tbody>
+    <tr>
+      <td>Table cell text.</td>
+      <th>Header cell text.</th>
+    </tr>
+  </tbody>
+</table>
+''',
+          ),
+        ),
+        translationSettings: TranslationAiSettings.defaults().copyWith(
+          targetLanguageTag: 'zh',
+        ),
+        translationService: translator,
+      );
+
+      final sub = container.listen<ArticleAiState>(
+        articleAiControllerProvider(articleId),
+        (previous, next) {},
+        fireImmediately: true,
+      );
+      addTearDown(sub.close);
+
+      await container.read(appSettingsProvider.future);
+      await container.read(translationAiSettingsProvider.future);
+      await flushAsync();
+      await container
+          .read(articleAiControllerProvider(articleId).notifier)
+          .ensureTranslation(mode: ArticleTranslationMode.immersive);
+      await flushAsync();
+
+      final state = container.read(articleAiControllerProvider(articleId));
+      expect(state.translationStatus, ArticleAiTaskStatus.ready);
+      const expectedInputs = <String>[
+        'Quoted block text.',
+        'Figure caption text.',
+        'Table caption text.',
+        'Table cell text.',
+        'Header cell text.',
+      ];
+      expect(translator.translatedInputs, expectedInputs);
+
+      final fragment = html_parser.parseFragment(state.translationHtml!);
+      const selectors = <String>[
+        'blockquote',
+        'figcaption',
+        'caption',
+        'td',
+        'th',
+      ];
+      for (var i = 0; i < selectors.length; i++) {
+        final selector = selectors[i];
+        final target = fragment.querySelector(selector);
+        expect(target, isNotNull, reason: selector);
+        final translation = target!.querySelector(
+          '[data-fleur-translation="1"]',
+        );
+        expect(translation, isNotNull, reason: selector);
+        expect(translation!.localName, 'div', reason: selector);
+        expect(translation.text, '[${expectedInputs[i]}]');
+      }
+    },
+  );
+
+  test(
+    'translates nested block leaves without translating container text',
+    () async {
+      final translator = FakeTranslationService(
+        onTranslateText:
+            ({
+              required provider,
+              required settings,
+              required secrets,
+              required text,
+              required targetLanguageTag,
+            }) async {
+              return '[$text]';
+            },
+      );
+      final container = buildContainer(
+        articleStream: Stream.value(
+          buildArticle(
+            html: '''
+<blockquote><p>Nested quote paragraph.</p></blockquote>
+<table><tbody><tr><td><p>Nested cell paragraph.</p></td></tr></tbody></table>
+''',
+          ),
+        ),
+        translationSettings: TranslationAiSettings.defaults().copyWith(
+          targetLanguageTag: 'zh',
+        ),
+        translationService: translator,
+      );
+
+      final sub = container.listen<ArticleAiState>(
+        articleAiControllerProvider(articleId),
+        (previous, next) {},
+        fireImmediately: true,
+      );
+      addTearDown(sub.close);
+
+      await container.read(appSettingsProvider.future);
+      await container.read(translationAiSettingsProvider.future);
+      await flushAsync();
+      await container
+          .read(articleAiControllerProvider(articleId).notifier)
+          .ensureTranslation(mode: ArticleTranslationMode.immersive);
+      await flushAsync();
+
+      final state = container.read(articleAiControllerProvider(articleId));
+      expect(state.translationStatus, ArticleAiTaskStatus.ready);
+      expect(translator.translatedInputs, <String>[
+        'Nested quote paragraph.',
+        'Nested cell paragraph.',
+      ]);
+
+      final fragment = html_parser.parseFragment(state.translationHtml!);
+      expect(
+        fragment.querySelector('blockquote > div[data-fleur-translation="1"]'),
+        isNull,
+      );
+      expect(
+        fragment.querySelector('td > div[data-fleur-translation="1"]'),
+        isNull,
+      );
+      expect(
+        fragment.querySelectorAll('p + [data-fleur-translation="1"]'),
+        hasLength(2),
+      );
+    },
+  );
+
+  test('skips translation targets inside pre and code blocks', () async {
+    final translator = FakeTranslationService(
+      onTranslateText:
+          ({
+            required provider,
+            required settings,
+            required secrets,
+            required text,
+            required targetLanguageTag,
+          }) async {
+            return '[$text]';
+          },
+    );
+    final container = buildContainer(
+      articleStream: Stream.value(
+        buildArticle(
+          html: '''
+<pre><p>Do not translate pre paragraph.</p></pre>
+<code><p>Do not translate code paragraph.</p></code>
+<p>Translate normal paragraph.</p>
+''',
+        ),
+      ),
+      translationSettings: TranslationAiSettings.defaults().copyWith(
+        targetLanguageTag: 'zh',
+      ),
+      translationService: translator,
+    );
+
+    final sub = container.listen<ArticleAiState>(
+      articleAiControllerProvider(articleId),
+      (previous, next) {},
+      fireImmediately: true,
+    );
+    addTearDown(sub.close);
+
+    await container.read(appSettingsProvider.future);
+    await container.read(translationAiSettingsProvider.future);
+    await flushAsync();
+    await container
+        .read(articleAiControllerProvider(articleId).notifier)
+        .ensureTranslation(mode: ArticleTranslationMode.immersive);
+    await flushAsync();
+
+    final state = container.read(articleAiControllerProvider(articleId));
+    expect(state.translationStatus, ArticleAiTaskStatus.ready);
+    expect(translator.translatedInputs, <String>[
+      'Translate normal paragraph.',
+    ]);
+
+    final fragment = html_parser.parseFragment(state.translationHtml!);
+    expect(fragment.querySelector('pre [data-fleur-translation="1"]'), isNull);
+    expect(fragment.querySelector('code [data-fleur-translation="1"]'), isNull);
+    expect(
+      fragment.querySelector('p + [data-fleur-translation="1"]')?.text,
+      '[Translate normal paragraph.]',
+    );
+  });
+
+  test(
+    'uses cached AI translation with missing prompt hash as outdated',
+    () async {
+      final article = buildArticle();
+      const targetLanguageTag = 'fr';
+      final service = buildAiService();
+      final settings = TranslationAiSettings.defaults().copyWith(
+        targetLanguageTag: canonicalLanguageIdentityTag(targetLanguageTag),
+        translationProvider: TranslationProviderSelection.aiService(service.id),
+        defaultAiServiceId: service.id,
+        aiServices: [service],
+        aiTranslationPrompt: 'custom translation {{content}}',
+      );
+      final cacheStore = InMemoryAiContentCacheStore();
+      await cacheStore.write(
+        AiContentCacheEntry(
+          key: AiContentCacheKey.translation(
+            accountId: accountId,
+            articleId: article.id,
+            targetLanguageTag: canonicalLanguageIdentityTag(targetLanguageTag),
+            translationMode: ArticleTranslationMode.immersive,
+            translationProviderKind: TranslationProviderKind.aiService.name,
+            translationProviderServiceId: service.id,
+          ),
+          contentHash: 'hash-1',
+          promptHash: null,
+          data: '<p>bonjour legacy</p>',
+          updatedAt: DateTime.utc(2026, 1, 1),
+        ),
+      );
+      final aiClient = FakeAiServiceClient();
+      final container = buildContainer(
+        articleStream: Stream.value(article),
+        translationSettings: settings,
+        secrets: FakeTranslationAiSecretStore(
+          aiServiceApiKeys: <String, String>{service.id: 'secret-key'},
+        ),
+        cacheStore: cacheStore,
+        aiClient: aiClient,
+      );
+
+      final sub = container.listen<ArticleAiState>(
+        articleAiControllerProvider(articleId),
+        (previous, next) {},
+        fireImmediately: true,
+      );
+      addTearDown(sub.close);
+
+      await container.read(appSettingsProvider.future);
+      await container.read(translationAiSettingsProvider.future);
+      await flushAsync();
+      await container
+          .read(articleAiControllerProvider(articleId).notifier)
+          .ensureTranslation(mode: ArticleTranslationMode.immersive);
+      await flushAsync();
+
+      final state = container.read(articleAiControllerProvider(articleId));
+      expect(state.translationStatus, ArticleAiTaskStatus.ready);
+      expect(state.translationHtml, '<p>bonjour legacy</p>');
       expect(state.translationOutdated, isTrue);
       expect(aiClient.prompts, isEmpty);
     },
