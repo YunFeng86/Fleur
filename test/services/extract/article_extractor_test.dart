@@ -173,6 +173,22 @@ void main() {
       expect(sanitized, isNot(contains('Hexo prev next card')));
     });
 
+    test('invalid relative href does not abort extraction', () {
+      final html = _page('''
+<article>
+  <p>${_longText('Invalid link body should still be extracted.')}</p>
+  <a href="(https://docs.travis-ci.com/user/encryption-keys/">Bad link</a>
+</article>
+''');
+
+      final extracted = ArticleExtractor.extractFromHtml(
+        html: html,
+        url: _baseUrl,
+      );
+
+      expect(extracted.contentHtml, contains('Invalid link body'));
+    });
+
     test(
       'noise_container_removed drops explicit related share comments noise',
       () {
