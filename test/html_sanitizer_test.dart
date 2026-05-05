@@ -29,6 +29,21 @@ void main() {
     expect(sanitized, contains('<p>Hi</p>'));
   });
 
+  test('unwraps unknown non-dangerous structural tags', () {
+    const html = '''
+<article>
+  <main>
+    <custom-wrapper>
+      <section><p>Keep this body paragraph.</p></section>
+    </custom-wrapper>
+  </main>
+</article>
+''';
+    final sanitized = HtmlSanitizer.sanitize(html);
+    expect(sanitized, contains('<p>Keep this body paragraph.</p>'));
+    expect(sanitized, isNot(contains('<custom-wrapper')));
+  });
+
   test('allows trusted iframe embeds', () {
     const html = '''
 <article>
@@ -73,5 +88,18 @@ void main() {
     final sanitized = HtmlSanitizer.sanitize(html);
     expect(sanitized, contains('<iframe'));
     expect(sanitized, contains('src="https://WWW.YouTube.Com/embed/abc"'));
+  });
+
+  test('keeps normalized lazy image src', () {
+    const html = '''
+<article>
+  <p>
+    <img src="https://cdn.example.com/real.webp" alt="Real image">
+  </p>
+</article>
+''';
+    final sanitized = HtmlSanitizer.sanitize(html);
+    expect(sanitized, contains('src="https://cdn.example.com/real.webp"'));
+    expect(sanitized, contains('alt="Real image"'));
   });
 }

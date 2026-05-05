@@ -48,6 +48,17 @@ class HtmlSanitizer {
     'sub',
   };
 
+  static const _dangerousTags = {
+    'script',
+    'style',
+    'noscript',
+    'object',
+    'embed',
+    'link',
+    'meta',
+    'base',
+  };
+
   /// Allowed attributes per tag.
   static const _allowedAttributes = {
     'a': ['href', 'title'],
@@ -92,10 +103,16 @@ class HtmlSanitizer {
   /// Recursively clean DOM nodes.
   static void _cleanNode(Element element) {
     final toRemove = <Node>[];
+    final toUnwrap = <Element>[];
 
     for (final child in element.nodes) {
       if (child is Element) {
         final tag = child.localName?.toLowerCase();
+
+        if (tag == null) {
+          toRemove.add(child);
+          continue;
+        }
 
         // Special handling for iframe (allow whitelisted video embeds)
         if (tag == 'iframe') {
@@ -115,9 +132,14 @@ class HtmlSanitizer {
           }
         }
 
-        // Remove tags not in whitelist
-        if (tag == null || !_allowedTags.contains(tag)) {
+        if (_dangerousTags.contains(tag)) {
           toRemove.add(child);
+          continue;
+        }
+
+        if (!_allowedTags.contains(tag)) {
+          _cleanNode(child);
+          toUnwrap.add(child);
           continue;
         }
 
@@ -136,5 +158,17 @@ class HtmlSanitizer {
     for (final node in toRemove) {
       element.nodes.remove(node);
     }
+    for (final node in toUnwrap) {
+      _unwrapNode(element, node);
+    }
+  }
+
+  static void _unwrapNode(Element parent, Element child) {
+    final index = parent.nodes.indexOf(child);
+    if (index == -1) return;
+    final replacement = List<Node>.from(child.nodes);
+    child.nodes.clear();
+    parent.nodes.removeAt(index);
+    parent.nodes.insertAll(index, replacement);
   }
 }

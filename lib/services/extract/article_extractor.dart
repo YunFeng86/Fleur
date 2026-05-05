@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
 
+import '../html_sanitizer.dart';
 import '../network/user_agents.dart';
 
 class ExtractedArticle {
@@ -10,6 +11,31 @@ class ExtractedArticle {
 
   final String title;
   final String contentHtml;
+}
+
+class ArticleExtractionDiagnostics {
+  const ArticleExtractionDiagnostics({
+    required this.article,
+    required this.reason,
+    required this.sanitizedHtml,
+  });
+
+  final ExtractedArticle article;
+  final ArticleExtractionFailureReason reason;
+  final String sanitizedHtml;
+}
+
+enum ArticleExtractionFailureReason {
+  none,
+  emptyContent,
+  titleOnly,
+  loadingState,
+  rssGarbled,
+  lazyImageMissing,
+  accessBlocked,
+  duplicateTitle,
+  noiseAsBody,
+  sanitizerLoss,
 }
 
 class ArticleExtractor {
@@ -42,10 +68,10 @@ class ArticleExtractor {
   }
 
   static ExtractedArticle _extractInIsolate(_ExtractParams params) {
-    return _extractFromHtmlStatic(html: params.html, url: params.url);
+    return extractFromHtml(html: params.html, url: params.url);
   }
 
-  static ExtractedArticle _extractFromHtmlStatic({
+  static ExtractedArticle extractFromHtml({
     required String html,
     required String url,
   }) {
@@ -62,20 +88,254 @@ class ArticleExtractor {
     _stripNoise(body);
 
     final candidate =
-        _pickRuleBasedCandidate(doc, body) ?? _pickBestCandidate(body) ?? body;
+        _pickCommonCandidate(body) ??
+        _pickRuleBasedCandidate(doc, body) ??
+        _pickBestCandidate(body) ??
+        body;
     _stripNoise(candidate);
     _stripBoilerplateByClass(candidate);
     _absolutizeUrls(candidate, base);
 
+    final shouldInjectTitle =
+        title.isNotEmpty && !_candidateContainsTitleHeading(candidate, title);
+    final titleHtml = shouldInjectTitle
+        ? '  <h1>${_escapeHtml(title)}</h1>\n'
+        : '';
     final contentHtml =
         '''
 <article>
-  <h1>${_escapeHtml(title)}</h1>
+$titleHtml
   ${candidate.innerHtml}
 </article>
 ''';
 
     return ExtractedArticle(title: title, contentHtml: contentHtml);
+  }
+
+  static ArticleExtractionDiagnostics diagnoseFromHtml({
+    required String html,
+    required String url,
+    int? statusCode,
+  }) {
+    final article = extractFromHtml(html: html, url: url);
+    final sanitizedHtml = HtmlSanitizer.sanitize(article.contentHtml);
+    final reason = _classifyExtraction(
+      html: html,
+      url: url,
+      statusCode: statusCode,
+      article: article,
+      sanitizedHtml: sanitizedHtml,
+    );
+    return ArticleExtractionDiagnostics(
+      article: article,
+      reason: reason,
+      sanitizedHtml: sanitizedHtml,
+    );
+  }
+
+  static ArticleExtractionFailureReason _classifyExtraction({
+    required String html,
+    required String url,
+    required int? statusCode,
+    required ExtractedArticle article,
+    required String sanitizedHtml,
+  }) {
+    final pageText = _textFromHtml(html);
+    final extractedText = _textFromHtml(article.contentHtml);
+    final sanitizedText = _textFromHtml(sanitizedHtml);
+
+    if (_isAccessBlocked(statusCode, pageText)) {
+      return ArticleExtractionFailureReason.accessBlocked;
+    }
+    if (article.contentHtml.trim().isEmpty || sanitizedText.isEmpty) {
+      return ArticleExtractionFailureReason.emptyContent;
+    }
+    if (_isLoadingState(pageText, sanitizedText)) {
+      return ArticleExtractionFailureReason.loadingState;
+    }
+    if (_isGarbledText(extractedText) || _isGarbledText(sanitizedText)) {
+      return ArticleExtractionFailureReason.rssGarbled;
+    }
+    if (_hasSanitizerLoss(extractedText, sanitizedText)) {
+      return ArticleExtractionFailureReason.sanitizerLoss;
+    }
+    if (_isTitleOnly(article.title, sanitizedText)) {
+      return ArticleExtractionFailureReason.titleOnly;
+    }
+    if (_hasDuplicateTitle(article.title, sanitizedText)) {
+      return ArticleExtractionFailureReason.duplicateTitle;
+    }
+    if (_hasMissingLazyImage(html, sanitizedHtml, Uri.tryParse(url))) {
+      return ArticleExtractionFailureReason.lazyImageMissing;
+    }
+    if (_looksLikeNoiseBody(sanitizedText)) {
+      return ArticleExtractionFailureReason.noiseAsBody;
+    }
+    return ArticleExtractionFailureReason.none;
+  }
+
+  static String _textFromHtml(String html) {
+    if (html.trim().isEmpty) return '';
+    return _collapseWhitespace(html_parser.parseFragment(html).text ?? '');
+  }
+
+  static bool _isAccessBlocked(int? statusCode, String pageText) {
+    if (statusCode == 401 || statusCode == 403 || statusCode == 451) {
+      return true;
+    }
+    final text = pageText.toLowerCase();
+    const patterns = [
+      '403 forbidden',
+      'access denied',
+      'access forbidden',
+      'request blocked',
+      'not authorized',
+      'unauthorized',
+      'verify you are human',
+      'captcha',
+    ];
+    return patterns.any(text.contains);
+  }
+
+  static bool _isLoadingState(String pageText, String sanitizedText) {
+    final text = '$pageText $sanitizedText'.toLowerCase();
+    const strongSignals = [
+      'please enable javascript',
+      'enable javascript to continue',
+      'checking your browser',
+      'just a moment',
+      'please wait while',
+      '\u52a0\u8f7d\u4e2d',
+    ];
+    if (strongSignals.any(text.contains)) return true;
+
+    const weakSignals = ['loading', 'please wait', 'redirecting'];
+    final hits = weakSignals.where(text.contains).length;
+    return hits >= 2 || (hits == 1 && sanitizedText.length < 120);
+  }
+
+  static bool _isGarbledText(String text) {
+    if (text.runes.contains(0xfffd)) return true;
+    for (final codeUnit in text.runes) {
+      if (codeUnit == 0x00c2 || codeUnit == 0x00c3 || codeUnit == 0x00e2) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static bool _hasSanitizerLoss(String extractedText, String sanitizedText) {
+    if (sanitizedText.isEmpty) return false;
+    final extractedLength = extractedText.length;
+    final sanitizedLength = sanitizedText.length;
+    if (extractedLength < 120) return false;
+    return sanitizedLength < extractedLength * 0.35 &&
+        extractedLength - sanitizedLength >= 80;
+  }
+
+  static bool _isTitleOnly(String title, String sanitizedText) {
+    final normalizedTitle = _normalizeText(title);
+    if (normalizedTitle.isEmpty) return false;
+    return _normalizeText(sanitizedText) == normalizedTitle;
+  }
+
+  static bool _hasDuplicateTitle(String title, String sanitizedText) {
+    final normalizedTitle = _normalizeText(title);
+    if (normalizedTitle.isEmpty) return false;
+    final normalizedText = _normalizeText(sanitizedText);
+    if (normalizedText.length <= normalizedTitle.length + 20) return false;
+    return _countOccurrences(normalizedText, normalizedTitle) > 1;
+  }
+
+  static bool _hasMissingLazyImage(
+    String html,
+    String sanitizedHtml,
+    Uri? base,
+  ) {
+    final expected = _lazyImageSources(html, base);
+    if (expected.isEmpty) return false;
+    final actual = _imageSources(sanitizedHtml);
+    return expected.any((src) => !actual.contains(src));
+  }
+
+  static Set<String> _lazyImageSources(String html, Uri? base) {
+    if (html.trim().isEmpty) return const {};
+    final doc = html_parser.parse(html);
+    final sources = <String>{};
+    for (final img in doc.querySelectorAll('img')) {
+      final src = img.attributes['src']?.trim();
+      if (_isUsableImageSrc(src)) continue;
+
+      for (final attr in const [
+        'data-lazy-src',
+        'data-src',
+        'data-original',
+        'data-lazyload',
+      ]) {
+        final value = img.attributes[attr]?.trim();
+        if (_isUsableImageSrc(value)) {
+          sources.add(_resolveUrl(value!, base));
+        }
+      }
+
+      final srcset =
+          img.attributes['srcset']?.trim() ??
+          img.attributes['data-srcset']?.trim();
+      final srcsetSource = _firstSrcFromSrcset(srcset);
+      if (_isUsableImageSrc(srcsetSource)) {
+        sources.add(_resolveUrl(srcsetSource!, base));
+      }
+    }
+    return sources;
+  }
+
+  static Set<String> _imageSources(String html) {
+    if (html.trim().isEmpty) return const {};
+    final doc = html_parser.parse(html);
+    return {
+      for (final img in doc.querySelectorAll('img'))
+        if ((img.attributes['src'] ?? '').trim().isNotEmpty)
+          img.attributes['src']!.trim(),
+    };
+  }
+
+  static String _resolveUrl(String url, Uri? base) {
+    if (base == null) return url;
+    return base.resolve(url).toString();
+  }
+
+  static bool _looksLikeNoiseBody(String sanitizedText) {
+    final text = _normalizeText(sanitizedText);
+    if (text.length < 80) return false;
+    const signals = [
+      'previous article',
+      'next article',
+      'related posts',
+      'share',
+      'comments',
+      '\u4e0a\u4e00\u7bc7',
+      '\u4e0b\u4e00\u7bc7',
+      '\u76f8\u5173\u6587\u7ae0',
+      '\u8bc4\u8bba',
+      '\u5206\u4eab',
+    ];
+    final hits = signals.where(text.contains).length;
+    return hits >= 3;
+  }
+
+  static int _countOccurrences(String text, String needle) {
+    var count = 0;
+    var index = 0;
+    while (true) {
+      index = text.indexOf(needle, index);
+      if (index == -1) return count;
+      count += 1;
+      index += needle.length;
+    }
+  }
+
+  static String _collapseWhitespace(String text) {
+    return text.replaceAll(RegExp(r'\s+'), ' ').trim();
   }
 
   static String _pickTitle(dom.Document doc) {
@@ -110,6 +370,23 @@ class ArticleExtractor {
     for (final e in root.querySelectorAll(removeTags.join(','))) {
       e.remove();
     }
+  }
+
+  static dom.Element? _pickCommonCandidate(dom.Element body) {
+    const selectors = [
+      '#articleContent',
+      '.article-content.keep-markdown-body',
+      '.article-content',
+      '.markdown-body',
+      '.post_detail .mdl-card__supporting-text',
+    ];
+
+    for (final sel in selectors) {
+      final el = body.querySelector(sel);
+      if (el == null) continue;
+      if (_textLen(el) >= 80) return el;
+    }
+    return null;
   }
 
   static dom.Element? _pickRuleBasedCandidate(
@@ -162,17 +439,27 @@ class ArticleExtractor {
 
   static void _stripBoilerplateByClass(dom.Element root) {
     final re = RegExp(
-      r'(comment|comments|respond|share|social|related|breadcrumb|nav|footer|header|subscribe|newsletter|sidebar)',
+      r'(^|[\s_-])(comments|comment-list|comments-area|comment-area|comment-form|respond|share|social|related|breadcrumb|nav|footer|header|subscribe|newsletter|sidebar|pagination|prev-next|post-copyright|post-tools|reward|toc|post-toc)([\s_-]|$)',
       caseSensitive: false,
     );
     for (final el in root.querySelectorAll('*')) {
-      final cls = el.className;
-      final id = el.id;
-      if ((cls.isNotEmpty && re.hasMatch(cls)) ||
-          (id.isNotEmpty && re.hasMatch(id))) {
+      if (_isBoilerplateElement(el, re)) {
         el.remove();
       }
     }
+  }
+
+  static bool _isBoilerplateElement(dom.Element el, RegExp re) {
+    return _isBoilerplateValue(el.className, re) ||
+        _isBoilerplateValue(el.id, re);
+  }
+
+  static bool _isBoilerplateValue(String value, RegExp re) {
+    final normalized = value.toLowerCase().trim();
+    if (normalized.isEmpty) return false;
+    if (normalized.contains('comment-block')) return false;
+    if (normalized == 'comment') return true;
+    return re.hasMatch(normalized);
   }
 
   static dom.Element? _pickBestCandidate(dom.Element body) {
@@ -222,8 +509,8 @@ class ArticleExtractor {
   static void _absolutizeUrls(dom.Element root, Uri? base) {
     if (base == null) return;
     for (final img in root.querySelectorAll('img')) {
-      final src = img.attributes['src'];
-      if (src == null || src.trim().isEmpty) continue;
+      final src = _bestImageSource(img);
+      if (src == null) continue;
       img.attributes['src'] = base.resolve(src).toString();
     }
     for (final a in root.querySelectorAll('a')) {
@@ -231,6 +518,58 @@ class ArticleExtractor {
       if (href == null || href.trim().isEmpty) continue;
       a.attributes['href'] = base.resolve(href).toString();
     }
+  }
+
+  static String? _bestImageSource(dom.Element img) {
+    final src = img.attributes['src']?.trim();
+    if (_isUsableImageSrc(src)) return src;
+
+    for (final attr in const ['data-lazy-src', 'data-src', 'data-original']) {
+      final value = img.attributes[attr]?.trim();
+      if (_isUsableImageSrc(value)) return value;
+    }
+
+    final srcset =
+        img.attributes['srcset']?.trim() ??
+        img.attributes['data-srcset']?.trim();
+    final srcsetSource = _firstSrcFromSrcset(srcset);
+    if (_isUsableImageSrc(srcsetSource)) return srcsetSource;
+
+    return src == null || src.isEmpty ? null : src;
+  }
+
+  static String? _firstSrcFromSrcset(String? srcset) {
+    if (srcset == null || srcset.isEmpty) return null;
+    final first = srcset.split(',').first.trim();
+    if (first.isEmpty) return null;
+    return first.split(RegExp(r'\s+')).first.trim();
+  }
+
+  static bool _isUsableImageSrc(String? src) {
+    if (src == null || src.isEmpty) return false;
+    final lower = src.toLowerCase();
+    if (lower.startsWith('data:')) return false;
+    if (lower == 'about:blank') return false;
+    return !RegExp(
+      r'(b_ld\.|loading|placeholder|blank|transparent|spacer|pixel)',
+      caseSensitive: false,
+    ).hasMatch(lower);
+  }
+
+  static bool _candidateContainsTitleHeading(
+    dom.Element candidate,
+    String title,
+  ) {
+    final normalizedTitle = _normalizeText(title);
+    if (normalizedTitle.isEmpty) return false;
+    for (final heading in candidate.querySelectorAll('h1')) {
+      if (_normalizeText(heading.text) == normalizedTitle) return true;
+    }
+    return false;
+  }
+
+  static String _normalizeText(String text) {
+    return text.replaceAll(RegExp(r'\s+'), ' ').trim().toLowerCase();
   }
 
   static String _escapeHtml(String s) {

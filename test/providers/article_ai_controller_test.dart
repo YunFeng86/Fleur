@@ -731,7 +731,9 @@ void main() {
       ];
       expect(translator.translatedInputs, expectedInputs);
 
-      final fragment = html_parser.parseFragment(state.translationHtml!);
+      final translationHtml =
+          state.translationHtml ?? fail('expected translationHtml');
+      final fragment = html_parser.parseFragment(translationHtml);
       const selectors = <String>[
         'blockquote',
         'figcaption',
@@ -805,7 +807,9 @@ void main() {
         'Nested cell paragraph.',
       ]);
 
-      final fragment = html_parser.parseFragment(state.translationHtml!);
+      final translationHtml =
+          state.translationHtml ?? fail('expected translationHtml');
+      final fragment = html_parser.parseFragment(translationHtml);
       expect(
         fragment.querySelector('blockquote > div[data-fleur-translation="1"]'),
         isNull,
@@ -871,7 +875,9 @@ void main() {
       'Translate normal paragraph.',
     ]);
 
-    final fragment = html_parser.parseFragment(state.translationHtml!);
+    final translationHtml =
+        state.translationHtml ?? fail('expected translationHtml');
+    final fragment = html_parser.parseFragment(translationHtml);
     expect(fragment.querySelector('pre [data-fleur-translation="1"]'), isNull);
     expect(fragment.querySelector('code [data-fleur-translation="1"]'), isNull);
     expect(
