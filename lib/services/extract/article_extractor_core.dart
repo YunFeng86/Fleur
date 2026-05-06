@@ -61,6 +61,7 @@ class ArticleExtractorCore {
         body;
     _stripNoise(candidate);
     _stripBoilerplateByClass(candidate);
+    _stripStandaloneNoiseBlocks(candidate);
     _deduplicateTitleBlocks(candidate, title);
     _absolutizeUrls(candidate, base);
 
@@ -287,20 +288,11 @@ $titleHtml
   static bool _looksLikeNoiseBody(String sanitizedText) {
     final text = _normalizeText(sanitizedText);
     if (text.length < 80) return false;
-    const signals = [
-      'previous article',
-      'next article',
-      'related posts',
-      'share',
-      'comments',
-      '\u4e0a\u4e00\u7bc7',
-      '\u4e0b\u4e00\u7bc7',
-      '\u76f8\u5173\u6587\u7ae0',
-      '\u8bc4\u8bba',
-      '\u5206\u4eab',
-    ];
-    final hits = signals.where(text.contains).length;
-    return hits >= 3;
+    final hits = _noiseSignalHitCount(text);
+    if (hits < 3) return false;
+    final density = _noiseSignalDensity(text);
+    if (!_hasSubstantiveNonNoiseText(text)) return density >= 0.30;
+    return density >= 0.70;
   }
 
   static String _collapseWhitespace(String text) {
@@ -407,28 +399,50 @@ $titleHtml
   }
 
   static void _stripBoilerplateByClass(dom.Element root) {
-    final re = RegExp(
-      r'(^|[\s_-])(comments|comment-list|comments-area|comment-area|comment-form|respond|share|social|related|breadcrumb|nav|footer|header|subscribe|newsletter|sidebar|pagination|prev-next|post-copyright|post-tools|reward|toc|post-toc)([\s_-]|$)',
-      caseSensitive: false,
-    );
     for (final el in root.querySelectorAll('*')) {
-      if (_isBoilerplateElement(el, re)) {
+      if (_isBoilerplateElement(el)) {
         el.remove();
       }
     }
   }
 
-  static bool _isBoilerplateElement(dom.Element el, RegExp re) {
-    return _isBoilerplateValue(el.className, re) ||
-        _isBoilerplateValue(el.id, re);
+  static final RegExp _boilerplateClassOrIdPattern = RegExp(
+    r'(^|[\s_-])(comments|comment-list|comments-area|comment-area|comment-form|comment-count|respond|share|social|related|breadcrumb|nav|footer|header|subscribe|newsletter|sidebar|pagination|prev-next|prev-article|next-article|post-info|post-meta|article-meta|post-tags|post-category|entry-date|post-copyright|post-tools|post-end-tools|post-nav|reward|toc|post-toc)([\s_-]|$)',
+    caseSensitive: false,
+  );
+
+  static bool _isBoilerplateElement(dom.Element el) {
+    return _isBoilerplateValue(el.className) || _isBoilerplateValue(el.id);
   }
 
-  static bool _isBoilerplateValue(String value, RegExp re) {
+  static bool _isBoilerplateValue(String value) {
     final normalized = value.toLowerCase().trim();
     if (normalized.isEmpty) return false;
     if (normalized.contains('comment-block')) return false;
     if (normalized == 'comment') return true;
-    return re.hasMatch(normalized);
+    return _boilerplateClassOrIdPattern.hasMatch(normalized);
+  }
+
+  static void _stripStandaloneNoiseBlocks(dom.Element root) {
+    if (!_hasSubstantiveNonNoiseText(root.text)) return;
+
+    final blocks = root
+        .querySelectorAll('p,div,section,ul,ol,li,span,blockquote')
+        .toList(growable: false)
+        .reversed;
+    for (final block in blocks) {
+      if (_looksLikeStandaloneNoiseBlock(block)) {
+        block.remove();
+      }
+    }
+  }
+
+  static bool _looksLikeStandaloneNoiseBlock(dom.Element element) {
+    final text = _normalizeText(element.text);
+    if (text.length < 20) return false;
+    if (_hasSubstantiveNonNoiseText(text)) return false;
+    if (_noiseSignalHitCount(text) < 2) return false;
+    return _noiseSignalDensity(text) >= 0.45;
   }
 
   static dom.Element? _pickBestCandidate(dom.Element body) {
@@ -452,11 +466,12 @@ $titleHtml
     dom.Element? best;
     var bestScore = double.negativeInfinity;
     for (final n in nodes) {
-      final textLen = _textLen(n);
+      final text = _collapseWhitespace(n.text);
+      final textLen = text.length;
       if (textLen < 80) continue;
       final linkLen = _linkTextLen(n);
       final density = linkLen / (textLen + 1);
-      final score = textLen * (1.0 - density);
+      final score = textLen * (1.0 - density) * _candidateNoisePenalty(text);
       if (score > bestScore) {
         bestScore = score;
         best = n;
@@ -466,6 +481,73 @@ $titleHtml
   }
 
   static int _textLen(dom.Element e) => e.text.trim().length;
+
+  static double _candidateNoisePenalty(String text) {
+    final normalized = _normalizeText(text);
+    if (_noiseSignalHitCount(normalized) < 3) return 1.0;
+    if (!_hasSubstantiveNonNoiseText(normalized)) return 0.08;
+    final density = _noiseSignalDensity(normalized);
+    return (1.0 - density * 0.75).clamp(0.15, 1.0).toDouble();
+  }
+
+  static final List<RegExp> _noiseSignalPatterns = [
+    RegExp(r'\bprevious article\b', caseSensitive: false),
+    RegExp(r'\bnext article\b', caseSensitive: false),
+    RegExp(r'\brelated posts?\b', caseSensitive: false),
+    RegExp(r'\bshare\b', caseSensitive: false),
+    RegExp(r'\bcomments?\b', caseSensitive: false),
+    RegExp('\u4e0a\u4e00\u7bc7'),
+    RegExp('\u4e0b\u4e00\u7bc7'),
+    RegExp('\u76f8\u5173\u6587\u7ae0'),
+    RegExp('\u8bc4\u8bba'),
+    RegExp('\u5206\u4eab'),
+  ];
+
+  static int _noiseSignalHitCount(String normalizedText) {
+    return _noiseSignalPatterns
+        .where((pattern) => pattern.hasMatch(normalizedText))
+        .length;
+  }
+
+  static int _noiseSignalCount(String normalizedText) {
+    var count = 0;
+    for (final pattern in _noiseSignalPatterns) {
+      count += pattern.allMatches(normalizedText).length;
+    }
+    return count;
+  }
+
+  static double _noiseSignalDensity(String text) {
+    final normalized = _normalizeText(text);
+    if (normalized.isEmpty) return 0;
+
+    final count = _noiseSignalCount(normalized);
+    if (count == 0) return 0;
+
+    final tokenCount = normalized
+        .split(RegExp(r'\s+'))
+        .where((token) => token.isNotEmpty)
+        .length;
+    final denominator = tokenCount <= 1
+        ? (normalized.length / 8).clamp(1.0, double.infinity)
+        : (tokenCount / 6).clamp(1.0, double.infinity);
+    return (count / denominator).clamp(0.0, 1.0).toDouble();
+  }
+
+  static bool _hasSubstantiveNonNoiseText(String text) {
+    final stripped = _stripNoiseSignals(
+      _normalizeText(text),
+    ).replaceAll(RegExp(r'[\s.,;:!?，。；：！？、]+'), '');
+    return stripped.length >= 80;
+  }
+
+  static String _stripNoiseSignals(String text) {
+    var stripped = text;
+    for (final pattern in _noiseSignalPatterns) {
+      stripped = stripped.replaceAll(pattern, ' ');
+    }
+    return _collapseWhitespace(stripped);
+  }
 
   static int _linkTextLen(dom.Element e) {
     var sum = 0;

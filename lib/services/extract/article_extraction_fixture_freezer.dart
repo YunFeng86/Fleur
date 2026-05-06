@@ -827,15 +827,7 @@ class ArticleExtractionFixtureFreezer {
         _preserveDuplicateTitle(body, context);
         return;
       case ArticleExtractionFailureReason.noiseAsBody:
-        _fixtureContainer(body).nodes.insert(
-          0,
-          _elementWithText(
-            'p',
-            'previous article next article related posts share comments '
-                'previous article next article related posts share comments',
-            id: 'fixture-noise-body-signal',
-          ),
-        );
+        _preserveNoiseAsBody(body, context);
         return;
       case ArticleExtractionFailureReason.rssGarbled:
         _fixtureContainer(body).nodes.insert(
@@ -874,6 +866,33 @@ class ArticleExtractionFixtureFreezer {
       _elementWithText(
         'p',
         context.longBodyText('duplicate title regression body'),
+      ),
+    ]);
+  }
+
+  void _preserveNoiseAsBody(
+    dom.Element body,
+    _FixtureRedactionContext context,
+  ) {
+    final container = _fixtureContainer(body);
+    container.nodes.insertAll(0, [
+      _elementWithText(
+        'p',
+        context.longBodyText('noise regression primary body'),
+      ),
+      _elementWithText(
+        'p',
+        context.longBodyText('noise regression continuation body'),
+      ),
+      _elementWithText(
+        'div',
+        'previous article next article related posts share comments',
+        className: 'prev-next fixture-noise-block',
+      ),
+      _elementWithText(
+        'div',
+        'related posts share comments previous article next article',
+        className: 'related-posts fixture-noise-block',
       ),
     ]);
   }
@@ -959,9 +978,15 @@ class ArticleExtractionFixtureFreezer {
     return dom.Element.tag('article')..nodes.addAll(nodes);
   }
 
-  dom.Element _elementWithText(String tag, String text, {String? id}) {
+  dom.Element _elementWithText(
+    String tag,
+    String text, {
+    String? id,
+    String? className,
+  }) {
     final element = dom.Element.tag(tag)..text = text;
     if (id != null) element.attributes['id'] = id;
+    if (className != null) element.attributes['class'] = className;
     return element;
   }
 
@@ -1276,7 +1301,7 @@ class _FixtureRedactionContext {
       ArticleExtractionFailureReason.loadingState =>
         'please enable javascript loading please wait',
       ArticleExtractionFailureReason.noiseAsBody =>
-        'previous article next article related posts share comments',
+        'Fixture article body paragraph $_textIndex for noise regression.',
       ArticleExtractionFailureReason.rssGarbled =>
         'Fixture garbled text � ÃÂ signal $_textIndex.',
       ArticleExtractionFailureReason.titleOnly => syntheticTitle,

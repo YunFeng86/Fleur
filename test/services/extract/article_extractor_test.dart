@@ -307,6 +307,65 @@ void main() {
         expect(sanitized, isNot(contains('Share toolbar noise')));
       },
     );
+
+    test('noise blocks around article body are removed', () {
+      final html = _page('''
+<article class="post-content">
+  <div class="post-info">
+    previous article next article related posts share comments
+  </div>
+  <p>${_longText('Primary article paragraph stays after noise cleanup.')}</p>
+  <div class="prev-article">previous article noisy navigation</div>
+  <div class="next-article">next article noisy navigation</div>
+  <div class="related-posts">related posts share comments</div>
+</article>
+''');
+
+      final sanitized = _extractAndSanitize(html);
+
+      expect(sanitized, contains('Primary article paragraph'));
+      expect(sanitized, isNot(contains('previous article')));
+      expect(sanitized, isNot(contains('next article')));
+      expect(sanitized, isNot(contains('related posts')));
+      expect(sanitized, isNot(contains('share comments')));
+    });
+
+    test('candidate scoring prefers body over high-noise block', () {
+      final html = _page('''
+<div class="layout-shell">
+  <div class="updates-panel">
+    <p>${_longText('previous article next article related posts share comments')}</p>
+    <p>${_longText('previous article next article related posts share comments')}</p>
+  </div>
+  <div class="story-body">
+    <p>${_longText('Candidate scoring should keep the real article body.')}</p>
+  </div>
+  <div class="layout-footer">
+    <p>${_longText('Neutral layout text should stay outside extraction.')}</p>
+  </div>
+</div>
+''');
+
+      final sanitized = _extractAndSanitize(html);
+
+      expect(sanitized, contains('Candidate scoring should keep'));
+      expect(sanitized, isNot(contains('previous article')));
+      expect(sanitized, isNot(contains('related posts')));
+      expect(sanitized, isNot(contains('Neutral layout text')));
+    });
+
+    test('normal body mentioning share and comments is preserved', () {
+      final html = _page('''
+<article>
+  <p>${_longText('Writers share context in comments during review and the sentence remains part of the article body.')}</p>
+</article>
+''');
+
+      final diagnostics = _diagnose(html);
+
+      expect(diagnostics.reason, ArticleExtractionFailureReason.none);
+      expect(diagnostics.sanitizedHtml, contains('share context in comments'));
+    });
   });
 
   group('ArticleExtractor.diagnoseFromHtml', () {
