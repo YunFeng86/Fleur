@@ -61,10 +61,11 @@ class ArticleExtractorCore {
         body;
     _stripNoise(candidate);
     _stripBoilerplateByClass(candidate);
+    _deduplicateTitleBlocks(candidate, title);
     _absolutizeUrls(candidate, base);
 
     final shouldInjectTitle =
-        title.isNotEmpty && !_candidateContainsTitleHeading(candidate, title);
+        title.isNotEmpty && !_candidateContainsTitleBlock(candidate, title);
     final titleHtml = shouldInjectTitle
         ? '  <h1>${_escapeHtml(title)}</h1>\n'
         : '';
@@ -129,10 +130,14 @@ $titleHtml
     if (_isTitleOnly(article.title, sanitizedText)) {
       return ArticleExtractionFailureReason.titleOnly;
     }
-    if (_hasDuplicateTitle(article.title, sanitizedText)) {
+    if (_hasDuplicateTitle(article.title, sanitizedHtml)) {
       return ArticleExtractionFailureReason.duplicateTitle;
     }
-    if (_hasMissingLazyImage(html, sanitizedHtml, Uri.tryParse(url))) {
+    if (_hasMissingLazyImage(
+      article.contentHtml,
+      sanitizedHtml,
+      Uri.tryParse(url),
+    )) {
       return ArticleExtractionFailureReason.lazyImageMissing;
     }
     if (_looksLikeNoiseBody(sanitizedText)) {
@@ -206,12 +211,12 @@ $titleHtml
     return _normalizeText(sanitizedText) == normalizedTitle;
   }
 
-  static bool _hasDuplicateTitle(String title, String sanitizedText) {
-    final normalizedTitle = _normalizeText(title);
-    if (normalizedTitle.isEmpty) return false;
-    final normalizedText = _normalizeText(sanitizedText);
-    if (normalizedText.length <= normalizedTitle.length + 20) return false;
-    return _countOccurrences(normalizedText, normalizedTitle) > 1;
+  static bool _hasDuplicateTitle(String title, String sanitizedHtml) {
+    if (title.trim().isEmpty || sanitizedHtml.trim().isEmpty) return false;
+    final doc = html_parser.parse(sanitizedHtml);
+    final body = doc.body;
+    if (body == null) return false;
+    return _titleEquivalentBlocks(body, title).length > 1;
   }
 
   static bool _hasMissingLazyImage(
@@ -296,17 +301,6 @@ $titleHtml
     ];
     final hits = signals.where(text.contains).length;
     return hits >= 3;
-  }
-
-  static int _countOccurrences(String text, String needle) {
-    var count = 0;
-    var index = 0;
-    while (true) {
-      index = text.indexOf(needle, index);
-      if (index == -1) return count;
-      count += 1;
-      index += needle.length;
-    }
   }
 
   static String _collapseWhitespace(String text) {
@@ -503,7 +497,12 @@ $titleHtml
     final src = img.attributes['src']?.trim();
     if (_isUsableImageSrc(src)) return src;
 
-    for (final attr in const ['data-lazy-src', 'data-src', 'data-original']) {
+    for (final attr in const [
+      'data-lazy-src',
+      'data-src',
+      'data-original',
+      'data-lazyload',
+    ]) {
       final value = img.attributes[attr]?.trim();
       if (_isUsableImageSrc(value)) return value;
     }
@@ -535,16 +534,75 @@ $titleHtml
     ).hasMatch(lower);
   }
 
-  static bool _candidateContainsTitleHeading(
+  static void _deduplicateTitleBlocks(dom.Element candidate, String title) {
+    final titleBlocks = _titleEquivalentBlocks(candidate, title);
+    if (titleBlocks.length <= 1) return;
+
+    for (final block in titleBlocks.skip(1)) {
+      block.remove();
+    }
+  }
+
+  static bool _candidateContainsTitleBlock(
+    dom.Element candidate,
+    String title,
+  ) {
+    return _titleEquivalentBlocks(candidate, title).isNotEmpty;
+  }
+
+  static List<dom.Element> _titleEquivalentBlocks(
     dom.Element candidate,
     String title,
   ) {
     final normalizedTitle = _normalizeText(title);
-    if (normalizedTitle.isEmpty) return false;
-    for (final heading in candidate.querySelectorAll('h1')) {
-      if (_normalizeText(heading.text) == normalizedTitle) return true;
+    if (normalizedTitle.isEmpty) return const [];
+
+    final blocks = <dom.Element>[];
+    for (final element in candidate.querySelectorAll('*')) {
+      if (!_isTitleEquivalentBlock(element, normalizedTitle)) continue;
+      if (_hasTitleEquivalentAncestor(element, candidate, normalizedTitle)) {
+        continue;
+      }
+      blocks.add(element);
+    }
+    return blocks;
+  }
+
+  static bool _hasTitleEquivalentAncestor(
+    dom.Element element,
+    dom.Element candidate,
+    String normalizedTitle,
+  ) {
+    dom.Node? current = element.parent;
+    while (current is dom.Element && current != candidate) {
+      if (_isTitleEquivalentBlock(current, normalizedTitle)) return true;
+      current = current.parent;
     }
     return false;
+  }
+
+  static bool _isTitleEquivalentBlock(
+    dom.Element element,
+    String normalizedTitle,
+  ) {
+    final tag = element.localName?.toLowerCase();
+    if (tag == null) return false;
+    if (!_canBeStandaloneTitleBlock(tag)) return false;
+    if (_normalizeText(element.text) != normalizedTitle) return false;
+    if (_isHeadingTag(tag)) return true;
+    return !element.children.any((child) {
+      final childTag = child.localName?.toLowerCase();
+      return childTag != null && _isHeadingTag(childTag);
+    });
+  }
+
+  static bool _canBeStandaloneTitleBlock(String tag) {
+    return _isHeadingTag(tag) ||
+        const {'p', 'div', 'span', 'strong', 'b', 'a', 'li'}.contains(tag);
+  }
+
+  static bool _isHeadingTag(String tag) {
+    return const {'h1', 'h2', 'h3', 'h4', 'h5', 'h6'}.contains(tag);
   }
 
   static String _normalizeText(String text) {

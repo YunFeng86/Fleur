@@ -122,6 +122,69 @@ void main() {
       expect(sanitized, isNot(contains('/img/b_ld.png')));
     });
 
+    test('lazy image promotion supports data-lazyload', () {
+      final html = _page('''
+<article class="post-content">
+  <p>
+    <img src="/img/loading.gif"
+      data-lazyload="https://cdn.example.com/real-lazyload.webp"
+      alt="Lazyload image">
+  </p>
+  <p>${_longText('Data lazyload image body should keep the real image.')}</p>
+</article>
+''');
+
+      final sanitized = _extractAndSanitize(html);
+
+      expect(
+        sanitized,
+        contains('src="https://cdn.example.com/real-lazyload.webp"'),
+      );
+      expect(sanitized, isNot(contains('/img/loading.gif')));
+    });
+
+    test('lazy image promotion keeps existing source fallbacks', () {
+      final html = _page('''
+<article class="post-content">
+  <p><img src="/blank.png" data-src="https://cdn.example.com/data-src.webp"></p>
+  <p><img src="/pixel.gif" data-original="https://cdn.example.com/original.webp"></p>
+  <p><img src="/placeholder.png" srcset="https://cdn.example.com/srcset.webp 1x"></p>
+  <p>${_longText('Existing lazy image fallbacks should keep working.')}</p>
+</article>
+''');
+
+      final sanitized = _extractAndSanitize(html);
+
+      expect(
+        sanitized,
+        contains('src="https://cdn.example.com/data-src.webp"'),
+      );
+      expect(
+        sanitized,
+        contains('src="https://cdn.example.com/original.webp"'),
+      );
+      expect(sanitized, contains('src="https://cdn.example.com/srcset.webp"'));
+    });
+
+    test('lazy image diagnostics ignore images outside extracted body', () {
+      final html = _page('''
+<main>
+  <article class="post-content">
+    <p>${_longText('Article body should not inherit sidebar lazy images.')}</p>
+  </article>
+  <section class="related-posts">
+    <img src="/placeholder.png"
+      data-lazyload="https://cdn.example.com/sidebar.webp">
+  </section>
+</main>
+''');
+
+      final diagnostics = _diagnose(html);
+
+      expect(diagnostics.reason, ArticleExtractionFailureReason.none);
+      expect(diagnostics.sanitizedHtml, isNot(contains('sidebar.webp')));
+    });
+
     test('duplicate_title_h1 does not inject a second identical title', () {
       final html = _page('''
 <article>
@@ -137,6 +200,41 @@ void main() {
 
       expect(_occurrences(extracted.contentHtml, 'Duplicate Title'), 1);
       expect(extracted.contentHtml, contains('Duplicate title body'));
+    });
+
+    test('duplicate_title_h2_and_paragraph keeps only one title block', () {
+      final html = _page('''
+<article>
+  <h2>Duplicate Title</h2>
+  <p>Duplicate Title</p>
+  <p>${_longText('Duplicate title body should remain after title cleanup.')}</p>
+</article>
+''', title: 'Duplicate Title');
+
+      final diagnostics = _diagnose(html);
+
+      expect(diagnostics.reason, ArticleExtractionFailureReason.none);
+      expect(
+        _occurrences(
+          _textFromHtml(diagnostics.sanitizedHtml),
+          'Duplicate Title',
+        ),
+        1,
+      );
+      expect(diagnostics.sanitizedHtml, contains('Duplicate title body'));
+    });
+
+    test('duplicate title cleanup preserves normal body sentences', () {
+      final html = _page('''
+<article>
+  <h2>Duplicate Title</h2>
+  <p>${_longText('Duplicate Title appears inside a normal sentence and stays.')}</p>
+</article>
+''', title: 'Duplicate Title');
+
+      final sanitized = _extractAndSanitize(html);
+
+      expect(sanitized, contains('Duplicate Title appears inside'));
     });
 
     test('normal_wordpress_entry_content still extracts entry content', () {
@@ -291,7 +389,7 @@ void main() {
       expect(diagnostics.reason, ArticleExtractionFailureReason.titleOnly);
     });
 
-    test('classifies duplicate title output', () {
+    test('does not classify cleaned duplicate title output as failure', () {
       final html = _page('''
 <article>
   <h2>Repeated Title</h2>
@@ -302,11 +400,13 @@ void main() {
 
       final diagnostics = _diagnose(html);
 
-      expect(diagnostics.reason, ArticleExtractionFailureReason.duplicateTitle);
+      expect(diagnostics.reason, ArticleExtractionFailureReason.none);
     });
 
-    test('classifies missing lazy image promotion', () {
-      final html = _page('''
+    test(
+      'does not classify fixed data-lazyload image promotion as failure',
+      () {
+        final html = _page('''
 <article>
   <p>
     <img src="/img/b_ld.png"
@@ -317,13 +417,15 @@ void main() {
 </article>
 ''');
 
-      final diagnostics = _diagnose(html);
+        final diagnostics = _diagnose(html);
 
-      expect(
-        diagnostics.reason,
-        ArticleExtractionFailureReason.lazyImageMissing,
-      );
-    });
+        expect(diagnostics.reason, ArticleExtractionFailureReason.none);
+        expect(
+          diagnostics.sanitizedHtml,
+          contains('src="https://cdn.example.com/real.webp"'),
+        );
+      },
+    );
 
     test('classifies noise selected as body', () {
       final html = _page('''
@@ -362,6 +464,13 @@ String _longText(String seed) {
 String _extractAndSanitize(String html) {
   final extracted = ArticleExtractor.extractFromHtml(html: html, url: _baseUrl);
   return HtmlSanitizer.sanitize(extracted.contentHtml);
+}
+
+String _textFromHtml(String html) {
+  return html
+      .replaceAll(RegExp(r'<[^>]+>'), ' ')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
 }
 
 ArticleExtractionDiagnostics _diagnose(String html, {int? statusCode}) {

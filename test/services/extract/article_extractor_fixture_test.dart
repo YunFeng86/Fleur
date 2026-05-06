@@ -268,67 +268,26 @@ void main() {
     },
   );
 
-  test('duplicateTitle redaction keeps equivalent synthetic titles', () async {
-    final fetcher = _FakeFetcher({
-      'https://example.com/duplicate': ArticleExtractionAuditFetchResult(
-        body: _duplicateTitleHtml(title: 'Private duplicate title'),
-        statusCode: 200,
-      ),
-    });
-    final freezer = ArticleExtractionFixtureFreezer(fetcher: fetcher.call);
-    final outputDirectory = Directory.systemTemp.createTempSync(
-      'fleur-article-fixture-duplicate-redacted-',
-    );
-
-    try {
-      final result = await freezer.freezeFromAuditReport(
-        auditMarkdown: _singleCandidateMarkdown(
-          reason: 'duplicateTitle',
-          url: 'https://example.com/duplicate',
-          title: 'Private duplicate title',
-        ),
-        outputDirectory: outputDirectory,
-      );
-
-      expect(result.frozen, hasLength(1));
-      final fixture = result.frozen.single;
-      final html = File(
-        p.joinAll([outputDirectory.path, ...fixture.htmlPath.split('/')]),
-      ).readAsStringSync();
-      final diagnostics = ArticleExtractor.diagnoseFromHtml(
-        html: html,
-        url: fixture.url,
-        statusCode: fixture.statusCode,
-      );
-
-      expect(html, isNot(contains('Private duplicate title')));
-      expect(html, contains(fixture.title));
-      expect(diagnostics.reason, ArticleExtractionFailureReason.duplicateTitle);
-    } finally {
-      outputDirectory.deleteSync(recursive: true);
-    }
-  });
-
   test(
-    'lazyImageMissing redaction keeps missing lazy source semantics',
+    'minimal redaction keeps fixed duplicate-like sources synthetic',
     () async {
       final fetcher = _FakeFetcher({
-        'https://example.com/lazy': ArticleExtractionAuditFetchResult(
-          body: _lazyImageMissingHtml(),
+        'https://example.com/duplicate': ArticleExtractionAuditFetchResult(
+          body: _duplicateTitleHtml(title: 'Private duplicate title'),
           statusCode: 200,
         ),
       });
       final freezer = ArticleExtractionFixtureFreezer(fetcher: fetcher.call);
       final outputDirectory = Directory.systemTemp.createTempSync(
-        'fleur-article-fixture-lazy-redacted-',
+        'fleur-article-fixture-duplicate-redacted-',
       );
 
       try {
         final result = await freezer.freezeFromAuditReport(
           auditMarkdown: _singleCandidateMarkdown(
-            reason: 'lazyImageMissing',
-            url: 'https://example.com/lazy',
-            title: 'Private lazy title',
+            reason: 'none',
+            url: 'https://example.com/duplicate',
+            title: 'Private duplicate title',
           ),
           outputDirectory: outputDirectory,
         );
@@ -344,18 +303,56 @@ void main() {
           statusCode: fixture.statusCode,
         );
 
-        expect(html, contains('src="/img/b_ld.png"'));
-        expect(html, contains('data-lazyload="https://fixture.local/images/'));
-        expect(html, isNot(contains('https://cdn.private.example')));
-        expect(
-          diagnostics.reason,
-          ArticleExtractionFailureReason.lazyImageMissing,
-        );
+        expect(html, isNot(contains('Private duplicate title')));
+        expect(html, contains(fixture.title));
+        expect(diagnostics.reason, ArticleExtractionFailureReason.none);
       } finally {
         outputDirectory.deleteSync(recursive: true);
       }
     },
   );
+
+  test('minimal redaction keeps fixed lazy image sources synthetic', () async {
+    final fetcher = _FakeFetcher({
+      'https://example.com/lazy': ArticleExtractionAuditFetchResult(
+        body: _lazyImageMissingHtml(),
+        statusCode: 200,
+      ),
+    });
+    final freezer = ArticleExtractionFixtureFreezer(fetcher: fetcher.call);
+    final outputDirectory = Directory.systemTemp.createTempSync(
+      'fleur-article-fixture-lazy-redacted-',
+    );
+
+    try {
+      final result = await freezer.freezeFromAuditReport(
+        auditMarkdown: _singleCandidateMarkdown(
+          reason: 'none',
+          url: 'https://example.com/lazy',
+          title: 'Private lazy title',
+        ),
+        outputDirectory: outputDirectory,
+      );
+
+      expect(result.frozen, hasLength(1));
+      final fixture = result.frozen.single;
+      final html = File(
+        p.joinAll([outputDirectory.path, ...fixture.htmlPath.split('/')]),
+      ).readAsStringSync();
+      final diagnostics = ArticleExtractor.diagnoseFromHtml(
+        html: html,
+        url: fixture.url,
+        statusCode: fixture.statusCode,
+      );
+
+      expect(html, isNot(contains('src="/img/b_ld.png"')));
+      expect(html, contains('https://fixture.local/images/'));
+      expect(html, isNot(contains('https://cdn.private.example')));
+      expect(diagnostics.reason, ArticleExtractionFailureReason.none);
+    } finally {
+      outputDirectory.deleteSync(recursive: true);
+    }
+  });
 
   test('raw freeze keeps the fetched HTML for local debugging', () async {
     final fetcher = _FakeFetcher({
