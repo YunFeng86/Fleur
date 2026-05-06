@@ -1,8 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../services/accounts/account.dart';
+import '../services/sync/backend_capabilities.dart';
 import '../services/sync/outbox/outbox_store.dart';
 import 'account_providers.dart';
+import 'backend_capabilities_provider.dart';
 import 'service_providers.dart';
 
 final outboxChangesProvider = StreamProvider.autoDispose<String>((ref) {
@@ -14,8 +15,8 @@ final outboxPendingCountProvider = FutureProvider.autoDispose<int>((ref) async {
   ref.watch(outboxChangesProvider);
 
   final account = ref.watch(activeAccountProvider);
-  if (account.type != AccountType.miniflux &&
-      account.type != AccountType.fever) {
+  final capabilities = ref.watch(backendCapabilitiesProvider);
+  if (!capabilities.isVisible(BackendFeature.outboxFlush)) {
     return 0;
   }
 

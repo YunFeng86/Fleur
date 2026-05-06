@@ -6,10 +6,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers/account_providers.dart';
 import '../../../providers/app_settings_providers.dart';
+import '../../../providers/backend_capabilities_provider.dart';
 import '../../../providers/repository_providers.dart';
 import '../../../providers/service_providers.dart';
 import '../../../services/accounts/account.dart';
 import '../../../services/settings/app_settings.dart';
+import '../../../services/sync/backend_capabilities.dart';
 import '../../../utils/context_extensions.dart';
 import '../../dialogs/add_account_dialogs.dart';
 import '../widgets/section_header.dart';
@@ -28,13 +30,14 @@ class ServicesTab extends ConsumerWidget {
         ref.watch(appSettingsProvider).valueOrNull ?? AppSettings.defaults();
     final accounts = ref.watch(accountsControllerProvider).valueOrNull;
     final activeAccount = ref.watch(activeAccountProvider);
+    final capabilities = ref.watch(backendCapabilitiesProvider);
 
     final interval = appSettings.autoRefreshMinutes;
 
     Future<void> refreshNow() async {
       final feeds = await ref.read(feedRepositoryProvider).getAll();
       // Remote-backed accounts can sync even when local DB is empty.
-      if (feeds.isEmpty && activeAccount.type == AccountType.local) return;
+      if (feeds.isEmpty && !capabilities.isRemoteBacked) return;
 
       final concurrency = appSettings.autoRefreshConcurrency;
 
@@ -287,7 +290,7 @@ class ServicesTab extends ConsumerWidget {
             ),
           ),
         ),
-        if (activeAccount.type == AccountType.miniflux)
+        if (capabilities.isVisible(BackendFeature.serverContentFetchMode))
           SettingsSection(
             title: l10n.minifluxStrategy,
             description: l10n.minifluxStrategySubtitle,

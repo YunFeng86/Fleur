@@ -4,9 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:fleur/l10n/app_localizations.dart';
+import 'package:fleur/providers/account_providers.dart';
+import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/ui/settings/subscriptions/subscription_toolbar.dart';
 import 'package:fleur/utils/platform.dart';
+
+import '../../../test_utils/critical_workflow_test_support.dart';
 
 void main() {
   testWidgets('SubscriptionToolbar does not overflow on macOS medium width', (
@@ -49,5 +53,36 @@ void main() {
       debugDefaultTargetPlatformOverride = null;
       debugFleurTargetPlatformOverride = null;
     }
+  });
+
+  testWidgets('Fever toolbar hides category and import actions', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          activeAccountProvider.overrideWithValue(
+            buildTestAccount(type: AccountType.fever),
+          ),
+        ],
+        child: MaterialApp(
+          locale: const Locale('en'),
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const Scaffold(body: SubscriptionToolbar()),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('New category'), findsNothing);
+
+    await tester.tap(find.byIcon(Icons.more_horiz));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Import OPML'), findsNothing);
+    expect(find.text('Export OPML'), findsOneWidget);
+    expect(find.text('Refresh all'), findsOneWidget);
   });
 }

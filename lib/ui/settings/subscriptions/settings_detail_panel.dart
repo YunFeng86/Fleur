@@ -2,13 +2,15 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../providers/subscription_settings_provider.dart';
-import '../../../../providers/query_providers.dart';
 import '../../../../providers/app_settings_providers.dart';
+import '../../../../providers/backend_capabilities_provider.dart';
+import '../../../../providers/query_providers.dart';
+import '../../../../providers/subscription_settings_provider.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/feed.dart';
 import '../../../../models/category.dart';
 import '../../../../services/settings/app_settings.dart';
+import '../../../../services/sync/backend_capabilities.dart';
 import '../../../../services/network/user_agents.dart';
 import '../../../../utils/timeago_locale.dart';
 import '../widgets/section_header.dart';
@@ -269,10 +271,14 @@ class _CategorySettings extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final appSettings = ref.watch(appSettingsProvider).valueOrNull;
+    final capabilities = ref.watch(backendCapabilitiesProvider);
 
     if (appSettings == null) {
       return const Center(child: CircularProgressIndicator());
     }
+    final hasActions =
+        capabilities.isVisible(BackendFeature.renameCategory) ||
+        capabilities.isVisible(BackendFeature.deleteCategory);
 
     return SettingsPageBody(
       maxWidth: 920,
@@ -282,38 +288,43 @@ class _CategorySettings extends ConsumerWidget {
           subtitle:
               '${ref.watch(feedsProvider).valueOrNull?.where((feed) => feed.categoryId == category.id).length ?? 0} ${l10n.subscriptions}',
         ),
-        SettingsCard(
-          padding: EdgeInsets.zero,
-          child: SettingsTileGroup(
-            children: [
-              SettingsTile(
-                leading: const Icon(Icons.edit),
-                title: Text(l10n.rename),
-                onTap: () => SubscriptionActions.renameCategory(
-                  context,
-                  ref,
-                  categoryId: category.id,
-                  currentName: category.name,
-                ),
-              ),
-              SettingsTile(
-                destructive: true,
-                leading: const Icon(Icons.delete_outline),
-                title: Text(l10n.delete),
-                onTap: () async {
-                  final deleted = await SubscriptionActions.deleteCategory(
-                    context,
-                    ref,
-                    categoryId: category.id,
-                  );
-                  if (!deleted || !context.mounted) return;
-                  ref.read(subscriptionSelectionProvider.notifier).selectAll();
-                },
-              ),
-            ],
+        if (hasActions)
+          SettingsCard(
+            padding: EdgeInsets.zero,
+            child: SettingsTileGroup(
+              children: [
+                if (capabilities.isVisible(BackendFeature.renameCategory))
+                  SettingsTile(
+                    leading: const Icon(Icons.edit),
+                    title: Text(l10n.rename),
+                    onTap: () => SubscriptionActions.renameCategory(
+                      context,
+                      ref,
+                      categoryId: category.id,
+                      currentName: category.name,
+                    ),
+                  ),
+                if (capabilities.isVisible(BackendFeature.deleteCategory))
+                  SettingsTile(
+                    destructive: true,
+                    leading: const Icon(Icons.delete_outline),
+                    title: Text(l10n.delete),
+                    onTap: () async {
+                      final deleted = await SubscriptionActions.deleteCategory(
+                        context,
+                        ref,
+                        categoryId: category.id,
+                      );
+                      if (!deleted || !context.mounted) return;
+                      ref
+                          .read(subscriptionSelectionProvider.notifier)
+                          .selectAll();
+                    },
+                  ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 24),
+        if (hasActions) const SizedBox(height: 24),
         _FilterSection(category: category, appSettings: appSettings),
         _SyncSection(category: category, appSettings: appSettings),
       ],
@@ -331,6 +342,7 @@ class _FeedSettings extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final categories = ref.watch(categoriesProvider).valueOrNull ?? [];
     final appSettings = ref.watch(appSettingsProvider).valueOrNull;
+    final capabilities = ref.watch(backendCapabilitiesProvider);
     final category = feed.categoryId != null
         ? categories.where((c) => c.id == feed.categoryId).firstOrNull
         : null;
@@ -338,6 +350,9 @@ class _FeedSettings extends ConsumerWidget {
     if (appSettings == null) {
       return const Center(child: CircularProgressIndicator());
     }
+    final canMove =
+        capabilities.isVisible(BackendFeature.moveSubscriptionToCategory) ||
+        capabilities.isVisible(BackendFeature.moveSubscriptionToUncategorized);
 
     return SettingsPageBody(
       maxWidth: 920,
@@ -367,51 +382,57 @@ class _FeedSettings extends ConsumerWidget {
           padding: EdgeInsets.zero,
           child: SettingsTileGroup(
             children: [
-              SettingsTile(
-                leading: const Icon(Icons.edit),
-                title: Text(l10n.rename),
-                onTap: () => SubscriptionActions.editFeedTitle(
-                  context,
-                  ref,
-                  feedId: feed.id,
-                  currentTitle: feed.userTitle ?? feed.title,
-                ),
-              ),
-              SettingsTile(
-                leading: const Icon(Icons.folder_open),
-                title: Text(l10n.moveToCategory),
-                subtitle: Text(category?.name ?? l10n.uncategorized),
-                onTap: () => SubscriptionActions.moveFeedToCategory(
-                  context,
-                  ref,
-                  feedId: feed.id,
-                ),
-              ),
-              SettingsTile(
-                leading: const Icon(Icons.refresh),
-                title: Text(l10n.refresh),
-                onTap: () =>
-                    SubscriptionActions.refreshFeed(context, ref, feed.id),
-              ),
-              SettingsTile(
-                destructive: true,
-                leading: const Icon(Icons.delete_outline),
-                title: Text(l10n.delete),
-                onTap: () async {
-                  final deleted = await SubscriptionActions.deleteFeed(
+              if (capabilities.isVisible(BackendFeature.clientFeedSettings))
+                SettingsTile(
+                  leading: const Icon(Icons.edit),
+                  title: Text(l10n.rename),
+                  onTap: () => SubscriptionActions.editFeedTitle(
                     context,
                     ref,
                     feedId: feed.id,
-                  );
-                  if (!deleted || !context.mounted) return;
-                  final selection = ref.read(subscriptionSelectionProvider);
-                  ref
-                      .read(subscriptionSelectionProvider.notifier)
-                      .returnToScopeDetails(
-                        showDetailPane: selection.showDetailPane,
-                      );
-                },
-              ),
+                    currentTitle: feed.userTitle ?? feed.title,
+                  ),
+                ),
+              if (canMove)
+                SettingsTile(
+                  leading: const Icon(Icons.folder_open),
+                  title: Text(l10n.moveToCategory),
+                  subtitle: Text(category?.name ?? l10n.uncategorized),
+                  onTap: () => SubscriptionActions.moveFeedToCategory(
+                    context,
+                    ref,
+                    feedId: feed.id,
+                  ),
+                ),
+              if (capabilities.isVisible(
+                BackendFeature.refreshSubscriptionSource,
+              ))
+                SettingsTile(
+                  leading: const Icon(Icons.refresh),
+                  title: Text(l10n.refresh),
+                  onTap: () =>
+                      SubscriptionActions.refreshFeed(context, ref, feed.id),
+                ),
+              if (capabilities.isVisible(BackendFeature.deleteSubscription))
+                SettingsTile(
+                  destructive: true,
+                  leading: const Icon(Icons.delete_outline),
+                  title: Text(l10n.delete),
+                  onTap: () async {
+                    final deleted = await SubscriptionActions.deleteFeed(
+                      context,
+                      ref,
+                      feedId: feed.id,
+                    );
+                    if (!deleted || !context.mounted) return;
+                    final selection = ref.read(subscriptionSelectionProvider);
+                    ref
+                        .read(subscriptionSelectionProvider.notifier)
+                        .returnToScopeDetails(
+                          showDetailPane: selection.showDetailPane,
+                        );
+                  },
+                ),
             ],
           ),
         ),

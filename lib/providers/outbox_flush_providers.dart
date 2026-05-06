@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../services/accounts/account.dart';
 import '../services/sync/sync_service.dart';
 import '../utils/platform.dart';
 import 'account_providers.dart';
+import 'backend_capabilities_provider.dart';
 import 'outbox_status_providers.dart';
 import 'service_providers.dart';
 
@@ -89,7 +89,7 @@ class OutboxFlushController extends AutoDisposeNotifier<void> {
       _delay = const Duration(seconds: 10);
     }
 
-    final account = ref.watch(activeAccountProvider);
+    final capabilities = ref.watch(backendCapabilitiesProvider);
 
     _timer?.cancel();
     _timer = null;
@@ -101,8 +101,7 @@ class OutboxFlushController extends AutoDisposeNotifier<void> {
       _timer?.cancel();
     });
 
-    if (account.type != AccountType.miniflux &&
-        account.type != AccountType.fever) {
+    if (!capabilities.isOutboxCapable) {
       return;
     }
 
@@ -126,8 +125,8 @@ class OutboxFlushController extends AutoDisposeNotifier<void> {
     var shouldReschedule = true;
     try {
       final account = ref.read(activeAccountProvider);
-      if (account.type != AccountType.miniflux &&
-          account.type != AccountType.fever) {
+      final capabilities = ref.read(backendCapabilitiesProvider);
+      if (!capabilities.isOutboxCapable) {
         _delay = const Duration(seconds: 30);
         shouldReschedule = false;
         return;
@@ -139,7 +138,7 @@ class OutboxFlushController extends AutoDisposeNotifier<void> {
         _delay = const Duration(seconds: 30);
         _stallCount = 0;
         ref.read(outboxFlushStallCountProvider.notifier).state = 0;
-        // Keep polling while the account is Miniflux.
+        // Keep polling while the account can flush deferred remote actions.
         return;
       }
 
@@ -183,9 +182,7 @@ class OutboxFlushController extends AutoDisposeNotifier<void> {
       var doReschedule = shouldReschedule && !_disposed;
       if (doReschedule) {
         try {
-          doReschedule =
-              ref.read(activeAccountProvider).type == AccountType.miniflux ||
-              ref.read(activeAccountProvider).type == AccountType.fever;
+          doReschedule = ref.read(backendCapabilitiesProvider).isOutboxCapable;
         } catch (_) {
           doReschedule = false;
         }

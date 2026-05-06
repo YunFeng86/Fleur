@@ -15,6 +15,7 @@ import '../accounts/account_store.dart';
 import '../logging/app_logger.dart';
 import '../settings/app_settings.dart';
 import '../settings/app_settings_store.dart';
+import '../sync/backend_capabilities.dart';
 import '../sync/outbox/outbox_store.dart';
 import '../sync/sync_mutex.dart';
 import '../sync/sync_service.dart';
@@ -193,17 +194,17 @@ class BackgroundSyncRunner {
       final activeAccount =
           accounts.findById(accounts.activeAccountId) ??
           accounts.accounts.first;
+      final capabilities = BackendCapabilities.forAccountType(
+        activeAccount.type,
+      );
       final appSettings = _appSettings ?? await _appSettingsStore.load();
 
       final refreshMinutes = appSettings.autoRefreshMinutes ?? 0;
       var shouldRefresh = refreshMinutes > 0 && appSettings.syncEnabled;
-      final outboxEnabled =
-          activeAccount.type == AccountType.miniflux ||
-          activeAccount.type == AccountType.fever;
 
       // Avoid opening Isar when there's nothing to do.
       final hasPendingOutbox =
-          outboxEnabled &&
+          capabilities.isOutboxCapable &&
           (await _outboxStore.load(activeAccount.id)).isNotEmpty;
       if (!shouldRefresh && !hasPendingOutbox) return;
 
@@ -301,7 +302,7 @@ class BackgroundSyncRunner {
         final allFeeds = loadAllFeeds != null
             ? await loadAllFeeds(feeds, activeAccount)
             : await feeds.getAll();
-        if (allFeeds.isEmpty && activeAccount.type == AccountType.local) return;
+        if (allFeeds.isEmpty && !capabilities.isRemoteBacked) return;
 
         final concurrency = appSettings.autoRefreshConcurrency;
         await svc.refreshFeedsSafe(
@@ -316,7 +317,9 @@ class BackgroundSyncRunner {
   }
 
   Future<void> _flushOutboxSafe(Account account, SyncServiceBase svc) async {
-    if (account.type == AccountType.local) return;
+    if (!BackendCapabilities.forAccountType(account.type).isOutboxCapable) {
+      return;
+    }
     final OutboxFlushCapable? flushCapable = switch (svc) {
       OutboxFlushCapable service => service,
       _ => null,

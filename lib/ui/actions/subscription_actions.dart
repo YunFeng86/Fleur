@@ -10,87 +10,19 @@ import 'package:path_provider/path_provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/account_providers.dart';
 import '../../providers/app_settings_providers.dart';
+import '../../providers/backend_capabilities_provider.dart';
 import '../../providers/opml_providers.dart';
 import '../../providers/query_providers.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/service_providers.dart';
 import '../../services/accounts/account.dart';
 import '../../services/opml/opml_service.dart';
+import '../../services/sync/backend_capabilities.dart';
 import '../../services/sync/miniflux/miniflux_client.dart';
 import '../../ui/actions/remote_structure_feedback.dart' as remote_feedback;
 import '../../ui/dialogs/add_subscription_dialog.dart';
 import '../../utils/context_extensions.dart';
 import '../../utils/platform.dart';
-
-enum _RemoteBackedOperationBehavior {
-  localMirror,
-  localFirstDeferredSync,
-  onlineRequired,
-  clientOnlyPreference,
-}
-
-enum _RemoteStructureCommand {
-  addSubscription,
-  addCategory,
-  renameCategory,
-  deleteCategory,
-  deleteFeed,
-  moveFeedToCategory,
-  refreshFeed,
-  refreshAll,
-}
-
-/// Shared policy boundary for remote-backed accounts:
-/// - reading/browsing stays on the local mirror
-/// - replayable article intents stay on the existing deferred-sync/outbox path
-/// - remote structure commands must not report local-only success
-/// - feed/category/article preferences stay client-only
-final class _RemoteSyncCapabilityPolicy {
-  const _RemoteSyncCapabilityPolicy(this.account);
-
-  final Account account;
-
-  _RemoteBackedOperationBehavior get browseBehavior =>
-      account.type == AccountType.local
-      ? _RemoteBackedOperationBehavior.localMirror
-      : _RemoteBackedOperationBehavior.localMirror;
-
-  _RemoteBackedOperationBehavior get articleIntentBehavior =>
-      account.type == AccountType.local
-      ? _RemoteBackedOperationBehavior.localMirror
-      : _RemoteBackedOperationBehavior.localFirstDeferredSync;
-
-  _RemoteBackedOperationBehavior get clientPreferenceBehavior =>
-      _RemoteBackedOperationBehavior.clientOnlyPreference;
-
-  _RemoteBackedOperationBehavior structureBehavior(
-    _RemoteStructureCommand command,
-  ) {
-    return account.type == AccountType.local
-        ? _RemoteBackedOperationBehavior.localMirror
-        : _RemoteBackedOperationBehavior.onlineRequired;
-  }
-
-  bool supportsStructureCommand(
-    _RemoteStructureCommand command, {
-    bool movingToUncategorized = false,
-  }) {
-    return switch (account.type) {
-      AccountType.local => true,
-      AccountType.miniflux => switch (command) {
-        _RemoteStructureCommand.addSubscription ||
-        _RemoteStructureCommand.addCategory ||
-        _RemoteStructureCommand.renameCategory ||
-        _RemoteStructureCommand.deleteCategory ||
-        _RemoteStructureCommand.deleteFeed ||
-        _RemoteStructureCommand.refreshFeed ||
-        _RemoteStructureCommand.refreshAll => true,
-        _RemoteStructureCommand.moveFeedToCategory => !movingToUncategorized,
-      },
-      AccountType.fever => false,
-    };
-  }
-}
 
 typedef ProviderReadCallback = T Function<T>(ProviderListenable<T> provider);
 typedef SubscriptionActionDialogPresenter =
@@ -103,14 +35,20 @@ class SubscriptionActions {
     ref.read(articleSearchQueryProvider.notifier).state = '';
   }
 
-  static _RemoteSyncCapabilityPolicy _policy(WidgetRef ref) {
-    return _RemoteSyncCapabilityPolicy(ref.read(activeAccountProvider));
+  static BackendCapabilities _capabilities(WidgetRef ref) {
+    return ref.read(backendCapabilitiesProvider);
   }
 
-  static _RemoteSyncCapabilityPolicy _policyFromRead(
-    ProviderReadCallback read,
+  static BackendCapabilities _capabilitiesFromRead(ProviderReadCallback read) {
+    return read(backendCapabilitiesProvider);
+  }
+
+  static bool _isOnlineRequired(
+    BackendCapabilities capabilities,
+    BackendFeature feature,
   ) {
-    return _RemoteSyncCapabilityPolicy(read(activeAccountProvider));
+    return capabilities.availability(feature) ==
+        FeatureAvailability.onlineRequired;
   }
 
   static String _normalizeFeedUrl(String url) {
@@ -435,6 +373,13 @@ class SubscriptionActions {
     SubscriptionActionDialogPresenter? dialogPresenter,
   }) async {
     final l10n = AppLocalizations.of(context)!;
+    final capabilities = _capabilities(ref);
+    const feature = BackendFeature.addCategory;
+    if (!capabilities.isVisible(feature)) {
+      remote_feedback.showUnsupportedRemoteCommand(context, l10n);
+      return null;
+    }
+
     final name = await _presentTextInputDialog(
       context,
       dialogPresenter: dialogPresenter,
@@ -444,15 +389,8 @@ class SubscriptionActions {
     );
     if (!context.mounted) return null;
     if (name == null || name.trim().isEmpty) return null;
-    final policy = _policy(ref);
-    if (policy.structureBehavior(_RemoteStructureCommand.addCategory) !=
-        _RemoteBackedOperationBehavior.onlineRequired) {
+    if (!_isOnlineRequired(capabilities, feature)) {
       return ref.read(categoryRepositoryProvider).upsertByName(name);
-    }
-
-    if (!policy.supportsStructureCommand(_RemoteStructureCommand.addCategory)) {
-      remote_feedback.showUnsupportedRemoteCommand(context, l10n);
-      return null;
     }
 
     final account = ref.read(activeAccountProvider);
@@ -479,6 +417,13 @@ class SubscriptionActions {
     SubscriptionActionDialogPresenter? dialogPresenter,
   }) async {
     final l10n = AppLocalizations.of(context)!;
+    final capabilities = _capabilities(ref);
+    const feature = BackendFeature.renameCategory;
+    if (!capabilities.isVisible(feature)) {
+      remote_feedback.showUnsupportedRemoteCommand(context, l10n);
+      return;
+    }
+
     final next = await _presentTextInputDialog(
       context,
       dialogPresenter: dialogPresenter,
@@ -493,9 +438,7 @@ class SubscriptionActions {
     final trimmed = next.trim();
     if (trimmed.isEmpty) return;
 
-    final policy = _policy(ref);
-    if (policy.structureBehavior(_RemoteStructureCommand.renameCategory) !=
-        _RemoteBackedOperationBehavior.onlineRequired) {
+    if (!_isOnlineRequired(capabilities, feature)) {
       try {
         await ref.read(categoryRepositoryProvider).rename(categoryId, trimmed);
       } catch (e) {
@@ -505,13 +448,6 @@ class SubscriptionActions {
             : e.toString();
         context.showErrorMessage(l10n.errorMessage(msg));
       }
-      return;
-    }
-
-    if (!policy.supportsStructureCommand(
-      _RemoteStructureCommand.renameCategory,
-    )) {
-      remote_feedback.showUnsupportedRemoteCommand(context, l10n);
       return;
     }
 
@@ -549,11 +485,15 @@ class SubscriptionActions {
     SubscriptionActionDialogPresenter? dialogPresenter,
   }) async {
     final l10n = AppLocalizations.of(context)!;
-    final isOnlineRequired =
-        _policy(
-          ref,
-        ).structureBehavior(_RemoteStructureCommand.deleteCategory) ==
-        _RemoteBackedOperationBehavior.onlineRequired;
+    final capabilities = _capabilities(ref);
+    if (!capabilities.isVisible(BackendFeature.deleteCategory)) {
+      remote_feedback.showUnsupportedRemoteCommand(context, l10n);
+      return false;
+    }
+    final isOnlineRequired = _isOnlineRequired(
+      capabilities,
+      BackendFeature.deleteCategory,
+    );
     final ok = await _presentDialog<bool>(
       context,
       dialogPresenter: dialogPresenter,
@@ -591,13 +531,7 @@ class SubscriptionActions {
     int categoryId,
   ) async {
     final l10n = AppLocalizations.of(context)!;
-    if (!_policy(
-          ref,
-        ).supportsStructureCommand(_RemoteStructureCommand.deleteCategory) &&
-        _policy(
-              ref,
-            ).structureBehavior(_RemoteStructureCommand.deleteCategory) ==
-            _RemoteBackedOperationBehavior.onlineRequired) {
+    if (!_capabilities(ref).isVisible(BackendFeature.deleteCategory)) {
       remote_feedback.showUnsupportedRemoteCommand(context, l10n);
       return false;
     }
@@ -627,20 +561,19 @@ class SubscriptionActions {
     ProviderReadCallback read,
     int categoryId,
   ) async {
-    final policy = _policyFromRead(read);
+    final capabilities = _capabilitiesFromRead(read);
     final categories = read(categoryRepositoryProvider);
-    final isOnlineRequired =
-        policy.structureBehavior(_RemoteStructureCommand.deleteCategory) ==
-        _RemoteBackedOperationBehavior.onlineRequired;
+    if (!capabilities.isVisible(BackendFeature.deleteCategory)) {
+      throw UnsupportedError('Remote category deletion is not supported');
+    }
+
+    final isOnlineRequired = _isOnlineRequired(
+      capabilities,
+      BackendFeature.deleteCategory,
+    );
     if (!isOnlineRequired) {
       await categories.delete(categoryId);
       return;
-    }
-
-    if (!policy.supportsStructureCommand(
-      _RemoteStructureCommand.deleteCategory,
-    )) {
-      throw UnsupportedError('Remote category deletion is not supported');
     }
 
     final account = read(activeAccountProvider);
@@ -768,6 +701,11 @@ class SubscriptionActions {
     SubscriptionActionDialogPresenter? dialogPresenter,
   }) async {
     final l10n = AppLocalizations.of(context)!;
+    if (!_capabilities(ref).isVisible(BackendFeature.deleteSubscription)) {
+      remote_feedback.showUnsupportedRemoteCommand(context, l10n);
+      return false;
+    }
+
     final ok = await _presentDialog<bool>(
       context,
       dialogPresenter: dialogPresenter,
@@ -801,11 +739,8 @@ class SubscriptionActions {
     int feedId,
   ) async {
     final l10n = AppLocalizations.of(context)!;
-    if (!_policy(
-          ref,
-        ).supportsStructureCommand(_RemoteStructureCommand.deleteFeed) &&
-        _policy(ref).structureBehavior(_RemoteStructureCommand.deleteFeed) ==
-            _RemoteBackedOperationBehavior.onlineRequired) {
+    final capabilities = _capabilities(ref);
+    if (!capabilities.isVisible(BackendFeature.deleteSubscription)) {
       remote_feedback.showUnsupportedRemoteCommand(context, l10n);
       return false;
     }
@@ -832,16 +767,15 @@ class SubscriptionActions {
     ProviderReadCallback read,
     int feedId,
   ) async {
-    final policy = _policyFromRead(read);
+    final capabilities = _capabilitiesFromRead(read);
     final feeds = read(feedRepositoryProvider);
-    if (policy.structureBehavior(_RemoteStructureCommand.deleteFeed) !=
-        _RemoteBackedOperationBehavior.onlineRequired) {
-      await feeds.delete(feedId);
-      return;
+    if (!capabilities.isVisible(BackendFeature.deleteSubscription)) {
+      throw UnsupportedError('Remote feed deletion is not supported');
     }
 
-    if (!policy.supportsStructureCommand(_RemoteStructureCommand.deleteFeed)) {
-      throw UnsupportedError('Remote feed deletion is not supported');
+    if (!_isOnlineRequired(capabilities, BackendFeature.deleteSubscription)) {
+      await feeds.delete(feedId);
+      return;
     }
 
     final account = read(activeAccountProvider);
@@ -967,19 +901,19 @@ class SubscriptionActions {
     int feedId,
   ) async {
     final l10n = AppLocalizations.of(context)!;
-    final policy = _policy(ref);
-    if (policy.structureBehavior(_RemoteStructureCommand.refreshFeed) !=
-        _RemoteBackedOperationBehavior.onlineRequired) {
+    final capabilities = _capabilities(ref);
+    const feature = BackendFeature.refreshSubscriptionSource;
+    if (!capabilities.isVisible(feature)) {
+      remote_feedback.showUnsupportedRemoteCommand(context, l10n);
+      return;
+    }
+
+    if (!_isOnlineRequired(capabilities, feature)) {
       final r = await ref.read(syncServiceProvider).refreshFeedSafe(feedId);
       if (!context.mounted) return;
       context.showSnack(
         r.ok ? l10n.refreshed : l10n.errorMessage(r.error.toString()),
       );
-      return;
-    }
-
-    if (!policy.supportsStructureCommand(_RemoteStructureCommand.refreshFeed)) {
-      remote_feedback.showUnsupportedRemoteCommand(context, l10n);
       return;
     }
 
@@ -1016,17 +950,17 @@ class SubscriptionActions {
     final l10n = AppLocalizations.of(context)!;
     final feeds = await ref.read(feedRepositoryProvider).getAll();
     if (!context.mounted) return;
-    if (feeds.isEmpty) return;
 
     final appSettings = ref.read(appSettingsProvider).valueOrNull;
     final concurrency = appSettings?.autoRefreshConcurrency ?? 2;
-    final policy = _policy(ref);
+    final capabilities = _capabilities(ref);
+    final feedIds = feeds.map((f) => f.id);
 
-    if (policy.structureBehavior(_RemoteStructureCommand.refreshAll) !=
-        _RemoteBackedOperationBehavior.onlineRequired) {
+    if (!capabilities.isVisible(BackendFeature.refreshAllSources) &&
+        capabilities.isVisible(BackendFeature.syncNow)) {
       final batch = await ref
           .read(syncServiceProvider)
-          .refreshFeedsSafe(feeds.map((f) => f.id), maxConcurrent: concurrency);
+          .refreshFeedsSafe(feedIds, maxConcurrent: concurrency);
 
       if (!context.mounted) return;
 
@@ -1037,8 +971,22 @@ class SubscriptionActions {
       return;
     }
 
-    if (!policy.supportsStructureCommand(_RemoteStructureCommand.refreshAll)) {
+    if (!capabilities.isVisible(BackendFeature.refreshAllSources)) {
       remote_feedback.showUnsupportedRemoteCommand(context, l10n);
+      return;
+    }
+
+    if (!_isOnlineRequired(capabilities, BackendFeature.refreshAllSources)) {
+      final batch = await ref
+          .read(syncServiceProvider)
+          .refreshFeedsSafe(feedIds, maxConcurrent: concurrency);
+
+      if (!context.mounted) return;
+
+      final err = batch.firstError?.error;
+      context.showSnack(
+        err == null ? l10n.refreshedAll : l10n.errorMessage(err.toString()),
+      );
       return;
     }
 
@@ -1048,11 +996,7 @@ class SubscriptionActions {
       await client.refreshAllFeeds();
       final batch = await ref
           .read(syncServiceProvider)
-          .refreshFeedsSafe(
-            feeds.map((f) => f.id),
-            maxConcurrent: concurrency,
-            notify: false,
-          );
+          .refreshFeedsSafe(feedIds, maxConcurrent: concurrency, notify: false);
       if (!context.mounted) return;
       final err = batch.firstError?.error;
       context.showSnack(
@@ -1071,12 +1015,29 @@ class SubscriptionActions {
     SubscriptionActionDialogPresenter? dialogPresenter,
   }) async {
     final l10n = AppLocalizations.of(context)!;
-    final policy = _policy(ref);
-    final isOnlineRequired =
-        policy.structureBehavior(_RemoteStructureCommand.moveFeedToCategory) ==
-        _RemoteBackedOperationBehavior.onlineRequired;
+    final capabilities = _capabilities(ref);
+    final canMoveToCategory = capabilities.isVisible(
+      BackendFeature.moveSubscriptionToCategory,
+    );
+    final canMoveToUncategorized = capabilities.isVisible(
+      BackendFeature.moveSubscriptionToUncategorized,
+    );
+    if (!canMoveToCategory && !canMoveToUncategorized) {
+      remote_feedback.showUnsupportedRemoteCommand(context, l10n);
+      return;
+    }
+
+    final isOnlineRequired = _isOnlineRequired(
+      capabilities,
+      BackendFeature.moveSubscriptionToCategory,
+    );
     final cats = await ref.read(categoryRepositoryProvider).getAll();
     if (!context.mounted) return;
+
+    if (!canMoveToUncategorized && cats.isEmpty) {
+      context.showErrorMessage(l10n.remoteCommandRequiresCategory);
+      return;
+    }
 
     final selected = await _presentDialog<_MoveFeedCategoryPick?>(
       context,
@@ -1085,11 +1046,12 @@ class SubscriptionActions {
         return SimpleDialog(
           title: Text(l10n.moveToCategory),
           children: [
-            SimpleDialogOption(
-              onPressed: () =>
-                  Navigator.of(context).pop(const _MoveFeedToUncategorized()),
-              child: Text(l10n.uncategorized),
-            ),
+            if (canMoveToUncategorized)
+              SimpleDialogOption(
+                onPressed: () =>
+                    Navigator.of(context).pop(const _MoveFeedToUncategorized()),
+                child: Text(l10n.uncategorized),
+              ),
             for (final c in cats)
               SimpleDialogOption(
                 onPressed: () =>
@@ -1115,10 +1077,10 @@ class SubscriptionActions {
       return;
     }
 
-    if (!policy.supportsStructureCommand(
-      _RemoteStructureCommand.moveFeedToCategory,
-      movingToUncategorized: categoryId == null,
-    )) {
+    final feature = categoryId == null
+        ? BackendFeature.moveSubscriptionToUncategorized
+        : BackendFeature.moveSubscriptionToCategory;
+    if (!capabilities.isVisible(feature)) {
       final message = categoryId == null
           ? l10n.remoteCommandRequiresCategory
           : l10n.remoteCommandNotSupported;
@@ -1154,6 +1116,11 @@ class SubscriptionActions {
 
   static Future<void> importOpml(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context)!;
+    if (!_capabilities(ref).isVisible(BackendFeature.importOpml)) {
+      remote_feedback.showUnsupportedRemoteCommand(context, l10n);
+      return;
+    }
+
     final group = XTypeGroup(
       label: 'OPML',
       extensions: ['opml', 'xml'],
@@ -1227,6 +1194,11 @@ class SubscriptionActions {
 
   static Future<void> exportOpml(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context)!;
+    if (!_capabilities(ref).isVisible(BackendFeature.exportOpml)) {
+      remote_feedback.showUnsupportedRemoteCommand(context, l10n);
+      return;
+    }
+
     final feeds = await ref.read(feedRepositoryProvider).getAll();
     if (feeds.isEmpty) return;
 

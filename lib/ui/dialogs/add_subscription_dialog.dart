@@ -6,9 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/account_providers.dart';
 import '../../providers/app_settings_providers.dart';
+import '../../providers/backend_capabilities_provider.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/service_providers.dart';
 import '../../services/accounts/account.dart';
+import '../../services/sync/backend_capabilities.dart';
 import '../../services/sync/miniflux/miniflux_client.dart';
 import '../../services/sync/sync_service.dart';
 import '../../services/sync/sync_mutex.dart';
@@ -103,11 +105,10 @@ Future<int?> showAddSubscriptionDialog(
   final nav = navigator ?? Navigator.of(context);
 
   final account = ref.read(activeAccountProvider);
-  if (account.type == AccountType.fever) {
+  final capabilities = ref.read(backendCapabilitiesProvider);
+  if (!capabilities.isVisible(BackendFeature.addSubscription)) {
     if (context.mounted) {
-      context.showSnack(
-        l10n.errorMessage(l10n.feverAddSubscriptionNotSupported),
-      );
+      context.showSnack(l10n.errorMessage(l10n.remoteCommandNotSupported));
     }
     return null;
   }

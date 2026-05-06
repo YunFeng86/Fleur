@@ -165,6 +165,35 @@ void main() {
     },
   );
 
+  test('OutboxFlushController stays idle for local accounts', () async {
+    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    final timerFactory = FakeOutboxFlushTimerFactory();
+    final syncService = FakeSyncService();
+    final outbox = FakeOutboxStore();
+
+    final container = ProviderContainer(
+      overrides: [
+        activeAccountProvider.overrideWithValue(buildTestAccount()),
+        outboxStoreProvider.overrideWithValue(outbox),
+        syncServiceProvider.overrideWithValue(syncService),
+        outboxFlushTimerFactoryProvider.overrideWithValue(timerFactory.call),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final sub = container.listen<void>(
+      outboxFlushControllerProvider,
+      (previous, next) {},
+      fireImmediately: true,
+    );
+    addTearDown(sub.close);
+
+    expect(timerFactory.handles, isEmpty);
+    expect(syncService.flushCalls, 0);
+  });
+
   test(
     'BackgroundSyncController wiring schedules and cancels background work',
     () async {
@@ -204,6 +233,41 @@ void main() {
           .setAutoRefreshMinutes(null);
       await flushAsync();
 
+      expect(scheduler.cancelCalls, 1);
+    },
+  );
+
+  test(
+    'BackgroundSyncController stays idle for local accounts without refresh work',
+    () async {
+      final scheduler = FakeBackgroundSyncScheduler();
+      final appStore = FakeAppSettingsStore(
+        AppSettings.defaults().copyWith(
+          autoRefreshMinutes: null,
+          syncEnabled: false,
+        ),
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          activeAccountProvider.overrideWithValue(buildTestAccount()),
+          appSettingsStoreProvider.overrideWithValue(appStore),
+          outboxPendingCountProvider.overrideWith((ref) async => 0),
+          backgroundSyncSchedulerProvider.overrideWithValue(scheduler),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(appSettingsProvider.future);
+      final sub = container.listen<void>(
+        backgroundSyncControllerProvider,
+        (previous, next) {},
+        fireImmediately: true,
+      );
+      addTearDown(sub.close);
+      await flushAsync();
+
+      expect(scheduler.scheduledFrequencies, isEmpty);
       expect(scheduler.cancelCalls, 1);
     },
   );
