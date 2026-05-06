@@ -55,9 +55,9 @@ class ArticleExtractorCore {
     _stripNoise(body);
 
     final candidate =
-        _pickCommonCandidate(body) ??
-        _pickRuleBasedCandidate(doc, body) ??
-        _pickBestCandidate(body) ??
+        _pickCommonCandidate(body, title) ??
+        _pickRuleBasedCandidate(doc, body, title) ??
+        _pickBestCandidate(body, title) ??
         body;
     _stripNoise(candidate);
     _stripBoilerplateByClass(candidate);
@@ -333,53 +333,102 @@ $titleHtml
     }
   }
 
-  static dom.Element? _pickCommonCandidate(dom.Element body) {
+  static dom.Element? _pickCommonCandidate(dom.Element body, String title) {
     const selectors = [
       '#articleContent',
       '.article-content.keep-markdown-body',
       '.article-content',
+      '.article_content',
       '.markdown-body',
+      '.entry-content',
+      '.post-content',
+      '.post-body',
+      '.article-body',
+      '.post-content-content',
       '.post_detail .mdl-card__supporting-text',
     ];
 
-    for (final sel in selectors) {
-      final el = body.querySelector(sel);
-      if (el == null) continue;
-      if (_textLen(el) >= 80) return el;
-    }
-    return null;
+    return _firstViableCandidate(body, selectors, title, minTextLength: 80);
   }
 
   static dom.Element? _pickRuleBasedCandidate(
     dom.Document doc,
     dom.Element body,
+    String title,
   ) {
     final detector = _detectCms(doc, body);
     final selectors = switch (detector) {
       _Cms.wordpress => const [
         'article .entry-content',
         'article .post-content',
+        'article .post-body',
+        'article .article-body',
+        'article .article_content',
+        'article .post-content-content',
         '.entry-content',
         '.post-content',
+        '.post-body',
+        '.article-body',
+        '.article_content',
+        '.post-content-content',
         'article',
       ],
-      _Cms.hexo => const ['.post-content', '.article-entry', 'article'],
+      _Cms.hexo => const [
+        '.post-content',
+        '.article-entry',
+        '.article_content',
+        '.post-content-content',
+        'article',
+      ],
       _Cms.hugo => const [
         '.post-content',
+        '.post-body',
+        '.article-body',
         '.content',
         'main article',
         'article',
       ],
-      _Cms.halo => const ['.post-content', '.post-body', '.content', 'article'],
-      _Cms.unknown => const ['article', 'main article', 'main'],
+      _Cms.halo => const [
+        '.post-content',
+        '.post-body',
+        '.article-body',
+        '.content',
+        'article',
+      ],
+      _Cms.unknown => const [
+        '.entry-content',
+        '.post-content',
+        '.post-body',
+        '.article-body',
+        '.article_content',
+        '.post-content-content',
+        'article',
+        'main article',
+        'main',
+      ],
     };
 
+    return _firstViableCandidate(body, selectors, title, minTextLength: 200);
+  }
+
+  static dom.Element? _firstViableCandidate(
+    dom.Element body,
+    List<String> selectors,
+    String title, {
+    required int minTextLength,
+  }) {
+    dom.Element? firstTitleOnly;
     for (final sel in selectors) {
       final el = body.querySelector(sel);
       if (el == null) continue;
-      if (_textLen(el) >= 200) return el;
+      if (_textLen(el) < minTextLength) continue;
+      if (_isTitleOnlyCandidate(el, title)) {
+        firstTitleOnly ??= el;
+        continue;
+      }
+      return el;
     }
-    return null;
+    return firstTitleOnly;
   }
 
   static _Cms _detectCms(dom.Document doc, dom.Element body) {
@@ -445,24 +494,32 @@ $titleHtml
     return _noiseSignalDensity(text) >= 0.45;
   }
 
-  static dom.Element? _pickBestCandidate(dom.Element body) {
+  static dom.Element? _pickBestCandidate(dom.Element body, String title) {
+    dom.Element? titleOnlyFallback;
     final articles = body.querySelectorAll('article');
     if (articles.isNotEmpty) {
-      return _maxByScore(articles);
+      final best = _maxByScore(articles, title);
+      if (best != null && !_isTitleOnlyCandidate(best, title)) return best;
+      titleOnlyFallback ??= best;
     }
     final mains = body.querySelectorAll('main');
     if (mains.isNotEmpty) {
-      return _maxByScore(mains);
+      final best = _maxByScore(mains, title);
+      if (best != null && !_isTitleOnlyCandidate(best, title)) return best;
+      titleOnlyFallback ??= best;
     }
     final blocks = body.querySelectorAll('section,div');
     if (blocks.isNotEmpty) {
-      final best = _maxByScore(blocks);
-      if (best != null && _textLen(best) >= 200) return best;
+      final best = _maxByScore(blocks, title);
+      if (best != null && _textLen(best) >= 200) {
+        if (!_isTitleOnlyCandidate(best, title)) return best;
+        titleOnlyFallback ??= best;
+      }
     }
-    return null;
+    return titleOnlyFallback;
   }
 
-  static dom.Element? _maxByScore(List<dom.Element> nodes) {
+  static dom.Element? _maxByScore(List<dom.Element> nodes, String title) {
     dom.Element? best;
     var bestScore = double.negativeInfinity;
     for (final n in nodes) {
@@ -471,7 +528,11 @@ $titleHtml
       if (textLen < 80) continue;
       final linkLen = _linkTextLen(n);
       final density = linkLen / (textLen + 1);
-      final score = textLen * (1.0 - density) * _candidateNoisePenalty(text);
+      final score =
+          textLen *
+          (1.0 - density) *
+          _candidateNoisePenalty(text) *
+          _candidateTitleOnlyPenalty(n, title);
       if (score > bestScore) {
         bestScore = score;
         best = n;
@@ -481,6 +542,16 @@ $titleHtml
   }
 
   static int _textLen(dom.Element e) => e.text.trim().length;
+
+  static bool _isTitleOnlyCandidate(dom.Element element, String title) {
+    final normalizedTitle = _normalizeText(title);
+    if (normalizedTitle.isEmpty) return false;
+    return _normalizeText(element.text) == normalizedTitle;
+  }
+
+  static double _candidateTitleOnlyPenalty(dom.Element element, String title) {
+    return _isTitleOnlyCandidate(element, title) ? 0.05 : 1.0;
+  }
 
   static double _candidateNoisePenalty(String text) {
     final normalized = _normalizeText(text);

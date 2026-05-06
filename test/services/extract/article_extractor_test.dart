@@ -271,6 +271,57 @@ void main() {
       expect(sanitized, isNot(contains('Hexo prev next card')));
     });
 
+    test('title-only candidate does not beat static article body', () {
+      final html = _page('''
+<main>
+  <article class="post-header">
+    <h1>Recoverable Title</h1>
+  </article>
+  <div class="post-content-content">
+    <p>${_longText('Recoverable title body should be selected instead.')}</p>
+  </div>
+</main>
+''', title: 'Recoverable Title');
+
+      final diagnostics = _diagnose(html);
+
+      expect(diagnostics.reason, ArticleExtractionFailureReason.none);
+      expect(diagnostics.sanitizedHtml, contains('Recoverable title body'));
+      expect(diagnostics.sanitizedHtml, isNot(contains('post-header')));
+    });
+
+    test('article_content selector is treated as article body', () {
+      final html = _page('''
+<main>
+  <article><h1>Selector Title</h1></article>
+  <div class="article_content">
+    <p>${_longText('Underscore article content should be selected.')}</p>
+  </div>
+</main>
+''', title: 'Selector Title');
+
+      final diagnostics = _diagnose(html);
+
+      expect(diagnostics.reason, ArticleExtractionFailureReason.none);
+      expect(diagnostics.sanitizedHtml, contains('Underscore article content'));
+    });
+
+    test('body sentence that mentions title is not treated as title-only', () {
+      final html = _page('''
+<main>
+  <article>
+    <h1>Natural Title</h1>
+    <p>${_longText('Natural Title appears in the body sentence and remains useful.')}</p>
+  </article>
+</main>
+''', title: 'Natural Title');
+
+      final diagnostics = _diagnose(html);
+
+      expect(diagnostics.reason, ArticleExtractionFailureReason.none);
+      expect(diagnostics.sanitizedHtml, contains('Natural Title appears'));
+    });
+
     test('invalid relative href does not abort extraction', () {
       final html = _page('''
 <article>
@@ -442,6 +493,18 @@ void main() {
 
     test('classifies title-only output', () {
       final html = _page('', title: 'Only Title');
+
+      final diagnostics = _diagnose(html);
+
+      expect(diagnostics.reason, ArticleExtractionFailureReason.titleOnly);
+    });
+
+    test('keeps title-only diagnosis when no static body exists', () {
+      final html = _page('''
+<main>
+  <article><h1>Only Static Title</h1></article>
+</main>
+''', title: 'Only Static Title');
 
       final diagnostics = _diagnose(html);
 

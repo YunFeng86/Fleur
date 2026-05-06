@@ -20,6 +20,7 @@ class ArticleExtractionFixtureFreezeOptions {
     this.failureLimit = 3,
     this.maxMinimalFixtureBytes = 50 * 1024,
     this.failureReasons = _defaultFailureReasons,
+    this.targetReasons,
   });
 
   final bool dryRun;
@@ -31,6 +32,7 @@ class ArticleExtractionFixtureFreezeOptions {
   final int failureLimit;
   final int maxMinimalFixtureBytes;
   final List<ArticleExtractionFailureReason> failureReasons;
+  final List<ArticleExtractionFailureReason>? targetReasons;
 }
 
 enum ArticleExtractionFixtureHtmlMode { minimal, raw }
@@ -309,11 +311,29 @@ class ArticleExtractionFixtureFreezer {
       url: candidate.url,
       statusCode: fetchResult.statusCode,
     );
+    var finalReason = candidate.expectedReason;
     if (diagnostics.reason != candidate.expectedReason) {
+      final resolvedReason = _resolvedReasonForFixedCandidate(
+        candidate.expectedReason,
+        diagnostics.reason,
+      );
+      if (resolvedReason != null) {
+        finalReason = resolvedReason;
+      } else {
+        return _SkippedCandidate(
+          candidate,
+          'Expected ${candidate.expectedReason.name}, got '
+          '${diagnostics.reason.name}',
+        );
+      }
+    }
+
+    if (finalReason != candidate.expectedReason &&
+        options.htmlMode == ArticleExtractionFixtureHtmlMode.raw) {
       return _SkippedCandidate(
         candidate,
-        'Expected ${candidate.expectedReason.name}, got '
-        '${diagnostics.reason.name}',
+        'Raw HTML changed reason: expected ${candidate.expectedReason.name}, '
+        'got ${diagnostics.reason.name}',
       );
     }
 
@@ -340,11 +360,26 @@ class ArticleExtractionFixtureFreezer {
             url: candidate.url,
             statusCode: fetchResult.statusCode,
           );
-    if (fixtureDiagnostics.reason != candidate.expectedReason) {
+    if (fixtureDiagnostics.reason != finalReason) {
+      final resolvedReason = _resolvedReasonForFixedCandidate(
+        candidate.expectedReason,
+        fixtureDiagnostics.reason,
+      );
+      if (resolvedReason == null) {
+        return _SkippedCandidate(
+          candidate,
+          'Minimal HTML changed reason: expected '
+          '${candidate.expectedReason.name}, got '
+          '${fixtureDiagnostics.reason.name}',
+        );
+      }
+      finalReason = resolvedReason;
+    }
+    if (fixtureDiagnostics.reason != finalReason) {
       return _SkippedCandidate(
         candidate,
         'Minimal HTML changed reason: expected '
-        '${candidate.expectedReason.name}, got ${fixtureDiagnostics.reason.name}',
+        '${finalReason.name}, got ${fixtureDiagnostics.reason.name}',
       );
     }
     if (options.htmlMode == ArticleExtractionFixtureHtmlMode.minimal &&
@@ -370,7 +405,7 @@ class ArticleExtractionFixtureFreezer {
         url: candidate.url,
         title: manifestTitle,
         sourceTitleHash: sourceTitleHash,
-        expectedReason: candidate.expectedReason,
+        expectedReason: finalReason,
         statusCode: fetchResult.statusCode,
         htmlPath: htmlPath,
         sanitizedLength: fixtureDiagnostics.sanitizedHtml.length,
@@ -404,15 +439,19 @@ class ArticleExtractionFixtureFreezer {
     required String id,
   }) {
     final doc = html_parser.parse(html);
-    final context = _FixtureRedactionContext(
-      id: id,
-      expectedReason: expectedReason,
-    );
+    final sourceTitle = _sourceTitleFromDocument(doc);
 
     _removeCommentsAndDoctype(doc);
     _removeElements(doc);
     _trimMeta(doc);
     _normalizeNode(doc);
+    final context = _FixtureRedactionContext(
+      id: id,
+      expectedReason: expectedReason,
+      recoverableTitleOnly:
+          expectedReason == ArticleExtractionFailureReason.titleOnly &&
+          _hasStaticTextBeyondTitle(doc, sourceTitle),
+    );
     _redactDocument(doc, context);
     _preserveDiagnosticSignal(doc, html, context);
     _preserveReasonShape(doc, context);
@@ -796,9 +835,15 @@ class ArticleExtractionFixtureFreezer {
       case ArticleExtractionFailureReason.emptyContent:
         return;
       case ArticleExtractionFailureReason.titleOnly:
-        body.nodes
-          ..clear()
-          ..add(_articleWith([_elementWithText('h1', context.syntheticTitle)]));
+        if (context.recoverableTitleOnly) {
+          _preserveRecoverableTitleOnly(body, context);
+        } else {
+          body.nodes
+            ..clear()
+            ..add(
+              _articleWith([_elementWithText('h1', context.syntheticTitle)]),
+            );
+        }
         return;
       case ArticleExtractionFailureReason.loadingState:
         _fixtureContainer(body).nodes.insert(
@@ -868,6 +913,56 @@ class ArticleExtractionFixtureFreezer {
         context.longBodyText('duplicate title regression body'),
       ),
     ]);
+  }
+
+  void _preserveRecoverableTitleOnly(
+    dom.Element body,
+    _FixtureRedactionContext context,
+  ) {
+    body.nodes
+      ..clear()
+      ..add(_articleWith([_elementWithText('h1', context.syntheticTitle)]))
+      ..add(
+        dom.Element.tag('div')
+          ..attributes['class'] = 'post-content-content'
+          ..nodes.addAll([
+            _elementWithText(
+              'p',
+              context.longBodyText('recoverable title-only body'),
+            ),
+            _elementWithText(
+              'p',
+              context.longBodyText('recoverable title-only continuation'),
+            ),
+          ]),
+      );
+  }
+
+  String _sourceTitleFromDocument(dom.Document doc) {
+    final og = doc
+        .querySelector('meta[property="og:title"]')
+        ?.attributes['content'];
+    if (og != null && og.trim().isNotEmpty) return og.trim();
+    final title = doc.querySelector('title')?.text;
+    if (title != null && title.trim().isNotEmpty) return title.trim();
+    return '';
+  }
+
+  bool _hasStaticTextBeyondTitle(dom.Document doc, String title) {
+    final body = doc.body;
+    if (body == null) return false;
+
+    var text = _normalizeFixtureText(body.text);
+    final normalizedTitle = _normalizeFixtureText(title);
+    if (normalizedTitle.isNotEmpty) {
+      text = text.replaceAll(normalizedTitle, ' ');
+    }
+    final compact = text.replaceAll(RegExp(r'[\s.,;:!?]+'), '');
+    return compact.length >= 160;
+  }
+
+  String _normalizeFixtureText(String text) {
+    return text.replaceAll(RegExp(r'\s+'), ' ').trim().toLowerCase();
   }
 
   void _preserveNoiseAsBody(
@@ -1202,9 +1297,23 @@ class ArticleExtractionFixtureFreezer {
   List<ArticleExtractionFailureReason> _orderedReasons(
     ArticleExtractionFixtureFreezeOptions options,
   ) {
+    final targetReasons = options.targetReasons;
+    if (targetReasons != null && targetReasons.isNotEmpty) {
+      return _uniqueReasons(targetReasons);
+    }
     return <ArticleExtractionFailureReason>[
       ArticleExtractionFailureReason.none,
       ...options.failureReasons,
+    ];
+  }
+
+  List<ArticleExtractionFailureReason> _uniqueReasons(
+    List<ArticleExtractionFailureReason> reasons,
+  ) {
+    final seen = <ArticleExtractionFailureReason>{};
+    return [
+      for (final reason in reasons)
+        if (seen.add(reason)) reason,
     ];
   }
 
@@ -1228,6 +1337,17 @@ class ArticleExtractionFixtureFreezer {
 
   bool _isDiagnosticStatus(int? statusCode) {
     return statusCode == 401 || statusCode == 403 || statusCode == 451;
+  }
+
+  ArticleExtractionFailureReason? _resolvedReasonForFixedCandidate(
+    ArticleExtractionFailureReason expected,
+    ArticleExtractionFailureReason actual,
+  ) {
+    if (expected == ArticleExtractionFailureReason.titleOnly &&
+        actual == ArticleExtractionFailureReason.none) {
+      return ArticleExtractionFailureReason.none;
+    }
+    return null;
   }
 
   String _fixtureId(ArticleExtractionFixtureCandidate candidate) {
@@ -1274,14 +1394,18 @@ class ArticleExtractionFixtureFreezer {
 }
 
 class _FixtureRedactionContext {
-  _FixtureRedactionContext({required this.id, required this.expectedReason})
-    : syntheticTitle = ArticleExtractionFixtureFreezer._syntheticTitle(
-        expectedReason,
-        id,
-      );
+  _FixtureRedactionContext({
+    required this.id,
+    required this.expectedReason,
+    this.recoverableTitleOnly = false,
+  }) : syntheticTitle = ArticleExtractionFixtureFreezer._syntheticTitle(
+         expectedReason,
+         id,
+       );
 
   final String id;
   final ArticleExtractionFailureReason expectedReason;
+  final bool recoverableTitleOnly;
   final String syntheticTitle;
   var _textIndex = 0;
   var _assetIndex = 0;
@@ -1290,7 +1414,8 @@ class _FixtureRedactionContext {
     final tag = parent?.localName?.toLowerCase();
     _textIndex += 1;
     if (_isHeadingTag(tag)) {
-      return expectedReason == ArticleExtractionFailureReason.duplicateTitle
+      return expectedReason == ArticleExtractionFailureReason.duplicateTitle ||
+              expectedReason == ArticleExtractionFailureReason.titleOnly
           ? syntheticTitle
           : 'Fixture section heading $_textIndex';
     }
@@ -1304,7 +1429,10 @@ class _FixtureRedactionContext {
         'Fixture article body paragraph $_textIndex for noise regression.',
       ArticleExtractionFailureReason.rssGarbled =>
         'Fixture garbled text � ÃÂ signal $_textIndex.',
-      ArticleExtractionFailureReason.titleOnly => syntheticTitle,
+      ArticleExtractionFailureReason.titleOnly =>
+        recoverableTitleOnly
+            ? 'Fixture article body paragraph $_textIndex for title-only recovery.'
+            : syntheticTitle,
       ArticleExtractionFailureReason.duplicateTitle =>
         'Fixture duplicate title body text $_textIndex.',
       ArticleExtractionFailureReason.lazyImageMissing =>

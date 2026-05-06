@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:fleur/services/extract/article_extraction_audit.dart';
 import 'package:fleur/services/extract/article_extraction_fixture_freezer.dart';
+import 'package:fleur/services/extract/article_extractor_core.dart';
 
 Future<void> main(List<String> args) async {
   final cli = _CliOptions.parse(args);
@@ -43,6 +44,7 @@ Future<void> main(List<String> args) async {
         limit: cli.limit,
         timeout: cli.timeout,
         userAgent: cli.userAgent,
+        targetReasons: cli.targetReasons.isEmpty ? null : cli.targetReasons,
       ),
     );
     stdout.write(result.toSummary());
@@ -86,6 +88,7 @@ class _CliOptions {
     required this.limit,
     required this.timeout,
     required this.userAgent,
+    required this.targetReasons,
     required this.dryRun,
     required this.showHelp,
     required this.error,
@@ -97,6 +100,7 @@ class _CliOptions {
   final int? limit;
   final Duration timeout;
   final String userAgent;
+  final List<ArticleExtractionFailureReason> targetReasons;
   final bool dryRun;
   final bool showHelp;
   final String? error;
@@ -108,6 +112,7 @@ class _CliOptions {
     int? limit;
     var timeoutSeconds = 12;
     var userAgent = _defaultUserAgent;
+    final targetReasons = <ArticleExtractionFailureReason>[];
     var dryRun = false;
 
     for (var i = 0; i < args.length; i += 1) {
@@ -168,6 +173,14 @@ class _CliOptions {
           }
           userAgent = value.trim();
           break;
+        case '--reason':
+          final value = nextValue();
+          final parsed = _parseReason(value);
+          if (parsed == null) {
+            return _CliOptions._error('Invalid --reason: $value');
+          }
+          targetReasons.add(parsed);
+          break;
         default:
           return _CliOptions._error('Unknown argument: $arg');
       }
@@ -184,6 +197,7 @@ class _CliOptions {
       limit: limit,
       timeout: Duration(seconds: timeoutSeconds),
       userAgent: userAgent,
+      targetReasons: targetReasons,
       dryRun: dryRun,
       showHelp: false,
       error: null,
@@ -198,6 +212,7 @@ class _CliOptions {
       limit: null,
       timeout: Duration(seconds: 12),
       userAgent: _defaultUserAgent,
+      targetReasons: [],
       dryRun: false,
       showHelp: true,
       error: null,
@@ -212,6 +227,7 @@ class _CliOptions {
       limit: null,
       timeout: const Duration(seconds: 12),
       userAgent: _defaultUserAgent,
+      targetReasons: const [],
       dryRun: false,
       showHelp: false,
       error: message,
@@ -231,6 +247,14 @@ class _CliOptions {
     }
     return null;
   }
+
+  static ArticleExtractionFailureReason? _parseReason(String? value) {
+    if (value == null) return null;
+    for (final reason in ArticleExtractionFailureReason.values) {
+      if (reason.name == value.trim()) return reason;
+    }
+    return null;
+  }
 }
 
 const _usage = '''
@@ -241,6 +265,7 @@ Options:
   --output-dir <path>        Fixture directory. Defaults to test/fixtures/article_extraction.
   --html-mode minimal|raw    HTML snapshot mode. minimal writes redacted snapshots; raw keeps fetched HTML for /tmp debugging.
   --limit <n>                Limit total frozen or planned candidates.
+  --reason <reason>          Only plan/freeze this reason. May be repeated.
   --dry-run                  Parse and print candidates without fetching or writing files.
   --timeout-seconds <n>      Per-request timeout. Defaults to 12.
   --user-agent <ua>          Override the default desktop browser user agent.

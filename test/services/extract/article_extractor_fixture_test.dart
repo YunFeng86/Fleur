@@ -176,6 +176,36 @@ void main() {
     },
   );
 
+  test('freeze_tool_dry_run can target titleOnly candidates', () async {
+    final fetcher = _FakeFetcher();
+    final freezer = ArticleExtractionFixtureFreezer(fetcher: fetcher.call);
+    final outputDirectory = Directory(
+      p.join(
+        Directory.systemTemp.path,
+        'fleur-article-fixture-targeted-dry-run-unused',
+      ),
+    );
+
+    final result = await freezer.freezeFromAuditReport(
+      auditMarkdown: _dryRunAuditMarkdown,
+      outputDirectory: outputDirectory,
+      options: const ArticleExtractionFixtureFreezeOptions(
+        dryRun: true,
+        targetReasons: [ArticleExtractionFailureReason.titleOnly],
+      ),
+    );
+
+    expect(result.dryRun, true);
+    expect(result.planned, hasLength(1));
+    expect(
+      result.planned.single.expectedReason,
+      ArticleExtractionFailureReason.titleOnly,
+    );
+    expect(result.planned.single.url, 'https://example.com/title-only');
+    expect(fetcher.calls, isEmpty);
+    expect(outputDirectory.existsSync(), false);
+  });
+
   test('minimal freeze redacts page content while preserving reason', () async {
     final fetcher = _FakeFetcher({
       'https://example.com/clean': ArticleExtractionAuditFetchResult(
@@ -353,6 +383,57 @@ void main() {
       outputDirectory.deleteSync(recursive: true);
     }
   });
+
+  test(
+    'minimal redaction accepts fixed titleOnly snapshots as normal',
+    () async {
+      final fetcher = _FakeFetcher({
+        'https://example.com/title-recoverable':
+            ArticleExtractionAuditFetchResult(
+              body: _recoverableTitleOnlyHtml(),
+              statusCode: 200,
+            ),
+      });
+      final freezer = ArticleExtractionFixtureFreezer(fetcher: fetcher.call);
+      final outputDirectory = Directory.systemTemp.createTempSync(
+        'fleur-article-fixture-titleonly-redacted-',
+      );
+
+      try {
+        final result = await freezer.freezeFromAuditReport(
+          auditMarkdown: _singleCandidateMarkdown(
+            reason: 'titleOnly',
+            url: 'https://example.com/title-recoverable',
+            title: _longPrivateTitle,
+          ),
+          outputDirectory: outputDirectory,
+          options: const ArticleExtractionFixtureFreezeOptions(
+            targetReasons: [ArticleExtractionFailureReason.titleOnly],
+          ),
+        );
+
+        expect(result.frozen, hasLength(1));
+        final fixture = result.frozen.single;
+        expect(fixture.expectedReason, ArticleExtractionFailureReason.none);
+        final html = File(
+          p.joinAll([outputDirectory.path, ...fixture.htmlPath.split('/')]),
+        ).readAsStringSync();
+        final diagnostics = ArticleExtractor.diagnoseFromHtml(
+          html: html,
+          url: fixture.url,
+          statusCode: fixture.statusCode,
+        );
+
+        expect(html, isNot(contains(_longPrivateTitle)));
+        expect(html, isNot(contains('Private static body text')));
+        expect(html, contains('post-content-content'));
+        expect(html, contains('Fixture body paragraph'));
+        expect(diagnostics.reason, ArticleExtractionFailureReason.none);
+      } finally {
+        outputDirectory.deleteSync(recursive: true);
+      }
+    },
+  );
 
   test('raw freeze keeps the fetched HTML for local debugging', () async {
     final fetcher = _FakeFetcher({
@@ -621,6 +702,30 @@ String _lazyImageMissingHtml() {
 </html>
 ''';
 }
+
+String _recoverableTitleOnlyHtml() {
+  final body = List<String>.filled(8, 'Private static body text.').join(' ');
+  return '''
+<!doctype html>
+<html>
+<head>
+  <title>$_longPrivateTitle</title>
+</head>
+<body>
+  <article>
+    <h1>$_longPrivateTitle</h1>
+  </article>
+  <content-host>
+    <p>$body</p>
+  </content-host>
+</body>
+</html>
+''';
+}
+
+const _longPrivateTitle =
+    'Private title-only regression heading long enough to be selected as the '
+    'initial article candidate by the legacy scorer';
 
 String _singleCandidateMarkdown({
   required String reason,
