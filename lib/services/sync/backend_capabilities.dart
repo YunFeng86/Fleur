@@ -1,3 +1,5 @@
+// Operation capability surface: buttons, menus, actions, outbox, and runtime affordances.
+
 import '../accounts/account.dart';
 
 enum BackendFeature {

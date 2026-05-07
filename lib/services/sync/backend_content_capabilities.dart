@@ -1,3 +1,5 @@
+// Content enrichment capability surface: web fetch, server content, image prefetch, and user-agent applicability.
+
 import '../accounts/account.dart';
 import 'backend_capabilities.dart';
 

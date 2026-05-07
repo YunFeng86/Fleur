@@ -1,3 +1,5 @@
+// Sync semantics profile: refresh scope, history coverage, remote taxonomy, and notification granularity.
+
 import '../accounts/account.dart';
 
 enum BackendRefreshScope { feed, account }
