@@ -537,6 +537,13 @@ class _SyncSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final capabilities = ref.watch(backendCapabilitiesProvider);
+    final canSyncImages = capabilities.isVisible(
+      BackendFeature.syncImagePrefetch,
+    );
+    final canSyncWebPages =
+        capabilities.isVisible(BackendFeature.clientWebPageFetch) ||
+        capabilities.isVisible(BackendFeature.serverArticleContentFetch);
 
     return SettingsSection(
       title: l10n.sync,
@@ -585,88 +592,90 @@ class _SyncSection extends ConsumerWidget {
                 }
               },
             ),
-            _TriStateSwitch(
-              title: l10n.syncImages,
-              currentValue: feed != null
-                  ? feed!.syncImages
-                  : category?.syncImages,
-              effectiveValue: SettingsInheritanceHelper.resolveSyncImages(
-                feed,
-                category,
-                appSettings,
+            if (canSyncImages)
+              _TriStateSwitch(
+                title: l10n.syncImages,
+                currentValue: feed != null
+                    ? feed!.syncImages
+                    : category?.syncImages,
+                effectiveValue: SettingsInheritanceHelper.resolveSyncImages(
+                  feed,
+                  category,
+                  appSettings,
+                ),
+                isGlobal: feed == null && category == null,
+                onChanged: (val) {
+                  if (feed != null) {
+                    unawaited(
+                      SubscriptionActions.updateFeedSettings(
+                        context,
+                        ref,
+                        feedId: feed!.id,
+                        syncImages: val,
+                        updateSyncImages: true,
+                      ),
+                    );
+                  } else if (category != null) {
+                    unawaited(
+                      SubscriptionActions.updateCategorySettings(
+                        context,
+                        ref,
+                        categoryId: category!.id,
+                        syncImages: val,
+                        updateSyncImages: true,
+                      ),
+                    );
+                  } else {
+                    unawaited(
+                      ref
+                          .read(appSettingsProvider.notifier)
+                          .setSyncImages(val ?? true),
+                    );
+                  }
+                },
               ),
-              isGlobal: feed == null && category == null,
-              onChanged: (val) {
-                if (feed != null) {
-                  unawaited(
-                    SubscriptionActions.updateFeedSettings(
-                      context,
-                      ref,
-                      feedId: feed!.id,
-                      syncImages: val,
-                      updateSyncImages: true,
-                    ),
-                  );
-                } else if (category != null) {
-                  unawaited(
-                    SubscriptionActions.updateCategorySettings(
-                      context,
-                      ref,
-                      categoryId: category!.id,
-                      syncImages: val,
-                      updateSyncImages: true,
-                    ),
-                  );
-                } else {
-                  unawaited(
-                    ref
-                        .read(appSettingsProvider.notifier)
-                        .setSyncImages(val ?? true),
-                  );
-                }
-              },
-            ),
-            _TriStateSwitch(
-              title: l10n.syncWebPages,
-              currentValue: feed != null
-                  ? feed!.syncWebPages
-                  : category?.syncWebPages,
-              effectiveValue: SettingsInheritanceHelper.resolveSyncWebPages(
-                feed,
-                category,
-                appSettings,
+            if (canSyncWebPages)
+              _TriStateSwitch(
+                title: l10n.syncWebPages,
+                currentValue: feed != null
+                    ? feed!.syncWebPages
+                    : category?.syncWebPages,
+                effectiveValue: SettingsInheritanceHelper.resolveSyncWebPages(
+                  feed,
+                  category,
+                  appSettings,
+                ),
+                isGlobal: feed == null && category == null,
+                onChanged: (val) {
+                  if (feed != null) {
+                    unawaited(
+                      SubscriptionActions.updateFeedSettings(
+                        context,
+                        ref,
+                        feedId: feed!.id,
+                        syncWebPages: val,
+                        updateSyncWebPages: true,
+                      ),
+                    );
+                  } else if (category != null) {
+                    unawaited(
+                      SubscriptionActions.updateCategorySettings(
+                        context,
+                        ref,
+                        categoryId: category!.id,
+                        syncWebPages: val,
+                        updateSyncWebPages: true,
+                      ),
+                    );
+                  } else {
+                    unawaited(
+                      ref
+                          .read(appSettingsProvider.notifier)
+                          .setSyncWebPages(val ?? false),
+                    );
+                  }
+                },
               ),
-              isGlobal: feed == null && category == null,
-              onChanged: (val) {
-                if (feed != null) {
-                  unawaited(
-                    SubscriptionActions.updateFeedSettings(
-                      context,
-                      ref,
-                      feedId: feed!.id,
-                      syncWebPages: val,
-                      updateSyncWebPages: true,
-                    ),
-                  );
-                } else if (category != null) {
-                  unawaited(
-                    SubscriptionActions.updateCategorySettings(
-                      context,
-                      ref,
-                      categoryId: category!.id,
-                      syncWebPages: val,
-                      updateSyncWebPages: true,
-                    ),
-                  );
-                } else {
-                  unawaited(
-                    ref
-                        .read(appSettingsProvider.notifier)
-                        .setSyncWebPages(val ?? false),
-                  );
-                }
-              },
-            ),
             _TriStateSwitch(
               title: l10n.autoAiSummary,
               currentValue: feed != null

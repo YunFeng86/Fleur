@@ -21,6 +21,9 @@ enum BackendFeature {
   offlineCache,
   outboxFlush,
   serverContentFetchMode,
+  clientWebPageFetch,
+  serverArticleContentFetch,
+  syncImagePrefetch,
 }
 
 enum FeatureAvailability {
@@ -64,6 +67,7 @@ class BackendCapabilities {
   static FeatureAvailability _localAvailability(BackendFeature feature) {
     return switch (feature) {
       BackendFeature.outboxFlush ||
+      BackendFeature.serverArticleContentFetch ||
       BackendFeature.serverContentFetchMode => FeatureAvailability.hidden,
       BackendFeature.syncNow ||
       BackendFeature.addSubscription ||
@@ -82,7 +86,9 @@ class BackendCapabilities {
       BackendFeature.articleReadLater ||
       BackendFeature.clientFeedSettings ||
       BackendFeature.clientCategorySettings ||
-      BackendFeature.offlineCache => FeatureAvailability.local,
+      BackendFeature.offlineCache ||
+      BackendFeature.clientWebPageFetch ||
+      BackendFeature.syncImagePrefetch => FeatureAvailability.local,
     };
   }
 
@@ -95,6 +101,8 @@ class BackendCapabilities {
       BackendFeature.clientFeedSettings ||
       BackendFeature.clientCategorySettings ||
       BackendFeature.offlineCache ||
+      BackendFeature.clientWebPageFetch ||
+      BackendFeature.syncImagePrefetch ||
       BackendFeature.serverContentFetchMode => FeatureAvailability.localOnly,
       BackendFeature.articleReadState ||
       BackendFeature.articleStarState ||
@@ -107,7 +115,9 @@ class BackendCapabilities {
       BackendFeature.deleteCategory ||
       BackendFeature.moveSubscriptionToCategory ||
       BackendFeature.refreshSubscriptionSource ||
-      BackendFeature.refreshAllSources => FeatureAvailability.onlineRequired,
+      BackendFeature.refreshAllSources ||
+      BackendFeature.serverArticleContentFetch =>
+        FeatureAvailability.onlineRequired,
     };
   }
 
@@ -123,12 +133,15 @@ class BackendCapabilities {
       BackendFeature.refreshSubscriptionSource ||
       BackendFeature.refreshAllSources ||
       BackendFeature.importOpml ||
+      BackendFeature.serverArticleContentFetch ||
       BackendFeature.serverContentFetchMode => FeatureAvailability.hidden,
       BackendFeature.exportOpml ||
       BackendFeature.articleReadLater ||
       BackendFeature.clientFeedSettings ||
       BackendFeature.clientCategorySettings ||
-      BackendFeature.offlineCache => FeatureAvailability.localOnly,
+      BackendFeature.offlineCache ||
+      BackendFeature.clientWebPageFetch ||
+      BackendFeature.syncImagePrefetch => FeatureAvailability.localOnly,
       BackendFeature.articleReadState ||
       BackendFeature.articleStarState ||
       BackendFeature.outboxFlush => FeatureAvailability.deferredRemote,

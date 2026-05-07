@@ -342,6 +342,46 @@ void main() {
     expect(find.text('Move to category'), findsNothing);
     expect(find.text('Refresh'), findsNothing);
     expect(find.text('Delete'), findsNothing);
+    expect(find.text('Download Images during Sync'), findsOneWidget);
+    expect(find.text('Download Web Pages during Sync'), findsOneWidget);
+  });
+
+  testWidgets('Fever global sync content fetch settings remain editable', (
+    tester,
+  ) async {
+    final category = buildCategory();
+    final feed = buildFeed();
+    final feedController = StreamController<Feed?>.broadcast();
+    addTearDown(feedController.close);
+    final fakeRepo = _FakeFeedRepository(feedController, feed);
+    final appStore = FakeAppSettingsStore(
+      AppSettings.defaults().copyWith(syncImages: true, syncWebPages: false),
+    );
+
+    await pumpPanel(
+      tester,
+      appStore: appStore,
+      feed: feed,
+      category: category,
+      feedRepository: fakeRepo,
+      feedStream: feedController.stream,
+      account: buildTestAccount(type: AccountType.fever),
+    );
+
+    expect(find.text('Download Images during Sync'), findsOneWidget);
+    expect(find.text('Download Web Pages during Sync'), findsOneWidget);
+
+    await tester.tap(
+      find.widgetWithText(SwitchListTile, 'Download Images during Sync'),
+    );
+    await tester.pumpAndSettle();
+    expect(appStore.settings.syncImages, isFalse);
+
+    await tester.tap(
+      find.widgetWithText(SwitchListTile, 'Download Web Pages during Sync'),
+    );
+    await tester.pumpAndSettle();
+    expect(appStore.settings.syncWebPages, isTrue);
   });
 
   testWidgets(
