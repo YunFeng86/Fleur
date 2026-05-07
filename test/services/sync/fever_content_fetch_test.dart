@@ -111,7 +111,25 @@ class _FakeArticleExtractor extends ArticleExtractor {
   }
 }
 
-Dio _feverDio({String unreadIds = '100', String itemHtml = '<p>feed</p>'}) {
+Dio _feverDio({
+  String? unreadIds,
+  String itemHtml = '<p>feed</p>',
+  int feedCount = 1,
+  int itemCount = 1,
+}) {
+  final generatedItemIds = List.generate(itemCount, (index) => 100 + index);
+  final unreadItemIds = unreadIds ?? generatedItemIds.join(',');
+  final feeds = List.generate(feedCount, (index) {
+    return <String, Object?>{
+      'id': 10 + index,
+      'url': feedCount == 1
+          ? 'https://example.com/feed.xml'
+          : 'https://example.com/feed_$index.xml',
+      'title': feedCount == 1 ? 'Example Feed' : 'Example Feed $index',
+      'site_url': 'https://example.com',
+    };
+  });
+
   final dio = Dio();
   dio.interceptors.add(
     InterceptorsWrapper(
@@ -122,36 +140,38 @@ Dio _feverDio({String unreadIds = '100', String itemHtml = '<p>feed</p>'}) {
         if (query == 'api&groups') {
           data = <String, Object?>{'auth': 1, 'groups': const []};
         } else if (query == 'api&feeds') {
-          data = <String, Object?>{
-            'auth': 1,
-            'feeds': [
-              {
-                'id': 10,
-                'url': 'https://example.com/feed.xml',
-                'title': 'Example Feed',
-                'site_url': 'https://example.com',
-              },
-            ],
-          };
+          data = <String, Object?>{'auth': 1, 'feeds': feeds};
         } else if (query == 'api&feeds&groups') {
           data = <String, Object?>{'auth': 1, 'feeds_groups': const []};
         } else if (query == 'api&unread_item_ids') {
-          data = <String, Object?>{'auth': 1, 'unread_item_ids': unreadIds};
+          data = <String, Object?>{'auth': 1, 'unread_item_ids': unreadItemIds};
         } else if (query == 'api&saved_item_ids') {
           data = <String, Object?>{'auth': 1, 'saved_item_ids': ''};
         } else if (query.startsWith('api&items&with_ids=')) {
+          final rawIds = Uri.decodeQueryComponent(
+            query.substring('api&items&with_ids='.length),
+          );
+          final requestedIds = rawIds
+              .split(',')
+              .map((value) => int.tryParse(value.trim()))
+              .whereType<int>()
+              .toList(growable: false);
           data = <String, Object?>{
             'auth': 1,
             'items': [
-              {
-                'id': 100,
-                'feed_id': 10,
-                'url': 'https://example.com/articles/100',
-                'title': 'Fever Article',
-                'author': 'Fever Author',
-                'html': itemHtml,
-                'created_on_time': 1770000000,
-              },
+              for (final id in requestedIds)
+                {
+                  'id': id,
+                  'feed_id':
+                      10 +
+                      (generatedItemIds.indexOf(id).clamp(0, feedCount - 1) %
+                          feedCount),
+                  'url': 'https://example.com/articles/$id',
+                  'title': 'Fever Article $id',
+                  'author': 'Fever Author',
+                  'html': itemHtml,
+                  'created_on_time': 1770000000 + id,
+                },
             ],
           };
         }
@@ -180,13 +200,14 @@ Future<List<Article>> _syncFeverArticles(
   required AppSettings settings,
   required _RecordingArticleCacheService cache,
   required _FakeArticleExtractor extractor,
+  Dio? dio,
 }) async {
   final service = FeverSyncService(
     account: buildTestAccount(
       type: AccountType.fever,
       baseUrl: 'https://fever.example.com',
     ),
-    dio: _feverDio(itemHtml: '<p>feed <img src="/feed.png"></p>'),
+    dio: dio ?? _feverDio(itemHtml: '<p>feed <img src="/feed.png"></p>'),
     credentials: _FakeCredentialStore(),
     feeds: FeedRepository(isar),
     categories: CategoryRepository(isar),
@@ -301,6 +322,35 @@ void main() {
       expect(cache.prefetchedHtml.single, contains('/full.png'));
     },
   );
+
+  test('limits web page extraction across the whole Fever sync', () async {
+    final cache = _RecordingArticleCacheService();
+    final extractor = _FakeArticleExtractor(
+      html: '<article>full <img src="/full.png"></article>',
+    );
+
+    final articles = await _syncFeverArticles(
+      isar!,
+      settings: AppSettings.defaults().copyWith(
+        syncWebPages: true,
+        syncImages: false,
+      ),
+      cache: cache,
+      extractor: extractor,
+      dio: _feverDio(
+        feedCount: 10,
+        itemCount: 12,
+        itemHtml: '<p>feed <img src="/feed.png"></p>',
+      ),
+    );
+
+    expect(articles, hasLength(12));
+    expect(extractor.urls, hasLength(8));
+    expect(
+      articles.where((article) => article.extractedContentHtml != null),
+      hasLength(8),
+    );
+  });
 
   test('does not call extractor when syncWebPages is disabled', () async {
     final cache = _RecordingArticleCacheService();

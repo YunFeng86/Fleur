@@ -324,6 +324,7 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
 
     var totalNew = 0;
     var processed = 0;
+    var webPagesRemaining = _maxWebPagesPerSync;
 
     for (var i = 0; i < limitedIds.length; i += 50) {
       final end = i + 50 > limitedIds.length ? limitedIds.length : i + 50;
@@ -388,7 +389,12 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
         totalNew += newArticles.length;
         final settings = localFeedIdToSettings[entry.key];
         if (settings != null) {
-          await _prefetchNewArticles(newArticles, settings, appSettings);
+          webPagesRemaining -= await _prefetchNewArticles(
+            newArticles,
+            settings,
+            appSettings,
+            remainingWebPageFetches: webPagesRemaining,
+          );
         }
       }
 
@@ -413,12 +419,13 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
     }
   }
 
-  Future<void> _prefetchNewArticles(
+  Future<int> _prefetchNewArticles(
     List<Article> newArticles,
     EffectiveFeedSettings settings,
-    AppSettings appSettings,
-  ) async {
-    if (newArticles.isEmpty) return;
+    AppSettings appSettings, {
+    required int remainingWebPageFetches,
+  }) async {
+    if (newArticles.isEmpty) return 0;
 
     if (settings.syncImages) {
       try {
@@ -426,15 +433,21 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
       } catch (_) {}
     }
 
-    if (settings.syncWebPages) {
+    var attemptedWebPageFetches = 0;
+    if (settings.syncWebPages && remainingWebPageFetches > 0) {
+      final targets = newArticles.length <= remainingWebPageFetches
+          ? newArticles
+          : newArticles.sublist(0, remainingWebPageFetches);
+      attemptedWebPageFetches = targets.length;
       try {
         await _syncWebPagesForArticles(
-          newArticles,
+          targets,
           webUserAgent: appSettings.webUserAgent,
           syncImages: settings.syncImages,
         );
       } catch (_) {}
     }
+    return attemptedWebPageFetches;
   }
 
   static const int _maxWebPagesPerSync = 8;
