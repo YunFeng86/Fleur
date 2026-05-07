@@ -211,6 +211,26 @@
   "@refreshAll": {
     "description": "refreshAll"
   },
+  "accountSync": "账号同步",
+  "@accountSync": {
+    "description": "accountSync"
+  },
+  "accountSyncSubtitle": "在后台同步这个远程账号。",
+  "@accountSyncSubtitle": {
+    "description": "accountSyncSubtitle"
+  },
+  "syncAccount": "同步账号",
+  "@syncAccount": {
+    "description": "syncAccount"
+  },
+  "syncingAccount": "正在同步账号...",
+  "@syncingAccount": {
+    "description": "syncingAccount"
+  },
+  "syncedAccount": "账号已同步",
+  "@syncedAccount": {
+    "description": "syncedAccount"
+  },
   "refreshSelected": "刷新当前",
   "@refreshSelected": {
     "description": "refreshSelected"
@@ -476,6 +496,30 @@
   "remoteDeleteCategoryConfirmContent": "将先在远程服务上删除该分类，然后回刷本地镜像。",
   "@remoteDeleteCategoryConfirmContent": {
     "description": "Confirmation text for deleting a remote-backed category."
+  },
+  "remoteWritableTaxonomyTitle": "远程分类",
+  "@remoteWritableTaxonomyTitle": {
+    "description": "Title for writable remote taxonomy/category semantics."
+  },
+  "remoteWritableTaxonomyDescription": "分类变更会应用到远程服务，并同步回本地镜像。",
+  "@remoteWritableTaxonomyDescription": {
+    "description": "Description for writable remote taxonomy/category semantics."
+  },
+  "remoteReadOnlyTaxonomyTitle": "只读远程分组",
+  "@remoteReadOnlyTaxonomyTitle": {
+    "description": "Title for read-only remote taxonomy/group mirror semantics."
+  },
+  "remoteReadOnlyTaxonomyDescription": "这些分类来自只读远程分组镜像。重命名、删除或移动请在远程服务中管理。",
+  "@remoteReadOnlyTaxonomyDescription": {
+    "description": "Description for read-only remote taxonomy/group mirror semantics."
+  },
+  "feedCategoryReadOnlyTaxonomyTitle": "分类由远程管理",
+  "@feedCategoryReadOnlyTaxonomyTitle": {
+    "description": "Title for a feed whose category assignment is managed by a read-only remote taxonomy mirror."
+  },
+  "feedCategoryReadOnlyTaxonomyDescription": "这个订阅源的分类来自只读远程分组镜像。",
+  "@feedCategoryReadOnlyTaxonomyDescription": {
+    "description": "Description for a feed whose category assignment is managed by a read-only remote taxonomy mirror."
   },
   "deleteTagConfirmTitle": "删除标签？",
   "@deleteTagConfirmTitle": {
@@ -749,9 +793,25 @@
   "@minifluxStrategySubtitle": {
     "description": "minifluxStrategySubtitle"
   },
-  "minifluxEntriesLimit": "每次同步拉取条数",
-  "@minifluxEntriesLimit": {
-    "description": "minifluxEntriesLimit"
+  "remoteSyncStrategy": "远程同步策略",
+  "@remoteSyncStrategy": {
+    "description": "remoteSyncStrategy"
+  },
+  "remoteSyncStrategySubtitle": "控制同步时拉取的远程文章窗口。",
+  "@remoteSyncStrategySubtitle": {
+    "description": "remoteSyncStrategySubtitle"
+  },
+  "remoteSyncStrategyMinifluxSubtitle": "Miniflux 会分页拉取远程文章，最多到这个每次同步窗口。",
+  "@remoteSyncStrategyMinifluxSubtitle": {
+    "description": "remoteSyncStrategyMinifluxSubtitle"
+  },
+  "remoteSyncStrategyFeverSubtitle": "Fever 同步未读和收藏条目，并受这个每次同步窗口限制。",
+  "@remoteSyncStrategyFeverSubtitle": {
+    "description": "remoteSyncStrategyFeverSubtitle"
+  },
+  "remoteEntriesLimit": "每次同步拉取条数",
+  "@remoteEntriesLimit": {
+    "description": "remoteEntriesLimit"
   },
   "minifluxWebFetchMode": "网页抓取方式",
   "@minifluxWebFetchMode": {

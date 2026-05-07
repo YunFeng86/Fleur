@@ -411,6 +411,36 @@ abstract class AppLocalizations {
   /// **'Refresh all'**
   String get refreshAll;
 
+  /// accountSync
+  ///
+  /// In en, this message translates to:
+  /// **'Account sync'**
+  String get accountSync;
+
+  /// accountSyncSubtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Sync this remote account in the background.'**
+  String get accountSyncSubtitle;
+
+  /// syncAccount
+  ///
+  /// In en, this message translates to:
+  /// **'Sync account'**
+  String get syncAccount;
+
+  /// syncingAccount
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing account...'**
+  String get syncingAccount;
+
+  /// syncedAccount
+  ///
+  /// In en, this message translates to:
+  /// **'Account synced'**
+  String get syncedAccount;
+
   /// refreshSelected
   ///
   /// In en, this message translates to:
@@ -740,6 +770,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete this category on the remote service and then reconcile the local mirror.'**
   String get remoteDeleteCategoryConfirmContent;
+
+  /// Title for writable remote taxonomy/category semantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote categories'**
+  String get remoteWritableTaxonomyTitle;
+
+  /// Description for writable remote taxonomy/category semantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Category changes are applied on the remote service and then mirrored locally.'**
+  String get remoteWritableTaxonomyDescription;
+
+  /// Title for read-only remote taxonomy/group mirror semantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Read-only remote groups'**
+  String get remoteReadOnlyTaxonomyTitle;
+
+  /// Description for read-only remote taxonomy/group mirror semantics.
+  ///
+  /// In en, this message translates to:
+  /// **'These categories mirror read-only remote groups. Rename, delete, or move items in the remote service.'**
+  String get remoteReadOnlyTaxonomyDescription;
+
+  /// Title for a feed whose category assignment is managed by a read-only remote taxonomy mirror.
+  ///
+  /// In en, this message translates to:
+  /// **'Category managed remotely'**
+  String get feedCategoryReadOnlyTaxonomyTitle;
+
+  /// Description for a feed whose category assignment is managed by a read-only remote taxonomy mirror.
+  ///
+  /// In en, this message translates to:
+  /// **'This feed\'s category comes from a read-only remote group mirror.'**
+  String get feedCategoryReadOnlyTaxonomyDescription;
 
   /// deleteTagConfirmTitle
   ///
@@ -1155,11 +1221,35 @@ abstract class AppLocalizations {
   /// **'Controls how much data is fetched/prefetched during sync.'**
   String get minifluxStrategySubtitle;
 
-  /// minifluxEntriesLimit
+  /// remoteSyncStrategy
+  ///
+  /// In en, this message translates to:
+  /// **'Remote sync strategy'**
+  String get remoteSyncStrategy;
+
+  /// remoteSyncStrategySubtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Controls the remote article window pulled during sync.'**
+  String get remoteSyncStrategySubtitle;
+
+  /// remoteSyncStrategyMinifluxSubtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Miniflux can page through remote entries up to this per-sync window.'**
+  String get remoteSyncStrategyMinifluxSubtitle;
+
+  /// remoteSyncStrategyFeverSubtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Fever syncs unread and saved items, capped by this per-sync window.'**
+  String get remoteSyncStrategyFeverSubtitle;
+
+  /// remoteEntriesLimit
   ///
   /// In en, this message translates to:
   /// **'Entries per sync'**
-  String get minifluxEntriesLimit;
+  String get remoteEntriesLimit;
 
   /// minifluxWebFetchMode
   ///

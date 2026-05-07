@@ -144,6 +144,7 @@ SyncServiceBase buildSyncServiceForAccount({
         appSettingsStore: appSettingsStore,
         notifications: notifications,
         cache: cache,
+        extractor: extractor,
         statusReporter: statusReporter,
       );
   }

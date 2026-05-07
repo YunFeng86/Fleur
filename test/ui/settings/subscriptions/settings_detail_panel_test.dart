@@ -198,6 +198,46 @@ void main() {
 
     expect(find.text('Tech'), findsOneWidget);
     expect(find.text('Delete'), findsOneWidget);
+    expect(find.text('Remote categories'), findsNothing);
+    expect(find.text('Read-only remote groups'), findsNothing);
+  });
+
+  testWidgets('Miniflux category details explain writable remote taxonomy', (
+    tester,
+  ) async {
+    final category = buildCategory();
+    final feed = buildFeed();
+    final feedController = StreamController<Feed?>.broadcast();
+    addTearDown(feedController.close);
+    final fakeRepo = _FakeFeedRepository(feedController, feed);
+    final appStore = FakeAppSettingsStore(AppSettings.defaults());
+
+    await pumpPanel(
+      tester,
+      appStore: appStore,
+      feed: feed,
+      category: category,
+      feedRepository: fakeRepo,
+      feedStream: feedController.stream,
+      account: buildTestAccount(type: AccountType.miniflux),
+    );
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(SettingsDetailPanel)),
+    );
+    container.read(subscriptionSelectionProvider.notifier).selectCategory(1);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Remote categories'), findsOneWidget);
+    expect(
+      find.text(
+        'Category changes are applied on the remote service and then mirrored locally.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Rename'), findsOneWidget);
+    expect(find.text('Delete'), findsOneWidget);
+    expect(find.text('Read-only remote groups'), findsNothing);
   });
 
   testWidgets(
@@ -303,8 +343,43 @@ void main() {
 
     expect(find.text('Example Feed'), findsOneWidget);
     expect(find.text('https://example.com/feed.xml'), findsOneWidget);
+    expect(find.text('Refresh'), findsOneWidget);
     expect(find.text('Delete'), findsOneWidget);
     expect(find.byIcon(Icons.delete_outline), findsOneWidget);
+  });
+
+  testWidgets('Miniflux feed details keep source refresh action', (
+    tester,
+  ) async {
+    final category = buildCategory();
+    final feed = buildFeed();
+    final feedController = StreamController<Feed?>.broadcast();
+    addTearDown(feedController.close);
+    final fakeRepo = _FakeFeedRepository(feedController, feed);
+    final appStore = FakeAppSettingsStore(AppSettings.defaults());
+
+    await pumpPanel(
+      tester,
+      appStore: appStore,
+      feed: feed,
+      category: category,
+      feedRepository: fakeRepo,
+      feedStream: feedController.stream,
+      account: buildTestAccount(type: AccountType.miniflux),
+    );
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(SettingsDetailPanel)),
+    );
+    container
+        .read(subscriptionSelectionProvider.notifier)
+        .selectFeed(
+          feed.id,
+          categoryScope: SubscriptionCategoryId(category.id),
+        );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Refresh'), findsOneWidget);
   });
 
   testWidgets('Fever feed details hide remote structure actions', (
@@ -340,8 +415,87 @@ void main() {
 
     expect(find.text('Rename'), findsOneWidget);
     expect(find.text('Move to category'), findsNothing);
+    expect(find.text('Category managed remotely'), findsOneWidget);
     expect(find.text('Refresh'), findsNothing);
     expect(find.text('Delete'), findsNothing);
+    expect(find.text('Download Images during Sync'), findsOneWidget);
+    expect(find.text('Download Web Pages during Sync'), findsOneWidget);
+  });
+
+  testWidgets('Fever category details explain read-only remote taxonomy', (
+    tester,
+  ) async {
+    final category = buildCategory();
+    final feed = buildFeed();
+    final feedController = StreamController<Feed?>.broadcast();
+    addTearDown(feedController.close);
+    final fakeRepo = _FakeFeedRepository(feedController, feed);
+    final appStore = FakeAppSettingsStore(AppSettings.defaults());
+
+    await pumpPanel(
+      tester,
+      appStore: appStore,
+      feed: feed,
+      category: category,
+      feedRepository: fakeRepo,
+      feedStream: feedController.stream,
+      account: buildTestAccount(type: AccountType.fever),
+    );
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(SettingsDetailPanel)),
+    );
+    container.read(subscriptionSelectionProvider.notifier).selectCategory(1);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Read-only remote groups'), findsOneWidget);
+    expect(
+      find.text(
+        'These categories mirror read-only remote groups. Rename, delete, or move items in the remote service.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Rename'), findsNothing);
+    expect(find.text('Delete'), findsNothing);
+    expect(find.text('Download Images during Sync'), findsOneWidget);
+  });
+
+  testWidgets('Fever global sync content fetch settings remain editable', (
+    tester,
+  ) async {
+    final category = buildCategory();
+    final feed = buildFeed();
+    final feedController = StreamController<Feed?>.broadcast();
+    addTearDown(feedController.close);
+    final fakeRepo = _FakeFeedRepository(feedController, feed);
+    final appStore = FakeAppSettingsStore(
+      AppSettings.defaults().copyWith(syncImages: true, syncWebPages: false),
+    );
+
+    await pumpPanel(
+      tester,
+      appStore: appStore,
+      feed: feed,
+      category: category,
+      feedRepository: fakeRepo,
+      feedStream: feedController.stream,
+      account: buildTestAccount(type: AccountType.fever),
+    );
+
+    expect(find.text('Download Images during Sync'), findsOneWidget);
+    expect(find.text('Download Web Pages during Sync'), findsOneWidget);
+
+    await tester.tap(
+      find.widgetWithText(SwitchListTile, 'Download Images during Sync'),
+    );
+    await tester.pumpAndSettle();
+    expect(appStore.settings.syncImages, isFalse);
+
+    await tester.tap(
+      find.widgetWithText(SwitchListTile, 'Download Web Pages during Sync'),
+    );
+    await tester.pumpAndSettle();
+    expect(appStore.settings.syncWebPages, isTrue);
   });
 
   testWidgets(

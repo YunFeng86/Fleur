@@ -174,6 +174,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get refreshAll => 'Refresh all';
 
   @override
+  String get accountSync => 'Account sync';
+
+  @override
+  String get accountSyncSubtitle =>
+      'Sync this remote account in the background.';
+
+  @override
+  String get syncAccount => 'Sync account';
+
+  @override
+  String get syncingAccount => 'Syncing account...';
+
+  @override
+  String get syncedAccount => 'Account synced';
+
+  @override
   String get refreshSelected => 'Refresh selected';
 
   @override
@@ -354,6 +370,27 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get remoteDeleteCategoryConfirmContent =>
       'Delete this category on the remote service and then reconcile the local mirror.';
+
+  @override
+  String get remoteWritableTaxonomyTitle => 'Remote categories';
+
+  @override
+  String get remoteWritableTaxonomyDescription =>
+      'Category changes are applied on the remote service and then mirrored locally.';
+
+  @override
+  String get remoteReadOnlyTaxonomyTitle => 'Read-only remote groups';
+
+  @override
+  String get remoteReadOnlyTaxonomyDescription =>
+      'These categories mirror read-only remote groups. Rename, delete, or move items in the remote service.';
+
+  @override
+  String get feedCategoryReadOnlyTaxonomyTitle => 'Category managed remotely';
+
+  @override
+  String get feedCategoryReadOnlyTaxonomyDescription =>
+      'This feed\'s category comes from a read-only remote group mirror.';
 
   @override
   String get deleteTagConfirmTitle => 'Delete tag?';
@@ -575,7 +612,22 @@ class AppLocalizationsEn extends AppLocalizations {
       'Controls how much data is fetched/prefetched during sync.';
 
   @override
-  String get minifluxEntriesLimit => 'Entries per sync';
+  String get remoteSyncStrategy => 'Remote sync strategy';
+
+  @override
+  String get remoteSyncStrategySubtitle =>
+      'Controls the remote article window pulled during sync.';
+
+  @override
+  String get remoteSyncStrategyMinifluxSubtitle =>
+      'Miniflux can page through remote entries up to this per-sync window.';
+
+  @override
+  String get remoteSyncStrategyFeverSubtitle =>
+      'Fever syncs unread and saved items, capped by this per-sync window.';
+
+  @override
+  String get remoteEntriesLimit => 'Entries per sync';
 
   @override
   String get minifluxWebFetchMode => 'Web page fetching';

@@ -211,6 +211,26 @@
   "@refreshAll": {
     "description": "refreshAll"
   },
+  "accountSync": "帳號同步",
+  "@accountSync": {
+    "description": "accountSync"
+  },
+  "accountSyncSubtitle": "在背景同步這個遠端帳號。",
+  "@accountSyncSubtitle": {
+    "description": "accountSyncSubtitle"
+  },
+  "syncAccount": "同步帳號",
+  "@syncAccount": {
+    "description": "syncAccount"
+  },
+  "syncingAccount": "正在同步帳號...",
+  "@syncingAccount": {
+    "description": "syncingAccount"
+  },
+  "syncedAccount": "帳號已同步",
+  "@syncedAccount": {
+    "description": "syncedAccount"
+  },
   "refreshSelected": "重新整理當前",
   "@refreshSelected": {
     "description": "refreshSelected"
@@ -476,6 +496,30 @@
   "remoteDeleteCategoryConfirmContent": "將先在遠端服務上刪除這個分類，然後回刷本機鏡像。",
   "@remoteDeleteCategoryConfirmContent": {
     "description": "Confirmation text for deleting a remote-backed category."
+  },
+  "remoteWritableTaxonomyTitle": "遠端分類",
+  "@remoteWritableTaxonomyTitle": {
+    "description": "Title for writable remote taxonomy/category semantics."
+  },
+  "remoteWritableTaxonomyDescription": "分類變更會套用到遠端服務，並同步回本機鏡像。",
+  "@remoteWritableTaxonomyDescription": {
+    "description": "Description for writable remote taxonomy/category semantics."
+  },
+  "remoteReadOnlyTaxonomyTitle": "唯讀遠端分組",
+  "@remoteReadOnlyTaxonomyTitle": {
+    "description": "Title for read-only remote taxonomy/group mirror semantics."
+  },
+  "remoteReadOnlyTaxonomyDescription": "這些分類來自唯讀遠端分組鏡像。重新命名、刪除或移動請在遠端服務中管理。",
+  "@remoteReadOnlyTaxonomyDescription": {
+    "description": "Description for read-only remote taxonomy/group mirror semantics."
+  },
+  "feedCategoryReadOnlyTaxonomyTitle": "分類由遠端管理",
+  "@feedCategoryReadOnlyTaxonomyTitle": {
+    "description": "Title for a feed whose category assignment is managed by a read-only remote taxonomy mirror."
+  },
+  "feedCategoryReadOnlyTaxonomyDescription": "這個訂閱源的分類來自唯讀遠端分組鏡像。",
+  "@feedCategoryReadOnlyTaxonomyDescription": {
+    "description": "Description for a feed whose category assignment is managed by a read-only remote taxonomy mirror."
   },
   "deleteTagConfirmTitle": "刪除標籤？",
   "@deleteTagConfirmTitle": {
@@ -749,9 +793,25 @@
   "@minifluxStrategySubtitle": {
     "description": "minifluxStrategySubtitle"
   },
-  "minifluxEntriesLimit": "每次同步拉取筆數",
-  "@minifluxEntriesLimit": {
-    "description": "minifluxEntriesLimit"
+  "remoteSyncStrategy": "遠端同步策略",
+  "@remoteSyncStrategy": {
+    "description": "remoteSyncStrategy"
+  },
+  "remoteSyncStrategySubtitle": "控制同步時拉取的遠端文章視窗。",
+  "@remoteSyncStrategySubtitle": {
+    "description": "remoteSyncStrategySubtitle"
+  },
+  "remoteSyncStrategyMinifluxSubtitle": "Miniflux 會分頁拉取遠端文章，最多到這個每次同步視窗。",
+  "@remoteSyncStrategyMinifluxSubtitle": {
+    "description": "remoteSyncStrategyMinifluxSubtitle"
+  },
+  "remoteSyncStrategyFeverSubtitle": "Fever 同步未讀和收藏項目，並受這個每次同步視窗限制。",
+  "@remoteSyncStrategyFeverSubtitle": {
+    "description": "remoteSyncStrategyFeverSubtitle"
+  },
+  "remoteEntriesLimit": "每次同步拉取筆數",
+  "@remoteEntriesLimit": {
+    "description": "remoteEntriesLimit"
   },
   "minifluxWebFetchMode": "網頁抓取方式",
   "@minifluxWebFetchMode": {

@@ -9,6 +9,7 @@ import '../models/category.dart';
 import '../models/feed.dart';
 import '../providers/account_providers.dart';
 import '../providers/backend_capabilities_provider.dart';
+import '../providers/backend_sync_semantics_provider.dart';
 import '../providers/query_providers.dart';
 import '../providers/unread_providers.dart';
 import '../providers/sync_status_providers.dart';
@@ -140,6 +141,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
     final tags = ref.watch(tagsProvider);
     final activeAccount = ref.watch(activeAccountProvider);
     final capabilities = ref.watch(backendCapabilitiesProvider);
+    final syncSemantics = ref.watch(backendSyncSemanticsProvider);
     final navMode = LayoutSpec.fromContext(context).globalNavMode;
     final showAccountFooter = navMode == GlobalNavMode.bottom;
     final syncStatus = ref.watch(syncStatusControllerProvider);
@@ -179,6 +181,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
               selectionActions: selectionActions,
               managementActions: managementActions,
               capabilities: capabilities,
+              syncSemantics: syncSemantics,
               onAddFeed: managementActions.addFeed,
               onAddCategory: () async {
                 final id = await managementActions.addCategory();

@@ -49,24 +49,63 @@ void main() {
     expect(restored.seedColorPreset, SeedColorPreset.blue);
   });
 
-  test('AppSettings persists Miniflux entries limit in JSON', () {
-    final s = const AppSettings().copyWith(minifluxEntriesLimit: 800);
+  test('AppSettings defaults remote entries limit', () {
+    const s = AppSettings();
+    expect(s.remoteEntriesLimit, 400);
+  });
+
+  test('AppSettings copyWith updates remote entries limit', () {
+    final s = const AppSettings().copyWith(remoteEntriesLimit: 800);
+    expect(s.remoteEntriesLimit, 800);
+    expect(s.minifluxEntriesLimit, 800);
+  });
+
+  test('AppSettings copyWith keeps legacy Miniflux entries limit alias', () {
+    final s = const AppSettings().copyWith(minifluxEntriesLimit: 900);
+    expect(s.remoteEntriesLimit, 900);
+  });
+
+  test('AppSettings persists remote entries limit with legacy JSON key', () {
+    final s = const AppSettings().copyWith(remoteEntriesLimit: 800);
     final json = s.toJson();
     expect(json['minifluxEntriesLimit'], 800);
+    expect(json.containsKey('remoteEntriesLimit'), isFalse);
 
     final restored = AppSettings.fromJson(json.cast<String, Object?>());
-    expect(restored.minifluxEntriesLimit, 800);
+    expect(restored.remoteEntriesLimit, 800);
   });
 
-  test('AppSettings.fromJson defaults missing Miniflux entries limit', () {
+  test('AppSettings.fromJson reads legacy Miniflux entries limit', () {
+    final restored = AppSettings.fromJson(<String, Object?>{
+      'minifluxEntriesLimit': 800,
+    });
+    expect(restored.remoteEntriesLimit, 800);
+  });
+
+  test('AppSettings.fromJson reads remote entries limit', () {
+    final restored = AppSettings.fromJson(<String, Object?>{
+      'remoteEntriesLimit': 700,
+    });
+    expect(restored.remoteEntriesLimit, 700);
+  });
+
+  test('AppSettings.fromJson prefers remote entries limit over legacy key', () {
+    final restored = AppSettings.fromJson(<String, Object?>{
+      'minifluxEntriesLimit': 800,
+      'remoteEntriesLimit': 700,
+    });
+    expect(restored.remoteEntriesLimit, 700);
+  });
+
+  test('AppSettings.fromJson defaults missing remote entries limit', () {
     final restored = AppSettings.fromJson(<String, Object?>{});
-    expect(restored.minifluxEntriesLimit, 400);
+    expect(restored.remoteEntriesLimit, 400);
   });
 
-  test('AppSettings allows unlimited Miniflux entries limit (0)', () {
-    final s = const AppSettings().copyWith(minifluxEntriesLimit: 0);
+  test('AppSettings allows unlimited remote entries limit (0)', () {
+    final s = const AppSettings().copyWith(remoteEntriesLimit: 0);
     final restored = AppSettings.fromJson(s.toJson().cast<String, Object?>());
-    expect(restored.minifluxEntriesLimit, 0);
+    expect(restored.remoteEntriesLimit, 0);
   });
 
   test('AppSettings persists Miniflux web fetch mode in JSON', () {

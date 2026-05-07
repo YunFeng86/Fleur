@@ -23,7 +23,6 @@ void main() {
     BackendFeature.clientCategorySettings: FeatureAvailability.local,
     BackendFeature.offlineCache: FeatureAvailability.local,
     BackendFeature.outboxFlush: FeatureAvailability.hidden,
-    BackendFeature.serverContentFetchMode: FeatureAvailability.hidden,
   };
 
   const minifluxMatrix = <BackendFeature, FeatureAvailability>{
@@ -48,7 +47,6 @@ void main() {
     BackendFeature.clientCategorySettings: FeatureAvailability.localOnly,
     BackendFeature.offlineCache: FeatureAvailability.localOnly,
     BackendFeature.outboxFlush: FeatureAvailability.deferredRemote,
-    BackendFeature.serverContentFetchMode: FeatureAvailability.localOnly,
   };
 
   const feverMatrix = <BackendFeature, FeatureAvailability>{
@@ -71,7 +69,6 @@ void main() {
     BackendFeature.clientCategorySettings: FeatureAvailability.localOnly,
     BackendFeature.offlineCache: FeatureAvailability.localOnly,
     BackendFeature.outboxFlush: FeatureAvailability.deferredRemote,
-    BackendFeature.serverContentFetchMode: FeatureAvailability.hidden,
   };
 
   test('matches the declared capability matrix for every backend', () {

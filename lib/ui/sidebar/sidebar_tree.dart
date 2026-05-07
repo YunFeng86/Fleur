@@ -6,6 +6,7 @@ import '../../models/category.dart';
 import '../../models/feed.dart';
 import '../../models/tag.dart';
 import '../../services/sync/backend_capabilities.dart';
+import '../../services/sync/backend_sync_semantics.dart';
 import '../../theme/app_typography.dart';
 import '../../ui/sidebar/sidebar_management_actions.dart';
 import '../../ui/sidebar/sidebar_selection_actions.dart';
@@ -78,6 +79,7 @@ class SidebarNavigationTree extends StatelessWidget {
     required this.selectionActions,
     required this.managementActions,
     required this.capabilities,
+    required this.syncSemantics,
     required this.onAddFeed,
     required this.onAddCategory,
     required this.onShowCategoryMenu,
@@ -100,6 +102,7 @@ class SidebarNavigationTree extends StatelessWidget {
   final SidebarSelectionActions selectionActions;
   final SidebarManagementActions managementActions;
   final BackendCapabilities capabilities;
+  final BackendSyncSemantics syncSemantics;
   final Future<void> Function() onAddFeed;
   final Future<void> Function() onAddCategory;
   final Future<void> Function(Category category) onShowCategoryMenu;
@@ -108,6 +111,15 @@ class SidebarNavigationTree extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final showsSourceRefresh = capabilities.isVisible(
+      BackendFeature.refreshAllSources,
+    );
+    final showsRootRefresh =
+        showsSourceRefresh || capabilities.isVisible(BackendFeature.syncNow);
+    final rootRefreshLabel =
+        !showsSourceRefresh && syncSemantics.isAccountWideRefresh
+        ? l10n.syncAccount
+        : l10n.refreshAll;
 
     return feeds.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -246,10 +258,10 @@ class SidebarNavigationTree extends StatelessWidget {
                           value: _SidebarTreeMenu.settings,
                           child: Text(l10n.settings),
                         ),
-                        if (capabilities.isVisible(BackendFeature.syncNow))
+                        if (showsRootRefresh)
                           PopupMenuItem(
                             value: _SidebarTreeMenu.refreshAll,
-                            child: Text(l10n.refreshAll),
+                            child: Text(rootRefreshLabel),
                           ),
                         if (capabilities.isVisible(BackendFeature.importOpml))
                           PopupMenuItem(
@@ -315,6 +327,7 @@ class SidebarNavigationTree extends StatelessWidget {
                   selectionActions: selectionActions,
                   managementActions: managementActions,
                   capabilities: capabilities,
+                  syncSemantics: syncSemantics,
                   onShowCategoryMenu: onShowCategoryMenu,
                   onShowFeedMenu: onShowFeedMenu,
                 ),
@@ -372,6 +385,7 @@ class _SidebarCategoryTile extends StatelessWidget {
     required this.selectionActions,
     required this.managementActions,
     required this.capabilities,
+    required this.syncSemantics,
     required this.onShowCategoryMenu,
     required this.onShowFeedMenu,
   });
@@ -388,6 +402,7 @@ class _SidebarCategoryTile extends StatelessWidget {
   final SidebarSelectionActions selectionActions;
   final SidebarManagementActions managementActions;
   final BackendCapabilities capabilities;
+  final BackendSyncSemantics syncSemantics;
   final Future<void> Function(Category category) onShowCategoryMenu;
   final Future<void> Function(Feed feed) onShowFeedMenu;
 
@@ -423,6 +438,15 @@ class _SidebarCategoryTile extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 _UnreadBadge(unreadCount),
+                if (syncSemantics.isRemoteReadOnlyTaxonomy)
+                  Tooltip(
+                    message: l10n.remoteReadOnlyTaxonomyTitle,
+                    child: Icon(
+                      Icons.lock_outline,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                 if (!isDesktop && hasCategoryActions)
                   IconButton(
                     tooltip: l10n.more,

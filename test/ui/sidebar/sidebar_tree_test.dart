@@ -8,6 +8,7 @@ import 'package:fleur/models/tag.dart';
 import 'package:fleur/providers/query_providers.dart';
 import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/services/sync/backend_capabilities.dart';
+import 'package:fleur/services/sync/backend_sync_semantics.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/ui/sidebar/sidebar_management_actions.dart';
 import 'package:fleur/ui/sidebar/sidebar_selection_actions.dart';
@@ -75,6 +76,7 @@ class _SidebarHarnessState extends ConsumerState<_SidebarHarness> {
       selectionActions: selectionActions,
       managementActions: managementActions,
       capabilities: BackendCapabilities.forAccountType(widget.accountType),
+      syncSemantics: BackendSyncSemantics.forAccountType(widget.accountType),
       onAddFeed: () async {},
       onAddCategory: () async {},
       onShowCategoryMenu: (_) async {},
@@ -186,6 +188,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byTooltip('New category'), findsNothing);
+    expect(find.byTooltip('Read-only remote groups'), findsOneWidget);
     expect(find.text('Tech'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.more_horiz));
@@ -193,7 +196,8 @@ void main() {
 
     expect(find.text('Import OPML'), findsNothing);
     expect(find.text('Export OPML'), findsOneWidget);
-    expect(find.text('Refresh all'), findsOneWidget);
+    expect(find.text('Sync account'), findsOneWidget);
+    expect(find.text('Refresh all'), findsNothing);
 
     await tester.tapAt(const Offset(5, 5));
     await tester.pumpAndSettle();
@@ -204,12 +208,70 @@ void main() {
     expect(find.text('Tech News'), findsOneWidget);
     expect(find.byIcon(Icons.more_vert), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.tap(find.byIcon(Icons.more_vert).last);
     await tester.pumpAndSettle();
 
     expect(find.text('Move to category'), findsNothing);
     expect(find.text('Delete subscription'), findsNothing);
     expect(find.text('Refresh'), findsNothing);
     expect(find.text('Edit'), findsOneWidget);
+  });
+
+  testWidgets('Miniflux sidebar keeps source refresh actions', (tester) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    final category = Category()
+      ..id = 1
+      ..name = 'Tech';
+    final feed = Feed()
+      ..id = 101
+      ..url = 'https://example.com/feed.xml'
+      ..title = 'Tech News'
+      ..categoryId = 1;
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: _SidebarHarness(
+              categories: [category],
+              feeds: [feed],
+              unreadCounts: const {null: 1, 101: 1},
+              accountType: AccountType.miniflux,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('Read-only remote groups'), findsNothing);
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Rename'), findsOneWidget);
+    expect(find.text('Delete category'), findsOneWidget);
+
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.more_horiz));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Refresh all'), findsOneWidget);
+    expect(find.text('Sync account'), findsNothing);
+
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.more_vert).last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Refresh'), findsOneWidget);
   });
 }

@@ -7,11 +7,13 @@ import '../../../l10n/app_localizations.dart';
 import '../../../providers/account_providers.dart';
 import '../../../providers/app_settings_providers.dart';
 import '../../../providers/backend_capabilities_provider.dart';
+import '../../../providers/backend_content_capabilities_provider.dart';
+import '../../../providers/backend_sync_semantics_provider.dart';
 import '../../../providers/repository_providers.dart';
 import '../../../providers/service_providers.dart';
 import '../../../services/accounts/account.dart';
 import '../../../services/settings/app_settings.dart';
-import '../../../services/sync/backend_capabilities.dart';
+import '../../../services/sync/backend_sync_semantics.dart';
 import '../../../utils/context_extensions.dart';
 import '../../dialogs/add_account_dialogs.dart';
 import '../widgets/section_header.dart';
@@ -31,8 +33,39 @@ class ServicesTab extends ConsumerWidget {
     final accounts = ref.watch(accountsControllerProvider).valueOrNull;
     final activeAccount = ref.watch(activeAccountProvider);
     final capabilities = ref.watch(backendCapabilitiesProvider);
+    final contentCapabilities = ref.watch(backendContentCapabilitiesProvider);
+    final syncSemantics = ref.watch(backendSyncSemanticsProvider);
 
     final interval = appSettings.autoRefreshMinutes;
+    final isAccountWideSync = syncSemantics.isAccountWideRefresh;
+    final refreshSectionTitle = isAccountWideSync
+        ? l10n.accountSync
+        : l10n.refreshAll;
+    final refreshSectionDescription = isAccountWideSync
+        ? l10n.accountSyncSubtitle
+        : l10n.autoRefreshSubtitle;
+    final refreshActionLabel = isAccountWideSync
+        ? l10n.syncAccount
+        : l10n.refreshAll;
+    final refreshSuccessLabel = isAccountWideSync
+        ? l10n.syncedAccount
+        : l10n.refreshedAll;
+    final remoteStrategySubtitle = switch (syncSemantics.historyCoverage) {
+      BackendHistoryCoverage.remotePaginatedEntries =>
+        l10n.remoteSyncStrategyMinifluxSubtitle,
+      BackendHistoryCoverage.remoteUnreadAndSavedItems =>
+        l10n.remoteSyncStrategyFeverSubtitle,
+      BackendHistoryCoverage.localFeedContent =>
+        l10n.remoteSyncStrategySubtitle,
+    };
+    final showRemoteSyncStrategy =
+        syncSemantics.supportsEntrySyncLimit ||
+        contentCapabilities.canChooseServerArticleContentFetchMode;
+
+    String refreshProgressLabel(int current, int total) {
+      if (isAccountWideSync) return l10n.syncingAccount;
+      return l10n.refreshingProgress(current, total);
+    }
 
     Future<void> refreshNow() async {
       final feeds = await ref.read(feedRepositoryProvider).getAll();
@@ -45,7 +78,9 @@ class ServicesTab extends ConsumerWidget {
       final navigator = Navigator.of(context, rootNavigator: true);
 
       // Show progress dialog.
-      final progressNotifier = ValueNotifier<String>('0/${feeds.length}');
+      final progressNotifier = ValueNotifier<String>(
+        refreshProgressLabel(0, feeds.length),
+      );
       try {
         unawaited(
           showDialog<void>(
@@ -62,12 +97,7 @@ class ServicesTab extends ConsumerWidget {
                       ValueListenableBuilder<String>(
                         valueListenable: progressNotifier,
                         builder: (context, value, _) {
-                          return Text(
-                            l10n.refreshingProgress(
-                              int.tryParse(value.split('/')[0]) ?? 0,
-                              int.tryParse(value.split('/')[1]) ?? feeds.length,
-                            ),
-                          );
+                          return Text(value);
                         },
                       ),
                     ],
@@ -84,14 +114,14 @@ class ServicesTab extends ConsumerWidget {
               feeds.map((f) => f.id),
               maxConcurrent: concurrency,
               onProgress: (current, total) {
-                progressNotifier.value = '$current/$total';
+                progressNotifier.value = refreshProgressLabel(current, total);
               },
             );
 
         final err = batch.firstError?.error;
         if (!context.mounted) return;
         context.showSnack(
-          err == null ? l10n.refreshedAll : l10n.errorMessage(err.toString()),
+          err == null ? refreshSuccessLabel : l10n.errorMessage(err.toString()),
         );
       } finally {
         // Close progress dialog even if the settings page was popped.
@@ -223,14 +253,14 @@ class ServicesTab extends ConsumerWidget {
           ),
         ),
         SettingsSection(
-          title: l10n.refreshAll,
-          description: l10n.autoRefreshSubtitle,
+          title: refreshSectionTitle,
+          description: refreshSectionDescription,
           child: SettingsCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  l10n.autoRefreshSubtitle,
+                  refreshSectionDescription,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -284,89 +314,97 @@ class ServicesTab extends ConsumerWidget {
                 OutlinedButton.icon(
                   onPressed: refreshNow,
                   icon: const Icon(Icons.refresh),
-                  label: Text(l10n.refreshAll),
+                  label: Text(refreshActionLabel),
                 ),
               ],
             ),
           ),
         ),
-        if (capabilities.isVisible(BackendFeature.serverContentFetchMode))
+        if (showRemoteSyncStrategy)
           SettingsSection(
-            title: l10n.minifluxStrategy,
-            description: l10n.minifluxStrategySubtitle,
+            title: l10n.remoteSyncStrategy,
+            description: remoteStrategySubtitle,
             bottomSpacing: 0,
             child: SettingsCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    l10n.minifluxStrategySubtitle,
+                    remoteStrategySubtitle,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    l10n.minifluxEntriesLimit,
-                    style: theme.textTheme.titleSmall,
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonHideUnderline(
-                    child: DropdownButton<int>(
-                      value: appSettings.minifluxEntriesLimit,
-                      isExpanded: true,
-                      items: [
-                        for (final v in const [100, 200, 400, 800, 1200])
-                          DropdownMenuItem(value: v, child: Text('$v')),
-                        DropdownMenuItem(value: 0, child: Text(l10n.unlimited)),
-                      ],
-                      onChanged: (v) {
-                        if (v == null) return;
-                        unawaited(
-                          ref
-                              .read(appSettingsProvider.notifier)
-                              .setMinifluxEntriesLimit(v),
-                        );
-                      },
+                  if (syncSemantics.supportsEntrySyncLimit) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      l10n.remoteEntriesLimit,
+                      style: theme.textTheme.titleSmall,
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    l10n.minifluxWebFetchMode,
-                    style: theme.textTheme.titleSmall,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    l10n.minifluxWebFetchModeSubtitle,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                    const SizedBox(height: 8),
+                    DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: appSettings.remoteEntriesLimit,
+                        isExpanded: true,
+                        items: [
+                          for (final v in const [100, 200, 400, 800, 1200])
+                            DropdownMenuItem(value: v, child: Text('$v')),
+                          DropdownMenuItem(
+                            value: 0,
+                            child: Text(l10n.unlimited),
+                          ),
+                        ],
+                        onChanged: (v) {
+                          if (v == null) return;
+                          unawaited(
+                            ref
+                                .read(appSettingsProvider.notifier)
+                                .setRemoteEntriesLimit(v),
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonHideUnderline(
-                    child: DropdownButton<MinifluxWebFetchMode>(
-                      value: appSettings.minifluxWebFetchMode,
-                      isExpanded: true,
-                      items: [
-                        DropdownMenuItem(
-                          value: MinifluxWebFetchMode.clientReadability,
-                          child: Text(l10n.minifluxWebFetchModeClient),
-                        ),
-                        DropdownMenuItem(
-                          value: MinifluxWebFetchMode.serverFetchContent,
-                          child: Text(l10n.minifluxWebFetchModeServer),
-                        ),
-                      ],
-                      onChanged: (v) {
-                        if (v == null) return;
-                        unawaited(
-                          ref
-                              .read(appSettingsProvider.notifier)
-                              .setMinifluxWebFetchMode(v),
-                        );
-                      },
+                  ],
+                  if (contentCapabilities
+                      .canChooseServerArticleContentFetchMode) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      l10n.minifluxWebFetchMode,
+                      style: theme.textTheme.titleSmall,
                     ),
-                  ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.minifluxWebFetchModeSubtitle,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonHideUnderline(
+                      child: DropdownButton<MinifluxWebFetchMode>(
+                        value: appSettings.minifluxWebFetchMode,
+                        isExpanded: true,
+                        items: [
+                          DropdownMenuItem(
+                            value: MinifluxWebFetchMode.clientReadability,
+                            child: Text(l10n.minifluxWebFetchModeClient),
+                          ),
+                          DropdownMenuItem(
+                            value: MinifluxWebFetchMode.serverFetchContent,
+                            child: Text(l10n.minifluxWebFetchModeServer),
+                          ),
+                        ],
+                        onChanged: (v) {
+                          if (v == null) return;
+                          unawaited(
+                            ref
+                                .read(appSettingsProvider.notifier)
+                                .setMinifluxWebFetchMode(v),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

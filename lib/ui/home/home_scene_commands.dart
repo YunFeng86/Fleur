@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../providers/article_list_controller.dart';
 import '../../providers/backend_capabilities_provider.dart';
+import '../../providers/backend_sync_semantics_provider.dart';
 import '../../providers/query_providers.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/service_providers.dart';
@@ -24,6 +25,11 @@ class HomeSceneCommands {
   final int? selectedArticleId;
 
   Future<BatchRefreshResult> refreshAll() async {
+    final syncSemantics = _ref.read(backendSyncSemanticsProvider);
+    if (syncSemantics.isAccountWideRefresh) {
+      return _ref.read(syncServiceProvider).refreshFeedsSafe(const <int>[]);
+    }
+
     final capabilities = _ref.read(backendCapabilitiesProvider);
     final feedId = _ref.read(selectedFeedIdProvider);
     final categoryId = _ref.read(selectedCategoryIdProvider);

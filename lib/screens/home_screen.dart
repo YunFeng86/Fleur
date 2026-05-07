@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fleur/l10n/app_localizations.dart';
 
+import '../providers/backend_sync_semantics_provider.dart';
 import '../providers/core_providers.dart';
 import '../providers/unread_providers.dart';
 import '../ui/global_nav.dart';
@@ -26,6 +27,13 @@ class HomeScreen extends ConsumerWidget {
     final useCompactTopBar = !isDesktop;
     final showSyncCapsule =
         LayoutSpec.fromContext(context).globalNavMode == GlobalNavMode.rail;
+    final syncSemantics = ref.watch(backendSyncSemanticsProvider);
+    final refreshActionLabel = syncSemantics.isAccountWideRefresh
+        ? l10n.syncAccount
+        : l10n.refreshAll;
+    final refreshSuccessLabel = syncSemantics.isAccountWideRefresh
+        ? l10n.syncedAccount
+        : l10n.refreshedAll;
     final commands = HomeSceneCommands(
       context: context,
       ref: ref,
@@ -39,7 +47,9 @@ class HomeScreen extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            err == null ? l10n.refreshedAll : l10n.errorMessage(err.toString()),
+            err == null
+                ? refreshSuccessLabel
+                : l10n.errorMessage(err.toString()),
           ),
         ),
       );
@@ -76,6 +86,7 @@ class HomeScreen extends ConsumerWidget {
             useCompactTopBar,
             commands,
             refreshAll,
+            refreshActionLabel,
             markAllRead,
           );
         }
@@ -88,7 +99,7 @@ class HomeScreen extends ConsumerWidget {
               title: Text(l10n.feeds),
               actions: [
                 IconButton(
-                  tooltip: l10n.refreshAll,
+                  tooltip: refreshActionLabel,
                   onPressed: refreshAll,
                   icon: const Icon(Icons.refresh),
                 ),
@@ -124,7 +135,7 @@ class HomeScreen extends ConsumerWidget {
                     title: Text(l10n.feeds),
                     actions: [
                       IconButton(
-                        tooltip: l10n.refreshAll,
+                        tooltip: refreshActionLabel,
                         onPressed: refreshAll,
                         icon: const Icon(Icons.refresh),
                       ),
@@ -188,6 +199,7 @@ class HomeScreen extends ConsumerWidget {
     bool useCompactTopBar,
     HomeSceneCommands commands,
     Future<void> Function() refreshAll,
+    String refreshActionLabel,
     Future<void> Function() markAllRead,
   ) {
     final showSyncCapsule =
@@ -257,7 +269,7 @@ class HomeScreen extends ConsumerWidget {
         title: Text(l10n.feeds),
         actions: [
           IconButton(
-            tooltip: l10n.refreshAll,
+            tooltip: refreshActionLabel,
             onPressed: refreshAll,
             icon: const Icon(Icons.refresh),
           ),

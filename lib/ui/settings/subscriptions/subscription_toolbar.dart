@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../l10n/app_localizations.dart';
 import '../../../../providers/backend_capabilities_provider.dart';
+import '../../../../providers/backend_sync_semantics_provider.dart';
 import '../../../../providers/subscription_settings_provider.dart';
 import '../../../../services/sync/backend_capabilities.dart';
 import '../../../../utils/platform.dart';
@@ -23,6 +24,16 @@ class SubscriptionToolbar extends ConsumerWidget {
     final selection = ref.watch(subscriptionSelectionProvider);
     final notifier = ref.read(subscriptionSelectionProvider.notifier);
     final capabilities = ref.watch(backendCapabilitiesProvider);
+    final syncSemantics = ref.watch(backendSyncSemanticsProvider);
+    final showsSourceRefresh = capabilities.isVisible(
+      BackendFeature.refreshAllSources,
+    );
+    final showsRootRefresh =
+        showsSourceRefresh || capabilities.isVisible(BackendFeature.syncNow);
+    final rootRefreshLabel =
+        !showsSourceRefresh && syncSemantics.isAccountWideRefresh
+        ? l10n.syncAccount
+        : l10n.refreshAll;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -110,12 +121,12 @@ class SubscriptionToolbar extends ConsumerWidget {
                 },
                 itemBuilder: (context) {
                   return [
-                    if (capabilities.isVisible(BackendFeature.syncNow))
+                    if (showsRootRefresh)
                       PopupMenuItem<_ManageAction>(
                         value: _ManageAction.refreshAll,
                         child: ListTile(
                           leading: const Icon(Icons.refresh),
-                          title: Text(l10n.refreshAll),
+                          title: Text(rootRefreshLabel),
                           contentPadding: EdgeInsets.zero,
                         ),
                       ),

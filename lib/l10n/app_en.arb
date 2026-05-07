@@ -211,6 +211,26 @@
   "@refreshAll": {
     "description": "refreshAll"
   },
+  "accountSync": "Account sync",
+  "@accountSync": {
+    "description": "accountSync"
+  },
+  "accountSyncSubtitle": "Sync this remote account in the background.",
+  "@accountSyncSubtitle": {
+    "description": "accountSyncSubtitle"
+  },
+  "syncAccount": "Sync account",
+  "@syncAccount": {
+    "description": "syncAccount"
+  },
+  "syncingAccount": "Syncing account...",
+  "@syncingAccount": {
+    "description": "syncingAccount"
+  },
+  "syncedAccount": "Account synced",
+  "@syncedAccount": {
+    "description": "syncedAccount"
+  },
   "refreshSelected": "Refresh selected",
   "@refreshSelected": {
     "description": "refreshSelected"
@@ -447,6 +467,30 @@
   "remoteDeleteCategoryConfirmContent": "Delete this category on the remote service and then reconcile the local mirror.",
   "@remoteDeleteCategoryConfirmContent": {
     "description": "Confirmation text for deleting a remote-backed category."
+  },
+  "remoteWritableTaxonomyTitle": "Remote categories",
+  "@remoteWritableTaxonomyTitle": {
+    "description": "Title for writable remote taxonomy/category semantics."
+  },
+  "remoteWritableTaxonomyDescription": "Category changes are applied on the remote service and then mirrored locally.",
+  "@remoteWritableTaxonomyDescription": {
+    "description": "Description for writable remote taxonomy/category semantics."
+  },
+  "remoteReadOnlyTaxonomyTitle": "Read-only remote groups",
+  "@remoteReadOnlyTaxonomyTitle": {
+    "description": "Title for read-only remote taxonomy/group mirror semantics."
+  },
+  "remoteReadOnlyTaxonomyDescription": "These categories mirror read-only remote groups. Rename, delete, or move items in the remote service.",
+  "@remoteReadOnlyTaxonomyDescription": {
+    "description": "Description for read-only remote taxonomy/group mirror semantics."
+  },
+  "feedCategoryReadOnlyTaxonomyTitle": "Category managed remotely",
+  "@feedCategoryReadOnlyTaxonomyTitle": {
+    "description": "Title for a feed whose category assignment is managed by a read-only remote taxonomy mirror."
+  },
+  "feedCategoryReadOnlyTaxonomyDescription": "This feed's category comes from a read-only remote group mirror.",
+  "@feedCategoryReadOnlyTaxonomyDescription": {
+    "description": "Description for a feed whose category assignment is managed by a read-only remote taxonomy mirror."
   },
   "deleteTagConfirmTitle": "Delete tag?",
   "@deleteTagConfirmTitle": {
@@ -748,9 +792,25 @@
   "@minifluxStrategySubtitle": {
     "description": "minifluxStrategySubtitle"
   },
-  "minifluxEntriesLimit": "Entries per sync",
-  "@minifluxEntriesLimit": {
-    "description": "minifluxEntriesLimit"
+  "remoteSyncStrategy": "Remote sync strategy",
+  "@remoteSyncStrategy": {
+    "description": "remoteSyncStrategy"
+  },
+  "remoteSyncStrategySubtitle": "Controls the remote article window pulled during sync.",
+  "@remoteSyncStrategySubtitle": {
+    "description": "remoteSyncStrategySubtitle"
+  },
+  "remoteSyncStrategyMinifluxSubtitle": "Miniflux can page through remote entries up to this per-sync window.",
+  "@remoteSyncStrategyMinifluxSubtitle": {
+    "description": "remoteSyncStrategyMinifluxSubtitle"
+  },
+  "remoteSyncStrategyFeverSubtitle": "Fever syncs unread and saved items, capped by this per-sync window.",
+  "@remoteSyncStrategyFeverSubtitle": {
+    "description": "remoteSyncStrategyFeverSubtitle"
+  },
+  "remoteEntriesLimit": "Entries per sync",
+  "@remoteEntriesLimit": {
+    "description": "remoteEntriesLimit"
   },
   "minifluxWebFetchMode": "Web page fetching",
   "@minifluxWebFetchMode": {

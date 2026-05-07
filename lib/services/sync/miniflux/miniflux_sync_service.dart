@@ -159,7 +159,7 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
     await _flushOutbox(client);
     final appSettings = await _appSettingsStore.load();
     final effectiveEntriesLimit =
-        entriesLimit ?? appSettings.minifluxEntriesLimit;
+        entriesLimit ?? appSettings.remoteEntriesLimit;
     final preferServerFetch =
         appSettings.minifluxWebFetchMode ==
         MinifluxWebFetchMode.serverFetchContent;

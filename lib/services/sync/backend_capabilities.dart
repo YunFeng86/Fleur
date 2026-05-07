@@ -1,3 +1,5 @@
+// Operation capability surface: buttons, menus, actions, outbox, and runtime affordances.
+
 import '../accounts/account.dart';
 
 enum BackendFeature {
@@ -20,7 +22,6 @@ enum BackendFeature {
   clientCategorySettings,
   offlineCache,
   outboxFlush,
-  serverContentFetchMode,
 }
 
 enum FeatureAvailability {
@@ -63,8 +64,7 @@ class BackendCapabilities {
 
   static FeatureAvailability _localAvailability(BackendFeature feature) {
     return switch (feature) {
-      BackendFeature.outboxFlush ||
-      BackendFeature.serverContentFetchMode => FeatureAvailability.hidden,
+      BackendFeature.outboxFlush => FeatureAvailability.hidden,
       BackendFeature.syncNow ||
       BackendFeature.addSubscription ||
       BackendFeature.deleteSubscription ||
@@ -94,8 +94,7 @@ class BackendCapabilities {
       BackendFeature.articleReadLater ||
       BackendFeature.clientFeedSettings ||
       BackendFeature.clientCategorySettings ||
-      BackendFeature.offlineCache ||
-      BackendFeature.serverContentFetchMode => FeatureAvailability.localOnly,
+      BackendFeature.offlineCache => FeatureAvailability.localOnly,
       BackendFeature.articleReadState ||
       BackendFeature.articleStarState ||
       BackendFeature.outboxFlush => FeatureAvailability.deferredRemote,
@@ -122,8 +121,7 @@ class BackendCapabilities {
       BackendFeature.moveSubscriptionToUncategorized ||
       BackendFeature.refreshSubscriptionSource ||
       BackendFeature.refreshAllSources ||
-      BackendFeature.importOpml ||
-      BackendFeature.serverContentFetchMode => FeatureAvailability.hidden,
+      BackendFeature.importOpml => FeatureAvailability.hidden,
       BackendFeature.exportOpml ||
       BackendFeature.articleReadLater ||
       BackendFeature.clientFeedSettings ||

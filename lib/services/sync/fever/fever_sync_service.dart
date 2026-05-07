@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:pool/pool.dart';
 
 import '../../../models/article.dart';
 import '../../../models/category.dart';
@@ -11,6 +12,7 @@ import '../../../repositories/feed_repository.dart';
 import '../../accounts/account.dart';
 import '../../accounts/credential_store.dart';
 import '../../cache/article_cache_service.dart';
+import '../../extract/article_extractor.dart';
 import '../../logging/app_logger.dart';
 import '../../notifications/notification_service.dart';
 import '../../settings/app_settings.dart';
@@ -37,6 +39,7 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
     required AppSettingsStore appSettingsStore,
     required NotificationService notifications,
     required ArticleCacheService cache,
+    required ArticleExtractor extractor,
     SyncStatusReporter? statusReporter,
   }) : _clientFactory = RemoteClientFactory(dio: dio, credentials: credentials),
        _feeds = feeds,
@@ -46,6 +49,7 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
        _appSettingsStore = appSettingsStore,
        _notifications = notifications,
        _cache = cache,
+       _extractor = extractor,
        _statusReporter = statusReporter ?? const NoopSyncStatusReporter();
 
   final Account account;
@@ -58,6 +62,7 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
   final AppSettingsStore _appSettingsStore;
   final NotificationService _notifications;
   final ArticleCacheService _cache;
+  final ArticleExtractor _extractor;
   final SyncStatusReporter _statusReporter;
 
   static int? _asInt(Object? v) {
@@ -133,7 +138,7 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
     await _flushOutbox(client);
 
     final appSettings = await _appSettingsStore.load();
-    final entriesLimit = appSettings.minifluxEntriesLimit;
+    final entriesLimit = appSettings.remoteEntriesLimit;
 
     status?.update(label: SyncStatusLabel.syncingSubscriptions);
     final sub = await _syncSubscriptions(client, appSettings, status: status);
@@ -319,6 +324,7 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
 
     var totalNew = 0;
     var processed = 0;
+    var webPagesRemaining = _maxWebPagesPerSync;
 
     for (var i = 0; i < limitedIds.length; i += 50) {
       final end = i + 50 > limitedIds.length ? limitedIds.length : i + 50;
@@ -381,6 +387,15 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
           preserveUserState: false,
         );
         totalNew += newArticles.length;
+        final settings = localFeedIdToSettings[entry.key];
+        if (settings != null) {
+          webPagesRemaining -= await _prefetchNewArticles(
+            newArticles,
+            settings,
+            appSettings,
+            remainingWebPageFetches: webPagesRemaining,
+          );
+        }
       }
 
       processed += batchIds.length;
@@ -402,6 +417,85 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
         AppLogger.w('Fever summary notification failed', tag: 'sync', error: e);
       }
     }
+  }
+
+  Future<int> _prefetchNewArticles(
+    List<Article> newArticles,
+    EffectiveFeedSettings settings,
+    AppSettings appSettings, {
+    required int remainingWebPageFetches,
+  }) async {
+    if (newArticles.isEmpty) return 0;
+
+    if (settings.syncImages) {
+      try {
+        await _cache.cacheArticles(newArticles);
+      } catch (_) {}
+    }
+
+    var attemptedWebPageFetches = 0;
+    if (settings.syncWebPages && remainingWebPageFetches > 0) {
+      final targets = newArticles.length <= remainingWebPageFetches
+          ? newArticles
+          : newArticles.sublist(0, remainingWebPageFetches);
+      attemptedWebPageFetches = targets.length;
+      try {
+        await _syncWebPagesForArticles(
+          targets,
+          webUserAgent: appSettings.webUserAgent,
+          syncImages: settings.syncImages,
+        );
+      } catch (_) {}
+    }
+    return attemptedWebPageFetches;
+  }
+
+  static const int _maxWebPagesPerSync = 8;
+
+  Future<void> _syncWebPagesForArticles(
+    List<Article> articles, {
+    required String webUserAgent,
+    required bool syncImages,
+  }) async {
+    final pool = Pool(2);
+    final targets = articles.length <= _maxWebPagesPerSync
+        ? articles
+        : articles.sublist(0, _maxWebPagesPerSync);
+
+    final futures = <Future<void>>[];
+    for (final a in targets) {
+      futures.add(
+        pool.withResource(() async {
+          try {
+            if ((a.extractedContentHtml ?? '').trim().isNotEmpty) return;
+
+            final extracted = await _extractor.extract(
+              a.link,
+              userAgent: webUserAgent,
+            );
+            final html = extracted.contentHtml;
+            if (html.trim().isEmpty) {
+              await _articles.markExtractionFailed(a.id);
+              return;
+            }
+            await _articles.setExtractedContent(a.id, html);
+
+            if (syncImages) {
+              await _cache.prefetchImagesFromHtml(
+                html,
+                baseUrl: Uri.tryParse(a.link),
+                maxConcurrent: 3,
+              );
+            }
+          } catch (_) {
+            // Best-effort: don't persist failure for transient network errors.
+          }
+        }),
+      );
+    }
+
+    await Future.wait(futures);
+    await pool.close();
   }
 
   Future<void> _flushOutbox(FeverClient client) async {

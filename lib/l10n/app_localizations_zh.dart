@@ -167,6 +167,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get refreshAll => '刷新全部';
 
   @override
+  String get accountSync => '账号同步';
+
+  @override
+  String get accountSyncSubtitle => '在后台同步这个远程账号。';
+
+  @override
+  String get syncAccount => '同步账号';
+
+  @override
+  String get syncingAccount => '正在同步账号...';
+
+  @override
+  String get syncedAccount => '账号已同步';
+
+  @override
   String get refreshSelected => '刷新当前';
 
   @override
@@ -336,6 +351,25 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get remoteDeleteCategoryConfirmContent => '将先在远程服务上删除该分类，然后回刷本地镜像。';
+
+  @override
+  String get remoteWritableTaxonomyTitle => '远程分类';
+
+  @override
+  String get remoteWritableTaxonomyDescription => '分类变更会应用到远程服务，并同步回本地镜像。';
+
+  @override
+  String get remoteReadOnlyTaxonomyTitle => '只读远程分组';
+
+  @override
+  String get remoteReadOnlyTaxonomyDescription =>
+      '这些分类来自只读远程分组镜像。重命名、删除或移动请在远程服务中管理。';
+
+  @override
+  String get feedCategoryReadOnlyTaxonomyTitle => '分类由远程管理';
+
+  @override
+  String get feedCategoryReadOnlyTaxonomyDescription => '这个订阅源的分类来自只读远程分组镜像。';
 
   @override
   String get deleteTagConfirmTitle => '删除标签？';
@@ -555,7 +589,20 @@ class AppLocalizationsZh extends AppLocalizations {
   String get minifluxStrategySubtitle => '控制同步时拉取量与预取行为。';
 
   @override
-  String get minifluxEntriesLimit => '每次同步拉取条数';
+  String get remoteSyncStrategy => '远程同步策略';
+
+  @override
+  String get remoteSyncStrategySubtitle => '控制同步时拉取的远程文章窗口。';
+
+  @override
+  String get remoteSyncStrategyMinifluxSubtitle =>
+      'Miniflux 会分页拉取远程文章，最多到这个每次同步窗口。';
+
+  @override
+  String get remoteSyncStrategyFeverSubtitle => 'Fever 同步未读和收藏条目，并受这个每次同步窗口限制。';
+
+  @override
+  String get remoteEntriesLimit => '每次同步拉取条数';
 
   @override
   String get minifluxWebFetchMode => '网页抓取方式';
@@ -1240,6 +1287,21 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get refreshAll => '重新整理全部';
 
   @override
+  String get accountSync => '帳號同步';
+
+  @override
+  String get accountSyncSubtitle => '在背景同步這個遠端帳號。';
+
+  @override
+  String get syncAccount => '同步帳號';
+
+  @override
+  String get syncingAccount => '正在同步帳號...';
+
+  @override
+  String get syncedAccount => '帳號已同步';
+
+  @override
   String get refreshSelected => '重新整理當前';
 
   @override
@@ -1409,6 +1471,25 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get remoteDeleteCategoryConfirmContent => '將先在遠端服務上刪除這個分類，然後回刷本機鏡像。';
+
+  @override
+  String get remoteWritableTaxonomyTitle => '遠端分類';
+
+  @override
+  String get remoteWritableTaxonomyDescription => '分類變更會套用到遠端服務，並同步回本機鏡像。';
+
+  @override
+  String get remoteReadOnlyTaxonomyTitle => '唯讀遠端分組';
+
+  @override
+  String get remoteReadOnlyTaxonomyDescription =>
+      '這些分類來自唯讀遠端分組鏡像。重新命名、刪除或移動請在遠端服務中管理。';
+
+  @override
+  String get feedCategoryReadOnlyTaxonomyTitle => '分類由遠端管理';
+
+  @override
+  String get feedCategoryReadOnlyTaxonomyDescription => '這個訂閱源的分類來自唯讀遠端分組鏡像。';
 
   @override
   String get deleteTagConfirmTitle => '刪除標籤？';
@@ -1628,7 +1709,20 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get minifluxStrategySubtitle => '控制同步時的拉取量與預取行為。';
 
   @override
-  String get minifluxEntriesLimit => '每次同步拉取筆數';
+  String get remoteSyncStrategy => '遠端同步策略';
+
+  @override
+  String get remoteSyncStrategySubtitle => '控制同步時拉取的遠端文章視窗。';
+
+  @override
+  String get remoteSyncStrategyMinifluxSubtitle =>
+      'Miniflux 會分頁拉取遠端文章，最多到這個每次同步視窗。';
+
+  @override
+  String get remoteSyncStrategyFeverSubtitle => 'Fever 同步未讀和收藏項目，並受這個每次同步視窗限制。';
+
+  @override
+  String get remoteEntriesLimit => '每次同步拉取筆數';
 
   @override
   String get minifluxWebFetchMode => '網頁抓取方式';

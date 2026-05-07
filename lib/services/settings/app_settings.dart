@@ -91,11 +91,13 @@ class AppSettings {
   final bool showAiSummary;
   final bool autoTranslate;
 
-  // --- Remote Service Strategy (Miniflux) ---
+  // --- Remote Service Strategy ---
   /// Max number of entries to pull per sync call.
   ///
   /// 0 means "unlimited" (paginate until server has no more).
   final int minifluxEntriesLimit;
+
+  int get remoteEntriesLimit => minifluxEntriesLimit;
 
   /// How to fetch full web content for Miniflux entries when "syncWebPages" is
   /// enabled.
@@ -126,6 +128,7 @@ class AppSettings {
     bool? syncWebPages,
     bool? showAiSummary,
     bool? autoTranslate,
+    int? remoteEntriesLimit,
     int? minifluxEntriesLimit,
     MinifluxWebFetchMode? minifluxWebFetchMode,
     String? rssUserAgent,
@@ -155,7 +158,10 @@ class AppSettings {
       syncWebPages: syncWebPages ?? this.syncWebPages,
       showAiSummary: showAiSummary ?? this.showAiSummary,
       autoTranslate: autoTranslate ?? this.autoTranslate,
-      minifluxEntriesLimit: minifluxEntriesLimit ?? this.minifluxEntriesLimit,
+      minifluxEntriesLimit:
+          remoteEntriesLimit ??
+          minifluxEntriesLimit ??
+          this.minifluxEntriesLimit,
       minifluxWebFetchMode: minifluxWebFetchMode ?? this.minifluxWebFetchMode,
       rssUserAgent: rssUserAgent ?? this.rssUserAgent,
       webUserAgent: webUserAgent ?? this.webUserAgent,
@@ -213,6 +219,7 @@ class AppSettings {
     final syncWebPages = json['syncWebPages'];
     final showAiSummary = json['showAiSummary'];
     final autoTranslate = json['autoTranslate'];
+    final remoteEntriesLimit = json['remoteEntriesLimit'];
     final minifluxEntriesLimit = json['minifluxEntriesLimit'];
     final minifluxWebFetchMode = json['minifluxWebFetchMode'];
     final rssUserAgent = json['rssUserAgent'];
@@ -277,7 +284,9 @@ class AppSettings {
       syncWebPages: syncWebPages is bool && syncWebPages,
       showAiSummary: showAiSummary is bool && showAiSummary,
       autoTranslate: autoTranslate is bool && autoTranslate,
-      minifluxEntriesLimit: minifluxEntriesLimit is num
+      minifluxEntriesLimit: remoteEntriesLimit is num
+          ? remoteEntriesLimit.toInt()
+          : minifluxEntriesLimit is num
           ? minifluxEntriesLimit.toInt()
           : 400,
       minifluxWebFetchMode: parseMinifluxWebFetchMode(minifluxWebFetchMode),
