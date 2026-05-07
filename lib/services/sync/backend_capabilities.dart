@@ -41,6 +41,8 @@ class BackendCapabilities {
 
   final AccountType accountType;
 
+  String get diagnosticAccountType => accountType.wire;
+
   bool get isRemoteBacked => accountType != AccountType.local;
 
   bool get isOutboxCapable =>

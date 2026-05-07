@@ -68,7 +68,7 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
   }) {
     final extra = <String, Object?>{
       'accountId': account.id,
-      'accountType': account.type.wire,
+      'accountType': 'miniflux',
       'backend': 'miniflux',
       'feedCount': feedCount,
       'operation': operation,
@@ -462,7 +462,7 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
   }) {
     final extra = <String, Object?>{
       'accountId': account.id,
-      'accountType': account.type.wire,
+      'accountType': 'miniflux',
       'backend': 'miniflux',
       'operation': operation,
       if (action != null) ...<String, Object?>{

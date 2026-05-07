@@ -73,7 +73,7 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
   }) {
     final extra = <String, Object?>{
       'accountId': account.id,
-      'accountType': account.type.wire,
+      'accountType': 'fever',
       'backend': 'fever',
       'feedCount': feedCount,
       'operation': operation,
@@ -578,7 +578,7 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
   }) {
     final extra = <String, Object?>{
       'accountId': account.id,
-      'accountType': account.type.wire,
+      'accountType': 'fever',
       'backend': 'fever',
       'operation': operation,
       if (action != null) ...<String, Object?>{

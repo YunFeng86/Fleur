@@ -10,7 +10,6 @@ import '../../providers/app_settings_providers.dart';
 import '../../providers/backend_capabilities_provider.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/service_providers.dart';
-import '../../services/accounts/account.dart';
 import '../../services/sync/backend_capabilities.dart';
 import '../../services/logging/app_logger.dart';
 import '../../services/logging/log_context.dart';
@@ -142,7 +141,7 @@ Future<int?> showAddSubscriptionDialog(
   ) {
     final extra = <String, Object?>{
       'accountId': account.id,
-      'accountType': account.type.wire,
+      'accountType': capabilities.diagnosticAccountType,
       'operation': operation,
     };
     if (error is DioException) {

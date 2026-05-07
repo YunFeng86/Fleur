@@ -90,23 +90,30 @@ class SubscriptionActions {
     StackTrace? stackTrace,
   ]) {
     final account = ref.read(activeAccountProvider);
+    final capabilities = _capabilities(ref);
     AppLogger.w(
       'Subscription operation failed',
       tag: 'subscription',
       error: error,
       stackTrace: stackTrace,
-      context: _subscriptionFailureContext(account, error, operation),
+      context: _subscriptionFailureContext(
+        account,
+        capabilities,
+        error,
+        operation,
+      ),
     );
   }
 
   static Map<String, Object?> _subscriptionFailureContext(
     Account account,
+    BackendCapabilities capabilities,
     Object error,
     String operation,
   ) {
     final extra = <String, Object?>{
       'accountId': account.id,
-      'accountType': account.type.wire,
+      'accountType': capabilities.diagnosticAccountType,
       'operation': operation,
     };
     if (error is DioException) {
@@ -611,6 +618,7 @@ class SubscriptionActions {
         stackTrace: stackTrace,
         context: _subscriptionFailureContext(
           account,
+          capabilities,
           error,
           'reconcileAfterDeleteCategory',
         ),
