@@ -211,6 +211,26 @@
   "@refreshAll": {
     "description": "refreshAll"
   },
+  "accountSync": "Account sync",
+  "@accountSync": {
+    "description": "accountSync"
+  },
+  "accountSyncSubtitle": "Sync this remote account in the background.",
+  "@accountSyncSubtitle": {
+    "description": "accountSyncSubtitle"
+  },
+  "syncAccount": "Sync account",
+  "@syncAccount": {
+    "description": "syncAccount"
+  },
+  "syncingAccount": "Syncing account...",
+  "@syncingAccount": {
+    "description": "syncingAccount"
+  },
+  "syncedAccount": "Account synced",
+  "@syncedAccount": {
+    "description": "syncedAccount"
+  },
   "refreshSelected": "Refresh selected",
   "@refreshSelected": {
     "description": "refreshSelected"
@@ -751,6 +771,26 @@
   "minifluxEntriesLimit": "Entries per sync",
   "@minifluxEntriesLimit": {
     "description": "minifluxEntriesLimit"
+  },
+  "remoteSyncStrategy": "Remote sync strategy",
+  "@remoteSyncStrategy": {
+    "description": "remoteSyncStrategy"
+  },
+  "remoteSyncStrategySubtitle": "Controls the remote article window pulled during sync.",
+  "@remoteSyncStrategySubtitle": {
+    "description": "remoteSyncStrategySubtitle"
+  },
+  "remoteSyncStrategyMinifluxSubtitle": "Miniflux can page through remote entries up to this per-sync window.",
+  "@remoteSyncStrategyMinifluxSubtitle": {
+    "description": "remoteSyncStrategyMinifluxSubtitle"
+  },
+  "remoteSyncStrategyFeverSubtitle": "Fever syncs unread and saved items, capped by this per-sync window.",
+  "@remoteSyncStrategyFeverSubtitle": {
+    "description": "remoteSyncStrategyFeverSubtitle"
+  },
+  "remoteEntriesLimit": "Entries per sync",
+  "@remoteEntriesLimit": {
+    "description": "remoteEntriesLimit"
   },
   "minifluxWebFetchMode": "Web page fetching",
   "@minifluxWebFetchMode": {

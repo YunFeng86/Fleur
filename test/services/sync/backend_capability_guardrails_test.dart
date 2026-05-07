@@ -15,6 +15,8 @@ const _allowedRawBackendTypeUses = <String, String>{
       'derives capabilities from the active account',
   'lib/providers/backend_content_capabilities_provider.dart':
       'derives content capabilities from the active account',
+  'lib/providers/backend_sync_semantics_provider.dart':
+      'derives sync semantics from the active account',
   'lib/providers/service_providers.dart':
       'selects the concrete sync service implementation',
   'lib/services/accounts/account.dart': 'defines AccountType serialization',
@@ -30,6 +32,8 @@ const _allowedRawBackendTypeUses = <String, String>{
       'declares the backend capability matrix',
   'lib/services/sync/backend_content_capabilities.dart':
       'declares the backend content capability matrix',
+  'lib/services/sync/backend_sync_semantics.dart':
+      'declares the backend sync semantics matrix',
   'lib/services/sync/remote_client_factory.dart':
       'centralizes remote credential lookup and client construction',
   'lib/ui/dialogs/add_account_dialogs.dart': 'creates concrete account types',
@@ -61,6 +65,10 @@ const _contentCapabilityFiles = <String, String>{
       'backendContentCapabilitiesProvider',
   'lib/ui/settings/tabs/services_tab.dart':
       'backendContentCapabilitiesProvider',
+};
+
+const _syncSemanticsFiles = <String, String>{
+  'lib/ui/settings/tabs/services_tab.dart': 'backendSyncSemanticsProvider',
 };
 
 void main() {
@@ -141,6 +149,19 @@ void main() {
         reason:
             '$path should not route content-fetch UI through operation '
             'BackendFeature values.',
+      );
+    }
+  });
+
+  test('sync semantics UI surfaces stay semantics-driven', () {
+    for (final entry in _syncSemanticsFiles.entries) {
+      final path = entry.key;
+      final contents = File(path).readAsStringSync();
+
+      expect(
+        contents,
+        contains(entry.value),
+        reason: '$path should use BackendSyncSemantics for sync semantics UI.',
       );
     }
   });

@@ -211,6 +211,26 @@
   "@refreshAll": {
     "description": "refreshAll"
   },
+  "accountSync": "账号同步",
+  "@accountSync": {
+    "description": "accountSync"
+  },
+  "accountSyncSubtitle": "在后台同步这个远程账号。",
+  "@accountSyncSubtitle": {
+    "description": "accountSyncSubtitle"
+  },
+  "syncAccount": "同步账号",
+  "@syncAccount": {
+    "description": "syncAccount"
+  },
+  "syncingAccount": "正在同步账号...",
+  "@syncingAccount": {
+    "description": "syncingAccount"
+  },
+  "syncedAccount": "账号已同步",
+  "@syncedAccount": {
+    "description": "syncedAccount"
+  },
   "refreshSelected": "刷新当前",
   "@refreshSelected": {
     "description": "refreshSelected"
@@ -752,6 +772,26 @@
   "minifluxEntriesLimit": "每次同步拉取条数",
   "@minifluxEntriesLimit": {
     "description": "minifluxEntriesLimit"
+  },
+  "remoteSyncStrategy": "远程同步策略",
+  "@remoteSyncStrategy": {
+    "description": "remoteSyncStrategy"
+  },
+  "remoteSyncStrategySubtitle": "控制同步时拉取的远程文章窗口。",
+  "@remoteSyncStrategySubtitle": {
+    "description": "remoteSyncStrategySubtitle"
+  },
+  "remoteSyncStrategyMinifluxSubtitle": "Miniflux 会分页拉取远程文章，最多到这个每次同步窗口。",
+  "@remoteSyncStrategyMinifluxSubtitle": {
+    "description": "remoteSyncStrategyMinifluxSubtitle"
+  },
+  "remoteSyncStrategyFeverSubtitle": "Fever 同步未读和收藏条目，并受这个每次同步窗口限制。",
+  "@remoteSyncStrategyFeverSubtitle": {
+    "description": "remoteSyncStrategyFeverSubtitle"
+  },
+  "remoteEntriesLimit": "每次同步拉取条数",
+  "@remoteEntriesLimit": {
+    "description": "remoteEntriesLimit"
   },
   "minifluxWebFetchMode": "网页抓取方式",
   "@minifluxWebFetchMode": {

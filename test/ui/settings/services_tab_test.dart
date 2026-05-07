@@ -50,24 +50,49 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('Fever hides Miniflux server content fetch mode', (tester) async {
+  testWidgets('Local keeps refresh-all semantics and hides remote strategy', (
+    tester,
+  ) async {
+    await pumpTab(
+      tester,
+      account: buildTestAccount(type: AccountType.local, name: 'Local'),
+    );
+
+    expect(find.text('Refresh all'), findsWidgets);
+    expect(find.text('Account sync'), findsNothing);
+    expect(find.text('Remote sync strategy'), findsNothing);
+    expect(find.text('Entries per sync'), findsNothing);
+  });
+
+  testWidgets('Fever shows account sync and remote entry window', (
+    tester,
+  ) async {
     await pumpTab(
       tester,
       account: buildTestAccount(type: AccountType.fever, name: 'Fever'),
     );
 
+    expect(find.text('Account sync'), findsOneWidget);
+    expect(find.text('Sync account'), findsOneWidget);
+    expect(find.text('Remote sync strategy'), findsOneWidget);
+    expect(find.text('Entries per sync'), findsOneWidget);
     expect(find.text('Miniflux strategy'), findsNothing);
     expect(find.text('Web page fetching'), findsNothing);
     expect(find.text('Server (Miniflux fetch-content)'), findsNothing);
   });
 
-  testWidgets('Miniflux shows server content fetch mode', (tester) async {
+  testWidgets('Miniflux shows account sync, entry window, and fetch mode', (
+    tester,
+  ) async {
     await pumpTab(
       tester,
       account: buildTestAccount(type: AccountType.miniflux, name: 'Miniflux'),
     );
 
-    expect(find.text('Miniflux strategy'), findsOneWidget);
+    expect(find.text('Account sync'), findsOneWidget);
+    expect(find.text('Sync account'), findsOneWidget);
+    expect(find.text('Remote sync strategy'), findsOneWidget);
+    expect(find.text('Entries per sync'), findsOneWidget);
     expect(find.text('Web page fetching'), findsOneWidget);
     expect(find.text('Client (Readability)'), findsOneWidget);
   });

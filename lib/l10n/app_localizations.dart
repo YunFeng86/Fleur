@@ -411,6 +411,36 @@ abstract class AppLocalizations {
   /// **'Refresh all'**
   String get refreshAll;
 
+  /// accountSync
+  ///
+  /// In en, this message translates to:
+  /// **'Account sync'**
+  String get accountSync;
+
+  /// accountSyncSubtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Sync this remote account in the background.'**
+  String get accountSyncSubtitle;
+
+  /// syncAccount
+  ///
+  /// In en, this message translates to:
+  /// **'Sync account'**
+  String get syncAccount;
+
+  /// syncingAccount
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing account...'**
+  String get syncingAccount;
+
+  /// syncedAccount
+  ///
+  /// In en, this message translates to:
+  /// **'Account synced'**
+  String get syncedAccount;
+
   /// refreshSelected
   ///
   /// In en, this message translates to:
@@ -1160,6 +1190,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Entries per sync'**
   String get minifluxEntriesLimit;
+
+  /// remoteSyncStrategy
+  ///
+  /// In en, this message translates to:
+  /// **'Remote sync strategy'**
+  String get remoteSyncStrategy;
+
+  /// remoteSyncStrategySubtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Controls the remote article window pulled during sync.'**
+  String get remoteSyncStrategySubtitle;
+
+  /// remoteSyncStrategyMinifluxSubtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Miniflux can page through remote entries up to this per-sync window.'**
+  String get remoteSyncStrategyMinifluxSubtitle;
+
+  /// remoteSyncStrategyFeverSubtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Fever syncs unread and saved items, capped by this per-sync window.'**
+  String get remoteSyncStrategyFeverSubtitle;
+
+  /// remoteEntriesLimit
+  ///
+  /// In en, this message translates to:
+  /// **'Entries per sync'**
+  String get remoteEntriesLimit;
 
   /// minifluxWebFetchMode
   ///
