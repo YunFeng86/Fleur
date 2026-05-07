@@ -75,6 +75,15 @@ class BackendSyncSemantics {
   bool get mirrorsRemoteTaxonomy =>
       taxonomySemantics != BackendTaxonomySemantics.localOnly;
 
+  bool get isLocalOnlyTaxonomy =>
+      taxonomySemantics == BackendTaxonomySemantics.localOnly;
+
+  bool get isRemoteWritableTaxonomy =>
+      taxonomySemantics == BackendTaxonomySemantics.remoteWritableAuthoritative;
+
+  bool get isRemoteReadOnlyTaxonomy =>
+      taxonomySemantics == BackendTaxonomySemantics.remoteReadOnlyMirror;
+
   bool get canWriteRemoteTaxonomy =>
       taxonomySemantics == BackendTaxonomySemantics.remoteWritableAuthoritative;
 

@@ -52,6 +52,9 @@ void main() {
     expect(local.isAccountWideRefresh, isFalse);
     expect(local.supportsEntrySyncLimit, isFalse);
     expect(local.mirrorsRemoteTaxonomy, isFalse);
+    expect(local.isLocalOnlyTaxonomy, isTrue);
+    expect(local.isRemoteWritableTaxonomy, isFalse);
+    expect(local.isRemoteReadOnlyTaxonomy, isFalse);
     expect(local.canWriteRemoteTaxonomy, isFalse);
     expect(local.usesSummaryNotifications, isTrue);
 
@@ -59,6 +62,9 @@ void main() {
     expect(miniflux.isAccountWideRefresh, isTrue);
     expect(miniflux.supportsEntrySyncLimit, isTrue);
     expect(miniflux.mirrorsRemoteTaxonomy, isTrue);
+    expect(miniflux.isLocalOnlyTaxonomy, isFalse);
+    expect(miniflux.isRemoteWritableTaxonomy, isTrue);
+    expect(miniflux.isRemoteReadOnlyTaxonomy, isFalse);
     expect(miniflux.canWriteRemoteTaxonomy, isTrue);
     expect(miniflux.usesSummaryNotifications, isFalse);
 
@@ -66,6 +72,9 @@ void main() {
     expect(fever.isAccountWideRefresh, isTrue);
     expect(fever.supportsEntrySyncLimit, isTrue);
     expect(fever.mirrorsRemoteTaxonomy, isTrue);
+    expect(fever.isLocalOnlyTaxonomy, isFalse);
+    expect(fever.isRemoteWritableTaxonomy, isFalse);
+    expect(fever.isRemoteReadOnlyTaxonomy, isTrue);
     expect(fever.canWriteRemoteTaxonomy, isFalse);
     expect(fever.usesSummaryNotifications, isTrue);
   });

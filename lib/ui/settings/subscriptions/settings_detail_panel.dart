@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../providers/app_settings_providers.dart';
 import '../../../../providers/backend_capabilities_provider.dart';
 import '../../../../providers/backend_content_capabilities_provider.dart';
+import '../../../../providers/backend_sync_semantics_provider.dart';
 import '../../../../providers/query_providers.dart';
 import '../../../../providers/subscription_settings_provider.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -273,6 +274,7 @@ class _CategorySettings extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final appSettings = ref.watch(appSettingsProvider).valueOrNull;
     final capabilities = ref.watch(backendCapabilitiesProvider);
+    final syncSemantics = ref.watch(backendSyncSemanticsProvider);
 
     if (appSettings == null) {
       return const Center(child: CircularProgressIndicator());
@@ -289,6 +291,25 @@ class _CategorySettings extends ConsumerWidget {
           subtitle:
               '${ref.watch(feedsProvider).valueOrNull?.where((feed) => feed.categoryId == category.id).length ?? 0} ${l10n.subscriptions}',
         ),
+        if (syncSemantics.isRemoteWritableTaxonomy)
+          SettingsCard(
+            padding: EdgeInsets.zero,
+            child: SettingsTile(
+              leading: const Icon(Icons.cloud_done_outlined),
+              title: Text(l10n.remoteWritableTaxonomyTitle),
+              subtitle: Text(l10n.remoteWritableTaxonomyDescription),
+            ),
+          ),
+        if (syncSemantics.isRemoteReadOnlyTaxonomy)
+          SettingsCard(
+            padding: EdgeInsets.zero,
+            child: SettingsTile(
+              leading: const Icon(Icons.lock_outline),
+              title: Text(l10n.remoteReadOnlyTaxonomyTitle),
+              subtitle: Text(l10n.remoteReadOnlyTaxonomyDescription),
+            ),
+          ),
+        if (syncSemantics.mirrorsRemoteTaxonomy) const SizedBox(height: 24),
         if (hasActions)
           SettingsCard(
             padding: EdgeInsets.zero,
@@ -344,6 +365,7 @@ class _FeedSettings extends ConsumerWidget {
     final categories = ref.watch(categoriesProvider).valueOrNull ?? [];
     final appSettings = ref.watch(appSettingsProvider).valueOrNull;
     final capabilities = ref.watch(backendCapabilitiesProvider);
+    final syncSemantics = ref.watch(backendSyncSemanticsProvider);
     final category = feed.categoryId != null
         ? categories.where((c) => c.id == feed.categoryId).firstOrNull
         : null;
@@ -404,6 +426,12 @@ class _FeedSettings extends ConsumerWidget {
                     ref,
                     feedId: feed.id,
                   ),
+                ),
+              if (!canMove && syncSemantics.isRemoteReadOnlyTaxonomy)
+                SettingsTile(
+                  leading: const Icon(Icons.lock_outline),
+                  title: Text(l10n.feedCategoryReadOnlyTaxonomyTitle),
+                  subtitle: Text(l10n.feedCategoryReadOnlyTaxonomyDescription),
                 ),
               if (capabilities.isVisible(
                 BackendFeature.refreshSubscriptionSource,

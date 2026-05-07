@@ -327,6 +327,7 @@ class SidebarNavigationTree extends StatelessWidget {
                   selectionActions: selectionActions,
                   managementActions: managementActions,
                   capabilities: capabilities,
+                  syncSemantics: syncSemantics,
                   onShowCategoryMenu: onShowCategoryMenu,
                   onShowFeedMenu: onShowFeedMenu,
                 ),
@@ -384,6 +385,7 @@ class _SidebarCategoryTile extends StatelessWidget {
     required this.selectionActions,
     required this.managementActions,
     required this.capabilities,
+    required this.syncSemantics,
     required this.onShowCategoryMenu,
     required this.onShowFeedMenu,
   });
@@ -400,6 +402,7 @@ class _SidebarCategoryTile extends StatelessWidget {
   final SidebarSelectionActions selectionActions;
   final SidebarManagementActions managementActions;
   final BackendCapabilities capabilities;
+  final BackendSyncSemantics syncSemantics;
   final Future<void> Function(Category category) onShowCategoryMenu;
   final Future<void> Function(Feed feed) onShowFeedMenu;
 
@@ -435,6 +438,15 @@ class _SidebarCategoryTile extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 _UnreadBadge(unreadCount),
+                if (syncSemantics.isRemoteReadOnlyTaxonomy)
+                  Tooltip(
+                    message: l10n.remoteReadOnlyTaxonomyTitle,
+                    child: Icon(
+                      Icons.lock_outline,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                 if (!isDesktop && hasCategoryActions)
                   IconButton(
                     tooltip: l10n.more,

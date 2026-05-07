@@ -372,6 +372,27 @@ class AppLocalizationsEn extends AppLocalizations {
       'Delete this category on the remote service and then reconcile the local mirror.';
 
   @override
+  String get remoteWritableTaxonomyTitle => 'Remote categories';
+
+  @override
+  String get remoteWritableTaxonomyDescription =>
+      'Category changes are applied on the remote service and then mirrored locally.';
+
+  @override
+  String get remoteReadOnlyTaxonomyTitle => 'Read-only remote groups';
+
+  @override
+  String get remoteReadOnlyTaxonomyDescription =>
+      'These categories mirror read-only remote groups. Rename, delete, or move items in the remote service.';
+
+  @override
+  String get feedCategoryReadOnlyTaxonomyTitle => 'Category managed remotely';
+
+  @override
+  String get feedCategoryReadOnlyTaxonomyDescription =>
+      'This feed\'s category comes from a read-only remote group mirror.';
+
+  @override
   String get deleteTagConfirmTitle => 'Delete tag?';
 
   @override

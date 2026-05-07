@@ -73,6 +73,8 @@ const _syncSemanticsFiles = <String, String>{
   'lib/ui/home/home_scene_commands.dart': 'backendSyncSemanticsProvider',
   'lib/ui/settings/subscriptions/subscription_toolbar.dart':
       'backendSyncSemanticsProvider',
+  'lib/ui/settings/subscriptions/settings_detail_panel.dart':
+      'backendSyncSemanticsProvider',
   'lib/ui/sidebar/sidebar_tree.dart': 'BackendSyncSemantics',
   'lib/ui/settings/tabs/services_tab.dart': 'backendSyncSemanticsProvider',
   'lib/widgets/sidebar.dart': 'backendSyncSemanticsProvider',

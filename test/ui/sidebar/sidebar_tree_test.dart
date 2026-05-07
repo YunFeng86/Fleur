@@ -188,6 +188,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byTooltip('New category'), findsNothing);
+    expect(find.byTooltip('Read-only remote groups'), findsOneWidget);
     expect(find.text('Tech'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.more_horiz));
@@ -245,6 +246,16 @@ void main() {
         ),
       ),
     );
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('Read-only remote groups'), findsNothing);
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Rename'), findsOneWidget);
+    expect(find.text('Delete category'), findsOneWidget);
+
+    await tester.tapAt(const Offset(5, 5));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byIcon(Icons.more_horiz));

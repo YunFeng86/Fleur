@@ -771,6 +771,42 @@ abstract class AppLocalizations {
   /// **'Delete this category on the remote service and then reconcile the local mirror.'**
   String get remoteDeleteCategoryConfirmContent;
 
+  /// Title for writable remote taxonomy/category semantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote categories'**
+  String get remoteWritableTaxonomyTitle;
+
+  /// Description for writable remote taxonomy/category semantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Category changes are applied on the remote service and then mirrored locally.'**
+  String get remoteWritableTaxonomyDescription;
+
+  /// Title for read-only remote taxonomy/group mirror semantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Read-only remote groups'**
+  String get remoteReadOnlyTaxonomyTitle;
+
+  /// Description for read-only remote taxonomy/group mirror semantics.
+  ///
+  /// In en, this message translates to:
+  /// **'These categories mirror read-only remote groups. Rename, delete, or move items in the remote service.'**
+  String get remoteReadOnlyTaxonomyDescription;
+
+  /// Title for a feed whose category assignment is managed by a read-only remote taxonomy mirror.
+  ///
+  /// In en, this message translates to:
+  /// **'Category managed remotely'**
+  String get feedCategoryReadOnlyTaxonomyTitle;
+
+  /// Description for a feed whose category assignment is managed by a read-only remote taxonomy mirror.
+  ///
+  /// In en, this message translates to:
+  /// **'This feed\'s category comes from a read-only remote group mirror.'**
+  String get feedCategoryReadOnlyTaxonomyDescription;
+
   /// deleteTagConfirmTitle
   ///
   /// In en, this message translates to:

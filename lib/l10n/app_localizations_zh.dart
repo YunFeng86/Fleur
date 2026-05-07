@@ -353,6 +353,25 @@ class AppLocalizationsZh extends AppLocalizations {
   String get remoteDeleteCategoryConfirmContent => '将先在远程服务上删除该分类，然后回刷本地镜像。';
 
   @override
+  String get remoteWritableTaxonomyTitle => '远程分类';
+
+  @override
+  String get remoteWritableTaxonomyDescription => '分类变更会应用到远程服务，并同步回本地镜像。';
+
+  @override
+  String get remoteReadOnlyTaxonomyTitle => '只读远程分组';
+
+  @override
+  String get remoteReadOnlyTaxonomyDescription =>
+      '这些分类来自只读远程分组镜像。重命名、删除或移动请在远程服务中管理。';
+
+  @override
+  String get feedCategoryReadOnlyTaxonomyTitle => '分类由远程管理';
+
+  @override
+  String get feedCategoryReadOnlyTaxonomyDescription => '这个订阅源的分类来自只读远程分组镜像。';
+
+  @override
   String get deleteTagConfirmTitle => '删除标签？';
 
   @override
@@ -1452,6 +1471,25 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get remoteDeleteCategoryConfirmContent => '將先在遠端服務上刪除這個分類，然後回刷本機鏡像。';
+
+  @override
+  String get remoteWritableTaxonomyTitle => '遠端分類';
+
+  @override
+  String get remoteWritableTaxonomyDescription => '分類變更會套用到遠端服務，並同步回本機鏡像。';
+
+  @override
+  String get remoteReadOnlyTaxonomyTitle => '唯讀遠端分組';
+
+  @override
+  String get remoteReadOnlyTaxonomyDescription =>
+      '這些分類來自唯讀遠端分組鏡像。重新命名、刪除或移動請在遠端服務中管理。';
+
+  @override
+  String get feedCategoryReadOnlyTaxonomyTitle => '分類由遠端管理';
+
+  @override
+  String get feedCategoryReadOnlyTaxonomyDescription => '這個訂閱源的分類來自唯讀遠端分組鏡像。';
 
   @override
   String get deleteTagConfirmTitle => '刪除標籤？';
