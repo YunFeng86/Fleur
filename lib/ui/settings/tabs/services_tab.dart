@@ -344,7 +344,7 @@ class ServicesTab extends ConsumerWidget {
                     const SizedBox(height: 8),
                     DropdownButtonHideUnderline(
                       child: DropdownButton<int>(
-                        value: appSettings.minifluxEntriesLimit,
+                        value: appSettings.remoteEntriesLimit,
                         isExpanded: true,
                         items: [
                           for (final v in const [100, 200, 400, 800, 1200])
@@ -359,7 +359,7 @@ class ServicesTab extends ConsumerWidget {
                           unawaited(
                             ref
                                 .read(appSettingsProvider.notifier)
-                                .setMinifluxEntriesLimit(v),
+                                .setRemoteEntriesLimit(v),
                           );
                         },
                       ),

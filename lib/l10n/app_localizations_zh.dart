@@ -570,9 +570,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get minifluxStrategySubtitle => '控制同步时拉取量与预取行为。';
 
   @override
-  String get minifluxEntriesLimit => '每次同步拉取条数';
-
-  @override
   String get remoteSyncStrategy => '远程同步策略';
 
   @override
@@ -1672,9 +1669,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get minifluxStrategySubtitle => '控制同步時的拉取量與預取行為。';
-
-  @override
-  String get minifluxEntriesLimit => '每次同步拉取筆數';
 
   @override
   String get remoteSyncStrategy => '遠端同步策略';

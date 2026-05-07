@@ -591,9 +591,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Controls how much data is fetched/prefetched during sync.';
 
   @override
-  String get minifluxEntriesLimit => 'Entries per sync';
-
-  @override
   String get remoteSyncStrategy => 'Remote sync strategy';
 
   @override

@@ -768,10 +768,6 @@
   "@minifluxStrategySubtitle": {
     "description": "minifluxStrategySubtitle"
   },
-  "minifluxEntriesLimit": "Entries per sync",
-  "@minifluxEntriesLimit": {
-    "description": "minifluxEntriesLimit"
-  },
   "remoteSyncStrategy": "Remote sync strategy",
   "@remoteSyncStrategy": {
     "description": "remoteSyncStrategy"

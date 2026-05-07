@@ -769,10 +769,6 @@
   "@minifluxStrategySubtitle": {
     "description": "minifluxStrategySubtitle"
   },
-  "minifluxEntriesLimit": "每次同步拉取筆數",
-  "@minifluxEntriesLimit": {
-    "description": "minifluxEntriesLimit"
-  },
   "remoteSyncStrategy": "遠端同步策略",
   "@remoteSyncStrategy": {
     "description": "remoteSyncStrategy"

@@ -33,7 +33,14 @@ void main() {
     );
   }
 
-  Future<void> pumpTab(WidgetTester tester, {required Account account}) async {
+  Future<FakeAppSettingsStore> pumpTab(
+    WidgetTester tester, {
+    required Account account,
+    AppSettings? appSettings,
+  }) async {
+    final appStore = FakeAppSettingsStore(
+      appSettings ?? AppSettings.defaults(),
+    );
     await pumpLocalizedTestApp(
       tester,
       home: const Scaffold(body: ServicesTab(showPageTitle: false)),
@@ -41,13 +48,12 @@ void main() {
         accountStoreProvider.overrideWithValue(
           _FakeAccountStore(accountsState(account)),
         ),
-        appSettingsStoreProvider.overrideWithValue(
-          FakeAppSettingsStore(AppSettings.defaults()),
-        ),
+        appSettingsStoreProvider.overrideWithValue(appStore),
       ],
       size: const Size(900, 1200),
     );
     await tester.pumpAndSettle();
+    return appStore;
   }
 
   testWidgets('Local keeps refresh-all semantics and hides remote strategy', (
@@ -95,5 +101,20 @@ void main() {
     expect(find.text('Entries per sync'), findsOneWidget);
     expect(find.text('Web page fetching'), findsOneWidget);
     expect(find.text('Client (Readability)'), findsOneWidget);
+  });
+
+  testWidgets('remote entry window updates the shared setting', (tester) async {
+    final appStore = await pumpTab(
+      tester,
+      account: buildTestAccount(type: AccountType.fever, name: 'Fever'),
+    );
+
+    await tester.tap(find.byType(DropdownButton<int>).last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('800').last);
+    await tester.pumpAndSettle();
+
+    expect(appStore.settings.remoteEntriesLimit, 800);
+    expect(appStore.settings.minifluxEntriesLimit, 800);
   });
 }

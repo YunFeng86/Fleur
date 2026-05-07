@@ -1185,12 +1185,6 @@ abstract class AppLocalizations {
   /// **'Controls how much data is fetched/prefetched during sync.'**
   String get minifluxStrategySubtitle;
 
-  /// minifluxEntriesLimit
-  ///
-  /// In en, this message translates to:
-  /// **'Entries per sync'**
-  String get minifluxEntriesLimit;
-
   /// remoteSyncStrategy
   ///
   /// In en, this message translates to:

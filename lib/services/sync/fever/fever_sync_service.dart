@@ -138,7 +138,7 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
     await _flushOutbox(client);
 
     final appSettings = await _appSettingsStore.load();
-    final entriesLimit = appSettings.minifluxEntriesLimit;
+    final entriesLimit = appSettings.remoteEntriesLimit;
 
     status?.update(label: SyncStatusLabel.syncingSubscriptions);
     final sub = await _syncSubscriptions(client, appSettings, status: status);
