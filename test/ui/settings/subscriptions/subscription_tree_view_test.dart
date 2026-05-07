@@ -11,6 +11,7 @@ import 'package:fleur/providers/subscription_settings_provider.dart';
 import 'package:fleur/ui/settings/subscriptions/subscription_tree_view.dart';
 import 'package:fleur/ui/settings/widgets/section_header.dart';
 import 'package:fleur/widgets/app_scrollbar.dart';
+import 'package:fleur/widgets/tree_disclosure_button.dart';
 
 void main() {
   testWidgets('SubscriptionTreeView starts expanded when category is selected', (
@@ -335,5 +336,80 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Tech News'), findsNothing);
+  });
+
+  testWidgets('expanding a category above the viewport preserves visible row', (
+    tester,
+  ) async {
+    final categories = List<Category>.generate(
+      8,
+      (index) => Category()
+        ..id = index + 1
+        ..name = 'Category ${index + 1}',
+    );
+    final feeds = <Feed>[
+      for (final category in categories)
+        for (var i = 0; i < 4; i++)
+          Feed()
+            ..id = category.id * 100 + i
+            ..url = 'https://example.com/${category.id}/feed-$i.xml'
+            ..title = 'Feed ${category.id}-$i'
+            ..categoryId = category.id,
+    ];
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          categoriesProvider.overrideWith((ref) => Stream.value(categories)),
+          feedsProvider.overrideWith((ref) => Stream.value(feeds)),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const Scaffold(
+            body: SizedBox(height: 280, child: SubscriptionTreeView()),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    final scrollable = tester
+        .stateList<ScrollableState>(find.byType(Scrollable))
+        .firstWhere((state) => state.position.maxScrollExtent > 0);
+    scrollable.position.jumpTo(250);
+    await tester.pump();
+
+    final viewportTop = tester.getTopLeft(find.byType(ListView)).dy;
+    Finder categoryRow(String label) => find
+        .ancestor(
+          of: find.text(label),
+          matching: find.byWidgetPredicate(
+            (widget) =>
+                widget is Semantics && widget.properties.expanded != null,
+          ),
+        )
+        .first;
+    final anchorRowFinder =
+        List<Finder>.generate(
+          7,
+          (index) => categoryRow('Category ${index + 2}'),
+        ).firstWhere(
+          (finder) =>
+              finder.evaluate().isNotEmpty &&
+              tester.getTopLeft(finder).dy >= viewportTop,
+        );
+    expect(anchorRowFinder, findsOneWidget);
+    final beforeTop = tester.getTopLeft(anchorRowFinder).dy;
+    final beforeMaxExtent = scrollable.position.maxScrollExtent;
+
+    final firstDisclosure = tester
+        .widgetList<TreeDisclosureButton>(find.byType(TreeDisclosureButton))
+        .first;
+    firstDisclosure.onPressed();
+    await tester.pumpAndSettle();
+
+    expect(scrollable.position.maxScrollExtent, greaterThan(beforeMaxExtent));
+    expect(tester.getTopLeft(anchorRowFinder).dy, closeTo(beforeTop, 1));
   });
 }

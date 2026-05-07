@@ -60,7 +60,7 @@ class SidebarSearchField extends StatelessWidget {
   }
 }
 
-class SidebarNavigationTree extends StatelessWidget {
+class SidebarNavigationTree extends StatefulWidget {
   const SidebarNavigationTree({
     super.key,
     required this.scrollController,
@@ -107,6 +107,110 @@ class SidebarNavigationTree extends StatelessWidget {
   final Future<void> Function() onAddCategory;
   final Future<void> Function(Category category) onShowCategoryMenu;
   final Future<void> Function(Feed feed) onShowFeedMenu;
+
+  @override
+  State<SidebarNavigationTree> createState() => _SidebarNavigationTreeState();
+}
+
+class _SidebarScrollAnchor {
+  const _SidebarScrollAnchor({required this.rowId, required this.top});
+
+  final String rowId;
+  final double top;
+}
+
+class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
+  final GlobalKey _listViewKey = GlobalKey();
+  final Map<String, GlobalKey> _rowKeys = <String, GlobalKey>{};
+
+  ScrollController get scrollController => widget.scrollController;
+  String get searchText => widget.searchText;
+  AsyncValue<List<Feed>> get feeds => widget.feeds;
+  AsyncValue<List<Category>> get categories => widget.categories;
+  AsyncValue<List<Tag>> get tags => widget.tags;
+  AsyncValue<Map<int?, int>> get allUnreadCounts => widget.allUnreadCounts;
+  int? get selectedFeedId => widget.selectedFeedId;
+  int? get selectedCategoryId => widget.selectedCategoryId;
+  int? get selectedTagId => widget.selectedTagId;
+  bool get starredOnly => widget.starredOnly;
+  bool get readLaterOnly => widget.readLaterOnly;
+  int? get expandedCategoryId => widget.expandedCategoryId;
+  ValueChanged<int?> get onExpandedCategoryChanged =>
+      widget.onExpandedCategoryChanged;
+  SidebarSelectionActions get selectionActions => widget.selectionActions;
+  SidebarManagementActions get managementActions => widget.managementActions;
+  BackendCapabilities get capabilities => widget.capabilities;
+  BackendSyncSemantics get syncSemantics => widget.syncSemantics;
+  Future<void> Function() get onAddFeed => widget.onAddFeed;
+  Future<void> Function() get onAddCategory => widget.onAddCategory;
+  Future<void> Function(Category category) get onShowCategoryMenu =>
+      widget.onShowCategoryMenu;
+  Future<void> Function(Feed feed) get onShowFeedMenu => widget.onShowFeedMenu;
+
+  GlobalKey _rowKey(String rowId) {
+    return _rowKeys.putIfAbsent(rowId, GlobalKey.new);
+  }
+
+  Widget _anchoredRow(String rowId, Widget child) {
+    return KeyedSubtree(key: _rowKey(rowId), child: child);
+  }
+
+  _SidebarScrollAnchor? _captureScrollAnchor() {
+    if (!scrollController.hasClients) return null;
+    final listBox = _listViewKey.currentContext?.findRenderObject();
+    if (listBox is! RenderBox || !listBox.hasSize) return null;
+    final viewportTop = listBox.localToGlobal(Offset.zero).dy;
+    final viewportBottom = viewportTop + listBox.size.height;
+
+    _SidebarScrollAnchor? bestFullyVisible;
+    double bestFullyVisibleTop = double.infinity;
+    _SidebarScrollAnchor? bestPartial;
+    double bestPartialDistance = double.infinity;
+    for (final entry in _rowKeys.entries) {
+      final rowBox = entry.value.currentContext?.findRenderObject();
+      if (rowBox is! RenderBox || !rowBox.hasSize) continue;
+      final top = rowBox.localToGlobal(Offset.zero).dy;
+      final bottom = top + rowBox.size.height;
+      if (bottom < viewportTop || top > viewportBottom) continue;
+      if (top >= viewportTop) {
+        if (top < bestFullyVisibleTop) {
+          bestFullyVisibleTop = top;
+          bestFullyVisible = _SidebarScrollAnchor(rowId: entry.key, top: top);
+        }
+      } else {
+        final distance = (top - viewportTop).abs();
+        if (distance < bestPartialDistance) {
+          bestPartialDistance = distance;
+          bestPartial = _SidebarScrollAnchor(rowId: entry.key, top: top);
+        }
+      }
+    }
+    return bestFullyVisible ?? bestPartial;
+  }
+
+  void _restoreScrollAnchor(_SidebarScrollAnchor? anchor) {
+    if (!mounted || anchor == null || !scrollController.hasClients) return;
+    final rowBox = _rowKeys[anchor.rowId]?.currentContext?.findRenderObject();
+    if (rowBox is! RenderBox || !rowBox.hasSize) return;
+    final nextTop = rowBox.localToGlobal(Offset.zero).dy;
+    final delta = nextTop - anchor.top;
+    if (delta.abs() < 0.5) return;
+    final position = scrollController.position;
+    final next = (position.pixels + delta).clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
+    if ((next - position.pixels).abs() < 0.5) return;
+    scrollController.jumpTo(next);
+  }
+
+  void _runWithScrollAnchor(VoidCallback action) {
+    final anchor = _captureScrollAnchor();
+    action();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _restoreScrollAnchor(anchor);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -314,22 +418,30 @@ class SidebarNavigationTree extends StatelessWidget {
               if (searchText.isNotEmpty && categoryFeeds.isEmpty) continue;
 
               children.add(
-                _SidebarCategoryTile(
-                  category: category,
-                  feeds: categoryFeeds,
-                  selectedFeedId: selectedFeedId,
-                  selectedCategoryId: selectedCategoryId,
-                  starredOnly: starredOnly,
-                  unreadCount: unreadByCategoryId[category.id] ?? 0,
-                  unreadCounts: unreadCounts,
-                  expanded: expandedCategoryId == category.id,
-                  onExpandedCategoryChanged: onExpandedCategoryChanged,
-                  selectionActions: selectionActions,
-                  managementActions: managementActions,
-                  capabilities: capabilities,
-                  syncSemantics: syncSemantics,
-                  onShowCategoryMenu: onShowCategoryMenu,
-                  onShowFeedMenu: onShowFeedMenu,
+                _anchoredRow(
+                  'category:${category.id}',
+                  _SidebarCategoryTile(
+                    category: category,
+                    feeds: categoryFeeds,
+                    selectedFeedId: selectedFeedId,
+                    selectedCategoryId: selectedCategoryId,
+                    starredOnly: starredOnly,
+                    unreadCount: unreadByCategoryId[category.id] ?? 0,
+                    unreadCounts: unreadCounts,
+                    expanded: expandedCategoryId == category.id,
+                    onExpandedCategoryChanged: (categoryId) {
+                      _runWithScrollAnchor(
+                        () => onExpandedCategoryChanged(categoryId),
+                      );
+                    },
+                    selectionActions: selectionActions,
+                    managementActions: managementActions,
+                    capabilities: capabilities,
+                    syncSemantics: syncSemantics,
+                    onShowCategoryMenu: onShowCategoryMenu,
+                    onShowFeedMenu: onShowFeedMenu,
+                    feedRowKey: (feedId) => _rowKey('feed:$feedId'),
+                  ),
                 ),
               );
             }
@@ -339,7 +451,7 @@ class SidebarNavigationTree extends StatelessWidget {
               for (final feed in uncategorizedFeeds) {
                 children.add(
                   _SidebarFeedTile(
-                    key: ValueKey('feed_${feed.id}'),
+                    key: _rowKey('feed:${feed.id}'),
                     feed: feed,
                     selectedFeedId: selectedFeedId,
                     unreadCount: unreadCounts?[feed.id],
@@ -357,6 +469,7 @@ class SidebarNavigationTree extends StatelessWidget {
               thumbVisibility: isDesktop,
               interactive: true,
               child: ListView(
+                key: _listViewKey,
                 controller: scrollController,
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 children: children,
@@ -388,6 +501,7 @@ class _SidebarCategoryTile extends StatelessWidget {
     required this.syncSemantics,
     required this.onShowCategoryMenu,
     required this.onShowFeedMenu,
+    required this.feedRowKey,
   });
 
   final Category category;
@@ -405,6 +519,7 @@ class _SidebarCategoryTile extends StatelessWidget {
   final BackendSyncSemantics syncSemantics;
   final Future<void> Function(Category category) onShowCategoryMenu;
   final Future<void> Function(Feed feed) onShowFeedMenu;
+  final Key Function(int feedId) feedRowKey;
 
   @override
   Widget build(BuildContext context) {
@@ -493,7 +608,7 @@ class _SidebarCategoryTile extends StatelessWidget {
           if (expanded)
             ...feeds.map(
               (feed) => _SidebarFeedTile(
-                key: ValueKey('feed_${feed.id}'),
+                key: feedRowKey(feed.id),
                 feed: feed,
                 selectedFeedId: selectedFeedId,
                 unreadCount: unreadCounts?[feed.id],

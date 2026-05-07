@@ -87,7 +87,39 @@ void main() {
     expect(loaded, isNotNull);
     expect(loaded!.pixels, 120.5);
     expect(loaded.progress, closeTo(0.42, 0.0001));
+    expect(loaded.anchorIndex, isNull);
+    expect(loaded.anchorFraction, isNull);
     expect(loaded.updatedAt.toIso8601String(), now.toIso8601String());
+  });
+
+  test('serializes optional anchor fields and accepts legacy json', () {
+    final now = DateTime(2026, 2, 4, 10, 30, 0);
+    final progress = ReaderProgress(
+      articleId: 1,
+      contentHash: 'hash-1',
+      pixels: 120.5,
+      progress: 0.42,
+      updatedAt: now,
+      anchorIndex: 3,
+      anchorFraction: 0.65,
+    );
+
+    final json = progress.toJson();
+    expect(json['anchorIndex'], 3);
+    expect(json['anchorFraction'], 0.65);
+
+    final restored = ReaderProgress.fromJson(json);
+    expect(restored, isNotNull);
+    expect(restored!.anchorIndex, 3);
+    expect(restored.anchorFraction, closeTo(0.65, 0.0001));
+
+    final legacy = Map<String, Object?>.from(json)
+      ..remove('anchorIndex')
+      ..remove('anchorFraction');
+    final restoredLegacy = ReaderProgress.fromJson(legacy);
+    expect(restoredLegacy, isNotNull);
+    expect(restoredLegacy!.anchorIndex, isNull);
+    expect(restoredLegacy.anchorFraction, isNull);
   });
 
   test('trim keeps latest entries', () async {

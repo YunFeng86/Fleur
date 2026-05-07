@@ -539,6 +539,41 @@ void main() {
     expect(saved!.pixels, greaterThan(0));
   });
 
+  testWidgets('saves chunk anchor with reading progress', (tester) async {
+    final progressStore = InMemoryReaderProgressStore();
+    final chunkedHtml = List<String>.generate(
+      180,
+      (index) => '<p>Chunk paragraph ${index + 1} ${'content ' * 72}</p>',
+    ).join();
+    final article = buildArticle(html: chunkedHtml);
+
+    await pumpReader(
+      tester,
+      article: article,
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      progressStore: progressStore,
+      size: const Size(560, 320),
+    );
+    await settleReader(tester, rounds: 100);
+
+    final scrollableState = tester
+        .stateList<ScrollableState>(find.byType(Scrollable))
+        .firstWhere((state) => state.position.maxScrollExtent > 0);
+    scrollableState.position.jumpTo(
+      scrollableState.position.maxScrollExtent * 0.5,
+    );
+    await settleReader(tester, rounds: 20);
+
+    final saved = await progressStore.getProgress(
+      articleId: articleId,
+      contentHash: 'reader-hash',
+    );
+    expect(saved, isNotNull);
+    expect(saved!.pixels, greaterThan(0));
+    expect(saved.anchorIndex, isNotNull);
+    expect(saved.anchorFraction, isNotNull);
+  });
+
   testWidgets('reader scene applies themed search and toolbar surfaces', (
     tester,
   ) async {

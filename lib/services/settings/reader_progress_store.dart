@@ -10,6 +10,8 @@ class ReaderProgress {
     required this.pixels,
     required this.progress,
     required this.updatedAt,
+    this.anchorIndex,
+    this.anchorFraction,
   });
 
   final int articleId;
@@ -17,6 +19,8 @@ class ReaderProgress {
   final double pixels;
   final double progress;
   final DateTime updatedAt;
+  final int? anchorIndex;
+  final double? anchorFraction;
 
   Map<String, Object?> toJson() => {
     'articleId': articleId,
@@ -24,6 +28,8 @@ class ReaderProgress {
     'pixels': pixels,
     'progress': progress,
     'updatedAt': updatedAt.toIso8601String(),
+    if (anchorIndex != null) 'anchorIndex': anchorIndex,
+    if (anchorFraction != null) 'anchorFraction': anchorFraction,
   };
 
   static ReaderProgress? fromJson(Map<String, Object?> json) {
@@ -32,6 +38,8 @@ class ReaderProgress {
     final pixels = json['pixels'];
     final progress = json['progress'];
     final updatedAt = json['updatedAt'];
+    final anchorIndex = json['anchorIndex'];
+    final anchorFraction = json['anchorFraction'];
     if (articleId is! num) return null;
     if (contentHash is! String || contentHash.trim().isEmpty) return null;
     if (pixels is! num || progress is! num) return null;
@@ -45,6 +53,10 @@ class ReaderProgress {
       pixels: pixels.toDouble(),
       progress: progress.toDouble().clamp(0.0, 1.0).toDouble(),
       updatedAt: parsedUpdatedAt,
+      anchorIndex: anchorIndex is num ? anchorIndex.toInt() : null,
+      anchorFraction: anchorFraction is num
+          ? anchorFraction.toDouble().clamp(0.0, 1.0).toDouble()
+          : null,
     );
   }
 }
