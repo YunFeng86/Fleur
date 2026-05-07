@@ -127,6 +127,39 @@ Dio _rejectingDio() {
   return dio;
 }
 
+Dio _minifluxMarkAllReadSuccessDio() {
+  final dio = Dio();
+  dio.interceptors.add(
+    InterceptorsWrapper(
+      onRequest: (options, handler) {
+        if (options.method == 'GET' && options.uri.path == '/v1/feeds') {
+          handler.resolve(
+            Response<Object?>(
+              requestOptions: options,
+              data: [
+                {'id': 7, 'feed_url': 'https://example.com/feed.xml'},
+              ],
+            ),
+          );
+          return;
+        }
+        if (options.method == 'PUT' &&
+            options.uri.path == '/v1/feeds/7/mark-all-as-read') {
+          handler.resolve(Response<Object?>(requestOptions: options));
+          return;
+        }
+        handler.reject(
+          DioException(
+            requestOptions: options,
+            error: 'unexpected request: ${options.method} ${options.uri}',
+          ),
+        );
+      },
+    ),
+  );
+  return dio;
+}
+
 Future<void> _seedFeedAndArticle(
   Isar isar, {
   int feedId = 1,
@@ -516,6 +549,39 @@ void main() {
         expect(pending.single.categoryTitle, isNull);
         expect(pending.single.value, isTrue);
       }
+    },
+  );
+
+  test(
+    'ArticleActionService markAllRead removes queued action after remote success',
+    () async {
+      await _seedFeedAndArticle(
+        isar!,
+        feedId: 1,
+        feedUrl: 'https://example.com/feed.xml',
+        articleId: 10,
+        remoteId: '123',
+      );
+
+      const accountId = 'miniflux-mark-all-success-account';
+      final outbox = _MemoryOutboxStore();
+      final service = _buildArticleActionService(
+        isar: isar!,
+        account: _buildAccount(
+          id: accountId,
+          type: AccountType.miniflux,
+          baseUrl: 'https://miniflux.example.com',
+        ),
+        outbox: outbox,
+        dio: _minifluxMarkAllReadSuccessDio(),
+      );
+
+      await service.markAllRead(feedId: 1);
+
+      final updated = await ArticleRepository(isar!).getById(10);
+      expect(updated, isNotNull);
+      expect(updated!.isRead, isTrue);
+      expect(await outbox.load(accountId), isEmpty);
     },
   );
 }

@@ -19,6 +19,7 @@ import '../../settings/app_settings.dart';
 import '../../settings/app_settings_store.dart';
 import '../effective_feed_settings.dart';
 import '../outbox/outbox_store.dart';
+import '../remote_article_action_executor.dart';
 import '../sync_service.dart';
 import '../sync_mutex.dart';
 import '../sync_status_reporter.dart';
@@ -431,105 +432,11 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
     final pending = await _outbox.load(account.id);
     if (pending.isEmpty) return;
 
-    Map<String, int>? feedUrlToRemoteId;
-    Map<String, int>? groupTitleToRemoteId;
-
-    String normalizeFeedUrl(String url) {
-      return url.trim().replaceAll(RegExp(r'/+$'), '');
-    }
-
-    Future<Map<String, int>> getFeedUrlMap() async {
-      final cached = feedUrlToRemoteId;
-      if (cached != null) return cached;
-      final feeds = await client.getFeeds();
-      final map = <String, int>{};
-      for (final f in feeds) {
-        final id = _asInt(f['id']);
-        final url = f['url'];
-        if (id == null || url is! String) continue;
-        final key = normalizeFeedUrl(url);
-        if (key.isEmpty) continue;
-        map[key] = id;
-      }
-      feedUrlToRemoteId = map;
-      return map;
-    }
-
-    Future<Map<String, int>> getGroupTitleMap() async {
-      final cached = groupTitleToRemoteId;
-      if (cached != null) return cached;
-      final groups = await client.getGroups();
-      final map = <String, int>{};
-      for (final g in groups) {
-        final id = _asInt(g['id']);
-        final title = g['title'];
-        if (id == null || title is! String) continue;
-        final key = title.trim();
-        if (key.isEmpty) continue;
-        map[key] = id;
-      }
-      groupTitleToRemoteId = map;
-      return map;
-    }
-
+    final executor = FeverRemoteArticleActionExecutor(client);
     final remaining = <OutboxAction>[];
     for (final a in pending) {
       try {
-        switch (a.type) {
-          case OutboxActionType.markRead:
-            final entryId = a.remoteEntryId;
-            final value = a.value;
-            if (entryId == null || value == null) continue;
-            await client.markItemRead(entryId, read: value);
-            break;
-          case OutboxActionType.bookmark:
-            final entryId = a.remoteEntryId;
-            final value = a.value;
-            if (entryId == null || value == null) continue;
-            await client.markItemSaved(entryId, saved: value);
-            break;
-          case OutboxActionType.markAllRead:
-            final beforeSeconds =
-                a.createdAt.toUtc().millisecondsSinceEpoch ~/ 1000;
-            final feedUrl = a.feedUrl == null
-                ? null
-                : normalizeFeedUrl(a.feedUrl!);
-            final groupTitle = a.categoryTitle?.trim();
-
-            if (feedUrl != null && feedUrl.isNotEmpty) {
-              final map = await getFeedUrlMap();
-              final remoteId = map[feedUrl];
-              if (remoteId == null) {
-                throw StateError('Remote feed not found for url: $feedUrl');
-              }
-              await client.markFeedRead(remoteId, beforeSeconds: beforeSeconds);
-              break;
-            }
-
-            if (groupTitle != null && groupTitle.isNotEmpty) {
-              final map = await getGroupTitleMap();
-              final remoteId = map[groupTitle];
-              if (remoteId == null) {
-                throw StateError(
-                  'Remote group not found for title: $groupTitle',
-                );
-              }
-              await client.markGroupRead(
-                remoteId,
-                beforeSeconds: beforeSeconds,
-              );
-              break;
-            }
-
-            // Fallback: apply to all feeds. This action is only created when the
-            // user explicitly tapped "Mark all read" without a scope.
-            final map = await getFeedUrlMap();
-            for (final remoteId in map.values) {
-              if (remoteId <= 0) continue;
-              await client.markFeedRead(remoteId, beforeSeconds: beforeSeconds);
-            }
-            break;
-        }
+        await executor.apply(a);
       } catch (e) {
         // Keep it for next sync attempt.
         remaining.add(a);

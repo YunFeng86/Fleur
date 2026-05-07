@@ -13,6 +13,7 @@ import '../sync/backend_capabilities.dart';
 import '../sync/miniflux/miniflux_client.dart';
 import '../sync/fever/fever_client.dart';
 import '../sync/outbox/outbox_store.dart';
+import '../sync/remote_article_action_executor.dart';
 
 class ArticleActionService {
   ArticleActionService({
@@ -54,9 +55,14 @@ class ArticleActionService {
         final client = await _minifluxClientOrNull();
         if (client == null) return;
         try {
-          await client.setEntriesStatus([
-            entryId,
-          ], status: isRead ? 'read' : 'unread');
+          await MinifluxRemoteArticleActionExecutor(client).apply(
+            OutboxAction(
+              type: OutboxActionType.markRead,
+              remoteEntryId: entryId,
+              value: isRead,
+              createdAt: DateTime.now(),
+            ),
+          );
         } catch (_) {
           await _outbox.enqueue(
             _account.id,
@@ -73,7 +79,14 @@ class ArticleActionService {
         final client = await _feverClientOrNull();
         if (client == null) return;
         try {
-          await client.markItemRead(entryId, read: isRead);
+          await FeverRemoteArticleActionExecutor(client).apply(
+            OutboxAction(
+              type: OutboxActionType.markRead,
+              remoteEntryId: entryId,
+              value: isRead,
+              createdAt: DateTime.now(),
+            ),
+          );
         } catch (_) {
           await _outbox.enqueue(
             _account.id,
@@ -105,7 +118,14 @@ class ArticleActionService {
         final client = await _minifluxClientOrNull();
         if (client == null) return;
         try {
-          await client.setBookmarkState(rid, a?.isStarred == true);
+          await MinifluxRemoteArticleActionExecutor(client).apply(
+            OutboxAction(
+              type: OutboxActionType.bookmark,
+              remoteEntryId: rid,
+              value: a?.isStarred == true,
+              createdAt: DateTime.now(),
+            ),
+          );
         } catch (_) {
           await _outbox.enqueue(
             _account.id,
@@ -123,7 +143,14 @@ class ArticleActionService {
         if (client == null) return;
         final target = a?.isStarred == true;
         try {
-          await client.markItemSaved(rid, saved: target);
+          await FeverRemoteArticleActionExecutor(client).apply(
+            OutboxAction(
+              type: OutboxActionType.bookmark,
+              remoteEntryId: rid,
+              value: target,
+              createdAt: DateTime.now(),
+            ),
+          );
         } catch (_) {
           await _outbox.enqueue(
             _account.id,
@@ -183,8 +210,9 @@ class ArticleActionService {
         final client = await _minifluxClientOrNull();
         if (client == null) return;
         try {
-          await _applyMarkAllRead(client, action);
-          await _outbox.remove(_account.id, action);
+          if (await MinifluxRemoteArticleActionExecutor(client).apply(action)) {
+            await _outbox.remove(_account.id, action);
+          }
         } catch (_) {
           // Keep in outbox; will be flushed on next sync.
         }
@@ -193,8 +221,9 @@ class ArticleActionService {
         final client = await _feverClientOrNull();
         if (client == null) return;
         try {
-          await _applyMarkAllReadFever(client, action);
-          await _outbox.remove(_account.id, action);
+          if (await FeverRemoteArticleActionExecutor(client).apply(action)) {
+            await _outbox.remove(_account.id, action);
+          }
         } catch (_) {
           // Keep in outbox; will be flushed on next sync.
         }
@@ -234,121 +263,6 @@ class ArticleActionService {
       FeatureAvailability.localOnly ||
       FeatureAvailability.hidden => false,
     };
-  }
-
-  Future<void> _applyMarkAllRead(
-    MinifluxClient client,
-    OutboxAction action,
-  ) async {
-    String normalizeFeedUrl(String url) {
-      return url.trim().replaceAll(RegExp(r'/+$'), '');
-    }
-
-    final feedUrl = action.feedUrl == null
-        ? null
-        : normalizeFeedUrl(action.feedUrl!);
-    final catTitle = action.categoryTitle?.trim();
-    if (feedUrl != null && feedUrl.isNotEmpty) {
-      final feeds = await client.getFeeds();
-      final remote = feeds
-          .where((f) => f['id'] is int && f['feed_url'] is String)
-          .map(
-            (f) => (
-              id: f['id'] as int,
-              url: normalizeFeedUrl(f['feed_url'] as String),
-            ),
-          )
-          .firstWhere((x) => x.url == feedUrl, orElse: () => (id: -1, url: ''));
-      if (remote.id <= 0) {
-        throw StateError('Remote feed not found for url: $feedUrl');
-      }
-      await client.markFeedAllAsRead(remote.id);
-      return;
-    }
-    if (catTitle != null && catTitle.isNotEmpty) {
-      final cats = await client.getCategories();
-      final remote = cats
-          .where((c) => c['id'] is int && c['title'] is String)
-          .map(
-            (c) => (id: c['id'] as int, title: (c['title'] as String).trim()),
-          )
-          .firstWhere(
-            (x) => x.title == catTitle,
-            orElse: () => (id: -1, title: ''),
-          );
-      if (remote.id <= 0) {
-        throw StateError('Remote category not found for title: $catTitle');
-      }
-      await client.markCategoryAllAsRead(remote.id);
-      return;
-    }
-
-    // Fallback: apply to all feeds.
-    final feeds = await client.getFeeds();
-    for (final f in feeds) {
-      final id = f['id'];
-      if (id is! int) continue;
-      await client.markFeedAllAsRead(id);
-    }
-  }
-
-  Future<void> _applyMarkAllReadFever(
-    FeverClient client,
-    OutboxAction action,
-  ) async {
-    String normalizeFeedUrl(String url) {
-      return url.trim().replaceAll(RegExp(r'/+$'), '');
-    }
-
-    final beforeSeconds =
-        action.createdAt.toUtc().millisecondsSinceEpoch ~/ 1000;
-
-    final feedUrl = action.feedUrl == null
-        ? null
-        : normalizeFeedUrl(action.feedUrl!);
-    final groupTitle = action.categoryTitle?.trim();
-
-    if (feedUrl != null && feedUrl.isNotEmpty) {
-      final feeds = await client.getFeeds();
-      final remote = feeds
-          .where((f) => f['id'] is int && f['url'] is String)
-          .map(
-            (f) =>
-                (id: f['id'] as int, url: normalizeFeedUrl(f['url'] as String)),
-          )
-          .firstWhere((x) => x.url == feedUrl, orElse: () => (id: -1, url: ''));
-      if (remote.id <= 0) {
-        throw StateError('Remote feed not found for url: $feedUrl');
-      }
-      await client.markFeedRead(remote.id, beforeSeconds: beforeSeconds);
-      return;
-    }
-
-    if (groupTitle != null && groupTitle.isNotEmpty) {
-      final groups = await client.getGroups();
-      final remote = groups
-          .where((g) => g['id'] is int && g['title'] is String)
-          .map(
-            (g) => (id: g['id'] as int, title: (g['title'] as String).trim()),
-          )
-          .firstWhere(
-            (x) => x.title == groupTitle,
-            orElse: () => (id: -1, title: ''),
-          );
-      if (remote.id <= 0) {
-        throw StateError('Remote group not found for title: $groupTitle');
-      }
-      await client.markGroupRead(remote.id, beforeSeconds: beforeSeconds);
-      return;
-    }
-
-    // Fallback: apply to all feeds.
-    final feeds = await client.getFeeds();
-    for (final f in feeds) {
-      final id = f['id'];
-      if (id is! int) continue;
-      await client.markFeedRead(id, beforeSeconds: beforeSeconds);
-    }
   }
 
   Future<bool> _runLocalVoid(Future<void> Function() op) async {
