@@ -369,6 +369,8 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
         ? allIds.sublist(0, effectiveLimit)
         : allIds;
 
+    status?.update(current: 0, total: limitedIds.length);
+
     var totalNew = 0;
     var processed = 0;
     var webPagesRemaining = _maxWebPagesPerSync;

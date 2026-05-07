@@ -284,10 +284,12 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
           limit: pageSize,
           offset: offset,
           preferServerFetch: preferServerFetch,
+          status: status,
+          progressOffset: offset,
         );
         if (r.processed == 0) break;
         offset += r.processed;
-        status?.update(current: offset, total: r.total);
+        status?.update(current: offset, total: r.total ?? syncStatusUnchanged);
         if (r.total != null && offset >= r.total!) break;
         if (r.processed < pageSize) break;
 
@@ -313,6 +315,8 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
       limit: effectiveEntriesLimit,
       offset: 0,
       preferServerFetch: preferServerFetch,
+      status: status,
+      progressOffset: 0,
     );
     status?.update(
       current: r.processed,
@@ -329,13 +333,24 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
     required int limit,
     required int offset,
     required bool preferServerFetch,
+    SyncStatusTask? status,
+    required int progressOffset,
   }) async {
     if (limit <= 0) return (processed: 0, total: null);
     final resp = await client.getEntries(limit: limit, offset: offset);
     final raw = resp['entries'];
     final totalRaw = resp['total'];
     final total = totalRaw is int ? totalRaw : null;
-    if (raw is! List) return (processed: 0, total: total);
+    if (raw is! List) {
+      status?.update(current: progressOffset, total: total);
+      return (processed: 0, total: total);
+    }
+
+    final processed = raw.length;
+    status?.update(
+      current: progressOffset + processed,
+      total: total ?? progressOffset + processed,
+    );
 
     // Group by local feed id for ArticleRepository.upsertMany() calls.
     final byLocalFeedId = <int, List<Article>>{};
@@ -412,7 +427,7 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
       }
     }
 
-    return (processed: raw.length, total: total);
+    return (processed: processed, total: total);
   }
 
   @override
