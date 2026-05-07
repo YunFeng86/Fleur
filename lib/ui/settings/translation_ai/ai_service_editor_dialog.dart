@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../providers/translation_ai_settings_providers.dart';
+import '../../../services/logging/app_logger.dart';
 import '../../../services/settings/translation_ai_settings.dart';
 import '../../../utils/context_extensions.dart';
 import 'ai_service_templates.dart';
@@ -91,7 +92,19 @@ Future<void> showAiServiceEditorDialog(
       }
       if (!dialogContext.mounted) return;
       Navigator.of(dialogContext).pop();
-    } catch (e) {
+    } catch (e, st) {
+      AppLogger.w(
+        'AI service editor submit failed',
+        tag: 'ai_settings',
+        error: e,
+        stackTrace: st,
+        context: <String, Object?>{
+          'operation': editing ? 'updateAiService' : 'addAiService',
+          'serviceId': existing?.id,
+          'apiType': apiType.name,
+          'enabled': existing?.enabled ?? true,
+        },
+      );
       if (!dialogContext.mounted) return;
       setState(() => submitting = false);
       dialogContext.showError(e);

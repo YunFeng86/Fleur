@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:html/parser.dart' as html_parser;
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 
 import 'package:fleur/models/article.dart';
 import 'package:fleur/models/category.dart';
@@ -14,15 +16,47 @@ import 'package:fleur/providers/article_ai_providers.dart';
 import 'package:fleur/providers/query_providers.dart';
 import 'package:fleur/providers/service_providers.dart';
 import 'package:fleur/providers/translation_ai_settings_providers.dart';
+import 'package:fleur/services/ai/ai_request_queue.dart';
 import 'package:fleur/services/cache/ai_content_cache_store.dart';
+import 'package:fleur/services/logging/app_logger.dart';
 import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/settings/translation_ai_settings.dart';
 import 'package:fleur/services/translation/article_translation.dart';
 import 'package:fleur/services/translation/translation_service.dart';
 import 'package:fleur/utils/language_detector.dart';
 import 'package:fleur/utils/language_utils.dart';
+import 'package:fleur/utils/path_manager.dart';
 
 import '../test_utils/critical_workflow_test_support.dart';
+
+class _FakePathProviderPlatform extends PathProviderPlatform {
+  _FakePathProviderPlatform({
+    required String documentsPath,
+    required String supportPath,
+    required String cachePath,
+    required String temporaryPath,
+  }) : _documentsPath = documentsPath,
+       _supportPath = supportPath,
+       _cachePath = cachePath,
+       _temporaryPath = temporaryPath;
+
+  final String _documentsPath;
+  final String _supportPath;
+  final String _cachePath;
+  final String _temporaryPath;
+
+  @override
+  Future<String?> getApplicationDocumentsPath() async => _documentsPath;
+
+  @override
+  Future<String?> getApplicationSupportPath() async => _supportPath;
+
+  @override
+  Future<String?> getApplicationCachePath() async => _cachePath;
+
+  @override
+  Future<String?> getTemporaryPath() async => _temporaryPath;
+}
 
 void main() {
   const articleId = 1;
@@ -520,6 +554,147 @@ void main() {
       expect(aiClient.prompts.single, contains('French'));
     },
   );
+
+  test('logs summary failures without prompt, body, or API key', () async {
+    await _withTestLogger(() async {
+      final service = buildAiService();
+      final aiClient = FakeAiServiceClient(
+        onGenerateText:
+            ({
+              required service,
+              required apiKey,
+              required systemInstruction,
+              required userPrompt,
+              required maxOutputTokens,
+            }) async {
+              throw StateError('summary upstream failed');
+            },
+      );
+      final container = buildContainer(
+        articleStream: Stream.value(
+          buildArticle(html: '<p>HTML_BODY_MARKER</p>'),
+        ),
+        translationSettings: TranslationAiSettings.defaults().copyWith(
+          targetLanguageTag: 'fr',
+          defaultAiServiceId: service.id,
+          aiServices: [service],
+          aiSummaryPrompt: 'PROMPT_TEMPLATE_MARKER {{content}}',
+        ),
+        secrets: FakeTranslationAiSecretStore(
+          aiServiceApiKeys: <String, String>{service.id: 'api-key-secret'},
+        ),
+        aiClient: aiClient,
+      );
+
+      final sub = container.listen<ArticleAiState>(
+        articleAiControllerProvider(articleId),
+        (previous, next) {},
+        fireImmediately: true,
+      );
+      addTearDown(sub.close);
+
+      await container.read(appSettingsProvider.future);
+      await container.read(translationAiSettingsProvider.future);
+      await flushAsync();
+      await container
+          .read(articleAiControllerProvider(articleId).notifier)
+          .ensureSummary(priority: AiRequestPriority.foreground);
+      await flushAsync();
+
+      final state = container.read(articleAiControllerProvider(articleId));
+      expect(state.summaryStatus, ArticleAiTaskStatus.error);
+
+      final contents = await _readActiveLog();
+      expect(contents, contains('[W] [ai] Article AI task failed'));
+      expect(contents, contains('operation=summarizeArticle'));
+      expect(contents, contains('articleId=$articleId'));
+      expect(contents, contains('providerKind=aiService'));
+      expect(contents, contains('apiType=openAiResponses'));
+      expect(contents, contains('serviceId=${service.id}'));
+      expect(contents, contains('model=${service.defaultModel}'));
+      expect(contents, contains('targetLanguageTag=fr'));
+      expect(contents, contains('priority=foreground'));
+      expect(contents, isNot(contains('PROMPT_TEMPLATE_MARKER')));
+      expect(contents, isNot(contains('HTML_BODY_MARKER')));
+      expect(contents, isNot(contains('api-key-secret')));
+    });
+  });
+
+  test('logs translation failures without prompt, body, or API key', () async {
+    await _withTestLogger(() async {
+      final service = buildAiService();
+      final aiClient = FakeAiServiceClient(
+        onGenerateText:
+            ({
+              required service,
+              required apiKey,
+              required systemInstruction,
+              required userPrompt,
+              required maxOutputTokens,
+            }) async {
+              throw StateError('translation upstream failed');
+            },
+      );
+      final container = buildContainer(
+        articleStream: Stream.value(
+          buildArticle(
+            html:
+                '<p>HTML_TRANSLATION_BODY_MARKER repeated english words '
+                'for language detection.</p>',
+          ),
+        ),
+        translationSettings: TranslationAiSettings.defaults().copyWith(
+          targetLanguageTag: 'fr',
+          translationProvider: TranslationProviderSelection.aiService(
+            service.id,
+          ),
+          defaultAiServiceId: service.id,
+          aiServices: [service],
+          aiTranslationPrompt: 'TRANSLATION_PROMPT_MARKER {{content}}',
+        ),
+        secrets: FakeTranslationAiSecretStore(
+          aiServiceApiKeys: <String, String>{service.id: 'api-key-secret'},
+        ),
+        aiClient: aiClient,
+      );
+
+      final sub = container.listen<ArticleAiState>(
+        articleAiControllerProvider(articleId),
+        (previous, next) {},
+        fireImmediately: true,
+      );
+      addTearDown(sub.close);
+
+      await container.read(appSettingsProvider.future);
+      await container.read(translationAiSettingsProvider.future);
+      await flushAsync();
+      await container
+          .read(articleAiControllerProvider(articleId).notifier)
+          .ensureTranslation(
+            mode: ArticleTranslationMode.immersive,
+            priority: AiRequestPriority.foreground,
+          );
+      await flushAsync();
+
+      final state = container.read(articleAiControllerProvider(articleId));
+      expect(state.translationStatus, ArticleAiTaskStatus.error);
+
+      final contents = await _readActiveLog();
+      expect(contents, contains('[W] [ai] Article AI task failed'));
+      expect(contents, contains('operation=translateArticle'));
+      expect(contents, contains('articleId=$articleId'));
+      expect(contents, contains('providerKind=aiService'));
+      expect(contents, contains('apiType=openAiResponses'));
+      expect(contents, contains('serviceId=${service.id}'));
+      expect(contents, contains('model=${service.defaultModel}'));
+      expect(contents, contains('targetLanguageTag=fr'));
+      expect(contents, contains('translationMode=immersive'));
+      expect(contents, contains('priority=foreground'));
+      expect(contents, isNot(contains('TRANSLATION_PROMPT_MARKER')));
+      expect(contents, isNot(contains('HTML_TRANSLATION_BODY_MARKER')));
+      expect(contents, isNot(contains('api-key-secret')));
+    });
+  });
 
   test('recomputes translation when article content changes', () async {
     final controller = StreamController<Article?>();
@@ -1096,4 +1271,50 @@ void main() {
       );
     },
   );
+}
+
+Future<T> _withTestLogger<T>(Future<T> Function() body) async {
+  final previousPlatform = PathProviderPlatform.instance;
+  final tempDir = await Directory.systemTemp.createTemp(
+    'fleur_article_ai_logger_test_',
+  );
+  try {
+    final documents = await Directory(
+      '${tempDir.path}/documents',
+    ).create(recursive: true);
+    final support = await Directory(
+      '${tempDir.path}/support',
+    ).create(recursive: true);
+    final cache = await Directory(
+      '${tempDir.path}/cache',
+    ).create(recursive: true);
+    final temporary = await Directory(
+      '${tempDir.path}/temporary',
+    ).create(recursive: true);
+    PathProviderPlatform.instance = _FakePathProviderPlatform(
+      documentsPath: documents.path,
+      supportPath: support.path,
+      cachePath: cache.path,
+      temporaryPath: temporary.path,
+    );
+    PathManager.resetForTests();
+    await AppLogger.resetForTests();
+    await AppLogger.ensureInitialized();
+    return await body();
+  } finally {
+    await AppLogger.resetForTests();
+    PathManager.resetForTests();
+    PathProviderPlatform.instance = previousPlatform;
+    try {
+      await tempDir.delete(recursive: true);
+    } catch (_) {
+      // ignore: best-effort cleanup
+    }
+  }
+}
+
+Future<String> _readActiveLog() async {
+  final logFile = await AppLogger.getActiveLogFile();
+  await AppLogger.resetForTests();
+  return logFile!.readAsString();
 }

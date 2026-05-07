@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:isar/isar.dart';
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 
 import 'package:fleur/models/article.dart';
 import 'package:fleur/models/feed.dart';
@@ -21,12 +23,14 @@ import 'package:fleur/providers/settings_providers.dart';
 import 'package:fleur/providers/translation_ai_settings_providers.dart';
 import 'package:fleur/repositories/article_repository.dart';
 import 'package:fleur/repositories/tag_repository.dart';
+import 'package:fleur/services/logging/app_logger.dart';
 import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/settings/reader_progress_store.dart';
 import 'package:fleur/services/settings/reader_settings.dart';
 import 'package:fleur/services/settings/translation_ai_settings.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
+import 'package:fleur/utils/path_manager.dart';
 import 'package:fleur/utils/tag_colors.dart';
 import 'package:fleur/widgets/reader_bottom_bar.dart';
 import 'package:fleur/widgets/reader_search_bar.dart';
@@ -63,6 +67,35 @@ class _StubIsar implements Isar {
       'Unexpected Isar access: ${invocation.memberName}',
     );
   }
+}
+
+class _FakePathProviderPlatform extends PathProviderPlatform {
+  _FakePathProviderPlatform({
+    required String documentsPath,
+    required String supportPath,
+    required String cachePath,
+    required String temporaryPath,
+  }) : _documentsPath = documentsPath,
+       _supportPath = supportPath,
+       _cachePath = cachePath,
+       _temporaryPath = temporaryPath;
+
+  final String _documentsPath;
+  final String _supportPath;
+  final String _cachePath;
+  final String _temporaryPath;
+
+  @override
+  Future<String?> getApplicationDocumentsPath() async => _documentsPath;
+
+  @override
+  Future<String?> getApplicationSupportPath() async => _supportPath;
+
+  @override
+  Future<String?> getApplicationCachePath() async => _cachePath;
+
+  @override
+  Future<String?> getTemporaryPath() async => _temporaryPath;
 }
 
 void main() {
@@ -440,6 +473,35 @@ void main() {
     );
   });
 
+  test('reader tag operation failures are logged without tag names', () async {
+    await _withTestLogger(() async {
+      logReaderTagFailureForTest(
+        operation: 'toggleTag',
+        articleId: articleId,
+        tagId: 11,
+        selected: true,
+        error: StateError('tag toggle failed'),
+        stackTrace: StackTrace.current,
+      );
+      logReaderTagFailureForTest(
+        operation: 'deleteTag',
+        articleId: articleId,
+        tagId: 11,
+        error: StateError('tag delete failed'),
+        stackTrace: StackTrace.current,
+      );
+
+      final contents = await _readActiveLog();
+      expect(contents, contains('[W] [tag] Reader tag operation failed'));
+      expect(contents, contains('operation=toggleTag'));
+      expect(contents, contains('operation=deleteTag'));
+      expect(contents, contains('articleId=$articleId'));
+      expect(contents, contains('tagId=11'));
+      expect(contents, contains('selected=true'));
+      expect(contents, isNot(contains('Private Tag Name')));
+    });
+  });
+
   testWidgets('saves reading progress after scrolling', (tester) async {
     final progressStore = InMemoryReaderProgressStore();
     final longHtml = List<String>.generate(
@@ -624,4 +686,50 @@ void main() {
       );
     },
   );
+}
+
+Future<T> _withTestLogger<T>(Future<T> Function() body) async {
+  final previousPlatform = PathProviderPlatform.instance;
+  final tempDir = await Directory.systemTemp.createTemp(
+    'fleur_reader_logger_test_',
+  );
+  try {
+    final documents = await Directory(
+      '${tempDir.path}/documents',
+    ).create(recursive: true);
+    final support = await Directory(
+      '${tempDir.path}/support',
+    ).create(recursive: true);
+    final cache = await Directory(
+      '${tempDir.path}/cache',
+    ).create(recursive: true);
+    final temporary = await Directory(
+      '${tempDir.path}/temporary',
+    ).create(recursive: true);
+    PathProviderPlatform.instance = _FakePathProviderPlatform(
+      documentsPath: documents.path,
+      supportPath: support.path,
+      cachePath: cache.path,
+      temporaryPath: temporary.path,
+    );
+    PathManager.resetForTests();
+    await AppLogger.resetForTests();
+    await AppLogger.ensureInitialized();
+    return await body();
+  } finally {
+    await AppLogger.resetForTests();
+    PathManager.resetForTests();
+    PathProviderPlatform.instance = previousPlatform;
+    try {
+      await tempDir.delete(recursive: true);
+    } catch (_) {
+      // ignore: best-effort cleanup
+    }
+  }
+}
+
+Future<String> _readActiveLog() async {
+  final logFile = await AppLogger.getActiveLogFile();
+  await AppLogger.resetForTests();
+  return logFile!.readAsString();
 }

@@ -11,6 +11,7 @@ import '../providers/service_providers.dart';
 import '../services/accounts/account.dart';
 import '../services/data_integrity_startup_service.dart';
 import '../services/logging/app_provider_observer.dart';
+import '../services/logging/app_logger.dart';
 import '../widgets/app_scrollbar.dart';
 import 'app.dart';
 
@@ -65,6 +66,8 @@ class _AccountGateState extends ConsumerState<AccountGate> {
       final openingForAccountId = activeAccount.id;
       _opening = _openFor(activeAccount)
           .catchError((e, st) {
+            final stackTrace = st is StackTrace ? st : null;
+            _logOpenFailure(activeAccount, e, stackTrace);
             if (!mounted) return;
             setState(() {
               final currentAccountId = ref.read(activeAccountProvider).id;
@@ -193,5 +196,26 @@ class _AccountGateState extends ConsumerState<AccountGate> {
       // Close in background; Isar close can be slow on some platforms.
       unawaited(prev.close());
     }
+  }
+
+  static void _logOpenFailure(
+    Account account,
+    Object error,
+    StackTrace? stackTrace,
+  ) {
+    final kind = error is DbOpenFailure ? error.kind.name : null;
+    AppLogger.e(
+      'Account database open failed',
+      tag: 'db',
+      error: error,
+      stackTrace: stackTrace,
+      context: <String, Object?>{
+        'operation': 'openAccountDatabase',
+        'accountId': account.id,
+        'accountType': account.type.wire,
+        'isPrimary': account.isPrimary,
+        'failureKind': kind,
+      },
+    );
   }
 }

@@ -195,7 +195,14 @@ class _AboutTabState extends State<AboutTab> {
           ],
         ),
       );
-    } catch (e) {
+    } catch (e, s) {
+      AppLogger.w(
+        'License load failed',
+        tag: 'about',
+        error: e,
+        stackTrace: s,
+        context: const <String, Object?>{'operation': 'loadLicense'},
+      );
       if (!mounted) return;
       context.showErrorMessage(l10n.errorMessage(l10n.licenseLoadFailed));
     }

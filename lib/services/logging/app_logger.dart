@@ -306,6 +306,7 @@ class AppLogger {
 
   static bool _isSensitiveContextKey(String key) {
     final lower = key.toLowerCase();
+    if (lower == 'authmode') return false;
     return lower.contains('token') ||
         lower.contains('password') ||
         lower.contains('secret') ||

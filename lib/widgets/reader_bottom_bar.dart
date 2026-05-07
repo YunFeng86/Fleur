@@ -14,6 +14,7 @@ import '../providers/service_providers.dart';
 import '../providers/article_ai_providers.dart';
 import '../models/article.dart';
 import '../models/tag.dart';
+import '../services/logging/app_logger.dart';
 import '../services/translation/article_translation.dart';
 import '../theme/app_typography.dart';
 import '../theme/fleur_theme_extensions.dart';
@@ -501,7 +502,15 @@ class _TagsDialogState extends ConsumerState<_TagsDialog> {
         } else {
           await articleRepo.removeTag(widget.articleId, tag);
         }
-      } catch (e) {
+      } catch (e, st) {
+        _logTagFailure(
+          operation: 'toggleTag',
+          articleId: widget.articleId,
+          tagId: tag.id,
+          selected: nextSelected,
+          error: e,
+          stackTrace: st,
+        );
         if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.errorMessage(e.toString()))),
@@ -537,7 +546,14 @@ class _TagsDialogState extends ConsumerState<_TagsDialog> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(l10n.deleted)));
-      } catch (e) {
+      } catch (e, st) {
+        _logTagFailure(
+          operation: 'deleteTag',
+          articleId: widget.articleId,
+          tagId: tag.id,
+          error: e,
+          stackTrace: st,
+        );
         if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.errorMessage(e.toString()))),
@@ -709,4 +725,45 @@ class _TagsDialogState extends ConsumerState<_TagsDialog> {
       ],
     );
   }
+}
+
+void _logTagFailure({
+  required String operation,
+  required int articleId,
+  required int tagId,
+  required Object error,
+  required StackTrace stackTrace,
+  bool? selected,
+}) {
+  AppLogger.w(
+    'Reader tag operation failed',
+    tag: 'tag',
+    error: error,
+    stackTrace: stackTrace,
+    context: <String, Object?>{
+      'operation': operation,
+      'articleId': articleId,
+      'tagId': tagId,
+      'selected': selected,
+    },
+  );
+}
+
+@visibleForTesting
+void logReaderTagFailureForTest({
+  required String operation,
+  required int articleId,
+  required int tagId,
+  required Object error,
+  required StackTrace stackTrace,
+  bool? selected,
+}) {
+  _logTagFailure(
+    operation: operation,
+    articleId: articleId,
+    tagId: tagId,
+    error: error,
+    stackTrace: stackTrace,
+    selected: selected,
+  );
 }

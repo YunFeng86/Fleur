@@ -7,6 +7,8 @@ import 'package:fleur/l10n/app_localizations.dart';
 
 import '../../providers/account_providers.dart';
 import '../../services/accounts/account.dart';
+import '../../services/logging/app_logger.dart';
+import '../../services/logging/log_context.dart';
 import '../../utils/context_extensions.dart';
 
 enum _MinifluxAuthMode { apiToken, basicAuth }
@@ -217,7 +219,14 @@ Future<String?> showAddFeverAccountDialog(
       createdId = id;
       if (!dialogContext.mounted) return;
       Navigator.of(dialogContext).pop();
-    } catch (e) {
+    } catch (e, s) {
+      _logAddRemoteAccountFailure(
+        accountType: AccountType.fever,
+        authMode: authMode.name,
+        baseUrl: baseUrl,
+        error: e,
+        stackTrace: s,
+      );
       if (!dialogContext.mounted) return;
       setState(() => submitting = false);
       dialogContext.showSnack(l10n.errorMessage(e.toString()));
@@ -568,7 +577,14 @@ Future<String?> showAddMinifluxAccountDialog(
       createdId = id;
       if (!dialogContext.mounted) return;
       Navigator.of(dialogContext).pop();
-    } catch (e) {
+    } catch (e, s) {
+      _logAddRemoteAccountFailure(
+        accountType: AccountType.miniflux,
+        authMode: authMode.name,
+        baseUrl: baseUrl,
+        error: e,
+        stackTrace: s,
+      );
       if (!dialogContext.mounted) return;
       setState(() => submitting = false);
       dialogContext.showSnack(l10n.errorMessage(e.toString()));
@@ -789,4 +805,39 @@ Future<String?> showAddMinifluxAccountDialog(
   if (!context.mounted) return id;
   context.showSnack(l10n.done);
   return id;
+}
+
+void _logAddRemoteAccountFailure({
+  required AccountType accountType,
+  required String authMode,
+  required String baseUrl,
+  required Object error,
+  required StackTrace stackTrace,
+}) {
+  AppLogger.w(
+    'Add remote account failed',
+    tag: 'account',
+    error: error,
+    stackTrace: stackTrace,
+    context: _addRemoteAccountFailureContext(
+      accountType: accountType,
+      authMode: authMode,
+      baseUrl: baseUrl,
+    ),
+  );
+}
+
+Map<String, Object?> _addRemoteAccountFailureContext({
+  required AccountType accountType,
+  required String authMode,
+  required String baseUrl,
+}) {
+  final extra = <String, Object?>{
+    'operation': 'addRemoteAccount',
+    'accountType': accountType.wire,
+    'authMode': authMode,
+  };
+  final uri = Uri.tryParse(baseUrl.trim());
+  if (uri == null) return extra;
+  return logContextForUri(uri, extra: extra);
 }

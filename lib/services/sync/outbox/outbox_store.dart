@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import '../../logging/app_logger.dart';
 import '../../../utils/path_manager.dart';
 import '../sync_mutex.dart';
 
@@ -93,26 +94,50 @@ class OutboxStore {
 
       try {
         final decoded = await _readJsonListOrRecover(
+          accountId: accountId,
           primary: f,
           tmp: tmp,
           bak: bak,
         );
         if (decoded == null) return const [];
         final out = <OutboxAction>[];
+        var malformedEntryCount = 0;
         for (final item in decoded) {
-          if (item is! Map) continue;
+          if (item is! Map) {
+            malformedEntryCount += 1;
+            continue;
+          }
           try {
             out.add(OutboxAction.fromJson(item.cast<String, Object?>()));
           } catch (_) {
+            malformedEntryCount += 1;
             // Skip malformed entries; keep the rest of the queue.
           }
+        }
+        if (malformedEntryCount > 0) {
+          _logOutboxWarning(
+            'Outbox malformed entries skipped',
+            accountId: accountId,
+            operation: 'load',
+            actionCount: decoded.length,
+            malformedEntryCount: malformedEntryCount,
+          );
         }
         // Auto-compact legacy/duplicated actions.
         final compacted = _compact(out);
         if (compacted.length != out.length || await tmp.exists()) {
           try {
             await save(accountId, compacted);
-          } catch (_) {
+          } catch (e, st) {
+            _logOutboxWarning(
+              'Outbox compact save failed',
+              accountId: accountId,
+              operation: 'compact',
+              actionCount: out.length,
+              compactedCount: compacted.length,
+              error: e,
+              stackTrace: st,
+            );
             // ignore: best-effort cleanup
           }
         }
@@ -122,7 +147,14 @@ class OutboxStore {
           // ignore: best-effort cleanup
         }
         return compacted;
-      } catch (_) {
+      } catch (e, st) {
+        _logOutboxWarning(
+          'Outbox load failed',
+          accountId: accountId,
+          operation: 'load',
+          error: e,
+          stackTrace: st,
+        );
         return const [];
       }
     });
@@ -133,7 +165,13 @@ class OutboxStore {
       final f = await _file(accountId);
       final compacted = _compact(actions);
       final payload = compacted.map((a) => a.toJson()).toList(growable: false);
-      await _writeJsonAtomically(f, jsonEncode(payload));
+      await _writeJsonAtomically(
+        f,
+        jsonEncode(payload),
+        accountId: accountId,
+        actionCount: actions.length,
+        compactedCount: compacted.length,
+      );
     });
     _emitChange(accountId);
   }
@@ -166,62 +204,166 @@ class OutboxStore {
   File _bakFile(File primary) => File('${primary.path}.bak');
 
   Future<List<Object?>?> _readJsonListOrRecover({
+    required String accountId,
     required File primary,
     required File tmp,
     required File bak,
   }) async {
-    Future<List<Object?>?> tryRead(File file) async {
+    Future<
+      ({
+        List<Object?>? decoded,
+        bool existed,
+        Object? error,
+        StackTrace? stackTrace,
+      })
+    >
+    tryRead(File file) async {
       try {
-        if (!await file.exists()) return null;
+        if (!await file.exists()) {
+          return (decoded: null, existed: false, error: null, stackTrace: null);
+        }
         final raw = await file.readAsString(encoding: utf8);
         final decoded = jsonDecode(raw);
-        if (decoded is! List) return null;
-        return decoded.cast<Object?>();
-      } catch (_) {
-        return null;
+        if (decoded is! List) {
+          return (
+            decoded: null,
+            existed: true,
+            error: StateError('Outbox JSON root is not a list'),
+            stackTrace: null,
+          );
+        }
+        return (
+          decoded: decoded.cast<Object?>(),
+          existed: true,
+          error: null,
+          stackTrace: null,
+        );
+      } catch (e, st) {
+        return (decoded: null, existed: true, error: e, stackTrace: st);
       }
     }
 
     // Prefer the primary file when it's valid.
-    final primaryDecoded = await tryRead(primary);
-    if (primaryDecoded != null) return primaryDecoded;
+    final primaryRead = await tryRead(primary);
+    if (primaryRead.decoded != null) return primaryRead.decoded;
 
     // Crash safety: if an atomic write was interrupted, `.tmp` may contain the
     // new full payload; `.bak` may contain the previous valid payload.
-    final tmpDecoded = await tryRead(tmp);
-    if (tmpDecoded != null) {
+    final tmpRead = await tryRead(tmp);
+    if (tmpRead.decoded != null) {
       try {
-        await _writeJsonAtomically(primary, jsonEncode(tmpDecoded));
-      } catch (_) {
+        await _writeJsonAtomically(
+          primary,
+          jsonEncode(tmpRead.decoded),
+          accountId: accountId,
+          actionCount: tmpRead.decoded!.length,
+          compactedCount: tmpRead.decoded!.length,
+          operation: 'recover',
+        );
+      } catch (e, st) {
+        _logOutboxWarning(
+          'Outbox recovery write failed',
+          accountId: accountId,
+          operation: 'recover',
+          recoveredFrom: 'tmp',
+          primaryExists: primaryRead.existed,
+          tmpExists: tmpRead.existed,
+          bakExists: await bak.exists(),
+          error: e,
+          stackTrace: st,
+        );
         // ignore: best-effort recovery
       }
-      return tmpDecoded;
+      return tmpRead.decoded;
     }
 
-    final bakDecoded = await tryRead(bak);
-    if (bakDecoded != null) {
+    final bakRead = await tryRead(bak);
+    if (bakRead.decoded != null) {
       try {
-        await _writeJsonAtomically(primary, jsonEncode(bakDecoded));
-      } catch (_) {
+        await _writeJsonAtomically(
+          primary,
+          jsonEncode(bakRead.decoded),
+          accountId: accountId,
+          actionCount: bakRead.decoded!.length,
+          compactedCount: bakRead.decoded!.length,
+          operation: 'recover',
+        );
+      } catch (e, st) {
+        _logOutboxWarning(
+          'Outbox recovery write failed',
+          accountId: accountId,
+          operation: 'recover',
+          recoveredFrom: 'bak',
+          primaryExists: primaryRead.existed,
+          tmpExists: tmpRead.existed,
+          bakExists: bakRead.existed,
+          error: e,
+          stackTrace: st,
+        );
         // ignore: best-effort recovery
       }
-      return bakDecoded;
+      return bakRead.decoded;
+    }
+
+    final anyFileExists =
+        primaryRead.existed || tmpRead.existed || bakRead.existed;
+    if (anyFileExists) {
+      final error = primaryRead.error ?? tmpRead.error ?? bakRead.error;
+      final stackTrace =
+          primaryRead.stackTrace ?? tmpRead.stackTrace ?? bakRead.stackTrace;
+      _logOutboxWarning(
+        'Outbox recovery failed',
+        accountId: accountId,
+        operation: 'recover',
+        primaryExists: primaryRead.existed,
+        tmpExists: tmpRead.existed,
+        bakExists: bakRead.existed,
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
 
     return null;
   }
 
-  Future<void> _writeJsonAtomically(File primary, String contents) async {
+  Future<void> _writeJsonAtomically(
+    File primary,
+    String contents, {
+    required String accountId,
+    int? actionCount,
+    int? compactedCount,
+    String operation = 'write',
+  }) async {
     final tmp = _tmpFile(primary);
     final bak = _bakFile(primary);
 
     try {
       await tmp.writeAsString(contents, encoding: utf8);
-    } catch (_) {
+    } catch (e, st) {
+      _logOutboxWarning(
+        'Outbox temp write failed',
+        accountId: accountId,
+        operation: operation,
+        pathKind: 'tmp',
+        actionCount: actionCount,
+        compactedCount: compactedCount,
+        error: e,
+        stackTrace: st,
+      );
       // If we can't write a temp file, fall back to a best-effort direct write.
       try {
         await primary.writeAsString(contents, encoding: utf8);
-      } catch (_) {
+      } catch (e, st) {
+        _logOutboxWarning(
+          'Outbox direct write failed',
+          accountId: accountId,
+          operation: 'directWrite',
+          pathKind: 'primary',
+          actionCount: actionCount,
+          compactedCount: compactedCount,
+          error: e,
+          stackTrace: st,
+        );
         // ignore: best-effort write
       }
       return;
@@ -234,24 +376,63 @@ class OutboxStore {
       if (await primary.exists()) {
         try {
           if (await bak.exists()) await bak.delete();
-        } catch (_) {
+        } catch (e, st) {
+          _logOutboxWarning(
+            'Outbox backup cleanup failed',
+            accountId: accountId,
+            operation: 'deleteBackup',
+            pathKind: 'bak',
+            actionCount: actionCount,
+            compactedCount: compactedCount,
+            error: e,
+            stackTrace: st,
+          );
           // ignore: best-effort cleanup
         }
 
         try {
           await primary.rename(bak.path);
           backedUp = true;
-        } catch (_) {
+        } catch (renameError, renameStackTrace) {
           // Best-effort fallback when rename is not possible (e.g. file lock).
           try {
             await primary.copy(bak.path);
             backedUp = true;
-          } catch (_) {
+          } catch (copyError, copyStackTrace) {
+            _logOutboxWarning(
+              'Outbox backup failed',
+              accountId: accountId,
+              operation: 'backup',
+              pathKind: 'bak',
+              actionCount: actionCount,
+              compactedCount: compactedCount,
+              error: copyError,
+              stackTrace: copyStackTrace,
+            );
+            _logOutboxWarning(
+              'Outbox backup rename failed',
+              accountId: accountId,
+              operation: 'backupRename',
+              pathKind: 'primary',
+              actionCount: actionCount,
+              compactedCount: compactedCount,
+              error: renameError,
+              stackTrace: renameStackTrace,
+            );
             // ignore: best-effort backup
           }
         }
       }
-    } catch (_) {
+    } catch (e, st) {
+      _logOutboxWarning(
+        'Outbox backup phase failed',
+        accountId: accountId,
+        operation: 'backup',
+        actionCount: actionCount,
+        compactedCount: compactedCount,
+        error: e,
+        stackTrace: st,
+      );
       // ignore: best-effort backup
     }
 
@@ -259,19 +440,49 @@ class OutboxStore {
     try {
       await tmp.rename(primary.path);
       replaced = true;
-    } catch (_) {
+    } catch (e, st) {
+      _logOutboxWarning(
+        'Outbox replace failed',
+        accountId: accountId,
+        operation: 'replace',
+        pathKind: 'tmp',
+        actionCount: actionCount,
+        compactedCount: compactedCount,
+        error: e,
+        stackTrace: st,
+      );
       // If the primary still exists (e.g. couldn't be renamed to `.bak`), only
       // delete it if we have a backup already.
       if (await primary.exists() && backedUp) {
         try {
           await primary.delete();
-        } catch (_) {
+        } catch (e, st) {
+          _logOutboxWarning(
+            'Outbox primary delete failed',
+            accountId: accountId,
+            operation: 'deletePrimary',
+            pathKind: 'primary',
+            actionCount: actionCount,
+            compactedCount: compactedCount,
+            error: e,
+            stackTrace: st,
+          );
           // ignore: best-effort delete
         }
         try {
           await tmp.rename(primary.path);
           replaced = true;
-        } catch (_) {
+        } catch (e, st) {
+          _logOutboxWarning(
+            'Outbox replace after delete failed',
+            accountId: accountId,
+            operation: 'replace',
+            pathKind: 'tmp',
+            actionCount: actionCount,
+            compactedCount: compactedCount,
+            error: e,
+            stackTrace: st,
+          );
           // fall through
         }
       }
@@ -281,7 +492,17 @@ class OutboxStore {
         try {
           await primary.writeAsString(contents, encoding: utf8);
           replaced = true;
-        } catch (_) {
+        } catch (e, st) {
+          _logOutboxWarning(
+            'Outbox direct write failed',
+            accountId: accountId,
+            operation: 'directWrite',
+            pathKind: 'primary',
+            actionCount: actionCount,
+            compactedCount: compactedCount,
+            error: e,
+            stackTrace: st,
+          );
           // ignore: best-effort write
         }
       }
@@ -342,5 +563,40 @@ class OutboxStore {
         // Empty values represent "all feeds" scope.
         return 'markAllRead:feed=$feedUrl:cat=$categoryTitle';
     }
+  }
+
+  static void _logOutboxWarning(
+    String message, {
+    required String accountId,
+    required String operation,
+    Object? error,
+    StackTrace? stackTrace,
+    String? pathKind,
+    int? actionCount,
+    int? compactedCount,
+    int? malformedEntryCount,
+    bool? primaryExists,
+    bool? tmpExists,
+    bool? bakExists,
+    String? recoveredFrom,
+  }) {
+    AppLogger.w(
+      message,
+      tag: 'outbox',
+      error: error,
+      stackTrace: stackTrace,
+      context: <String, Object?>{
+        'operation': operation,
+        'accountId': accountId,
+        'pathKind': pathKind,
+        'actionCount': actionCount,
+        'compactedCount': compactedCount,
+        'malformedEntryCount': malformedEntryCount,
+        'primaryExists': primaryExists,
+        'tmpExists': tmpExists,
+        'bakExists': bakExists,
+        'recoveredFrom': recoveredFrom,
+      },
+    );
   }
 }
