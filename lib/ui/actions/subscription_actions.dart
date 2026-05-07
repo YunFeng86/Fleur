@@ -18,7 +18,6 @@ import '../../providers/service_providers.dart';
 import '../../services/accounts/account.dart';
 import '../../services/opml/opml_service.dart';
 import '../../services/sync/backend_capabilities.dart';
-import '../../services/sync/miniflux/miniflux_client.dart';
 import '../../services/sync/remote_subscription_structure_executor.dart';
 import '../../ui/actions/remote_structure_feedback.dart' as remote_feedback;
 import '../../ui/dialogs/add_subscription_dialog.dart';
@@ -64,54 +63,11 @@ class SubscriptionActions {
     return remote_feedback.remoteStructureFailureMessage(l10n, error);
   }
 
-  static Future<MinifluxClient> _buildMinifluxClient(
-    WidgetRef ref,
-    Account account,
-  ) async {
-    return _buildMinifluxClientFromRead(ref.read, account);
-  }
-
-  static Future<MinifluxClient> _buildMinifluxClientFromRead(
-    ProviderReadCallback read,
-    Account account,
-  ) async {
-    final baseUrl = (account.baseUrl ?? '').trim();
-    if (baseUrl.isEmpty) {
-      throw StateError('Miniflux baseUrl is empty');
-    }
-
-    final credentials = read(credentialStoreProvider);
-    final token = await credentials.getApiToken(
-      account.id,
-      AccountType.miniflux,
-    );
-    if (token != null && token.trim().isNotEmpty) {
-      return MinifluxClient(
-        dio: read(dioProvider),
-        baseUrl: baseUrl,
-        apiToken: token.trim(),
-      );
-    }
-
-    final basic = await credentials.getBasicAuth(
-      account.id,
-      AccountType.miniflux,
-    );
-    if (basic != null) {
-      return MinifluxClient(
-        dio: read(dioProvider),
-        baseUrl: baseUrl,
-        username: basic.username,
-        password: basic.password,
-      );
-    }
-
-    throw StateError('Miniflux credentials are missing');
-  }
-
   static Future<MinifluxRemoteSubscriptionStructureExecutor>
   _buildMinifluxStructureExecutor(WidgetRef ref, Account account) async {
-    final client = await _buildMinifluxClient(ref, account);
+    final client = await ref
+        .read(remoteClientFactoryProvider)
+        .miniflux(account);
     return MinifluxRemoteSubscriptionStructureExecutor(client);
   }
 
@@ -120,7 +76,7 @@ class SubscriptionActions {
     ProviderReadCallback read,
     Account account,
   ) async {
-    final client = await _buildMinifluxClientFromRead(read, account);
+    final client = await read(remoteClientFactoryProvider).miniflux(account);
     return MinifluxRemoteSubscriptionStructureExecutor(client);
   }
 

@@ -13,6 +13,7 @@ import '../services/sync/sync_service.dart';
 import '../services/sync/miniflux/miniflux_sync_service.dart';
 import '../services/sync/fever/fever_sync_service.dart';
 import '../services/sync/outbox/outbox_store.dart';
+import '../services/sync/remote_client_factory.dart';
 import '../services/sync/sync_status_reporter.dart';
 import 'sync_status_providers.dart';
 import '../services/actions/article_action_service.dart';
@@ -149,6 +150,13 @@ SyncServiceBase buildSyncServiceForAccount({
 }
 
 final dioProvider = Provider<Dio>((ref) => createAppDio());
+
+final remoteClientFactoryProvider = Provider<RemoteClientFactory>((ref) {
+  return RemoteClientFactory(
+    dio: ref.watch(dioProvider),
+    credentials: ref.watch(credentialStoreProvider),
+  );
+}, dependencies: [dioProvider, credentialStoreProvider]);
 
 final rssClientProvider = Provider<RssClient>((ref) {
   return createRssClient(ref.watch(dioProvider));

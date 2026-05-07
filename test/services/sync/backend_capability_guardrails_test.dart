@@ -26,15 +26,9 @@ const _allowedRawBackendTypeUses = <String, String>{
       'derives background capabilities from the active account',
   'lib/services/sync/backend_capabilities.dart':
       'declares the backend capability matrix',
-  'lib/services/sync/fever/fever_sync_service.dart':
-      'builds the Fever client and credentials',
-  'lib/services/sync/miniflux/miniflux_sync_service.dart':
-      'builds the Miniflux client and credentials',
-  'lib/ui/actions/subscription_actions.dart':
-      'builds Miniflux credentials/client after capability gating',
+  'lib/services/sync/remote_client_factory.dart':
+      'centralizes remote credential lookup and client construction',
   'lib/ui/dialogs/add_account_dialogs.dart': 'creates concrete account types',
-  'lib/ui/dialogs/add_subscription_dialog.dart':
-      'builds Miniflux credentials/client after capability gating',
   'lib/ui/settings/tabs/services_tab.dart':
       'renders account creation and account type labels',
   'lib/widgets/account_avatar.dart': 'renders account type icons',
@@ -48,6 +42,8 @@ const _operationalCapabilityFiles = <String, String>{
   'lib/providers/background_sync_providers.dart': 'backendCapabilitiesProvider',
   'lib/widgets/outbox_status_action.dart': 'backendCapabilitiesProvider',
   'lib/ui/home/home_scene_commands.dart': 'backendCapabilitiesProvider',
+  'lib/ui/actions/subscription_actions.dart': 'backendCapabilitiesProvider',
+  'lib/ui/dialogs/add_subscription_dialog.dart': 'backendCapabilitiesProvider',
   'lib/ui/settings/subscriptions/subscription_toolbar.dart':
       'backendCapabilitiesProvider',
   'lib/ui/sidebar/sidebar_tree.dart': 'BackendCapabilities',

@@ -19,6 +19,7 @@ import '../../settings/app_settings_store.dart';
 import '../effective_feed_settings.dart';
 import '../outbox/outbox_store.dart';
 import '../remote_article_action_executor.dart';
+import '../remote_client_factory.dart';
 import '../sync_service.dart';
 import '../sync_mutex.dart';
 import '../sync_status_reporter.dart';
@@ -37,8 +38,7 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
     required ArticleCacheService cache,
     required ArticleExtractor extractor,
     SyncStatusReporter? statusReporter,
-  }) : _dio = dio,
-       _credentials = credentials,
+  }) : _clientFactory = RemoteClientFactory(dio: dio, credentials: credentials),
        _feeds = feeds,
        _categories = categories,
        _articles = articles,
@@ -50,8 +50,7 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
 
   final Account account;
 
-  final Dio _dio;
-  final CredentialStore _credentials;
+  final RemoteClientFactory _clientFactory;
   final FeedRepository _feeds;
   final CategoryRepository _categories;
   final ArticleRepository _articles;
@@ -381,32 +380,7 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
   }
 
   Future<MinifluxClient> _buildClient() async {
-    final baseUrl = (account.baseUrl ?? '').trim();
-    if (baseUrl.isEmpty) {
-      throw StateError('Miniflux baseUrl is empty');
-    }
-    final token = await _credentials.getApiToken(
-      account.id,
-      AccountType.miniflux,
-    );
-    if (token != null && token.trim().isNotEmpty) {
-      return MinifluxClient(dio: _dio, baseUrl: baseUrl, apiToken: token);
-    }
-
-    final basic = await _credentials.getBasicAuth(
-      account.id,
-      AccountType.miniflux,
-    );
-    if (basic != null) {
-      return MinifluxClient(
-        dio: _dio,
-        baseUrl: baseUrl,
-        username: basic.username,
-        password: basic.password,
-      );
-    }
-
-    throw StateError('Miniflux credentials are missing');
+    return _clientFactory.miniflux(account);
   }
 
   Future<void> _flushOutbox(MinifluxClient client) async {

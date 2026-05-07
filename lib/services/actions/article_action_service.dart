@@ -1,8 +1,5 @@
-import 'dart:convert';
-
 import 'package:dio/dio.dart';
 import 'package:isar/isar.dart';
-import 'package:crypto/crypto.dart';
 
 import '../../repositories/category_repository.dart';
 import '../../repositories/article_repository.dart';
@@ -10,9 +7,8 @@ import '../../repositories/feed_repository.dart';
 import '../accounts/account.dart';
 import '../accounts/credential_store.dart';
 import '../sync/backend_capabilities.dart';
-import '../sync/miniflux/miniflux_client.dart';
-import '../sync/fever/fever_client.dart';
 import '../sync/outbox/outbox_store.dart';
+import '../sync/remote_client_factory.dart';
 import '../sync/remote_article_action_executor.dart';
 
 class ArticleActionService {
@@ -29,8 +25,7 @@ class ArticleActionService {
        _articles = articles,
        _feeds = feeds,
        _categories = categories,
-       _dio = dio,
-       _credentials = credentials,
+       _clientFactory = RemoteClientFactory(dio: dio, credentials: credentials),
        _outbox = outbox;
 
   final Account _account;
@@ -38,8 +33,7 @@ class ArticleActionService {
   final ArticleRepository _articles;
   final FeedRepository _feeds;
   final CategoryRepository _categories;
-  final Dio _dio;
-  final CredentialStore _credentials;
+  final RemoteClientFactory _clientFactory;
   final OutboxStore _outbox;
 
   Future<void> markRead(int articleId, bool isRead) async {
@@ -52,7 +46,7 @@ class ArticleActionService {
 
     switch (_account.type) {
       case AccountType.miniflux:
-        final client = await _minifluxClientOrNull();
+        final client = await _clientFactory.minifluxOrNull(_account);
         if (client == null) return;
         try {
           await MinifluxRemoteArticleActionExecutor(client).apply(
@@ -76,7 +70,7 @@ class ArticleActionService {
         }
         return;
       case AccountType.fever:
-        final client = await _feverClientOrNull();
+        final client = await _clientFactory.feverOrNull(_account);
         if (client == null) return;
         try {
           await FeverRemoteArticleActionExecutor(client).apply(
@@ -115,7 +109,7 @@ class ArticleActionService {
 
     switch (_account.type) {
       case AccountType.miniflux:
-        final client = await _minifluxClientOrNull();
+        final client = await _clientFactory.minifluxOrNull(_account);
         if (client == null) return;
         try {
           await MinifluxRemoteArticleActionExecutor(client).apply(
@@ -139,7 +133,7 @@ class ArticleActionService {
         }
         return;
       case AccountType.fever:
-        final client = await _feverClientOrNull();
+        final client = await _clientFactory.feverOrNull(_account);
         if (client == null) return;
         final target = a?.isStarred == true;
         try {
@@ -207,7 +201,7 @@ class ArticleActionService {
 
     switch (_account.type) {
       case AccountType.miniflux:
-        final client = await _minifluxClientOrNull();
+        final client = await _clientFactory.minifluxOrNull(_account);
         if (client == null) return;
         try {
           if (await MinifluxRemoteArticleActionExecutor(client).apply(action)) {
@@ -218,7 +212,7 @@ class ArticleActionService {
         }
         return;
       case AccountType.fever:
-        final client = await _feverClientOrNull();
+        final client = await _clientFactory.feverOrNull(_account);
         if (client == null) return;
         try {
           if (await FeverRemoteArticleActionExecutor(client).apply(action)) {
@@ -298,52 +292,5 @@ class ArticleActionService {
     final raw = a.remoteId?.trim() ?? '';
     if (raw.isEmpty) return null;
     return int.tryParse(raw);
-  }
-
-  Future<MinifluxClient?> _minifluxClientOrNull() async {
-    final baseUrl = (_account.baseUrl ?? '').trim();
-    if (baseUrl.isEmpty) return null;
-    final token = await _credentials.getApiToken(
-      _account.id,
-      AccountType.miniflux,
-    );
-    if (token != null && token.trim().isNotEmpty) {
-      return MinifluxClient(dio: _dio, baseUrl: baseUrl, apiToken: token);
-    }
-
-    final basic = await _credentials.getBasicAuth(
-      _account.id,
-      AccountType.miniflux,
-    );
-    if (basic == null) return null;
-    return MinifluxClient(
-      dio: _dio,
-      baseUrl: baseUrl,
-      username: basic.username,
-      password: basic.password,
-    );
-  }
-
-  Future<FeverClient?> _feverClientOrNull() async {
-    final baseUrl = (_account.baseUrl ?? '').trim();
-    if (baseUrl.isEmpty) return null;
-
-    final token = await _credentials.getApiToken(
-      _account.id,
-      AccountType.fever,
-    );
-    if (token != null && token.trim().isNotEmpty) {
-      return FeverClient(dio: _dio, baseUrl: baseUrl, apiKey: token.trim());
-    }
-
-    final basic = await _credentials.getBasicAuth(
-      _account.id,
-      AccountType.fever,
-    );
-    if (basic == null) return null;
-    final apiKey = md5
-        .convert(utf8.encode('${basic.username}:${basic.password}'))
-        .toString();
-    return FeverClient(dio: _dio, baseUrl: baseUrl, apiKey: apiKey);
   }
 }

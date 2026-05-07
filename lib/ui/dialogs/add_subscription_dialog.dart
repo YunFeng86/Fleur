@@ -9,9 +9,7 @@ import '../../providers/app_settings_providers.dart';
 import '../../providers/backend_capabilities_provider.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/service_providers.dart';
-import '../../services/accounts/account.dart';
 import '../../services/sync/backend_capabilities.dart';
-import '../../services/sync/miniflux/miniflux_client.dart';
 import '../../services/sync/remote_subscription_structure_executor.dart';
 import '../../services/sync/sync_service.dart';
 import '../../services/sync/sync_mutex.dart';
@@ -337,41 +335,10 @@ Future<int?> showAddSubscriptionDialog(
 
   Future<MinifluxRemoteSubscriptionStructureExecutor>
   buildMinifluxStructureExecutor() async {
-    final baseUrl = (account.baseUrl ?? '').trim();
-    if (baseUrl.isEmpty) {
-      throw StateError('Miniflux baseUrl is empty');
-    }
-    final credentials = ref.read(credentialStoreProvider);
-    final token = await credentials.getApiToken(
-      account.id,
-      AccountType.miniflux,
-    );
-    if (token != null && token.trim().isNotEmpty) {
-      return MinifluxRemoteSubscriptionStructureExecutor(
-        MinifluxClient(
-          dio: ref.read(dioProvider),
-          baseUrl: baseUrl,
-          apiToken: token.trim(),
-        ),
-      );
-    }
-
-    final basic = await credentials.getBasicAuth(
-      account.id,
-      AccountType.miniflux,
-    );
-    if (basic != null) {
-      return MinifluxRemoteSubscriptionStructureExecutor(
-        MinifluxClient(
-          dio: ref.read(dioProvider),
-          baseUrl: baseUrl,
-          username: basic.username,
-          password: basic.password,
-        ),
-      );
-    }
-
-    throw StateError('Miniflux credentials are missing');
+    final client = await ref
+        .read(remoteClientFactoryProvider)
+        .miniflux(account);
+    return MinifluxRemoteSubscriptionStructureExecutor(client);
   }
 
   Future<({bool canceled, int? categoryId})> pickMinifluxCategoryId(

@@ -1,7 +1,5 @@
 import 'dart:async';
-import 'dart:convert';
 
-import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 
 import '../../../models/article.dart';
@@ -20,6 +18,7 @@ import '../../settings/app_settings_store.dart';
 import '../effective_feed_settings.dart';
 import '../outbox/outbox_store.dart';
 import '../remote_article_action_executor.dart';
+import '../remote_client_factory.dart';
 import '../sync_service.dart';
 import '../sync_mutex.dart';
 import '../sync_status_reporter.dart';
@@ -39,8 +38,7 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
     required NotificationService notifications,
     required ArticleCacheService cache,
     SyncStatusReporter? statusReporter,
-  }) : _dio = dio,
-       _credentials = credentials,
+  }) : _clientFactory = RemoteClientFactory(dio: dio, credentials: credentials),
        _feeds = feeds,
        _categories = categories,
        _articles = articles,
@@ -52,8 +50,7 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
 
   final Account account;
 
-  final Dio _dio;
-  final CredentialStore _credentials;
+  final RemoteClientFactory _clientFactory;
   final FeedRepository _feeds;
   final CategoryRepository _categories;
   final ArticleRepository _articles;
@@ -174,28 +171,7 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
   }
 
   Future<FeverClient> _buildClient() async {
-    final baseUrl = (account.baseUrl ?? '').trim();
-    if (baseUrl.isEmpty) {
-      throw StateError('Fever baseUrl is empty');
-    }
-
-    final token = await _credentials.getApiToken(account.id, AccountType.fever);
-    if (token != null && token.trim().isNotEmpty) {
-      return FeverClient(dio: _dio, baseUrl: baseUrl, apiKey: token);
-    }
-
-    final basic = await _credentials.getBasicAuth(
-      account.id,
-      AccountType.fever,
-    );
-    if (basic != null) {
-      final apiKey = md5
-          .convert(utf8.encode('${basic.username}:${basic.password}'))
-          .toString();
-      return FeverClient(dio: _dio, baseUrl: baseUrl, apiKey: apiKey);
-    }
-
-    throw StateError('Fever credentials are missing');
+    return _clientFactory.fever(account);
   }
 
   Future<
