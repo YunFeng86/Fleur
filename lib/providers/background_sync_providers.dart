@@ -2,10 +2,9 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../services/accounts/account.dart';
 import '../services/background/background_sync_service.dart';
-import 'account_providers.dart';
 import 'app_settings_providers.dart';
+import 'backend_capabilities_provider.dart';
 import 'outbox_status_providers.dart';
 import '../utils/platform.dart';
 
@@ -87,20 +86,17 @@ class BackgroundSyncController extends AutoDisposeNotifier<void> {
     if (!supportsBackgroundSyncPlatform) return;
 
     final appSettings = ref.watch(appSettingsProvider).valueOrNull;
-    final account = ref.watch(activeAccountProvider);
     final scheduler = ref.watch(backgroundSyncSchedulerProvider);
+    final capabilities = ref.watch(backendCapabilitiesProvider);
 
     final refreshMinutes = appSettings?.autoRefreshMinutes ?? 0;
     final syncEnabled = appSettings?.syncEnabled ?? true;
     final refreshEnabled = refreshMinutes > 0 && syncEnabled;
 
-    final outboxCapable =
-        account.type == AccountType.miniflux ||
-        account.type == AccountType.fever;
     final pendingAsync = ref.watch(outboxPendingCountProvider);
     final decision = resolveBackgroundSyncScheduleDecision(
       refreshEnabled: refreshEnabled,
-      outboxCapable: outboxCapable,
+      outboxCapable: capabilities.isOutboxCapable,
       pendingAsync: pendingAsync,
       lastEnabled: _lastEnabled,
       stallCount: ref.watch(outboxFlushStallCountProvider),

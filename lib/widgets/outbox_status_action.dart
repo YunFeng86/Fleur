@@ -5,9 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
 import '../providers/account_providers.dart';
+import '../providers/backend_capabilities_provider.dart';
 import '../providers/outbox_status_providers.dart';
 import '../providers/service_providers.dart';
-import '../services/accounts/account.dart';
+import '../services/sync/backend_capabilities.dart';
 import '../services/sync/sync_service.dart';
 
 class OutboxStatusAction extends ConsumerWidget {
@@ -17,8 +18,8 @@ class OutboxStatusAction extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final account = ref.watch(activeAccountProvider);
-    if (account.type != AccountType.miniflux &&
-        account.type != AccountType.fever) {
+    final capabilities = ref.watch(backendCapabilitiesProvider);
+    if (!capabilities.isVisible(BackendFeature.outboxFlush)) {
       return const SizedBox.shrink();
     }
 

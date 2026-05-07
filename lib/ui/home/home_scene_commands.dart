@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../providers/article_list_controller.dart';
+import '../../providers/backend_capabilities_provider.dart';
 import '../../providers/query_providers.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/service_providers.dart';
 import '../../providers/unread_providers.dart';
+import '../../services/sync/backend_capabilities.dart';
 import '../../services/sync/sync_service.dart';
 
 class HomeSceneCommands {
@@ -22,13 +24,18 @@ class HomeSceneCommands {
   final int? selectedArticleId;
 
   Future<BatchRefreshResult> refreshAll() async {
+    final capabilities = _ref.read(backendCapabilitiesProvider);
     final feedId = _ref.read(selectedFeedIdProvider);
     final categoryId = _ref.read(selectedCategoryIdProvider);
-    if (feedId != null) {
+    if (feedId != null &&
+        capabilities.isVisible(BackendFeature.refreshSubscriptionSource)) {
       final result = await _ref
           .read(syncServiceProvider)
           .refreshFeedSafe(feedId);
       return BatchRefreshResult([result]);
+    }
+    if (feedId != null) {
+      return _ref.read(syncServiceProvider).refreshFeedsSafe([feedId]);
     }
 
     final feeds = await _ref.read(feedRepositoryProvider).getAll();

@@ -6,21 +6,26 @@ import 'package:fleur/models/category.dart';
 import 'package:fleur/models/feed.dart';
 import 'package:fleur/models/tag.dart';
 import 'package:fleur/providers/query_providers.dart';
+import 'package:fleur/services/accounts/account.dart';
+import 'package:fleur/services/sync/backend_capabilities.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/ui/sidebar/sidebar_management_actions.dart';
 import 'package:fleur/ui/sidebar/sidebar_selection_actions.dart';
 import 'package:fleur/ui/sidebar/sidebar_tree.dart';
+import 'package:fleur/utils/platform.dart';
 
 class _SidebarHarness extends ConsumerStatefulWidget {
   const _SidebarHarness({
     required this.categories,
     required this.feeds,
     required this.unreadCounts,
+    this.accountType = AccountType.local,
   });
 
   final List<Category> categories;
   final List<Feed> feeds;
   final Map<int?, int> unreadCounts;
+  final AccountType accountType;
 
   @override
   ConsumerState<_SidebarHarness> createState() => _SidebarHarnessState();
@@ -69,6 +74,7 @@ class _SidebarHarnessState extends ConsumerState<_SidebarHarness> {
       },
       selectionActions: selectionActions,
       managementActions: managementActions,
+      capabilities: BackendCapabilities.forAccountType(widget.accountType),
       onAddFeed: () async {},
       onAddCategory: () async {},
       onShowCategoryMenu: (_) async {},
@@ -145,4 +151,65 @@ void main() {
       expect(find.byIcon(Icons.keyboard_arrow_down), findsOneWidget);
     },
   );
+
+  testWidgets('Fever sidebar hides structure actions and OPML import', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    final category = Category()
+      ..id = 1
+      ..name = 'Tech';
+    final feed = Feed()
+      ..id = 101
+      ..url = 'https://example.com/feed.xml'
+      ..title = 'Tech News'
+      ..categoryId = 1;
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: _SidebarHarness(
+              categories: [category],
+              feeds: [feed],
+              unreadCounts: const {null: 1, 101: 1},
+              accountType: AccountType.fever,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('New category'), findsNothing);
+    expect(find.text('Tech'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.more_horiz));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Import OPML'), findsNothing);
+    expect(find.text('Export OPML'), findsOneWidget);
+    expect(find.text('Refresh all'), findsOneWidget);
+
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tech News'), findsOneWidget);
+    expect(find.byIcon(Icons.more_vert), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Move to category'), findsNothing);
+    expect(find.text('Delete subscription'), findsNothing);
+    expect(find.text('Refresh'), findsNothing);
+    expect(find.text('Edit'), findsOneWidget);
+  });
 }

@@ -8,10 +8,12 @@ import 'package:fleur/l10n/app_localizations.dart';
 import '../models/category.dart';
 import '../models/feed.dart';
 import '../providers/account_providers.dart';
+import '../providers/backend_capabilities_provider.dart';
 import '../providers/query_providers.dart';
 import '../providers/unread_providers.dart';
 import '../providers/sync_status_providers.dart';
 import '../services/accounts/account.dart';
+import '../services/sync/backend_capabilities.dart';
 import '../services/sync/sync_status_reporter.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/layout_spec.dart';
@@ -137,6 +139,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
     final selectedTagId = ref.watch(selectedTagIdProvider);
     final tags = ref.watch(tagsProvider);
     final activeAccount = ref.watch(activeAccountProvider);
+    final capabilities = ref.watch(backendCapabilitiesProvider);
     final navMode = LayoutSpec.fromContext(context).globalNavMode;
     final showAccountFooter = navMode == GlobalNavMode.bottom;
     final syncStatus = ref.watch(syncStatusControllerProvider);
@@ -175,6 +178,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
               },
               selectionActions: selectionActions,
               managementActions: managementActions,
+              capabilities: capabilities,
               onAddFeed: managementActions.addFeed,
               onAddCategory: () async {
                 final id = await managementActions.addCategory();
@@ -208,21 +212,26 @@ class _SidebarState extends ConsumerState<Sidebar> {
     SidebarManagementActions managementActions,
   ) async {
     final l10n = AppLocalizations.of(context)!;
+    final capabilities = ref.read(backendCapabilitiesProvider);
     final v = await _showModalBottomSheet<_CategoryAction>(
       builder: (context) {
         return SafeArea(
           child: Wrap(
             children: [
-              ListTile(
-                leading: const Icon(Icons.edit_outlined),
-                title: Text(l10n.rename),
-                onTap: () => Navigator.of(context).pop(_CategoryAction.rename),
-              ),
-              ListTile(
-                leading: const Icon(Icons.delete_outline),
-                title: Text(l10n.deleteCategory),
-                onTap: () => Navigator.of(context).pop(_CategoryAction.delete),
-              ),
+              if (capabilities.isVisible(BackendFeature.renameCategory))
+                ListTile(
+                  leading: const Icon(Icons.edit_outlined),
+                  title: Text(l10n.rename),
+                  onTap: () =>
+                      Navigator.of(context).pop(_CategoryAction.rename),
+                ),
+              if (capabilities.isVisible(BackendFeature.deleteCategory))
+                ListTile(
+                  leading: const Icon(Icons.delete_outline),
+                  title: Text(l10n.deleteCategory),
+                  onTap: () =>
+                      Navigator.of(context).pop(_CategoryAction.delete),
+                ),
             ],
           ),
         );
@@ -246,37 +255,48 @@ class _SidebarState extends ConsumerState<Sidebar> {
     SidebarManagementActions managementActions,
   ) async {
     final l10n = AppLocalizations.of(context)!;
+    final capabilities = ref.read(backendCapabilitiesProvider);
+    final canMove =
+        capabilities.isVisible(BackendFeature.moveSubscriptionToCategory) ||
+        capabilities.isVisible(BackendFeature.moveSubscriptionToUncategorized);
     final action = await _showModalBottomSheet<_FeedAction>(
       builder: (context) {
         return SafeArea(
           child: Wrap(
             children: [
-              ListTile(
-                leading: const Icon(Icons.edit_outlined),
-                title: Text(l10n.edit),
-                onTap: () => Navigator.of(context).pop(_FeedAction.edit),
-              ),
-              ListTile(
-                leading: const Icon(Icons.refresh),
-                title: Text(l10n.refresh),
-                onTap: () => Navigator.of(context).pop(_FeedAction.refresh),
-              ),
-              ListTile(
-                leading: const Icon(Icons.download_for_offline_outlined),
-                title: Text(l10n.makeAvailableOffline),
-                onTap: () =>
-                    Navigator.of(context).pop(_FeedAction.offlineCache),
-              ),
-              ListTile(
-                leading: const Icon(Icons.drive_file_move_outline),
-                title: Text(l10n.moveToCategory),
-                onTap: () => Navigator.of(context).pop(_FeedAction.move),
-              ),
-              ListTile(
-                leading: const Icon(Icons.delete_outline),
-                title: Text(l10n.deleteSubscription),
-                onTap: () => Navigator.of(context).pop(_FeedAction.delete),
-              ),
+              if (capabilities.isVisible(BackendFeature.clientFeedSettings))
+                ListTile(
+                  leading: const Icon(Icons.edit_outlined),
+                  title: Text(l10n.edit),
+                  onTap: () => Navigator.of(context).pop(_FeedAction.edit),
+                ),
+              if (capabilities.isVisible(
+                BackendFeature.refreshSubscriptionSource,
+              ))
+                ListTile(
+                  leading: const Icon(Icons.refresh),
+                  title: Text(l10n.refresh),
+                  onTap: () => Navigator.of(context).pop(_FeedAction.refresh),
+                ),
+              if (capabilities.isVisible(BackendFeature.offlineCache))
+                ListTile(
+                  leading: const Icon(Icons.download_for_offline_outlined),
+                  title: Text(l10n.makeAvailableOffline),
+                  onTap: () =>
+                      Navigator.of(context).pop(_FeedAction.offlineCache),
+                ),
+              if (canMove)
+                ListTile(
+                  leading: const Icon(Icons.drive_file_move_outline),
+                  title: Text(l10n.moveToCategory),
+                  onTap: () => Navigator.of(context).pop(_FeedAction.move),
+                ),
+              if (capabilities.isVisible(BackendFeature.deleteSubscription))
+                ListTile(
+                  leading: const Icon(Icons.delete_outline),
+                  title: Text(l10n.deleteSubscription),
+                  onTap: () => Navigator.of(context).pop(_FeedAction.delete),
+                ),
             ],
           ),
         );

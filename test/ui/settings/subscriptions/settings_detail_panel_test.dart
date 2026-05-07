@@ -7,11 +7,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fleur/l10n/app_localizations.dart';
 import 'package:fleur/models/category.dart';
 import 'package:fleur/models/feed.dart';
+import 'package:fleur/providers/account_providers.dart';
 import 'package:fleur/providers/app_settings_providers.dart';
 import 'package:fleur/providers/query_providers.dart';
 import 'package:fleur/providers/repository_providers.dart';
 import 'package:fleur/providers/subscription_settings_provider.dart';
 import 'package:fleur/repositories/feed_repository.dart';
+import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/ui/settings/subscriptions/subscription_layout_manager.dart';
@@ -78,11 +80,13 @@ void main() {
     required Category category,
     required FeedRepository feedRepository,
     required Stream<Feed?> feedStream,
+    Account? account,
   }) async {
     await pumpLocalizedTestApp(
       tester,
       home: const Scaffold(body: SettingsDetailPanel()),
       overrides: [
+        activeAccountProvider.overrideWithValue(account ?? buildTestAccount()),
         appSettingsStoreProvider.overrideWithValue(appStore),
         feedsProvider.overrideWith((ref) => Stream.value([feed])),
         categoriesProvider.overrideWith((ref) => Stream.value([category])),
@@ -107,6 +111,7 @@ void main() {
     required Category category,
     required FeedRepository feedRepository,
     required Stream<Feed?> feedStream,
+    Account? account,
   }) async {
     await pumpLocalizedTestApp(
       tester,
@@ -117,6 +122,7 @@ void main() {
         home: const Scaffold(body: SubscriptionLayoutManager()),
       ),
       overrides: [
+        activeAccountProvider.overrideWithValue(account ?? buildTestAccount()),
         appSettingsStoreProvider.overrideWithValue(appStore),
         feedsProvider.overrideWith((ref) => Stream.value([feed])),
         categoriesProvider.overrideWith((ref) => Stream.value([category])),
@@ -299,6 +305,43 @@ void main() {
     expect(find.text('https://example.com/feed.xml'), findsOneWidget);
     expect(find.text('Delete'), findsOneWidget);
     expect(find.byIcon(Icons.delete_outline), findsOneWidget);
+  });
+
+  testWidgets('Fever feed details hide remote structure actions', (
+    tester,
+  ) async {
+    final category = buildCategory();
+    final feed = buildFeed();
+    final feedController = StreamController<Feed?>.broadcast();
+    addTearDown(feedController.close);
+    final fakeRepo = _FakeFeedRepository(feedController, feed);
+    final appStore = FakeAppSettingsStore(AppSettings.defaults());
+
+    await pumpPanel(
+      tester,
+      appStore: appStore,
+      feed: feed,
+      category: category,
+      feedRepository: fakeRepo,
+      feedStream: feedController.stream,
+      account: buildTestAccount(type: AccountType.fever),
+    );
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(SettingsDetailPanel)),
+    );
+    container
+        .read(subscriptionSelectionProvider.notifier)
+        .selectFeed(
+          feed.id,
+          categoryScope: SubscriptionCategoryId(category.id),
+        );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Rename'), findsOneWidget);
+    expect(find.text('Move to category'), findsNothing);
+    expect(find.text('Refresh'), findsNothing);
+    expect(find.text('Delete'), findsNothing);
   });
 
   testWidgets(

@@ -18,6 +18,8 @@ import '../../settings/app_settings.dart';
 import '../../settings/app_settings_store.dart';
 import '../effective_feed_settings.dart';
 import '../outbox/outbox_store.dart';
+import '../remote_article_action_executor.dart';
+import '../remote_client_factory.dart';
 import '../sync_service.dart';
 import '../sync_mutex.dart';
 import '../sync_status_reporter.dart';
@@ -36,8 +38,7 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
     required ArticleCacheService cache,
     required ArticleExtractor extractor,
     SyncStatusReporter? statusReporter,
-  }) : _dio = dio,
-       _credentials = credentials,
+  }) : _clientFactory = RemoteClientFactory(dio: dio, credentials: credentials),
        _feeds = feeds,
        _categories = categories,
        _articles = articles,
@@ -49,8 +50,7 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
 
   final Account account;
 
-  final Dio _dio;
-  final CredentialStore _credentials;
+  final RemoteClientFactory _clientFactory;
   final FeedRepository _feeds;
   final CategoryRepository _categories;
   final ArticleRepository _articles;
@@ -380,128 +380,18 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
   }
 
   Future<MinifluxClient> _buildClient() async {
-    final baseUrl = (account.baseUrl ?? '').trim();
-    if (baseUrl.isEmpty) {
-      throw StateError('Miniflux baseUrl is empty');
-    }
-    final token = await _credentials.getApiToken(
-      account.id,
-      AccountType.miniflux,
-    );
-    if (token != null && token.trim().isNotEmpty) {
-      return MinifluxClient(dio: _dio, baseUrl: baseUrl, apiToken: token);
-    }
-
-    final basic = await _credentials.getBasicAuth(
-      account.id,
-      AccountType.miniflux,
-    );
-    if (basic != null) {
-      return MinifluxClient(
-        dio: _dio,
-        baseUrl: baseUrl,
-        username: basic.username,
-        password: basic.password,
-      );
-    }
-
-    throw StateError('Miniflux credentials are missing');
+    return _clientFactory.miniflux(account);
   }
 
   Future<void> _flushOutbox(MinifluxClient client) async {
     final pending = await _outbox.load(account.id);
     if (pending.isEmpty) return;
 
-    Map<String, int>? feedUrlToRemoteId;
-    Map<String, int>? categoryTitleToRemoteId;
-
-    String normalizeFeedUrl(String url) {
-      // Feed URL equality should be stable across sync/mark-all calls.
-      // Strip trailing slashes to avoid needless mismatches.
-      return url.trim().replaceAll(RegExp(r'/+$'), '');
-    }
-
-    Future<Map<String, int>> getFeedUrlMap() async {
-      final cached = feedUrlToRemoteId;
-      if (cached != null) return cached;
-      final feeds = await client.getFeeds();
-      final map = <String, int>{};
-      for (final f in feeds) {
-        final id = f['id'];
-        final feedUrl = f['feed_url'];
-        if (id is! int || feedUrl is! String) continue;
-        final key = normalizeFeedUrl(feedUrl);
-        if (key.isEmpty) continue;
-        map[key] = id;
-      }
-      feedUrlToRemoteId = map;
-      return map;
-    }
-
-    Future<Map<String, int>> getCategoryTitleMap() async {
-      final cached = categoryTitleToRemoteId;
-      if (cached != null) return cached;
-      final cats = await client.getCategories();
-      final map = <String, int>{};
-      for (final c in cats) {
-        final id = c['id'];
-        final title = c['title'];
-        if (id is! int || title is! String) continue;
-        final key = title.trim();
-        if (key.isEmpty) continue;
-        map[key] = id;
-      }
-      categoryTitleToRemoteId = map;
-      return map;
-    }
-
+    final executor = MinifluxRemoteArticleActionExecutor(client);
     final remaining = <OutboxAction>[];
     for (final a in pending) {
       try {
-        switch (a.type) {
-          case OutboxActionType.markRead:
-            final entryId = a.remoteEntryId;
-            final value = a.value;
-            if (entryId == null || value == null) continue;
-            await client.setEntriesStatus([
-              entryId,
-            ], status: value ? 'read' : 'unread');
-            break;
-          case OutboxActionType.bookmark:
-            final entryId = a.remoteEntryId;
-            final value = a.value;
-            if (entryId == null || value == null) continue;
-            await client.setBookmarkState(entryId, value);
-            break;
-          case OutboxActionType.markAllRead:
-            final feedUrl = a.feedUrl == null
-                ? null
-                : normalizeFeedUrl(a.feedUrl!);
-            final catTitle = a.categoryTitle?.trim();
-            if (feedUrl != null && feedUrl.isNotEmpty) {
-              final map = await getFeedUrlMap();
-              final remoteFeedId = map[feedUrl];
-              if (remoteFeedId == null) {
-                throw StateError('Remote feed not found for url: $feedUrl');
-              }
-              await client.markFeedAllAsRead(remoteFeedId);
-            } else if (catTitle != null && catTitle.isNotEmpty) {
-              final map = await getCategoryTitleMap();
-              final remoteCatId = map[catTitle];
-              if (remoteCatId == null) {
-                throw StateError(
-                  'Remote category not found for title: $catTitle',
-                );
-              }
-              await client.markCategoryAllAsRead(remoteCatId);
-            } else {
-              final map = await getFeedUrlMap();
-              for (final remoteFeedId in map.values) {
-                await client.markFeedAllAsRead(remoteFeedId);
-              }
-            }
-            break;
-        }
+        await executor.apply(a);
       } catch (e) {
         AppLogger.w('outbox flush failed', tag: 'sync', error: e);
         remaining.add(a);

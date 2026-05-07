@@ -6,10 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/account_providers.dart';
 import '../../providers/app_settings_providers.dart';
+import '../../providers/backend_capabilities_provider.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/service_providers.dart';
-import '../../services/accounts/account.dart';
-import '../../services/sync/miniflux/miniflux_client.dart';
+import '../../services/sync/backend_capabilities.dart';
+import '../../services/sync/remote_subscription_structure_executor.dart';
 import '../../services/sync/sync_service.dart';
 import '../../services/sync/sync_mutex.dart';
 import '../../widgets/app_scrollbar.dart';
@@ -103,11 +104,12 @@ Future<int?> showAddSubscriptionDialog(
   final nav = navigator ?? Navigator.of(context);
 
   final account = ref.read(activeAccountProvider);
-  if (account.type == AccountType.fever) {
+  final capabilities = ref.read(backendCapabilitiesProvider);
+  const feature = BackendFeature.addSubscription;
+  final addSubscriptionAvailability = capabilities.availability(feature);
+  if (!capabilities.isVisible(feature)) {
     if (context.mounted) {
-      context.showSnack(
-        l10n.errorMessage(l10n.feverAddSubscriptionNotSupported),
-      );
+      context.showSnack(l10n.errorMessage(l10n.remoteCommandNotSupported));
     }
     return null;
   }
@@ -331,49 +333,23 @@ Future<int?> showAddSubscriptionDialog(
     }
   }
 
-  Future<MinifluxClient> buildMinifluxClient() async {
-    final baseUrl = (account.baseUrl ?? '').trim();
-    if (baseUrl.isEmpty) {
-      throw StateError('Miniflux baseUrl is empty');
-    }
-    final credentials = ref.read(credentialStoreProvider);
-    final token = await credentials.getApiToken(
-      account.id,
-      AccountType.miniflux,
-    );
-    if (token != null && token.trim().isNotEmpty) {
-      return MinifluxClient(
-        dio: ref.read(dioProvider),
-        baseUrl: baseUrl,
-        apiToken: token.trim(),
-      );
-    }
-
-    final basic = await credentials.getBasicAuth(
-      account.id,
-      AccountType.miniflux,
-    );
-    if (basic != null) {
-      return MinifluxClient(
-        dio: ref.read(dioProvider),
-        baseUrl: baseUrl,
-        username: basic.username,
-        password: basic.password,
-      );
-    }
-
-    throw StateError('Miniflux credentials are missing');
+  Future<MinifluxRemoteSubscriptionStructureExecutor>
+  buildMinifluxStructureExecutor() async {
+    final client = await ref
+        .read(remoteClientFactoryProvider)
+        .miniflux(account);
+    return MinifluxRemoteSubscriptionStructureExecutor(client);
   }
 
   Future<({bool canceled, int? categoryId})> pickMinifluxCategoryId(
-    MinifluxClient client,
+    RemoteSubscriptionStructureExecutor executor,
   ) async {
     while (true) {
       late final List<Map<String, Object?>> rawCats;
       try {
         rawCats = await showBlockingProgress(
           l10n.loadingCategories,
-          client.getCategories,
+          executor.listCategories,
         );
       } catch (e) {
         if (context.mounted) {
@@ -435,7 +411,7 @@ Future<int?> showAddSubscriptionDialog(
           try {
             final created = await showBlockingProgress(
               l10n.creatingCategory,
-              () => client.createCategory(trimmed),
+              () => executor.createCategory(trimmed),
             );
             final id = created['id'];
             if (id is! int || id <= 0) {
@@ -483,66 +459,62 @@ Future<int?> showAddSubscriptionDialog(
     return null;
   }
 
-  switch (account.type) {
-    case AccountType.local:
-      final catPick = await pickLocalCategoryId();
-      if (catPick.canceled) return null;
+  if (addSubscriptionAvailability != FeatureAvailability.onlineRequired) {
+    final catPick = await pickLocalCategoryId();
+    if (catPick.canceled) return null;
 
-      final id = await ref
-          .read(feedRepositoryProvider)
-          .upsertUrl(feedUri.toString());
-      await ref
-          .read(feedRepositoryProvider)
-          .setCategory(feedId: id, categoryId: catPick.categoryId);
+    final id = await ref
+        .read(feedRepositoryProvider)
+        .upsertUrl(feedUri.toString());
+    await ref
+        .read(feedRepositoryProvider)
+        .setCategory(feedId: id, categoryId: catPick.categoryId);
 
-      final r = await showBlockingProgress(
-        l10n.addingSubscription,
-        () => ref.read(syncServiceProvider).refreshFeedSafe(id),
-      );
-      if (!context.mounted) return id;
-      context.showSnack(
-        r.ok ? l10n.addedAndSynced : l10n.errorMessage(r.error.toString()),
-      );
-      return id;
-    case AccountType.miniflux:
-      MinifluxClient client;
-      try {
-        client = await buildMinifluxClient();
-      } catch (e) {
-        showRemoteStructureFailure(e);
-        return null;
-      }
-
-      final catPick = await pickMinifluxCategoryId(client);
-      if (catPick.canceled) return null;
-      final categoryId = catPick.categoryId;
-      if (categoryId == null || categoryId <= 0) return null;
-
-      BatchRefreshResult batch;
-      try {
-        batch = await showBlockingProgress(l10n.addingSubscription, () async {
-          return SyncMutex.instance.run('sync', () async {
-            await client.createFeed(
-              feedUrl: feedUri.toString(),
-              categoryId: categoryId,
-            );
-            return ref.read(syncServiceProvider).refreshFeedsSafe(const []);
-          });
-        });
-      } catch (e) {
-        showRemoteStructureFailure(e);
-        return null;
-      }
-
-      final id = await resolveFeedIdByUrl(feedUri.toString());
-      if (!context.mounted) return id;
-      final err = batch.firstError?.error;
-      context.showSnack(
-        err == null ? l10n.addedAndSynced : l10n.errorMessage(err.toString()),
-      );
-      return id;
-    case AccountType.fever:
-      // Already handled above.
-      return null;
+    final r = await showBlockingProgress(
+      l10n.addingSubscription,
+      () => ref.read(syncServiceProvider).refreshFeedSafe(id),
+    );
+    if (!context.mounted) return id;
+    context.showSnack(
+      r.ok ? l10n.addedAndSynced : l10n.errorMessage(r.error.toString()),
+    );
+    return id;
   }
+
+  MinifluxRemoteSubscriptionStructureExecutor executor;
+  try {
+    executor = await buildMinifluxStructureExecutor();
+  } catch (e) {
+    showRemoteStructureFailure(e);
+    return null;
+  }
+
+  final catPick = await pickMinifluxCategoryId(executor);
+  if (catPick.canceled) return null;
+  final categoryId = catPick.categoryId;
+  if (categoryId == null || categoryId <= 0) return null;
+
+  BatchRefreshResult batch;
+  try {
+    batch = await showBlockingProgress(l10n.addingSubscription, () async {
+      return SyncMutex.instance.run('sync', () async {
+        await executor.createFeed(
+          feedUrl: feedUri.toString(),
+          categoryId: categoryId,
+        );
+        return ref.read(syncServiceProvider).refreshFeedsSafe(const []);
+      });
+    });
+  } catch (e) {
+    showRemoteStructureFailure(e);
+    return null;
+  }
+
+  final id = await resolveFeedIdByUrl(feedUri.toString());
+  if (!context.mounted) return id;
+  final err = batch.firstError?.error;
+  context.showSnack(
+    err == null ? l10n.addedAndSynced : l10n.errorMessage(err.toString()),
+  );
+  return id;
 }
