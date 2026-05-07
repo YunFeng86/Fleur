@@ -19,6 +19,7 @@ import '../../services/accounts/account.dart';
 import '../../services/opml/opml_service.dart';
 import '../../services/sync/backend_capabilities.dart';
 import '../../services/sync/miniflux/miniflux_client.dart';
+import '../../services/sync/remote_subscription_structure_executor.dart';
 import '../../ui/actions/remote_structure_feedback.dart' as remote_feedback;
 import '../../ui/dialogs/add_subscription_dialog.dart';
 import '../../utils/context_extensions.dart';
@@ -108,12 +109,26 @@ class SubscriptionActions {
     throw StateError('Miniflux credentials are missing');
   }
 
-  static Future<int> _resolveRemoteFeedId(
-    WidgetRef ref,
-    MinifluxClient client,
+  static Future<MinifluxRemoteSubscriptionStructureExecutor>
+  _buildMinifluxStructureExecutor(WidgetRef ref, Account account) async {
+    final client = await _buildMinifluxClient(ref, account);
+    return MinifluxRemoteSubscriptionStructureExecutor(client);
+  }
+
+  static Future<MinifluxRemoteSubscriptionStructureExecutor>
+  _buildMinifluxStructureExecutorFromRead(
+    ProviderReadCallback read,
+    Account account,
+  ) async {
+    final client = await _buildMinifluxClientFromRead(read, account);
+    return MinifluxRemoteSubscriptionStructureExecutor(client);
+  }
+
+  static Future<String> _localFeedUrlFromRead(
+    ProviderReadCallback read,
     int localFeedId,
   ) async {
-    final feed = await ref.read(feedRepositoryProvider).getById(localFeedId);
+    final feed = await read(feedRepositoryProvider).getById(localFeedId);
     if (feed == null) {
       throw StateError('Local feed not found: $localFeedId');
     }
@@ -122,52 +137,20 @@ class SubscriptionActions {
     if (target.isEmpty) {
       throw StateError('Local feed url is empty: $localFeedId');
     }
-
-    final remoteFeeds = await client.getFeeds();
-    for (final remote in remoteFeeds) {
-      final remoteId = remote['id'];
-      final remoteUrl = remote['feed_url'];
-      if (remoteId is! int || remoteUrl is! String) continue;
-      if (_normalizeFeedUrl(remoteUrl) == target) return remoteId;
-    }
-
-    throw StateError('Remote feed not found for url: ${feed.url}');
+    return feed.url;
   }
 
-  static Future<({int remoteId, String title})> _resolveRemoteCategory(
-    WidgetRef ref,
-    MinifluxClient client,
+  static Future<String> _localCategoryTitleFromRead(
+    ProviderReadCallback read,
     int localCategoryId,
   ) async {
-    final category = await ref
-        .read(categoryRepositoryProvider)
-        .getById(localCategoryId);
+    final category = await read(
+      categoryRepositoryProvider,
+    ).getById(localCategoryId);
     if (category == null) {
       throw StateError('Local category not found: $localCategoryId');
     }
-    return _resolveRemoteCategoryByTitle(client, category.name);
-  }
-
-  static Future<({int remoteId, String title})> _resolveRemoteCategoryByTitle(
-    MinifluxClient client,
-    String title,
-  ) async {
-    final target = title.trim();
-    if (target.isEmpty) {
-      throw StateError('Category title is empty');
-    }
-
-    final remoteCategories = await client.getCategories();
-    for (final remote in remoteCategories) {
-      final remoteId = remote['id'];
-      final remoteTitle = remote['title'];
-      if (remoteId is! int || remoteTitle is! String) continue;
-      if (remoteTitle.trim() == target) {
-        return (remoteId: remoteId, title: remoteTitle.trim());
-      }
-    }
-
-    throw StateError('Remote category not found for title: $target');
+    return category.name;
   }
 
   static Future<int?> _resolveLocalFeedIdByUrlFromRead(
@@ -395,8 +378,8 @@ class SubscriptionActions {
 
     final account = ref.read(activeAccountProvider);
     try {
-      final client = await _buildMinifluxClient(ref, account);
-      final created = await client.createCategory(name);
+      final executor = await _buildMinifluxStructureExecutor(ref, account);
+      final created = await executor.createCategory(name);
       final remoteTitle = (created['title'] as String?)?.trim();
       final effectiveTitle = (remoteTitle == null || remoteTitle.isEmpty)
           ? name.trim()
@@ -459,10 +442,13 @@ class SubscriptionActions {
 
     try {
       final account = ref.read(activeAccountProvider);
-      final client = await _buildMinifluxClient(ref, account);
-      final remote = await _resolveRemoteCategory(ref, client, categoryId);
-      final updated = await client.updateCategory(
-        categoryId: remote.remoteId,
+      final executor = await _buildMinifluxStructureExecutor(ref, account);
+      final currentTitle = await _localCategoryTitleFromRead(
+        ref.read,
+        categoryId,
+      );
+      final updated = await executor.renameCategoryByTitle(
+        currentTitle: currentTitle,
         title: trimmed,
       );
       final remoteTitle = (updated['title'] as String?)?.trim();
@@ -577,13 +563,12 @@ class SubscriptionActions {
     }
 
     final account = read(activeAccountProvider);
-    final client = await _buildMinifluxClientFromRead(read, account);
-    final category = await categories.getById(categoryId);
-    if (category == null) {
-      throw StateError('Local category not found: $categoryId');
-    }
-    final remote = await _resolveRemoteCategoryByTitle(client, category.name);
-    await client.deleteCategory(remote.remoteId);
+    final executor = await _buildMinifluxStructureExecutorFromRead(
+      read,
+      account,
+    );
+    final categoryTitle = await _localCategoryTitleFromRead(read, categoryId);
+    await executor.deleteCategoryByTitle(categoryTitle);
     await categories.delete(categoryId);
 
     // The remote delete already succeeded, so the local mirror must at least
@@ -591,7 +576,7 @@ class SubscriptionActions {
     try {
       final feeds = read(feedRepositoryProvider);
       final remoteCatIdToLocalId = <int, int>{};
-      for (final remoteCategory in await client.getCategories()) {
+      for (final remoteCategory in await executor.listCategories()) {
         final remoteId = remoteCategory['id'];
         final remoteTitle = remoteCategory['title'];
         if (remoteId is! int || remoteTitle is! String) continue;
@@ -600,7 +585,7 @@ class SubscriptionActions {
         final localId = await categories.upsertByName(trimmedTitle);
         remoteCatIdToLocalId[remoteId] = localId;
       }
-      for (final remoteFeed in await client.getFeeds()) {
+      for (final remoteFeed in await executor.listFeeds()) {
         final remoteUrl = remoteFeed['feed_url'];
         if (remoteUrl is! String) continue;
         final localFeedId = await _resolveLocalFeedIdByUrlFromRead(
@@ -779,29 +764,12 @@ class SubscriptionActions {
     }
 
     final account = read(activeAccountProvider);
-    final client = await _buildMinifluxClientFromRead(read, account);
-    final feed = await feeds.getById(feedId);
-    if (feed == null) {
-      throw StateError('Local feed not found: $feedId');
-    }
-    final target = _normalizeFeedUrl(feed.url);
-    if (target.isEmpty) {
-      throw StateError('Local feed url is empty: $feedId');
-    }
-    int? remoteFeedId;
-    for (final remoteFeed in await client.getFeeds()) {
-      final candidateId = remoteFeed['id'];
-      final remoteUrl = remoteFeed['feed_url'];
-      if (candidateId is! int || remoteUrl is! String) continue;
-      if (_normalizeFeedUrl(remoteUrl) == target) {
-        remoteFeedId = candidateId;
-        break;
-      }
-    }
-    if (remoteFeedId == null) {
-      throw StateError('Remote feed not found for url: ${feed.url}');
-    }
-    await client.deleteFeed(remoteFeedId);
+    final executor = await _buildMinifluxStructureExecutorFromRead(
+      read,
+      account,
+    );
+    final feedUrl = await _localFeedUrlFromRead(read, feedId);
+    await executor.deleteFeedByUrl(feedUrl);
     await feeds.delete(feedId);
   }
 
@@ -919,9 +887,9 @@ class SubscriptionActions {
 
     try {
       final account = ref.read(activeAccountProvider);
-      final client = await _buildMinifluxClient(ref, account);
-      final remoteFeedId = await _resolveRemoteFeedId(ref, client, feedId);
-      await client.refreshFeed(remoteFeedId);
+      final executor = await _buildMinifluxStructureExecutor(ref, account);
+      final feedUrl = await _localFeedUrlFromRead(ref.read, feedId);
+      await executor.refreshFeedByUrl(feedUrl);
       final result = await ref
           .read(syncServiceProvider)
           .refreshFeedSafe(feedId, notify: false);
@@ -992,8 +960,8 @@ class SubscriptionActions {
 
     try {
       final account = ref.read(activeAccountProvider);
-      final client = await _buildMinifluxClient(ref, account);
-      await client.refreshAllFeeds();
+      final executor = await _buildMinifluxStructureExecutor(ref, account);
+      await executor.refreshAllFeeds();
       final batch = await ref
           .read(syncServiceProvider)
           .refreshFeedsSafe(feedIds, maxConcurrent: concurrency, notify: false);
@@ -1091,16 +1059,15 @@ class SubscriptionActions {
 
     try {
       final account = ref.read(activeAccountProvider);
-      final client = await _buildMinifluxClient(ref, account);
-      final remoteFeedId = await _resolveRemoteFeedId(ref, client, feedId);
-      final remoteCategory = await _resolveRemoteCategory(
-        ref,
-        client,
+      final executor = await _buildMinifluxStructureExecutor(ref, account);
+      final feedUrl = await _localFeedUrlFromRead(ref.read, feedId);
+      final categoryTitle = await _localCategoryTitleFromRead(
+        ref.read,
         categoryId!,
       );
-      final updatedFeed = await client.updateFeed(
-        feedId: remoteFeedId,
-        categoryId: remoteCategory.remoteId,
+      final updatedFeed = await executor.moveFeedToCategory(
+        feedUrl: feedUrl,
+        categoryTitle: categoryTitle,
       );
       await _reconcileLocalFeedFromRemoteUpdate(
         ref,

@@ -31,10 +31,10 @@ const _allowedRawBackendTypeUses = <String, String>{
   'lib/services/sync/miniflux/miniflux_sync_service.dart':
       'builds the Miniflux client and credentials',
   'lib/ui/actions/subscription_actions.dart':
-      'uses concrete Miniflux client helpers after capability gating',
+      'builds Miniflux credentials/client after capability gating',
   'lib/ui/dialogs/add_account_dialogs.dart': 'creates concrete account types',
   'lib/ui/dialogs/add_subscription_dialog.dart':
-      'dispatches concrete add-subscription implementations after gating',
+      'builds Miniflux credentials/client after capability gating',
   'lib/ui/settings/tabs/services_tab.dart':
       'renders account creation and account type labels',
   'lib/widgets/account_avatar.dart': 'renders account type icons',
@@ -136,6 +136,24 @@ void main() {
           'BackendCapabilities.',
     );
   });
+
+  test(
+    'add subscription dialog keeps operation dispatch capability-driven',
+    () {
+      const path = 'lib/ui/dialogs/add_subscription_dialog.dart';
+      final contents = File(path).readAsStringSync();
+
+      expect(
+        contents,
+        isNot(contains(RegExp(r'\b(?:_?account|activeAccount)\.type\b'))),
+        reason:
+            '$path must use BackendCapabilities/backendCapabilitiesProvider '
+            'for add-subscription operation dispatch.',
+      );
+      expect(contents, contains('BackendFeature.addSubscription'));
+      expect(contents, contains('FeatureAvailability.onlineRequired'));
+    },
+  );
 }
 
 List<File> _libDartFiles() {
