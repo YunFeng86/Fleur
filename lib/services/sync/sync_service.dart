@@ -20,6 +20,7 @@ import '../notifications/notification_service.dart';
 import '../cache/article_cache_service.dart';
 import '../extract/article_extractor.dart';
 import '../../utils/keyword_filter.dart';
+import '../logging/log_context.dart';
 import 'effective_feed_settings.dart';
 import 'sync_mutex.dart';
 import 'sync_status_reporter.dart';
@@ -77,6 +78,29 @@ ParsedFeed _parsedFeedFromMap(Map<String, Object?> data) {
     description: data['description'] as String?,
     items: items,
   );
+}
+
+Map<String, Object?> _rssFeedFailureContext(
+  Feed feed,
+  Object error, {
+  required int attempts,
+  required int? durationMs,
+  required int? statusCode,
+}) {
+  final extra = <String, Object?>{
+    'attempts': attempts,
+    'backend': 'rss',
+    'durationMs': durationMs,
+    'feedId': feed.id,
+    'operation': 'refreshFeed',
+    'statusCode': statusCode,
+  };
+  if (error is DioException) {
+    return logContextForDioException(error, extra: extra);
+  }
+  final uri = Uri.tryParse(feed.url);
+  if (uri == null) return extra;
+  return logContextForUri(uri, method: 'GET', extra: extra);
 }
 
 class FeedRefreshResult {
@@ -353,6 +377,9 @@ class SyncService implements SyncServiceBase {
         }
 
         Object? lastError;
+        StackTrace? lastStack;
+        int? lastDurationMs;
+        int? lastStatusCode;
         final attempts = maxAttempts < 1 ? 1 : maxAttempts;
         final sw = Stopwatch()..start();
         for (var i = 0; i < attempts; i++) {
@@ -383,13 +410,16 @@ class SyncService implements SyncServiceBase {
               incomingCount: out.incomingCount,
               newCount: out.newCount,
             );
-          } catch (e) {
+          } catch (e, s) {
             lastError = e;
+            lastStack = s;
             // Keep duration per attempt; store the last attempt duration.
             sw.stop();
             final statusCode = e is DioException
                 ? e.response?.statusCode
                 : null;
+            lastDurationMs = sw.elapsedMilliseconds;
+            lastStatusCode = statusCode;
             await _feeds.updateSyncState(
               id: feedId,
               lastCheckedAt: checkedAt,
@@ -412,16 +442,43 @@ class SyncService implements SyncServiceBase {
             }
           }
         }
+        final error = lastError ?? Exception('Unknown sync error');
+        AppLogger.w(
+          'RSS feed refresh failed',
+          tag: 'sync',
+          error: error,
+          stackTrace: lastStack,
+          context: _rssFeedFailureContext(
+            feed,
+            error,
+            attempts: attempts,
+            durationMs: lastDurationMs,
+            statusCode: lastStatusCode,
+          ),
+        );
         return FeedRefreshResult(
           feedId: feedId,
           incomingCount: 0,
           newCount: 0,
-          error: lastError ?? Exception('Unknown sync error'),
+          error: error,
         );
-      } catch (e) {
+      } catch (e, s) {
         // Guard against unexpected errors (settings load/category lookup, etc.)
         // so the "safe" API never leaks exceptions, and the status capsule never
         // gets stuck in a running state.
+        AppLogger.w(
+          'RSS feed refresh setup failed',
+          tag: 'sync',
+          error: e,
+          stackTrace: s,
+          context: _rssFeedFailureContext(
+            feed,
+            e,
+            attempts: maxAttempts < 1 ? 1 : maxAttempts,
+            durationMs: null,
+            statusCode: null,
+          ),
+        );
         return FeedRefreshResult(
           feedId: feedId,
           incomingCount: 0,

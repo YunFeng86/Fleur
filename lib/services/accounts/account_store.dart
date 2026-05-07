@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import '../logging/app_logger.dart';
 import '../../utils/path_manager.dart';
 import 'account.dart';
 
@@ -66,8 +67,26 @@ class AccountStore {
           }
           return state;
         }
+        AppLogger.w(
+          'Account file ignored: unexpected JSON shape',
+          tag: 'settings',
+          context: const <String, Object?>{
+            'file': 'accounts',
+            'store': 'AccountStore',
+          },
+        );
       }
-    } catch (_) {
+    } catch (e, s) {
+      AppLogger.w(
+        'Account load failed; creating default account',
+        tag: 'settings',
+        error: e,
+        stackTrace: s,
+        context: const <String, Object?>{
+          'file': 'accounts',
+          'store': 'AccountStore',
+        },
+      );
       // fall through: best-effort create a fresh state.
     }
 

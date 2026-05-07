@@ -5,6 +5,7 @@ import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 
 import '../logging/app_logger.dart';
+import '../logging/log_context.dart';
 import '../settings/translation_ai_secret_store.dart';
 import '../settings/translation_ai_settings.dart';
 import '../../utils/language_utils.dart';
@@ -68,9 +69,57 @@ class TranslationService {
         tag: 'translate',
         error: e,
         stackTrace: s,
+        context: _translationFailureContext(
+          provider: provider,
+          settings: settings,
+          error: e,
+          targetLanguageTag: tag,
+        ),
       );
       rethrow;
     }
+  }
+
+  Map<String, Object?> _translationFailureContext({
+    required TranslationProviderSelection provider,
+    required TranslationAiSettings settings,
+    required Object error,
+    required String targetLanguageTag,
+  }) {
+    final extra = <String, Object?>{
+      'operation': 'translateText',
+      'provider': provider.kind.name,
+      'targetLanguageTag': targetLanguageTag,
+    };
+    if (error is DioException) {
+      return logContextForDioException(error, extra: extra);
+    }
+    final uri = switch (provider.kind) {
+      TranslationProviderKind.googleWeb => Uri.https(
+        'translate.googleapis.com',
+        '/translate_a/single',
+      ),
+      TranslationProviderKind.bingWeb => Uri.https(
+        'api-edge.cognitive.microsofttranslator.com',
+        '/translate',
+      ),
+      TranslationProviderKind.baiduApi => Uri.https(
+        'fanyi-api.baidu.com',
+        '/api/trans/vip/translate',
+      ),
+      TranslationProviderKind.deepLApi =>
+        settings.deepL.endpoint == DeepLEndpoint.free
+            ? Uri.https('api-free.deepl.com', '/v2/translate')
+            : Uri.https('api.deepl.com', '/v2/translate'),
+      TranslationProviderKind.deepLX => () {
+        final baseUrl = settings.deepLX.baseUrl.trim();
+        if (baseUrl.isEmpty) return null;
+        return Uri.tryParse(baseUrl.endsWith('/') ? baseUrl : '$baseUrl/');
+      }(),
+      TranslationProviderKind.aiService => null,
+    };
+    if (uri == null) return extra;
+    return logContextForUri(uri, extra: extra);
   }
 
   String _googleLangCode(String tag) {

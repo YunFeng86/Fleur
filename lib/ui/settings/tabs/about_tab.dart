@@ -43,7 +43,14 @@ class _AboutTabState extends State<AboutTab> {
     if (trimmed.isEmpty) return;
     try {
       await ShellService.openPath(trimmed);
-    } catch (e) {
+    } catch (e, s) {
+      AppLogger.w(
+        'Open support folder failed',
+        tag: 'about',
+        error: e,
+        stackTrace: s,
+        context: const <String, Object?>{'operation': 'openFolder'},
+      );
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
       String message;
@@ -71,7 +78,14 @@ class _AboutTabState extends State<AboutTab> {
     File archive;
     try {
       archive = await AppLogger.createLogsArchive();
-    } catch (e) {
+    } catch (e, s) {
+      AppLogger.w(
+        'Log archive creation failed',
+        tag: 'about',
+        error: e,
+        stackTrace: s,
+        context: const <String, Object?>{'operation': 'createLogsArchive'},
+      );
       if (!mounted) return;
       context.showErrorMessage(l10n.errorMessage(e.toString()));
       return;
@@ -86,7 +100,14 @@ class _AboutTabState extends State<AboutTab> {
           mimeType: 'application/zip',
           name: p.basename(archive.path),
         );
-      } catch (e) {
+      } catch (e, s) {
+        AppLogger.w(
+          'Log archive share failed',
+          tag: 'about',
+          error: e,
+          stackTrace: s,
+          context: const <String, Object?>{'operation': 'shareLogsArchive'},
+        );
         if (!mounted) return;
         context.showErrorMessage(l10n.errorMessage(e.toString()));
         return;
@@ -109,7 +130,14 @@ class _AboutTabState extends State<AboutTab> {
         suggestedName: p.basename(archive.path),
         acceptedTypeGroups: [group],
       );
-    } catch (e) {
+    } catch (e, s) {
+      AppLogger.w(
+        'Log archive save dialog failed',
+        tag: 'about',
+        error: e,
+        stackTrace: s,
+        context: const <String, Object?>{'operation': 'pickLogArchivePath'},
+      );
       if (!mounted) return;
       context.showErrorMessage(l10n.errorMessage(e.toString()));
       return;
@@ -118,7 +146,14 @@ class _AboutTabState extends State<AboutTab> {
 
     try {
       await archive.copy(loc.path);
-    } catch (e) {
+    } catch (e, s) {
+      AppLogger.w(
+        'Log archive copy failed',
+        tag: 'about',
+        error: e,
+        stackTrace: s,
+        context: const <String, Object?>{'operation': 'copyLogsArchive'},
+      );
       if (!mounted) return;
       context.showErrorMessage(l10n.errorMessage(e.toString()));
       return;

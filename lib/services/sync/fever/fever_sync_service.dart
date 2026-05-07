@@ -14,6 +14,7 @@ import '../../accounts/credential_store.dart';
 import '../../cache/article_cache_service.dart';
 import '../../extract/article_extractor.dart';
 import '../../logging/app_logger.dart';
+import '../../logging/log_context.dart';
 import '../../notifications/notification_service.dart';
 import '../../settings/app_settings.dart';
 import '../../settings/app_settings_store.dart';
@@ -64,6 +65,29 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
   final ArticleCacheService _cache;
   final ArticleExtractor _extractor;
   final SyncStatusReporter _statusReporter;
+
+  Map<String, Object?> _accountFailureContext(
+    Object error, {
+    required String operation,
+    required int feedCount,
+  }) {
+    final extra = <String, Object?>{
+      'accountId': account.id,
+      'accountType': account.type.wire,
+      'backend': 'fever',
+      'feedCount': feedCount,
+      'operation': operation,
+    };
+    if (error is DioException) {
+      return logContextForDioException(error, extra: extra);
+    }
+    final baseUrl = account.baseUrl?.trim();
+    final uri = baseUrl == null || baseUrl.isEmpty
+        ? null
+        : Uri.tryParse(baseUrl);
+    if (uri == null) return extra;
+    return logContextForUri(uri, extra: extra);
+  }
 
   static int? _asInt(Object? v) {
     if (v is int) return v;
@@ -116,10 +140,21 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
             newCount: 0,
           ),
         ]);
-      } catch (e) {
+      } catch (e, s) {
         final total = feedIds.length;
         onProgress?.call(total, total);
         status.complete(success: false);
+        AppLogger.w(
+          'Fever account sync failed',
+          tag: 'sync',
+          error: e,
+          stackTrace: s,
+          context: _accountFailureContext(
+            e,
+            operation: 'refreshAccount',
+            feedCount: total,
+          ),
+        );
         return BatchRefreshResult([
           FeedRefreshResult(
             feedId: feedIds.isEmpty ? -1 : feedIds.first,

@@ -8,9 +8,10 @@ import '../db/isar_db.dart';
 import '../providers/account_providers.dart';
 import '../providers/core_providers.dart';
 import '../providers/service_providers.dart';
-import '../widgets/app_scrollbar.dart';
 import '../services/accounts/account.dart';
 import '../services/data_integrity_startup_service.dart';
+import '../services/logging/app_provider_observer.dart';
+import '../widgets/app_scrollbar.dart';
 import 'app.dart';
 
 class AccountGate extends ConsumerStatefulWidget {
@@ -166,6 +167,7 @@ class _AccountGateState extends ConsumerState<AccountGate> {
 
     return ProviderScope(
       key: ValueKey('account:${activeAccount.id}'),
+      observers: const [AppProviderObserver()],
       overrides: [
         isarProvider.overrideWithValue(isar),
         notificationServiceProvider.overrideWithValue(notificationService),

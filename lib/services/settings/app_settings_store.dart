@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'app_settings.dart';
+import '../logging/app_logger.dart';
 import '../network/user_agents.dart';
 import '../../utils/path_manager.dart';
 
@@ -17,7 +18,17 @@ class AppSettingsStore {
       if (!exists) return AppSettings.defaults();
       final raw = await f.readAsString();
       final decoded = jsonDecode(raw);
-      if (decoded is! Map) return AppSettings.defaults();
+      if (decoded is! Map) {
+        AppLogger.w(
+          'Settings file ignored: unexpected JSON shape',
+          tag: 'settings',
+          context: const <String, Object?>{
+            'file': 'app_settings',
+            'store': 'AppSettingsStore',
+          },
+        );
+        return AppSettings.defaults();
+      }
 
       final loaded = AppSettings.fromJson(decoded.cast<String, Object?>());
       final migrated = _migrateIfNeeded(loaded);
@@ -30,7 +41,17 @@ class AppSettingsStore {
         }
       }
       return migrated;
-    } catch (_) {
+    } catch (e, s) {
+      AppLogger.w(
+        'Settings load failed; using defaults',
+        tag: 'settings',
+        error: e,
+        stackTrace: s,
+        context: const <String, Object?>{
+          'file': 'app_settings',
+          'store': 'AppSettingsStore',
+        },
+      );
       return AppSettings.defaults();
     }
   }

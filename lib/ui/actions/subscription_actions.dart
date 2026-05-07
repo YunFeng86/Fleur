@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:dio/dio.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -16,6 +17,8 @@ import '../../providers/query_providers.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/service_providers.dart';
 import '../../services/accounts/account.dart';
+import '../../services/logging/app_logger.dart';
+import '../../services/logging/log_context.dart';
 import '../../services/opml/opml_service.dart';
 import '../../services/sync/backend_capabilities.dart';
 import '../../services/sync/remote_subscription_structure_executor.dart';
@@ -78,6 +81,43 @@ class SubscriptionActions {
   ) async {
     final client = await read(remoteClientFactoryProvider).miniflux(account);
     return MinifluxRemoteSubscriptionStructureExecutor(client);
+  }
+
+  static void _logSubscriptionFailure(
+    WidgetRef ref,
+    String operation,
+    Object error, [
+    StackTrace? stackTrace,
+  ]) {
+    final account = ref.read(activeAccountProvider);
+    AppLogger.w(
+      'Subscription operation failed',
+      tag: 'subscription',
+      error: error,
+      stackTrace: stackTrace,
+      context: _subscriptionFailureContext(account, error, operation),
+    );
+  }
+
+  static Map<String, Object?> _subscriptionFailureContext(
+    Account account,
+    Object error,
+    String operation,
+  ) {
+    final extra = <String, Object?>{
+      'accountId': account.id,
+      'accountType': account.type.wire,
+      'operation': operation,
+    };
+    if (error is DioException) {
+      return logContextForDioException(error, extra: extra);
+    }
+    final baseUrl = account.baseUrl?.trim();
+    final uri = baseUrl == null || baseUrl.isEmpty
+        ? null
+        : Uri.tryParse(baseUrl);
+    if (uri == null) return extra;
+    return logContextForUri(uri, extra: extra);
   }
 
   static Future<String> _localFeedUrlFromRead(
@@ -341,7 +381,8 @@ class SubscriptionActions {
           ? name.trim()
           : remoteTitle;
       return ref.read(categoryRepositoryProvider).upsertByName(effectiveTitle);
-    } catch (error) {
+    } catch (error, stackTrace) {
+      _logSubscriptionFailure(ref, 'createCategory', error, stackTrace);
       if (!context.mounted) return null;
       remote_feedback.showRemoteStructureFailure(context, l10n, error);
       return null;
@@ -414,7 +455,8 @@ class SubscriptionActions {
             categoryId,
             remoteTitle == null || remoteTitle.isEmpty ? trimmed : remoteTitle,
           );
-    } catch (error) {
+    } catch (error, stackTrace) {
+      _logSubscriptionFailure(ref, 'renameCategory', error, stackTrace);
       if (!context.mounted) return;
       remote_feedback.showRemoteStructureFailure(context, l10n, error);
     }
@@ -483,7 +525,8 @@ class SubscriptionActions {
       if (!context.mounted) return true;
       context.showSnack(l10n.categoryDeleted);
       return true;
-    } catch (error) {
+    } catch (error, stackTrace) {
+      _logSubscriptionFailure(ref, 'deleteCategory', error, stackTrace);
       if (!context.mounted) return false;
       remote_feedback.showRemoteStructureFailure(context, l10n, error);
       return false;
@@ -561,6 +604,17 @@ class SubscriptionActions {
         );
       }
     } catch (error, stackTrace) {
+      AppLogger.w(
+        'Subscription mirror reconciliation failed',
+        tag: 'subscription',
+        error: error,
+        stackTrace: stackTrace,
+        context: _subscriptionFailureContext(
+          account,
+          error,
+          'reconcileAfterDeleteCategory',
+        ),
+      );
       FlutterError.reportError(
         FlutterErrorDetails(
           exception: error,
@@ -691,7 +745,8 @@ class SubscriptionActions {
       if (!context.mounted) return true;
       context.showSnack(l10n.deleted);
       return true;
-    } catch (error) {
+    } catch (error, stackTrace) {
+      _logSubscriptionFailure(ref, 'deleteFeed', error, stackTrace);
       if (!context.mounted) return false;
       remote_feedback.showRemoteStructureFailure(context, l10n, error);
       return false;
@@ -853,7 +908,8 @@ class SubscriptionActions {
       context.showSnack(
         result.ok ? l10n.refreshed : l10n.errorMessage(result.error.toString()),
       );
-    } catch (error) {
+    } catch (error, stackTrace) {
+      _logSubscriptionFailure(ref, 'refreshFeed', error, stackTrace);
       if (!context.mounted) return;
       remote_feedback.showRemoteStructureFailure(context, l10n, error);
     }
@@ -926,7 +982,8 @@ class SubscriptionActions {
       context.showSnack(
         err == null ? l10n.refreshedAll : l10n.errorMessage(err.toString()),
       );
-    } catch (error) {
+    } catch (error, stackTrace) {
+      _logSubscriptionFailure(ref, 'refreshAllFeeds', error, stackTrace);
       if (!context.mounted) return;
       remote_feedback.showRemoteStructureFailure(context, l10n, error);
     }
@@ -1031,7 +1088,8 @@ class SubscriptionActions {
         updatedFeed,
         fallbackCategoryId: categoryId,
       );
-    } catch (error) {
+    } catch (error, stackTrace) {
+      _logSubscriptionFailure(ref, 'moveFeedToCategory', error, stackTrace);
       if (!context.mounted) return;
       remote_feedback.showRemoteStructureFailure(context, l10n, error);
     }
@@ -1058,7 +1116,8 @@ class SubscriptionActions {
     XFile? file;
     try {
       file = await openFile(acceptedTypeGroups: [group]);
-    } catch (e) {
+    } catch (e, s) {
+      _logSubscriptionFailure(ref, 'importOpml.openFile', e, s);
       if (!context.mounted) return;
       context.showErrorMessage(l10n.errorMessage(e.toString()));
       return;
@@ -1078,7 +1137,8 @@ class SubscriptionActions {
     String xml;
     try {
       xml = await file.readAsString();
-    } catch (e) {
+    } catch (e, s) {
+      _logSubscriptionFailure(ref, 'importOpml.readFile', e, s);
       if (!context.mounted) return;
       context.showErrorMessage(l10n.errorMessage(e.toString()));
       return;
@@ -1087,7 +1147,8 @@ class SubscriptionActions {
     List<OpmlEntry> entries;
     try {
       entries = ref.read(opmlServiceProvider).parseEntries(xml);
-    } catch (_) {
+    } catch (e, s) {
+      _logSubscriptionFailure(ref, 'importOpml.parse', e, s);
       if (!context.mounted) return;
       context.showErrorMessage(l10n.errorMessage(l10n.opmlParseFailed));
       return;
@@ -1150,7 +1211,8 @@ class SubscriptionActions {
           mimeType: 'text/xml',
           name: 'subscriptions.opml',
         );
-      } catch (e) {
+      } catch (e, s) {
+        _logSubscriptionFailure(ref, 'exportOpml.share', e, s);
         if (!context.mounted) return;
         context.showErrorMessage(l10n.errorMessage(e.toString()));
         return;
@@ -1173,7 +1235,8 @@ class SubscriptionActions {
         suggestedName: 'subscriptions.opml',
         acceptedTypeGroups: [group],
       );
-    } catch (e) {
+    } catch (e, s) {
+      _logSubscriptionFailure(ref, 'exportOpml.pickPath', e, s);
       if (!context.mounted) return;
       context.showErrorMessage(l10n.errorMessage(e.toString()));
       return;
@@ -1183,7 +1246,8 @@ class SubscriptionActions {
     final file = XFile.fromData(bytes, mimeType: 'text/xml', name: loc.path);
     try {
       await file.saveTo(loc.path);
-    } catch (e) {
+    } catch (e, s) {
+      _logSubscriptionFailure(ref, 'exportOpml.saveFile', e, s);
       if (!context.mounted) return;
       context.showErrorMessage(l10n.errorMessage(e.toString()));
       return;

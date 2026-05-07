@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 
 import '../logging/app_logger.dart';
+import '../logging/log_context.dart';
 import '../settings/translation_ai_settings.dart';
 
 class AiServiceClient {
@@ -67,7 +68,20 @@ class AiServiceClient {
         ),
       };
     } catch (e, s) {
-      AppLogger.e('AI request failed', tag: 'ai', error: e, stackTrace: s);
+      final extra = <String, Object?>{
+        'apiType': service.apiType.name,
+        'model': model,
+        'operation': 'generateText',
+      };
+      AppLogger.e(
+        'AI request failed',
+        tag: 'ai',
+        error: e,
+        stackTrace: s,
+        context: e is DioException
+            ? logContextForDioException(e, extra: extra)
+            : logContextForUri(_baseUri(base), extra: extra),
+      );
       rethrow;
     }
   }

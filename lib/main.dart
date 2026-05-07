@@ -11,6 +11,7 @@ import 'app/account_gate.dart';
 import 'app/app.dart';
 import 'services/background/background_sync_service.dart';
 import 'services/logging/app_logger.dart';
+import 'services/logging/app_provider_observer.dart';
 import 'utils/platform.dart';
 
 Future<void> main() async {
@@ -61,7 +62,12 @@ Future<void> main() async {
         });
       }
 
-      runApp(const ProviderScope(child: AppRuntimeHost(child: AccountGate())));
+      runApp(
+        const ProviderScope(
+          observers: [AppProviderObserver()],
+          child: AppRuntimeHost(child: AccountGate()),
+        ),
+      );
     },
     (error, stackTrace) {
       AppLogger.e(
