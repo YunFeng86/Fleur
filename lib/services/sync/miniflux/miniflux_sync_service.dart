@@ -201,11 +201,17 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
 
     final cats = await client.getCategories();
     final remoteCatIdToLocalId = <int, int>{};
+    final seenCategoryRemoteIds = <String>{};
     for (final c in cats) {
       final id = c['id'];
       final title = c['title'];
       if (id is! int || title is! String) continue;
-      final localId = await _categories.upsertByName(title);
+      final remoteId = id.toString();
+      final localId = await _categories.upsertRemote(
+        remoteId: remoteId,
+        name: title,
+      );
+      seenCategoryRemoteIds.add(remoteId);
       remoteCatIdToLocalId[id] = localId;
     }
 
@@ -219,6 +225,7 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
     final remoteFeedIdToLocalFeed = <int, Feed>{};
     final localFeedIdToFeed = <int, Feed>{};
     final localFeedIdToSettings = <int, EffectiveFeedSettings>{};
+    final seenFeedRemoteIds = <String>{};
     var feedProcessed = 0;
     for (final f in feeds) {
       feedProcessed += 1;
@@ -226,30 +233,37 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
       final id = f['id'];
       final feedUrl = f['feed_url'];
       if (id is! int || feedUrl is! String) continue;
-      final localId = await _feeds.upsertUrl(feedUrl);
+      final remoteId = id.toString();
       final categoryId = f['category'] is Map
           ? (f['category'] as Map)['id']
           : f['category_id'];
       int? localCatId;
       if (categoryId is int) localCatId = remoteCatIdToLocalId[categoryId];
-      if (localCatId != null) {
-        await _feeds.setCategory(feedId: localId, categoryId: localCatId);
-      }
+      final localId = await _feeds.upsertRemote(
+        remoteId: remoteId,
+        url: feedUrl,
+        title: f['title'] as String?,
+        siteUrl: f['site_url'] as String?,
+        description: f['description'] as String?,
+        categoryId: localCatId,
+      );
+      seenFeedRemoteIds.add(remoteId);
       final local = await _feeds.getById(localId);
       if (local != null) {
         final settings = await _resolveSettings(local, appSettings);
         await _feeds.updateMeta(
           id: local.id,
-          title: f['title'] as String?,
-          siteUrl: f['site_url'] as String?,
-          description: f['description'] as String?,
           lastSyncedAt: settings.syncEnabled ? DateTime.now() : null,
         );
-        remoteFeedIdToLocalFeed[id] = local;
-        localFeedIdToFeed[local.id] = local;
+        final refreshed = await _feeds.getById(local.id);
+        if (refreshed == null) continue;
+        remoteFeedIdToLocalFeed[id] = refreshed;
+        localFeedIdToFeed[refreshed.id] = refreshed;
         localFeedIdToSettings[local.id] = settings;
       }
     }
+    await _feeds.deleteRemoteMissing(seenFeedRemoteIds);
+    await _categories.deleteRemoteMissing(seenCategoryRemoteIds);
 
     // 0 means "unlimited": paginate until server has no more entries.
     if (effectiveEntriesLimit == 0) {

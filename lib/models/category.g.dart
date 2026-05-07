@@ -42,28 +42,33 @@ const CategorySchema = CollectionSchema(
       name: r'name',
       type: IsarType.string,
     ),
-    r'showAiSummary': PropertySchema(
+    r'remoteId': PropertySchema(
       id: 5,
+      name: r'remoteId',
+      type: IsarType.string,
+    ),
+    r'showAiSummary': PropertySchema(
+      id: 6,
       name: r'showAiSummary',
       type: IsarType.bool,
     ),
     r'syncEnabled': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'syncEnabled',
       type: IsarType.bool,
     ),
     r'syncImages': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'syncImages',
       type: IsarType.bool,
     ),
     r'syncWebPages': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'syncWebPages',
       type: IsarType.bool,
     ),
     r'updatedAt': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -74,6 +79,19 @@ const CategorySchema = CollectionSchema(
   deserializeProp: _categoryDeserializeProp,
   idName: r'id',
   indexes: {
+    r'remoteId': IndexSchema(
+      id: 6301175856541681032,
+      name: r'remoteId',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'remoteId',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    ),
     r'name': IndexSchema(
       id: 879695947855722453,
       name: r'name',
@@ -109,6 +127,12 @@ int _categoryEstimateSize(
     }
   }
   bytesCount += 3 + object.name.length * 3;
+  {
+    final value = object.remoteId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   return bytesCount;
 }
 
@@ -123,11 +147,12 @@ void _categorySerialize(
   writer.writeBool(offsets[2], object.filterEnabled);
   writer.writeString(offsets[3], object.filterKeywords);
   writer.writeString(offsets[4], object.name);
-  writer.writeBool(offsets[5], object.showAiSummary);
-  writer.writeBool(offsets[6], object.syncEnabled);
-  writer.writeBool(offsets[7], object.syncImages);
-  writer.writeBool(offsets[8], object.syncWebPages);
-  writer.writeDateTime(offsets[9], object.updatedAt);
+  writer.writeString(offsets[5], object.remoteId);
+  writer.writeBool(offsets[6], object.showAiSummary);
+  writer.writeBool(offsets[7], object.syncEnabled);
+  writer.writeBool(offsets[8], object.syncImages);
+  writer.writeBool(offsets[9], object.syncWebPages);
+  writer.writeDateTime(offsets[10], object.updatedAt);
 }
 
 Category _categoryDeserialize(
@@ -143,11 +168,12 @@ Category _categoryDeserialize(
   object.filterKeywords = reader.readStringOrNull(offsets[3]);
   object.id = id;
   object.name = reader.readString(offsets[4]);
-  object.showAiSummary = reader.readBoolOrNull(offsets[5]);
-  object.syncEnabled = reader.readBoolOrNull(offsets[6]);
-  object.syncImages = reader.readBoolOrNull(offsets[7]);
-  object.syncWebPages = reader.readBoolOrNull(offsets[8]);
-  object.updatedAt = reader.readDateTime(offsets[9]);
+  object.remoteId = reader.readStringOrNull(offsets[5]);
+  object.showAiSummary = reader.readBoolOrNull(offsets[6]);
+  object.syncEnabled = reader.readBoolOrNull(offsets[7]);
+  object.syncImages = reader.readBoolOrNull(offsets[8]);
+  object.syncWebPages = reader.readBoolOrNull(offsets[9]);
+  object.updatedAt = reader.readDateTime(offsets[10]);
   return object;
 }
 
@@ -169,7 +195,7 @@ P _categoryDeserializeProp<P>(
     case 4:
       return (reader.readString(offset)) as P;
     case 5:
-      return (reader.readBoolOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 6:
       return (reader.readBoolOrNull(offset)) as P;
     case 7:
@@ -177,6 +203,8 @@ P _categoryDeserializeProp<P>(
     case 8:
       return (reader.readBoolOrNull(offset)) as P;
     case 9:
+      return (reader.readBoolOrNull(offset)) as P;
+    case 10:
       return (reader.readDateTime(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -320,6 +348,71 @@ extension CategoryQueryWhere on QueryBuilder<Category, Category, QWhereClause> {
         upper: upperId,
         includeUpper: includeUpper,
       ));
+    });
+  }
+
+  QueryBuilder<Category, Category, QAfterWhereClause> remoteIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'remoteId',
+        value: [null],
+      ));
+    });
+  }
+
+  QueryBuilder<Category, Category, QAfterWhereClause> remoteIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'remoteId',
+        lower: [null],
+        includeLower: false,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<Category, Category, QAfterWhereClause> remoteIdEqualTo(
+      String? remoteId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'remoteId',
+        value: [remoteId],
+      ));
+    });
+  }
+
+  QueryBuilder<Category, Category, QAfterWhereClause> remoteIdNotEqualTo(
+      String? remoteId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'remoteId',
+              lower: [],
+              upper: [remoteId],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'remoteId',
+              lower: [remoteId],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'remoteId',
+              lower: [remoteId],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'remoteId',
+              lower: [],
+              upper: [remoteId],
+              includeUpper: false,
+            ));
+      }
     });
   }
 
@@ -814,6 +907,152 @@ extension CategoryQueryFilter
     });
   }
 
+  QueryBuilder<Category, Category, QAfterFilterCondition> remoteIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'remoteId',
+      ));
+    });
+  }
+
+  QueryBuilder<Category, Category, QAfterFilterCondition> remoteIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'remoteId',
+      ));
+    });
+  }
+
+  QueryBuilder<Category, Category, QAfterFilterCondition> remoteIdEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'remoteId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Category, Category, QAfterFilterCondition> remoteIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'remoteId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Category, Category, QAfterFilterCondition> remoteIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'remoteId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Category, Category, QAfterFilterCondition> remoteIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'remoteId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Category, Category, QAfterFilterCondition> remoteIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'remoteId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Category, Category, QAfterFilterCondition> remoteIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'remoteId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Category, Category, QAfterFilterCondition> remoteIdContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'remoteId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Category, Category, QAfterFilterCondition> remoteIdMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'remoteId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Category, Category, QAfterFilterCondition> remoteIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'remoteId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Category, Category, QAfterFilterCondition> remoteIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'remoteId',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<Category, Category, QAfterFilterCondition>
       showAiSummaryIsNull() {
     return QueryBuilder.apply(this, (query) {
@@ -1044,6 +1283,18 @@ extension CategoryQuerySortBy on QueryBuilder<Category, Category, QSortBy> {
     });
   }
 
+  QueryBuilder<Category, Category, QAfterSortBy> sortByRemoteId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'remoteId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Category, Category, QAfterSortBy> sortByRemoteIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'remoteId', Sort.desc);
+    });
+  }
+
   QueryBuilder<Category, Category, QAfterSortBy> sortByShowAiSummary() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'showAiSummary', Sort.asc);
@@ -1179,6 +1430,18 @@ extension CategoryQuerySortThenBy
     });
   }
 
+  QueryBuilder<Category, Category, QAfterSortBy> thenByRemoteId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'remoteId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Category, Category, QAfterSortBy> thenByRemoteIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'remoteId', Sort.desc);
+    });
+  }
+
   QueryBuilder<Category, Category, QAfterSortBy> thenByShowAiSummary() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'showAiSummary', Sort.asc);
@@ -1275,6 +1538,13 @@ extension CategoryQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Category, Category, QDistinct> distinctByRemoteId(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'remoteId', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<Category, Category, QDistinct> distinctByShowAiSummary() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'showAiSummary');
@@ -1341,6 +1611,12 @@ extension CategoryQueryProperty
   QueryBuilder<Category, String, QQueryOperations> nameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'name');
+    });
+  }
+
+  QueryBuilder<Category, String?, QQueryOperations> remoteIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'remoteId');
     });
   }
 

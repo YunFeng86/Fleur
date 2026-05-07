@@ -235,12 +235,18 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
   }) async {
     final remoteGroups = await client.getGroups();
     final remoteGroupIdToLocalId = <int, int>{};
+    final seenCategoryRemoteIds = <String>{};
 
     for (final g in remoteGroups) {
       final id = _asInt(g['id']);
       final title = g['title'];
       if (id == null || title is! String) continue;
-      final localId = await _categories.upsertByName(title);
+      final remoteId = id.toString();
+      final localId = await _categories.upsertRemote(
+        remoteId: remoteId,
+        name: title,
+      );
+      seenCategoryRemoteIds.add(remoteId);
       remoteGroupIdToLocalId[id] = localId;
     }
 
@@ -278,6 +284,7 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
     final remoteFeedIdToLocalFeed = <int, Feed>{};
     final localFeedIdToFeed = <int, Feed>{};
     final localFeedIdToSettings = <int, EffectiveFeedSettings>{};
+    final seenFeedRemoteIds = <String>{};
 
     var processed = 0;
     for (final f in remoteFeeds) {
@@ -288,30 +295,28 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
       final feedUrl = f['url'];
       if (id == null || feedUrl is! String) continue;
 
-      final localId = await _feeds.upsertUrl(feedUrl);
       final localCatId = remoteFeedIdToLocalCategoryId[id];
-      if (localCatId != null) {
-        await _feeds.setCategory(feedId: localId, categoryId: localCatId);
-      }
-      final local = await _feeds.getById(localId);
-      if (local == null) continue;
-
       final title = f['title'] as String?;
       final siteUrl = f['site_url'] as String?;
-
-      await _feeds.updateMeta(
-        id: local.id,
+      final remoteId = id.toString();
+      final localId = await _feeds.upsertRemote(
+        remoteId: remoteId,
+        url: feedUrl,
         title: title,
         siteUrl: siteUrl,
         description: null,
+        categoryId: localCatId,
         lastSyncedAt: DateTime.now(),
       );
+      seenFeedRemoteIds.add(remoteId);
 
       final refreshed = await _feeds.getById(localId);
       if (refreshed == null) continue;
       remoteFeedIdToLocalFeed[id] = refreshed;
       localFeedIdToFeed[refreshed.id] = refreshed;
     }
+    await _feeds.deleteRemoteMissing(seenFeedRemoteIds);
+    await _categories.deleteRemoteMissing(seenCategoryRemoteIds);
 
     // Resolve effective settings after categories are applied.
     for (final feed in localFeedIdToFeed.values) {
