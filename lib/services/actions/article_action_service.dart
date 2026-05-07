@@ -9,6 +9,7 @@ import '../../repositories/article_repository.dart';
 import '../../repositories/feed_repository.dart';
 import '../accounts/account.dart';
 import '../accounts/credential_store.dart';
+import '../sync/backend_capabilities.dart';
 import '../sync/miniflux/miniflux_client.dart';
 import '../sync/fever/fever_client.dart';
 import '../sync/outbox/outbox_store.dart';
@@ -23,6 +24,7 @@ class ArticleActionService {
     required CredentialStore credentials,
     required OutboxStore outbox,
   }) : _account = account,
+       _capabilities = BackendCapabilities.forAccountType(account.type),
        _articles = articles,
        _feeds = feeds,
        _categories = categories,
@@ -31,6 +33,7 @@ class ArticleActionService {
        _outbox = outbox;
 
   final Account _account;
+  final BackendCapabilities _capabilities;
   final ArticleRepository _articles;
   final FeedRepository _feeds;
   final CategoryRepository _categories;
@@ -41,6 +44,7 @@ class ArticleActionService {
   Future<void> markRead(int articleId, bool isRead) async {
     final ok = await _runLocalVoid(() => _articles.markRead(articleId, isRead));
     if (!ok) return;
+    if (!_shouldProjectRemote(BackendFeature.articleReadState)) return;
 
     final entryId = await _resolveRemoteEntryId(articleId);
     if (entryId == null) return;
@@ -90,6 +94,7 @@ class ArticleActionService {
   Future<void> toggleStar(int articleId) async {
     final ok = await _runLocalVoid(() => _articles.toggleStar(articleId));
     if (!ok) return;
+    if (!_shouldProjectRemote(BackendFeature.articleStarState)) return;
 
     final a = await _articles.getById(articleId);
     final rid = int.tryParse((a?.remoteId ?? '').trim());
@@ -138,7 +143,9 @@ class ArticleActionService {
 
   Future<void> toggleReadLater(int articleId) async {
     // Read-later is currently local-only.
-    await _runLocalVoid(() => _articles.toggleReadLater(articleId));
+    final ok = await _runLocalVoid(() => _articles.toggleReadLater(articleId));
+    if (!ok) return;
+    if (!_shouldProjectRemote(BackendFeature.articleReadLater)) return;
   }
 
   Future<void> markAllRead({int? feedId, int? categoryId}) async {
@@ -151,10 +158,7 @@ class ArticleActionService {
     );
     if (ok == null) return;
 
-    if (_account.type != AccountType.miniflux &&
-        _account.type != AccountType.fever) {
-      return;
-    }
+    if (!_shouldProjectRemote(BackendFeature.articleReadState)) return;
 
     final action = await _buildMarkAllReadAction(
       feedId: feedId,
@@ -220,6 +224,16 @@ class ArticleActionService {
       value: true,
       createdAt: DateTime.now(),
     );
+  }
+
+  bool _shouldProjectRemote(BackendFeature feature) {
+    return switch (_capabilities.availability(feature)) {
+      FeatureAvailability.deferredRemote ||
+      FeatureAvailability.onlineRequired => true,
+      FeatureAvailability.local ||
+      FeatureAvailability.localOnly ||
+      FeatureAvailability.hidden => false,
+    };
   }
 
   Future<void> _applyMarkAllRead(
