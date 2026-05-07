@@ -11,6 +11,7 @@ import 'router.dart';
 import '../providers/app_settings_providers.dart';
 import '../providers/auto_refresh_providers.dart';
 import '../providers/background_sync_providers.dart';
+import '../providers/backend_sync_semantics_provider.dart';
 import '../providers/core_providers.dart';
 import '../providers/outbox_flush_providers.dart';
 import '../providers/outbox_status_providers.dart';
@@ -376,6 +377,13 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
           ref: ref,
           selectedArticleId: null,
         );
+        final syncSemantics = ref.watch(backendSyncSemanticsProvider);
+        final refreshActionLabel = syncSemantics.isAccountWideRefresh
+            ? l10n.syncAccount
+            : l10n.refreshAll;
+        final refreshSuccessLabel = syncSemantics.isAccountWideRefresh
+            ? l10n.syncedAccount
+            : l10n.refreshedAll;
 
         final leading = canPop
             ? IconButton(
@@ -423,7 +431,7 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
                 actions: [
                   if (isFeedsSection) ...[
                     IconButton(
-                      tooltip: l10n.refreshAll,
+                      tooltip: refreshActionLabel,
                       onPressed: () async {
                         final batch = await commands.refreshAll();
                         if (!context.mounted) return;
@@ -432,7 +440,7 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
                           SnackBar(
                             content: Text(
                               err == null
-                                  ? l10n.refreshedAll
+                                  ? refreshSuccessLabel
                                   : l10n.errorMessage(err.toString()),
                             ),
                           ),

@@ -303,8 +303,43 @@ void main() {
 
     expect(find.text('Example Feed'), findsOneWidget);
     expect(find.text('https://example.com/feed.xml'), findsOneWidget);
+    expect(find.text('Refresh'), findsOneWidget);
     expect(find.text('Delete'), findsOneWidget);
     expect(find.byIcon(Icons.delete_outline), findsOneWidget);
+  });
+
+  testWidgets('Miniflux feed details keep source refresh action', (
+    tester,
+  ) async {
+    final category = buildCategory();
+    final feed = buildFeed();
+    final feedController = StreamController<Feed?>.broadcast();
+    addTearDown(feedController.close);
+    final fakeRepo = _FakeFeedRepository(feedController, feed);
+    final appStore = FakeAppSettingsStore(AppSettings.defaults());
+
+    await pumpPanel(
+      tester,
+      appStore: appStore,
+      feed: feed,
+      category: category,
+      feedRepository: fakeRepo,
+      feedStream: feedController.stream,
+      account: buildTestAccount(type: AccountType.miniflux),
+    );
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(SettingsDetailPanel)),
+    );
+    container
+        .read(subscriptionSelectionProvider.notifier)
+        .selectFeed(
+          feed.id,
+          categoryScope: SubscriptionCategoryId(category.id),
+        );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Refresh'), findsOneWidget);
   });
 
   testWidgets('Fever feed details hide remote structure actions', (

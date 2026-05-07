@@ -21,6 +21,8 @@ import 'package:fleur/providers/query_providers.dart';
 import 'package:fleur/providers/service_providers.dart';
 import 'package:fleur/providers/sync_status_providers.dart';
 import 'package:fleur/providers/unread_providers.dart';
+import 'package:fleur/screens/home_screen.dart';
+import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/screens/saved_screen.dart';
 import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/sync/sync_service.dart';
@@ -645,6 +647,99 @@ void main() {
       expect(find.text('3'), findsOneWidget);
     },
   );
+
+  testWidgets('Home scene commands sync account-wide for remote accounts', (
+    tester,
+  ) async {
+    final syncService = FakeSyncService();
+    late HomeSceneCommands homeCommands;
+    final router = GoRouter(
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (context, state) {
+            return Consumer(
+              builder: (context, ref, _) {
+                homeCommands = HomeSceneCommands(
+                  context: context,
+                  ref: ref,
+                  selectedArticleId: null,
+                );
+                return const SizedBox(key: ValueKey('remote_commands_host'));
+              },
+            );
+          },
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          activeAccountProvider.overrideWithValue(
+            buildTestAccount(type: AccountType.fever, name: 'Fever'),
+          ),
+          selectedFeedIdProvider.overrideWith((ref) => 10),
+          selectedCategoryIdProvider.overrideWith((ref) => 1),
+          syncServiceProvider.overrideWithValue(syncService),
+        ],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await homeCommands.refreshAll();
+
+    expect(syncService.refreshCalls, [<int>[]]);
+  });
+
+  testWidgets('Home refresh tooltip follows backend refresh scope', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.android;
+    tester.view.physicalSize = const Size(390, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    Future<void> pumpHome(AccountType type) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            activeAccountProvider.overrideWithValue(
+              buildTestAccount(type: type),
+            ),
+            articleListControllerProvider.overrideWith(
+              _EmptyArticleListController.new,
+            ),
+            appSettingsStoreProvider.overrideWithValue(
+              FakeAppSettingsStore(AppSettings.defaults()),
+            ),
+            outboxPendingCountProvider.overrideWith((ref) async => 0),
+            syncServiceProvider.overrideWithValue(FakeSyncService()),
+          ],
+          child: MaterialApp(
+            locale: const Locale('en'),
+            theme: AppTheme.light(),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const HomeScreen(selectedArticleId: null),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await pumpHome(AccountType.local);
+    expect(find.byTooltip('Refresh all'), findsOneWidget);
+    expect(find.byTooltip('Sync account'), findsNothing);
+
+    await pumpHome(AccountType.fever);
+    expect(find.byTooltip('Sync account'), findsOneWidget);
+    expect(find.byTooltip('Refresh all'), findsNothing);
+  });
 
   testWidgets('Home scene shortcuts reuse the shared action wiring', (
     tester,
