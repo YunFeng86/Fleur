@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../providers/app_settings_providers.dart';
 import '../../../../providers/backend_capabilities_provider.dart';
+import '../../../../providers/backend_content_capabilities_provider.dart';
 import '../../../../providers/query_providers.dart';
 import '../../../../providers/subscription_settings_provider.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -537,13 +538,9 @@ class _SyncSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final capabilities = ref.watch(backendCapabilitiesProvider);
-    final canSyncImages = capabilities.isVisible(
-      BackendFeature.syncImagePrefetch,
-    );
-    final canSyncWebPages =
-        capabilities.isVisible(BackendFeature.clientWebPageFetch) ||
-        capabilities.isVisible(BackendFeature.serverArticleContentFetch);
+    final contentCapabilities = ref.watch(backendContentCapabilitiesProvider);
+    final canSyncImages = contentCapabilities.canPrefetchImages;
+    final canSyncWebPages = contentCapabilities.canFetchWebPages;
 
     return SettingsSection(
       title: l10n.sync,

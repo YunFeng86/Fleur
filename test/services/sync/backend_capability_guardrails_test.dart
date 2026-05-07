@@ -13,6 +13,8 @@ const _allowedRawBackendTypeUses = <String, String>{
       'creates the default local account state',
   'lib/providers/backend_capabilities_provider.dart':
       'derives capabilities from the active account',
+  'lib/providers/backend_content_capabilities_provider.dart':
+      'derives content capabilities from the active account',
   'lib/providers/service_providers.dart':
       'selects the concrete sync service implementation',
   'lib/services/accounts/account.dart': 'defines AccountType serialization',
@@ -26,6 +28,8 @@ const _allowedRawBackendTypeUses = <String, String>{
       'derives background capabilities from the active account',
   'lib/services/sync/backend_capabilities.dart':
       'declares the backend capability matrix',
+  'lib/services/sync/backend_content_capabilities.dart':
+      'declares the backend content capability matrix',
   'lib/services/sync/remote_client_factory.dart':
       'centralizes remote credential lookup and client construction',
   'lib/ui/dialogs/add_account_dialogs.dart': 'creates concrete account types',
@@ -50,6 +54,13 @@ const _operationalCapabilityFiles = <String, String>{
   'lib/widgets/sidebar.dart': 'backendCapabilitiesProvider',
   'lib/ui/settings/subscriptions/settings_detail_panel.dart':
       'backendCapabilitiesProvider',
+};
+
+const _contentCapabilityFiles = <String, String>{
+  'lib/ui/settings/subscriptions/settings_detail_panel.dart':
+      'backendContentCapabilitiesProvider',
+  'lib/ui/settings/tabs/services_tab.dart':
+      'backendContentCapabilitiesProvider',
 };
 
 void main() {
@@ -77,7 +88,8 @@ void main() {
       isEmpty,
       reason:
           'Use BackendCapabilities/backendCapabilitiesProvider for operation '
-          'capability checks, or add a documented allowlist reason.\n'
+          'checks, BackendContentCapabilities/backendContentCapabilitiesProvider '
+          'for content checks, or add a documented allowlist reason.\n'
           '${_formatOccurrences(unexpected)}',
     );
 
@@ -100,14 +112,35 @@ void main() {
         occurrences,
         isEmpty,
         reason:
-            '$path must use BackendCapabilities/backendCapabilitiesProvider '
-            'instead of raw AccountType checks.\n'
+            '$path must use shared capability providers instead of raw '
+            'AccountType checks.\n'
             '${_formatOccurrences(occurrences)}',
       );
       expect(
         contents,
         contains(entry.value),
         reason: '$path should remain wired to the shared capability surface.',
+      );
+    }
+  });
+
+  test('content UI surfaces stay content-capability-driven', () {
+    for (final entry in _contentCapabilityFiles.entries) {
+      final path = entry.key;
+      final contents = File(path).readAsStringSync();
+
+      expect(
+        contents,
+        contains(entry.value),
+        reason:
+            '$path should use BackendContentCapabilities for content-fetch UI.',
+      );
+      expect(
+        contents,
+        isNot(contains('BackendFeature.serverContentFetchMode')),
+        reason:
+            '$path should not route content-fetch UI through operation '
+            'BackendFeature values.',
       );
     }
   });

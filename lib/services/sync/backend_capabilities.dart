@@ -20,10 +20,6 @@ enum BackendFeature {
   clientCategorySettings,
   offlineCache,
   outboxFlush,
-  serverContentFetchMode,
-  clientWebPageFetch,
-  serverArticleContentFetch,
-  syncImagePrefetch,
 }
 
 enum FeatureAvailability {
@@ -66,9 +62,7 @@ class BackendCapabilities {
 
   static FeatureAvailability _localAvailability(BackendFeature feature) {
     return switch (feature) {
-      BackendFeature.outboxFlush ||
-      BackendFeature.serverArticleContentFetch ||
-      BackendFeature.serverContentFetchMode => FeatureAvailability.hidden,
+      BackendFeature.outboxFlush => FeatureAvailability.hidden,
       BackendFeature.syncNow ||
       BackendFeature.addSubscription ||
       BackendFeature.deleteSubscription ||
@@ -86,9 +80,7 @@ class BackendCapabilities {
       BackendFeature.articleReadLater ||
       BackendFeature.clientFeedSettings ||
       BackendFeature.clientCategorySettings ||
-      BackendFeature.offlineCache ||
-      BackendFeature.clientWebPageFetch ||
-      BackendFeature.syncImagePrefetch => FeatureAvailability.local,
+      BackendFeature.offlineCache => FeatureAvailability.local,
     };
   }
 
@@ -100,10 +92,7 @@ class BackendCapabilities {
       BackendFeature.articleReadLater ||
       BackendFeature.clientFeedSettings ||
       BackendFeature.clientCategorySettings ||
-      BackendFeature.offlineCache ||
-      BackendFeature.clientWebPageFetch ||
-      BackendFeature.syncImagePrefetch ||
-      BackendFeature.serverContentFetchMode => FeatureAvailability.localOnly,
+      BackendFeature.offlineCache => FeatureAvailability.localOnly,
       BackendFeature.articleReadState ||
       BackendFeature.articleStarState ||
       BackendFeature.outboxFlush => FeatureAvailability.deferredRemote,
@@ -115,9 +104,7 @@ class BackendCapabilities {
       BackendFeature.deleteCategory ||
       BackendFeature.moveSubscriptionToCategory ||
       BackendFeature.refreshSubscriptionSource ||
-      BackendFeature.refreshAllSources ||
-      BackendFeature.serverArticleContentFetch =>
-        FeatureAvailability.onlineRequired,
+      BackendFeature.refreshAllSources => FeatureAvailability.onlineRequired,
     };
   }
 
@@ -132,16 +119,12 @@ class BackendCapabilities {
       BackendFeature.moveSubscriptionToUncategorized ||
       BackendFeature.refreshSubscriptionSource ||
       BackendFeature.refreshAllSources ||
-      BackendFeature.importOpml ||
-      BackendFeature.serverArticleContentFetch ||
-      BackendFeature.serverContentFetchMode => FeatureAvailability.hidden,
+      BackendFeature.importOpml => FeatureAvailability.hidden,
       BackendFeature.exportOpml ||
       BackendFeature.articleReadLater ||
       BackendFeature.clientFeedSettings ||
       BackendFeature.clientCategorySettings ||
-      BackendFeature.offlineCache ||
-      BackendFeature.clientWebPageFetch ||
-      BackendFeature.syncImagePrefetch => FeatureAvailability.localOnly,
+      BackendFeature.offlineCache => FeatureAvailability.localOnly,
       BackendFeature.articleReadState ||
       BackendFeature.articleStarState ||
       BackendFeature.outboxFlush => FeatureAvailability.deferredRemote,
