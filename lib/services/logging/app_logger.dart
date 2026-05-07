@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
 import 'dart:io';
@@ -21,6 +20,7 @@ class AppLogger {
   static const int _kMaxExportFiles = 30;
 
   static Future<void>? _initFuture;
+  static Future<void>? _pendingFlush;
   static IOSink? _sink;
   static File? _activeLogFile;
   static final List<String> _pending = <String>[];
@@ -42,16 +42,29 @@ class AppLogger {
     return files.first;
   }
 
-  static void d(String message, {String? tag}) {
-    _log(AppLogLevel.debug, message, tag: tag);
+  static void d(String message, {String? tag, Map<String, Object?>? context}) {
+    _log(AppLogLevel.debug, message, tag: tag, context: context);
   }
 
-  static void i(String message, {String? tag}) {
-    _log(AppLogLevel.info, message, tag: tag);
+  static void i(String message, {String? tag, Map<String, Object?>? context}) {
+    _log(AppLogLevel.info, message, tag: tag, context: context);
   }
 
-  static void w(String message, {String? tag, Object? error}) {
-    _log(AppLogLevel.warning, message, tag: tag, error: error);
+  static void w(
+    String message, {
+    String? tag,
+    Object? error,
+    StackTrace? stackTrace,
+    Map<String, Object?>? context,
+  }) {
+    _log(
+      AppLogLevel.warning,
+      message,
+      tag: tag,
+      error: error,
+      stackTrace: stackTrace,
+      context: context,
+    );
   }
 
   static void e(
@@ -59,6 +72,7 @@ class AppLogger {
     String? tag,
     Object? error,
     StackTrace? stackTrace,
+    Map<String, Object?>? context,
   }) {
     _log(
       AppLogLevel.error,
@@ -66,12 +80,32 @@ class AppLogger {
       tag: tag,
       error: error,
       stackTrace: stackTrace,
+      context: context,
     );
   }
 
   static Future<void> flush() async {
     try {
+      await _pendingFlush;
       await _sink?.flush();
+    } catch (_) {
+      // best-effort
+    }
+  }
+
+  @visibleForTesting
+  static Future<void> resetForTests() async {
+    final sink = _sink;
+    final pendingFlush = _pendingFlush;
+    _sink = null;
+    _activeLogFile = null;
+    _initFuture = null;
+    _pendingFlush = null;
+    _pending.clear();
+    try {
+      await pendingFlush;
+      await sink?.flush();
+      await sink?.close();
     } catch (_) {
       // best-effort
     }
@@ -203,6 +237,7 @@ class AppLogger {
     String? tag,
     Object? error,
     StackTrace? stackTrace,
+    Map<String, Object?>? context,
   }) {
     if (level == AppLogLevel.debug && !kDebugMode) return;
     final line = _formatLine(
@@ -211,6 +246,7 @@ class AppLogger {
       tag: tag,
       error: error,
       stackTrace: stackTrace,
+      context: context,
     );
     _writeLine(line, flush: level.index >= AppLogLevel.warning.index);
 
@@ -232,6 +268,7 @@ class AppLogger {
     String? tag,
     Object? error,
     StackTrace? stackTrace,
+    Map<String, Object?>? context,
   }) {
     final ts = (time ?? DateTime.now()).toIso8601String();
     final lvl = switch (level) {
@@ -243,8 +280,47 @@ class AppLogger {
     final t = (tag == null || tag.trim().isEmpty) ? '' : ' [$tag]';
     final buf = StringBuffer('$ts [$lvl]$t $message');
     if (error != null) buf.write('\n$ts [$lvl]$t error: $error');
+    final contextLine = _formatContext(context);
+    if (contextLine != null) buf.write('\n$ts [$lvl]$t context: $contextLine');
     if (stackTrace != null) buf.write('\n$stackTrace');
     return buf.toString();
+  }
+
+  static String? _formatContext(Map<String, Object?>? context) {
+    if (context == null || context.isEmpty) return null;
+    final keys =
+        context.keys
+            .where((key) => key.trim().isNotEmpty && context[key] != null)
+            .toList()
+          ..sort();
+    if (keys.isEmpty) return null;
+    return keys
+        .map((key) {
+          final value = _isSensitiveContextKey(key)
+              ? '<redacted>'
+              : _sanitizeContextValue(context[key]);
+          return '$key=$value';
+        })
+        .join(' ');
+  }
+
+  static bool _isSensitiveContextKey(String key) {
+    final lower = key.toLowerCase();
+    if (lower == 'authmode') return false;
+    return lower.contains('token') ||
+        lower.contains('password') ||
+        lower.contains('secret') ||
+        lower.contains('auth') ||
+        lower.contains('header') ||
+        lower.contains('body') ||
+        lower == 'key' ||
+        lower.endsWith('key') ||
+        lower.contains('_key');
+  }
+
+  static String _sanitizeContextValue(Object? value) {
+    final raw = value.toString();
+    return raw.replaceAll(RegExp(r'[\r\n\t]+'), ' ').trim();
   }
 
   static String _consoleMessage(
@@ -279,10 +355,16 @@ class AppLogger {
     }
     try {
       sink.writeln(line);
-      if (flush) unawaited(sink.flush());
+      if (flush) _scheduleFlush(sink);
     } catch (_) {
       // best-effort
     }
+  }
+
+  static void _scheduleFlush(IOSink sink) {
+    _pendingFlush = (_pendingFlush ?? Future<void>.value())
+        .then((_) => sink.flush())
+        .catchError((_) {});
   }
 
   static Future<List<File>> _listLogFiles(Directory dir) async {

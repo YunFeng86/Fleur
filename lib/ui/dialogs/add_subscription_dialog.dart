@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,6 +11,8 @@ import '../../providers/backend_capabilities_provider.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/service_providers.dart';
 import '../../services/sync/backend_capabilities.dart';
+import '../../services/logging/app_logger.dart';
+import '../../services/logging/log_context.dart';
 import '../../services/sync/remote_subscription_structure_executor.dart';
 import '../../services/sync/sync_service.dart';
 import '../../services/sync/sync_mutex.dart';
@@ -132,7 +135,46 @@ Future<int?> showAddSubscriptionDialog(
     return remote_feedback.remoteStructureFailureMessage(l10n, error);
   }
 
-  void showRemoteStructureFailure(Object error) {
+  Map<String, Object?> addSubscriptionFailureContext(
+    Object error,
+    String operation,
+  ) {
+    final extra = <String, Object?>{
+      'accountId': account.id,
+      'accountType': capabilities.diagnosticAccountType,
+      'operation': operation,
+    };
+    if (error is DioException) {
+      return logContextForDioException(error, extra: extra);
+    }
+    final baseUrl = account.baseUrl?.trim();
+    final uri = baseUrl == null || baseUrl.isEmpty
+        ? null
+        : Uri.tryParse(baseUrl);
+    if (uri == null) return extra;
+    return logContextForUri(uri, extra: extra);
+  }
+
+  void logAddSubscriptionFailure(
+    String operation,
+    Object error, [
+    StackTrace? stackTrace,
+  ]) {
+    AppLogger.w(
+      'Add subscription failed',
+      tag: 'subscription',
+      error: error,
+      stackTrace: stackTrace,
+      context: addSubscriptionFailureContext(error, operation),
+    );
+  }
+
+  void showRemoteStructureFailure(
+    Object error, {
+    String operation = 'addSubscription',
+    StackTrace? stackTrace,
+  }) {
+    logAddSubscriptionFailure(operation, error, stackTrace);
     if (!context.mounted) return;
     context.showSnack(l10n.errorMessage(remoteStructureFailureMessage(error)));
   }
@@ -253,7 +295,8 @@ Future<int?> showAddSubscriptionDialog(
       l10n.discoveringFeeds,
       () => resolveFeedUri(url),
     );
-  } catch (e) {
+  } catch (e, s) {
+    logAddSubscriptionFailure('discoverFeed', e, s);
     if (context.mounted) {
       context.showSnack(l10n.errorMessage(e.toString()));
     }
@@ -323,11 +366,15 @@ Future<int?> showAddSubscriptionDialog(
                 .read(categoryRepositoryProvider)
                 .upsertByName(trimmed);
             return (canceled: false, categoryId: id);
-          } catch (e) {
+          } catch (e, s) {
             if (!context.mounted) {
               return (canceled: true, categoryId: null);
             }
-            showRemoteStructureFailure(e);
+            showRemoteStructureFailure(
+              e,
+              operation: 'createLocalCategoryForSubscription',
+              stackTrace: s,
+            );
           }
       }
     }
@@ -351,9 +398,13 @@ Future<int?> showAddSubscriptionDialog(
           l10n.loadingCategories,
           executor.listCategories,
         );
-      } catch (e) {
+      } catch (e, s) {
         if (context.mounted) {
-          showRemoteStructureFailure(e);
+          showRemoteStructureFailure(
+            e,
+            operation: 'listRemoteCategories',
+            stackTrace: s,
+          );
         }
         return (canceled: true, categoryId: null);
       }
@@ -420,11 +471,15 @@ Future<int?> showAddSubscriptionDialog(
               );
             }
             return (canceled: false, categoryId: id);
-          } catch (e) {
+          } catch (e, s) {
             if (!context.mounted) {
               return (canceled: true, categoryId: null);
             }
-            showRemoteStructureFailure(e);
+            showRemoteStructureFailure(
+              e,
+              operation: 'createRemoteCategoryForSubscription',
+              stackTrace: s,
+            );
           }
         case _CategoryPickUncategorized():
           // Not reachable for Miniflux: we don't show this option.
@@ -484,8 +539,12 @@ Future<int?> showAddSubscriptionDialog(
   MinifluxRemoteSubscriptionStructureExecutor executor;
   try {
     executor = await buildMinifluxStructureExecutor();
-  } catch (e) {
-    showRemoteStructureFailure(e);
+  } catch (e, s) {
+    showRemoteStructureFailure(
+      e,
+      operation: 'buildRemoteSubscriptionClient',
+      stackTrace: s,
+    );
     return null;
   }
 
@@ -505,8 +564,12 @@ Future<int?> showAddSubscriptionDialog(
         return ref.read(syncServiceProvider).refreshFeedsSafe(const []);
       });
     });
-  } catch (e) {
-    showRemoteStructureFailure(e);
+  } catch (e, s) {
+    showRemoteStructureFailure(
+      e,
+      operation: 'createRemoteSubscription',
+      stackTrace: s,
+    );
     return null;
   }
 

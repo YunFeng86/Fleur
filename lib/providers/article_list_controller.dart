@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/article.dart';
 import '../repositories/article_repository.dart';
+import '../services/logging/app_logger.dart';
 import 'repository_providers.dart';
 import 'query_providers.dart';
 import 'unread_providers.dart';
@@ -211,6 +212,26 @@ class ArticleListController extends AutoDisposeAsyncNotifier<ArticleListState> {
         ),
       );
     } catch (e, st) {
+      AppLogger.w(
+        'Article list load more failed',
+        tag: 'article_list',
+        error: e,
+        stackTrace: st,
+        context: <String, Object?>{
+          'operation': 'loadMore',
+          'feedId': _feedId,
+          'categoryId': _categoryId,
+          'tagId': _tagId,
+          'unreadOnly': _unreadOnly,
+          'starredOnly': _starredOnly,
+          'readLaterOnly': _readLaterOnly,
+          'sortAscending': _sortAscending,
+          'searchInContent': _searchInContent,
+          'offset': current.nextOffset,
+          'limit': _pageSize,
+          'searchQueryLength': _searchQuery.length,
+        },
+      );
       state = AsyncValue.error(e, st);
     }
   }

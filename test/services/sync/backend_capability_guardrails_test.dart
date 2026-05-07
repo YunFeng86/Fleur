@@ -9,6 +9,8 @@ const _rawBackendTypePattern =
 final _rawBackendTypeRegex = RegExp(_rawBackendTypePattern);
 
 const _allowedRawBackendTypeUses = <String, String>{
+  'lib/app/account_gate.dart':
+      'logs account database open failures for diagnostics only',
   'lib/providers/account_providers.dart':
       'creates the default local account state',
   'lib/providers/backend_capabilities_provider.dart':

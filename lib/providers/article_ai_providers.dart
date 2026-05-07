@@ -12,6 +12,7 @@ import '../models/category.dart';
 import '../models/feed.dart';
 import '../services/ai/ai_request_queue.dart';
 import '../services/cache/ai_content_cache_store.dart';
+import '../services/logging/app_logger.dart';
 import '../services/settings/app_settings.dart';
 import '../services/settings/translation_ai_settings.dart';
 import '../services/translation/article_translation.dart';
@@ -631,8 +632,17 @@ class ArticleAiController
           ),
         ),
       );
-    } catch (e) {
+    } catch (e, st) {
       if (requestId != _summaryRequestId) return;
+      _logAiTaskFailure(
+        operation: 'summarizeArticle',
+        error: e,
+        stackTrace: st,
+        article: article,
+        service: service,
+        targetLanguageTag: _targetLanguageTag,
+        priority: priority,
+      );
       state = state.copyWith(
         summaryStatus: ArticleAiTaskStatus.error,
         summaryError: e.toString(),
@@ -731,14 +741,66 @@ class ArticleAiController
         cacheStore: cacheStore,
         priority: priority,
       );
-    } catch (e) {
+    } catch (e, st) {
       if (requestId != _translationRequestId) return;
+      _logAiTaskFailure(
+        operation: 'translateArticle',
+        error: e,
+        stackTrace: st,
+        article: article,
+        settings: settings,
+        provider: provider,
+        mode: mode,
+        targetLanguageTag: _targetLanguageTag,
+        priority: priority,
+      );
       state = state.copyWith(
         translationStatus: ArticleAiTaskStatus.error,
         translationError: e.toString(),
       );
       _refreshLanguageBanner();
     }
+  }
+
+  void _logAiTaskFailure({
+    required String operation,
+    required Object error,
+    required StackTrace stackTrace,
+    required Article article,
+    TranslationAiSettings? settings,
+    AiServiceConfig? service,
+    TranslationProviderSelection? provider,
+    ArticleTranslationMode? mode,
+    required String targetLanguageTag,
+    required AiRequestPriority priority,
+  }) {
+    final providerKind = provider?.kind.name ?? 'aiService';
+    final providerServiceId =
+        provider?.kind == TranslationProviderKind.aiService
+        ? provider?.aiServiceId
+        : service?.id;
+    final resolvedService =
+        service ??
+        settings?.aiServices
+            .where((s) => s.id == providerServiceId)
+            .firstOrNull;
+    AppLogger.w(
+      'Article AI task failed',
+      tag: 'ai',
+      error: error,
+      stackTrace: stackTrace,
+      context: <String, Object?>{
+        'operation': operation,
+        'articleId': article.id,
+        'providerKind': providerKind,
+        'apiType': resolvedService?.apiType.name,
+        'serviceId': providerServiceId,
+        'model': resolvedService?.defaultModel,
+        'targetLanguageTag': targetLanguageTag,
+        'translationMode': mode?.name,
+        'priority': priority.name,
+      },
+    );
   }
 
   Future<void> _translateHtmlProgressively({

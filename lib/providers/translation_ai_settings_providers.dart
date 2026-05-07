@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../services/logging/app_logger.dart';
 import '../services/settings/translation_ai_secret_store.dart';
 import '../services/settings/translation_ai_settings.dart';
 import '../services/settings/translation_ai_settings_store.dart';
@@ -142,7 +143,15 @@ class TranslationAiSettingsController
       await secrets.setAiServiceApiKey(id, trimmedKey);
       try {
         await save(next);
-      } catch (_) {
+      } catch (e, st) {
+        _logAiSettingsFailure(
+          operation: 'addAiService',
+          serviceId: service.id,
+          apiType: service.apiType,
+          enabled: service.enabled,
+          error: e,
+          stackTrace: st,
+        );
         try {
           await secrets.deleteAiServiceApiKey(id);
         } catch (_) {
@@ -190,7 +199,15 @@ class TranslationAiSettingsController
 
       try {
         await save(cur.copyWith(aiServices: nextServices));
-      } catch (_) {
+      } catch (e, st) {
+        _logAiSettingsFailure(
+          operation: 'updateAiService',
+          serviceId: service.id,
+          apiType: service.apiType,
+          enabled: service.enabled,
+          error: e,
+          stackTrace: st,
+        );
         if (prevKey != nextKey) {
           try {
             if (prevKey == null) {
@@ -319,6 +336,28 @@ class TranslationAiSettingsController
       buf.write(alphabet[rnd.nextInt(alphabet.length)]);
     }
     return buf.toString();
+  }
+
+  static void _logAiSettingsFailure({
+    required String operation,
+    required String serviceId,
+    required AiServiceApiType apiType,
+    required bool enabled,
+    required Object error,
+    required StackTrace stackTrace,
+  }) {
+    AppLogger.w(
+      'AI service settings save failed',
+      tag: 'ai_settings',
+      error: error,
+      stackTrace: stackTrace,
+      context: <String, Object?>{
+        'operation': operation,
+        'serviceId': serviceId,
+        'apiType': apiType.name,
+        'enabled': enabled,
+      },
+    );
   }
 }
 

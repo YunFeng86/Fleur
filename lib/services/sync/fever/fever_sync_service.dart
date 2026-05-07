@@ -14,6 +14,7 @@ import '../../accounts/credential_store.dart';
 import '../../cache/article_cache_service.dart';
 import '../../extract/article_extractor.dart';
 import '../../logging/app_logger.dart';
+import '../../logging/log_context.dart';
 import '../../notifications/notification_service.dart';
 import '../../settings/app_settings.dart';
 import '../../settings/app_settings_store.dart';
@@ -64,6 +65,29 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
   final ArticleCacheService _cache;
   final ArticleExtractor _extractor;
   final SyncStatusReporter _statusReporter;
+
+  Map<String, Object?> _accountFailureContext(
+    Object error, {
+    required String operation,
+    required int feedCount,
+  }) {
+    final extra = <String, Object?>{
+      'accountId': account.id,
+      'accountType': 'fever',
+      'backend': 'fever',
+      'feedCount': feedCount,
+      'operation': operation,
+    };
+    if (error is DioException) {
+      return logContextForDioException(error, extra: extra);
+    }
+    final baseUrl = account.baseUrl?.trim();
+    final uri = baseUrl == null || baseUrl.isEmpty
+        ? null
+        : Uri.tryParse(baseUrl);
+    if (uri == null) return extra;
+    return logContextForUri(uri, extra: extra);
+  }
 
   static int? _asInt(Object? v) {
     if (v is int) return v;
@@ -116,10 +140,21 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
             newCount: 0,
           ),
         ]);
-      } catch (e) {
+      } catch (e, s) {
         final total = feedIds.length;
         onProgress?.call(total, total);
         status.complete(success: false);
+        AppLogger.w(
+          'Fever account sync failed',
+          tag: 'sync',
+          error: e,
+          stackTrace: s,
+          context: _accountFailureContext(
+            e,
+            operation: 'refreshAccount',
+            feedCount: total,
+          ),
+        );
         return BatchRefreshResult([
           FeedRefreshResult(
             feedId: feedIds.isEmpty ? -1 : feedIds.first,
@@ -169,7 +204,14 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
         final client = await _buildClient();
         await _flushOutbox(client);
         return true;
-      } catch (_) {
+      } catch (e, s) {
+        AppLogger.w(
+          'Fever outbox flush failed',
+          tag: 'sync',
+          error: e,
+          stackTrace: s,
+          context: _outboxFailureContext(e, operation: 'flushOutboxSafe'),
+        );
         return false;
       }
     });
@@ -507,7 +549,18 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
     for (final a in pending) {
       try {
         await executor.apply(a);
-      } catch (e) {
+      } catch (e, s) {
+        AppLogger.w(
+          'Fever outbox action failed',
+          tag: 'sync',
+          error: e,
+          stackTrace: s,
+          context: _outboxFailureContext(
+            e,
+            operation: 'flushOutbox',
+            action: a,
+          ),
+        );
         // Keep it for next sync attempt.
         remaining.add(a);
       }
@@ -516,5 +569,33 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
     if (remaining.length != pending.length) {
       await _outbox.save(account.id, remaining);
     }
+  }
+
+  Map<String, Object?> _outboxFailureContext(
+    Object error, {
+    required String operation,
+    OutboxAction? action,
+  }) {
+    final extra = <String, Object?>{
+      'accountId': account.id,
+      'accountType': 'fever',
+      'backend': 'fever',
+      'operation': operation,
+      if (action != null) ...<String, Object?>{
+        'actionType': action.type.wire,
+        'remoteEntryIdPresent': action.remoteEntryId != null,
+        'feedUrlPresent': (action.feedUrl ?? '').trim().isNotEmpty,
+        'categoryTitlePresent': (action.categoryTitle ?? '').trim().isNotEmpty,
+      },
+    };
+    if (error is DioException) {
+      return logContextForDioException(error, extra: extra);
+    }
+    final baseUrl = account.baseUrl?.trim();
+    final uri = baseUrl == null || baseUrl.isEmpty
+        ? null
+        : Uri.tryParse(baseUrl);
+    if (uri == null) return extra;
+    return logContextForUri(uri, extra: extra);
   }
 }
