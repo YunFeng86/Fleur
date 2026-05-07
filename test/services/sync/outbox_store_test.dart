@@ -189,8 +189,14 @@ void main() {
     final tmp = File('${primary.path}.tmp');
     final bak = File('${primary.path}.bak');
 
-    await primary.writeAsString('[', encoding: utf8);
-    await tmp.writeAsString('{', encoding: utf8);
+    await primary.writeAsString(
+      '[{"feedUrl":"https://feeds.example.com/rss?token=secret"',
+      encoding: utf8,
+    );
+    await tmp.writeAsString(
+      '{"categoryTitle":"Private Category"',
+      encoding: utf8,
+    );
     await bak.writeAsString('"not a list"', encoding: utf8);
 
     final loaded = await store.load(accountId);
@@ -203,6 +209,9 @@ void main() {
     expect(contents, contains('primaryExists=true'));
     expect(contents, contains('tmpExists=true'));
     expect(contents, contains('bakExists=true'));
+    expect(contents, isNot(contains('token=secret')));
+    expect(contents, isNot(contains('Private Category')));
+    expect(contents, isNot(contains(stateDir.path)));
   });
 
   test('OutboxStore logs malformed entries without action details', () async {
@@ -275,6 +284,7 @@ void main() {
       expect(contents, contains('compactedCount=1'));
       expect(contents, isNot(contains('token=secret')));
       expect(contents, isNot(contains('Private Category')));
+      expect(contents, isNot(contains(stateDir.path)));
     },
   );
 }

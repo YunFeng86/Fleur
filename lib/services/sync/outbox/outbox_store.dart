@@ -583,7 +583,7 @@ class OutboxStore {
     AppLogger.w(
       message,
       tag: 'outbox',
-      error: error,
+      error: _safeOutboxError(error),
       stackTrace: stackTrace,
       context: <String, Object?>{
         'operation': operation,
@@ -598,5 +598,16 @@ class OutboxStore {
         'recoveredFrom': recoveredFrom,
       },
     );
+  }
+
+  static String? _safeOutboxError(Object? error) {
+    if (error == null) return null;
+    if (error is FileSystemException) {
+      final code = error.osError?.errorCode;
+      if (code != null) return 'FileSystemException(osErrorCode=$code)';
+      return 'FileSystemException';
+    }
+    if (error is FormatException) return 'FormatException';
+    return error.runtimeType.toString();
   }
 }

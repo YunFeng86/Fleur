@@ -151,7 +151,7 @@ class AccountCleanupService {
     AppLogger.w(
       'Account cleanup failed',
       tag: 'account',
-      error: error,
+      error: _safeCleanupError(error),
       stackTrace: stackTrace,
       context: <String, Object?>{
         'operation': operation,
@@ -161,5 +161,14 @@ class AccountCleanupService {
         'fileKind': fileKind,
       },
     );
+  }
+
+  static String _safeCleanupError(Object error) {
+    if (error is FileSystemException) {
+      final code = error.osError?.errorCode;
+      if (code != null) return 'FileSystemException(osErrorCode=$code)';
+      return 'FileSystemException';
+    }
+    return error.runtimeType.toString();
   }
 }

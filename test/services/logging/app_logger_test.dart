@@ -11,6 +11,8 @@ import 'package:path_provider_platform_interface/path_provider_platform_interfac
 import 'package:fleur/services/logging/app_logger.dart';
 import 'package:fleur/services/logging/app_provider_observer.dart';
 import 'package:fleur/services/logging/log_context.dart';
+import 'package:fleur/services/settings/translation_ai_settings.dart';
+import 'package:fleur/services/settings/translation_ai_settings_store.dart';
 import 'package:fleur/utils/path_manager.dart';
 
 class _FakePathProviderPlatform extends PathProviderPlatform {
@@ -199,5 +201,30 @@ void main() {
     expect(contents, contains('[E] [provider] Provider failed'));
     expect(contents, contains('failingProvider'));
     expect(contents, contains('provider boom'));
+  });
+
+  test('translation AI settings load warning does not log prompts', () async {
+    await AppLogger.ensureInitialized();
+    final file = await PathManager.translationAiSettingsFile();
+    await file.parent.create(recursive: true);
+    await file.writeAsString(
+      '{"aiSummaryPrompt":"Private summary prompt",'
+      '"aiTranslationPrompt":"Private translation prompt"',
+    );
+
+    final settings = await TranslationAiSettingsStore().load();
+    final logFile = await AppLogger.getActiveLogFile();
+    await AppLogger.resetForTests();
+    final contents = await logFile!.readAsString();
+
+    expect(settings.toJson(), TranslationAiSettings.defaults().toJson());
+    expect(
+      contents,
+      contains('[W] [settings] Settings load failed; using defaults'),
+    );
+    expect(contents, contains('error: FormatException'));
+    expect(contents, contains('file=translation_ai_settings'));
+    expect(contents, isNot(contains('Private summary prompt')));
+    expect(contents, isNot(contains('Private translation prompt')));
   });
 }

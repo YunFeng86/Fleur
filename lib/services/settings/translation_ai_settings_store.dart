@@ -38,7 +38,7 @@ class TranslationAiSettingsStore {
       AppLogger.w(
         'Settings load failed; using defaults',
         tag: 'settings',
-        error: e,
+        error: _safeSettingsLoadError(e),
         stackTrace: s,
         context: const <String, Object?>{
           'file': 'translation_ai_settings',
@@ -61,5 +61,15 @@ class TranslationAiSettingsStore {
   bool _jsonEquals(Map<String, Object?> a, Map<String, Object?> b) {
     // Stable stringify compare; small payload so ok.
     return jsonEncode(a) == jsonEncode(b);
+  }
+
+  String _safeSettingsLoadError(Object error) {
+    if (error is FileSystemException) {
+      final code = error.osError?.errorCode;
+      if (code != null) return 'FileSystemException(osErrorCode=$code)';
+      return 'FileSystemException';
+    }
+    if (error is FormatException) return 'FormatException';
+    return error.runtimeType.toString();
   }
 }
