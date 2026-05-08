@@ -61,6 +61,7 @@ class ServicesTab extends ConsumerWidget {
     final showRemoteSyncStrategy =
         syncSemantics.supportsEntrySyncLimit ||
         contentCapabilities.canChooseServerArticleContentFetchMode;
+    final showRefreshConcurrency = syncSemantics.isFeedScopedRefresh;
 
     String refreshProgressLabel(int current, int total) {
       if (isAccountWideSync) return l10n.syncingAccount;
@@ -286,30 +287,32 @@ class ServicesTab extends ConsumerWidget {
                         .setAutoRefreshMinutes(v),
                   ),
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  l10n.refreshConcurrency,
-                  style: theme.textTheme.titleSmall,
-                ),
-                const SizedBox(height: 8),
-                DropdownButtonHideUnderline(
-                  child: DropdownButton<int>(
-                    value: appSettings.autoRefreshConcurrency,
-                    isExpanded: true,
-                    items: [
-                      for (final c in [1, 2, 4, 6])
-                        DropdownMenuItem(value: c, child: Text(c.toString())),
-                    ],
-                    onChanged: (v) {
-                      if (v == null) return;
-                      unawaited(
-                        ref
-                            .read(appSettingsProvider.notifier)
-                            .setAutoRefreshConcurrency(v),
-                      );
-                    },
+                if (showRefreshConcurrency) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n.refreshConcurrency,
+                    style: theme.textTheme.titleSmall,
                   ),
-                ),
+                  const SizedBox(height: 8),
+                  DropdownButtonHideUnderline(
+                    child: DropdownButton<int>(
+                      value: appSettings.autoRefreshConcurrency,
+                      isExpanded: true,
+                      items: [
+                        for (final c in [1, 2, 4, 6])
+                          DropdownMenuItem(value: c, child: Text(c.toString())),
+                      ],
+                      onChanged: (v) {
+                        if (v == null) return;
+                        unawaited(
+                          ref
+                              .read(appSettingsProvider.notifier)
+                              .setAutoRefreshConcurrency(v),
+                        );
+                      },
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
                   onPressed: refreshNow,

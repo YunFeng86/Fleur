@@ -66,6 +66,7 @@ void main() {
 
     expect(find.text('Refresh all'), findsWidgets);
     expect(find.text('Account sync'), findsNothing);
+    expect(find.text('Refresh Concurrency'), findsOneWidget);
     expect(find.text('Remote sync strategy'), findsNothing);
     expect(find.text('Entries per sync'), findsNothing);
   });
@@ -80,6 +81,7 @@ void main() {
 
     expect(find.text('Account sync'), findsOneWidget);
     expect(find.text('Sync account'), findsOneWidget);
+    expect(find.text('Refresh Concurrency'), findsNothing);
     expect(find.text('Remote sync strategy'), findsOneWidget);
     expect(find.text('Entries per sync'), findsOneWidget);
     expect(find.text('Miniflux strategy'), findsNothing);
@@ -97,6 +99,7 @@ void main() {
 
     expect(find.text('Account sync'), findsOneWidget);
     expect(find.text('Sync account'), findsOneWidget);
+    expect(find.text('Refresh Concurrency'), findsNothing);
     expect(find.text('Remote sync strategy'), findsOneWidget);
     expect(find.text('Entries per sync'), findsOneWidget);
     expect(find.text('Web page fetching'), findsOneWidget);
