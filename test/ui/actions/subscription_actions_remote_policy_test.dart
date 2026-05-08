@@ -463,7 +463,67 @@ void main() {
         (category) => category.name == 'Server Accepted Category',
       );
       final updatedFeed = await FeedRepository(isar!).getById(1);
+      final feeds = await FeedRepository(isar!).getAll();
 
+      expect(feeds, hasLength(1));
+      expect(updatedFeed?.remoteId, '91');
+      expect(updatedFeed?.categoryId, reconciledCategory.id);
+      expect(updatedFeed?.title, 'Server Feed Title');
+      expect(updatedFeed?.siteUrl, 'https://example.com');
+      expect(updatedFeed?.description, 'Remote description');
+    },
+  );
+
+  test(
+    'remote feed reconciliation binds equivalent url to the current local feed',
+    () async {
+      final now = DateTime.utc(2026, 3, 1, 13, 30);
+      await isar!.writeTxn(() async {
+        final category = Category()
+          ..id = 7
+          ..name = 'Chosen Local Category'
+          ..createdAt = now
+          ..updatedAt = now;
+        await isar!.categorys.put(category);
+
+        final feed = Feed()
+          ..id = 1
+          ..url = 'https://example.com/feed.xml/'
+          ..title = 'Feed'
+          ..createdAt = now
+          ..updatedAt = now;
+        await isar!.feeds.put(feed);
+      });
+
+      final container = ProviderContainer(
+        overrides: [isarProvider.overrideWithValue(isar!)],
+      );
+      addTearDown(container.dispose);
+
+      await SubscriptionActions.reconcileLocalFeedFromRemoteUpdateForTest(
+        container.read,
+        1,
+        const {
+          'id': 91,
+          'feed_url': 'https://example.com/feed.xml',
+          'title': 'Server Feed Title',
+          'site_url': 'https://example.com',
+          'description': 'Remote description',
+          'category': {'id': 23, 'title': 'Server Accepted Category'},
+        },
+        fallbackCategoryId: 7,
+      );
+
+      final categories = await CategoryRepository(isar!).getAll();
+      final reconciledCategory = categories.firstWhere(
+        (category) => category.name == 'Server Accepted Category',
+      );
+      final feeds = await FeedRepository(isar!).getAll();
+      final updatedFeed = await FeedRepository(isar!).getById(1);
+
+      expect(feeds, hasLength(1));
+      expect(updatedFeed?.remoteId, '91');
+      expect(updatedFeed?.url, 'https://example.com/feed.xml');
       expect(updatedFeed?.categoryId, reconciledCategory.id);
       expect(updatedFeed?.title, 'Server Feed Title');
       expect(updatedFeed?.siteUrl, 'https://example.com');

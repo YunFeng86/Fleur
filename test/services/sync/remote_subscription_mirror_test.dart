@@ -108,6 +108,7 @@ Dio _feverDio({
   required List<Map<String, Object?>> Function() groups,
   required List<Map<String, Object?>> Function() feeds,
   required List<Map<String, Object?>> Function() feedsGroups,
+  bool Function()? failFeedsGroups,
 }) {
   final dio = Dio();
   dio.interceptors.add(
@@ -120,6 +121,16 @@ Dio _feverDio({
         } else if (query == 'api&feeds') {
           data = <String, Object?>{'auth': 1, 'feeds': feeds()};
         } else if (query == 'api&feeds&groups') {
+          if (failFeedsGroups?.call() == true) {
+            handler.reject(
+              DioException(
+                requestOptions: options,
+                type: DioExceptionType.connectionError,
+                error: const SocketException('offline'),
+              ),
+            );
+            return;
+          }
           data = <String, Object?>{'auth': 1, 'feeds_groups': feedsGroups()};
         }
 
@@ -400,4 +411,221 @@ void main() {
       expect(articles.single.categoryId, firstCategory.id);
     },
   );
+
+  test(
+    'Miniflux sync skips feed prune when remote feed list is empty',
+    () async {
+      var categories = <Map<String, Object?>>[
+        {'id': 1, 'title': 'Category'},
+      ];
+      var feeds = <Map<String, Object?>>[
+        {
+          'id': 10,
+          'feed_url': 'https://example.com/feed.xml',
+          'title': 'Feed',
+          'category': {'id': 1, 'title': 'Category'},
+        },
+      ];
+
+      final service = MinifluxSyncService(
+        account: buildTestAccount(
+          type: AccountType.miniflux,
+          baseUrl: 'https://miniflux.example.com',
+        ),
+        dio: _minifluxDio(categories: () => categories, feeds: () => feeds),
+        credentials: _FakeCredentialStore(),
+        feeds: FeedRepository(isar!),
+        categories: CategoryRepository(isar!),
+        articles: ArticleRepository(isar!),
+        outbox: _MemoryOutboxStore(),
+        appSettingsStore: FakeAppSettingsStore(_subscriptionsOnlySettings()),
+        cache: _unusedCache(),
+        extractor: ArticleExtractor(Dio()),
+      );
+
+      await service.syncNow();
+      final firstFeed = await FeedRepository(isar!).getByRemoteId('10');
+      final firstCategory = await CategoryRepository(isar!).getByRemoteId('1');
+      expect(firstFeed, isNotNull);
+      expect(firstCategory, isNotNull);
+
+      await _seedArticle(
+        isar!,
+        feedId: firstFeed!.id,
+        categoryId: firstCategory!.id,
+        link: 'https://example.com/articles/kept',
+      );
+
+      categories = <Map<String, Object?>>[
+        {'id': 1, 'title': 'Category'},
+      ];
+      feeds = const <Map<String, Object?>>[];
+
+      await service.syncNow();
+
+      final keptFeed = await FeedRepository(isar!).getByRemoteId('10');
+      final articles = await isar!.articles.where().findAll();
+
+      expect(keptFeed, isNotNull);
+      expect(keptFeed?.categoryId, firstCategory.id);
+      expect(articles, hasLength(1));
+      expect(articles.single.feedId, firstFeed.id);
+      expect(articles.single.categoryId, firstCategory.id);
+    },
+  );
+
+  test(
+    'Fever sync preserves category relationships when feeds_groups fetch fails',
+    () async {
+      var groups = <Map<String, Object?>>[
+        {'id': 1, 'title': 'Old Group'},
+      ];
+      var feeds = <Map<String, Object?>>[
+        {
+          'id': 10,
+          'url': 'https://example.com/feed.xml',
+          'title': 'Old Feed',
+          'site_url': 'https://example.com',
+        },
+      ];
+      var feedsGroups = <Map<String, Object?>>[
+        {'group_id': 1, 'feed_ids': '10'},
+      ];
+      var failFeedsGroups = false;
+
+      final service = FeverSyncService(
+        account: buildTestAccount(
+          type: AccountType.fever,
+          baseUrl: 'https://fever.example.com',
+        ),
+        dio: _feverDio(
+          groups: () => groups,
+          feeds: () => feeds,
+          feedsGroups: () => feedsGroups,
+          failFeedsGroups: () => failFeedsGroups,
+        ),
+        credentials: _FakeCredentialStore(),
+        feeds: FeedRepository(isar!),
+        categories: CategoryRepository(isar!),
+        articles: ArticleRepository(isar!),
+        outbox: _MemoryOutboxStore(),
+        appSettingsStore: FakeAppSettingsStore(_subscriptionsOnlySettings()),
+        notifications: _NoopNotificationService(),
+        cache: _unusedCache(),
+        extractor: ArticleExtractor(Dio()),
+      );
+
+      await service.syncNow(notify: false);
+      final firstFeed = await FeedRepository(isar!).getByRemoteId('10');
+      final firstCategory = await CategoryRepository(isar!).getByRemoteId('1');
+      expect(firstFeed, isNotNull);
+      expect(firstCategory, isNotNull);
+
+      await _seedArticle(
+        isar!,
+        feedId: firstFeed!.id,
+        categoryId: firstCategory!.id,
+        link: 'https://example.com/articles/kept',
+      );
+
+      groups = <Map<String, Object?>>[
+        {'id': 1, 'title': 'Renamed Group'},
+      ];
+      feeds = <Map<String, Object?>>[
+        {
+          'id': 10,
+          'url': 'https://example.com/feed.xml',
+          'title': 'Updated Feed',
+          'site_url': 'https://updated.example.com',
+        },
+      ];
+      feedsGroups = const <Map<String, Object?>>[];
+      failFeedsGroups = true;
+
+      await service.syncNow(notify: false);
+
+      final updatedFeed = await FeedRepository(isar!).getByRemoteId('10');
+      final updatedCategory = await CategoryRepository(
+        isar!,
+      ).getByRemoteId('1');
+      final articles = await isar!.articles.where().findAll();
+
+      expect(updatedCategory?.id, firstCategory.id);
+      expect(updatedCategory?.name, 'Renamed Group');
+      expect(updatedFeed?.id, firstFeed.id);
+      expect(updatedFeed?.title, 'Updated Feed');
+      expect(updatedFeed?.siteUrl, 'https://updated.example.com');
+      expect(updatedFeed?.categoryId, firstCategory.id);
+      expect(articles, hasLength(1));
+      expect(articles.single.categoryId, firstCategory.id);
+    },
+  );
+
+  test('Fever sync skips feed prune when remote feed list is empty', () async {
+    var groups = <Map<String, Object?>>[
+      {'id': 1, 'title': 'Group'},
+    ];
+    var feeds = <Map<String, Object?>>[
+      {
+        'id': 10,
+        'url': 'https://example.com/feed.xml',
+        'title': 'Feed',
+        'site_url': 'https://example.com',
+      },
+    ];
+    var feedsGroups = <Map<String, Object?>>[
+      {'group_id': 1, 'feed_ids': '10'},
+    ];
+
+    final service = FeverSyncService(
+      account: buildTestAccount(
+        type: AccountType.fever,
+        baseUrl: 'https://fever.example.com',
+      ),
+      dio: _feverDio(
+        groups: () => groups,
+        feeds: () => feeds,
+        feedsGroups: () => feedsGroups,
+      ),
+      credentials: _FakeCredentialStore(),
+      feeds: FeedRepository(isar!),
+      categories: CategoryRepository(isar!),
+      articles: ArticleRepository(isar!),
+      outbox: _MemoryOutboxStore(),
+      appSettingsStore: FakeAppSettingsStore(_subscriptionsOnlySettings()),
+      notifications: _NoopNotificationService(),
+      cache: _unusedCache(),
+      extractor: ArticleExtractor(Dio()),
+    );
+
+    await service.syncNow(notify: false);
+    final firstFeed = await FeedRepository(isar!).getByRemoteId('10');
+    final firstCategory = await CategoryRepository(isar!).getByRemoteId('1');
+    expect(firstFeed, isNotNull);
+    expect(firstCategory, isNotNull);
+
+    await _seedArticle(
+      isar!,
+      feedId: firstFeed!.id,
+      categoryId: firstCategory!.id,
+      link: 'https://example.com/articles/kept',
+    );
+
+    groups = <Map<String, Object?>>[
+      {'id': 1, 'title': 'Group'},
+    ];
+    feeds = const <Map<String, Object?>>[];
+    feedsGroups = const <Map<String, Object?>>[];
+
+    await service.syncNow(notify: false);
+
+    final keptFeed = await FeedRepository(isar!).getByRemoteId('10');
+    final articles = await isar!.articles.where().findAll();
+
+    expect(keptFeed, isNotNull);
+    expect(keptFeed?.categoryId, firstCategory.id);
+    expect(articles, hasLength(1));
+    expect(articles.single.feedId, firstFeed.id);
+    expect(articles.single.categoryId, firstCategory.id);
+  });
 }

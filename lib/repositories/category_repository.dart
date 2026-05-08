@@ -3,6 +3,7 @@ import 'package:isar/isar.dart';
 import '../models/article.dart';
 import '../models/category.dart';
 import '../models/feed.dart';
+import '../services/logging/app_logger.dart';
 
 class CategoryRepository {
   CategoryRepository(this._isar);
@@ -87,7 +88,10 @@ class CategoryRepository {
     });
   }
 
-  Future<void> deleteRemoteMissing(Set<String> seenRemoteIds) async {
+  Future<void> deleteRemoteMissing(
+    Set<String> seenRemoteIds, {
+    bool allowEmptyPrune = false,
+  }) async {
     final seen = seenRemoteIds
         .map(_normalizeRemoteId)
         .where((id) => id.isNotEmpty)
@@ -96,6 +100,16 @@ class CategoryRepository {
         .filter()
         .remoteIdIsNotNull()
         .findAll();
+    if (seen.isEmpty && remoteCategories.isNotEmpty && !allowEmptyPrune) {
+      AppLogger.w(
+        'Skipped remote category prune because remote id list is empty',
+        tag: 'sync',
+        context: <String, Object?>{
+          'remoteCategoryCount': remoteCategories.length,
+        },
+      );
+      return;
+    }
     for (final category in remoteCategories) {
       final remoteId = category.remoteId?.trim();
       if (remoteId == null || remoteId.isEmpty) continue;

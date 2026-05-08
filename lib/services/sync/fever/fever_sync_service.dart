@@ -251,6 +251,7 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
     }
 
     final remoteFeedIdToLocalCategoryId = <int, int>{};
+    var feedGroupMappingsAvailable = true;
     try {
       final mappings = await client.getFeedsGroups();
       for (final m in mappings) {
@@ -271,6 +272,7 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
         }
       }
     } catch (e) {
+      feedGroupMappingsAvailable = false;
       AppLogger.w('Fever feeds_groups fetch failed', tag: 'sync', error: e);
     }
 
@@ -307,6 +309,7 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
         description: null,
         categoryId: localCatId,
         lastSyncedAt: DateTime.now(),
+        updateCategory: feedGroupMappingsAvailable,
       );
       seenFeedRemoteIds.add(remoteId);
 

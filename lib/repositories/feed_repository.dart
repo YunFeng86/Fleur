@@ -2,6 +2,7 @@ import 'package:isar/isar.dart';
 
 import '../models/article.dart';
 import '../models/feed.dart';
+import '../services/logging/app_logger.dart';
 
 class FeedRepository {
   FeedRepository(this._isar);
@@ -9,6 +10,19 @@ class FeedRepository {
   final Isar _isar;
 
   static String _normalizeRemoteId(String remoteId) => remoteId.trim();
+
+  static String _normalizeUrlIdentity(String url) {
+    return url.trim().replaceAll(RegExp(r'/+$'), '');
+  }
+
+  static bool _remoteIdCanBeBound(Feed feed, String remoteId) {
+    final existing = feed.remoteId?.trim();
+    return existing == null || existing.isEmpty || existing == remoteId;
+  }
+
+  static bool _urlIdentityMatches(Feed feed, String url) {
+    return _normalizeUrlIdentity(feed.url) == _normalizeUrlIdentity(url);
+  }
 
   Stream<List<Feed>> watchAll() {
     return _isar.feeds.where().watch(fireImmediately: true);
@@ -67,6 +81,8 @@ class FeedRepository {
     String? description,
     int? categoryId,
     DateTime? lastSyncedAt,
+    int? preferredLocalFeedId,
+    bool updateCategory = true,
   }) async {
     final normalizedRemoteId = _normalizeRemoteId(remoteId);
     if (normalizedRemoteId.isEmpty) {
@@ -79,37 +95,117 @@ class FeedRepository {
     }
 
     final byRemoteId = await getByRemoteId(normalizedRemoteId);
+    final preferred = byRemoteId == null && preferredLocalFeedId != null
+        ? await _isar.feeds.get(preferredLocalFeedId)
+        : null;
+    final bindablePreferred =
+        preferred != null &&
+            _remoteIdCanBeBound(preferred, normalizedRemoteId) &&
+            _urlIdentityMatches(preferred, normalizedUrl)
+        ? preferred
+        : null;
     final byUrl = await getByUrl(normalizedUrl);
-    if (byRemoteId != null && byUrl != null && byUrl.id != byRemoteId.id) {
-      await delete(byUrl.id);
+    final bindableByUrl =
+        byUrl != null && _remoteIdCanBeBound(byUrl, normalizedRemoteId)
+        ? byUrl
+        : null;
+    final conflictingByUrl =
+        byUrl != null && !_remoteIdCanBeBound(byUrl, normalizedRemoteId)
+        ? byUrl
+        : null;
+    final byNormalizedUrl =
+        byRemoteId == null && bindablePreferred == null && bindableByUrl == null
+        ? await _getByNormalizedUrl(normalizedUrl)
+        : null;
+    final target =
+        byRemoteId ?? bindablePreferred ?? bindableByUrl ?? byNormalizedUrl;
+    if (target == null && conflictingByUrl != null) {
+      AppLogger.w(
+        'Skipped remote feed bind because url belongs to another remote feed',
+        tag: 'sync',
+        context: <String, Object?>{
+          'remoteId': normalizedRemoteId,
+          'url': normalizedUrl,
+          'existingFeedId': conflictingByUrl.id,
+          'existingRemoteId': conflictingByUrl.remoteId,
+        },
+      );
+      return conflictingByUrl.id;
+    }
+    final shouldPreserveTargetUrl =
+        target != null &&
+        conflictingByUrl != null &&
+        conflictingByUrl.id != target.id;
+    final urlForWrite = shouldPreserveTargetUrl ? target.url : normalizedUrl;
+    final duplicate = target == null
+        ? null
+        : await _findDuplicateForTarget(target, normalizedUrl);
+    if (duplicate != null) {
+      await delete(duplicate.id);
     }
 
     return _isar.writeTxn(() async {
-      final existing = byRemoteId == null
-          ? await _isar.feeds.filter().urlEqualTo(normalizedUrl).findFirst()
-          : await _isar.feeds.get(byRemoteId.id);
+      final existing = target == null ? null : await _isar.feeds.get(target.id);
       final now = DateTime.now();
       final feed = existing ?? Feed()
         ..createdAt = now;
       feed
         ..remoteId = normalizedRemoteId
-        ..url = normalizedUrl
+        ..url = urlForWrite
         ..title = title ?? feed.title
         ..siteUrl = siteUrl ?? feed.siteUrl
         ..description = description ?? feed.description
-        ..categoryId = categoryId
         ..updatedAt = now;
+      if (updateCategory) {
+        feed.categoryId = categoryId;
+      }
       if (lastSyncedAt != null) {
         feed.lastSyncedAt = lastSyncedAt;
       }
 
       final id = await _isar.feeds.put(feed);
-      await _setArticleCategoryInTxn(id, categoryId, now);
+      if (updateCategory) {
+        await _setArticleCategoryInTxn(id, categoryId, now);
+      }
       return id;
     });
   }
 
-  Future<void> deleteRemoteMissing(Set<String> seenRemoteIds) async {
+  Future<Feed?> _getByNormalizedUrl(String url) async {
+    final normalized = _normalizeUrlIdentity(url);
+    if (normalized.isEmpty) return null;
+    final feeds = await getAll();
+    for (final feed in feeds) {
+      if (!_urlIdentityMatches(feed, normalized)) continue;
+      final remoteId = feed.remoteId?.trim();
+      if (remoteId != null && remoteId.isNotEmpty) continue;
+      return feed;
+    }
+    return null;
+  }
+
+  Future<Feed?> _findDuplicateForTarget(Feed target, String url) async {
+    final normalized = _normalizeUrlIdentity(url);
+    final feeds = await getAll();
+    for (final feed in feeds) {
+      if (feed.id == target.id) continue;
+      if (!_urlIdentityMatches(feed, normalized)) continue;
+      final remoteId = feed.remoteId?.trim();
+      final targetRemoteId = target.remoteId?.trim();
+      if (remoteId != null &&
+          remoteId.isNotEmpty &&
+          remoteId != targetRemoteId) {
+        continue;
+      }
+      return feed;
+    }
+    return null;
+  }
+
+  Future<void> deleteRemoteMissing(
+    Set<String> seenRemoteIds, {
+    bool allowEmptyPrune = false,
+  }) async {
     final seen = seenRemoteIds
         .map(_normalizeRemoteId)
         .where((id) => id.isNotEmpty)
@@ -118,6 +214,14 @@ class FeedRepository {
         .filter()
         .remoteIdIsNotNull()
         .findAll();
+    if (seen.isEmpty && remoteFeeds.isNotEmpty && !allowEmptyPrune) {
+      AppLogger.w(
+        'Skipped remote feed prune because remote id list is empty',
+        tag: 'sync',
+        context: <String, Object?>{'remoteFeedCount': remoteFeeds.length},
+      );
+      return;
+    }
     final deleteIds = <int>[];
     for (final feed in remoteFeeds) {
       final remoteId = feed.remoteId?.trim();

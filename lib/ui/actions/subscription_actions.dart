@@ -310,6 +310,7 @@ class SubscriptionActions {
         siteUrl: remoteFeed['site_url'] as String?,
         description: remoteFeed['description'] as String?,
         categoryId: localCategoryId,
+        preferredLocalFeedId: localFeedId,
       );
       return;
     }
