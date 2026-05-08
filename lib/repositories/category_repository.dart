@@ -4,6 +4,7 @@ import '../models/article.dart';
 import '../models/category.dart';
 import '../models/feed.dart';
 import '../services/logging/app_logger.dart';
+import 'remote_mirror_upsert_result.dart';
 
 class CategoryRepository {
   CategoryRepository(this._isar);
@@ -51,6 +52,14 @@ class CategoryRepository {
     required String remoteId,
     required String name,
   }) async {
+    final result = await upsertRemoteDetailed(remoteId: remoteId, name: name);
+    return result.localId;
+  }
+
+  Future<RemoteMirrorUpsertResult> upsertRemoteDetailed({
+    required String remoteId,
+    required String name,
+  }) async {
     final normalizedRemoteId = _normalizeRemoteId(remoteId);
     if (normalizedRemoteId.isEmpty) {
       throw ArgumentError('Category remoteId is empty');
@@ -66,8 +75,26 @@ class CategoryRepository {
         .filter()
         .nameEqualTo(normalizedName)
         .findFirst();
-    if (byRemoteId != null && byName != null && byName.id != byRemoteId.id) {
-      await delete(byName.id);
+
+    if (byRemoteId == null &&
+        byName != null &&
+        !_remoteIdCanBeBound(byName, normalizedRemoteId)) {
+      AppLogger.w(
+        'Skipped remote category bind because name belongs to another remote category',
+        tag: 'sync',
+        context: <String, Object?>{
+          'remoteId': normalizedRemoteId,
+          'name': normalizedName,
+          'existingCategoryId': byName.id,
+          'existingRemoteId': byName.remoteId,
+        },
+      );
+      return RemoteMirrorUpsertResult(
+        localId: byName.id,
+        requestedRemoteId: normalizedRemoteId,
+        effectiveRemoteId: byName.remoteId?.trim(),
+        status: RemoteMirrorUpsertStatus.identityConflict,
+      );
     }
 
     return _isar.writeTxn(() async {
@@ -80,19 +107,60 @@ class CategoryRepository {
       final now = DateTime.now();
       final category = existing ?? Category()
         ..createdAt = now;
+      final nameConflict =
+          byRemoteId != null && byName != null && byName.id != byRemoteId.id;
+      if (nameConflict) {
+        AppLogger.w(
+          'Preserved remote category name because another category already uses it',
+          tag: 'sync',
+          context: <String, Object?>{
+            'remoteId': normalizedRemoteId,
+            'name': normalizedName,
+            'categoryId': byRemoteId.id,
+            'conflictingCategoryId': byName.id,
+            'conflictingRemoteId': byName.remoteId,
+          },
+        );
+      }
       category
         ..remoteId = normalizedRemoteId
-        ..name = normalizedName
         ..updatedAt = now;
-      return _isar.categorys.put(category);
+      if (!nameConflict) {
+        category.name = normalizedName;
+      }
+      final id = await _isar.categorys.put(category);
+      return RemoteMirrorUpsertResult(
+        localId: id,
+        requestedRemoteId: normalizedRemoteId,
+        effectiveRemoteId: normalizedRemoteId,
+        status: RemoteMirrorUpsertStatus.bound,
+      );
     });
+  }
+
+  static bool _remoteIdCanBeBound(Category category, String remoteId) {
+    final existing = category.remoteId?.trim();
+    return existing == null || existing.isEmpty || existing == remoteId;
+  }
+
+  Future<bool> hasRemoteMirrors() async {
+    final category = await _isar.categorys
+        .filter()
+        .remoteIdIsNotNull()
+        .findFirst();
+    return category != null;
   }
 
   Future<void> deleteRemoteMissing(
     Set<String> seenRemoteIds, {
     bool allowEmptyPrune = false,
+    Set<String> protectedRemoteIds = const {},
   }) async {
     final seen = seenRemoteIds
+        .map(_normalizeRemoteId)
+        .where((id) => id.isNotEmpty)
+        .toSet();
+    final protected = protectedRemoteIds
         .map(_normalizeRemoteId)
         .where((id) => id.isNotEmpty)
         .toSet();
@@ -113,6 +181,7 @@ class CategoryRepository {
     for (final category in remoteCategories) {
       final remoteId = category.remoteId?.trim();
       if (remoteId == null || remoteId.isEmpty) continue;
+      if (protected.contains(remoteId)) continue;
       if (!seen.contains(remoteId)) {
         await delete(category.id);
       }

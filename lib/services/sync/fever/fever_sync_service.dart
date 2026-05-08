@@ -236,18 +236,28 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
     final remoteGroups = await client.getGroups();
     final remoteGroupIdToLocalId = <int, int>{};
     final seenCategoryRemoteIds = <String>{};
+    final protectedCategoryRemoteIds = <String>{};
+    final groupListTrustworthy =
+        remoteGroups.isNotEmpty || !await _categories.hasRemoteMirrors();
 
     for (final g in remoteGroups) {
       final id = _asInt(g['id']);
       final title = g['title'];
       if (id == null || title is! String) continue;
       final remoteId = id.toString();
-      final localId = await _categories.upsertRemote(
+      final result = await _categories.upsertRemoteDetailed(
         remoteId: remoteId,
         name: title,
       );
-      seenCategoryRemoteIds.add(remoteId);
-      remoteGroupIdToLocalId[id] = localId;
+      if (result.isBound) {
+        seenCategoryRemoteIds.add(remoteId);
+        remoteGroupIdToLocalId[id] = result.localId;
+      } else {
+        final protectedId = result.effectiveRemoteId;
+        if (protectedId != null && protectedId.isNotEmpty) {
+          protectedCategoryRemoteIds.add(protectedId);
+        }
+      }
     }
 
     final remoteFeedIdToLocalCategoryId = <int, int>{};
@@ -287,6 +297,9 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
     final localFeedIdToFeed = <int, Feed>{};
     final localFeedIdToSettings = <int, EffectiveFeedSettings>{};
     final seenFeedRemoteIds = <String>{};
+    final protectedFeedRemoteIds = <String>{};
+    final categoryMappingsTrustworthy =
+        feedGroupMappingsAvailable && groupListTrustworthy;
 
     var processed = 0;
     for (final f in remoteFeeds) {
@@ -301,7 +314,7 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
       final title = f['title'] as String?;
       final siteUrl = f['site_url'] as String?;
       final remoteId = id.toString();
-      final localId = await _feeds.upsertRemote(
+      final result = await _feeds.upsertRemoteDetailed(
         remoteId: remoteId,
         url: feedUrl,
         title: title,
@@ -309,17 +322,30 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
         description: null,
         categoryId: localCatId,
         lastSyncedAt: DateTime.now(),
-        updateCategory: feedGroupMappingsAvailable,
+        updateCategory: categoryMappingsTrustworthy,
       );
+      if (!result.isBound) {
+        final protectedId = result.effectiveRemoteId;
+        if (protectedId != null && protectedId.isNotEmpty) {
+          protectedFeedRemoteIds.add(protectedId);
+        }
+        continue;
+      }
       seenFeedRemoteIds.add(remoteId);
 
-      final refreshed = await _feeds.getById(localId);
+      final refreshed = await _feeds.getById(result.localId);
       if (refreshed == null) continue;
       remoteFeedIdToLocalFeed[id] = refreshed;
       localFeedIdToFeed[refreshed.id] = refreshed;
     }
-    await _feeds.deleteRemoteMissing(seenFeedRemoteIds);
-    await _categories.deleteRemoteMissing(seenCategoryRemoteIds);
+    await _feeds.deleteRemoteMissing(
+      seenFeedRemoteIds,
+      protectedRemoteIds: protectedFeedRemoteIds,
+    );
+    await _categories.deleteRemoteMissing(
+      groupListTrustworthy ? seenCategoryRemoteIds : const <String>{},
+      protectedRemoteIds: protectedCategoryRemoteIds,
+    );
 
     // Resolve effective settings after categories are applied.
     for (final feed in localFeedIdToFeed.values) {

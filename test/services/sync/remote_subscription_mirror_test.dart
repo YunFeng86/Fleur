@@ -475,6 +475,138 @@ void main() {
   );
 
   test(
+    'Miniflux sync preserves categories when category list is empty',
+    () async {
+      var categories = <Map<String, Object?>>[
+        {'id': 1, 'title': 'Category'},
+      ];
+      var feeds = <Map<String, Object?>>[
+        {
+          'id': 10,
+          'feed_url': 'https://example.com/feed.xml',
+          'title': 'Feed',
+          'category': {'id': 1, 'title': 'Category'},
+        },
+      ];
+
+      final service = MinifluxSyncService(
+        account: buildTestAccount(
+          type: AccountType.miniflux,
+          baseUrl: 'https://miniflux.example.com',
+        ),
+        dio: _minifluxDio(categories: () => categories, feeds: () => feeds),
+        credentials: _FakeCredentialStore(),
+        feeds: FeedRepository(isar!),
+        categories: CategoryRepository(isar!),
+        articles: ArticleRepository(isar!),
+        outbox: _MemoryOutboxStore(),
+        appSettingsStore: FakeAppSettingsStore(_subscriptionsOnlySettings()),
+        cache: _unusedCache(),
+        extractor: ArticleExtractor(Dio()),
+      );
+
+      await service.syncNow();
+      final firstFeed = await FeedRepository(isar!).getByRemoteId('10');
+      final firstCategory = await CategoryRepository(isar!).getByRemoteId('1');
+      expect(firstFeed, isNotNull);
+      expect(firstCategory, isNotNull);
+
+      await _seedArticle(
+        isar!,
+        feedId: firstFeed!.id,
+        categoryId: firstCategory!.id,
+        link: 'https://example.com/articles/kept',
+      );
+
+      categories = const <Map<String, Object?>>[];
+      feeds = <Map<String, Object?>>[
+        {
+          'id': 10,
+          'feed_url': 'https://example.com/feed.xml',
+          'title': 'Updated Feed',
+          'category_id': 1,
+        },
+      ];
+
+      await service.syncNow();
+
+      final updatedFeed = await FeedRepository(isar!).getByRemoteId('10');
+      final keptCategory = await CategoryRepository(isar!).getByRemoteId('1');
+      final articles = await isar!.articles.where().findAll();
+
+      expect(keptCategory, isNotNull);
+      expect(updatedFeed?.title, 'Updated Feed');
+      expect(updatedFeed?.categoryId, firstCategory.id);
+      expect(articles, hasLength(1));
+      expect(articles.single.categoryId, firstCategory.id);
+    },
+  );
+
+  test('Miniflux sync protects feed when remote id conflicts on url', () async {
+    var categories = <Map<String, Object?>>[
+      {'id': 1, 'title': 'Category'},
+    ];
+    var feeds = <Map<String, Object?>>[
+      {
+        'id': 77,
+        'feed_url': 'https://example.com/feed.xml/',
+        'title': 'Original Feed',
+        'category': {'id': 1, 'title': 'Category'},
+      },
+    ];
+
+    final service = MinifluxSyncService(
+      account: buildTestAccount(
+        type: AccountType.miniflux,
+        baseUrl: 'https://miniflux.example.com',
+      ),
+      dio: _minifluxDio(categories: () => categories, feeds: () => feeds),
+      credentials: _FakeCredentialStore(),
+      feeds: FeedRepository(isar!),
+      categories: CategoryRepository(isar!),
+      articles: ArticleRepository(isar!),
+      outbox: _MemoryOutboxStore(),
+      appSettingsStore: FakeAppSettingsStore(_subscriptionsOnlySettings()),
+      cache: _unusedCache(),
+      extractor: ArticleExtractor(Dio()),
+    );
+
+    await service.syncNow();
+    final originalFeed = await FeedRepository(isar!).getByRemoteId('77');
+    final category = await CategoryRepository(isar!).getByRemoteId('1');
+    expect(originalFeed, isNotNull);
+    expect(category, isNotNull);
+
+    await _seedArticle(
+      isar!,
+      feedId: originalFeed!.id,
+      categoryId: category!.id,
+      link: 'https://example.com/articles/kept',
+    );
+
+    feeds = <Map<String, Object?>>[
+      {
+        'id': 91,
+        'feed_url': 'https://example.com/feed.xml',
+        'title': 'Conflicting Feed',
+        'category': {'id': 1, 'title': 'Category'},
+      },
+    ];
+
+    await service.syncNow();
+
+    final keptFeed = await FeedRepository(isar!).getByRemoteId('77');
+    final conflictingFeed = await FeedRepository(isar!).getByRemoteId('91');
+    final articles = await isar!.articles.where().findAll();
+
+    expect(keptFeed?.id, originalFeed.id);
+    expect(keptFeed?.title, 'Original Feed');
+    expect(conflictingFeed, isNull);
+    expect(articles, hasLength(1));
+    expect(articles.single.feedId, originalFeed.id);
+  });
+
+  test(
     'Fever sync preserves category relationships when feeds_groups fetch fails',
     () async {
       var groups = <Map<String, Object?>>[
@@ -628,4 +760,148 @@ void main() {
     expect(articles.single.feedId, firstFeed.id);
     expect(articles.single.categoryId, firstCategory.id);
   });
+
+  test('Fever sync preserves categories when group list is empty', () async {
+    var groups = <Map<String, Object?>>[
+      {'id': 1, 'title': 'Group'},
+    ];
+    var feeds = <Map<String, Object?>>[
+      {
+        'id': 10,
+        'url': 'https://example.com/feed.xml',
+        'title': 'Feed',
+        'site_url': 'https://example.com',
+      },
+    ];
+    var feedsGroups = <Map<String, Object?>>[
+      {'group_id': 1, 'feed_ids': '10'},
+    ];
+
+    final service = FeverSyncService(
+      account: buildTestAccount(
+        type: AccountType.fever,
+        baseUrl: 'https://fever.example.com',
+      ),
+      dio: _feverDio(
+        groups: () => groups,
+        feeds: () => feeds,
+        feedsGroups: () => feedsGroups,
+      ),
+      credentials: _FakeCredentialStore(),
+      feeds: FeedRepository(isar!),
+      categories: CategoryRepository(isar!),
+      articles: ArticleRepository(isar!),
+      outbox: _MemoryOutboxStore(),
+      appSettingsStore: FakeAppSettingsStore(_subscriptionsOnlySettings()),
+      notifications: _NoopNotificationService(),
+      cache: _unusedCache(),
+      extractor: ArticleExtractor(Dio()),
+    );
+
+    await service.syncNow(notify: false);
+    final firstFeed = await FeedRepository(isar!).getByRemoteId('10');
+    final firstCategory = await CategoryRepository(isar!).getByRemoteId('1');
+    expect(firstFeed, isNotNull);
+    expect(firstCategory, isNotNull);
+
+    await _seedArticle(
+      isar!,
+      feedId: firstFeed!.id,
+      categoryId: firstCategory!.id,
+      link: 'https://example.com/articles/kept',
+    );
+
+    groups = const <Map<String, Object?>>[];
+    feeds = <Map<String, Object?>>[
+      {
+        'id': 10,
+        'url': 'https://example.com/feed.xml',
+        'title': 'Updated Feed',
+        'site_url': 'https://updated.example.com',
+      },
+    ];
+    feedsGroups = const <Map<String, Object?>>[];
+
+    await service.syncNow(notify: false);
+
+    final updatedFeed = await FeedRepository(isar!).getByRemoteId('10');
+    final keptCategory = await CategoryRepository(isar!).getByRemoteId('1');
+    final articles = await isar!.articles.where().findAll();
+
+    expect(keptCategory, isNotNull);
+    expect(updatedFeed?.title, 'Updated Feed');
+    expect(updatedFeed?.categoryId, firstCategory.id);
+    expect(articles, hasLength(1));
+    expect(articles.single.categoryId, firstCategory.id);
+  });
+
+  test(
+    'Fever sync clears categories when feeds_groups is empty and trustworthy',
+    () async {
+      var groups = <Map<String, Object?>>[
+        {'id': 1, 'title': 'Group'},
+      ];
+      var feeds = <Map<String, Object?>>[
+        {
+          'id': 10,
+          'url': 'https://example.com/feed.xml',
+          'title': 'Feed',
+          'site_url': 'https://example.com',
+        },
+      ];
+      var feedsGroups = <Map<String, Object?>>[
+        {'group_id': 1, 'feed_ids': '10'},
+      ];
+
+      final service = FeverSyncService(
+        account: buildTestAccount(
+          type: AccountType.fever,
+          baseUrl: 'https://fever.example.com',
+        ),
+        dio: _feverDio(
+          groups: () => groups,
+          feeds: () => feeds,
+          feedsGroups: () => feedsGroups,
+        ),
+        credentials: _FakeCredentialStore(),
+        feeds: FeedRepository(isar!),
+        categories: CategoryRepository(isar!),
+        articles: ArticleRepository(isar!),
+        outbox: _MemoryOutboxStore(),
+        appSettingsStore: FakeAppSettingsStore(_subscriptionsOnlySettings()),
+        notifications: _NoopNotificationService(),
+        cache: _unusedCache(),
+        extractor: ArticleExtractor(Dio()),
+      );
+
+      await service.syncNow(notify: false);
+      final firstFeed = await FeedRepository(isar!).getByRemoteId('10');
+      final firstCategory = await CategoryRepository(isar!).getByRemoteId('1');
+      expect(firstFeed, isNotNull);
+      expect(firstCategory, isNotNull);
+
+      await _seedArticle(
+        isar!,
+        feedId: firstFeed!.id,
+        categoryId: firstCategory!.id,
+        link: 'https://example.com/articles/cleared',
+      );
+
+      groups = <Map<String, Object?>>[
+        {'id': 1, 'title': 'Group'},
+      ];
+      feedsGroups = const <Map<String, Object?>>[];
+
+      await service.syncNow(notify: false);
+
+      final updatedFeed = await FeedRepository(isar!).getByRemoteId('10');
+      final keptCategory = await CategoryRepository(isar!).getByRemoteId('1');
+      final articles = await isar!.articles.where().findAll();
+
+      expect(keptCategory, isNotNull);
+      expect(updatedFeed?.categoryId, isNull);
+      expect(articles, hasLength(1));
+      expect(articles.single.categoryId, isNull);
+    },
+  );
 }

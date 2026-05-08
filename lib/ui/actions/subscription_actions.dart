@@ -277,9 +277,10 @@ class SubscriptionActions {
       final title = (remoteCategory['title'] as String?)?.trim();
       if (title != null && title.isNotEmpty) {
         if (remoteId != null) {
-          return read(
+          final result = await read(
             categoryRepositoryProvider,
-          ).upsertRemote(remoteId: remoteId, name: title);
+          ).upsertRemoteDetailed(remoteId: remoteId, name: title);
+          return result.isBound ? result.localId : fallbackCategoryId;
         }
         return read(categoryRepositoryProvider).upsertByName(title);
       }
@@ -303,7 +304,7 @@ class SubscriptionActions {
     if (remoteId != null &&
         remoteUrl is String &&
         remoteUrl.trim().isNotEmpty) {
-      await read(feedRepositoryProvider).upsertRemote(
+      await read(feedRepositoryProvider).upsertRemoteDetailed(
         remoteId: remoteId,
         url: remoteUrl,
         title: remoteFeed['title'] as String?,
@@ -424,9 +425,10 @@ class SubscriptionActions {
           ? name.trim()
           : remoteTitle;
       if (remoteId != null) {
-        return ref
+        final result = await ref
             .read(categoryRepositoryProvider)
-            .upsertRemote(remoteId: remoteId, name: effectiveTitle);
+            .upsertRemoteDetailed(remoteId: remoteId, name: effectiveTitle);
+        return result.isBound ? result.localId : null;
       }
       return ref.read(categoryRepositoryProvider).upsertByName(effectiveTitle);
     } catch (error, stackTrace) {
@@ -515,7 +517,7 @@ class SubscriptionActions {
       } else {
         await ref
             .read(categoryRepositoryProvider)
-            .upsertRemote(
+            .upsertRemoteDetailed(
               remoteId: categoryRemoteId.toString(),
               name: effectiveTitle,
             );
@@ -649,6 +651,7 @@ class SubscriptionActions {
       final feeds = read(feedRepositoryProvider);
       final remoteCatIdToLocalId = <int, int>{};
       final seenCategoryRemoteIds = <String>{};
+      final protectedCategoryRemoteIds = <String>{};
       for (final remoteCategory in await executor.listCategories()) {
         final remoteId = remoteCategory['id'];
         final remoteTitle = remoteCategory['title'];
@@ -656,14 +659,22 @@ class SubscriptionActions {
         final trimmedTitle = remoteTitle.trim();
         if (trimmedTitle.isEmpty) continue;
         final remoteIdString = remoteId.toString();
-        final localId = await categories.upsertRemote(
+        final result = await categories.upsertRemoteDetailed(
           remoteId: remoteIdString,
           name: trimmedTitle,
         );
-        seenCategoryRemoteIds.add(remoteIdString);
-        remoteCatIdToLocalId[remoteId] = localId;
+        if (result.isBound) {
+          seenCategoryRemoteIds.add(remoteIdString);
+          remoteCatIdToLocalId[remoteId] = result.localId;
+        } else {
+          final protectedId = result.effectiveRemoteId;
+          if (protectedId != null && protectedId.isNotEmpty) {
+            protectedCategoryRemoteIds.add(protectedId);
+          }
+        }
       }
       final seenFeedRemoteIds = <String>{};
+      final protectedFeedRemoteIds = <String>{};
       for (final remoteFeed in await executor.listFeeds()) {
         final remoteFeedId = remoteFeed['id'];
         final remoteUrl = remoteFeed['feed_url'];
@@ -675,18 +686,34 @@ class SubscriptionActions {
             ? remoteCatIdToLocalId[remoteCategoryId]
             : null;
         final remoteFeedIdString = remoteFeedId.toString();
-        await feeds.upsertRemote(
+        final updateCategory =
+            remoteCategoryId is! int || localCategoryId != null;
+        final result = await feeds.upsertRemoteDetailed(
           remoteId: remoteFeedIdString,
           url: remoteUrl,
           title: remoteFeed['title'] as String?,
           siteUrl: remoteFeed['site_url'] as String?,
           description: remoteFeed['description'] as String?,
           categoryId: localCategoryId,
+          updateCategory: updateCategory,
         );
-        seenFeedRemoteIds.add(remoteFeedIdString);
+        if (result.isBound) {
+          seenFeedRemoteIds.add(remoteFeedIdString);
+        } else {
+          final protectedId = result.effectiveRemoteId;
+          if (protectedId != null && protectedId.isNotEmpty) {
+            protectedFeedRemoteIds.add(protectedId);
+          }
+        }
       }
-      await feeds.deleteRemoteMissing(seenFeedRemoteIds);
-      await categories.deleteRemoteMissing(seenCategoryRemoteIds);
+      await feeds.deleteRemoteMissing(
+        seenFeedRemoteIds,
+        protectedRemoteIds: protectedFeedRemoteIds,
+      );
+      await categories.deleteRemoteMissing(
+        seenCategoryRemoteIds,
+        protectedRemoteIds: protectedCategoryRemoteIds,
+      );
     } catch (error, stackTrace) {
       AppLogger.w(
         'Subscription mirror reconciliation failed',

@@ -212,17 +212,27 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
     final cats = await client.getCategories();
     final remoteCatIdToLocalId = <int, int>{};
     final seenCategoryRemoteIds = <String>{};
+    final protectedCategoryRemoteIds = <String>{};
+    final categoryListTrustworthy =
+        cats.isNotEmpty || !await _categories.hasRemoteMirrors();
     for (final c in cats) {
       final id = c['id'];
       final title = c['title'];
       if (id is! int || title is! String) continue;
       final remoteId = id.toString();
-      final localId = await _categories.upsertRemote(
+      final result = await _categories.upsertRemoteDetailed(
         remoteId: remoteId,
         name: title,
       );
-      seenCategoryRemoteIds.add(remoteId);
-      remoteCatIdToLocalId[id] = localId;
+      if (result.isBound) {
+        seenCategoryRemoteIds.add(remoteId);
+        remoteCatIdToLocalId[id] = result.localId;
+      } else {
+        final protectedId = result.effectiveRemoteId;
+        if (protectedId != null && protectedId.isNotEmpty) {
+          protectedCategoryRemoteIds.add(protectedId);
+        }
+      }
     }
 
     status?.update(label: SyncStatusLabel.syncingSubscriptions);
@@ -236,6 +246,7 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
     final localFeedIdToFeed = <int, Feed>{};
     final localFeedIdToSettings = <int, EffectiveFeedSettings>{};
     final seenFeedRemoteIds = <String>{};
+    final protectedFeedRemoteIds = <String>{};
     var feedProcessed = 0;
     for (final f in feeds) {
       feedProcessed += 1;
@@ -248,17 +259,49 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
           ? (f['category'] as Map)['id']
           : f['category_id'];
       int? localCatId;
-      if (categoryId is int) localCatId = remoteCatIdToLocalId[categoryId];
-      final localId = await _feeds.upsertRemote(
+      var updateCategory = true;
+      if (categoryId is int) {
+        localCatId = remoteCatIdToLocalId[categoryId];
+        if (localCatId == null && f['category'] is Map) {
+          final remoteCategory = f['category'] as Map;
+          final remoteCategoryTitle = (remoteCategory['title'] as String?)
+              ?.trim();
+          if (remoteCategoryTitle != null && remoteCategoryTitle.isNotEmpty) {
+            final categoryResult = await _categories.upsertRemoteDetailed(
+              remoteId: categoryId.toString(),
+              name: remoteCategoryTitle,
+            );
+            if (categoryResult.isBound) {
+              localCatId = categoryResult.localId;
+              remoteCatIdToLocalId[categoryId] = categoryResult.localId;
+            } else {
+              final protectedId = categoryResult.effectiveRemoteId;
+              if (protectedId != null && protectedId.isNotEmpty) {
+                protectedCategoryRemoteIds.add(protectedId);
+              }
+            }
+          }
+        }
+        updateCategory = localCatId != null;
+      }
+      final result = await _feeds.upsertRemoteDetailed(
         remoteId: remoteId,
         url: feedUrl,
         title: f['title'] as String?,
         siteUrl: f['site_url'] as String?,
         description: f['description'] as String?,
         categoryId: localCatId,
+        updateCategory: updateCategory,
       );
+      if (!result.isBound) {
+        final protectedId = result.effectiveRemoteId;
+        if (protectedId != null && protectedId.isNotEmpty) {
+          protectedFeedRemoteIds.add(protectedId);
+        }
+        continue;
+      }
       seenFeedRemoteIds.add(remoteId);
-      final local = await _feeds.getById(localId);
+      final local = await _feeds.getById(result.localId);
       if (local != null) {
         final settings = await _resolveSettings(local, appSettings);
         await _feeds.updateMeta(
@@ -272,8 +315,14 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
         localFeedIdToSettings[local.id] = settings;
       }
     }
-    await _feeds.deleteRemoteMissing(seenFeedRemoteIds);
-    await _categories.deleteRemoteMissing(seenCategoryRemoteIds);
+    await _feeds.deleteRemoteMissing(
+      seenFeedRemoteIds,
+      protectedRemoteIds: protectedFeedRemoteIds,
+    );
+    await _categories.deleteRemoteMissing(
+      categoryListTrustworthy ? seenCategoryRemoteIds : const <String>{},
+      protectedRemoteIds: protectedCategoryRemoteIds,
+    );
 
     if (effectiveEntriesLimit == 0) {
       await _syncUnlimitedEntries(

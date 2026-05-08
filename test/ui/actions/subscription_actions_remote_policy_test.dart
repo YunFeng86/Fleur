@@ -531,6 +531,70 @@ void main() {
     },
   );
 
+  test(
+    'remote feed reconciliation does not rebind same-name remote category',
+    () async {
+      final now = DateTime.utc(2026, 3, 1, 14, 0);
+      await isar!.writeTxn(() async {
+        await isar!.categorys.putAll([
+          Category()
+            ..id = 7
+            ..name = 'Chosen Local Category'
+            ..createdAt = now
+            ..updatedAt = now,
+          Category()
+            ..id = 8
+            ..remoteId = '77'
+            ..name = 'Server Accepted Category'
+            ..createdAt = now
+            ..updatedAt = now,
+        ]);
+
+        final feed = Feed()
+          ..id = 1
+          ..url = 'https://example.com/feed.xml'
+          ..title = 'Feed'
+          ..categoryId = 7
+          ..createdAt = now
+          ..updatedAt = now;
+        await isar!.feeds.put(feed);
+      });
+
+      final container = ProviderContainer(
+        overrides: [isarProvider.overrideWithValue(isar!)],
+      );
+      addTearDown(container.dispose);
+
+      await SubscriptionActions.reconcileLocalFeedFromRemoteUpdateForTest(
+        container.read,
+        1,
+        const {
+          'id': 91,
+          'feed_url': 'https://example.com/feed.xml',
+          'title': 'Server Feed Title',
+          'category': {'id': 23, 'title': 'Server Accepted Category'},
+        },
+        fallbackCategoryId: 7,
+      );
+
+      final categories = await CategoryRepository(isar!).getAll();
+      final updatedFeed = await FeedRepository(isar!).getById(1);
+      final existingRemoteCategory = await CategoryRepository(
+        isar!,
+      ).getByRemoteId('77');
+      final conflictingRemoteCategory = await CategoryRepository(
+        isar!,
+      ).getByRemoteId('23');
+
+      expect(categories, hasLength(2));
+      expect(updatedFeed?.remoteId, '91');
+      expect(updatedFeed?.categoryId, 7);
+      expect(existingRemoteCategory?.id, 8);
+      expect(existingRemoteCategory?.name, 'Server Accepted Category');
+      expect(conflictingRemoteCategory, isNull);
+    },
+  );
+
   testWidgets('editFeedTitle dialog exposes a delete action', (tester) async {
     final controller = TextEditingController(text: 'Custom title');
     addTearDown(controller.dispose);
