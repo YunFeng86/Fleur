@@ -474,8 +474,11 @@ void main() {
   });
 
   testWidgets(
-    'expanded large category keeps maxScrollExtent stable while scrolling',
+    'desktop expanded large category with menus keeps maxScrollExtent stable while scrolling',
     (tester) async {
+      debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+      addTearDown(() => debugFleurTargetPlatformOverride = null);
+
       final bigCategory = Category()
         ..id = 1
         ..name = 'Large category';
@@ -519,6 +522,7 @@ void main() {
           .widget<TreeDisclosureButton>(find.byType(TreeDisclosureButton).first)
           .onPressed();
       await tester.pumpAndSettle();
+      expect(find.byType(MenuAnchor), findsWidgets);
 
       final scrollable = tester
           .stateList<ScrollableState>(find.byType(Scrollable))
@@ -535,6 +539,7 @@ void main() {
       final smallest = samples.reduce((a, b) => a < b ? a : b);
       final largest = samples.reduce((a, b) => a > b ? a : b);
       expect(largest / smallest, lessThan(1.15));
+      expect(tester.takeException(), isNull);
     },
   );
 }

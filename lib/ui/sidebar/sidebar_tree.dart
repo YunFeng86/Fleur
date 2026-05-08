@@ -120,15 +120,60 @@ class _SidebarScrollAnchor {
 }
 
 class _SidebarTreeRow {
-  const _SidebarTreeRow({required this.rowId, required this.child});
+  const _SidebarTreeRow({required this.rowId, required this.builder});
+
+  final String rowId;
+  final WidgetBuilder builder;
+}
+
+class _SidebarAnchorRegistryRow extends StatefulWidget {
+  const _SidebarAnchorRegistryRow({
+    super.key,
+    required this.rowId,
+    required this.child,
+    required this.onRegister,
+    required this.onUnregister,
+  });
 
   final String rowId;
   final Widget child;
+  final void Function(String rowId, BuildContext context) onRegister;
+  final void Function(String rowId, BuildContext context) onUnregister;
+
+  @override
+  State<_SidebarAnchorRegistryRow> createState() =>
+      _SidebarAnchorRegistryRowState();
+}
+
+class _SidebarAnchorRegistryRowState extends State<_SidebarAnchorRegistryRow> {
+  @override
+  void initState() {
+    super.initState();
+    widget.onRegister(widget.rowId, context);
+  }
+
+  @override
+  void didUpdateWidget(covariant _SidebarAnchorRegistryRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.rowId != widget.rowId) {
+      oldWidget.onUnregister(oldWidget.rowId, context);
+      widget.onRegister(widget.rowId, context);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.onUnregister(widget.rowId, context);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
   final GlobalKey _listViewKey = GlobalKey();
-  final Map<String, GlobalKey> _rowKeys = <String, GlobalKey>{};
+  final Map<String, BuildContext> _rowContexts = <String, BuildContext>{};
   bool? _tagsExpanded;
 
   ScrollController get scrollController => widget.scrollController;
@@ -155,12 +200,14 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
       widget.onShowCategoryMenu;
   Future<void> Function(Feed feed) get onShowFeedMenu => widget.onShowFeedMenu;
 
-  GlobalKey _rowKey(String rowId) {
-    return _rowKeys.putIfAbsent(rowId, GlobalKey.new);
+  void _registerRow(String rowId, BuildContext context) {
+    _rowContexts[rowId] = context;
   }
 
-  Widget _anchoredRow(String rowId, Widget child) {
-    return KeyedSubtree(key: _rowKey(rowId), child: child);
+  void _unregisterRow(String rowId, BuildContext context) {
+    if (identical(_rowContexts[rowId], context)) {
+      _rowContexts.remove(rowId);
+    }
   }
 
   _SidebarScrollAnchor? _captureScrollAnchor() {
@@ -174,9 +221,11 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
     double bestFullyVisibleTop = double.infinity;
     _SidebarScrollAnchor? bestPartial;
     double bestPartialDistance = double.infinity;
-    for (final entry in _rowKeys.entries) {
-      final rowBox = entry.value.currentContext?.findRenderObject();
-      if (rowBox is! RenderBox || !rowBox.hasSize) continue;
+    for (final entry in _rowContexts.entries) {
+      final rowBox = entry.value.findRenderObject();
+      if (rowBox is! RenderBox || !rowBox.attached || !rowBox.hasSize) {
+        continue;
+      }
       final top = rowBox.localToGlobal(Offset.zero).dy;
       final bottom = top + rowBox.size.height;
       if (bottom < viewportTop || top > viewportBottom) continue;
@@ -198,8 +247,8 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
 
   void _restoreScrollAnchor(_SidebarScrollAnchor? anchor) {
     if (!mounted || anchor == null || !scrollController.hasClients) return;
-    final rowBox = _rowKeys[anchor.rowId]?.currentContext?.findRenderObject();
-    if (rowBox is! RenderBox || !rowBox.hasSize) return;
+    final rowBox = _rowContexts[anchor.rowId]?.findRenderObject();
+    if (rowBox is! RenderBox || !rowBox.attached || !rowBox.hasSize) return;
     final nextTop = rowBox.localToGlobal(Offset.zero).dy;
     final delta = nextTop - anchor.top;
     if (delta.abs() < 0.5) return;
@@ -283,7 +332,7 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
             final rows = <_SidebarTreeRow>[
               _SidebarTreeRow(
                 rowId: 'scope:all',
-                child: allUnreadCounts.when(
+                builder: (_) => allUnreadCounts.when(
                   loading: () => _SidebarItem(
                     selected:
                         !starredOnly &&
@@ -328,7 +377,7 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
                 rows.add(
                   _SidebarTreeRow(
                     rowId: 'section:tags',
-                    child: _SidebarTagHeaderTile(
+                    builder: (_) => _SidebarTagHeaderTile(
                       expanded: tagsExpanded,
                       onToggleExpanded: () {
                         _runWithScrollAnchor(() {
@@ -343,7 +392,7 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
                   rows.add(
                     _SidebarTreeRow(
                       rowId: 'tag:${tag.id}',
-                      child: _SidebarItem(
+                      builder: (_) => _SidebarItem(
                         selected: selectedTagId == tag.id,
                         icon: Icons.label,
                         title: tag.name,
@@ -363,7 +412,7 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
             rows.add(
               _SidebarTreeRow(
                 rowId: 'section:subscriptions',
-                child: Padding(
+                builder: (_) => Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 8, 4),
                   child: Row(
                     children: [
@@ -466,7 +515,7 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
               rows.add(
                 _SidebarTreeRow(
                   rowId: 'category:${category.id}',
-                  child: _SidebarCategoryTile(
+                  builder: (_) => _SidebarCategoryTile(
                     category: category,
                     selectedFeedId: selectedFeedId,
                     selectedCategoryId: selectedCategoryId,
@@ -491,7 +540,7 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
                 rows.add(
                   _SidebarTreeRow(
                     rowId: 'feed:${feed.id}',
-                    child: _SidebarFeedTile(
+                    builder: (_) => _SidebarFeedTile(
                       feed: feed,
                       selectedFeedId: selectedFeedId,
                       unreadCount: unreadCounts?[feed.id],
@@ -512,7 +561,7 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
                 rows.add(
                   _SidebarTreeRow(
                     rowId: 'feed:${feed.id}',
-                    child: _SidebarFeedTile(
+                    builder: (_) => _SidebarFeedTile(
                       feed: feed,
                       selectedFeedId: selectedFeedId,
                       unreadCount: unreadCounts?[feed.id],
@@ -526,6 +575,11 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
               }
             }
 
+            final rowIndexById = <String, int>{
+              for (var index = 0; index < rows.length; index++)
+                rows[index].rowId: index,
+            };
+
             return AppScrollbar(
               controller: scrollController,
               thumbVisibility: isDesktop,
@@ -535,9 +589,21 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
                 controller: scrollController,
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 itemCount: rows.length,
+                findChildIndexCallback: (key) {
+                  if (key is ValueKey<String>) {
+                    return rowIndexById[key.value];
+                  }
+                  return null;
+                },
                 itemBuilder: (context, index) {
                   final row = rows[index];
-                  return _anchoredRow(row.rowId, row.child);
+                  return _SidebarAnchorRegistryRow(
+                    key: ValueKey<String>(row.rowId),
+                    rowId: row.rowId,
+                    onRegister: _registerRow,
+                    onUnregister: _unregisterRow,
+                    child: row.builder(context),
+                  );
                 },
               ),
             );
