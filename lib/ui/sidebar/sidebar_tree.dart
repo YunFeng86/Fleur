@@ -122,6 +122,7 @@ class _SidebarScrollAnchor {
 class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
   final GlobalKey _listViewKey = GlobalKey();
   final Map<String, GlobalKey> _rowKeys = <String, GlobalKey>{};
+  bool? _tagsExpanded;
 
   ScrollController get scrollController => widget.scrollController;
   String get searchText => widget.searchText;
@@ -213,6 +214,15 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
   }
 
   @override
+  void didUpdateWidget(covariant SidebarNavigationTree oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selectedTagId != null &&
+        widget.selectedTagId != oldWidget.selectedTagId) {
+      _tagsExpanded = true;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final showsSourceRefresh = capabilities.isVisible(
@@ -261,6 +271,7 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
                     (unreadByCategoryId[categoryId] ?? 0) + count;
               }
             }
+            final tagsExpanded = _tagsExpanded ?? selectedTagId != null;
 
             final children = <Widget>[
               allUnreadCounts.when(
@@ -303,20 +314,22 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
               tags.when(
                 data: (tagItems) {
                   if (tagItems.isEmpty) return const SizedBox.shrink();
-                  return ExpansionTile(
-                    leading: const Icon(Icons.label_outline),
-                    title: Text(l10n.tags),
-                    initiallyExpanded: selectedTagId != null,
-                    children: tagItems.map((tag) {
-                      return _SidebarItem(
-                        selected: selectedTagId == tag.id,
-                        icon: Icons.label,
-                        title: tag.name,
-                        iconColor: resolveTagColor(tag.name, tag.color),
-                        onTap: () => selectionActions.selectTag(tag.id),
-                        indent: 16,
-                      );
-                    }).toList(),
+                  return _anchoredRow(
+                    'section:tags',
+                    _SidebarTagSection(
+                      tags: tagItems,
+                      expanded: tagsExpanded,
+                      selectedTagId: selectedTagId,
+                      onToggleExpanded: () {
+                        _runWithScrollAnchor(() {
+                          setState(() => _tagsExpanded = !tagsExpanded);
+                        });
+                      },
+                      onSelectTag: (tagId) => _runWithScrollAnchor(
+                        () => selectionActions.selectTag(tagId),
+                      ),
+                      tagRowKey: (tagId) => _rowKey('tag:$tagId'),
+                    ),
                   );
                 },
                 loading: () => const SizedBox.shrink(),
@@ -478,6 +491,66 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
           },
         );
       },
+    );
+  }
+}
+
+class _SidebarTagSection extends StatelessWidget {
+  const _SidebarTagSection({
+    required this.tags,
+    required this.expanded,
+    required this.selectedTagId,
+    required this.onToggleExpanded,
+    required this.onSelectTag,
+    required this.tagRowKey,
+  });
+
+  final List<Tag> tags;
+  final bool expanded;
+  final int? selectedTagId;
+  final VoidCallback onToggleExpanded;
+  final ValueChanged<int> onSelectTag;
+  final Key Function(int tagId) tagRowKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return Semantics(
+      container: true,
+      expanded: expanded,
+      child: Column(
+        children: [
+          ListTile(
+            minLeadingWidth: 0,
+            horizontalTitleGap: 4,
+            leading: TreeDisclosureButton(
+              expanded: expanded,
+              tooltip: expanded ? l10n.collapse : l10n.expand,
+              onPressed: onToggleExpanded,
+            ),
+            title: Row(
+              children: [
+                const Icon(Icons.label_outline, size: 20),
+                const SizedBox(width: 12),
+                Expanded(child: Text(l10n.tags)),
+              ],
+            ),
+            onTap: onToggleExpanded,
+          ),
+          if (expanded)
+            for (final tag in tags)
+              _SidebarItem(
+                key: tagRowKey(tag.id),
+                selected: selectedTagId == tag.id,
+                icon: Icons.label,
+                title: tag.name,
+                iconColor: resolveTagColor(tag.name, tag.color),
+                onTap: () => onSelectTag(tag.id),
+                indent: 16,
+              ),
+        ],
+      ),
     );
   }
 }

@@ -401,15 +401,26 @@ void main() {
         );
     expect(anchorRowFinder, findsOneWidget);
     final beforeTop = tester.getTopLeft(anchorRowFinder).dy;
+    final beforePixels = scrollable.position.pixels;
     final beforeMaxExtent = scrollable.position.maxScrollExtent;
+    final beforeViewportDimension = scrollable.position.viewportDimension;
 
     final firstDisclosure = tester
         .widgetList<TreeDisclosureButton>(find.byType(TreeDisclosureButton))
         .first;
     firstDisclosure.onPressed();
+    await tester.pump();
+
+    expect(scrollable.position.maxScrollExtent, greaterThan(beforeMaxExtent));
+    expect(scrollable.position.viewportDimension, beforeViewportDimension);
+    await tester.pump();
+
+    expect(scrollable.position.pixels, greaterThan(beforePixels));
+    expect(tester.getTopLeft(anchorRowFinder).dy, closeTo(beforeTop, 1));
     await tester.pumpAndSettle();
 
     expect(scrollable.position.maxScrollExtent, greaterThan(beforeMaxExtent));
+    expect(scrollable.position.viewportDimension, beforeViewportDimension);
     expect(tester.getTopLeft(anchorRowFinder).dy, closeTo(beforeTop, 1));
   });
 }

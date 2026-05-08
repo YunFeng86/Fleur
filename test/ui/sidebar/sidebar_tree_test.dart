@@ -21,11 +21,13 @@ class _SidebarHarness extends ConsumerStatefulWidget {
     required this.categories,
     required this.feeds,
     required this.unreadCounts,
+    this.tags = const <Tag>[],
     this.accountType = AccountType.local,
   });
 
   final List<Category> categories;
   final List<Feed> feeds;
+  final List<Tag> tags;
   final Map<int?, int> unreadCounts;
   final AccountType accountType;
 
@@ -63,7 +65,7 @@ class _SidebarHarnessState extends ConsumerState<_SidebarHarness> {
       searchText: '',
       feeds: AsyncValue.data(widget.feeds),
       categories: AsyncValue.data(widget.categories),
-      tags: const AsyncValue.data(<Tag>[]),
+      tags: AsyncValue.data(widget.tags),
       allUnreadCounts: AsyncValue.data(widget.unreadCounts),
       selectedFeedId: ref.watch(selectedFeedIdProvider),
       selectedCategoryId: ref.watch(selectedCategoryIdProvider),
@@ -343,15 +345,131 @@ void main() {
         );
     expect(anchorRowFinder, findsOneWidget);
     final beforeTop = tester.getTopLeft(anchorRowFinder).dy;
+    final beforePixels = scrollable.position.pixels;
     final beforeMaxExtent = scrollable.position.maxScrollExtent;
+    final beforeViewportDimension = scrollable.position.viewportDimension;
 
     final firstDisclosure = tester
         .widgetList<TreeDisclosureButton>(find.byType(TreeDisclosureButton))
         .first;
     firstDisclosure.onPressed();
+    await tester.pump();
+
+    expect(scrollable.position.maxScrollExtent, greaterThan(beforeMaxExtent));
+    expect(scrollable.position.viewportDimension, beforeViewportDimension);
+    await tester.pump();
+
+    expect(scrollable.position.pixels, greaterThan(beforePixels));
+    expect(tester.getTopLeft(anchorRowFinder).dy, closeTo(beforeTop, 1));
     await tester.pumpAndSettle();
 
     expect(scrollable.position.maxScrollExtent, greaterThan(beforeMaxExtent));
+    expect(scrollable.position.viewportDimension, beforeViewportDimension);
     expect(tester.getTopLeft(anchorRowFinder).dy, closeTo(beforeTop, 1));
+  });
+
+  testWidgets('expanding tags above the viewport preserves visible row', (
+    tester,
+  ) async {
+    final tags = List<Tag>.generate(
+      5,
+      (index) => Tag()
+        ..id = index + 1
+        ..name = 'Tag ${index + 1}',
+    );
+    final categories = List<Category>.generate(
+      8,
+      (index) => Category()
+        ..id = index + 1
+        ..name = 'Category ${index + 1}',
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: SizedBox(
+              height: 260,
+              child: _SidebarHarness(
+                categories: categories,
+                feeds: const <Feed>[],
+                tags: tags,
+                unreadCounts: const {null: 1},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tagSectionFinder = find
+        .ancestor(
+          of: find.text('Tags'),
+          matching: find.byWidgetPredicate(
+            (widget) =>
+                widget is Semantics && widget.properties.expanded != null,
+          ),
+        )
+        .first;
+    final tagDisclosure = tester.widget<TreeDisclosureButton>(
+      find.descendant(
+        of: tagSectionFinder,
+        matching: find.byType(TreeDisclosureButton),
+      ),
+    );
+    final scrollable = tester
+        .stateList<ScrollableState>(find.byType(Scrollable))
+        .firstWhere((state) => state.position.maxScrollExtent > 0);
+    scrollable.position.jumpTo(100);
+    await tester.pump();
+
+    final viewportTop = tester.getTopLeft(find.byType(ListView)).dy;
+    Finder categoryRow(String label) => find
+        .ancestor(
+          of: find.text(label),
+          matching: find.byWidgetPredicate(
+            (widget) =>
+                widget is Semantics && widget.properties.expanded != null,
+          ),
+        )
+        .first;
+    final anchorRowFinder =
+        List<Finder>.generate(
+          7,
+          (index) => categoryRow('Category ${index + 2}'),
+        ).firstWhere(
+          (finder) =>
+              finder.evaluate().isNotEmpty &&
+              tester.getTopLeft(finder).dy >= viewportTop,
+        );
+    expect(anchorRowFinder, findsOneWidget);
+    final beforeTop = tester.getTopLeft(anchorRowFinder).dy;
+    final beforePixels = scrollable.position.pixels;
+    final beforeMaxExtent = scrollable.position.maxScrollExtent;
+    final beforeViewportDimension = scrollable.position.viewportDimension;
+
+    tagDisclosure.onPressed();
+    await tester.pump();
+
+    expect(scrollable.position.maxScrollExtent, greaterThan(beforeMaxExtent));
+    expect(scrollable.position.viewportDimension, beforeViewportDimension);
+    await tester.pump();
+
+    expect(scrollable.position.pixels, greaterThan(beforePixels));
+    expect(tester.getTopLeft(anchorRowFinder).dy, closeTo(beforeTop, 1));
+
+    await tester.pumpAndSettle();
+    expect(scrollable.position.maxScrollExtent, greaterThan(beforeMaxExtent));
+    expect(scrollable.position.viewportDimension, beforeViewportDimension);
+    expect(tester.getTopLeft(anchorRowFinder).dy, closeTo(beforeTop, 1));
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(SidebarNavigationTree)),
+    );
+    expect(container.read(selectedTagIdProvider), isNull);
   });
 }

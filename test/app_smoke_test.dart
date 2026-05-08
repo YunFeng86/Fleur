@@ -334,6 +334,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.byType(Scrollbar), findsOneWidget);
     ScrollbarTheme scrollbarTheme() =>
         tester.widget<ScrollbarTheme>(find.byType(ScrollbarTheme).first);
 
@@ -387,6 +388,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      expect(find.byType(Scrollbar), findsOneWidget);
       final scrollbar = tester.widget<Scrollbar>(find.byType(Scrollbar).first);
       expect(scrollbar.controller, isNotNull);
       expect(scrollbar.interactive, isNull);
@@ -420,6 +422,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      expect(find.byType(Scrollbar), findsOneWidget);
       final scrollbar = tester.widget<Scrollbar>(find.byType(Scrollbar).first);
       expect(scrollbar.controller, isNull);
       expect(scrollbar.thumbVisibility, isFalse);

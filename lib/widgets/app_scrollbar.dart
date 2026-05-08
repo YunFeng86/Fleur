@@ -79,6 +79,10 @@ class _AppScrollbarState extends State<AppScrollbar> {
         child: scrollableChild,
       );
     }
+    scrollableChild = ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+      child: scrollableChild,
+    );
 
     Widget buildScrollbar() {
       return Scrollbar(
