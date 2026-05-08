@@ -272,4 +272,68 @@ void main() {
     expect(await repo.getByRemoteId('10'), isNotNull);
     expect(await repo.getByRemoteId('20'), isNotNull);
   });
+
+  test(
+    'deleteRemoteMissing does not prune empty seen with protected categories by default',
+    () async {
+      final now = DateTime.now();
+      final repo = CategoryRepository(isar!);
+
+      await isar!.writeTxn(() async {
+        await isar!.categorys.putAll([
+          Category()
+            ..id = 1
+            ..remoteId = '10'
+            ..name = 'Protected Cat'
+            ..createdAt = now
+            ..updatedAt = now,
+          Category()
+            ..id = 2
+            ..remoteId = '20'
+            ..name = 'Missing Cat'
+            ..createdAt = now
+            ..updatedAt = now,
+        ]);
+      });
+
+      await repo.deleteRemoteMissing({}, protectedRemoteIds: {'10'});
+
+      expect(await repo.getByRemoteId('10'), isNotNull);
+      expect(await repo.getByRemoteId('20'), isNotNull);
+    },
+  );
+
+  test(
+    'deleteRemoteMissing prunes unprotected categories when empty prune is explicit',
+    () async {
+      final now = DateTime.now();
+      final repo = CategoryRepository(isar!);
+
+      await isar!.writeTxn(() async {
+        await isar!.categorys.putAll([
+          Category()
+            ..id = 1
+            ..remoteId = '10'
+            ..name = 'Protected Cat'
+            ..createdAt = now
+            ..updatedAt = now,
+          Category()
+            ..id = 2
+            ..remoteId = '20'
+            ..name = 'Missing Cat'
+            ..createdAt = now
+            ..updatedAt = now,
+        ]);
+      });
+
+      await repo.deleteRemoteMissing(
+        {},
+        allowEmptyPrune: true,
+        protectedRemoteIds: {'10'},
+      );
+
+      expect(await repo.getByRemoteId('10'), isNotNull);
+      expect(await repo.getByRemoteId('20'), isNull);
+    },
+  );
 }

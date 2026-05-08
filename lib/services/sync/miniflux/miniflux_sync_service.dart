@@ -315,12 +315,23 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
         localFeedIdToSettings[local.id] = settings;
       }
     }
+    final allowFeedProtectedOnlyPrune =
+        feeds.isNotEmpty &&
+        seenFeedRemoteIds.isEmpty &&
+        protectedFeedRemoteIds.isNotEmpty;
+    final allowCategoryProtectedOnlyPrune =
+        categoryListTrustworthy &&
+        cats.isNotEmpty &&
+        seenCategoryRemoteIds.isEmpty &&
+        protectedCategoryRemoteIds.isNotEmpty;
     await _feeds.deleteRemoteMissing(
       seenFeedRemoteIds,
+      allowEmptyPrune: allowFeedProtectedOnlyPrune,
       protectedRemoteIds: protectedFeedRemoteIds,
     );
     await _categories.deleteRemoteMissing(
       categoryListTrustworthy ? seenCategoryRemoteIds : const <String>{},
+      allowEmptyPrune: allowCategoryProtectedOnlyPrune,
       protectedRemoteIds: protectedCategoryRemoteIds,
     );
 

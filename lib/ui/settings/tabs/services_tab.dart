@@ -60,6 +60,7 @@ class ServicesTab extends ConsumerWidget {
     };
     final showRemoteSyncStrategy =
         syncSemantics.supportsEntrySyncLimit ||
+        syncSemantics.supportsRemoteFetchConcurrency ||
         contentCapabilities.canChooseServerArticleContentFetchMode;
     final showRefreshConcurrency = syncSemantics.isFeedScopedRefresh;
 
@@ -363,6 +364,42 @@ class ServicesTab extends ConsumerWidget {
                             ref
                                 .read(appSettingsProvider.notifier)
                                 .setRemoteEntriesLimit(v),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                  if (syncSemantics.supportsRemoteFetchConcurrency) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      l10n.remoteFetchConcurrency,
+                      style: theme.textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.remoteFetchConcurrencySubtitle,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: appSettings.remoteFetchConcurrency,
+                        isExpanded: true,
+                        items: [
+                          for (final c in const [1, 2, 3, 4])
+                            DropdownMenuItem(
+                              value: c,
+                              child: Text(c.toString()),
+                            ),
+                        ],
+                        onChanged: (v) {
+                          if (v == null) return;
+                          unawaited(
+                            ref
+                                .read(appSettingsProvider.notifier)
+                                .setRemoteFetchConcurrency(v),
                           );
                         },
                       ),

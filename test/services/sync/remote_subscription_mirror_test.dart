@@ -174,6 +174,48 @@ Future<void> _seedArticle(
   });
 }
 
+Future<void> _seedRemoteCategory(
+  Isar isar, {
+  required int id,
+  required String remoteId,
+  required String name,
+}) {
+  final now = DateTime.utc(2026, 3, 1);
+  return isar.writeTxn(() async {
+    await isar.categorys.put(
+      Category()
+        ..id = id
+        ..remoteId = remoteId
+        ..name = name
+        ..createdAt = now
+        ..updatedAt = now,
+    );
+  });
+}
+
+Future<void> _seedRemoteFeed(
+  Isar isar, {
+  required int id,
+  required String remoteId,
+  required String url,
+  required String title,
+  int? categoryId,
+}) {
+  final now = DateTime.utc(2026, 3, 1);
+  return isar.writeTxn(() async {
+    await isar.feeds.put(
+      Feed()
+        ..id = id
+        ..remoteId = remoteId
+        ..url = url
+        ..title = title
+        ..categoryId = categoryId
+        ..createdAt = now
+        ..updatedAt = now,
+    );
+  });
+}
+
 void main() {
   Isar? isar;
   Directory? tempDir;
@@ -553,6 +595,12 @@ void main() {
         'title': 'Original Feed',
         'category': {'id': 1, 'title': 'Category'},
       },
+      {
+        'id': 88,
+        'feed_url': 'https://example.com/removed.xml',
+        'title': 'Removed Feed',
+        'category': {'id': 1, 'title': 'Category'},
+      },
     ];
 
     final service = MinifluxSyncService(
@@ -573,8 +621,10 @@ void main() {
 
     await service.syncNow();
     final originalFeed = await FeedRepository(isar!).getByRemoteId('77');
+    final removedFeed = await FeedRepository(isar!).getByRemoteId('88');
     final category = await CategoryRepository(isar!).getByRemoteId('1');
     expect(originalFeed, isNotNull);
+    expect(removedFeed, isNotNull);
     expect(category, isNotNull);
 
     await _seedArticle(
@@ -582,6 +632,12 @@ void main() {
       feedId: originalFeed!.id,
       categoryId: category!.id,
       link: 'https://example.com/articles/kept',
+    );
+    await _seedArticle(
+      isar!,
+      feedId: removedFeed!.id,
+      categoryId: category.id,
+      link: 'https://example.com/articles/removed',
     );
 
     feeds = <Map<String, Object?>>[
@@ -597,14 +653,222 @@ void main() {
 
     final keptFeed = await FeedRepository(isar!).getByRemoteId('77');
     final conflictingFeed = await FeedRepository(isar!).getByRemoteId('91');
+    final prunedFeed = await FeedRepository(isar!).getByRemoteId('88');
     final articles = await isar!.articles.where().findAll();
 
     expect(keptFeed?.id, originalFeed.id);
     expect(keptFeed?.title, 'Original Feed');
     expect(conflictingFeed, isNull);
+    expect(prunedFeed, isNull);
     expect(articles, hasLength(1));
     expect(articles.single.feedId, originalFeed.id);
   });
+
+  test(
+    'Miniflux sync prunes unprotected categories when all returned categories conflict',
+    () async {
+      final categories = <Map<String, Object?>>[
+        {'id': 91, 'title': 'Category'},
+      ];
+      const feeds = <Map<String, Object?>>[];
+
+      await _seedRemoteCategory(isar!, id: 1, remoteId: '77', name: 'Category');
+      await _seedRemoteCategory(
+        isar!,
+        id: 2,
+        remoteId: '88',
+        name: 'Removed Category',
+      );
+
+      final service = MinifluxSyncService(
+        account: buildTestAccount(
+          type: AccountType.miniflux,
+          baseUrl: 'https://miniflux.example.com',
+        ),
+        dio: _minifluxDio(categories: () => categories, feeds: () => feeds),
+        credentials: _FakeCredentialStore(),
+        feeds: FeedRepository(isar!),
+        categories: CategoryRepository(isar!),
+        articles: ArticleRepository(isar!),
+        outbox: _MemoryOutboxStore(),
+        appSettingsStore: FakeAppSettingsStore(_subscriptionsOnlySettings()),
+        cache: _unusedCache(),
+        extractor: ArticleExtractor(Dio()),
+      );
+
+      await service.syncNow();
+
+      expect(await CategoryRepository(isar!).getByRemoteId('77'), isNotNull);
+      expect(await CategoryRepository(isar!).getByRemoteId('88'), isNull);
+      expect(await CategoryRepository(isar!).getByRemoteId('91'), isNull);
+    },
+  );
+
+  test(
+    'Miniflux sync keeps categories when only inline category conflicts are seen',
+    () async {
+      const categories = <Map<String, Object?>>[];
+      final feeds = <Map<String, Object?>>[
+        {
+          'id': 10,
+          'feed_url': 'https://example.com/feed.xml',
+          'title': 'Feed',
+          'category': {'id': 91, 'title': 'Category'},
+        },
+      ];
+
+      await _seedRemoteCategory(isar!, id: 1, remoteId: '77', name: 'Category');
+      await _seedRemoteCategory(
+        isar!,
+        id: 2,
+        remoteId: '88',
+        name: 'Existing Category',
+      );
+
+      final service = MinifluxSyncService(
+        account: buildTestAccount(
+          type: AccountType.miniflux,
+          baseUrl: 'https://miniflux.example.com',
+        ),
+        dio: _minifluxDio(categories: () => categories, feeds: () => feeds),
+        credentials: _FakeCredentialStore(),
+        feeds: FeedRepository(isar!),
+        categories: CategoryRepository(isar!),
+        articles: ArticleRepository(isar!),
+        outbox: _MemoryOutboxStore(),
+        appSettingsStore: FakeAppSettingsStore(_subscriptionsOnlySettings()),
+        cache: _unusedCache(),
+        extractor: ArticleExtractor(Dio()),
+      );
+
+      await service.syncNow();
+
+      expect(await CategoryRepository(isar!).getByRemoteId('77'), isNotNull);
+      expect(await CategoryRepository(isar!).getByRemoteId('88'), isNotNull);
+      expect(await CategoryRepository(isar!).getByRemoteId('91'), isNull);
+    },
+  );
+
+  test(
+    'Fever sync protects feed conflict while pruning unprotected feeds',
+    () async {
+      const groups = <Map<String, Object?>>[];
+      final feeds = <Map<String, Object?>>[
+        {
+          'id': 91,
+          'url': 'https://example.com/feed.xml',
+          'title': 'Conflicting Feed',
+          'site_url': 'https://example.com',
+        },
+      ];
+      const feedsGroups = <Map<String, Object?>>[];
+
+      await _seedRemoteFeed(
+        isar!,
+        id: 1,
+        remoteId: '77',
+        url: 'https://example.com/feed.xml/',
+        title: 'Original Feed',
+      );
+      await _seedRemoteFeed(
+        isar!,
+        id: 2,
+        remoteId: '88',
+        url: 'https://example.com/removed.xml',
+        title: 'Removed Feed',
+      );
+      await _seedArticle(
+        isar!,
+        feedId: 1,
+        link: 'https://example.com/articles/kept',
+      );
+      await _seedArticle(
+        isar!,
+        feedId: 2,
+        link: 'https://example.com/articles/removed',
+      );
+
+      final service = FeverSyncService(
+        account: buildTestAccount(
+          type: AccountType.fever,
+          baseUrl: 'https://fever.example.com',
+        ),
+        dio: _feverDio(
+          groups: () => groups,
+          feeds: () => feeds,
+          feedsGroups: () => feedsGroups,
+        ),
+        credentials: _FakeCredentialStore(),
+        feeds: FeedRepository(isar!),
+        categories: CategoryRepository(isar!),
+        articles: ArticleRepository(isar!),
+        outbox: _MemoryOutboxStore(),
+        appSettingsStore: FakeAppSettingsStore(_subscriptionsOnlySettings()),
+        notifications: _NoopNotificationService(),
+        cache: _unusedCache(),
+        extractor: ArticleExtractor(Dio()),
+      );
+
+      await service.syncNow(notify: false);
+
+      final keptFeed = await FeedRepository(isar!).getByRemoteId('77');
+      final conflictingFeed = await FeedRepository(isar!).getByRemoteId('91');
+      final prunedFeed = await FeedRepository(isar!).getByRemoteId('88');
+      final articles = await isar!.articles.where().findAll();
+
+      expect(keptFeed?.title, 'Original Feed');
+      expect(conflictingFeed, isNull);
+      expect(prunedFeed, isNull);
+      expect(articles, hasLength(1));
+      expect(articles.single.feedId, 1);
+    },
+  );
+
+  test(
+    'Fever sync prunes unprotected categories when all returned groups conflict',
+    () async {
+      final groups = <Map<String, Object?>>[
+        {'id': 91, 'title': 'Category'},
+      ];
+      const feeds = <Map<String, Object?>>[];
+      const feedsGroups = <Map<String, Object?>>[];
+
+      await _seedRemoteCategory(isar!, id: 1, remoteId: '77', name: 'Category');
+      await _seedRemoteCategory(
+        isar!,
+        id: 2,
+        remoteId: '88',
+        name: 'Removed Category',
+      );
+
+      final service = FeverSyncService(
+        account: buildTestAccount(
+          type: AccountType.fever,
+          baseUrl: 'https://fever.example.com',
+        ),
+        dio: _feverDio(
+          groups: () => groups,
+          feeds: () => feeds,
+          feedsGroups: () => feedsGroups,
+        ),
+        credentials: _FakeCredentialStore(),
+        feeds: FeedRepository(isar!),
+        categories: CategoryRepository(isar!),
+        articles: ArticleRepository(isar!),
+        outbox: _MemoryOutboxStore(),
+        appSettingsStore: FakeAppSettingsStore(_subscriptionsOnlySettings()),
+        notifications: _NoopNotificationService(),
+        cache: _unusedCache(),
+        extractor: ArticleExtractor(Dio()),
+      );
+
+      await service.syncNow(notify: false);
+
+      expect(await CategoryRepository(isar!).getByRemoteId('77'), isNotNull);
+      expect(await CategoryRepository(isar!).getByRemoteId('88'), isNull);
+      expect(await CategoryRepository(isar!).getByRemoteId('91'), isNull);
+    },
+  );
 
   test(
     'Fever sync preserves category relationships when feeds_groups fetch fails',

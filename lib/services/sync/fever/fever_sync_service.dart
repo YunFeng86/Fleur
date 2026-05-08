@@ -338,12 +338,23 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
       remoteFeedIdToLocalFeed[id] = refreshed;
       localFeedIdToFeed[refreshed.id] = refreshed;
     }
+    final allowFeedProtectedOnlyPrune =
+        remoteFeeds.isNotEmpty &&
+        seenFeedRemoteIds.isEmpty &&
+        protectedFeedRemoteIds.isNotEmpty;
+    final allowCategoryProtectedOnlyPrune =
+        groupListTrustworthy &&
+        remoteGroups.isNotEmpty &&
+        seenCategoryRemoteIds.isEmpty &&
+        protectedCategoryRemoteIds.isNotEmpty;
     await _feeds.deleteRemoteMissing(
       seenFeedRemoteIds,
+      allowEmptyPrune: allowFeedProtectedOnlyPrune,
       protectedRemoteIds: protectedFeedRemoteIds,
     );
     await _categories.deleteRemoteMissing(
       groupListTrustworthy ? seenCategoryRemoteIds : const <String>{},
+      allowEmptyPrune: allowCategoryProtectedOnlyPrune,
       protectedRemoteIds: protectedCategoryRemoteIds,
     );
 

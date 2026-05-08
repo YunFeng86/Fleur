@@ -355,4 +355,70 @@ void main() {
     expect(await repo.getByRemoteId('10'), isNotNull);
     expect(await repo.getByRemoteId('20'), isNotNull);
   });
+
+  test(
+    'deleteRemoteMissing does not prune empty seen with protected feeds by default',
+    () async {
+      final repo = FeedRepository(isar!);
+      final now = DateTime.utc(2026, 3, 1, 10);
+      await isar!.writeTxn(() async {
+        await isar!.feeds.putAll([
+          Feed()
+            ..id = 1
+            ..remoteId = '10'
+            ..url = 'https://example.com/protected.xml'
+            ..title = 'Protected'
+            ..createdAt = now
+            ..updatedAt = now,
+          Feed()
+            ..id = 2
+            ..remoteId = '20'
+            ..url = 'https://example.com/missing.xml'
+            ..title = 'Missing'
+            ..createdAt = now
+            ..updatedAt = now,
+        ]);
+      });
+
+      await repo.deleteRemoteMissing({}, protectedRemoteIds: {'10'});
+
+      expect(await repo.getByRemoteId('10'), isNotNull);
+      expect(await repo.getByRemoteId('20'), isNotNull);
+    },
+  );
+
+  test(
+    'deleteRemoteMissing prunes unprotected feeds when empty prune is explicit',
+    () async {
+      final repo = FeedRepository(isar!);
+      final now = DateTime.utc(2026, 3, 1, 10);
+      await isar!.writeTxn(() async {
+        await isar!.feeds.putAll([
+          Feed()
+            ..id = 1
+            ..remoteId = '10'
+            ..url = 'https://example.com/protected.xml'
+            ..title = 'Protected'
+            ..createdAt = now
+            ..updatedAt = now,
+          Feed()
+            ..id = 2
+            ..remoteId = '20'
+            ..url = 'https://example.com/missing.xml'
+            ..title = 'Missing'
+            ..createdAt = now
+            ..updatedAt = now,
+        ]);
+      });
+
+      await repo.deleteRemoteMissing(
+        {},
+        allowEmptyPrune: true,
+        protectedRemoteIds: {'10'},
+      );
+
+      expect(await repo.getByRemoteId('10'), isNotNull);
+      expect(await repo.getByRemoteId('20'), isNull);
+    },
+  );
 }

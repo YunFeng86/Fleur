@@ -652,7 +652,8 @@ class SubscriptionActions {
       final remoteCatIdToLocalId = <int, int>{};
       final seenCategoryRemoteIds = <String>{};
       final protectedCategoryRemoteIds = <String>{};
-      for (final remoteCategory in await executor.listCategories()) {
+      final remoteCategories = await executor.listCategories();
+      for (final remoteCategory in remoteCategories) {
         final remoteId = remoteCategory['id'];
         final remoteTitle = remoteCategory['title'];
         if (remoteId is! int || remoteTitle is! String) continue;
@@ -675,7 +676,8 @@ class SubscriptionActions {
       }
       final seenFeedRemoteIds = <String>{};
       final protectedFeedRemoteIds = <String>{};
-      for (final remoteFeed in await executor.listFeeds()) {
+      final remoteFeeds = await executor.listFeeds();
+      for (final remoteFeed in remoteFeeds) {
         final remoteFeedId = remoteFeed['id'];
         final remoteUrl = remoteFeed['feed_url'];
         if (remoteFeedId is! int || remoteUrl is! String) continue;
@@ -706,12 +708,22 @@ class SubscriptionActions {
           }
         }
       }
+      final allowFeedProtectedOnlyPrune =
+          remoteFeeds.isNotEmpty &&
+          seenFeedRemoteIds.isEmpty &&
+          protectedFeedRemoteIds.isNotEmpty;
+      final allowCategoryProtectedOnlyPrune =
+          remoteCategories.isNotEmpty &&
+          seenCategoryRemoteIds.isEmpty &&
+          protectedCategoryRemoteIds.isNotEmpty;
       await feeds.deleteRemoteMissing(
         seenFeedRemoteIds,
+        allowEmptyPrune: allowFeedProtectedOnlyPrune,
         protectedRemoteIds: protectedFeedRemoteIds,
       );
       await categories.deleteRemoteMissing(
         seenCategoryRemoteIds,
+        allowEmptyPrune: allowCategoryProtectedOnlyPrune,
         protectedRemoteIds: protectedCategoryRemoteIds,
       );
     } catch (error, stackTrace) {
