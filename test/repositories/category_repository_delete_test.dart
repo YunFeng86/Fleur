@@ -90,4 +90,53 @@ void main() {
     expect(articles, isNotEmpty);
     expect(articles.every((a) => a.categoryId == null), isTrue);
   });
+
+  test('deleteRemoteMissing skips empty seen list by default', () async {
+    final now = DateTime.now();
+    final repo = CategoryRepository(isar!);
+
+    await isar!.writeTxn(() async {
+      await isar!.categorys.put(
+        Category()
+          ..id = 1
+          ..remoteId = '10'
+          ..name = 'Remote Cat'
+          ..createdAt = now
+          ..updatedAt = now,
+      );
+    });
+
+    await repo.deleteRemoteMissing({});
+
+    final category = await isar!.categorys.get(1);
+    expect(category, isNotNull);
+    expect(category?.remoteId, '10');
+  });
+
+  test('deleteRemoteMissing still prunes missing remote categories', () async {
+    final now = DateTime.now();
+    final repo = CategoryRepository(isar!);
+
+    await isar!.writeTxn(() async {
+      await isar!.categorys.putAll([
+        Category()
+          ..id = 1
+          ..remoteId = '10'
+          ..name = 'Kept Cat'
+          ..createdAt = now
+          ..updatedAt = now,
+        Category()
+          ..id = 2
+          ..remoteId = '20'
+          ..name = 'Removed Cat'
+          ..createdAt = now
+          ..updatedAt = now,
+      ]);
+    });
+
+    await repo.deleteRemoteMissing({'10'});
+
+    expect(await isar!.categorys.get(1), isNotNull);
+    expect(await isar!.categorys.get(2), isNull);
+  });
 }
