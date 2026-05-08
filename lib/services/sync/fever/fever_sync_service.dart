@@ -374,85 +374,111 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
     var totalNew = 0;
     var processed = 0;
     var webPagesRemaining = _maxWebPagesPerSync;
+    final remoteFetchConcurrency = appSettings.remoteFetchConcurrency
+        .clamp(1, 4)
+        .toInt();
+    final itemIdBatches = <List<int>>[];
 
     for (var i = 0; i < limitedIds.length; i += 50) {
       final end = i + 50 > limitedIds.length ? limitedIds.length : i + 50;
-      final batchIds = limitedIds.sublist(i, end);
+      itemIdBatches.add(limitedIds.sublist(i, end));
+    }
 
-      final items = await client.getItemsWithIds(batchIds);
-      final byLocalFeedId = <int, List<Article>>{};
+    for (
+      var windowStart = 0;
+      windowStart < itemIdBatches.length;
+      windowStart += remoteFetchConcurrency
+    ) {
+      final windowEnd =
+          windowStart + remoteFetchConcurrency > itemIdBatches.length
+          ? itemIdBatches.length
+          : windowStart + remoteFetchConcurrency;
+      final windowBatches = itemIdBatches.sublist(windowStart, windowEnd);
+      final windowItems = await Future.wait([
+        for (final batchIds in windowBatches) client.getItemsWithIds(batchIds),
+      ]);
 
-      for (final it in items) {
-        final id = _asInt(it['id']);
-        final remoteFeedId = _asInt(it['feed_id']);
-        final url = it['url'];
-        if (id == null || remoteFeedId == null || url is! String) continue;
+      for (
+        var batchIndex = 0;
+        batchIndex < windowBatches.length;
+        batchIndex++
+      ) {
+        final batchIds = windowBatches[batchIndex];
+        final items = windowItems[batchIndex];
+        final byLocalFeedId = <int, List<Article>>{};
 
-        final localFeed = remoteFeedIdToLocalFeed[remoteFeedId];
-        if (localFeed == null) continue;
+        for (final it in items) {
+          final id = _asInt(it['id']);
+          final remoteFeedId = _asInt(it['feed_id']);
+          final url = it['url'];
+          if (id == null || remoteFeedId == null || url is! String) continue;
 
-        final settings = localFeedIdToSettings[localFeed.id];
-        if (settings != null && !settings.syncEnabled) continue;
-        if (settings != null &&
-            settings.filterEnabled &&
-            settings.filterKeywords.trim().isNotEmpty) {
-          final ok = ReservedKeywordFilter.matches(
-            pattern: settings.filterKeywords,
-            fields: [
-              it['title'] as String?,
-              it['author'] as String?,
-              url,
-              it['html'] as String?,
-            ],
-          );
-          if (!ok) continue;
+          final localFeed = remoteFeedIdToLocalFeed[remoteFeedId];
+          if (localFeed == null) continue;
+
+          final settings = localFeedIdToSettings[localFeed.id];
+          if (settings != null && !settings.syncEnabled) continue;
+          if (settings != null &&
+              settings.filterEnabled &&
+              settings.filterKeywords.trim().isNotEmpty) {
+            final ok = ReservedKeywordFilter.matches(
+              pattern: settings.filterKeywords,
+              fields: [
+                it['title'] as String?,
+                it['author'] as String?,
+                url,
+                it['html'] as String?,
+              ],
+            );
+            if (!ok) continue;
+          }
+
+          final createdSeconds = _asInt(it['created_on_time']);
+          final publishedAt = createdSeconds == null
+              ? DateTime.now().toUtc()
+              : DateTime.fromMillisecondsSinceEpoch(
+                  createdSeconds * 1000,
+                  isUtc: true,
+                );
+
+          final article = Article()
+            ..remoteId = id.toString()
+            ..link = url
+            ..title = it['title'] as String?
+            ..author = it['author'] as String?
+            ..contentHtml = it['html'] as String?
+            ..publishedAt = publishedAt
+            ..isRead = !unreadSet.contains(id)
+            ..isStarred = savedSet.contains(id);
+
+          (byLocalFeedId[localFeed.id] ??= <Article>[]).add(article);
         }
 
-        final createdSeconds = _asInt(it['created_on_time']);
-        final publishedAt = createdSeconds == null
-            ? DateTime.now().toUtc()
-            : DateTime.fromMillisecondsSinceEpoch(
-                createdSeconds * 1000,
-                isUtc: true,
-              );
-
-        final article = Article()
-          ..remoteId = id.toString()
-          ..link = url
-          ..title = it['title'] as String?
-          ..author = it['author'] as String?
-          ..contentHtml = it['html'] as String?
-          ..publishedAt = publishedAt
-          ..isRead = !unreadSet.contains(id)
-          ..isStarred = savedSet.contains(id);
-
-        (byLocalFeedId[localFeed.id] ??= <Article>[]).add(article);
-      }
-
-      for (final entry in byLocalFeedId.entries) {
-        final newArticles = await _articles.upsertMany(
-          entry.key,
-          entry.value,
-          preserveUserState: false,
-        );
-        totalNew += newArticles.length;
-        final settings = localFeedIdToSettings[entry.key];
-        if (settings != null) {
-          webPagesRemaining -= await _prefetchNewArticles(
-            newArticles,
-            settings,
-            appSettings,
-            remainingWebPageFetches: webPagesRemaining,
+        for (final entry in byLocalFeedId.entries) {
+          final newArticles = await _articles.upsertMany(
+            entry.key,
+            entry.value,
+            preserveUserState: false,
           );
+          totalNew += newArticles.length;
+          final settings = localFeedIdToSettings[entry.key];
+          if (settings != null) {
+            webPagesRemaining -= await _prefetchNewArticles(
+              newArticles,
+              settings,
+              appSettings,
+              remainingWebPageFetches: webPagesRemaining,
+            );
+          }
         }
-      }
 
-      processed += batchIds.length;
-      status?.update(current: processed, total: limitedIds.length);
+        processed += batchIds.length;
+        status?.update(current: processed, total: limitedIds.length);
 
-      // Keep the isolate responsive for long queues.
-      if (limitedIds.length > 200 && processed % 200 == 0) {
-        await Future<void>.delayed(Duration.zero);
+        // Keep the isolate responsive for long queues.
+        if (limitedIds.length > 200 && processed % 200 == 0) {
+          await Future<void>.delayed(Duration.zero);
+        }
       }
     }
 

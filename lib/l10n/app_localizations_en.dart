@@ -630,6 +630,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get remoteEntriesLimit => 'Entries per sync';
 
   @override
+  String get remoteFetchConcurrency => 'Remote fetch concurrency';
+
+  @override
+  String get remoteFetchConcurrencySubtitle =>
+      'Controls concurrent remote article batch requests during account sync.';
+
+  @override
   String get minifluxWebFetchMode => 'Web page fetching';
 
   @override

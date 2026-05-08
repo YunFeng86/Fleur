@@ -813,6 +813,14 @@
   "@remoteEntriesLimit": {
     "description": "remoteEntriesLimit"
   },
+  "remoteFetchConcurrency": "遠端拉取並發數",
+  "@remoteFetchConcurrency": {
+    "description": "remoteFetchConcurrency"
+  },
+  "remoteFetchConcurrencySubtitle": "控制帳號同步文章批次時的並發請求數。",
+  "@remoteFetchConcurrencySubtitle": {
+    "description": "remoteFetchConcurrencySubtitle"
+  },
   "minifluxWebFetchMode": "網頁抓取方式",
   "@minifluxWebFetchMode": {
     "description": "minifluxWebFetchMode"

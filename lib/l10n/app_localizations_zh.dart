@@ -605,6 +605,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get remoteEntriesLimit => '每次同步拉取条数';
 
   @override
+  String get remoteFetchConcurrency => '远端拉取并发数';
+
+  @override
+  String get remoteFetchConcurrencySubtitle => '控制账号同步文章批次时的并发请求数。';
+
+  @override
   String get minifluxWebFetchMode => '网页抓取方式';
 
   @override
@@ -1723,6 +1729,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get remoteEntriesLimit => '每次同步拉取筆數';
+
+  @override
+  String get remoteFetchConcurrency => '遠端拉取並發數';
+
+  @override
+  String get remoteFetchConcurrencySubtitle => '控制帳號同步文章批次時的並發請求數。';
 
   @override
   String get minifluxWebFetchMode => '網頁抓取方式';

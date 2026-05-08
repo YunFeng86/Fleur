@@ -120,6 +120,11 @@ class AppSettingsController extends AsyncNotifier<AppSettings> {
     await setRemoteEntriesLimit(limit);
   }
 
+  Future<void> setRemoteFetchConcurrency(int concurrency) async {
+    final cur = state.valueOrNull ?? AppSettings.defaults();
+    await save(cur.copyWith(remoteFetchConcurrency: concurrency));
+  }
+
   Future<void> setMinifluxWebFetchMode(MinifluxWebFetchMode mode) async {
     final cur = state.valueOrNull ?? AppSettings.defaults();
     await save(cur.copyWith(minifluxWebFetchMode: mode));

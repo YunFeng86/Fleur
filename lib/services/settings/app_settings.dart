@@ -33,6 +33,7 @@ class AppSettings {
     this.showAiSummary = false,
     this.autoTranslate = false,
     this.minifluxEntriesLimit = 400,
+    this.remoteFetchConcurrency = 2,
     this.minifluxWebFetchMode = MinifluxWebFetchMode.clientReadability,
     this.rssUserAgent = UserAgents.rss,
     // Keep legacy value as a const fallback; prefer [AppSettings.defaults].
@@ -99,6 +100,9 @@ class AppSettings {
 
   int get remoteEntriesLimit => minifluxEntriesLimit;
 
+  /// Number of concurrent remote article batch requests during account sync.
+  final int remoteFetchConcurrency;
+
   /// How to fetch full web content for Miniflux entries when "syncWebPages" is
   /// enabled.
   final MinifluxWebFetchMode minifluxWebFetchMode;
@@ -130,6 +134,7 @@ class AppSettings {
     bool? autoTranslate,
     int? remoteEntriesLimit,
     int? minifluxEntriesLimit,
+    int? remoteFetchConcurrency,
     MinifluxWebFetchMode? minifluxWebFetchMode,
     String? rssUserAgent,
     String? webUserAgent,
@@ -162,6 +167,8 @@ class AppSettings {
           remoteEntriesLimit ??
           minifluxEntriesLimit ??
           this.minifluxEntriesLimit,
+      remoteFetchConcurrency:
+          remoteFetchConcurrency ?? this.remoteFetchConcurrency,
       minifluxWebFetchMode: minifluxWebFetchMode ?? this.minifluxWebFetchMode,
       rssUserAgent: rssUserAgent ?? this.rssUserAgent,
       webUserAgent: webUserAgent ?? this.webUserAgent,
@@ -188,6 +195,7 @@ class AppSettings {
     'showAiSummary': showAiSummary,
     'autoTranslate': autoTranslate,
     'minifluxEntriesLimit': minifluxEntriesLimit,
+    'remoteFetchConcurrency': remoteFetchConcurrency,
     'minifluxWebFetchMode': minifluxWebFetchMode.name,
     'rssUserAgent': rssUserAgent,
     'webUserAgent': webUserAgent,
@@ -221,6 +229,7 @@ class AppSettings {
     final autoTranslate = json['autoTranslate'];
     final remoteEntriesLimit = json['remoteEntriesLimit'];
     final minifluxEntriesLimit = json['minifluxEntriesLimit'];
+    final remoteFetchConcurrency = json['remoteFetchConcurrency'];
     final minifluxWebFetchMode = json['minifluxWebFetchMode'];
     final rssUserAgent = json['rssUserAgent'];
     final webUserAgent = json['webUserAgent'];
@@ -289,6 +298,9 @@ class AppSettings {
           : minifluxEntriesLimit is num
           ? minifluxEntriesLimit.toInt()
           : 400,
+      remoteFetchConcurrency: remoteFetchConcurrency is num
+          ? remoteFetchConcurrency.toInt()
+          : 2,
       minifluxWebFetchMode: parseMinifluxWebFetchMode(minifluxWebFetchMode),
       rssUserAgent: rssUserAgent is String && rssUserAgent.trim().isNotEmpty
           ? rssUserAgent
@@ -313,6 +325,11 @@ class AppSettings {
     final normalizedWebUserAgent = webUserAgent.trim().isEmpty
         ? UserAgents.webForCurrentPlatform()
         : webUserAgent.trim();
+    final normalizedRemoteFetchConcurrency = remoteFetchConcurrency < 1
+        ? 1
+        : remoteFetchConcurrency > 4
+        ? 4
+        : remoteFetchConcurrency;
 
     return AppSettings(
       themeMode: themeMode,
@@ -334,6 +351,7 @@ class AppSettings {
       showAiSummary: showAiSummary,
       autoTranslate: autoTranslate,
       minifluxEntriesLimit: minifluxEntriesLimit,
+      remoteFetchConcurrency: normalizedRemoteFetchConcurrency,
       minifluxWebFetchMode: minifluxWebFetchMode,
       rssUserAgent: normalizedRssUserAgent,
       webUserAgent: normalizedWebUserAgent,

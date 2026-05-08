@@ -26,6 +26,14 @@ import '../sync_mutex.dart';
 import '../sync_status_reporter.dart';
 import 'miniflux_client.dart';
 
+typedef _MinifluxEntriesPage = ({
+  int limit,
+  int offset,
+  List<Object?> entries,
+  int processed,
+  int? total,
+});
+
 class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
   MinifluxSyncService({
     required this.account,
@@ -60,6 +68,8 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
   final ArticleCacheService _cache;
   final ArticleExtractor _extractor;
   final SyncStatusReporter _statusReporter;
+
+  static const int _entriesPageSize = 200;
 
   Map<String, Object?> _accountFailureContext(
     Object error, {
@@ -265,96 +275,276 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
     await _feeds.deleteRemoteMissing(seenFeedRemoteIds);
     await _categories.deleteRemoteMissing(seenCategoryRemoteIds);
 
-    // 0 means "unlimited": paginate until server has no more entries.
     if (effectiveEntriesLimit == 0) {
-      const pageSize = 1000;
-      var offset = 0;
-      status?.update(
-        label: SyncStatusLabel.syncingUnreadArticles,
-        current: 0,
-        total: null,
+      await _syncUnlimitedEntries(
+        client,
+        appSettings,
+        remoteFeedIdToLocalFeed: remoteFeedIdToLocalFeed,
+        localFeedIdToFeed: localFeedIdToFeed,
+        localFeedIdToSettings: localFeedIdToSettings,
+        preferServerFetch: preferServerFetch,
+        status: status,
       );
-      while (true) {
-        final r = await _syncEntriesBatch(
-          client,
-          appSettings,
-          remoteFeedIdToLocalFeed: remoteFeedIdToLocalFeed,
-          localFeedIdToFeed: localFeedIdToFeed,
-          localFeedIdToSettings: localFeedIdToSettings,
-          limit: pageSize,
-          offset: offset,
-          preferServerFetch: preferServerFetch,
-          status: status,
-          progressOffset: offset,
-        );
-        if (r.processed == 0) break;
-        offset += r.processed;
-        status?.update(current: offset, total: r.total ?? syncStatusUnchanged);
-        if (r.total != null && offset >= r.total!) break;
-        if (r.processed < pageSize) break;
-
-        // Yield to the event loop between pages to keep the app responsive on
-        // very large imports (tens of thousands of entries).
-        await Future<void>.delayed(Duration.zero);
-      }
       return;
     }
 
     if (effectiveEntriesLimit < 0) return;
-    status?.update(
-      label: SyncStatusLabel.syncingUnreadArticles,
-      current: 0,
-      total: effectiveEntriesLimit,
-    );
-    final r = await _syncEntriesBatch(
+    await _syncLimitedEntries(
       client,
       appSettings,
       remoteFeedIdToLocalFeed: remoteFeedIdToLocalFeed,
       localFeedIdToFeed: localFeedIdToFeed,
       localFeedIdToSettings: localFeedIdToSettings,
-      limit: effectiveEntriesLimit,
-      offset: 0,
+      entriesLimit: effectiveEntriesLimit,
       preferServerFetch: preferServerFetch,
       status: status,
-      progressOffset: 0,
-    );
-    status?.update(
-      current: r.processed,
-      total: r.total ?? effectiveEntriesLimit,
     );
   }
 
-  Future<({int processed, int? total})> _syncEntriesBatch(
+  Future<void> _syncLimitedEntries(
     MinifluxClient client,
     AppSettings appSettings, {
     required Map<int, Feed> remoteFeedIdToLocalFeed,
     required Map<int, Feed> localFeedIdToFeed,
     required Map<int, EffectiveFeedSettings> localFeedIdToSettings,
-    required int limit,
-    required int offset,
+    required int entriesLimit,
     required bool preferServerFetch,
     SyncStatusTask? status,
-    required int progressOffset,
   }) async {
-    if (limit <= 0) return (processed: 0, total: null);
+    if (entriesLimit <= 0) return;
+    status?.update(
+      label: SyncStatusLabel.syncingUnreadArticles,
+      current: 0,
+      total: entriesLimit,
+    );
+
+    final firstLimit = _pageLimit(offset: 0, targetTotal: entriesLimit);
+    final firstPage = await _fetchEntriesPage(
+      client,
+      limit: firstLimit,
+      offset: 0,
+    );
+    final targetTotal = firstPage.total == null
+        ? entriesLimit
+        : _minInt(entriesLimit, firstPage.total!);
+
+    await _processEntriesPage(
+      firstPage,
+      client,
+      appSettings,
+      remoteFeedIdToLocalFeed: remoteFeedIdToLocalFeed,
+      localFeedIdToFeed: localFeedIdToFeed,
+      localFeedIdToSettings: localFeedIdToSettings,
+      preferServerFetch: preferServerFetch,
+      status: status,
+      progressTotal: targetTotal,
+    );
+    if (firstPage.processed == 0 || firstPage.processed < firstPage.limit) {
+      return;
+    }
+
+    await _syncKnownOffsetPages(
+      client,
+      appSettings,
+      remoteFeedIdToLocalFeed: remoteFeedIdToLocalFeed,
+      localFeedIdToFeed: localFeedIdToFeed,
+      localFeedIdToSettings: localFeedIdToSettings,
+      startOffset: firstPage.limit,
+      targetTotal: targetTotal,
+      preferServerFetch: preferServerFetch,
+      status: status,
+    );
+  }
+
+  Future<void> _syncUnlimitedEntries(
+    MinifluxClient client,
+    AppSettings appSettings, {
+    required Map<int, Feed> remoteFeedIdToLocalFeed,
+    required Map<int, Feed> localFeedIdToFeed,
+    required Map<int, EffectiveFeedSettings> localFeedIdToSettings,
+    required bool preferServerFetch,
+    SyncStatusTask? status,
+  }) async {
+    status?.update(
+      label: SyncStatusLabel.syncingUnreadArticles,
+      current: 0,
+      total: null,
+    );
+    final firstPage = await _fetchEntriesPage(
+      client,
+      limit: _entriesPageSize,
+      offset: 0,
+    );
+    await _processEntriesPage(
+      firstPage,
+      client,
+      appSettings,
+      remoteFeedIdToLocalFeed: remoteFeedIdToLocalFeed,
+      localFeedIdToFeed: localFeedIdToFeed,
+      localFeedIdToSettings: localFeedIdToSettings,
+      preferServerFetch: preferServerFetch,
+      status: status,
+      progressTotal: firstPage.total,
+    );
+    if (firstPage.processed == 0 || firstPage.processed < firstPage.limit) {
+      return;
+    }
+
+    final total = firstPage.total;
+    if (total == null) {
+      await _syncUnknownTotalSerialPages(
+        client,
+        appSettings,
+        remoteFeedIdToLocalFeed: remoteFeedIdToLocalFeed,
+        localFeedIdToFeed: localFeedIdToFeed,
+        localFeedIdToSettings: localFeedIdToSettings,
+        startOffset: firstPage.processed,
+        preferServerFetch: preferServerFetch,
+        status: status,
+      );
+      return;
+    }
+
+    await _syncKnownOffsetPages(
+      client,
+      appSettings,
+      remoteFeedIdToLocalFeed: remoteFeedIdToLocalFeed,
+      localFeedIdToFeed: localFeedIdToFeed,
+      localFeedIdToSettings: localFeedIdToSettings,
+      startOffset: firstPage.limit,
+      targetTotal: total,
+      preferServerFetch: preferServerFetch,
+      status: status,
+    );
+  }
+
+  Future<void> _syncKnownOffsetPages(
+    MinifluxClient client,
+    AppSettings appSettings, {
+    required Map<int, Feed> remoteFeedIdToLocalFeed,
+    required Map<int, Feed> localFeedIdToFeed,
+    required Map<int, EffectiveFeedSettings> localFeedIdToSettings,
+    required int startOffset,
+    required int targetTotal,
+    required bool preferServerFetch,
+    SyncStatusTask? status,
+  }) async {
+    final remoteFetchConcurrency = appSettings.remoteFetchConcurrency
+        .clamp(1, 4)
+        .toInt();
+    var offset = startOffset;
+    while (offset < targetTotal) {
+      final window = <Future<_MinifluxEntriesPage>>[];
+      for (
+        var i = 0;
+        i < remoteFetchConcurrency && offset < targetTotal;
+        i += 1
+      ) {
+        final limit = _pageLimit(offset: offset, targetTotal: targetTotal);
+        window.add(_fetchEntriesPage(client, limit: limit, offset: offset));
+        offset += limit;
+      }
+
+      final pages = await Future.wait(window);
+      var stop = false;
+      for (final page in pages) {
+        if (stop) break;
+        await _processEntriesPage(
+          page,
+          client,
+          appSettings,
+          remoteFeedIdToLocalFeed: remoteFeedIdToLocalFeed,
+          localFeedIdToFeed: localFeedIdToFeed,
+          localFeedIdToSettings: localFeedIdToSettings,
+          preferServerFetch: preferServerFetch,
+          status: status,
+          progressTotal: targetTotal,
+        );
+        stop = page.processed == 0 || page.processed < page.limit;
+      }
+      if (stop) return;
+
+      // Yield between windows when syncing large accounts.
+      await Future<void>.delayed(Duration.zero);
+    }
+  }
+
+  Future<void> _syncUnknownTotalSerialPages(
+    MinifluxClient client,
+    AppSettings appSettings, {
+    required Map<int, Feed> remoteFeedIdToLocalFeed,
+    required Map<int, Feed> localFeedIdToFeed,
+    required Map<int, EffectiveFeedSettings> localFeedIdToSettings,
+    required int startOffset,
+    required bool preferServerFetch,
+    SyncStatusTask? status,
+  }) async {
+    var offset = startOffset;
+    while (true) {
+      final page = await _fetchEntriesPage(
+        client,
+        limit: _entriesPageSize,
+        offset: offset,
+      );
+      await _processEntriesPage(
+        page,
+        client,
+        appSettings,
+        remoteFeedIdToLocalFeed: remoteFeedIdToLocalFeed,
+        localFeedIdToFeed: localFeedIdToFeed,
+        localFeedIdToSettings: localFeedIdToSettings,
+        preferServerFetch: preferServerFetch,
+        status: status,
+        progressTotal: null,
+      );
+      if (page.processed == 0 || page.processed < page.limit) return;
+      offset += page.processed;
+
+      await Future<void>.delayed(Duration.zero);
+    }
+  }
+
+  Future<_MinifluxEntriesPage> _fetchEntriesPage(
+    MinifluxClient client, {
+    required int limit,
+    required int offset,
+  }) async {
     final resp = await client.getEntries(limit: limit, offset: offset);
     final raw = resp['entries'];
     final totalRaw = resp['total'];
     final total = totalRaw is int ? totalRaw : null;
-    if (raw is! List) {
-      status?.update(current: progressOffset, total: total);
-      return (processed: 0, total: total);
-    }
-
-    final processed = raw.length;
-    status?.update(
-      current: progressOffset + processed,
-      total: total ?? progressOffset + processed,
+    final entries = raw is List ? raw.cast<Object?>() : const <Object?>[];
+    return (
+      limit: limit,
+      offset: offset,
+      entries: entries,
+      processed: entries.length,
+      total: total,
     );
+  }
+
+  Future<void> _processEntriesPage(
+    _MinifluxEntriesPage page,
+    MinifluxClient client,
+    AppSettings appSettings, {
+    required Map<int, Feed> remoteFeedIdToLocalFeed,
+    required Map<int, Feed> localFeedIdToFeed,
+    required Map<int, EffectiveFeedSettings> localFeedIdToSettings,
+    required bool preferServerFetch,
+    SyncStatusTask? status,
+    required int? progressTotal,
+  }) async {
+    final progressCurrent = page.offset + page.processed;
+    status?.update(
+      current: progressCurrent,
+      total: progressTotal ?? page.total ?? progressCurrent,
+    );
+
+    if (page.entries.isEmpty) return;
 
     // Group by local feed id for ArticleRepository.upsertMany() calls.
     final byLocalFeedId = <int, List<Article>>{};
-    for (final e in raw) {
+    for (final e in page.entries) {
       if (e is! Map) continue;
       final m = e.cast<String, Object?>();
       final remoteEntryId = m['id'];
@@ -426,9 +616,15 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
         await Future<void>.delayed(Duration.zero);
       }
     }
-
-    return (processed: processed, total: total);
   }
+
+  static int _pageLimit({required int offset, required int targetTotal}) {
+    final remaining = targetTotal - offset;
+    if (remaining <= 0) return 0;
+    return remaining < _entriesPageSize ? remaining : _entriesPageSize;
+  }
+
+  static int _minInt(int a, int b) => a < b ? a : b;
 
   @override
   Future<bool> flushOutboxSafe() async {

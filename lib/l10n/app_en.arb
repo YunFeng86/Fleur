@@ -812,6 +812,14 @@
   "@remoteEntriesLimit": {
     "description": "remoteEntriesLimit"
   },
+  "remoteFetchConcurrency": "Remote fetch concurrency",
+  "@remoteFetchConcurrency": {
+    "description": "remoteFetchConcurrency"
+  },
+  "remoteFetchConcurrencySubtitle": "Controls concurrent remote article batch requests during account sync.",
+  "@remoteFetchConcurrencySubtitle": {
+    "description": "remoteFetchConcurrencySubtitle"
+  },
   "minifluxWebFetchMode": "Web page fetching",
   "@minifluxWebFetchMode": {
     "description": "minifluxWebFetchMode"

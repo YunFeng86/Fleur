@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -168,6 +169,41 @@ class _RecordingSyncStatusTask extends SyncStatusTask {
   void complete({bool success = true}) {}
 }
 
+class _ConcurrencyProbe {
+  static const _delay = Duration(milliseconds: 20);
+
+  int active = 0;
+  int maxActive = 0;
+  final offsets = <int>[];
+  final limits = <int>[];
+  final batchSizes = <int>[];
+
+  void resolve(
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+    Object? data, {
+    int? offset,
+    int? limit,
+    int? batchSize,
+  }) {
+    if (offset != null) offsets.add(offset);
+    if (limit != null) limits.add(limit);
+    if (batchSize != null) batchSizes.add(batchSize);
+
+    active += 1;
+    if (active > maxActive) maxActive = active;
+
+    unawaited(
+      Future<void>(() async {
+        await Future<void>.delayed(_delay);
+        handler.resolve(Response<Object?>(requestOptions: options, data: data));
+      }).whenComplete(() {
+        active -= 1;
+      }),
+    );
+  }
+}
+
 Dio _feverDio() {
   final dio = Dio();
   dio.interceptors.add(
@@ -241,6 +277,86 @@ Dio _feverDio() {
   return dio;
 }
 
+Dio _feverConcurrencyDio(_ConcurrencyProbe probe, {required int itemCount}) {
+  final dio = Dio();
+  dio.interceptors.add(
+    InterceptorsWrapper(
+      onRequest: (options, handler) {
+        final query = options.uri.query;
+        Object? data;
+
+        if (query == 'api&groups') {
+          data = <String, Object?>{'auth': 1, 'groups': const []};
+        } else if (query == 'api&feeds') {
+          data = <String, Object?>{
+            'auth': 1,
+            'feeds': [
+              {
+                'id': 10,
+                'url': 'https://example.com/feed.xml',
+                'title': 'Example Feed',
+                'site_url': 'https://example.com',
+              },
+            ],
+          };
+        } else if (query == 'api&feeds&groups') {
+          data = <String, Object?>{'auth': 1, 'feeds_groups': const []};
+        } else if (query == 'api&unread_item_ids') {
+          data = <String, Object?>{
+            'auth': 1,
+            'unread_item_ids': [
+              for (var id = 1; id <= itemCount; id++) id,
+            ].join(','),
+          };
+        } else if (query == 'api&saved_item_ids') {
+          data = <String, Object?>{'auth': 1, 'saved_item_ids': ''};
+        } else if (query.startsWith('api&items&with_ids=')) {
+          final rawIds = Uri.decodeQueryComponent(
+            query.substring('api&items&with_ids='.length),
+          );
+          final ids = rawIds
+              .split(',')
+              .map((value) => int.tryParse(value.trim()))
+              .whereType<int>()
+              .toList(growable: false);
+          data = <String, Object?>{
+            'auth': 1,
+            'items': [
+              for (final id in ids)
+                {
+                  'id': id,
+                  'feed_id': 10,
+                  'url': 'https://example.com/articles/$id',
+                  'title': 'Fever Article $id',
+                  'author': 'Fever Author',
+                  'html': '<p>feed</p>',
+                  'created_on_time': 1770000000 + id,
+                },
+            ],
+          };
+          probe.resolve(options, handler, data, batchSize: ids.length);
+          return;
+        }
+
+        if (data != null) {
+          handler.resolve(
+            Response<Object?>(requestOptions: options, data: data),
+          );
+          return;
+        }
+
+        handler.reject(
+          DioException(
+            requestOptions: options,
+            error: 'unexpected Fever request: ${options.method} $query',
+          ),
+        );
+      },
+    ),
+  );
+  return dio;
+}
+
 Dio _minifluxDio() {
   final dio = Dio();
   dio.interceptors.add(
@@ -281,6 +397,82 @@ Dio _minifluxDio() {
                 },
             ],
           };
+        }
+
+        if (data != null) {
+          handler.resolve(
+            Response<Object?>(requestOptions: options, data: data),
+          );
+          return;
+        }
+
+        handler.reject(
+          DioException(
+            requestOptions: options,
+            error: 'unexpected Miniflux request: ${options.method} $path',
+          ),
+        );
+      },
+    ),
+  );
+  return dio;
+}
+
+Dio _minifluxPagedDio(
+  _ConcurrencyProbe probe, {
+  required int totalEntries,
+  required bool includeTotal,
+}) {
+  final dio = Dio();
+  dio.interceptors.add(
+    InterceptorsWrapper(
+      onRequest: (options, handler) {
+        Object? data;
+        final path = options.uri.path;
+
+        if (path == '/v1/categories') {
+          data = [
+            {'id': 1, 'title': 'General'},
+          ];
+        } else if (path == '/v1/feeds') {
+          data = [
+            {
+              'id': 10,
+              'feed_url': 'https://example.com/feed.xml',
+              'title': 'Example Feed',
+              'site_url': 'https://example.com',
+              'description': 'Example',
+              'category_id': 1,
+            },
+          ];
+        } else if (path == '/v1/entries') {
+          final query = options.uri.queryParameters;
+          final limit = int.tryParse(query['limit'] ?? '') ?? 0;
+          final offset = int.tryParse(query['offset'] ?? '0') ?? 0;
+          final remaining = totalEntries - offset;
+          final count = remaining <= 0
+              ? 0
+              : remaining < limit
+              ? remaining
+              : limit;
+          data = <String, Object?>{
+            if (includeTotal) 'total': totalEntries,
+            'entries': [
+              for (var i = 0; i < count; i++)
+                {
+                  'id': offset + i + 1,
+                  'feed_id': 10,
+                  'url': 'https://example.com/articles/${offset + i + 1}',
+                  'title': 'Miniflux Article ${offset + i + 1}',
+                  'content': '<p>feed</p>',
+                  'status': 'unread',
+                  'starred': false,
+                  'published_at': '2026-01-01T00:00:00Z',
+                },
+            ],
+          };
+          probe.resolve(options, handler, data, offset: offset, limit: limit);
+          return;
         }
 
         if (data != null) {
@@ -416,6 +608,143 @@ void main() {
         ),
         isTrue,
       );
+    },
+  );
+
+  test('Fever fetches item batches with remote fetch concurrency', () async {
+    final probe = _ConcurrencyProbe();
+    final service = FeverSyncService(
+      account: buildTestAccount(
+        type: AccountType.fever,
+        baseUrl: 'https://fever.example.com',
+      ),
+      dio: _feverConcurrencyDio(probe, itemCount: 130),
+      credentials: _FakeCredentialStore(),
+      feeds: FeedRepository(isar!),
+      categories: CategoryRepository(isar!),
+      articles: ArticleRepository(isar!),
+      outbox: _MemoryOutboxStore(),
+      appSettingsStore: FakeAppSettingsStore(
+        AppSettings.defaults().copyWith(
+          remoteEntriesLimit: 130,
+          remoteFetchConcurrency: 2,
+        ),
+      ),
+      notifications: _NoopNotificationService(),
+      cache: _RecordingArticleCacheService(),
+      extractor: _FakeArticleExtractor(),
+    );
+
+    await service.syncNow(notify: false);
+
+    final articles = await isar!.articles.where().findAll();
+    expect(articles, hasLength(130));
+    expect(probe.batchSizes, [50, 50, 30]);
+    expect(probe.maxActive, 2);
+  });
+
+  test(
+    'Miniflux fetches limited entry pages with remote fetch concurrency',
+    () async {
+      final probe = _ConcurrencyProbe();
+      final service = MinifluxSyncService(
+        account: buildTestAccount(
+          type: AccountType.miniflux,
+          baseUrl: 'https://miniflux.example.com',
+        ),
+        dio: _minifluxPagedDio(probe, totalEntries: 450, includeTotal: true),
+        credentials: _FakeCredentialStore(),
+        feeds: FeedRepository(isar!),
+        categories: CategoryRepository(isar!),
+        articles: ArticleRepository(isar!),
+        outbox: _MemoryOutboxStore(),
+        appSettingsStore: FakeAppSettingsStore(
+          AppSettings.defaults().copyWith(
+            remoteEntriesLimit: 450,
+            remoteFetchConcurrency: 2,
+          ),
+        ),
+        cache: _RecordingArticleCacheService(),
+        extractor: _FakeArticleExtractor(),
+      );
+
+      await service.syncNow();
+
+      final articles = await isar!.articles.where().findAll();
+      expect(articles, hasLength(450));
+      expect(probe.offsets, [0, 200, 400]);
+      expect(probe.limits, [200, 200, 50]);
+      expect(probe.maxActive, 2);
+    },
+  );
+
+  test(
+    'Miniflux unlimited sync uses total for concurrent pagination',
+    () async {
+      final probe = _ConcurrencyProbe();
+      final service = MinifluxSyncService(
+        account: buildTestAccount(
+          type: AccountType.miniflux,
+          baseUrl: 'https://miniflux.example.com',
+        ),
+        dio: _minifluxPagedDio(probe, totalEntries: 450, includeTotal: true),
+        credentials: _FakeCredentialStore(),
+        feeds: FeedRepository(isar!),
+        categories: CategoryRepository(isar!),
+        articles: ArticleRepository(isar!),
+        outbox: _MemoryOutboxStore(),
+        appSettingsStore: FakeAppSettingsStore(
+          AppSettings.defaults().copyWith(
+            remoteEntriesLimit: 0,
+            remoteFetchConcurrency: 2,
+          ),
+        ),
+        cache: _RecordingArticleCacheService(),
+        extractor: _FakeArticleExtractor(),
+      );
+
+      await service.syncNow();
+
+      final articles = await isar!.articles.where().findAll();
+      expect(articles, hasLength(450));
+      expect(probe.offsets, [0, 200, 400]);
+      expect(probe.limits, [200, 200, 50]);
+      expect(probe.maxActive, 2);
+    },
+  );
+
+  test(
+    'Miniflux unlimited sync without total falls back to serial pages',
+    () async {
+      final probe = _ConcurrencyProbe();
+      final service = MinifluxSyncService(
+        account: buildTestAccount(
+          type: AccountType.miniflux,
+          baseUrl: 'https://miniflux.example.com',
+        ),
+        dio: _minifluxPagedDio(probe, totalEntries: 250, includeTotal: false),
+        credentials: _FakeCredentialStore(),
+        feeds: FeedRepository(isar!),
+        categories: CategoryRepository(isar!),
+        articles: ArticleRepository(isar!),
+        outbox: _MemoryOutboxStore(),
+        appSettingsStore: FakeAppSettingsStore(
+          AppSettings.defaults().copyWith(
+            remoteEntriesLimit: 0,
+            remoteFetchConcurrency: 4,
+          ),
+        ),
+        cache: _RecordingArticleCacheService(),
+        extractor: _FakeArticleExtractor(),
+      );
+
+      await service.syncNow();
+
+      final articles = await isar!.articles.where().findAll();
+      expect(articles, hasLength(250));
+      expect(probe.offsets, [0, 200]);
+      expect(probe.limits, [200, 200]);
+      expect(probe.maxActive, 1);
     },
   );
 }
