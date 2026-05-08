@@ -174,106 +174,129 @@ class _SubscriptionTreeViewState extends ConsumerState<SubscriptionTreeView> {
               );
             }
 
+            final rows = <_SubscriptionTreeRow>[
+              _SubscriptionTreeRow(
+                rowId: 'section:defaults',
+                child: buildSectionLabel(l10n.defaultsGroup),
+              ),
+              _SubscriptionTreeRow(
+                rowId: 'scope:global-defaults',
+                child: _ScopeTreeRow(
+                  icon: Icons.tune_outlined,
+                  title: l10n.globalDefaults,
+                  subtitle: l10n.globalDefaultsDescription,
+                  selected: selection.isGlobalDefaults,
+                  onTap: () => _runWithScrollAnchor(
+                    () => notifier.showGlobalDefaults(
+                      showDetailPane: widget.showDetailPaneOnSelection,
+                    ),
+                  ),
+                ),
+              ),
+              _SubscriptionTreeRow(
+                rowId: 'section:folders',
+                child: buildSectionLabel(l10n.folders),
+              ),
+            ];
+            for (final category in categories) {
+              final isExpanded = visibleExpanded.contains(category.id);
+              final categoryFeeds = feedsByCategory[category.id] ?? const [];
+              rows.add(
+                _SubscriptionTreeRow(
+                  rowId: 'category:${category.id}',
+                  child: _CategoryTreeNode(
+                    category: category,
+                    feedCount: categoryFeeds.length,
+                    expanded: isExpanded,
+                    isSelected:
+                        !selection.isGlobalDefaults &&
+                        selection.activeCategoryId == category.id &&
+                        selection.selectedFeedId == null,
+                    onToggleExpanded: () {
+                      _runWithScrollAnchor(() {
+                        setState(() {
+                          if (isExpanded) {
+                            _expandedCategoryIds.remove(category.id);
+                            _collapsedCategoryIds.add(category.id);
+                          } else {
+                            _expandedCategoryIds.add(category.id);
+                            _collapsedCategoryIds.remove(category.id);
+                          }
+                        });
+                      });
+                    },
+                    onSelectCategory: () => _runWithScrollAnchor(
+                      () => notifier.selectCategory(
+                        category.id,
+                        showDetailPane: widget.showDetailPaneOnSelection,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+              if (!isExpanded) continue;
+              for (final feed in categoryFeeds) {
+                rows.add(
+                  _SubscriptionTreeRow(
+                    rowId: 'feed:${feed.id}',
+                    child: _FeedTreeRow(
+                      feed: feed,
+                      selected: selection.selectedFeedId == feed.id,
+                      indent: 24,
+                      onTap: () => _runWithScrollAnchor(
+                        () => notifier.selectFeed(
+                          feed.id,
+                          categoryScope: SubscriptionCategoryId(category.id),
+                          showDetailPane: widget.showDetailPaneOnSelection,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }
+            }
+            if (categories.isNotEmpty && uncategorizedFeeds.isNotEmpty) {
+              rows.add(
+                const _SubscriptionTreeRow(
+                  rowId: 'gap:uncategorized',
+                  child: SizedBox(height: 4),
+                ),
+              );
+            }
+            for (final feed in uncategorizedFeeds) {
+              rows.add(
+                _SubscriptionTreeRow(
+                  rowId: 'feed:${feed.id}',
+                  child: _FeedTreeRow(
+                    feed: feed,
+                    selected: selection.selectedFeedId == feed.id,
+                    indent: 0,
+                    onTap: () => _runWithScrollAnchor(
+                      () => notifier.selectFeed(
+                        feed.id,
+                        categoryScope: const SubscriptionCategoryAll(),
+                        showDetailPane: widget.showDetailPaneOnSelection,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }
+
             return SettingsPane(
               color: surfaces.sidebar,
               title: widget.showPaneHeader ? l10n.subscriptions : null,
               child: AppScrollbar(
                 controller: _scrollController,
-                child: ListView(
+                child: ListView.builder(
                   key: _listViewKey,
                   controller: _scrollController,
                   padding: const EdgeInsets.only(top: 4, bottom: 12),
-                  children: [
-                    _anchoredRow(
-                      'section:defaults',
-                      buildSectionLabel(l10n.defaultsGroup),
-                    ),
-                    _anchoredRow(
-                      'scope:global-defaults',
-                      _ScopeTreeRow(
-                        icon: Icons.tune_outlined,
-                        title: l10n.globalDefaults,
-                        subtitle: l10n.globalDefaultsDescription,
-                        selected: selection.isGlobalDefaults,
-                        onTap: () => _runWithScrollAnchor(
-                          () => notifier.showGlobalDefaults(
-                            showDetailPane: widget.showDetailPaneOnSelection,
-                          ),
-                        ),
-                      ),
-                    ),
-                    _anchoredRow(
-                      'section:folders',
-                      buildSectionLabel(l10n.folders),
-                    ),
-                    for (final category in categories)
-                      () {
-                        final isExpanded = visibleExpanded.contains(
-                          category.id,
-                        );
-
-                        return _anchoredRow(
-                          'category:${category.id}',
-                          _CategoryTreeNode(
-                            category: category,
-                            feeds: feedsByCategory[category.id] ?? const [],
-                            expanded: isExpanded,
-                            isSelected:
-                                !selection.isGlobalDefaults &&
-                                selection.activeCategoryId == category.id &&
-                                selection.selectedFeedId == null,
-                            selectedFeedId: selection.selectedFeedId,
-                            onToggleExpanded: () {
-                              _runWithScrollAnchor(() {
-                                setState(() {
-                                  if (isExpanded) {
-                                    _expandedCategoryIds.remove(category.id);
-                                    _collapsedCategoryIds.add(category.id);
-                                  } else {
-                                    _expandedCategoryIds.add(category.id);
-                                    _collapsedCategoryIds.remove(category.id);
-                                  }
-                                });
-                              });
-                            },
-                            onSelectCategory: () => _runWithScrollAnchor(
-                              () => notifier.selectCategory(
-                                category.id,
-                                showDetailPane:
-                                    widget.showDetailPaneOnSelection,
-                              ),
-                            ),
-                            feedRowKey: (feedId) => _rowKey('feed:$feedId'),
-                            onSelectFeed: (feedId) => _runWithScrollAnchor(
-                              () => notifier.selectFeed(
-                                feedId,
-                                categoryScope: SubscriptionCategoryId(
-                                  category.id,
-                                ),
-                                showDetailPane:
-                                    widget.showDetailPaneOnSelection,
-                              ),
-                            ),
-                          ),
-                        );
-                      }(),
-                    if (categories.isNotEmpty && uncategorizedFeeds.isNotEmpty)
-                      const SizedBox(height: 4),
-                    for (final feed in uncategorizedFeeds)
-                      _FeedTreeRow(
-                        key: _rowKey('feed:${feed.id}'),
-                        feed: feed,
-                        selected: selection.selectedFeedId == feed.id,
-                        indent: 0,
-                        onTap: () => _runWithScrollAnchor(
-                          () => notifier.selectFeed(
-                            feed.id,
-                            categoryScope: const SubscriptionCategoryAll(),
-                            showDetailPane: widget.showDetailPaneOnSelection,
-                          ),
-                        ),
-                      ),
-                  ],
+                  itemCount: rows.length,
+                  itemBuilder: (context, index) {
+                    final row = rows[index];
+                    return _anchoredRow(row.rowId, row.child);
+                  },
                 ),
               ),
             );
@@ -289,6 +312,13 @@ class _SubscriptionTreeScrollAnchor {
 
   final String rowId;
   final double top;
+}
+
+class _SubscriptionTreeRow {
+  const _SubscriptionTreeRow({required this.rowId, required this.child});
+
+  final String rowId;
+  final Widget child;
 }
 
 class _ScopeTreeRow extends StatelessWidget {
@@ -323,25 +353,19 @@ class _ScopeTreeRow extends StatelessWidget {
 class _CategoryTreeNode extends StatelessWidget {
   const _CategoryTreeNode({
     required this.category,
-    required this.feeds,
+    required this.feedCount,
     required this.expanded,
     required this.isSelected,
-    required this.selectedFeedId,
     required this.onToggleExpanded,
     required this.onSelectCategory,
-    required this.feedRowKey,
-    required this.onSelectFeed,
   });
 
   final Category category;
-  final List<Feed> feeds;
+  final int feedCount;
   final bool expanded;
   final bool isSelected;
-  final int? selectedFeedId;
   final VoidCallback onToggleExpanded;
   final VoidCallback onSelectCategory;
-  final Key Function(int feedId) feedRowKey;
-  final ValueChanged<int> onSelectFeed;
 
   @override
   Widget build(BuildContext context) {
@@ -363,13 +387,13 @@ class _CategoryTreeNode extends StatelessWidget {
             ),
             title: Text(category.name),
             subtitle: Text(
-              '${feeds.length} ${l10n.subscriptions}',
+              '$feedCount ${l10n.subscriptions}',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
             selected: isSelected,
             trailing: Text(
-              '${feeds.length}',
+              '$feedCount',
               style: theme.textTheme.labelMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.w700,
@@ -377,15 +401,6 @@ class _CategoryTreeNode extends StatelessWidget {
             ),
             onTap: onSelectCategory,
           ),
-          if (expanded)
-            for (final feed in feeds)
-              _FeedTreeRow(
-                key: feedRowKey(feed.id),
-                feed: feed,
-                selected: selectedFeedId == feed.id,
-                indent: 24,
-                onTap: () => onSelectFeed(feed.id),
-              ),
         ],
       ),
     );
@@ -394,7 +409,6 @@ class _CategoryTreeNode extends StatelessWidget {
 
 class _FeedTreeRow extends StatelessWidget {
   const _FeedTreeRow({
-    super.key,
     required this.feed,
     required this.selected,
     required this.indent,

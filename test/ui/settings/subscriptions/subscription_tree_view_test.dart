@@ -423,4 +423,68 @@ void main() {
     expect(scrollable.position.viewportDimension, beforeViewportDimension);
     expect(tester.getTopLeft(anchorRowFinder).dy, closeTo(beforeTop, 1));
   });
+
+  testWidgets(
+    'expanded large category keeps maxScrollExtent stable while scrolling',
+    (tester) async {
+      final bigCategory = Category()
+        ..id = 1
+        ..name = 'Large category';
+      final followingCategories = List<Category>.generate(
+        24,
+        (index) => Category()
+          ..id = index + 2
+          ..name = 'Following ${index + 1}',
+      );
+      final feeds = List<Feed>.generate(
+        80,
+        (index) => Feed()
+          ..id = 1000 + index
+          ..url = 'https://example.com/large/feed-$index.xml'
+          ..title = 'Large Feed $index'
+          ..categoryId = bigCategory.id,
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            categoriesProvider.overrideWith(
+              (ref) => Stream.value([bigCategory, ...followingCategories]),
+            ),
+            feedsProvider.overrideWith((ref) => Stream.value(feeds)),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const Scaffold(
+              body: SizedBox(height: 320, child: SubscriptionTreeView()),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      tester
+          .widget<TreeDisclosureButton>(find.byType(TreeDisclosureButton).first)
+          .onPressed();
+      await tester.pumpAndSettle();
+
+      final scrollable = tester
+          .stateList<ScrollableState>(find.byType(Scrollable))
+          .firstWhere((state) => state.position.maxScrollExtent > 0);
+      final samples = <double>[scrollable.position.maxScrollExtent];
+      for (final offset in <double>[800, 2400, 4800, 6200, 7200]) {
+        scrollable.position.jumpTo(
+          offset.clamp(0.0, scrollable.position.maxScrollExtent).toDouble(),
+        );
+        await tester.pump();
+        samples.add(scrollable.position.maxScrollExtent);
+      }
+
+      final smallest = samples.reduce((a, b) => a < b ? a : b);
+      final largest = samples.reduce((a, b) => a > b ? a : b);
+      expect(largest / smallest, lessThan(1.15));
+    },
+  );
 }
