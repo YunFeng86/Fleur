@@ -109,6 +109,7 @@ void main() {
     expect(find.text('Refresh sources'), findsNothing);
     expect(find.text('Refresh Concurrency'), findsNothing);
     expect(find.text('Remote sync strategy'), findsOneWidget);
+    expect(find.textContaining('Fever syncs unread'), findsOneWidget);
     expect(find.text('Entries per sync'), findsOneWidget);
     expect(find.text('Remote fetch concurrency'), findsOneWidget);
     expect(find.text('Miniflux strategy'), findsNothing);
@@ -129,6 +130,10 @@ void main() {
     expect(find.text('Sync account'), findsNothing);
     expect(find.text('Refresh Concurrency'), findsNothing);
     expect(find.text('Remote sync strategy'), findsOneWidget);
+    expect(
+      find.textContaining('Miniflux can page through remote entries'),
+      findsOneWidget,
+    );
     expect(find.text('Entries per sync'), findsOneWidget);
     expect(find.text('Remote fetch concurrency'), findsOneWidget);
     expect(find.text('Web page fetching'), findsOneWidget);
@@ -263,7 +268,7 @@ void main() {
         account: buildTestAccount(type: AccountType.local, name: 'Local'),
       );
 
-      expect(find.textContaining('Mobile background refresh'), findsWidgets);
+      expect(find.textContaining('Mobile background refresh'), findsOneWidget);
 
       await tester.tap(
         find.byWidgetPredicate(

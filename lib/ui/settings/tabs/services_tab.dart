@@ -318,13 +318,6 @@ class ServicesTab extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    refreshSectionDescription,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
                   DropdownButtonHideUnderline(
                     child: DropdownButton<int?>(
                       value: interval,
@@ -393,14 +386,7 @@ class ServicesTab extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    remoteStrategySubtitle,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
                   if (syncSemantics.supportsEntrySyncLimit) ...[
-                    const SizedBox(height: 16),
                     Text(
                       l10n.remoteEntriesLimit,
                       style: theme.textTheme.titleSmall,
