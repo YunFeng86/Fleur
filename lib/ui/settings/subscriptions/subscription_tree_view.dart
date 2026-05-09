@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -7,6 +9,8 @@ import '../../../../models/feed.dart';
 import '../../../../providers/query_providers.dart';
 import '../../../../providers/subscription_settings_provider.dart';
 import '../../../../theme/fleur_theme_extensions.dart';
+import '../../../../ui/actions/subscription_object_menus.dart';
+import '../../../../utils/platform.dart';
 import '../../../../widgets/app_scrollbar.dart';
 import '../../../../widgets/favicon_avatar.dart';
 import '../../../../widgets/tree_disclosure_button.dart';
@@ -235,6 +239,16 @@ class _SubscriptionTreeViewState extends ConsumerState<SubscriptionTreeView> {
                         showDetailPane: widget.showDetailPaneOnSelection,
                       ),
                     ),
+                    onSecondaryTapDown: isDesktop
+                        ? (details) => unawaited(
+                            SubscriptionObjectMenus.showSettingsCategoryContextMenu(
+                              context,
+                              ref,
+                              category: category,
+                              position: details.globalPosition,
+                            ),
+                          )
+                        : null,
                   ),
                 ),
               );
@@ -254,6 +268,16 @@ class _SubscriptionTreeViewState extends ConsumerState<SubscriptionTreeView> {
                           showDetailPane: widget.showDetailPaneOnSelection,
                         ),
                       ),
+                      onSecondaryTapDown: isDesktop
+                          ? (details) => unawaited(
+                              SubscriptionObjectMenus.showSettingsFeedContextMenu(
+                                context,
+                                ref,
+                                feed: feed,
+                                position: details.globalPosition,
+                              ),
+                            )
+                          : null,
                     ),
                   ),
                 );
@@ -282,6 +306,16 @@ class _SubscriptionTreeViewState extends ConsumerState<SubscriptionTreeView> {
                         showDetailPane: widget.showDetailPaneOnSelection,
                       ),
                     ),
+                    onSecondaryTapDown: isDesktop
+                        ? (details) => unawaited(
+                            SubscriptionObjectMenus.showSettingsFeedContextMenu(
+                              context,
+                              ref,
+                              feed: feed,
+                              position: details.globalPosition,
+                            ),
+                          )
+                        : null,
                   ),
                 ),
               );
@@ -429,6 +463,7 @@ class _CategoryTreeNode extends StatelessWidget {
     required this.isSelected,
     required this.onToggleExpanded,
     required this.onSelectCategory,
+    this.onSecondaryTapDown,
   });
 
   final Category category;
@@ -437,6 +472,7 @@ class _CategoryTreeNode extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onToggleExpanded;
   final VoidCallback onSelectCategory;
+  final GestureTapDownCallback? onSecondaryTapDown;
 
   @override
   Widget build(BuildContext context) {
@@ -463,6 +499,7 @@ class _CategoryTreeNode extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
             selected: isSelected,
+            onSecondaryTapDown: onSecondaryTapDown,
             trailing: Text(
               '$feedCount',
               style: theme.textTheme.labelMedium?.copyWith(
@@ -484,12 +521,14 @@ class _FeedTreeRow extends StatelessWidget {
     required this.selected,
     required this.indent,
     required this.onTap,
+    this.onSecondaryTapDown,
   });
 
   final Feed feed;
   final bool selected;
   final double indent;
   final VoidCallback onTap;
+  final GestureTapDownCallback? onSecondaryTapDown;
 
   @override
   Widget build(BuildContext context) {
@@ -508,6 +547,7 @@ class _FeedTreeRow extends StatelessWidget {
       ),
       subtitle: Text(feed.url, maxLines: 1, overflow: TextOverflow.ellipsis),
       selected: selected,
+      onSecondaryTapDown: onSecondaryTapDown,
       onTap: onTap,
     );
   }

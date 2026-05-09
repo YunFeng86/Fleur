@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -86,6 +87,14 @@ class _SidebarHarnessState extends ConsumerState<_SidebarHarness> {
       onShowFeedMenu: (_) async {},
     );
   }
+}
+
+Future<void> _openContextMenuOnText(WidgetTester tester, String text) async {
+  await tester.tapAt(
+    tester.getCenter(find.text(text)),
+    buttons: kSecondaryMouseButton,
+  );
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -217,7 +226,7 @@ void main() {
     expect(find.text('Move to category'), findsNothing);
     expect(find.text('Delete subscription'), findsNothing);
     expect(find.text('Refresh'), findsNothing);
-    expect(find.text('Edit'), findsOneWidget);
+    expect(find.text('Rename'), findsOneWidget);
   });
 
   testWidgets('Miniflux sidebar keeps source refresh actions', (tester) async {
@@ -276,6 +285,114 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Refresh'), findsOneWidget);
+  });
+
+  testWidgets('desktop context menu shows category and feed actions', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    final category = Category()
+      ..id = 1
+      ..name = 'Tech';
+    final feed = Feed()
+      ..id = 101
+      ..url = 'https://example.com/feed.xml'
+      ..title = 'Tech News'
+      ..categoryId = 1;
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: _SidebarHarness(
+              categories: [category],
+              feeds: [feed],
+              unreadCounts: const {null: 1, 101: 1},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(SidebarNavigationTree)),
+    );
+
+    await _openContextMenuOnText(tester, 'Tech');
+
+    expect(find.text('Rename'), findsOneWidget);
+    expect(find.text('Delete category'), findsOneWidget);
+    expect(container.read(selectedCategoryIdProvider), isNull);
+    expect(container.read(selectedFeedIdProvider), isNull);
+
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.pumpAndSettle();
+
+    await _openContextMenuOnText(tester, 'Tech News');
+
+    expect(find.text('Rename'), findsOneWidget);
+    expect(find.text('Refresh'), findsOneWidget);
+    expect(find.text('Make available offline'), findsOneWidget);
+    expect(find.text('Move to category'), findsOneWidget);
+    expect(find.text('Delete subscription'), findsOneWidget);
+    expect(container.read(selectedCategoryIdProvider), isNull);
+    expect(container.read(selectedFeedIdProvider), isNull);
+  });
+
+  testWidgets('Fever desktop context menu keeps only local feed actions', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    final category = Category()
+      ..id = 1
+      ..name = 'Tech';
+    final feed = Feed()
+      ..id = 101
+      ..url = 'https://example.com/feed.xml'
+      ..title = 'Tech News'
+      ..categoryId = 1;
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: _SidebarHarness(
+              categories: [category],
+              feeds: [feed],
+              unreadCounts: const {null: 1, 101: 1},
+              accountType: AccountType.fever,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await _openContextMenuOnText(tester, 'Tech');
+
+    expect(find.text('Rename'), findsNothing);
+    expect(find.text('Delete category'), findsNothing);
+
+    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.pumpAndSettle();
+    await _openContextMenuOnText(tester, 'Tech News');
+
+    expect(find.text('Rename'), findsOneWidget);
+    expect(find.text('Make available offline'), findsOneWidget);
+    expect(find.text('Refresh'), findsNothing);
+    expect(find.text('Move to category'), findsNothing);
+    expect(find.text('Delete subscription'), findsNothing);
   });
 
   testWidgets('expanding a category above the viewport preserves visible row', (

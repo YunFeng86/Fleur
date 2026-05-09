@@ -236,6 +236,7 @@ class SettingsTile extends StatelessWidget {
     this.leading,
     this.trailing,
     this.onTap,
+    this.onSecondaryTapDown,
     this.destructive = false,
     this.selected = false,
     this.contentPadding = const EdgeInsets.symmetric(horizontal: 16),
@@ -246,6 +247,7 @@ class SettingsTile extends StatelessWidget {
   final Widget? leading;
   final Widget? trailing;
   final VoidCallback? onTap;
+  final GestureTapDownCallback? onSecondaryTapDown;
   final bool destructive;
   final bool selected;
   final EdgeInsetsGeometry contentPadding;
@@ -258,19 +260,23 @@ class SettingsTile extends StatelessWidget {
 
     return IconTheme.merge(
       data: IconThemeData(color: destructive ? states.errorAccent : null),
-      child: ListTile(
-        contentPadding: contentPadding,
-        selected: selected,
-        leading: leading,
-        title: DefaultTextStyle.merge(
-          style: titleColor == null
-              ? const TextStyle()
-              : TextStyle(color: titleColor),
-          child: title,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onSecondaryTapDown: onSecondaryTapDown,
+        child: ListTile(
+          contentPadding: contentPadding,
+          selected: selected,
+          leading: leading,
+          title: DefaultTextStyle.merge(
+            style: titleColor == null
+                ? const TextStyle()
+                : TextStyle(color: titleColor),
+            child: title,
+          ),
+          subtitle: subtitle,
+          trailing: trailing,
+          onTap: onTap,
         ),
-        subtitle: subtitle,
-        trailing: trailing,
-        onTap: onTap,
       ),
     );
   }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,6 +12,7 @@ import '../../services/sync/backend_sync_semantics.dart';
 import '../../theme/app_typography.dart';
 import '../../ui/sidebar/sidebar_management_actions.dart';
 import '../../ui/sidebar/sidebar_selection_actions.dart';
+import '../actions/subscription_object_menus.dart';
 import '../../utils/platform.dart';
 import '../../utils/tag_colors.dart';
 import '../../widgets/app_scrollbar.dart';
@@ -686,6 +689,31 @@ class _SidebarCategoryTile extends StatelessWidget {
   final BackendSyncSemantics syncSemantics;
   final Future<void> Function(Category category) onShowCategoryMenu;
 
+  Future<void> _showContextMenu(
+    BuildContext context,
+    Offset position,
+    List<SubscriptionObjectMenuItem<SubscriptionCategoryMenuAction>> items,
+  ) async {
+    final action = await SubscriptionObjectMenus.showContextMenu(
+      context: context,
+      position: position,
+      items: items,
+    );
+    if (!context.mounted || action == null) return;
+    await _performAction(action);
+  }
+
+  Future<void> _performAction(SubscriptionCategoryMenuAction action) {
+    return switch (action) {
+      SubscriptionCategoryMenuAction.rename => managementActions.renameCategory(
+        category,
+      ),
+      SubscriptionCategoryMenuAction.delete => managementActions.deleteCategory(
+        category,
+      ),
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -693,11 +721,10 @@ class _SidebarCategoryTile extends StatelessWidget {
         !starredOnly &&
         selectedFeedId == null &&
         selectedCategoryId == category.id;
-    final hasCategoryActions =
-        capabilities.isVisible(BackendFeature.renameCategory) ||
-        capabilities.isVisible(BackendFeature.deleteCategory);
+    final menuItems = SubscriptionObjectMenus.categoryItems(l10n, capabilities);
+    final hasCategoryActions = menuItems.isNotEmpty;
 
-    return Semantics(
+    final child = Semantics(
       container: true,
       selected: selected,
       expanded: expanded,
@@ -735,22 +762,11 @@ class _SidebarCategoryTile extends StatelessWidget {
                   ),
                 if (isDesktop && hasCategoryActions)
                   MenuAnchor(
-                    menuChildren: [
-                      if (capabilities.isVisible(BackendFeature.renameCategory))
-                        MenuItemButton(
-                          leadingIcon: const Icon(Icons.edit_outlined),
-                          onPressed: () =>
-                              managementActions.renameCategory(category),
-                          child: Text(l10n.rename),
-                        ),
-                      if (capabilities.isVisible(BackendFeature.deleteCategory))
-                        MenuItemButton(
-                          leadingIcon: const Icon(Icons.delete_outline),
-                          onPressed: () =>
-                              managementActions.deleteCategory(category),
-                          child: Text(l10n.deleteCategory),
-                        ),
-                    ],
+                    menuChildren: SubscriptionObjectMenus.menuButtons(
+                      context: context,
+                      items: menuItems,
+                      onSelected: (action) => unawaited(_performAction(action)),
+                    ),
                     builder: (context, controller, child) {
                       return IconButton(
                         tooltip: l10n.more,
@@ -772,6 +788,16 @@ class _SidebarCategoryTile extends StatelessWidget {
           ),
         ],
       ),
+    );
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onSecondaryTapDown: isDesktop && hasCategoryActions
+          ? (details) => unawaited(
+              _showContextMenu(context, details.globalPosition, menuItems),
+            )
+          : null,
+      child: child,
     );
   }
 }
@@ -797,6 +823,35 @@ class _SidebarFeedTile extends StatelessWidget {
   final BackendCapabilities capabilities;
   final Future<void> Function(Feed feed) onShowFeedMenu;
 
+  Future<void> _showContextMenu(
+    BuildContext context,
+    Offset position,
+    List<SubscriptionObjectMenuItem<SubscriptionFeedMenuAction>> items,
+  ) async {
+    final action = await SubscriptionObjectMenus.showContextMenu(
+      context: context,
+      position: position,
+      items: items,
+    );
+    if (!context.mounted || action == null) return;
+    await _performAction(action);
+  }
+
+  Future<void> _performAction(SubscriptionFeedMenuAction action) {
+    return switch (action) {
+      SubscriptionFeedMenuAction.rename => managementActions.editFeedTitle(
+        feed,
+      ),
+      SubscriptionFeedMenuAction.refresh => managementActions.refreshFeed(feed),
+      SubscriptionFeedMenuAction.offlineCache =>
+        managementActions.cacheFeedOffline(feed),
+      SubscriptionFeedMenuAction.move => managementActions.moveFeedToCategory(
+        feed,
+      ),
+      SubscriptionFeedMenuAction.delete => managementActions.deleteFeed(feed),
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -809,114 +864,76 @@ class _SidebarFeedTile extends StatelessWidget {
           ? feed.siteUrl!.trim()
           : feed.url,
     );
-    final canMove =
-        capabilities.isVisible(BackendFeature.moveSubscriptionToCategory) ||
-        capabilities.isVisible(BackendFeature.moveSubscriptionToUncategorized);
-    final hasFeedActions =
-        capabilities.isVisible(BackendFeature.clientFeedSettings) ||
-        capabilities.isVisible(BackendFeature.refreshSubscriptionSource) ||
-        capabilities.isVisible(BackendFeature.offlineCache) ||
-        canMove ||
-        capabilities.isVisible(BackendFeature.deleteSubscription);
+    final menuItems = SubscriptionObjectMenus.feedItems(l10n, capabilities);
+    final hasFeedActions = menuItems.isNotEmpty;
 
-    return ListTile(
-      selected: selectedFeedId == feed.id,
-      contentPadding: EdgeInsets.only(left: 16 + indent, right: 8),
-      leading: FaviconCircle(
-        siteUri: siteUri,
-        diameter: 28,
-        avatarSize: 18,
-        fallbackIcon: Icons.rss_feed,
-        fallbackColor: theme.colorScheme.onSurfaceVariant,
-      ),
-      title: Text(displayTitle),
-      subtitle:
-          (feed.userTitle?.trim().isNotEmpty == true ||
-              feed.title?.trim().isNotEmpty == true)
-          ? Text(feed.url, maxLines: 1, overflow: TextOverflow.ellipsis)
-          : null,
-      trailing: isDesktop
-          ? Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (unreadCount != null) _UnreadBadge(unreadCount!),
-                if (hasFeedActions)
-                  MenuAnchor(
-                    menuChildren: [
-                      if (capabilities.isVisible(
-                        BackendFeature.clientFeedSettings,
-                      ))
-                        MenuItemButton(
-                          leadingIcon: const Icon(Icons.edit_outlined),
-                          onPressed: () =>
-                              managementActions.editFeedTitle(feed),
-                          child: Text(l10n.edit),
-                        ),
-                      if (capabilities.isVisible(
-                        BackendFeature.refreshSubscriptionSource,
-                      ))
-                        MenuItemButton(
-                          leadingIcon: const Icon(Icons.refresh),
-                          onPressed: () => managementActions.refreshFeed(feed),
-                          child: Text(l10n.refresh),
-                        ),
-                      if (capabilities.isVisible(BackendFeature.offlineCache))
-                        MenuItemButton(
-                          leadingIcon: const Icon(
-                            Icons.download_for_offline_outlined,
-                          ),
-                          onPressed: () =>
-                              managementActions.cacheFeedOffline(feed),
-                          child: Text(l10n.makeAvailableOffline),
-                        ),
-                      if (canMove)
-                        MenuItemButton(
-                          leadingIcon: const Icon(
-                            Icons.drive_file_move_outline,
-                          ),
-                          onPressed: () =>
-                              managementActions.moveFeedToCategory(feed),
-                          child: Text(l10n.moveToCategory),
-                        ),
-                      if (capabilities.isVisible(
-                        BackendFeature.deleteSubscription,
-                      ))
-                        MenuItemButton(
-                          leadingIcon: const Icon(Icons.delete_outline),
-                          onPressed: () => managementActions.deleteFeed(feed),
-                          child: Text(l10n.deleteSubscription),
-                        ),
-                    ],
-                    builder: (context, controller, child) {
-                      return IconButton(
-                        tooltip: l10n.more,
-                        onPressed: () {
-                          controller.isOpen
-                              ? controller.close()
-                              : controller.open();
-                        },
-                        icon: const Icon(Icons.more_vert),
-                      );
-                    },
-                  ),
-              ],
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onSecondaryTapDown: isDesktop && hasFeedActions
+          ? (details) => unawaited(
+              _showContextMenu(context, details.globalPosition, menuItems),
             )
-          : Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (unreadCount != null) _UnreadBadge(unreadCount!),
-                if (hasFeedActions)
-                  IconButton(
-                    tooltip: l10n.more,
-                    onPressed: () => onShowFeedMenu(feed),
-                    icon: const Icon(Icons.more_vert),
-                  ),
-              ],
-            ),
-      onTap: () => selectionActions.selectFeed(feed.id),
-      onLongPress: isDesktop || !hasFeedActions
-          ? null
-          : () => onShowFeedMenu(feed),
+          : null,
+      child: ListTile(
+        selected: selectedFeedId == feed.id,
+        contentPadding: EdgeInsets.only(left: 16 + indent, right: 8),
+        leading: FaviconCircle(
+          siteUri: siteUri,
+          diameter: 28,
+          avatarSize: 18,
+          fallbackIcon: Icons.rss_feed,
+          fallbackColor: theme.colorScheme.onSurfaceVariant,
+        ),
+        title: Text(displayTitle),
+        subtitle:
+            (feed.userTitle?.trim().isNotEmpty == true ||
+                feed.title?.trim().isNotEmpty == true)
+            ? Text(feed.url, maxLines: 1, overflow: TextOverflow.ellipsis)
+            : null,
+        trailing: isDesktop
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (unreadCount != null) _UnreadBadge(unreadCount!),
+                  if (hasFeedActions)
+                    MenuAnchor(
+                      menuChildren: SubscriptionObjectMenus.menuButtons(
+                        context: context,
+                        items: menuItems,
+                        onSelected: (action) =>
+                            unawaited(_performAction(action)),
+                      ),
+                      builder: (context, controller, child) {
+                        return IconButton(
+                          tooltip: l10n.more,
+                          onPressed: () {
+                            controller.isOpen
+                                ? controller.close()
+                                : controller.open();
+                          },
+                          icon: const Icon(Icons.more_vert),
+                        );
+                      },
+                    ),
+                ],
+              )
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (unreadCount != null) _UnreadBadge(unreadCount!),
+                  if (hasFeedActions)
+                    IconButton(
+                      tooltip: l10n.more,
+                      onPressed: () => onShowFeedMenu(feed),
+                      icon: const Icon(Icons.more_vert),
+                    ),
+                ],
+              ),
+        onTap: () => selectionActions.selectFeed(feed.id),
+        onLongPress: isDesktop || !hasFeedActions
+            ? null
+            : () => onShowFeedMenu(feed),
+      ),
     );
   }
 }

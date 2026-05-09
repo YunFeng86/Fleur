@@ -1,17 +1,23 @@
 import 'dart:async';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fleur/l10n/app_localizations.dart';
 import 'package:fleur/models/category.dart';
 import 'package:fleur/models/feed.dart';
+import 'package:fleur/providers/account_providers.dart';
 import 'package:fleur/providers/query_providers.dart';
 import 'package:fleur/providers/subscription_settings_provider.dart';
+import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/ui/settings/subscriptions/subscription_tree_view.dart';
 import 'package:fleur/ui/settings/widgets/section_header.dart';
+import 'package:fleur/utils/platform.dart';
 import 'package:fleur/widgets/app_scrollbar.dart';
 import 'package:fleur/widgets/tree_disclosure_button.dart';
+
+import '../../../test_utils/critical_workflow_test_support.dart';
 
 List<Category> _buildCategories(int count) {
   return List<Category>.generate(
@@ -52,6 +58,14 @@ Finder _firstVisibleCategoryRow(WidgetTester tester, Iterable<String> labels) {
             finder.evaluate().isNotEmpty &&
             tester.getTopLeft(finder).dy >= viewportTop,
       );
+}
+
+Future<void> _openContextMenuOnText(WidgetTester tester, String text) async {
+  await tester.tapAt(
+    tester.getCenter(find.text(text)),
+    buttons: kSecondaryMouseButton,
+  );
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -139,6 +153,130 @@ void main() {
 
       // Verify Feed is NOT visible (collapsed)
       expect(find.text('Tech News'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'SubscriptionTreeView context menu shows category and feed items',
+    (tester) async {
+      debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+      addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+      final category = Category()
+        ..id = 1
+        ..name = 'Tech';
+
+      final feed = Feed()
+        ..id = 101
+        ..url = 'http://tech.com/rss'
+        ..title = 'Tech News'
+        ..categoryId = 1;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            activeAccountProvider.overrideWithValue(buildTestAccount()),
+            categoriesProvider.overrideWith((ref) => Stream.value([category])),
+            feedsProvider.overrideWith((ref) => Stream.value([feed])),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const Scaffold(body: SubscriptionTreeView()),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(SubscriptionTreeView)),
+      );
+
+      await _openContextMenuOnText(tester, 'Tech');
+
+      expect(find.text('Rename'), findsOneWidget);
+      expect(find.text('Delete category'), findsOneWidget);
+      expect(
+        container.read(subscriptionSelectionProvider).activeCategoryId,
+        isNull,
+      );
+      expect(
+        container.read(subscriptionSelectionProvider).selectedFeedId,
+        isNull,
+      );
+
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.chevron_right));
+      await tester.pumpAndSettle();
+
+      await _openContextMenuOnText(tester, 'Tech News');
+
+      expect(find.text('Rename'), findsOneWidget);
+      expect(find.text('Refresh'), findsOneWidget);
+      expect(find.text('Make available offline'), findsOneWidget);
+      expect(find.text('Move to category'), findsOneWidget);
+      expect(find.text('Delete subscription'), findsOneWidget);
+      expect(
+        container.read(subscriptionSelectionProvider).activeCategoryId,
+        isNull,
+      );
+      expect(
+        container.read(subscriptionSelectionProvider).selectedFeedId,
+        isNull,
+      );
+    },
+  );
+
+  testWidgets(
+    'SubscriptionTreeView Fever context menu hides structure actions',
+    (tester) async {
+      debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+      addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+      final category = Category()
+        ..id = 1
+        ..name = 'Tech';
+
+      final feed = Feed()
+        ..id = 101
+        ..url = 'http://tech.com/rss'
+        ..title = 'Tech News'
+        ..categoryId = 1;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            activeAccountProvider.overrideWithValue(
+              buildTestAccount(type: AccountType.fever),
+            ),
+            categoriesProvider.overrideWith((ref) => Stream.value([category])),
+            feedsProvider.overrideWith((ref) => Stream.value([feed])),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const Scaffold(body: SubscriptionTreeView()),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      await _openContextMenuOnText(tester, 'Tech');
+
+      expect(find.text('Rename'), findsNothing);
+      expect(find.text('Delete category'), findsNothing);
+
+      await tester.tap(find.byIcon(Icons.chevron_right));
+      await tester.pumpAndSettle();
+      await _openContextMenuOnText(tester, 'Tech News');
+
+      expect(find.text('Rename'), findsOneWidget);
+      expect(find.text('Make available offline'), findsOneWidget);
+      expect(find.text('Refresh'), findsNothing);
+      expect(find.text('Move to category'), findsNothing);
+      expect(find.text('Delete subscription'), findsNothing);
     },
   );
 
