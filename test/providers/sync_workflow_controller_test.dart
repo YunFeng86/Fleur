@@ -93,24 +93,31 @@ void main() {
     expect(result.stallCount, 1);
   });
 
-  test('resolveBackgroundSyncScheduleDecision enables refresh scheduling', () {
-    final decision = resolveBackgroundSyncScheduleDecision(
-      refreshEnabled: true,
-      outboxCapable: true,
-      pendingAsync: const AsyncData<int>(0),
-      lastEnabled: false,
-      stallCount: 0,
-    );
+  test(
+    'resolveBackgroundSyncScheduleDecision enables account sync scheduling',
+    () {
+      final decision = resolveBackgroundSyncScheduleDecision(
+        accountSyncEnabled: true,
+        sourceRefreshEnabled: false,
+        sourceRefreshFrequency: null,
+        outboxCapable: true,
+        pendingAsync: const AsyncData<int>(0),
+        lastEnabled: false,
+        stallCount: 0,
+      );
 
-    expect(decision.enabled, isTrue);
-    expect(decision.frequency, isNull);
-  });
+      expect(decision.enabled, isTrue);
+      expect(decision.frequency, BackgroundSyncController.accountSyncFrequency);
+    },
+  );
 
   test(
     'resolveBackgroundSyncScheduleDecision enables outbox backoff scheduling',
     () {
       final decision = resolveBackgroundSyncScheduleDecision(
-        refreshEnabled: false,
+        accountSyncEnabled: false,
+        sourceRefreshEnabled: false,
+        sourceRefreshFrequency: null,
         outboxCapable: true,
         pendingAsync: const AsyncData<int>(2),
         lastEnabled: false,
@@ -126,10 +133,30 @@ void main() {
   );
 
   test(
+    'resolveBackgroundSyncScheduleDecision enables source refresh scheduling',
+    () {
+      final decision = resolveBackgroundSyncScheduleDecision(
+        accountSyncEnabled: false,
+        sourceRefreshEnabled: true,
+        sourceRefreshFrequency: const Duration(minutes: 30),
+        outboxCapable: false,
+        pendingAsync: const AsyncData<int>(0),
+        lastEnabled: false,
+        stallCount: 0,
+      );
+
+      expect(decision.enabled, isTrue);
+      expect(decision.frequency, const Duration(minutes: 30));
+    },
+  );
+
+  test(
     'resolveBackgroundSyncScheduleDecision disables scheduling with no work',
     () {
       final decision = resolveBackgroundSyncScheduleDecision(
-        refreshEnabled: false,
+        accountSyncEnabled: false,
+        sourceRefreshEnabled: false,
+        sourceRefreshFrequency: null,
         outboxCapable: true,
         pendingAsync: const AsyncData<int>(0),
         lastEnabled: false,
@@ -226,7 +253,7 @@ void main() {
       final scheduler = FakeBackgroundSyncScheduler();
       final appStore = FakeAppSettingsStore(
         AppSettings.defaults().copyWith(
-          autoRefreshMinutes: 30,
+          sourceRefreshMinutes: null,
           syncEnabled: true,
         ),
       );
@@ -252,11 +279,11 @@ void main() {
       addTearDown(sub.close);
       await flushAsync();
 
-      expect(scheduler.scheduledFrequencies, [const Duration(minutes: 30)]);
+      expect(scheduler.scheduledFrequencies, [
+        BackgroundSyncController.accountSyncFrequency,
+      ]);
 
-      await container
-          .read(appSettingsProvider.notifier)
-          .setAutoRefreshMinutes(null);
+      await container.read(appSettingsProvider.notifier).setSyncEnabled(false);
       await flushAsync();
 
       expect(scheduler.cancelCalls, 1);
@@ -269,7 +296,7 @@ void main() {
       final scheduler = FakeBackgroundSyncScheduler();
       final appStore = FakeAppSettingsStore(
         AppSettings.defaults().copyWith(
-          autoRefreshMinutes: null,
+          sourceRefreshMinutes: null,
           syncEnabled: false,
         ),
       );

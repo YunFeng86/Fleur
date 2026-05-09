@@ -207,7 +207,7 @@
   "@uncategorized": {
     "description": "uncategorized"
   },
-  "refreshAll": "刷新全部",
+  "refreshAll": "刷新订阅源",
   "@refreshAll": {
     "description": "refreshAll"
   },
@@ -978,11 +978,11 @@
   "@onlySupportedInLocalAccount": {
     "description": "onlySupportedInLocalAccount"
   },
-  "autoRefresh": "自动刷新",
+  "autoRefresh": "自动刷新订阅源",
   "@autoRefresh": {
     "description": "autoRefresh"
   },
-  "autoRefreshSubtitle": "App 打开时按所选周期刷新；移动端后台刷新由系统调度，通常不会短于 15 分钟，且不保证准点。",
+  "autoRefreshSubtitle": "按所选周期刷新订阅源；移动端后台刷新由系统调度，通常不会短于 15 分钟，且不保证准点。",
   "@autoRefreshSubtitle": {
     "description": "autoRefreshSubtitle"
   },

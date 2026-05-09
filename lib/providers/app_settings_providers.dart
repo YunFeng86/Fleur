@@ -46,9 +46,14 @@ class AppSettingsController extends AsyncNotifier<AppSettings> {
     await save(cur.copyWith(autoMarkRead: value));
   }
 
-  Future<void> setAutoRefreshMinutes(int? minutes) async {
+  Future<void> setSourceRefreshMinutes(int? minutes) async {
     final cur = state.valueOrNull ?? AppSettings.defaults();
-    await save(cur.copyWith(autoRefreshMinutes: minutes));
+    await save(cur.copyWith(sourceRefreshMinutes: minutes));
+  }
+
+  @Deprecated('Use setSourceRefreshMinutes instead.')
+  Future<void> setAutoRefreshMinutes(int? minutes) {
+    return setSourceRefreshMinutes(minutes);
   }
 
   Future<void> setAutoRefreshConcurrency(int concurrency) async {

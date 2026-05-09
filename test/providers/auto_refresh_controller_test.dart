@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:fleur/models/feed.dart';
+import 'package:fleur/providers/account_providers.dart';
 import 'package:fleur/providers/app_settings_providers.dart';
 import 'package:fleur/providers/auto_refresh_providers.dart';
 import 'package:fleur/providers/refresh_all_providers.dart';
@@ -10,6 +11,7 @@ import 'package:fleur/repositories/feed_repository.dart';
 import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/sync/refresh_all_coordinator.dart';
+import 'package:fleur/services/sync/sync_service.dart';
 
 import '../test_utils/critical_workflow_test_support.dart';
 
@@ -36,37 +38,65 @@ class _AutoRefreshHost extends ConsumerWidget {
 }
 
 void main() {
-  Future<FakeSyncService> pumpController(
+  Future<List<String>> pumpController(
     WidgetTester tester, {
-    required int? autoRefreshMinutes,
+    required AccountType accountType,
+    required int? sourceRefreshMinutes,
     bool syncEnabled = true,
   }) async {
-    final syncService = FakeSyncService();
-    final coordinator = RefreshAllCoordinator(
-      account: buildTestAccount(type: AccountType.local),
+    final events = <String>[];
+    final account = buildTestAccount(type: accountType);
+    final accountSyncService = FakeSyncService(
+      onRefresh: (feedIds) async {
+        events.add('sync');
+        return const BatchRefreshResult(<FeedRefreshResult>[]);
+      },
+    );
+    final sourceRefreshService = FakeSyncService(
+      onRefresh: (feedIds) async {
+        events.add('source');
+        return const BatchRefreshResult(<FeedRefreshResult>[]);
+      },
+    );
+    final accountSyncCoordinator = AccountSyncCoordinator(
+      account: account,
       feeds: _FakeFeedRepository(),
-      syncService: syncService,
+      syncService: accountSyncService,
+    );
+    final refreshSourcesCoordinator = RefreshSourcesCoordinator(
+      account: account,
+      feeds: _FakeFeedRepository(),
+      syncService: sourceRefreshService,
+      refreshAllRemoteFeeds: () async {
+        events.add('upstream');
+      },
     );
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          activeAccountProvider.overrideWithValue(account),
           appSettingsStoreProvider.overrideWithValue(
             FakeAppSettingsStore(
               AppSettings.defaults().copyWith(
-                autoRefreshMinutes: autoRefreshMinutes,
+                sourceRefreshMinutes: sourceRefreshMinutes,
                 syncEnabled: syncEnabled,
               ),
             ),
           ),
-          refreshAllCoordinatorProvider.overrideWithValue(coordinator),
+          accountSyncCoordinatorProvider.overrideWithValue(
+            accountSyncCoordinator,
+          ),
+          refreshSourcesCoordinatorProvider.overrideWithValue(
+            refreshSourcesCoordinator,
+          ),
         ],
         child: const _AutoRefreshHost(),
       ),
     );
     await tester.pump();
     await tester.pump();
-    return syncService;
+    return events;
   }
 
   Future<void> disposeController(WidgetTester tester) async {
@@ -75,45 +105,78 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('auto refresh timer triggers the shared refresh coordinator', (
+  testWidgets('remote account polling syncs account without source refresh', (
     tester,
   ) async {
-    final syncService = await pumpController(tester, autoRefreshMinutes: 5);
-
-    await tester.pump(const Duration(minutes: 5));
-    await tester.pump();
-
-    expect(syncService.refreshCalls, [
-      [1],
-    ]);
-
-    await disposeController(tester);
-  });
-
-  testWidgets('auto refresh timer stays idle when disabled', (tester) async {
-    final syncService = await pumpController(tester, autoRefreshMinutes: null);
-
-    await tester.pump(const Duration(minutes: 5));
-    await tester.pump();
-
-    expect(syncService.refreshCalls, isEmpty);
-
-    await disposeController(tester);
-  });
-
-  testWidgets('auto refresh timer stays idle when sync is disabled', (
-    tester,
-  ) async {
-    final syncService = await pumpController(
+    final events = await pumpController(
       tester,
-      autoRefreshMinutes: 5,
+      accountType: AccountType.miniflux,
+      sourceRefreshMinutes: null,
+    );
+
+    await tester.pump(const Duration(minutes: 5));
+    await tester.pump();
+
+    expect(events, ['sync']);
+
+    await disposeController(tester);
+  });
+
+  testWidgets('source refresh due skips duplicate account sync', (
+    tester,
+  ) async {
+    final events = await pumpController(
+      tester,
+      accountType: AccountType.miniflux,
+      sourceRefreshMinutes: 15,
+    );
+
+    await tester.pump(const Duration(minutes: 5));
+    await tester.pump();
+    await tester.pump(const Duration(minutes: 5));
+    await tester.pump();
+    await tester.pump(const Duration(minutes: 5));
+    await tester.pump();
+
+    expect(events, ['sync', 'sync', 'upstream', 'source']);
+
+    await disposeController(tester);
+  });
+
+  testWidgets('local account only refreshes sources when configured', (
+    tester,
+  ) async {
+    final events = await pumpController(
+      tester,
+      accountType: AccountType.local,
+      sourceRefreshMinutes: 15,
+    );
+
+    await tester.pump(const Duration(minutes: 5));
+    await tester.pump();
+    expect(events, isEmpty);
+
+    await tester.pump(const Duration(minutes: 10));
+    await tester.pump();
+    expect(events, ['source']);
+
+    await disposeController(tester);
+  });
+
+  testWidgets('auto scheduler stays idle when sync is disabled', (
+    tester,
+  ) async {
+    final events = await pumpController(
+      tester,
+      accountType: AccountType.miniflux,
+      sourceRefreshMinutes: 15,
       syncEnabled: false,
     );
 
     await tester.pump(const Duration(minutes: 5));
     await tester.pump();
 
-    expect(syncService.refreshCalls, isEmpty);
+    expect(events, isEmpty);
 
     await disposeController(tester);
   });

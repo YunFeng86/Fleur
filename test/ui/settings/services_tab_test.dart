@@ -88,7 +88,7 @@ void main() {
       account: buildTestAccount(type: AccountType.local, name: 'Local'),
     );
 
-    expect(find.text('Refresh all'), findsWidgets);
+    expect(find.text('Refresh sources'), findsWidgets);
     expect(find.text('Account sync'), findsNothing);
     expect(find.text('Refresh Concurrency'), findsOneWidget);
     expect(find.text('Remote sync strategy'), findsNothing);
@@ -96,7 +96,7 @@ void main() {
     expect(find.text('Remote fetch concurrency'), findsNothing);
   });
 
-  testWidgets('Fever shows account sync and remote entry window', (
+  testWidgets('Fever hides source refresh and shows remote entry window', (
     tester,
   ) async {
     await pumpTab(
@@ -104,8 +104,9 @@ void main() {
       account: buildTestAccount(type: AccountType.fever, name: 'Fever'),
     );
 
-    expect(find.text('Account sync'), findsOneWidget);
-    expect(find.text('Sync account'), findsOneWidget);
+    expect(find.text('Account sync'), findsNothing);
+    expect(find.text('Sync account'), findsNothing);
+    expect(find.text('Refresh sources'), findsNothing);
     expect(find.text('Refresh Concurrency'), findsNothing);
     expect(find.text('Remote sync strategy'), findsOneWidget);
     expect(find.text('Entries per sync'), findsOneWidget);
@@ -115,7 +116,7 @@ void main() {
     expect(find.text('Server (Miniflux fetch-content)'), findsNothing);
   });
 
-  testWidgets('Miniflux shows account sync, entry window, and fetch mode', (
+  testWidgets('Miniflux shows source refresh, entry window, and fetch mode', (
     tester,
   ) async {
     await pumpTab(
@@ -123,8 +124,9 @@ void main() {
       account: buildTestAccount(type: AccountType.miniflux, name: 'Miniflux'),
     );
 
-    expect(find.text('Account sync'), findsOneWidget);
-    expect(find.text('Sync account'), findsOneWidget);
+    expect(find.text('Refresh sources'), findsWidgets);
+    expect(find.text('Account sync'), findsNothing);
+    expect(find.text('Sync account'), findsNothing);
     expect(find.text('Refresh Concurrency'), findsNothing);
     expect(find.text('Remote sync strategy'), findsOneWidget);
     expect(find.text('Entries per sync'), findsOneWidget);
@@ -253,33 +255,34 @@ void main() {
     expect(find.text('Add Fever'), findsOneWidget);
   });
 
-  testWidgets('auto refresh interval persists and explains background limits', (
-    tester,
-  ) async {
-    final appStore = await pumpTab(
-      tester,
-      account: buildTestAccount(type: AccountType.local, name: 'Local'),
-    );
+  testWidgets(
+    'source refresh interval persists and explains background limits',
+    (tester) async {
+      final appStore = await pumpTab(
+        tester,
+        account: buildTestAccount(type: AccountType.local, name: 'Local'),
+      );
 
-    expect(find.textContaining('Mobile background refresh'), findsWidgets);
+      expect(find.textContaining('Mobile background refresh'), findsWidgets);
 
-    await tester.tap(
-      find.byWidgetPredicate(
-        (widget) => widget is DropdownButton<int?> && widget.value == null,
-      ),
-    );
-    await tester.pumpAndSettle();
+      await tester.tap(
+        find.byWidgetPredicate(
+          (widget) => widget is DropdownButton<int?> && widget.value == null,
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text('Every 5 min').last, findsOneWidget);
-    expect(find.text('Every 15 min').last, findsOneWidget);
-    expect(find.text('Every 30 min').last, findsOneWidget);
-    expect(find.text('Every 60 min').last, findsOneWidget);
+      expect(find.text('Every 5 min'), findsNothing);
+      expect(find.text('Every 15 min').last, findsOneWidget);
+      expect(find.text('Every 30 min').last, findsOneWidget);
+      expect(find.text('Every 60 min').last, findsOneWidget);
 
-    await tester.tap(find.text('Every 15 min').last);
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Every 15 min').last);
+      await tester.pumpAndSettle();
 
-    expect(appStore.settings.autoRefreshMinutes, 15);
-  });
+      expect(appStore.settings.sourceRefreshMinutes, 15);
+    },
+  );
 
   testWidgets('remote entry window updates the shared setting', (tester) async {
     final appStore = await pumpTab(

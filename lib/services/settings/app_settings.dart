@@ -19,7 +19,8 @@ class AppSettings {
     this.seedColorPreset = SeedColorPreset.blue,
     this.localeTag,
     this.autoMarkRead = true,
-    this.autoRefreshMinutes,
+    int? sourceRefreshMinutes,
+    int? autoRefreshMinutes,
     this.autoRefreshConcurrency = 2,
     this.articleGroupMode = ArticleGroupMode.none,
     this.articleSortOrder = ArticleSortOrder.newestFirst,
@@ -38,7 +39,15 @@ class AppSettings {
     this.rssUserAgent = UserAgents.rss,
     // Keep legacy value as a const fallback; prefer [AppSettings.defaults].
     this.webUserAgent = UserAgents.web,
-  });
+  }) : sourceRefreshMinutes =
+           sourceRefreshMinutes ??
+           (autoRefreshMinutes == null
+               ? null
+               : autoRefreshMinutes <= 0
+               ? null
+               : autoRefreshMinutes < 15
+               ? 15
+               : autoRefreshMinutes);
 
   static AppSettings defaults() {
     return AppSettings(
@@ -63,8 +72,12 @@ class AppSettings {
   /// Whether to auto-mark articles as read when opened in the reader.
   final bool autoMarkRead;
 
-  /// Auto-refresh interval in minutes. `null` means disabled.
-  final int? autoRefreshMinutes;
+  /// Source refresh interval in minutes. `null` means disabled.
+  final int? sourceRefreshMinutes;
+
+  /// Legacy alias for source refresh interval.
+  @Deprecated('Use sourceRefreshMinutes instead.')
+  int? get autoRefreshMinutes => sourceRefreshMinutes;
 
   /// Number of concurrent feeds to refresh at once.
   final int autoRefreshConcurrency;
@@ -119,6 +132,7 @@ class AppSettings {
     SeedColorPreset? seedColorPreset,
     Object? localeTag = _unset,
     bool? autoMarkRead,
+    Object? sourceRefreshMinutes = _unset,
     Object? autoRefreshMinutes = _unset,
     int? autoRefreshConcurrency,
     ArticleGroupMode? articleGroupMode,
@@ -145,9 +159,11 @@ class AppSettings {
       seedColorPreset: seedColorPreset ?? this.seedColorPreset,
       localeTag: localeTag == _unset ? this.localeTag : localeTag as String?,
       autoMarkRead: autoMarkRead ?? this.autoMarkRead,
-      autoRefreshMinutes: autoRefreshMinutes == _unset
-          ? this.autoRefreshMinutes
-          : autoRefreshMinutes as int?,
+      sourceRefreshMinutes: sourceRefreshMinutes != _unset
+          ? sourceRefreshMinutes as int?
+          : autoRefreshMinutes != _unset
+          ? _migrateLegacySourceRefreshMinutes(autoRefreshMinutes as int?)
+          : this.sourceRefreshMinutes,
       autoRefreshConcurrency:
           autoRefreshConcurrency ?? this.autoRefreshConcurrency,
       articleGroupMode: articleGroupMode ?? this.articleGroupMode,
@@ -181,7 +197,7 @@ class AppSettings {
     'seedColorPreset': seedColorPreset.name,
     'localeTag': localeTag,
     'autoMarkRead': autoMarkRead,
-    'autoRefreshMinutes': autoRefreshMinutes,
+    'sourceRefreshMinutes': sourceRefreshMinutes,
     'autoRefreshConcurrency': autoRefreshConcurrency,
     'articleGroupMode': articleGroupMode.name,
     'articleSortOrder': articleSortOrder.name,
@@ -214,6 +230,7 @@ class AppSettings {
     final localeTag = json['localeTag'];
 
     final autoMarkRead = json['autoMarkRead'];
+    final sourceRefreshMinutes = json['sourceRefreshMinutes'];
     final autoRefreshMinutes = json['autoRefreshMinutes'];
     final autoRefreshConcurrency = json['autoRefreshConcurrency'];
     final searchInContent = json['searchInContent'];
@@ -274,8 +291,10 @@ class AppSettings {
           ? localeTag
           : null,
       autoMarkRead: autoMarkRead is! bool || autoMarkRead,
-      autoRefreshMinutes: autoRefreshMinutes is num
-          ? autoRefreshMinutes.toInt()
+      sourceRefreshMinutes: sourceRefreshMinutes is num
+          ? sourceRefreshMinutes.toInt()
+          : autoRefreshMinutes is num
+          ? _migrateLegacySourceRefreshMinutes(autoRefreshMinutes.toInt())
           : null,
       autoRefreshConcurrency: autoRefreshConcurrency is num
           ? autoRefreshConcurrency.toInt()
@@ -312,6 +331,17 @@ class AppSettings {
     return loaded.normalized();
   }
 
+  static int? _migrateLegacySourceRefreshMinutes(int? minutes) {
+    if (minutes == null) return null;
+    if (minutes <= 0) return null;
+    return minutes < 15 ? 15 : minutes;
+  }
+
+  static int? _normalizeSourceRefreshMinutes(int? minutes) {
+    if (minutes == null || minutes <= 0) return null;
+    return minutes < 15 ? 15 : minutes;
+  }
+
   AppSettings normalized() {
     final normalizedLocaleTag = (() {
       final raw = (localeTag ?? '').trim();
@@ -337,7 +367,9 @@ class AppSettings {
       seedColorPreset: seedColorPreset,
       localeTag: normalizedLocaleTag,
       autoMarkRead: autoMarkRead,
-      autoRefreshMinutes: autoRefreshMinutes,
+      sourceRefreshMinutes: _normalizeSourceRefreshMinutes(
+        sourceRefreshMinutes,
+      ),
       autoRefreshConcurrency: autoRefreshConcurrency,
       articleGroupMode: articleGroupMode,
       articleSortOrder: articleSortOrder,

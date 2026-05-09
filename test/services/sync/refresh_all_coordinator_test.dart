@@ -25,61 +25,59 @@ Feed _feed(int id) {
 }
 
 void main() {
-  test('local refresh only syncs local feeds', () async {
-    var upstreamCalls = 0;
+  test('miniflux account sync does not refresh upstream sources', () async {
     final syncService = FakeSyncService();
-    final coordinator = RefreshAllCoordinator(
-      account: buildTestAccount(type: AccountType.local),
-      feeds: _FakeFeedRepository([_feed(1), _feed(2)]),
-      syncService: syncService,
-      refreshAllRemoteFeeds: () async {
-        upstreamCalls++;
-      },
-    );
-
-    final result = await coordinator.refreshAll(
-      trigger: RefreshAllTrigger.manual,
-    );
-
-    expect(result.ok, isTrue);
-    expect(upstreamCalls, 0);
-    expect(syncService.refreshCalls, [
-      [1, 2],
-    ]);
-  });
-
-  test('miniflux refresh triggers upstream refresh before syncing', () async {
-    final events = <String>[];
-    final syncService = FakeSyncService(
-      onRefresh: (feedIds) async {
-        events.add('sync');
-        return const BatchRefreshResult(<FeedRefreshResult>[]);
-      },
-    );
-    final coordinator = RefreshAllCoordinator(
+    final coordinator = AccountSyncCoordinator(
       account: buildTestAccount(type: AccountType.miniflux),
       feeds: _FakeFeedRepository([_feed(1)]),
       syncService: syncService,
-      refreshAllRemoteFeeds: () async {
-        events.add('upstream');
-      },
     );
 
-    final result = await coordinator.refreshAll(
-      trigger: RefreshAllTrigger.foregroundAuto,
+    final result = await coordinator.syncAccount(
+      trigger: AccountSyncTrigger.foregroundAuto,
     );
 
     expect(result.ok, isTrue);
-    expect(events, ['upstream', 'sync']);
     expect(syncService.refreshCalls, [
       [1],
     ]);
   });
 
-  test('miniflux upstream failure skips local sync', () async {
+  test(
+    'miniflux source refresh triggers upstream refresh before syncing',
+    () async {
+      final events = <String>[];
+      final syncService = FakeSyncService(
+        onRefresh: (feedIds) async {
+          events.add('sync');
+          return const BatchRefreshResult(<FeedRefreshResult>[]);
+        },
+      );
+      final coordinator = RefreshSourcesCoordinator(
+        account: buildTestAccount(type: AccountType.miniflux),
+        feeds: _FakeFeedRepository([_feed(1)]),
+        syncService: syncService,
+        refreshAllRemoteFeeds: () async {
+          events.add('upstream');
+        },
+      );
+
+      final result = await coordinator.refreshSources(
+        trigger: RefreshSourcesTrigger.foregroundAuto,
+      );
+
+      expect(result.ok, isTrue);
+      expect(events, ['upstream', 'sync']);
+      expect(syncService.refreshCalls, [
+        [1],
+      ]);
+    },
+  );
+
+  test('miniflux source refresh failure skips local sync', () async {
     final error = StateError('remote refresh failed');
     final syncService = FakeSyncService();
-    final coordinator = RefreshAllCoordinator(
+    final coordinator = RefreshSourcesCoordinator(
       account: buildTestAccount(type: AccountType.miniflux),
       feeds: _FakeFeedRepository([_feed(1)]),
       syncService: syncService,
@@ -88,8 +86,8 @@ void main() {
       },
     );
 
-    final result = await coordinator.refreshAll(
-      trigger: RefreshAllTrigger.background,
+    final result = await coordinator.refreshSources(
+      trigger: RefreshSourcesTrigger.background,
     );
 
     expect(result.ok, isFalse);
@@ -98,26 +96,56 @@ void main() {
     expect(syncService.refreshCalls, isEmpty);
   });
 
-  test('fever refresh syncs remote state without upstream refresh', () async {
-    var upstreamCalls = 0;
+  test('local source refresh syncs local feed sources', () async {
     final syncService = FakeSyncService();
-    final coordinator = RefreshAllCoordinator(
-      account: buildTestAccount(type: AccountType.fever),
-      feeds: _FakeFeedRepository([_feed(1)]),
+    final coordinator = RefreshSourcesCoordinator(
+      account: buildTestAccount(type: AccountType.local),
+      feeds: _FakeFeedRepository([_feed(1), _feed(2)]),
       syncService: syncService,
-      refreshAllRemoteFeeds: () async {
-        upstreamCalls++;
-      },
     );
 
-    final result = await coordinator.refreshAll(
-      trigger: RefreshAllTrigger.manual,
+    final result = await coordinator.refreshSources(
+      trigger: RefreshSourcesTrigger.manual,
     );
 
     expect(result.ok, isTrue);
-    expect(upstreamCalls, 0);
+    expect(syncService.refreshCalls, [
+      [1, 2],
+    ]);
+  });
+
+  test('fever account sync syncs remote state', () async {
+    final syncService = FakeSyncService();
+    final coordinator = AccountSyncCoordinator(
+      account: buildTestAccount(type: AccountType.fever),
+      feeds: _FakeFeedRepository([_feed(1)]),
+      syncService: syncService,
+    );
+
+    final result = await coordinator.syncAccount(
+      trigger: AccountSyncTrigger.manual,
+    );
+
+    expect(result.ok, isTrue);
     expect(syncService.refreshCalls, [
       [1],
     ]);
+  });
+
+  test('fever source refresh reports unsupported without syncing', () async {
+    final syncService = FakeSyncService();
+    final coordinator = RefreshSourcesCoordinator(
+      account: buildTestAccount(type: AccountType.fever),
+      feeds: _FakeFeedRepository([_feed(1)]),
+      syncService: syncService,
+    );
+
+    final result = await coordinator.refreshSources(
+      trigger: RefreshSourcesTrigger.manual,
+    );
+
+    expect(result.ok, isFalse);
+    expect(result.error, isA<RefreshSourcesUnsupportedException>());
+    expect(syncService.refreshCalls, isEmpty);
   });
 }

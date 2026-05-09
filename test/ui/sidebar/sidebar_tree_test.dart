@@ -219,20 +219,20 @@ void main() {
 
     expect(find.text('Import OPML'), findsNothing);
     expect(find.text('Export OPML'), findsOneWidget);
-    expect(find.text('Sync account'), findsOneWidget);
-    expect(find.text('Refresh all'), findsNothing);
+    expect(find.text('Sync account'), findsNothing);
+    expect(find.text('Refresh sources'), findsNothing);
 
     await tester.tapAt(const Offset(5, 5));
     await tester.pumpAndSettle();
 
     await _openContextMenuOnText(tester, 'All Articles');
 
-    expect(_popupMenuText('Sync account'), findsOneWidget);
+    expect(_popupMenuText('Sync account'), findsNothing);
     expect(_popupMenuText('Export OPML'), findsOneWidget);
     expect(_popupMenuText('Add subscription'), findsNothing);
     expect(_popupMenuText('New category'), findsNothing);
     expect(_popupMenuText('Import OPML'), findsNothing);
-    expect(_popupMenuText('Refresh all'), findsNothing);
+    expect(_popupMenuText('Refresh sources'), findsNothing);
 
     await tester.tapAt(const Offset(5, 5));
     await tester.pumpAndSettle();
@@ -252,7 +252,7 @@ void main() {
     expect(find.text('Rename'), findsOneWidget);
   });
 
-  testWidgets('Miniflux sidebar uses account sync wording for root refresh', (
+  testWidgets('Miniflux sidebar uses source refresh wording for root refresh', (
     tester,
   ) async {
     debugFleurTargetPlatformOverride = TargetPlatform.macOS;
@@ -298,20 +298,20 @@ void main() {
     await tester.tap(find.byIcon(Icons.more_horiz));
     await tester.pumpAndSettle();
 
-    expect(find.text('Sync account'), findsOneWidget);
-    expect(find.text('Refresh all'), findsNothing);
+    expect(find.text('Refresh sources'), findsOneWidget);
+    expect(find.text('Sync account'), findsNothing);
 
     await tester.tapAt(const Offset(5, 5));
     await tester.pumpAndSettle();
 
     await _openContextMenuOnText(tester, 'Subscriptions');
 
-    expect(_popupMenuText('Sync account'), findsOneWidget);
+    expect(_popupMenuText('Refresh sources'), findsOneWidget);
     expect(_popupMenuText('Add subscription'), findsOneWidget);
     expect(_popupMenuText('New category'), findsOneWidget);
     expect(_popupMenuText('Export OPML'), findsOneWidget);
     expect(_popupMenuText('Import OPML'), findsNothing);
-    expect(_popupMenuText('Refresh all'), findsNothing);
+    expect(_popupMenuText('Sync account'), findsNothing);
 
     await tester.tapAt(const Offset(5, 5));
     await tester.pumpAndSettle();
@@ -426,7 +426,7 @@ void main() {
     await _openContextMenuOnText(tester, 'All Articles');
 
     expect(_popupMenuText('Show all'), findsOneWidget);
-    expect(_popupMenuText('Refresh all'), findsOneWidget);
+    expect(_popupMenuText('Refresh sources'), findsOneWidget);
     expect(_popupMenuText('Add subscription'), findsOneWidget);
     expect(_popupMenuText('New category'), findsOneWidget);
     expect(_popupMenuText('Import OPML'), findsOneWidget);
@@ -443,7 +443,7 @@ void main() {
     await _openContextMenuOnText(tester, 'Subscriptions');
 
     expect(_popupMenuText('Show all'), findsNothing);
-    expect(_popupMenuText('Refresh all'), findsOneWidget);
+    expect(_popupMenuText('Refresh sources'), findsOneWidget);
     expect(_popupMenuText('Add subscription'), findsOneWidget);
     expect(_popupMenuText('New category'), findsOneWidget);
     expect(_popupMenuText('Import OPML'), findsOneWidget);
@@ -496,7 +496,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Settings'), findsOneWidget);
-      expect(find.text('Refresh all'), findsOneWidget);
+      expect(find.text('Refresh sources'), findsOneWidget);
       expect(find.text('Import OPML'), findsOneWidget);
       expect(find.text('Export OPML'), findsOneWidget);
       expect(find.text('Add subscription'), findsNothing);
@@ -519,7 +519,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(_popupMenuText('Refresh all'), findsNothing);
+      expect(_popupMenuText('Refresh sources'), findsNothing);
       expect(_popupMenuText('Settings'), findsNothing);
 
       await tester.tapAt(
@@ -528,7 +528,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(_popupMenuText('Refresh all'), findsNothing);
+      expect(_popupMenuText('Refresh sources'), findsNothing);
       expect(_popupMenuText('Settings'), findsNothing);
     },
   );
@@ -559,10 +559,10 @@ void main() {
 
     await _openContextMenuOnText(tester, 'All Articles');
     expect(_popupMenuText('Show all'), findsNothing);
-    expect(_popupMenuText('Refresh all'), findsNothing);
+    expect(_popupMenuText('Refresh sources'), findsNothing);
 
     await _openContextMenuOnText(tester, 'Subscriptions');
-    expect(_popupMenuText('Refresh all'), findsNothing);
+    expect(_popupMenuText('Refresh sources'), findsNothing);
     expect(_popupMenuText('Add subscription'), findsNothing);
   });
 

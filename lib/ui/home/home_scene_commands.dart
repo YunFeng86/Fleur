@@ -29,9 +29,13 @@ class HomeSceneCommands {
   Future<BatchRefreshResult> refreshAll() async {
     final syncSemantics = _ref.read(backendSyncSemanticsProvider);
     if (syncSemantics.isAccountWideRefresh) {
+      final capabilities = _ref.read(backendCapabilitiesProvider);
+      if (!capabilities.isVisible(BackendFeature.refreshAllSources)) {
+        return const BatchRefreshResult([]);
+      }
       final result = await _ref
-          .read(refreshAllCoordinatorProvider)
-          .refreshAll(trigger: RefreshAllTrigger.manual);
+          .read(refreshSourcesCoordinatorProvider)
+          .refreshSources(trigger: RefreshSourcesTrigger.manual);
       return result.batch;
     }
 
@@ -51,8 +55,8 @@ class HomeSceneCommands {
 
     if (categoryId == null) {
       final result = await _ref
-          .read(refreshAllCoordinatorProvider)
-          .refreshAll(trigger: RefreshAllTrigger.manual);
+          .read(refreshSourcesCoordinatorProvider)
+          .refreshSources(trigger: RefreshSourcesTrigger.manual);
       return result.batch;
     }
 

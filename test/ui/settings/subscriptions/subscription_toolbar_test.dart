@@ -83,11 +83,11 @@ void main() {
 
     expect(find.text('Import OPML'), findsNothing);
     expect(find.text('Export OPML'), findsOneWidget);
-    expect(find.text('Sync account'), findsOneWidget);
-    expect(find.text('Refresh all'), findsNothing);
+    expect(find.text('Sync account'), findsNothing);
+    expect(find.text('Refresh sources'), findsNothing);
   });
 
-  testWidgets('Local toolbar uses Refresh all wording', (tester) async {
+  testWidgets('Local toolbar uses Refresh sources wording', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -109,11 +109,11 @@ void main() {
     await tester.tap(find.byIcon(Icons.more_horiz));
     await tester.pumpAndSettle();
 
-    expect(find.text('Refresh all'), findsOneWidget);
+    expect(find.text('Refresh sources'), findsOneWidget);
     expect(find.text('Sync account'), findsNothing);
   });
 
-  testWidgets('Miniflux toolbar uses account sync wording', (tester) async {
+  testWidgets('Miniflux toolbar uses Refresh sources wording', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -135,7 +135,7 @@ void main() {
     await tester.tap(find.byIcon(Icons.more_horiz));
     await tester.pumpAndSettle();
 
-    expect(find.text('Sync account'), findsOneWidget);
-    expect(find.text('Refresh all'), findsNothing);
+    expect(find.text('Refresh sources'), findsOneWidget);
+    expect(find.text('Sync account'), findsNothing);
   });
 }

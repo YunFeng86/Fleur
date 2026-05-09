@@ -164,7 +164,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get uncategorized => '未分类';
 
   @override
-  String get refreshAll => '刷新全部';
+  String get refreshAll => '刷新订阅源';
 
   @override
   String get accountSync => '账号同步';
@@ -727,11 +727,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onlySupportedInLocalAccount => '仅本地账号支持此操作';
 
   @override
-  String get autoRefresh => '自动刷新';
+  String get autoRefresh => '自动刷新订阅源';
 
   @override
   String get autoRefreshSubtitle =>
-      'App 打开时按所选周期刷新；移动端后台刷新由系统调度，通常不会短于 15 分钟，且不保证准点。';
+      '按所选周期刷新订阅源；移动端后台刷新由系统调度，通常不会短于 15 分钟，且不保证准点。';
 
   @override
   String get off => '关闭';
@@ -1300,7 +1300,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get uncategorized => '未分類';
 
   @override
-  String get refreshAll => '重新整理全部';
+  String get refreshAll => '重新整理訂閱源';
 
   @override
   String get accountSync => '帳號同步';
@@ -1863,11 +1863,11 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get onlySupportedInLocalAccount => '僅本地帳號支援此操作';
 
   @override
-  String get autoRefresh => '自動重新整理';
+  String get autoRefresh => '自動重新整理訂閱源';
 
   @override
   String get autoRefreshSubtitle =>
-      'App 開啟時按所選週期重新整理；行動裝置背景重新整理由系統排程，通常不會短於 15 分鐘，且不保證準時。';
+      '按所選週期重新整理訂閱源；行動裝置背景重新整理由系統排程，通常不會短於 15 分鐘，且不保證準時。';
 
   @override
   String get off => '關閉';

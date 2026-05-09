@@ -171,7 +171,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get uncategorized => 'Uncategorized';
 
   @override
-  String get refreshAll => 'Refresh all';
+  String get refreshAll => 'Refresh sources';
 
   @override
   String get accountSync => 'Account sync';
@@ -757,11 +757,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onlySupportedInLocalAccount => 'Only supported in Local account';
 
   @override
-  String get autoRefresh => 'Auto refresh';
+  String get autoRefresh => 'Auto source refresh';
 
   @override
   String get autoRefreshSubtitle =>
-      'Refresh at the selected interval while the app is open. Mobile background refresh is system scheduled, usually no more often than every 15 minutes, and may not run exactly on time.';
+      'Refresh subscription sources at the selected interval. Mobile background refresh is system scheduled, usually no more often than every 15 minutes, and may not run exactly on time.';
 
   @override
   String get off => 'Off';

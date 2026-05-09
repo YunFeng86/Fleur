@@ -207,7 +207,7 @@
   "@uncategorized": {
     "description": "uncategorized"
   },
-  "refreshAll": "Refresh all",
+  "refreshAll": "Refresh sources",
   "@refreshAll": {
     "description": "refreshAll"
   },
@@ -977,11 +977,11 @@
   "@onlySupportedInLocalAccount": {
     "description": "onlySupportedInLocalAccount"
   },
-  "autoRefresh": "Auto refresh",
+  "autoRefresh": "Auto source refresh",
   "@autoRefresh": {
     "description": "autoRefresh"
   },
-  "autoRefreshSubtitle": "Refresh at the selected interval while the app is open. Mobile background refresh is system scheduled, usually no more often than every 15 minutes, and may not run exactly on time.",
+  "autoRefreshSubtitle": "Refresh subscription sources at the selected interval. Mobile background refresh is system scheduled, usually no more often than every 15 minutes, and may not run exactly on time.",
   "@autoRefreshSubtitle": {
     "description": "autoRefreshSubtitle"
   },

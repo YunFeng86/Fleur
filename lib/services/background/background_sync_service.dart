@@ -183,7 +183,11 @@ class BackgroundSyncRunner {
   })?
   _syncServiceBuilder;
 
-  static const String _lastRefreshKeyPrefix = 'background_sync:last_refresh:';
+  static const String _lastAccountSyncKeyPrefix =
+      'background_sync:last_account_sync:';
+  static const String _lastSourceRefreshKeyPrefix =
+      'background_sync:last_source_refresh:';
+  static const Duration _backgroundAccountSyncInterval = Duration(minutes: 15);
 
   Future<void> run({
     required String taskName,
@@ -205,44 +209,44 @@ class BackgroundSyncRunner {
       );
       final appSettings = _appSettings ?? await _appSettingsStore.load();
 
-      final refreshMinutes = appSettings.autoRefreshMinutes ?? 0;
-      var shouldRefresh = refreshMinutes > 0 && appSettings.syncEnabled;
+      final sourceRefreshMinutes = appSettings.sourceRefreshMinutes ?? 0;
+      var shouldRefreshSources =
+          appSettings.syncEnabled &&
+          sourceRefreshMinutes > 0 &&
+          capabilities.isVisible(BackendFeature.refreshAllSources);
+
+      if (shouldRefreshSources) {
+        shouldRefreshSources = await _shouldRunInterval(
+          key: '$_lastSourceRefreshKeyPrefix${activeAccount.id}',
+          minInterval: Duration(minutes: sourceRefreshMinutes),
+          failureMessage:
+              'Background source refresh gating failed; continuing with refresh',
+        );
+      }
+
+      var shouldSyncAccount =
+          appSettings.syncEnabled &&
+          capabilities.isRemoteBacked &&
+          !shouldRefreshSources;
+
+      // iOS can wake the app more frequently than the requested cadence
+      // (BGTaskScheduler is best-effort). Gate account sync work in Dart.
+      if (shouldSyncAccount && isIOS) {
+        shouldSyncAccount = await _shouldRunInterval(
+          key: '$_lastAccountSyncKeyPrefix${activeAccount.id}',
+          minInterval: _backgroundAccountSyncInterval,
+          failureMessage:
+              'Background account sync gating failed; continuing with sync',
+        );
+      }
 
       // Avoid opening Isar when there's nothing to do.
       final hasPendingOutbox =
           capabilities.isOutboxCapable &&
           (await _outboxStore.load(activeAccount.id)).isNotEmpty;
-      if (!shouldRefresh && !hasPendingOutbox) return;
-
-      // iOS can wake the app more frequently than the user's configured interval
-      // (BGTaskScheduler is best-effort). Gate refresh work in Dart.
-      if (shouldRefresh && isIOS) {
-        final now = _nowProvider();
-        try {
-          final prefs = await _sharedPreferencesLoader();
-          final key = '$_lastRefreshKeyPrefix${activeAccount.id}';
-          final lastMs = prefs.getInt(key);
-          if (lastMs != null) {
-            final last = DateTime.fromMillisecondsSinceEpoch(lastMs);
-            final minInterval = Duration(minutes: refreshMinutes);
-            if (now.difference(last) < minInterval) {
-              shouldRefresh = false;
-            }
-          }
-          if (shouldRefresh) {
-            // Record attempt early to prevent repeated costly wakeups.
-            await prefs.setInt(key, now.millisecondsSinceEpoch);
-          }
-        } catch (e) {
-          AppLogger.w(
-            'Background sync refresh gating failed; continuing with refresh',
-            tag: 'bg',
-            error: e,
-          );
-        }
+      if (!shouldRefreshSources && !shouldSyncAccount && !hasPendingOutbox) {
+        return;
       }
-
-      if (!shouldRefresh && !hasPendingOutbox) return;
 
       late final Isar isar;
       try {
@@ -304,16 +308,21 @@ class BackgroundSyncRunner {
           await _flushOutboxSafe(activeAccount, svc);
         }
 
-        if (!shouldRefresh) return;
+        if (!shouldRefreshSources && !shouldSyncAccount) return;
 
         final allFeeds = loadAllFeeds != null
             ? await loadAllFeeds(feeds, activeAccount)
             : await feeds.getAll();
-        if (allFeeds.isEmpty && !capabilities.isRemoteBacked) return;
+        if (allFeeds.isEmpty &&
+            !capabilities.isRemoteBacked &&
+            !shouldRefreshSources) {
+          return;
+        }
 
         final concurrency = appSettings.autoRefreshConcurrency;
-        RefreshAllUpstreamRefresh? refreshAllRemoteFeeds;
-        if (activeAccount.type == AccountType.miniflux) {
+        RefreshSourcesUpstreamRefresh? refreshAllRemoteFeeds;
+        if (shouldRefreshSources &&
+            activeAccount.type == AccountType.miniflux) {
           final injectedRefresh = _refreshAllRemoteFeeds;
           refreshAllRemoteFeeds = injectedRefresh == null
               ? () async {
@@ -327,22 +336,35 @@ class BackgroundSyncRunner {
                 }
               : () => injectedRefresh(activeAccount);
         }
-        final result =
-            await RefreshAllCoordinator(
-              account: activeAccount,
-              feeds: feeds,
-              syncService: svc,
-              refreshAllRemoteFeeds: refreshAllRemoteFeeds,
-            ).refreshAll(
-              trigger: RefreshAllTrigger.background,
-              maxConcurrent: concurrency,
-              notify: true,
-              feedsOverride: allFeeds,
-            );
+
+        final result = shouldRefreshSources
+            ? await RefreshSourcesCoordinator(
+                account: activeAccount,
+                feeds: feeds,
+                syncService: svc,
+                refreshAllRemoteFeeds: refreshAllRemoteFeeds,
+              ).refreshSources(
+                trigger: RefreshSourcesTrigger.background,
+                maxConcurrent: concurrency,
+                notify: true,
+                feedsOverride: allFeeds,
+              )
+            : await AccountSyncCoordinator(
+                account: activeAccount,
+                feeds: feeds,
+                syncService: svc,
+              ).syncAccount(
+                trigger: AccountSyncTrigger.background,
+                maxConcurrent: concurrency,
+                notify: true,
+                feedsOverride: allFeeds,
+              );
         final err = result.firstError;
         if (err != null) {
           AppLogger.w(
-            'Background refresh failed',
+            shouldRefreshSources
+                ? 'Background source refresh failed'
+                : 'Background account sync failed',
             tag: 'bg',
             error: err,
             stackTrace: result.stackTrace,
@@ -352,6 +374,30 @@ class BackgroundSyncRunner {
         await isar.close();
       }
     });
+  }
+
+  Future<bool> _shouldRunInterval({
+    required String key,
+    required Duration minInterval,
+    required String failureMessage,
+  }) async {
+    final now = _nowProvider();
+    try {
+      final prefs = await _sharedPreferencesLoader();
+      final lastMs = prefs.getInt(key);
+      if (lastMs != null) {
+        final last = DateTime.fromMillisecondsSinceEpoch(lastMs);
+        if (now.difference(last) < minInterval) {
+          return false;
+        }
+      }
+      // Record attempt early to prevent repeated costly wakeups.
+      await prefs.setInt(key, now.millisecondsSinceEpoch);
+      return true;
+    } catch (e) {
+      AppLogger.w(failureMessage, tag: 'bg', error: e);
+      return true;
+    }
   }
 
   Future<void> _flushOutboxSafe(Account account, SyncServiceBase svc) async {

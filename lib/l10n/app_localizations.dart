@@ -408,7 +408,7 @@ abstract class AppLocalizations {
   /// refreshAll
   ///
   /// In en, this message translates to:
-  /// **'Refresh all'**
+  /// **'Refresh sources'**
   String get refreshAll;
 
   /// accountSync
@@ -1494,13 +1494,13 @@ abstract class AppLocalizations {
   /// autoRefresh
   ///
   /// In en, this message translates to:
-  /// **'Auto refresh'**
+  /// **'Auto source refresh'**
   String get autoRefresh;
 
   /// autoRefreshSubtitle
   ///
   /// In en, this message translates to:
-  /// **'Refresh at the selected interval while the app is open. Mobile background refresh is system scheduled, usually no more often than every 15 minutes, and may not run exactly on time.'**
+  /// **'Refresh subscription sources at the selected interval. Mobile background refresh is system scheduled, usually no more often than every 15 minutes, and may not run exactly on time.'**
   String get autoRefreshSubtitle;
 
   /// off

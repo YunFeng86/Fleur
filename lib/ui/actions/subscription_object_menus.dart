@@ -204,17 +204,14 @@ class SubscriptionObjectMenus {
   }
 
   static bool showsRootRefresh(BackendCapabilities capabilities) {
-    return capabilities.isVisible(BackendFeature.refreshAllSources) ||
-        capabilities.isVisible(BackendFeature.syncNow);
+    return capabilities.isVisible(BackendFeature.refreshAllSources);
   }
 
   static String rootRefreshLabel(
     AppLocalizations l10n,
     BackendSyncSemantics syncSemantics,
   ) {
-    return syncSemantics.isAccountWideRefresh
-        ? l10n.syncAccount
-        : l10n.refreshAll;
+    return l10n.refreshAll;
   }
 
   static List<SubscriptionObjectMenuItem<SubscriptionRootMenuAction>>

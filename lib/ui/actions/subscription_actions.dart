@@ -1070,9 +1070,9 @@ class SubscriptionActions {
     final concurrency = appSettings?.autoRefreshConcurrency ?? 2;
 
     final result = await ref
-        .read(refreshAllCoordinatorProvider)
-        .refreshAll(
-          trigger: RefreshAllTrigger.manual,
+        .read(refreshSourcesCoordinatorProvider)
+        .refreshSources(
+          trigger: RefreshSourcesTrigger.manual,
           maxConcurrent: concurrency,
         );
     if (!context.mounted) return;

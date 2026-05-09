@@ -7,10 +7,26 @@ import 'account_providers.dart';
 import 'repository_providers.dart';
 import 'service_providers.dart';
 
-final refreshAllCoordinatorProvider = Provider<RefreshAllCoordinator>(
+final accountSyncCoordinatorProvider = Provider<AccountSyncCoordinator>(
   (ref) {
     final account = ref.watch(activeAccountProvider);
-    RefreshAllUpstreamRefresh? refreshAllRemoteFeeds;
+    return AccountSyncCoordinator(
+      account: account,
+      feeds: ref.watch(feedRepositoryProvider),
+      syncService: ref.watch(syncServiceProvider),
+    );
+  },
+  dependencies: [
+    activeAccountProvider,
+    feedRepositoryProvider,
+    syncServiceProvider,
+  ],
+);
+
+final refreshSourcesCoordinatorProvider = Provider<RefreshSourcesCoordinator>(
+  (ref) {
+    final account = ref.watch(activeAccountProvider);
+    RefreshSourcesUpstreamRefresh? refreshAllRemoteFeeds;
     if (account.type == AccountType.miniflux) {
       final remoteClientFactory = ref.watch(remoteClientFactoryProvider);
       refreshAllRemoteFeeds = () async {
@@ -21,7 +37,7 @@ final refreshAllCoordinatorProvider = Provider<RefreshAllCoordinator>(
       };
     }
 
-    return RefreshAllCoordinator(
+    return RefreshSourcesCoordinator(
       account: account,
       feeds: ref.watch(feedRepositoryProvider),
       syncService: ref.watch(syncServiceProvider),

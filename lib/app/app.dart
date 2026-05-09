@@ -11,6 +11,7 @@ import 'router.dart';
 import '../providers/app_settings_providers.dart';
 import '../providers/auto_refresh_providers.dart';
 import '../providers/background_sync_providers.dart';
+import '../providers/backend_capabilities_provider.dart';
 import '../providers/backend_sync_semantics_provider.dart';
 import '../providers/core_providers.dart';
 import '../providers/outbox_flush_providers.dart';
@@ -378,14 +379,16 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
           ref: ref,
           selectedArticleId: null,
         );
+        final capabilities = ref.watch(backendCapabilitiesProvider);
+        final showRootRefresh = SubscriptionObjectMenus.showsRootRefresh(
+          capabilities,
+        );
         final syncSemantics = ref.watch(backendSyncSemanticsProvider);
         final refreshActionLabel = SubscriptionObjectMenus.rootRefreshLabel(
           l10n,
           syncSemantics,
         );
-        final refreshSuccessLabel = syncSemantics.isAccountWideRefresh
-            ? l10n.syncedAccount
-            : l10n.refreshedAll;
+        final refreshSuccessLabel = l10n.refreshedAll;
 
         final leading = canPop
             ? IconButton(
@@ -431,7 +434,7 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
                 title: title,
                 leading: leading,
                 actions: [
-                  if (isFeedsSection) ...[
+                  if (isFeedsSection && showRootRefresh) ...[
                     IconButton(
                       tooltip: refreshActionLabel,
                       onPressed: () async {

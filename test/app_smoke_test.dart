@@ -691,51 +691,52 @@ void main() {
     },
   );
 
-  testWidgets('Home scene commands sync account-wide for remote accounts', (
-    tester,
-  ) async {
-    final syncService = FakeSyncService();
-    late HomeSceneCommands homeCommands;
-    final router = GoRouter(
-      routes: [
-        GoRoute(
-          path: '/',
-          builder: (context, state) {
-            return Consumer(
-              builder: (context, ref, _) {
-                homeCommands = HomeSceneCommands(
-                  context: context,
-                  ref: ref,
-                  selectedArticleId: null,
-                );
-                return const SizedBox(key: ValueKey('remote_commands_host'));
-              },
-            );
-          },
-        ),
-      ],
-    );
-    addTearDown(router.dispose);
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          activeAccountProvider.overrideWithValue(
-            buildTestAccount(type: AccountType.fever, name: 'Fever'),
+  testWidgets(
+    'Home scene commands skip source refresh for unsupported remote accounts',
+    (tester) async {
+      final syncService = FakeSyncService();
+      late HomeSceneCommands homeCommands;
+      final router = GoRouter(
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (context, state) {
+              return Consumer(
+                builder: (context, ref, _) {
+                  homeCommands = HomeSceneCommands(
+                    context: context,
+                    ref: ref,
+                    selectedArticleId: null,
+                  );
+                  return const SizedBox(key: ValueKey('remote_commands_host'));
+                },
+              );
+            },
           ),
-          selectedFeedIdProvider.overrideWith((ref) => 10),
-          selectedCategoryIdProvider.overrideWith((ref) => 1),
-          syncServiceProvider.overrideWithValue(syncService),
         ],
-        child: MaterialApp.router(routerConfig: router),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      addTearDown(router.dispose);
 
-    await homeCommands.refreshAll();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            activeAccountProvider.overrideWithValue(
+              buildTestAccount(type: AccountType.fever, name: 'Fever'),
+            ),
+            selectedFeedIdProvider.overrideWith((ref) => 10),
+            selectedCategoryIdProvider.overrideWith((ref) => 1),
+            syncServiceProvider.overrideWithValue(syncService),
+          ],
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    expect(syncService.refreshCalls, [<int>[]]);
-  });
+      await homeCommands.refreshAll();
+
+      expect(syncService.refreshCalls, isEmpty);
+    },
+  );
 
   testWidgets('Home refresh tooltip follows backend refresh scope', (
     tester,
@@ -776,12 +777,12 @@ void main() {
     }
 
     await pumpHome(AccountType.local);
-    expect(find.byTooltip('Refresh all'), findsOneWidget);
+    expect(find.byTooltip('Refresh sources'), findsOneWidget);
     expect(find.byTooltip('Sync account'), findsNothing);
 
     await pumpHome(AccountType.fever);
-    expect(find.byTooltip('Sync account'), findsOneWidget);
-    expect(find.byTooltip('Refresh all'), findsNothing);
+    expect(find.byTooltip('Sync account'), findsNothing);
+    expect(find.byTooltip('Refresh sources'), findsNothing);
   });
 
   testWidgets('Home scene shortcuts reuse the shared action wiring', (

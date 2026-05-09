@@ -207,7 +207,7 @@
   "@uncategorized": {
     "description": "uncategorized"
   },
-  "refreshAll": "重新整理全部",
+  "refreshAll": "重新整理訂閱源",
   "@refreshAll": {
     "description": "refreshAll"
   },
@@ -978,11 +978,11 @@
   "@onlySupportedInLocalAccount": {
     "description": "onlySupportedInLocalAccount"
   },
-  "autoRefresh": "自動重新整理",
+  "autoRefresh": "自動重新整理訂閱源",
   "@autoRefresh": {
     "description": "autoRefresh"
   },
-  "autoRefreshSubtitle": "App 開啟時按所選週期重新整理；行動裝置背景重新整理由系統排程，通常不會短於 15 分鐘，且不保證準時。",
+  "autoRefreshSubtitle": "按所選週期重新整理訂閱源；行動裝置背景重新整理由系統排程，通常不會短於 15 分鐘，且不保證準時。",
   "@autoRefreshSubtitle": {
     "description": "autoRefreshSubtitle"
   },

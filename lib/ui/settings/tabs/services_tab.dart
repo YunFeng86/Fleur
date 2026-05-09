@@ -6,13 +6,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers/account_providers.dart';
 import '../../../providers/app_settings_providers.dart';
+import '../../../providers/backend_capabilities_provider.dart';
 import '../../../providers/backend_content_capabilities_provider.dart';
 import '../../../providers/backend_sync_semantics_provider.dart';
 import '../../../providers/refresh_all_providers.dart';
 import '../../../services/accounts/account.dart';
 import '../../../services/settings/app_settings.dart';
-import '../../../services/sync/refresh_all_coordinator.dart';
+import '../../../services/sync/backend_capabilities.dart';
 import '../../../services/sync/backend_sync_semantics.dart';
+import '../../../services/sync/refresh_all_coordinator.dart';
 import '../../../utils/context_extensions.dart';
 import '../../../widgets/account_avatar.dart';
 import '../../dialogs/add_account_dialogs.dart';
@@ -32,23 +34,18 @@ class ServicesTab extends ConsumerWidget {
         ref.watch(appSettingsProvider).valueOrNull ?? AppSettings.defaults();
     final accountsAsync = ref.watch(accountsControllerProvider);
     final activeAccount = ref.watch(activeAccountProvider);
+    final capabilities = ref.watch(backendCapabilitiesProvider);
     final contentCapabilities = ref.watch(backendContentCapabilitiesProvider);
     final syncSemantics = ref.watch(backendSyncSemanticsProvider);
 
-    final interval = appSettings.autoRefreshMinutes;
-    final isAccountWideSync = syncSemantics.isAccountWideRefresh;
-    final refreshSectionTitle = isAccountWideSync
-        ? l10n.accountSync
-        : l10n.refreshAll;
-    final refreshSectionDescription = isAccountWideSync
-        ? l10n.accountSyncSubtitle
-        : l10n.autoRefreshSubtitle;
-    final refreshActionLabel = isAccountWideSync
-        ? l10n.syncAccount
-        : l10n.refreshAll;
-    final refreshSuccessLabel = isAccountWideSync
-        ? l10n.syncedAccount
-        : l10n.refreshedAll;
+    final interval = appSettings.sourceRefreshMinutes;
+    final showSourceRefresh = capabilities.isVisible(
+      BackendFeature.refreshAllSources,
+    );
+    final refreshSectionTitle = l10n.refreshAll;
+    final refreshSectionDescription = l10n.autoRefreshSubtitle;
+    final refreshActionLabel = l10n.refreshAll;
+    final refreshSuccessLabel = l10n.refreshedAll;
     final remoteStrategySubtitle = switch (syncSemantics.historyCoverage) {
       BackendHistoryCoverage.remotePaginatedEntries =>
         l10n.remoteSyncStrategyMinifluxSubtitle,
@@ -64,7 +61,6 @@ class ServicesTab extends ConsumerWidget {
     final showRefreshConcurrency = syncSemantics.isFeedScopedRefresh;
 
     String refreshProgressLabel(int current, int total) {
-      if (isAccountWideSync) return l10n.syncingAccount;
       return l10n.refreshingProgress(current, total);
     }
 
@@ -106,9 +102,9 @@ class ServicesTab extends ConsumerWidget {
         );
 
         final result = await ref
-            .read(refreshAllCoordinatorProvider)
-            .refreshAll(
-              trigger: RefreshAllTrigger.manual,
+            .read(refreshSourcesCoordinatorProvider)
+            .refreshSources(
+              trigger: RefreshSourcesTrigger.manual,
               maxConcurrent: concurrency,
               onProgress: (current, total) {
                 progressNotifier.value = refreshProgressLabel(current, total);
@@ -314,76 +310,80 @@ class ServicesTab extends ConsumerWidget {
             ),
           ),
         ),
-        SettingsSection(
-          title: refreshSectionTitle,
-          description: refreshSectionDescription,
-          child: SettingsCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  refreshSectionDescription,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                DropdownButtonHideUnderline(
-                  child: DropdownButton<int?>(
-                    value: interval,
-                    isExpanded: true,
-                    items: [
-                      DropdownMenuItem<int?>(
-                        value: null,
-                        child: Text(l10n.off),
-                      ),
-                      for (final m in const [5, 15, 30, 60])
-                        DropdownMenuItem<int?>(
-                          value: m,
-                          child: Text(l10n.everyMinutes(m)),
-                        ),
-                    ],
-                    onChanged: (v) => ref
-                        .read(appSettingsProvider.notifier)
-                        .setAutoRefreshMinutes(v),
-                  ),
-                ),
-                if (showRefreshConcurrency) ...[
-                  const SizedBox(height: 16),
+        if (showSourceRefresh)
+          SettingsSection(
+            title: refreshSectionTitle,
+            description: refreshSectionDescription,
+            child: SettingsCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    l10n.refreshConcurrency,
-                    style: theme.textTheme.titleSmall,
+                    refreshSectionDescription,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   DropdownButtonHideUnderline(
-                    child: DropdownButton<int>(
-                      value: appSettings.autoRefreshConcurrency,
+                    child: DropdownButton<int?>(
+                      value: interval,
                       isExpanded: true,
                       items: [
-                        for (final c in [1, 2, 4, 6])
-                          DropdownMenuItem(value: c, child: Text(c.toString())),
+                        DropdownMenuItem<int?>(
+                          value: null,
+                          child: Text(l10n.off),
+                        ),
+                        for (final m in const [15, 30, 60])
+                          DropdownMenuItem<int?>(
+                            value: m,
+                            child: Text(l10n.everyMinutes(m)),
+                          ),
                       ],
-                      onChanged: (v) {
-                        if (v == null) return;
-                        unawaited(
-                          ref
-                              .read(appSettingsProvider.notifier)
-                              .setAutoRefreshConcurrency(v),
-                        );
-                      },
+                      onChanged: (v) => ref
+                          .read(appSettingsProvider.notifier)
+                          .setSourceRefreshMinutes(v),
                     ),
                   ),
+                  if (showRefreshConcurrency) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      l10n.refreshConcurrency,
+                      style: theme.textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: appSettings.autoRefreshConcurrency,
+                        isExpanded: true,
+                        items: [
+                          for (final c in [1, 2, 4, 6])
+                            DropdownMenuItem(
+                              value: c,
+                              child: Text(c.toString()),
+                            ),
+                        ],
+                        onChanged: (v) {
+                          if (v == null) return;
+                          unawaited(
+                            ref
+                                .read(appSettingsProvider.notifier)
+                                .setAutoRefreshConcurrency(v),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: refreshNow,
+                    icon: const Icon(Icons.refresh),
+                    label: Text(refreshActionLabel),
+                  ),
                 ],
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: refreshNow,
-                  icon: const Icon(Icons.refresh),
-                  label: Text(refreshActionLabel),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
         if (showRemoteSyncStrategy)
           SettingsSection(
             title: l10n.remoteSyncStrategy,

@@ -298,7 +298,7 @@ void main() {
 
       await _openContextMenu(tester, find.text('Subscriptions').last);
 
-      expect(_popupMenuText('Refresh all'), findsOneWidget);
+      expect(_popupMenuText('Refresh sources'), findsOneWidget);
       expect(_popupMenuText('Add subscription'), findsOneWidget);
       expect(_popupMenuText('New category'), findsOneWidget);
       expect(_popupMenuText('Import OPML'), findsOneWidget);
@@ -310,7 +310,7 @@ void main() {
 
       await _openContextMenuOnText(tester, 'Subscriptions');
 
-      expect(_popupMenuText('Refresh all'), findsOneWidget);
+      expect(_popupMenuText('Refresh sources'), findsOneWidget);
       expect(_popupMenuText('Add subscription'), findsOneWidget);
       expect(_popupMenuText('New category'), findsOneWidget);
       expect(_popupMenuText('Import OPML'), findsOneWidget);
@@ -349,9 +349,9 @@ void main() {
       await tester.pumpAndSettle();
       await _openContextMenu(tester, find.text('Subscriptions').last);
 
-      expect(_popupMenuText('Sync account'), findsOneWidget);
+      expect(_popupMenuText('Sync account'), findsNothing);
       expect(_popupMenuText('Export OPML'), findsOneWidget);
-      expect(_popupMenuText('Refresh all'), findsNothing);
+      expect(_popupMenuText('Refresh sources'), findsNothing);
       expect(_popupMenuText('Add subscription'), findsNothing);
       expect(_popupMenuText('New category'), findsNothing);
       expect(_popupMenuText('Import OPML'), findsNothing);
@@ -359,7 +359,7 @@ void main() {
   );
 
   testWidgets(
-    'SubscriptionTreeView Miniflux section context menu uses account sync wording',
+    'SubscriptionTreeView Miniflux section context menu uses source refresh wording',
     (tester) async {
       debugFleurTargetPlatformOverride = TargetPlatform.macOS;
       addTearDown(() => debugFleurTargetPlatformOverride = null);
@@ -386,11 +386,11 @@ void main() {
       await tester.pumpAndSettle();
       await _openContextMenu(tester, find.text('Subscriptions').last);
 
-      expect(_popupMenuText('Sync account'), findsOneWidget);
+      expect(_popupMenuText('Refresh sources'), findsOneWidget);
       expect(_popupMenuText('Add subscription'), findsOneWidget);
       expect(_popupMenuText('New category'), findsOneWidget);
       expect(_popupMenuText('Export OPML'), findsOneWidget);
-      expect(_popupMenuText('Refresh all'), findsNothing);
+      expect(_popupMenuText('Sync account'), findsNothing);
       expect(_popupMenuText('Import OPML'), findsNothing);
     },
   );
@@ -420,7 +420,7 @@ void main() {
     await _openContextMenuOnText(tester, 'Global');
 
     expect(_popupMenuText('Global defaults'), findsNothing);
-    expect(_popupMenuText('Refresh all'), findsNothing);
+    expect(_popupMenuText('Refresh sources'), findsNothing);
   });
 
   testWidgets(
@@ -452,7 +452,7 @@ void main() {
       expect(_popupMenuText('Global defaults'), findsNothing);
 
       await _openContextMenu(tester, find.text('Subscriptions').last);
-      expect(_popupMenuText('Refresh all'), findsNothing);
+      expect(_popupMenuText('Refresh sources'), findsNothing);
       expect(_popupMenuText('Add subscription'), findsNothing);
     },
   );
