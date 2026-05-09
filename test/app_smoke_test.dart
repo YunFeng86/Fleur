@@ -454,6 +454,46 @@ void main() {
     expect(find.byType(GlobalNavRail), findsNothing);
   });
 
+  testWidgets('rail account button opens services settings tab', (
+    tester,
+  ) async {
+    final router = GoRouter(
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (context, state) => GlobalNavRail(currentUri: state.uri),
+        ),
+        GoRoute(
+          path: '/settings',
+          builder: (context, state) => GlobalNavRail(currentUri: state.uri),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          activeAccountProvider.overrideWithValue(buildTestAccount()),
+        ],
+        child: MaterialApp.router(
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('global_nav_account_button')));
+    await tester.pumpAndSettle();
+
+    expect(
+      router.routerDelegate.currentConfiguration.uri.toString(),
+      '/settings?tab=services',
+    );
+  });
+
   testWidgets(
     'App runtime host does not repeat startup side effects on rebuild',
     (tester) async {

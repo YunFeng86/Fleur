@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fleur/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
+import '../models/nav_destination.dart';
 import '../screens/home_screen.dart';
 import '../screens/reader_screen.dart';
 import '../screens/saved_screen.dart';
@@ -211,7 +212,13 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/settings',
             name: 'settings',
             pageBuilder: (context, state) {
-              return sectionPage(state: state, child: const SettingsScreen());
+              final tab = settingsTabFromQueryValue(
+                state.uri.queryParameters['tab'],
+              );
+              return sectionPage(
+                state: state,
+                child: SettingsScreen(initialTab: tab),
+              );
             },
           ),
         ],

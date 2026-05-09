@@ -2,21 +2,75 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fleur/l10n/app_localizations.dart';
+import 'package:fleur/models/nav_destination.dart';
+import 'package:fleur/providers/account_providers.dart';
+import 'package:fleur/providers/app_settings_providers.dart';
 import 'package:fleur/screens/settings_screen.dart';
+import 'package:fleur/services/accounts/account.dart';
+import 'package:fleur/services/accounts/account_store.dart';
+import 'package:fleur/services/settings/app_settings.dart';
+
+import '../test_utils/critical_workflow_test_support.dart';
+
+class _FakeAccountStore extends AccountStore {
+  _FakeAccountStore(this.state);
+
+  AccountsState state;
+
+  @override
+  Future<AccountsState> loadOrCreate() async => state;
+
+  @override
+  Future<void> save(AccountsState next) async {
+    state = next;
+  }
+}
 
 void main() {
+  Account settingsAccount() {
+    return buildTestAccount(
+      id: 'settings-account',
+      name: 'Settings Account',
+      isPrimary: true,
+    );
+  }
+
+  List<Override> servicesOverrides() {
+    final account = settingsAccount();
+    return [
+      accountStoreProvider.overrideWithValue(
+        _FakeAccountStore(
+          AccountsState(
+            version: AccountStore.currentVersion,
+            activeAccountId: account.id,
+            accounts: [account],
+          ),
+        ),
+      ),
+      appSettingsStoreProvider.overrideWithValue(
+        FakeAppSettingsStore(AppSettings.defaults()),
+      ),
+    ];
+  }
+
   // Helper to pump the Settings Screen with a specific width
-  Future<void> pumpSettingsScreen(WidgetTester tester, double width) async {
+  Future<void> pumpSettingsScreen(
+    WidgetTester tester,
+    double width, {
+    SettingsTab? initialTab,
+    List<Override> overrides = const [],
+  }) async {
     tester.view.physicalSize = Size(width, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
 
     await tester.pumpWidget(
       ProviderScope(
+        overrides: overrides,
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: const SettingsScreen(),
+          home: SettingsScreen(initialTab: initialTab),
         ),
       ),
     );
@@ -119,6 +173,43 @@ void main() {
     expect(find.text('System language'), findsOneWidget);
     expect(find.text('App Preferences'), findsAtLeastNWidgets(2));
   });
+
+  testWidgets(
+    'Settings Screen opens Services detail from initial tab in narrow mode',
+    (tester) async {
+      await pumpSettingsScreen(
+        tester,
+        400,
+        initialTab: SettingsTab.services,
+        overrides: servicesOverrides(),
+      );
+
+      expect(find.text('Services'), findsOneWidget);
+      expect(
+        find.byKey(const Key('services_account_tile_settings-account')),
+        findsOneWidget,
+      );
+      expect(find.text('System language'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'Settings Screen selects Services from initial tab in wide mode',
+    (tester) async {
+      await pumpSettingsScreen(
+        tester,
+        1000,
+        initialTab: SettingsTab.services,
+        overrides: servicesOverrides(),
+      );
+
+      expect(
+        find.byKey(const Key('services_account_tile_settings-account')),
+        findsOneWidget,
+      );
+      expect(find.text('System language'), findsNothing);
+    },
+  );
 
   testWidgets('AppLocalizations uses strict pathNotFound message in English', (
     tester,

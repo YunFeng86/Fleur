@@ -10,7 +10,6 @@ import '../ui/actions/global_nav_actions.dart';
 import '../ui/actions/subscription_actions.dart';
 import '../ui/global_nav.dart';
 import 'account_avatar.dart';
-import 'account_manager_dialog.dart';
 
 class GlobalNavRail extends ConsumerWidget {
   const GlobalNavRail({super.key, required this.currentUri});
@@ -119,15 +118,11 @@ class GlobalNavRail extends ConsumerWidget {
               child: Tooltip(
                 message: activeAccount.name,
                 child: InkResponse(
+                  key: const Key('global_nav_account_button'),
                   radius: 24,
                   hoverColor: states.hoverTint,
-                  onTap: () async {
-                    await showDialog<void>(
-                      context: context,
-                      useRootNavigator: true,
-                      builder: (context) => const AccountManagerDialog(),
-                    );
-                  },
+                  onTap: () =>
+                      context.go(settingsLocation(tab: SettingsTab.services)),
                   child: AccountAvatar(
                     account: activeAccount,
                     radius: 18,

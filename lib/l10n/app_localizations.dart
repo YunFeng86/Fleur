@@ -1167,6 +1167,12 @@ abstract class AppLocalizations {
   /// **'Account'**
   String get account;
 
+  /// Action label for adding or registering an account
+  ///
+  /// In en, this message translates to:
+  /// **'Add or register account'**
+  String get addOrRegisterAccount;
+
   /// local
   ///
   /// In en, this message translates to:

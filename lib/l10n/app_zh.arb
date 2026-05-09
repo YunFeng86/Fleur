@@ -757,6 +757,10 @@
   "@account": {
     "description": "account"
   },
+  "addOrRegisterAccount": "添加或注册账号",
+  "@addOrRegisterAccount": {
+    "description": "Action label for adding or registering an account"
+  },
   "local": "本地",
   "@local": {
     "description": "local"

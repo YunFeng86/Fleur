@@ -584,6 +584,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get account => 'Account';
 
   @override
+  String get addOrRegisterAccount => 'Add or register account';
+
+  @override
   String get local => 'Local';
 
   @override

@@ -756,6 +756,10 @@
   "@account": {
     "description": "account"
   },
+  "addOrRegisterAccount": "Add or register account",
+  "@addOrRegisterAccount": {
+    "description": "Action label for adding or registering an account"
+  },
   "local": "Local",
   "@local": {
     "description": "local"

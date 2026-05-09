@@ -7,6 +7,7 @@ import 'package:fleur/l10n/app_localizations.dart';
 
 import '../models/category.dart';
 import '../models/feed.dart';
+import '../models/nav_destination.dart';
 import '../providers/account_providers.dart';
 import '../providers/backend_capabilities_provider.dart';
 import '../providers/backend_sync_semantics_provider.dart';
@@ -25,7 +26,6 @@ import '../ui/sidebar/sidebar_selection_actions.dart';
 import '../ui/sidebar/sidebar_tree.dart';
 import '../utils/platform.dart';
 import 'account_avatar.dart';
-import 'account_manager_dialog.dart';
 import 'overflow_marquee.dart';
 
 class Sidebar extends ConsumerStatefulWidget {
@@ -198,11 +198,13 @@ class _SidebarState extends ConsumerState<Sidebar> {
               account: activeAccount,
               sync: syncStatus,
               onTap: () {
-                unawaited(
-                  _showDialog<void>(
-                    builder: (_) => const AccountManagerDialog(),
-                  ),
-                );
+                final location = settingsLocation(tab: SettingsTab.services);
+                final router = widget.router;
+                if (router != null) {
+                  router.go(location);
+                  return;
+                }
+                context.go(location);
               },
             ),
         ],

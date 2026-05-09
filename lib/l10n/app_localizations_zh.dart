@@ -562,6 +562,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get account => '账号';
 
   @override
+  String get addOrRegisterAccount => '添加或注册账号';
+
+  @override
   String get local => '本地';
 
   @override
@@ -1686,6 +1689,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get account => '帳號';
+
+  @override
+  String get addOrRegisterAccount => '新增或註冊帳號';
 
   @override
   String get local => '本地';

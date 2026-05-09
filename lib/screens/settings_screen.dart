@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fleur/l10n/app_localizations.dart';
 
+import '../models/nav_destination.dart';
 import '../ui/global_nav.dart';
 import '../ui/settings/subscriptions/subscriptions_settings_tab.dart';
 import '../ui/settings/tabs/about_tab.dart';
@@ -16,7 +17,9 @@ import '../utils/platform.dart';
 import '../widgets/app_scrollbar.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
-  const SettingsScreen({super.key});
+  const SettingsScreen({super.key, this.initialTab});
+
+  final SettingsTab? initialTab;
 
   @override
   ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
@@ -25,10 +28,22 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   static const _kTwoColumnWidth = 900.0;
 
-  // Nullable index: null means "List View" (Narrow) or "Default" (Wide, usually 0).
-  // In Wide mode, if null, we treat it as 0.
-  // In Narrow mode, if null, we show List.
-  int? _selectedIndex;
+  // Nullable tab: null means "List View" in narrow mode or default first item
+  // in wide mode.
+  SettingsTab? _selectedTab;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedTab = widget.initialTab;
+  }
+
+  @override
+  void didUpdateWidget(covariant SettingsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialTab == widget.initialTab) return;
+    _selectedTab = widget.initialTab;
+  }
 
   List<_SettingsPageItem> _buildItems(
     BuildContext context, {
@@ -37,42 +52,55 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final l10n = AppLocalizations.of(context)!;
     return [
       _SettingsPageItem(
+        tab: SettingsTab.appPreferences,
         icon: Icons.settings_outlined,
         selectedIcon: Icons.settings,
         label: l10n.appPreferences,
         content: AppPreferencesTab(showPageTitle: showPageTitle),
       ),
       _SettingsPageItem(
+        tab: SettingsTab.subscriptions,
         icon: Icons.rss_feed_outlined,
         selectedIcon: Icons.rss_feed,
         label: l10n.subscriptions,
         content: SubscriptionsSettingsTab(showPageTitle: showPageTitle),
       ),
       _SettingsPageItem(
+        tab: SettingsTab.groupingAndSorting,
         icon: Icons.format_list_bulleted,
         selectedIcon: Icons.format_list_bulleted,
         label: l10n.groupingAndSorting,
         content: GroupingSortingTab(showPageTitle: showPageTitle),
       ),
       _SettingsPageItem(
+        tab: SettingsTab.services,
         icon: Icons.cloud_outlined,
         selectedIcon: Icons.cloud,
         label: l10n.services,
         content: ServicesTab(showPageTitle: showPageTitle),
       ),
       _SettingsPageItem(
+        tab: SettingsTab.translationAndAiServices,
         icon: Icons.translate_outlined,
         selectedIcon: Icons.translate,
         label: l10n.translationAndAiServices,
         content: TranslationAiServicesTab(showPageTitle: showPageTitle),
       ),
       _SettingsPageItem(
+        tab: SettingsTab.about,
         icon: Icons.info_outline,
         selectedIcon: Icons.info,
         label: l10n.about,
         content: AboutTab(showPageTitle: showPageTitle),
       ),
     ];
+  }
+
+  int? _selectedIndexFor(List<_SettingsPageItem> items) {
+    final selectedTab = _selectedTab;
+    if (selectedTab == null) return null;
+    final index = items.indexWhere((item) => item.tab == selectedTab);
+    return index < 0 ? null : index;
   }
 
   @override
@@ -88,26 +116,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       body: LayoutBuilder(
         builder: (context, constraints) {
           final isStacked = constraints.maxWidth < _kTwoColumnWidth;
-          final isShowingDetail = isStacked && _selectedIndex != null;
+          final previewItems = _buildItems(context, showPageTitle: true);
+          final selectedIndex = _selectedIndexFor(previewItems);
+          final isShowingDetail = isStacked && selectedIndex != null;
           final items = _buildItems(context, showPageTitle: !isShowingDetail);
+          final currentSelectedIndex = _selectedIndexFor(items);
 
           if (isStacked) {
             // Stacked Layout (mobile / narrow desktop / medium desktop)
             // State-driven: If selection exists, show Detail. Else show List.
-            if (_selectedIndex != null) {
-              final item = items[_selectedIndex!];
+            if (currentSelectedIndex != null) {
+              final item = items[currentSelectedIndex];
 
               void handleDetailBack() {
                 // Special-case Subscriptions tab: allow in-page back (feed -> list -> categories)
                 // before leaving the tab back to the Settings list.
-                if (_selectedIndex == 1) {
+                if (item.tab == SettingsTab.subscriptions) {
                   final notifier = ref.read(
                     subscriptionSelectionProvider.notifier,
                   );
                   final shouldPop = notifier.handleBack();
                   if (!shouldPop) return;
                 }
-                setState(() => _selectedIndex = null);
+                setState(() => _selectedTab = null);
               }
 
               return PopScope(
@@ -184,7 +215,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             title: Text(items[index].label),
                             trailing: const Icon(Icons.chevron_right, size: 20),
                             onTap: () {
-                              setState(() => _selectedIndex = index);
+                              setState(() => _selectedTab = items[index].tab);
                             },
                           ),
                       ],
@@ -197,7 +228,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           // Two-column Layout
           // Ensure valid selection
-          final currentIndex = _selectedIndex ?? 0;
+          final currentIndex = currentSelectedIndex ?? 0;
           final selectedItem = items[currentIndex];
 
           return Column(
@@ -240,7 +271,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                         title: Text(items[index].label),
                                         onTap: () {
                                           setState(() {
-                                            _selectedIndex = index;
+                                            _selectedTab = items[index].tab;
                                           });
                                         },
                                       ),
@@ -285,12 +316,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 }
 
 class _SettingsPageItem {
+  final SettingsTab tab;
   final IconData icon;
   final IconData selectedIcon;
   final String label;
   final Widget content;
 
   const _SettingsPageItem({
+    required this.tab,
     required this.icon,
     required this.selectedIcon,
     required this.label,
