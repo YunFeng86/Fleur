@@ -506,8 +506,10 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
                             html,
                             key: _fullHtmlKey,
                             baseUrl: Uri.tryParse(article.link),
-                            factoryBuilder: () =>
-                                _ReaderWidgetFactory(cacheManager),
+                            factoryBuilder: () => _ReaderWidgetFactory(
+                              cacheManager,
+                              settings: settings,
+                            ),
                             renderMode: RenderMode.column,
                             buildAsync: true,
                             onLoadingBuilder: _buildImageLoadingPlaceholder,
@@ -575,8 +577,10 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
                         chunks[index - 1],
                         key: htmlKey,
                         baseUrl: Uri.tryParse(article.link),
-                        factoryBuilder: () =>
-                            _ReaderWidgetFactory(cacheManager),
+                        factoryBuilder: () => _ReaderWidgetFactory(
+                          cacheManager,
+                          settings: settings,
+                        ),
                         renderMode: RenderMode.column,
                         buildAsync: true,
                         onLoadingBuilder: _buildImageLoadingPlaceholder,

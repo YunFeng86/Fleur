@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
@@ -14,6 +16,7 @@ import 'package:fleur/models/feed.dart';
 import 'package:fleur/models/tag.dart';
 import 'package:fleur/providers/app_settings_providers.dart';
 import 'package:fleur/providers/article_ai_providers.dart';
+import 'package:fleur/providers/favicon_providers.dart';
 import 'package:fleur/providers/query_providers.dart';
 import 'package:fleur/providers/reader_providers.dart';
 import 'package:fleur/providers/reader_search_providers.dart';
@@ -30,6 +33,7 @@ import 'package:fleur/services/settings/reader_settings.dart';
 import 'package:fleur/services/settings/translation_ai_settings.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
+import 'package:fleur/ui/reader/reader_selectable_rich_text.dart';
 import 'package:fleur/utils/path_manager.dart';
 import 'package:fleur/utils/tag_colors.dart';
 import 'package:fleur/widgets/reader_bottom_bar.dart';
@@ -65,6 +69,15 @@ class _StubIsar implements Isar {
   dynamic noSuchMethod(Invocation invocation) {
     throw UnimplementedError(
       'Unexpected Isar access: ${invocation.memberName}',
+    );
+  }
+}
+
+class _NoopCacheManager implements BaseCacheManager {
+  @override
+  dynamic noSuchMethod(Invocation invocation) {
+    throw UnimplementedError(
+      'Unexpected cache manager access: ${invocation.memberName}',
     );
   }
 }
@@ -192,6 +205,9 @@ void main() {
         aiRequestQueueProvider.overrideWithValue(
           aiQueue ?? ImmediateAiRequestQueue(),
         ),
+        cacheManagerProvider.overrideWithValue(_NoopCacheManager()),
+        faviconUrlProvider.overrideWith((ref, hostKey) async => null),
+        faviconFileProvider.overrideWith((ref, url) async => null),
         fullTextControllerProvider.overrideWith(_FakeFullTextController.new),
         ...extraOverrides,
       ],
@@ -284,6 +300,59 @@ void main() {
     expect(tester.getTopLeft(titleFinder).dx, closeTo(expectedLeft, 1));
     expect(tester.getTopLeft(bodyFinder).dx, closeTo(expectedLeft, 1));
   });
+
+  testWidgets(
+    'reader html text uses strut-backed selection boxes for mixed scripts',
+    (tester) async {
+      const settings = ReaderSettings(
+        fontSize: 18,
+        lineHeight: 1.7,
+        horizontalPadding: 20,
+      );
+      final mixedText = List<String>.filled(
+        4,
+        '中文 English 123, punctuation !?「」 mixed symbols ',
+      ).join();
+
+      await pumpReader(
+        tester,
+        article: buildArticle(title: 'A', html: '<p>$mixedText</p>'),
+        appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+        readerSettings: settings,
+        size: const Size(420, 800),
+      );
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 500)),
+      );
+      await settleReader(tester, rounds: 12);
+
+      final richTextFinder = find.descendant(
+        of: find.byType(HtmlWidget),
+        matching: find.byType(ReaderSelectableRichText),
+      );
+
+      expect(richTextFinder, findsWidgets);
+      final renderObject = tester.renderObject<ReaderSelectionRenderParagraph>(
+        richTextFinder.first,
+      );
+      expect(renderObject.selectionHeightStyle, ui.BoxHeightStyle.strut);
+
+      final text = renderObject.text.toPlainText();
+      final boxes = renderObject.getBoxesForSelection(
+        TextSelection(baseOffset: 0, extentOffset: text.length),
+      );
+      final heights = boxes
+          .map((box) => box.toRect().height)
+          .where((height) => height > 0)
+          .toList();
+
+      expect(boxes.length, greaterThan(1));
+      expect(heights, isNotEmpty);
+      for (final height in heights) {
+        expect(height, closeTo(heights.first, 0.01));
+      }
+    },
+  );
 
   testWidgets('chunked reader content keeps the same left edge', (
     tester,
