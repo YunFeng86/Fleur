@@ -915,6 +915,18 @@ abstract class AppLocalizations {
   /// **'Read Later'**
   String get readLater;
 
+  /// Action label for removing an article from the read-later list
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from Read Later'**
+  String get removeReadLater;
+
+  /// Action label for opening an article from a list
+  ///
+  /// In en, this message translates to:
+  /// **'Open article'**
+  String get openArticle;
+
   /// markRead
   ///
   /// In en, this message translates to:

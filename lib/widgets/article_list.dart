@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:fleur/l10n/app_localizations.dart';
 
@@ -97,6 +99,142 @@ class _ArticleListState extends ConsumerState<ArticleList> {
           : items.map<_ArticleListEntry>((a) => _ArticleEntry(a)).toList();
     }
     return _cachedEntries;
+  }
+
+  Future<void> _openArticle(
+    BuildContext context,
+    Article article,
+    LayoutSpec spec, {
+    required bool closeIfSelected,
+  }) async {
+    if (article.id == widget.selectedArticleId) {
+      if (closeIfSelected) context.go(widget.baseLocation);
+      return;
+    }
+
+    final openAsSecondaryPage = isDesktop
+        ? !spec.desktopEmbedsReader
+        : !spec.canEmbedReader(
+            listWidth: widget.baseLocation == '/'
+                ? kHomeListWidth
+                : kDesktopListWidth,
+          );
+
+    final loc = widget.articleRoutePrefix.isEmpty
+        ? '/article/${article.id}'
+        : '${widget.articleRoutePrefix}/article/${article.id}';
+
+    if (openAsSecondaryPage) {
+      await context.push(loc);
+    } else {
+      context.go(loc);
+    }
+  }
+
+  Future<void> _showArticleContextMenu(
+    BuildContext context,
+    WidgetRef ref,
+    Article article,
+    Offset position,
+    LayoutSpec spec,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    final action = await showMenu<_ArticleContextAction>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        position.dx,
+        position.dy,
+        position.dx,
+        position.dy,
+      ),
+      items: [
+        PopupMenuItem(
+          value: _ArticleContextAction.open,
+          child: ListTile(
+            leading: const Icon(Icons.article_outlined),
+            title: Text(l10n.openArticle),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        PopupMenuItem(
+          value: _ArticleContextAction.markRead,
+          child: ListTile(
+            leading: Icon(
+              article.isRead ? Icons.mark_email_unread : Icons.mark_email_read,
+            ),
+            title: Text(article.isRead ? l10n.markUnread : l10n.markRead),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        PopupMenuItem(
+          value: _ArticleContextAction.toggleStar,
+          child: ListTile(
+            leading: Icon(article.isStarred ? Icons.star : Icons.star_border),
+            title: Text(article.isStarred ? l10n.unstar : l10n.star),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        PopupMenuItem(
+          value: _ArticleContextAction.toggleReadLater,
+          child: ListTile(
+            leading: Icon(
+              article.isReadLater
+                  ? Icons.watch_later
+                  : Icons.watch_later_outlined,
+            ),
+            title: Text(
+              article.isReadLater ? l10n.removeReadLater : l10n.readLater,
+            ),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        PopupMenuItem(
+          value: _ArticleContextAction.copyLink,
+          child: ListTile(
+            leading: const Icon(Icons.content_copy),
+            title: Text(l10n.copyLink),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        PopupMenuItem(
+          value: _ArticleContextAction.openInBrowser,
+          child: ListTile(
+            leading: const Icon(Icons.open_in_browser),
+            title: Text(l10n.openInBrowser),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+      ],
+    );
+    if (!context.mounted || action == null) return;
+
+    final actions = ref.read(articleActionServiceProvider);
+    switch (action) {
+      case _ArticleContextAction.open:
+        await _openArticle(context, article, spec, closeIfSelected: false);
+        return;
+      case _ArticleContextAction.markRead:
+        await actions.markRead(article.id, !article.isRead);
+        return;
+      case _ArticleContextAction.toggleStar:
+        await actions.toggleStar(article.id);
+        return;
+      case _ArticleContextAction.toggleReadLater:
+        await actions.toggleReadLater(article.id);
+        return;
+      case _ArticleContextAction.copyLink:
+        await Clipboard.setData(ClipboardData(text: article.link));
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.copiedToClipboard)));
+        return;
+      case _ArticleContextAction.openInBrowser:
+        final uri = Uri.tryParse(article.link);
+        if (uri == null) return;
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        return;
+    }
   }
 
   @override
@@ -246,30 +384,21 @@ class _ArticleListState extends ConsumerState<ArticleList> {
                     Widget child = ArticleListItem(
                       article: live,
                       selected: live.id == widget.selectedArticleId,
-                      onTap: () async {
-                        if (live.id == widget.selectedArticleId) {
-                          context.go(widget.baseLocation);
-                          return;
-                        }
-
-                        final openAsSecondaryPage = isDesktop
-                            ? !spec.desktopEmbedsReader
-                            : !spec.canEmbedReader(
-                                listWidth: widget.baseLocation == '/'
-                                    ? kHomeListWidth
-                                    : kDesktopListWidth,
-                              );
-
-                        final loc = widget.articleRoutePrefix.isEmpty
-                            ? '/article/${live.id}'
-                            : '${widget.articleRoutePrefix}/article/${live.id}';
-
-                        if (openAsSecondaryPage) {
-                          await context.push(loc);
-                        } else {
-                          context.go(loc);
-                        }
-                      },
+                      onTap: () => _openArticle(
+                        context,
+                        live,
+                        spec,
+                        closeIfSelected: true,
+                      ),
+                      onSecondaryTapDown: (details) => unawaited(
+                        _showArticleContextMenu(
+                          context,
+                          ref,
+                          live,
+                          details.globalPosition,
+                          spec,
+                        ),
+                      ),
                     );
 
                     if (spec.canSwipeToDelete && isCompact) {
@@ -352,6 +481,15 @@ class _ArticleListState extends ConsumerState<ArticleList> {
 }
 
 sealed class _ArticleListEntry {}
+
+enum _ArticleContextAction {
+  open,
+  markRead,
+  toggleStar,
+  toggleReadLater,
+  copyLink,
+  openInBrowser,
+}
 
 class _HeaderEntry extends _ArticleListEntry {
   _HeaderEntry(this.title);

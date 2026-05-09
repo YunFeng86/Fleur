@@ -452,6 +452,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get readLater => 'Read Later';
 
   @override
+  String get removeReadLater => 'Remove from Read Later';
+
+  @override
+  String get openArticle => 'Open article';
+
+  @override
   String get markRead => 'Mark read';
 
   @override

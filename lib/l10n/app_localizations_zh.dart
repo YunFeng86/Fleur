@@ -430,6 +430,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get readLater => '稍后读';
 
   @override
+  String get removeReadLater => '移出稍后读';
+
+  @override
+  String get openArticle => '打开文章';
+
+  @override
   String get markRead => '标记为已读';
 
   @override
@@ -1557,6 +1563,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get readLater => '稍後讀';
+
+  @override
+  String get removeReadLater => '移出稍後讀';
+
+  @override
+  String get openArticle => '打開文章';
 
   @override
   String get markRead => '標記為已讀';

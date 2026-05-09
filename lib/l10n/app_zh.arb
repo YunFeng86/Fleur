@@ -603,6 +603,14 @@
   "@readLater": {
     "description": "readLater"
   },
+  "removeReadLater": "移出稍后读",
+  "@removeReadLater": {
+    "description": "Action label for removing an article from the read-later list"
+  },
+  "openArticle": "打开文章",
+  "@openArticle": {
+    "description": "Action label for opening an article from a list"
+  },
   "markRead": "标记为已读",
   "@markRead": {
     "description": "markRead"

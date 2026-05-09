@@ -574,6 +574,14 @@
   "@readLater": {
     "description": "readLater"
   },
+  "removeReadLater": "Remove from Read Later",
+  "@removeReadLater": {
+    "description": "Action label for removing an article from the read-later list"
+  },
+  "openArticle": "Open article",
+  "@openArticle": {
+    "description": "Action label for opening an article from a list"
+  },
   "markRead": "Mark read",
   "@markRead": {
     "description": "markRead"

@@ -16,11 +16,13 @@ class ArticleListItem extends ConsumerWidget {
     required this.article,
     required this.selected,
     this.onTap,
+    this.onSecondaryTapDown,
   });
 
   final Article article;
   final bool selected;
   final VoidCallback? onTap;
+  final GestureTapDownCallback? onSecondaryTapDown;
 
   static const double _metaWidth = 96;
 
@@ -58,6 +60,7 @@ class ArticleListItem extends ConsumerWidget {
       ),
       child: InkWell(
         onTap: onTap,
+        onSecondaryTapDown: onSecondaryTapDown,
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
