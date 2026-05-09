@@ -108,6 +108,38 @@ void main() {
     expect(restored.remoteEntriesLimit, 0);
   });
 
+  test('AppSettings defaults remote fetch concurrency', () {
+    const s = AppSettings();
+    expect(s.remoteFetchConcurrency, 2);
+  });
+
+  test('AppSettings copyWith updates remote fetch concurrency', () {
+    final s = const AppSettings().copyWith(remoteFetchConcurrency: 4);
+    expect(s.remoteFetchConcurrency, 4);
+  });
+
+  test('AppSettings persists remote fetch concurrency in JSON', () {
+    final s = const AppSettings().copyWith(remoteFetchConcurrency: 4);
+    final json = s.toJson();
+    expect(json['remoteFetchConcurrency'], 4);
+
+    final restored = AppSettings.fromJson(json.cast<String, Object?>());
+    expect(restored.remoteFetchConcurrency, 4);
+  });
+
+  test('AppSettings.fromJson defaults missing remote fetch concurrency', () {
+    final restored = AppSettings.fromJson(<String, Object?>{});
+    expect(restored.remoteFetchConcurrency, 2);
+  });
+
+  test('AppSettings normalizes remote fetch concurrency range', () {
+    final low = const AppSettings(remoteFetchConcurrency: 0).normalized();
+    final high = const AppSettings(remoteFetchConcurrency: 9).normalized();
+
+    expect(low.remoteFetchConcurrency, 1);
+    expect(high.remoteFetchConcurrency, 4);
+  });
+
   test('AppSettings persists Miniflux web fetch mode in JSON', () {
     final s = const AppSettings().copyWith(
       minifluxWebFetchMode: MinifluxWebFetchMode.serverFetchContent,

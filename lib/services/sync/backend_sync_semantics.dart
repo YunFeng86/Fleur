@@ -12,6 +12,8 @@ enum BackendHistoryCoverage {
 
 enum BackendEntrySyncLimitScope { none, remoteAccountWindow }
 
+enum BackendRemoteFetchConcurrencyScope { none, remoteArticleBatches }
+
 enum BackendTaxonomySemantics {
   localOnly,
   remoteWritableAuthoritative,
@@ -26,6 +28,7 @@ class BackendSyncSemantics {
     required this.refreshScope,
     required this.historyCoverage,
     required this.entrySyncLimitScope,
+    required this.remoteFetchConcurrencyScope,
     required this.taxonomySemantics,
     required this.notificationGranularity,
   });
@@ -37,6 +40,7 @@ class BackendSyncSemantics {
         refreshScope: BackendRefreshScope.feed,
         historyCoverage: BackendHistoryCoverage.localFeedContent,
         entrySyncLimitScope: BackendEntrySyncLimitScope.none,
+        remoteFetchConcurrencyScope: BackendRemoteFetchConcurrencyScope.none,
         taxonomySemantics: BackendTaxonomySemantics.localOnly,
         notificationGranularity:
             BackendNotificationGranularity.perFeedAndSummary,
@@ -46,6 +50,8 @@ class BackendSyncSemantics {
         refreshScope: BackendRefreshScope.account,
         historyCoverage: BackendHistoryCoverage.remotePaginatedEntries,
         entrySyncLimitScope: BackendEntrySyncLimitScope.remoteAccountWindow,
+        remoteFetchConcurrencyScope:
+            BackendRemoteFetchConcurrencyScope.remoteArticleBatches,
         taxonomySemantics: BackendTaxonomySemantics.remoteWritableAuthoritative,
         notificationGranularity: BackendNotificationGranularity.none,
       ),
@@ -54,6 +60,8 @@ class BackendSyncSemantics {
         refreshScope: BackendRefreshScope.account,
         historyCoverage: BackendHistoryCoverage.remoteUnreadAndSavedItems,
         entrySyncLimitScope: BackendEntrySyncLimitScope.remoteAccountWindow,
+        remoteFetchConcurrencyScope:
+            BackendRemoteFetchConcurrencyScope.remoteArticleBatches,
         taxonomySemantics: BackendTaxonomySemantics.remoteReadOnlyMirror,
         notificationGranularity: BackendNotificationGranularity.summaryOnly,
       ),
@@ -64,6 +72,7 @@ class BackendSyncSemantics {
   final BackendRefreshScope refreshScope;
   final BackendHistoryCoverage historyCoverage;
   final BackendEntrySyncLimitScope entrySyncLimitScope;
+  final BackendRemoteFetchConcurrencyScope remoteFetchConcurrencyScope;
   final BackendTaxonomySemantics taxonomySemantics;
   final BackendNotificationGranularity notificationGranularity;
 
@@ -73,6 +82,9 @@ class BackendSyncSemantics {
 
   bool get supportsEntrySyncLimit =>
       entrySyncLimitScope != BackendEntrySyncLimitScope.none;
+
+  bool get supportsRemoteFetchConcurrency =>
+      remoteFetchConcurrencyScope != BackendRemoteFetchConcurrencyScope.none;
 
   bool get mirrorsRemoteTaxonomy =>
       taxonomySemantics != BackendTaxonomySemantics.localOnly;

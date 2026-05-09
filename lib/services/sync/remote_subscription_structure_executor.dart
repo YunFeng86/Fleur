@@ -17,17 +17,33 @@ abstract class RemoteSubscriptionStructureExecutor {
     required String title,
   });
 
+  Future<Map<String, Object?>> renameCategoryById({
+    required int categoryId,
+    required String title,
+  });
+
   Future<void> deleteCategoryByTitle(String title);
+
+  Future<void> deleteCategoryById(int categoryId);
 
   Future<void> deleteFeedByUrl(String feedUrl);
 
+  Future<void> deleteFeedById(int feedId);
+
   Future<void> refreshFeedByUrl(String feedUrl);
+
+  Future<void> refreshFeedById(int feedId);
 
   Future<void> refreshAllFeeds();
 
   Future<Map<String, Object?>> moveFeedToCategory({
     required String feedUrl,
     required String categoryTitle,
+  });
+
+  Future<Map<String, Object?>> moveFeedToCategoryByIds({
+    required int feedId,
+    required int categoryId,
   });
 
   Future<int> resolveFeedIdByUrl(String feedUrl);
@@ -74,9 +90,22 @@ class MinifluxRemoteSubscriptionStructureExecutor
   }
 
   @override
+  Future<Map<String, Object?>> renameCategoryById({
+    required int categoryId,
+    required String title,
+  }) {
+    return _client.updateCategory(categoryId: categoryId, title: title);
+  }
+
+  @override
   Future<void> deleteCategoryByTitle(String title) async {
     final remote = await resolveCategoryByTitle(title);
     await _client.deleteCategory(remote.remoteId);
+  }
+
+  @override
+  Future<void> deleteCategoryById(int categoryId) {
+    return _client.deleteCategory(categoryId);
   }
 
   @override
@@ -86,9 +115,19 @@ class MinifluxRemoteSubscriptionStructureExecutor
   }
 
   @override
+  Future<void> deleteFeedById(int feedId) {
+    return _client.deleteFeed(feedId);
+  }
+
+  @override
   Future<void> refreshFeedByUrl(String feedUrl) async {
     final remoteFeedId = await resolveFeedIdByUrl(feedUrl);
     await _client.refreshFeed(remoteFeedId);
+  }
+
+  @override
+  Future<void> refreshFeedById(int feedId) {
+    return _client.refreshFeed(feedId);
   }
 
   @override
@@ -107,6 +146,14 @@ class MinifluxRemoteSubscriptionStructureExecutor
       feedId: remoteFeedId,
       categoryId: remoteCategory.remoteId,
     );
+  }
+
+  @override
+  Future<Map<String, Object?>> moveFeedToCategoryByIds({
+    required int feedId,
+    required int categoryId,
+  }) {
+    return _client.updateFeed(feedId: feedId, categoryId: categoryId);
   }
 
   @override

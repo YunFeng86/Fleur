@@ -11,6 +11,7 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
     _resizeTimer?.cancel();
     _resizeTimer = null;
     _lastViewportSize = null;
+    _lastViewportSettings = null;
     _isResizing = false;
     _prefetchedChunks.clear();
     _prefetchTimer?.cancel();
@@ -19,19 +20,32 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
     _lastAnchor = null;
   }
 
-  void _handleViewportSizeChange(Size size, {required bool isChunked}) {
+  void _handleViewportSizeChange(
+    Size size, {
+    required bool isChunked,
+    required ReaderSettings settings,
+  }) {
     if (!isChunked) {
       _setChunkedLayout(false);
       _lastViewportSize = size;
+      _lastViewportSettings = settings;
       return;
     }
 
     _setChunkedLayout(true);
     final last = _lastViewportSize;
+    final lastSettings = _lastViewportSettings;
     _lastViewportSize = size;
-    if (last == null) return;
+    _lastViewportSettings = settings;
+    if (last == null || lastSettings == null) return;
+    final settingsChanged =
+        (settings.fontSize - lastSettings.fontSize).abs() >= 0.01 ||
+        (settings.lineHeight - lastSettings.lineHeight).abs() >= 0.01 ||
+        (settings.horizontalPadding - lastSettings.horizontalPadding).abs() >=
+            0.01;
     if ((size.width - last.width).abs() < 1 &&
-        (size.height - last.height).abs() < 1) {
+        (size.height - last.height).abs() < 1 &&
+        !settingsChanged) {
       return;
     }
     _startResizeSession();
@@ -129,6 +143,75 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
       position.maxScrollExtent,
     );
     if ((next - position.pixels).abs() < 0.5) return;
+    _isRestoring = true;
+    _scrollController.jumpTo(next);
+    _isRestoring = false;
+  }
+
+  bool _canRestoreProgressAnchor(ReaderProgress progress) {
+    return _usingChunkedLayout &&
+        progress.anchorIndex != null &&
+        progress.anchorFraction != null;
+  }
+
+  bool _restoreProgressAnchor(ReaderProgress progress) {
+    final anchorIndex = progress.anchorIndex;
+    final anchorFraction = progress.anchorFraction;
+    if (anchorIndex == null || anchorFraction == null) return false;
+    if (!_scrollController.hasClients) return false;
+
+    final listBox =
+        _listViewKey.currentContext?.findRenderObject() as RenderBox?;
+    final itemBox =
+        _chunkKeys[anchorIndex]?.currentContext?.findRenderObject()
+            as RenderBox?;
+    if (listBox == null ||
+        itemBox == null ||
+        !listBox.hasSize ||
+        !itemBox.hasSize) {
+      return false;
+    }
+
+    final viewportCenterY =
+        listBox.localToGlobal(Offset.zero).dy + listBox.size.height / 2;
+    final itemTop = itemBox.localToGlobal(Offset.zero).dy;
+    final targetY = itemTop + itemBox.size.height * anchorFraction;
+    final delta = targetY - viewportCenterY;
+    final position = _scrollController.position;
+    final next = (position.pixels + delta).clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
+    if ((next - position.pixels).abs() > 0.5) {
+      _isRestoring = true;
+      _scrollController.jumpTo(next);
+      _isRestoring = false;
+    }
+    _lastAnchor = _ChunkAnchor(index: anchorIndex, fraction: anchorFraction);
+    return true;
+  }
+
+  void _jumpNearProgressAnchor(ReaderProgress progress) {
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    final chunks = _currentChunks;
+    double target = progress.pixels;
+    if (chunks != null && chunks.isNotEmpty && progress.anchorIndex != null) {
+      final totalItems = chunks.length + 1;
+      final denominator = totalItems <= 1 ? 1 : totalItems - 1;
+      final fraction = (progress.anchorIndex! / denominator).clamp(0.0, 1.0);
+      final estimated =
+          position.minScrollExtent +
+          (position.maxScrollExtent - position.minScrollExtent) * fraction;
+      if (target < position.minScrollExtent ||
+          target > position.maxScrollExtent) {
+        target = estimated;
+      }
+    }
+    final next = target
+        .clamp(position.minScrollExtent, position.maxScrollExtent)
+        .toDouble();
+    if ((next - position.pixels).abs() <= 1) return;
     _isRestoring = true;
     _scrollController.jumpTo(next);
     _isRestoring = false;

@@ -8,9 +8,11 @@ import 'package:fleur/providers/background_sync_providers.dart';
 import 'package:fleur/providers/outbox_flush_providers.dart';
 import 'package:fleur/providers/outbox_status_providers.dart';
 import 'package:fleur/providers/service_providers.dart';
+import 'package:fleur/providers/sync_status_providers.dart';
 import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/sync/outbox/outbox_store.dart';
+import 'package:fleur/services/sync/sync_status_reporter.dart';
 import 'package:fleur/utils/platform.dart';
 
 import '../test_utils/critical_workflow_test_support.dart';
@@ -21,6 +23,30 @@ void main() {
       await Future<void>.delayed(Duration.zero);
     }
   }
+
+  test('SyncStatusTask.update clears nullable progress fields', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    final task = container
+        .read(syncStatusReporterProvider)
+        .startTask(
+          label: SyncStatusLabel.syncingSubscriptions,
+          current: 3,
+          total: 10,
+        );
+
+    task.update(
+      label: SyncStatusLabel.syncingUnreadArticles,
+      current: 0,
+      total: null,
+    );
+
+    final state = container.read(syncStatusControllerProvider);
+    expect(state.label, SyncStatusLabel.syncingUnreadArticles);
+    expect(state.current, 0);
+    expect(state.total, isNull);
+  });
 
   test(
     'resolveOutboxFlushCycleResult resets delay after successful progress',

@@ -6,6 +6,9 @@ part 'category.g.dart';
 class Category {
   Id id = Isar.autoIncrement;
 
+  @Index()
+  String? remoteId;
+
   @Index(unique: true, replace: true)
   late String name;
 

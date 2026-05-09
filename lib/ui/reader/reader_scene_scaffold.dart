@@ -27,6 +27,7 @@ extension _ReaderSceneScaffold on _ReaderViewState {
     _viewportCoordinator._handleViewportSizeChange(
       MediaQuery.sizeOf(context),
       isChunked: isChunked,
+      settings: settings,
     );
     final title = article.title?.trim().isNotEmpty == true
         ? article.title!

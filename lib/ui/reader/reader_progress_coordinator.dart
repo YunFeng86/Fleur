@@ -40,6 +40,7 @@ final class _ReaderViewportCoordinator {
   bool _isResizing = false;
   int _resizeRestoreAttempts = 0;
   Size? _lastViewportSize;
+  ReaderSettings? _lastViewportSettings;
   bool _usingChunkedLayout = false;
   Timer? _prefetchTimer;
   List<String>? _currentChunks;
@@ -48,6 +49,8 @@ final class _ReaderViewportCoordinator {
   String? _pendingSaveContentHash;
   double? _pendingSavePixels;
   double? _pendingSaveProgress;
+  int? _pendingSaveAnchorIndex;
+  double? _pendingSaveAnchorFraction;
   double? _lastSavedPixels;
   double? _lastSavedProgress;
 
@@ -95,6 +98,7 @@ final class _ReaderViewportCoordinator {
     _lastAnchor = null;
     _resizeRestoreAttempts = 0;
     _lastViewportSize = null;
+    _lastViewportSettings = null;
     _usingChunkedLayout = false;
     _chunkKeys.clear();
     _chunkHtmlKeys.clear();
@@ -106,6 +110,8 @@ final class _ReaderViewportCoordinator {
     _pendingSaveContentHash = null;
     _pendingSavePixels = null;
     _pendingSaveProgress = null;
+    _pendingSaveAnchorIndex = null;
+    _pendingSaveAnchorFraction = null;
     _lastSavedPixels = null;
     _lastSavedProgress = null;
   }
@@ -246,6 +252,19 @@ final class _ReaderViewportCoordinator {
     final maxExtent = position.maxScrollExtent;
     final minExtent = position.minScrollExtent;
     final targetPixels = progress.pixels;
+    if (_canRestoreProgressAnchor(progress)) {
+      if (_restoreProgressAnchor(progress)) {
+        _restoredScrollPosition = true;
+        return;
+      }
+      if (_restoreAttempts < 6) {
+        _restoreAttempts++;
+        _jumpNearProgressAnchor(progress);
+        _scheduleRestore(contentHash);
+        return;
+      }
+    }
+
     final needsMoreExtent = maxExtent <= 0 || targetPixels > maxExtent + 24;
     if (needsMoreExtent && _restoreAttempts < 6) {
       _restoreAttempts++;
@@ -281,6 +300,7 @@ final class _ReaderViewportCoordinator {
     final progress = maxExtent > 0
         ? (pixels / maxExtent).clamp(0.0, 1.0).toDouble()
         : 0.0;
+    final anchor = _findChunkAnchor();
 
     final lastPixels = _lastSavedPixels;
     final lastProgress = _lastSavedProgress;
@@ -294,6 +314,7 @@ final class _ReaderViewportCoordinator {
       contentHash: contentHash,
       pixels: pixels,
       progress: progress,
+      anchor: anchor,
     );
     _maybePrefetchNextChunks();
   }
@@ -303,11 +324,14 @@ final class _ReaderViewportCoordinator {
     required String contentHash,
     required double pixels,
     required double progress,
+    _ChunkAnchor? anchor,
   }) {
     _pendingSaveArticleId = articleId;
     _pendingSaveContentHash = contentHash;
     _pendingSavePixels = pixels;
     _pendingSaveProgress = progress;
+    _pendingSaveAnchorIndex = anchor?.index;
+    _pendingSaveAnchorFraction = anchor?.fraction;
     _progressSaveTimer?.cancel();
     _progressSaveTimer = Timer(const Duration(milliseconds: 500), () {
       unawaited(_saveProgressNow());
@@ -319,6 +343,8 @@ final class _ReaderViewportCoordinator {
     final contentHash = _pendingSaveContentHash;
     final pixels = _pendingSavePixels;
     final progress = _pendingSaveProgress;
+    final anchorIndex = _pendingSaveAnchorIndex;
+    final anchorFraction = _pendingSaveAnchorFraction;
     if (articleId == null ||
         contentHash == null ||
         pixels == null ||
@@ -329,6 +355,8 @@ final class _ReaderViewportCoordinator {
     _pendingSaveContentHash = null;
     _pendingSavePixels = null;
     _pendingSaveProgress = null;
+    _pendingSaveAnchorIndex = null;
+    _pendingSaveAnchorFraction = null;
 
     final entry = ReaderProgress(
       articleId: articleId,
@@ -336,6 +364,8 @@ final class _ReaderViewportCoordinator {
       pixels: pixels,
       progress: progress,
       updatedAt: DateTime.now(),
+      anchorIndex: anchorIndex,
+      anchorFraction: anchorFraction,
     );
     await _progressStore.saveProgress(entry);
     _lastSavedPixels = pixels;

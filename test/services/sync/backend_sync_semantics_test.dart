@@ -8,6 +8,7 @@ void main() {
       refreshScope: BackendRefreshScope.feed,
       historyCoverage: BackendHistoryCoverage.localFeedContent,
       entrySyncLimitScope: BackendEntrySyncLimitScope.none,
+      remoteFetchConcurrencyScope: BackendRemoteFetchConcurrencyScope.none,
       taxonomySemantics: BackendTaxonomySemantics.localOnly,
       notificationGranularity: BackendNotificationGranularity.perFeedAndSummary,
     ),
@@ -15,6 +16,8 @@ void main() {
       refreshScope: BackendRefreshScope.account,
       historyCoverage: BackendHistoryCoverage.remotePaginatedEntries,
       entrySyncLimitScope: BackendEntrySyncLimitScope.remoteAccountWindow,
+      remoteFetchConcurrencyScope:
+          BackendRemoteFetchConcurrencyScope.remoteArticleBatches,
       taxonomySemantics: BackendTaxonomySemantics.remoteWritableAuthoritative,
       notificationGranularity: BackendNotificationGranularity.none,
     ),
@@ -22,6 +25,8 @@ void main() {
       refreshScope: BackendRefreshScope.account,
       historyCoverage: BackendHistoryCoverage.remoteUnreadAndSavedItems,
       entrySyncLimitScope: BackendEntrySyncLimitScope.remoteAccountWindow,
+      remoteFetchConcurrencyScope:
+          BackendRemoteFetchConcurrencyScope.remoteArticleBatches,
       taxonomySemantics: BackendTaxonomySemantics.remoteReadOnlyMirror,
       notificationGranularity: BackendNotificationGranularity.summaryOnly,
     ),
@@ -35,6 +40,10 @@ void main() {
       expect(semantics.refreshScope, expected.refreshScope);
       expect(semantics.historyCoverage, expected.historyCoverage);
       expect(semantics.entrySyncLimitScope, expected.entrySyncLimitScope);
+      expect(
+        semantics.remoteFetchConcurrencyScope,
+        expected.remoteFetchConcurrencyScope,
+      );
       expect(semantics.taxonomySemantics, expected.taxonomySemantics);
       expect(
         semantics.notificationGranularity,
@@ -51,6 +60,7 @@ void main() {
     expect(local.isFeedScopedRefresh, isTrue);
     expect(local.isAccountWideRefresh, isFalse);
     expect(local.supportsEntrySyncLimit, isFalse);
+    expect(local.supportsRemoteFetchConcurrency, isFalse);
     expect(local.mirrorsRemoteTaxonomy, isFalse);
     expect(local.isLocalOnlyTaxonomy, isTrue);
     expect(local.isRemoteWritableTaxonomy, isFalse);
@@ -61,6 +71,7 @@ void main() {
     expect(miniflux.isFeedScopedRefresh, isFalse);
     expect(miniflux.isAccountWideRefresh, isTrue);
     expect(miniflux.supportsEntrySyncLimit, isTrue);
+    expect(miniflux.supportsRemoteFetchConcurrency, isTrue);
     expect(miniflux.mirrorsRemoteTaxonomy, isTrue);
     expect(miniflux.isLocalOnlyTaxonomy, isFalse);
     expect(miniflux.isRemoteWritableTaxonomy, isTrue);
@@ -71,6 +82,7 @@ void main() {
     expect(fever.isFeedScopedRefresh, isFalse);
     expect(fever.isAccountWideRefresh, isTrue);
     expect(fever.supportsEntrySyncLimit, isTrue);
+    expect(fever.supportsRemoteFetchConcurrency, isTrue);
     expect(fever.mirrorsRemoteTaxonomy, isTrue);
     expect(fever.isLocalOnlyTaxonomy, isFalse);
     expect(fever.isRemoteWritableTaxonomy, isFalse);
@@ -85,6 +97,7 @@ class _ExpectedSyncSemantics {
     required this.refreshScope,
     required this.historyCoverage,
     required this.entrySyncLimitScope,
+    required this.remoteFetchConcurrencyScope,
     required this.taxonomySemantics,
     required this.notificationGranularity,
   });
@@ -92,6 +105,7 @@ class _ExpectedSyncSemantics {
   final BackendRefreshScope refreshScope;
   final BackendHistoryCoverage historyCoverage;
   final BackendEntrySyncLimitScope entrySyncLimitScope;
+  final BackendRemoteFetchConcurrencyScope remoteFetchConcurrencyScope;
   final BackendTaxonomySemantics taxonomySemantics;
   final BackendNotificationGranularity notificationGranularity;
 }

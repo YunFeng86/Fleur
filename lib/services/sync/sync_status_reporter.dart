@@ -20,6 +20,10 @@ extension SyncStatusLabelX on SyncStatusLabel {
       this == SyncStatusLabel.completed || this == SyncStatusLabel.failed;
 }
 
+/// Sentinel used by [SyncStatusTask.update] to distinguish an omitted nullable
+/// field from an explicit request to clear that field with `null`.
+const Object syncStatusUnchanged = Object();
+
 abstract class SyncStatusReporter {
   const SyncStatusReporter();
 
@@ -36,9 +40,9 @@ abstract class SyncStatusTask {
 
   void update({
     SyncStatusLabel? label,
-    String? detail,
-    int? current,
-    int? total,
+    Object? detail = syncStatusUnchanged,
+    Object? current = syncStatusUnchanged,
+    Object? total = syncStatusUnchanged,
   });
 
   void complete({bool success = true});
@@ -64,9 +68,9 @@ class _NoopSyncStatusTask extends SyncStatusTask {
   @override
   void update({
     SyncStatusLabel? label,
-    String? detail,
-    int? current,
-    int? total,
+    Object? detail = syncStatusUnchanged,
+    Object? current = syncStatusUnchanged,
+    Object? total = syncStatusUnchanged,
   }) {}
 
   @override

@@ -6,6 +6,9 @@ part 'feed.g.dart';
 class Feed {
   Id id = Isar.autoIncrement;
 
+  @Index()
+  String? remoteId;
+
   /// Subscription URL (RSS/Atom).
   @Index(unique: true, replace: true)
   late String url;

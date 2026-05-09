@@ -142,17 +142,22 @@ class _TaskData {
 
   _TaskData copyWith({
     SyncStatusLabel? label,
-    String? detail,
-    int? current,
-    int? total,
+    Object? detail = syncStatusUnchanged,
+    Object? current = syncStatusUnchanged,
+    Object? total = syncStatusUnchanged,
   }) {
     return _TaskData(
       label: label ?? this.label,
-      detail: detail ?? this.detail,
-      current: current ?? this.current,
-      total: total ?? this.total,
+      detail: _resolveNullableField<String>(detail, this.detail),
+      current: _resolveNullableField<int>(current, this.current),
+      total: _resolveNullableField<int>(total, this.total),
     );
   }
+}
+
+T? _resolveNullableField<T>(Object? value, T? previous) {
+  if (identical(value, syncStatusUnchanged)) return previous;
+  return value as T?;
 }
 
 final syncStatusControllerProvider =
@@ -193,9 +198,9 @@ class _RiverpodSyncStatusTask extends SyncStatusTask {
   @override
   void update({
     SyncStatusLabel? label,
-    String? detail,
-    int? current,
-    int? total,
+    Object? detail = syncStatusUnchanged,
+    Object? current = syncStatusUnchanged,
+    Object? total = syncStatusUnchanged,
   }) {
     final prev = _controller._tasks[_id];
     if (prev == null) return;

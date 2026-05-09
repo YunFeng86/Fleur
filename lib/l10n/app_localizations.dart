@@ -1251,6 +1251,18 @@ abstract class AppLocalizations {
   /// **'Entries per sync'**
   String get remoteEntriesLimit;
 
+  /// remoteFetchConcurrency
+  ///
+  /// In en, this message translates to:
+  /// **'Remote fetch concurrency'**
+  String get remoteFetchConcurrency;
+
+  /// remoteFetchConcurrencySubtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Controls concurrent remote article batch requests during account sync.'**
+  String get remoteFetchConcurrencySubtitle;
+
   /// minifluxWebFetchMode
   ///
   /// In en, this message translates to:

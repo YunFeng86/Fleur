@@ -83,6 +83,12 @@ void main() {
       expect(feed!.url, equals('https://example.com/rss'));
       expect(feed.title, equals('Legacy Feed'));
       expect(feed.categoryId, equals(42));
+      expect(
+        feed.remoteId,
+        isNull,
+        reason:
+            'Legacy DB should not have Feed.remoteId; it must deserialize as null.',
+      );
       expect(feed.showAiSummary, isTrue);
       expect(
         feed.autoTranslate,
@@ -98,6 +104,12 @@ void main() {
         reason: 'Legacy Category record should exist',
       );
       expect(category!.name, equals('cat_legacy'));
+      expect(
+        category.remoteId,
+        isNull,
+        reason:
+            'Legacy DB should not have Category.remoteId; it must deserialize as null.',
+      );
       expect(category.showAiSummary, isTrue);
       expect(
         category.autoTranslate,

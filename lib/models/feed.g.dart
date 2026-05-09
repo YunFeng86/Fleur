@@ -92,48 +92,53 @@ const FeedSchema = CollectionSchema(
       name: r'lastSyncedAt',
       type: IsarType.dateTime,
     ),
-    r'showAiSummary': PropertySchema(
+    r'remoteId': PropertySchema(
       id: 15,
+      name: r'remoteId',
+      type: IsarType.string,
+    ),
+    r'showAiSummary': PropertySchema(
+      id: 16,
       name: r'showAiSummary',
       type: IsarType.bool,
     ),
     r'siteUrl': PropertySchema(
-      id: 16,
+      id: 17,
       name: r'siteUrl',
       type: IsarType.string,
     ),
     r'syncEnabled': PropertySchema(
-      id: 17,
+      id: 18,
       name: r'syncEnabled',
       type: IsarType.bool,
     ),
     r'syncImages': PropertySchema(
-      id: 18,
+      id: 19,
       name: r'syncImages',
       type: IsarType.bool,
     ),
     r'syncWebPages': PropertySchema(
-      id: 19,
+      id: 20,
       name: r'syncWebPages',
       type: IsarType.bool,
     ),
     r'title': PropertySchema(
-      id: 20,
+      id: 21,
       name: r'title',
       type: IsarType.string,
     ),
     r'updatedAt': PropertySchema(
-      id: 21,
+      id: 22,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
     r'url': PropertySchema(
-      id: 22,
+      id: 23,
       name: r'url',
       type: IsarType.string,
     ),
     r'userTitle': PropertySchema(
-      id: 23,
+      id: 24,
       name: r'userTitle',
       type: IsarType.string,
     )
@@ -144,6 +149,19 @@ const FeedSchema = CollectionSchema(
   deserializeProp: _feedDeserializeProp,
   idName: r'id',
   indexes: {
+    r'remoteId': IndexSchema(
+      id: 6301175856541681032,
+      name: r'remoteId',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'remoteId',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    ),
     r'url': IndexSchema(
       id: -5756857009679432345,
       name: r'url',
@@ -216,6 +234,12 @@ int _feedEstimateSize(
     }
   }
   {
+    final value = object.remoteId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.siteUrl;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -258,15 +282,16 @@ void _feedSerialize(
   writer.writeString(offsets[12], object.lastModified);
   writer.writeLong(offsets[13], object.lastStatusCode);
   writer.writeDateTime(offsets[14], object.lastSyncedAt);
-  writer.writeBool(offsets[15], object.showAiSummary);
-  writer.writeString(offsets[16], object.siteUrl);
-  writer.writeBool(offsets[17], object.syncEnabled);
-  writer.writeBool(offsets[18], object.syncImages);
-  writer.writeBool(offsets[19], object.syncWebPages);
-  writer.writeString(offsets[20], object.title);
-  writer.writeDateTime(offsets[21], object.updatedAt);
-  writer.writeString(offsets[22], object.url);
-  writer.writeString(offsets[23], object.userTitle);
+  writer.writeString(offsets[15], object.remoteId);
+  writer.writeBool(offsets[16], object.showAiSummary);
+  writer.writeString(offsets[17], object.siteUrl);
+  writer.writeBool(offsets[18], object.syncEnabled);
+  writer.writeBool(offsets[19], object.syncImages);
+  writer.writeBool(offsets[20], object.syncWebPages);
+  writer.writeString(offsets[21], object.title);
+  writer.writeDateTime(offsets[22], object.updatedAt);
+  writer.writeString(offsets[23], object.url);
+  writer.writeString(offsets[24], object.userTitle);
 }
 
 Feed _feedDeserialize(
@@ -292,15 +317,16 @@ Feed _feedDeserialize(
   object.lastModified = reader.readStringOrNull(offsets[12]);
   object.lastStatusCode = reader.readLongOrNull(offsets[13]);
   object.lastSyncedAt = reader.readDateTimeOrNull(offsets[14]);
-  object.showAiSummary = reader.readBoolOrNull(offsets[15]);
-  object.siteUrl = reader.readStringOrNull(offsets[16]);
-  object.syncEnabled = reader.readBoolOrNull(offsets[17]);
-  object.syncImages = reader.readBoolOrNull(offsets[18]);
-  object.syncWebPages = reader.readBoolOrNull(offsets[19]);
-  object.title = reader.readStringOrNull(offsets[20]);
-  object.updatedAt = reader.readDateTime(offsets[21]);
-  object.url = reader.readString(offsets[22]);
-  object.userTitle = reader.readStringOrNull(offsets[23]);
+  object.remoteId = reader.readStringOrNull(offsets[15]);
+  object.showAiSummary = reader.readBoolOrNull(offsets[16]);
+  object.siteUrl = reader.readStringOrNull(offsets[17]);
+  object.syncEnabled = reader.readBoolOrNull(offsets[18]);
+  object.syncImages = reader.readBoolOrNull(offsets[19]);
+  object.syncWebPages = reader.readBoolOrNull(offsets[20]);
+  object.title = reader.readStringOrNull(offsets[21]);
+  object.updatedAt = reader.readDateTime(offsets[22]);
+  object.url = reader.readString(offsets[23]);
+  object.userTitle = reader.readStringOrNull(offsets[24]);
   return object;
 }
 
@@ -342,22 +368,24 @@ P _feedDeserializeProp<P>(
     case 14:
       return (reader.readDateTimeOrNull(offset)) as P;
     case 15:
-      return (reader.readBoolOrNull(offset)) as P;
-    case 16:
       return (reader.readStringOrNull(offset)) as P;
-    case 17:
+    case 16:
       return (reader.readBoolOrNull(offset)) as P;
+    case 17:
+      return (reader.readStringOrNull(offset)) as P;
     case 18:
       return (reader.readBoolOrNull(offset)) as P;
     case 19:
       return (reader.readBoolOrNull(offset)) as P;
     case 20:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBoolOrNull(offset)) as P;
     case 21:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 22:
-      return (reader.readString(offset)) as P;
+      return (reader.readDateTime(offset)) as P;
     case 23:
+      return (reader.readString(offset)) as P;
+    case 24:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -509,6 +537,71 @@ extension FeedQueryWhere on QueryBuilder<Feed, Feed, QWhereClause> {
         upper: upperId,
         includeUpper: includeUpper,
       ));
+    });
+  }
+
+  QueryBuilder<Feed, Feed, QAfterWhereClause> remoteIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'remoteId',
+        value: [null],
+      ));
+    });
+  }
+
+  QueryBuilder<Feed, Feed, QAfterWhereClause> remoteIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'remoteId',
+        lower: [null],
+        includeLower: false,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<Feed, Feed, QAfterWhereClause> remoteIdEqualTo(
+      String? remoteId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'remoteId',
+        value: [remoteId],
+      ));
+    });
+  }
+
+  QueryBuilder<Feed, Feed, QAfterWhereClause> remoteIdNotEqualTo(
+      String? remoteId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'remoteId',
+              lower: [],
+              upper: [remoteId],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'remoteId',
+              lower: [remoteId],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'remoteId',
+              lower: [remoteId],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'remoteId',
+              lower: [],
+              upper: [remoteId],
+              includeUpper: false,
+            ));
+      }
     });
   }
 
@@ -2035,6 +2128,151 @@ extension FeedQueryFilter on QueryBuilder<Feed, Feed, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Feed, Feed, QAfterFilterCondition> remoteIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'remoteId',
+      ));
+    });
+  }
+
+  QueryBuilder<Feed, Feed, QAfterFilterCondition> remoteIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'remoteId',
+      ));
+    });
+  }
+
+  QueryBuilder<Feed, Feed, QAfterFilterCondition> remoteIdEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'remoteId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Feed, Feed, QAfterFilterCondition> remoteIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'remoteId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Feed, Feed, QAfterFilterCondition> remoteIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'remoteId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Feed, Feed, QAfterFilterCondition> remoteIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'remoteId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Feed, Feed, QAfterFilterCondition> remoteIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'remoteId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Feed, Feed, QAfterFilterCondition> remoteIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'remoteId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Feed, Feed, QAfterFilterCondition> remoteIdContains(String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'remoteId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Feed, Feed, QAfterFilterCondition> remoteIdMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'remoteId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Feed, Feed, QAfterFilterCondition> remoteIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'remoteId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Feed, Feed, QAfterFilterCondition> remoteIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'remoteId',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<Feed, Feed, QAfterFilterCondition> showAiSummaryIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -2940,6 +3178,18 @@ extension FeedQuerySortBy on QueryBuilder<Feed, Feed, QSortBy> {
     });
   }
 
+  QueryBuilder<Feed, Feed, QAfterSortBy> sortByRemoteId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'remoteId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Feed, Feed, QAfterSortBy> sortByRemoteIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'remoteId', Sort.desc);
+    });
+  }
+
   QueryBuilder<Feed, Feed, QAfterSortBy> sortByShowAiSummary() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'showAiSummary', Sort.asc);
@@ -3242,6 +3492,18 @@ extension FeedQuerySortThenBy on QueryBuilder<Feed, Feed, QSortThenBy> {
     });
   }
 
+  QueryBuilder<Feed, Feed, QAfterSortBy> thenByRemoteId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'remoteId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Feed, Feed, QAfterSortBy> thenByRemoteIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'remoteId', Sort.desc);
+    });
+  }
+
   QueryBuilder<Feed, Feed, QAfterSortBy> thenByShowAiSummary() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'showAiSummary', Sort.asc);
@@ -3448,6 +3710,13 @@ extension FeedQueryWhereDistinct on QueryBuilder<Feed, Feed, QDistinct> {
     });
   }
 
+  QueryBuilder<Feed, Feed, QDistinct> distinctByRemoteId(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'remoteId', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<Feed, Feed, QDistinct> distinctByShowAiSummary() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'showAiSummary');
@@ -3601,6 +3870,12 @@ extension FeedQueryProperty on QueryBuilder<Feed, Feed, QQueryProperty> {
   QueryBuilder<Feed, DateTime?, QQueryOperations> lastSyncedAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'lastSyncedAt');
+    });
+  }
+
+  QueryBuilder<Feed, String?, QQueryOperations> remoteIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'remoteId');
     });
   }
 

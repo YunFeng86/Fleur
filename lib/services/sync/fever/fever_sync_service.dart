@@ -235,16 +235,33 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
   }) async {
     final remoteGroups = await client.getGroups();
     final remoteGroupIdToLocalId = <int, int>{};
+    final seenCategoryRemoteIds = <String>{};
+    final protectedCategoryRemoteIds = <String>{};
+    final groupListTrustworthy =
+        remoteGroups.isNotEmpty || !await _categories.hasRemoteMirrors();
 
     for (final g in remoteGroups) {
       final id = _asInt(g['id']);
       final title = g['title'];
       if (id == null || title is! String) continue;
-      final localId = await _categories.upsertByName(title);
-      remoteGroupIdToLocalId[id] = localId;
+      final remoteId = id.toString();
+      final result = await _categories.upsertRemoteDetailed(
+        remoteId: remoteId,
+        name: title,
+      );
+      if (result.isBound) {
+        seenCategoryRemoteIds.add(remoteId);
+        remoteGroupIdToLocalId[id] = result.localId;
+      } else {
+        final protectedId = result.effectiveRemoteId;
+        if (protectedId != null && protectedId.isNotEmpty) {
+          protectedCategoryRemoteIds.add(protectedId);
+        }
+      }
     }
 
     final remoteFeedIdToLocalCategoryId = <int, int>{};
+    var feedGroupMappingsAvailable = true;
     try {
       final mappings = await client.getFeedsGroups();
       for (final m in mappings) {
@@ -265,6 +282,7 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
         }
       }
     } catch (e) {
+      feedGroupMappingsAvailable = false;
       AppLogger.w('Fever feeds_groups fetch failed', tag: 'sync', error: e);
     }
 
@@ -278,6 +296,11 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
     final remoteFeedIdToLocalFeed = <int, Feed>{};
     final localFeedIdToFeed = <int, Feed>{};
     final localFeedIdToSettings = <int, EffectiveFeedSettings>{};
+    final seenFeedRemoteIds = <String>{};
+    final protectedFeedRemoteIds = <String>{};
+    final categoryMappingsTrustworthy =
+        feedGroupMappingsAvailable && groupListTrustworthy;
+    final feedMirrorIndex = await _feeds.createRemoteMirrorIndex();
 
     var processed = 0;
     for (final f in remoteFeeds) {
@@ -288,30 +311,54 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
       final feedUrl = f['url'];
       if (id == null || feedUrl is! String) continue;
 
-      final localId = await _feeds.upsertUrl(feedUrl);
       final localCatId = remoteFeedIdToLocalCategoryId[id];
-      if (localCatId != null) {
-        await _feeds.setCategory(feedId: localId, categoryId: localCatId);
-      }
-      final local = await _feeds.getById(localId);
-      if (local == null) continue;
-
       final title = f['title'] as String?;
       final siteUrl = f['site_url'] as String?;
-
-      await _feeds.updateMeta(
-        id: local.id,
+      final remoteId = id.toString();
+      final result = await _feeds.upsertRemoteDetailed(
+        remoteId: remoteId,
+        url: feedUrl,
         title: title,
         siteUrl: siteUrl,
         description: null,
+        categoryId: localCatId,
         lastSyncedAt: DateTime.now(),
+        updateCategory: categoryMappingsTrustworthy,
+        lookupIndex: feedMirrorIndex,
       );
+      if (!result.isBound) {
+        final protectedId = result.effectiveRemoteId;
+        if (protectedId != null && protectedId.isNotEmpty) {
+          protectedFeedRemoteIds.add(protectedId);
+        }
+        continue;
+      }
+      seenFeedRemoteIds.add(remoteId);
 
-      final refreshed = await _feeds.getById(localId);
+      final refreshed = await _feeds.getById(result.localId);
       if (refreshed == null) continue;
       remoteFeedIdToLocalFeed[id] = refreshed;
       localFeedIdToFeed[refreshed.id] = refreshed;
     }
+    final allowFeedProtectedOnlyPrune =
+        remoteFeeds.isNotEmpty &&
+        seenFeedRemoteIds.isEmpty &&
+        protectedFeedRemoteIds.isNotEmpty;
+    final allowCategoryProtectedOnlyPrune =
+        groupListTrustworthy &&
+        remoteGroups.isNotEmpty &&
+        seenCategoryRemoteIds.isEmpty &&
+        protectedCategoryRemoteIds.isNotEmpty;
+    await _feeds.deleteRemoteMissing(
+      seenFeedRemoteIds,
+      allowEmptyPrune: allowFeedProtectedOnlyPrune,
+      protectedRemoteIds: protectedFeedRemoteIds,
+    );
+    await _categories.deleteRemoteMissing(
+      groupListTrustworthy ? seenCategoryRemoteIds : const <String>{},
+      allowEmptyPrune: allowCategoryProtectedOnlyPrune,
+      protectedRemoteIds: protectedCategoryRemoteIds,
+    );
 
     // Resolve effective settings after categories are applied.
     for (final feed in localFeedIdToFeed.values) {
@@ -364,88 +411,116 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
         ? allIds.sublist(0, effectiveLimit)
         : allIds;
 
+    status?.update(current: 0, total: limitedIds.length);
+
     var totalNew = 0;
     var processed = 0;
     var webPagesRemaining = _maxWebPagesPerSync;
+    final remoteFetchConcurrency = appSettings.remoteFetchConcurrency
+        .clamp(1, 4)
+        .toInt();
+    final itemIdBatches = <List<int>>[];
 
     for (var i = 0; i < limitedIds.length; i += 50) {
       final end = i + 50 > limitedIds.length ? limitedIds.length : i + 50;
-      final batchIds = limitedIds.sublist(i, end);
+      itemIdBatches.add(limitedIds.sublist(i, end));
+    }
 
-      final items = await client.getItemsWithIds(batchIds);
-      final byLocalFeedId = <int, List<Article>>{};
+    for (
+      var windowStart = 0;
+      windowStart < itemIdBatches.length;
+      windowStart += remoteFetchConcurrency
+    ) {
+      final windowEnd =
+          windowStart + remoteFetchConcurrency > itemIdBatches.length
+          ? itemIdBatches.length
+          : windowStart + remoteFetchConcurrency;
+      final windowBatches = itemIdBatches.sublist(windowStart, windowEnd);
+      final windowItems = await Future.wait([
+        for (final batchIds in windowBatches) client.getItemsWithIds(batchIds),
+      ]);
 
-      for (final it in items) {
-        final id = _asInt(it['id']);
-        final remoteFeedId = _asInt(it['feed_id']);
-        final url = it['url'];
-        if (id == null || remoteFeedId == null || url is! String) continue;
+      for (
+        var batchIndex = 0;
+        batchIndex < windowBatches.length;
+        batchIndex++
+      ) {
+        final batchIds = windowBatches[batchIndex];
+        final items = windowItems[batchIndex];
+        final byLocalFeedId = <int, List<Article>>{};
 
-        final localFeed = remoteFeedIdToLocalFeed[remoteFeedId];
-        if (localFeed == null) continue;
+        for (final it in items) {
+          final id = _asInt(it['id']);
+          final remoteFeedId = _asInt(it['feed_id']);
+          final url = it['url'];
+          if (id == null || remoteFeedId == null || url is! String) continue;
 
-        final settings = localFeedIdToSettings[localFeed.id];
-        if (settings != null && !settings.syncEnabled) continue;
-        if (settings != null &&
-            settings.filterEnabled &&
-            settings.filterKeywords.trim().isNotEmpty) {
-          final ok = ReservedKeywordFilter.matches(
-            pattern: settings.filterKeywords,
-            fields: [
-              it['title'] as String?,
-              it['author'] as String?,
-              url,
-              it['html'] as String?,
-            ],
-          );
-          if (!ok) continue;
+          final localFeed = remoteFeedIdToLocalFeed[remoteFeedId];
+          if (localFeed == null) continue;
+
+          final settings = localFeedIdToSettings[localFeed.id];
+          if (settings != null && !settings.syncEnabled) continue;
+          if (settings != null &&
+              settings.filterEnabled &&
+              settings.filterKeywords.trim().isNotEmpty) {
+            final ok = ReservedKeywordFilter.matches(
+              pattern: settings.filterKeywords,
+              fields: [
+                it['title'] as String?,
+                it['author'] as String?,
+                url,
+                it['html'] as String?,
+              ],
+            );
+            if (!ok) continue;
+          }
+
+          final createdSeconds = _asInt(it['created_on_time']);
+          final publishedAt = createdSeconds == null
+              ? DateTime.now().toUtc()
+              : DateTime.fromMillisecondsSinceEpoch(
+                  createdSeconds * 1000,
+                  isUtc: true,
+                );
+
+          final article = Article()
+            ..remoteId = id.toString()
+            ..link = url
+            ..title = it['title'] as String?
+            ..author = it['author'] as String?
+            ..contentHtml = it['html'] as String?
+            ..publishedAt = publishedAt
+            ..isRead = !unreadSet.contains(id)
+            ..isStarred = savedSet.contains(id);
+
+          (byLocalFeedId[localFeed.id] ??= <Article>[]).add(article);
         }
 
-        final createdSeconds = _asInt(it['created_on_time']);
-        final publishedAt = createdSeconds == null
-            ? DateTime.now().toUtc()
-            : DateTime.fromMillisecondsSinceEpoch(
-                createdSeconds * 1000,
-                isUtc: true,
-              );
-
-        final article = Article()
-          ..remoteId = id.toString()
-          ..link = url
-          ..title = it['title'] as String?
-          ..author = it['author'] as String?
-          ..contentHtml = it['html'] as String?
-          ..publishedAt = publishedAt
-          ..isRead = !unreadSet.contains(id)
-          ..isStarred = savedSet.contains(id);
-
-        (byLocalFeedId[localFeed.id] ??= <Article>[]).add(article);
-      }
-
-      for (final entry in byLocalFeedId.entries) {
-        final newArticles = await _articles.upsertMany(
-          entry.key,
-          entry.value,
-          preserveUserState: false,
-        );
-        totalNew += newArticles.length;
-        final settings = localFeedIdToSettings[entry.key];
-        if (settings != null) {
-          webPagesRemaining -= await _prefetchNewArticles(
-            newArticles,
-            settings,
-            appSettings,
-            remainingWebPageFetches: webPagesRemaining,
+        for (final entry in byLocalFeedId.entries) {
+          final newArticles = await _articles.upsertMany(
+            entry.key,
+            entry.value,
+            preserveUserState: false,
           );
+          totalNew += newArticles.length;
+          final settings = localFeedIdToSettings[entry.key];
+          if (settings != null) {
+            webPagesRemaining -= await _prefetchNewArticles(
+              newArticles,
+              settings,
+              appSettings,
+              remainingWebPageFetches: webPagesRemaining,
+            );
+          }
         }
-      }
 
-      processed += batchIds.length;
-      status?.update(current: processed, total: limitedIds.length);
+        processed += batchIds.length;
+        status?.update(current: processed, total: limitedIds.length);
 
-      // Keep the isolate responsive for long queues.
-      if (limitedIds.length > 200 && processed % 200 == 0) {
-        await Future<void>.delayed(Duration.zero);
+        // Keep the isolate responsive for long queues.
+        if (limitedIds.length > 200 && processed % 200 == 0) {
+          await Future<void>.delayed(Duration.zero);
+        }
       }
     }
 

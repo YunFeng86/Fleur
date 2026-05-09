@@ -58,6 +58,20 @@ class SubscriptionActions {
     return url.trim().replaceAll(RegExp(r'/+$'), '');
   }
 
+  static int? _remoteIdAsInt(String? remoteId) {
+    final trimmed = remoteId?.trim();
+    if (trimmed == null || trimmed.isEmpty) return null;
+    final value = int.tryParse(trimmed);
+    return value != null && value > 0 ? value : null;
+  }
+
+  static String? _remoteIdString(Object? value) {
+    if (value is int && value > 0) return value.toString();
+    if (value is num && value > 0) return value.toInt().toString();
+    if (value is String && value.trim().isNotEmpty) return value.trim();
+    return null;
+  }
+
   @visibleForTesting
   static String remoteStructureFailureMessageForTest(
     AppLocalizations l10n,
@@ -143,6 +157,17 @@ class SubscriptionActions {
     return feed.url;
   }
 
+  static Future<int?> _localFeedRemoteIdFromRead(
+    ProviderReadCallback read,
+    int localFeedId,
+  ) async {
+    final feed = await read(feedRepositoryProvider).getById(localFeedId);
+    if (feed == null) {
+      throw StateError('Local feed not found: $localFeedId');
+    }
+    return _remoteIdAsInt(feed.remoteId);
+  }
+
   static Future<String> _localCategoryTitleFromRead(
     ProviderReadCallback read,
     int localCategoryId,
@@ -156,30 +181,17 @@ class SubscriptionActions {
     return category.name;
   }
 
-  static Future<int?> _resolveLocalFeedIdByUrlFromRead(
+  static Future<int?> _localCategoryRemoteIdFromRead(
     ProviderReadCallback read,
-    String url,
+    int localCategoryId,
   ) async {
-    final target = _normalizeFeedUrl(url);
-    if (target.isEmpty) return null;
-
-    final feeds = read(feedRepositoryProvider);
-    final direct = await feeds.getByUrl(url.trim());
-    if (direct != null) return direct.id;
-
-    if (target != url.trim()) {
-      final normalized = await feeds.getByUrl(target);
-      if (normalized != null) return normalized.id;
+    final category = await read(
+      categoryRepositoryProvider,
+    ).getById(localCategoryId);
+    if (category == null) {
+      throw StateError('Local category not found: $localCategoryId');
     }
-
-    final trailing = await feeds.getByUrl('$target/');
-    if (trailing != null) return trailing.id;
-
-    final all = await feeds.getAll();
-    for (final feed in all) {
-      if (_normalizeFeedUrl(feed.url) == target) return feed.id;
-    }
-    return null;
+    return _remoteIdAsInt(category.remoteId);
   }
 
   static Future<bool> _hasCategoryNameConflict(
@@ -261,8 +273,15 @@ class SubscriptionActions {
   }) async {
     final remoteCategory = remoteFeed['category'];
     if (remoteCategory is Map) {
+      final remoteId = _remoteIdString(remoteCategory['id']);
       final title = (remoteCategory['title'] as String?)?.trim();
       if (title != null && title.isNotEmpty) {
+        if (remoteId != null) {
+          final result = await read(
+            categoryRepositoryProvider,
+          ).upsertRemoteDetailed(remoteId: remoteId, name: title);
+          return result.isBound ? result.localId : fallbackCategoryId;
+        }
         return read(categoryRepositoryProvider).upsertByName(title);
       }
     }
@@ -275,16 +294,33 @@ class SubscriptionActions {
     Map<String, Object?> remoteFeed, {
     int? fallbackCategoryId,
   }) async {
+    final localCategoryId = await _reconcileLocalCategoryIdFromRemoteFeed(
+      read,
+      remoteFeed,
+      fallbackCategoryId: fallbackCategoryId,
+    );
+    final remoteId = _remoteIdString(remoteFeed['id']);
+    final remoteUrl = remoteFeed['feed_url'];
+    if (remoteId != null &&
+        remoteUrl is String &&
+        remoteUrl.trim().isNotEmpty) {
+      await read(feedRepositoryProvider).upsertRemoteDetailed(
+        remoteId: remoteId,
+        url: remoteUrl,
+        title: remoteFeed['title'] as String?,
+        siteUrl: remoteFeed['site_url'] as String?,
+        description: remoteFeed['description'] as String?,
+        categoryId: localCategoryId,
+        preferredLocalFeedId: localFeedId,
+      );
+      return;
+    }
+
     await read(feedRepositoryProvider).updateMeta(
       id: localFeedId,
       title: remoteFeed['title'] as String?,
       siteUrl: remoteFeed['site_url'] as String?,
       description: remoteFeed['description'] as String?,
-    );
-    final localCategoryId = await _reconcileLocalCategoryIdFromRemoteFeed(
-      read,
-      remoteFeed,
-      fallbackCategoryId: fallbackCategoryId,
     );
     await read(
       feedRepositoryProvider,
@@ -383,10 +419,17 @@ class SubscriptionActions {
     try {
       final executor = await _buildMinifluxStructureExecutor(ref, account);
       final created = await executor.createCategory(name);
+      final remoteId = _remoteIdString(created['id']);
       final remoteTitle = (created['title'] as String?)?.trim();
       final effectiveTitle = (remoteTitle == null || remoteTitle.isEmpty)
           ? name.trim()
           : remoteTitle;
+      if (remoteId != null) {
+        final result = await ref
+            .read(categoryRepositoryProvider)
+            .upsertRemoteDetailed(remoteId: remoteId, name: effectiveTitle);
+        return result.isBound ? result.localId : null;
+      }
       return ref.read(categoryRepositoryProvider).upsertByName(effectiveTitle);
     } catch (error, stackTrace) {
       _logSubscriptionFailure(ref, 'createCategory', error, stackTrace);
@@ -447,21 +490,38 @@ class SubscriptionActions {
     try {
       final account = ref.read(activeAccountProvider);
       final executor = await _buildMinifluxStructureExecutor(ref, account);
-      final currentTitle = await _localCategoryTitleFromRead(
+      final categoryRemoteId = await _localCategoryRemoteIdFromRead(
         ref.read,
         categoryId,
       );
-      final updated = await executor.renameCategoryByTitle(
-        currentTitle: currentTitle,
-        title: trimmed,
-      );
+      final updated = categoryRemoteId == null
+          ? await executor.renameCategoryByTitle(
+              currentTitle: await _localCategoryTitleFromRead(
+                ref.read,
+                categoryId,
+              ),
+              title: trimmed,
+            )
+          : await executor.renameCategoryById(
+              categoryId: categoryRemoteId,
+              title: trimmed,
+            );
       final remoteTitle = (updated['title'] as String?)?.trim();
-      await ref
-          .read(categoryRepositoryProvider)
-          .rename(
-            categoryId,
-            remoteTitle == null || remoteTitle.isEmpty ? trimmed : remoteTitle,
-          );
+      final effectiveTitle = remoteTitle == null || remoteTitle.isEmpty
+          ? trimmed
+          : remoteTitle;
+      if (categoryRemoteId == null) {
+        await ref
+            .read(categoryRepositoryProvider)
+            .rename(categoryId, effectiveTitle);
+      } else {
+        await ref
+            .read(categoryRepositoryProvider)
+            .upsertRemoteDetailed(
+              remoteId: categoryRemoteId.toString(),
+              name: effectiveTitle,
+            );
+      }
     } catch (error, stackTrace) {
       _logSubscriptionFailure(ref, 'renameCategory', error, stackTrace);
       if (!context.mounted) return;
@@ -573,8 +633,16 @@ class SubscriptionActions {
       read,
       account,
     );
-    final categoryTitle = await _localCategoryTitleFromRead(read, categoryId);
-    await executor.deleteCategoryByTitle(categoryTitle);
+    final categoryRemoteId = await _localCategoryRemoteIdFromRead(
+      read,
+      categoryId,
+    );
+    if (categoryRemoteId == null) {
+      final categoryTitle = await _localCategoryTitleFromRead(read, categoryId);
+      await executor.deleteCategoryByTitle(categoryTitle);
+    } else {
+      await executor.deleteCategoryById(categoryRemoteId);
+    }
     await categories.delete(categoryId);
 
     // The remote delete already succeeded, so the local mirror must at least
@@ -582,34 +650,84 @@ class SubscriptionActions {
     try {
       final feeds = read(feedRepositoryProvider);
       final remoteCatIdToLocalId = <int, int>{};
-      for (final remoteCategory in await executor.listCategories()) {
+      final seenCategoryRemoteIds = <String>{};
+      final protectedCategoryRemoteIds = <String>{};
+      final remoteCategories = await executor.listCategories();
+      for (final remoteCategory in remoteCategories) {
         final remoteId = remoteCategory['id'];
         final remoteTitle = remoteCategory['title'];
         if (remoteId is! int || remoteTitle is! String) continue;
         final trimmedTitle = remoteTitle.trim();
         if (trimmedTitle.isEmpty) continue;
-        final localId = await categories.upsertByName(trimmedTitle);
-        remoteCatIdToLocalId[remoteId] = localId;
-      }
-      for (final remoteFeed in await executor.listFeeds()) {
-        final remoteUrl = remoteFeed['feed_url'];
-        if (remoteUrl is! String) continue;
-        final localFeedId = await _resolveLocalFeedIdByUrlFromRead(
-          read,
-          remoteUrl,
+        final remoteIdString = remoteId.toString();
+        final result = await categories.upsertRemoteDetailed(
+          remoteId: remoteIdString,
+          name: trimmedTitle,
         );
-        if (localFeedId == null) continue;
+        if (result.isBound) {
+          seenCategoryRemoteIds.add(remoteIdString);
+          remoteCatIdToLocalId[remoteId] = result.localId;
+        } else {
+          final protectedId = result.effectiveRemoteId;
+          if (protectedId != null && protectedId.isNotEmpty) {
+            protectedCategoryRemoteIds.add(protectedId);
+          }
+        }
+      }
+      final seenFeedRemoteIds = <String>{};
+      final protectedFeedRemoteIds = <String>{};
+      final remoteFeeds = await executor.listFeeds();
+      final feedMirrorIndex = await feeds.createRemoteMirrorIndex();
+      for (final remoteFeed in remoteFeeds) {
+        final remoteFeedId = remoteFeed['id'];
+        final remoteUrl = remoteFeed['feed_url'];
+        if (remoteFeedId is! int || remoteUrl is! String) continue;
         final remoteCategoryId = remoteFeed['category'] is Map
             ? (remoteFeed['category'] as Map)['id']
             : remoteFeed['category_id'];
         final localCategoryId = remoteCategoryId is int
             ? remoteCatIdToLocalId[remoteCategoryId]
             : null;
-        await feeds.setCategory(
-          feedId: localFeedId,
+        final remoteFeedIdString = remoteFeedId.toString();
+        final updateCategory =
+            remoteCategoryId is! int || localCategoryId != null;
+        final result = await feeds.upsertRemoteDetailed(
+          remoteId: remoteFeedIdString,
+          url: remoteUrl,
+          title: remoteFeed['title'] as String?,
+          siteUrl: remoteFeed['site_url'] as String?,
+          description: remoteFeed['description'] as String?,
           categoryId: localCategoryId,
+          updateCategory: updateCategory,
+          lookupIndex: feedMirrorIndex,
         );
+        if (result.isBound) {
+          seenFeedRemoteIds.add(remoteFeedIdString);
+        } else {
+          final protectedId = result.effectiveRemoteId;
+          if (protectedId != null && protectedId.isNotEmpty) {
+            protectedFeedRemoteIds.add(protectedId);
+          }
+        }
       }
+      final allowFeedProtectedOnlyPrune =
+          remoteFeeds.isNotEmpty &&
+          seenFeedRemoteIds.isEmpty &&
+          protectedFeedRemoteIds.isNotEmpty;
+      final allowCategoryProtectedOnlyPrune =
+          remoteCategories.isNotEmpty &&
+          seenCategoryRemoteIds.isEmpty &&
+          protectedCategoryRemoteIds.isNotEmpty;
+      await feeds.deleteRemoteMissing(
+        seenFeedRemoteIds,
+        allowEmptyPrune: allowFeedProtectedOnlyPrune,
+        protectedRemoteIds: protectedFeedRemoteIds,
+      );
+      await categories.deleteRemoteMissing(
+        seenCategoryRemoteIds,
+        allowEmptyPrune: allowCategoryProtectedOnlyPrune,
+        protectedRemoteIds: protectedCategoryRemoteIds,
+      );
     } catch (error, stackTrace) {
       AppLogger.w(
         'Subscription mirror reconciliation failed',
@@ -787,8 +905,13 @@ class SubscriptionActions {
       read,
       account,
     );
-    final feedUrl = await _localFeedUrlFromRead(read, feedId);
-    await executor.deleteFeedByUrl(feedUrl);
+    final feedRemoteId = await _localFeedRemoteIdFromRead(read, feedId);
+    if (feedRemoteId == null) {
+      final feedUrl = await _localFeedUrlFromRead(read, feedId);
+      await executor.deleteFeedByUrl(feedUrl);
+    } else {
+      await executor.deleteFeedById(feedRemoteId);
+    }
     await feeds.delete(feedId);
   }
 
@@ -907,8 +1030,13 @@ class SubscriptionActions {
     try {
       final account = ref.read(activeAccountProvider);
       final executor = await _buildMinifluxStructureExecutor(ref, account);
-      final feedUrl = await _localFeedUrlFromRead(ref.read, feedId);
-      await executor.refreshFeedByUrl(feedUrl);
+      final feedRemoteId = await _localFeedRemoteIdFromRead(ref.read, feedId);
+      if (feedRemoteId == null) {
+        final feedUrl = await _localFeedUrlFromRead(ref.read, feedId);
+        await executor.refreshFeedByUrl(feedUrl);
+      } else {
+        await executor.refreshFeedById(feedRemoteId);
+      }
       final result = await ref
           .read(syncServiceProvider)
           .refreshFeedSafe(feedId, notify: false);
@@ -1081,15 +1209,23 @@ class SubscriptionActions {
     try {
       final account = ref.read(activeAccountProvider);
       final executor = await _buildMinifluxStructureExecutor(ref, account);
-      final feedUrl = await _localFeedUrlFromRead(ref.read, feedId);
-      final categoryTitle = await _localCategoryTitleFromRead(
+      final feedRemoteId = await _localFeedRemoteIdFromRead(ref.read, feedId);
+      final categoryRemoteId = await _localCategoryRemoteIdFromRead(
         ref.read,
         categoryId!,
       );
-      final updatedFeed = await executor.moveFeedToCategory(
-        feedUrl: feedUrl,
-        categoryTitle: categoryTitle,
-      );
+      final updatedFeed = feedRemoteId == null || categoryRemoteId == null
+          ? await executor.moveFeedToCategory(
+              feedUrl: await _localFeedUrlFromRead(ref.read, feedId),
+              categoryTitle: await _localCategoryTitleFromRead(
+                ref.read,
+                categoryId,
+              ),
+            )
+          : await executor.moveFeedToCategoryByIds(
+              feedId: feedRemoteId,
+              categoryId: categoryRemoteId,
+            );
       await _reconcileLocalFeedFromRemoteUpdate(
         ref,
         feedId,

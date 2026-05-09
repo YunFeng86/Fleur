@@ -66,8 +66,10 @@ void main() {
 
     expect(find.text('Refresh all'), findsWidgets);
     expect(find.text('Account sync'), findsNothing);
+    expect(find.text('Refresh Concurrency'), findsOneWidget);
     expect(find.text('Remote sync strategy'), findsNothing);
     expect(find.text('Entries per sync'), findsNothing);
+    expect(find.text('Remote fetch concurrency'), findsNothing);
   });
 
   testWidgets('Fever shows account sync and remote entry window', (
@@ -80,8 +82,10 @@ void main() {
 
     expect(find.text('Account sync'), findsOneWidget);
     expect(find.text('Sync account'), findsOneWidget);
+    expect(find.text('Refresh Concurrency'), findsNothing);
     expect(find.text('Remote sync strategy'), findsOneWidget);
     expect(find.text('Entries per sync'), findsOneWidget);
+    expect(find.text('Remote fetch concurrency'), findsOneWidget);
     expect(find.text('Miniflux strategy'), findsNothing);
     expect(find.text('Web page fetching'), findsNothing);
     expect(find.text('Server (Miniflux fetch-content)'), findsNothing);
@@ -97,8 +101,10 @@ void main() {
 
     expect(find.text('Account sync'), findsOneWidget);
     expect(find.text('Sync account'), findsOneWidget);
+    expect(find.text('Refresh Concurrency'), findsNothing);
     expect(find.text('Remote sync strategy'), findsOneWidget);
     expect(find.text('Entries per sync'), findsOneWidget);
+    expect(find.text('Remote fetch concurrency'), findsOneWidget);
     expect(find.text('Web page fetching'), findsOneWidget);
     expect(find.text('Client (Readability)'), findsOneWidget);
   });
@@ -109,12 +115,36 @@ void main() {
       account: buildTestAccount(type: AccountType.fever, name: 'Fever'),
     );
 
-    await tester.tap(find.byType(DropdownButton<int>).last);
+    await tester.tap(
+      find.byWidgetPredicate(
+        (widget) => widget is DropdownButton<int> && widget.value == 400,
+      ),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('800').last);
     await tester.pumpAndSettle();
 
     expect(appStore.settings.remoteEntriesLimit, 800);
     expect(appStore.settings.minifluxEntriesLimit, 800);
+  });
+
+  testWidgets('remote fetch concurrency updates the shared setting', (
+    tester,
+  ) async {
+    final appStore = await pumpTab(
+      tester,
+      account: buildTestAccount(type: AccountType.fever, name: 'Fever'),
+    );
+
+    await tester.tap(
+      find.byWidgetPredicate(
+        (widget) => widget is DropdownButton<int> && widget.value == 2,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('4').last);
+    await tester.pumpAndSettle();
+
+    expect(appStore.settings.remoteFetchConcurrency, 4);
   });
 }
