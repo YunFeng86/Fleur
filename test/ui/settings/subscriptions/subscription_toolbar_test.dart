@@ -87,7 +87,33 @@ void main() {
     expect(find.text('Refresh all'), findsNothing);
   });
 
-  testWidgets('Miniflux toolbar keeps source refresh wording', (tester) async {
+  testWidgets('Local toolbar uses Refresh all wording', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          activeAccountProvider.overrideWithValue(
+            buildTestAccount(type: AccountType.local),
+          ),
+        ],
+        child: MaterialApp(
+          locale: const Locale('en'),
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const Scaffold(body: SubscriptionToolbar()),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.more_horiz));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Refresh all'), findsOneWidget);
+    expect(find.text('Sync account'), findsNothing);
+  });
+
+  testWidgets('Miniflux toolbar uses account sync wording', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -109,7 +135,7 @@ void main() {
     await tester.tap(find.byIcon(Icons.more_horiz));
     await tester.pumpAndSettle();
 
-    expect(find.text('Refresh all'), findsOneWidget);
-    expect(find.text('Sync account'), findsNothing);
+    expect(find.text('Sync account'), findsOneWidget);
+    expect(find.text('Refresh all'), findsNothing);
   });
 }

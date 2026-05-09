@@ -20,6 +20,7 @@ import '../providers/unread_providers.dart';
 import '../services/logging/app_logger.dart';
 import '../services/notifications/notification_service.dart';
 import '../services/settings/app_settings.dart';
+import '../ui/actions/subscription_object_menus.dart';
 import '../ui/global_nav.dart';
 import '../ui/home/home_scene_commands.dart';
 import '../ui/layout.dart';
@@ -378,9 +379,10 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
           selectedArticleId: null,
         );
         final syncSemantics = ref.watch(backendSyncSemanticsProvider);
-        final refreshActionLabel = syncSemantics.isAccountWideRefresh
-            ? l10n.syncAccount
-            : l10n.refreshAll;
+        final refreshActionLabel = SubscriptionObjectMenus.rootRefreshLabel(
+          l10n,
+          syncSemantics,
+        );
         final refreshSuccessLabel = syncSemantics.isAccountWideRefresh
             ? l10n.syncedAccount
             : l10n.refreshedAll;

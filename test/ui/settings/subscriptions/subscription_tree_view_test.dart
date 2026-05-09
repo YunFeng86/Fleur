@@ -359,6 +359,105 @@ void main() {
   );
 
   testWidgets(
+    'SubscriptionTreeView Miniflux section context menu uses account sync wording',
+    (tester) async {
+      debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+      addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            activeAccountProvider.overrideWithValue(
+              buildTestAccount(type: AccountType.miniflux),
+            ),
+            categoriesProvider.overrideWith(
+              (ref) => Stream.value(<Category>[]),
+            ),
+            feedsProvider.overrideWith((ref) => Stream.value(<Feed>[])),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const Scaffold(body: SubscriptionTreeView()),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await _openContextMenu(tester, find.text('Subscriptions').last);
+
+      expect(_popupMenuText('Sync account'), findsOneWidget);
+      expect(_popupMenuText('Add subscription'), findsOneWidget);
+      expect(_popupMenuText('New category'), findsOneWidget);
+      expect(_popupMenuText('Export OPML'), findsOneWidget);
+      expect(_popupMenuText('Refresh all'), findsNothing);
+      expect(_popupMenuText('Import OPML'), findsNothing);
+    },
+  );
+
+  testWidgets('SubscriptionTreeView Global section label has no context menu', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          activeAccountProvider.overrideWithValue(buildTestAccount()),
+          categoriesProvider.overrideWith((ref) => Stream.value(<Category>[])),
+          feedsProvider.overrideWith((ref) => Stream.value(<Feed>[])),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const Scaffold(body: SubscriptionTreeView()),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await _openContextMenuOnText(tester, 'Global');
+
+    expect(_popupMenuText('Global defaults'), findsNothing);
+    expect(_popupMenuText('Refresh all'), findsNothing);
+  });
+
+  testWidgets(
+    'SubscriptionTreeView root and scope context menus are desktop only',
+    (tester) async {
+      debugFleurTargetPlatformOverride = TargetPlatform.iOS;
+      addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            activeAccountProvider.overrideWithValue(buildTestAccount()),
+            categoriesProvider.overrideWith(
+              (ref) => Stream.value(<Category>[]),
+            ),
+            feedsProvider.overrideWith((ref) => Stream.value(<Feed>[])),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const Scaffold(body: SubscriptionTreeView()),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      await _openContextMenuOnText(tester, 'Global defaults');
+      expect(_popupMenuText('Global defaults'), findsNothing);
+
+      await _openContextMenu(tester, find.text('Subscriptions').last);
+      expect(_popupMenuText('Refresh all'), findsNothing);
+      expect(_popupMenuText('Add subscription'), findsNothing);
+    },
+  );
+
+  testWidgets(
     'SubscriptionTreeView Fever context menu hides structure actions',
     (tester) async {
       debugFleurTargetPlatformOverride = TargetPlatform.macOS;

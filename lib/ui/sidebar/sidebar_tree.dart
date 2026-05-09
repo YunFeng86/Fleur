@@ -325,15 +325,6 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final showsSourceRefresh = capabilities.isVisible(
-      BackendFeature.refreshAllSources,
-    );
-    final showsRootRefresh =
-        showsSourceRefresh || capabilities.isVisible(BackendFeature.syncNow);
-    final rootRefreshLabel =
-        !showsSourceRefresh && syncSemantics.isAccountWideRefresh
-        ? l10n.syncAccount
-        : l10n.refreshAll;
 
     return feeds.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -379,6 +370,12 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
             );
             final headerContextMenuItems =
                 SubscriptionObjectMenus.sidebarHeaderItems(
+                  l10n,
+                  capabilities,
+                  syncSemantics,
+                );
+            final headerOverflowItems =
+                SubscriptionObjectMenus.sidebarOverflowItems(
                   l10n,
                   capabilities,
                   syncSemantics,
@@ -488,103 +485,79 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
             rows.add(
               _SidebarTreeRow(
                 rowId: 'section:subscriptions',
-                builder: (_) => GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onSecondaryTapDown: showHeaderContextMenu,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 8, 4),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            l10n.subscriptions,
-                            style: Theme.of(context).textTheme.titleSmall
-                                ?.copyWith(
-                                  color: Theme.of(context).colorScheme.primary,
-                                  fontWeight: AppTypography.platformWeight(
-                                    FontWeight.w700,
-                                  ),
-                                ),
+                builder: (_) => Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 8, 4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onSecondaryTapDown: showHeaderContextMenu,
+                          child: SizedBox(
+                            height: 48,
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                l10n.subscriptions,
+                                style: Theme.of(context).textTheme.titleSmall
+                                    ?.copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                      fontWeight: AppTypography.platformWeight(
+                                        FontWeight.w700,
+                                      ),
+                                    ),
+                              ),
+                            ),
                           ),
                         ),
-                        PopupMenuButton<_SidebarTreeMenu>(
-                          icon: const Icon(Icons.more_horiz, size: 20),
-                          tooltip: l10n.more,
+                      ),
+                      PopupMenuButton<SubscriptionRootMenuAction>(
+                        icon: const Icon(Icons.more_horiz, size: 20),
+                        tooltip: l10n.more,
+                        iconSize: 20,
+                        onSelected: (action) =>
+                            unawaited(_performRootAction(action)),
+                        itemBuilder: (context) => [
+                          for (final item in headerOverflowItems)
+                            PopupMenuItem<SubscriptionRootMenuAction>(
+                              value: item.action,
+                              child: Text(item.label),
+                            ),
+                        ],
+                      ),
+                      if (capabilities.isVisible(
+                        BackendFeature.addSubscription,
+                      )) ...[
+                        const SizedBox(width: 8),
+                        IconButton(
                           iconSize: 20,
-                          onSelected: (value) async {
-                            switch (value) {
-                              case _SidebarTreeMenu.settings:
-                                await managementActions.openSettings();
-                                return;
-                              case _SidebarTreeMenu.refreshAll:
-                                await managementActions.refreshAll();
-                                return;
-                              case _SidebarTreeMenu.importOpml:
-                                await managementActions.importOpml();
-                                return;
-                              case _SidebarTreeMenu.exportOpml:
-                                await managementActions.exportOpml();
-                                return;
-                            }
-                          },
-                          itemBuilder: (context) => [
-                            PopupMenuItem(
-                              value: _SidebarTreeMenu.settings,
-                              child: Text(l10n.settings),
-                            ),
-                            if (showsRootRefresh)
-                              PopupMenuItem(
-                                value: _SidebarTreeMenu.refreshAll,
-                                child: Text(rootRefreshLabel),
-                              ),
-                            if (capabilities.isVisible(
-                              BackendFeature.importOpml,
-                            ))
-                              PopupMenuItem(
-                                value: _SidebarTreeMenu.importOpml,
-                                child: Text(l10n.importOpml),
-                              ),
-                            if (capabilities.isVisible(
-                              BackendFeature.exportOpml,
-                            ))
-                              PopupMenuItem(
-                                value: _SidebarTreeMenu.exportOpml,
-                                child: Text(l10n.exportOpml),
-                              ),
-                          ],
+                          constraints: const BoxConstraints(
+                            minWidth: 48,
+                            minHeight: 48,
+                          ),
+                          tooltip: l10n.addSubscription,
+                          onPressed: onAddFeed,
+                          icon: const Icon(Icons.add),
                         ),
-                        if (capabilities.isVisible(
-                          BackendFeature.addSubscription,
-                        )) ...[
-                          const SizedBox(width: 8),
-                          IconButton(
-                            iconSize: 20,
-                            constraints: const BoxConstraints(
-                              minWidth: 48,
-                              minHeight: 48,
-                            ),
-                            tooltip: l10n.addSubscription,
-                            onPressed: onAddFeed,
-                            icon: const Icon(Icons.add),
-                          ),
-                        ],
-                        if (capabilities.isVisible(
-                          BackendFeature.addCategory,
-                        )) ...[
-                          const SizedBox(width: 8),
-                          IconButton(
-                            iconSize: 20,
-                            constraints: const BoxConstraints(
-                              minWidth: 48,
-                              minHeight: 48,
-                            ),
-                            tooltip: l10n.newCategory,
-                            onPressed: onAddCategory,
-                            icon: const Icon(Icons.create_new_folder_outlined),
-                          ),
-                        ],
                       ],
-                    ),
+                      if (capabilities.isVisible(
+                        BackendFeature.addCategory,
+                      )) ...[
+                        const SizedBox(width: 8),
+                        IconButton(
+                          iconSize: 20,
+                          constraints: const BoxConstraints(
+                            minWidth: 48,
+                            minHeight: 48,
+                          ),
+                          tooltip: l10n.newCategory,
+                          onPressed: onAddCategory,
+                          icon: const Icon(Icons.create_new_folder_outlined),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ),
@@ -738,8 +711,6 @@ class _SidebarTagHeaderTile extends StatelessWidget {
     );
   }
 }
-
-enum _SidebarTreeMenu { settings, refreshAll, importOpml, exportOpml }
 
 class _SidebarCategoryTile extends StatelessWidget {
   const _SidebarCategoryTile({

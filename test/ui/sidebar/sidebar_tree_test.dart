@@ -24,6 +24,8 @@ class _SidebarHarness extends ConsumerStatefulWidget {
     required this.unreadCounts,
     this.tags = const <Tag>[],
     this.accountType = AccountType.local,
+    this.onAddFeed,
+    this.onAddCategory,
   });
 
   final List<Category> categories;
@@ -31,6 +33,8 @@ class _SidebarHarness extends ConsumerStatefulWidget {
   final List<Tag> tags;
   final Map<int?, int> unreadCounts;
   final AccountType accountType;
+  final Future<void> Function()? onAddFeed;
+  final Future<void> Function()? onAddCategory;
 
   @override
   ConsumerState<_SidebarHarness> createState() => _SidebarHarnessState();
@@ -81,8 +85,8 @@ class _SidebarHarnessState extends ConsumerState<_SidebarHarness> {
       managementActions: managementActions,
       capabilities: BackendCapabilities.forAccountType(widget.accountType),
       syncSemantics: BackendSyncSemantics.forAccountType(widget.accountType),
-      onAddFeed: () async {},
-      onAddCategory: () async {},
+      onAddFeed: widget.onAddFeed ?? () async {},
+      onAddCategory: widget.onAddCategory ?? () async {},
       onShowCategoryMenu: (_) async {},
       onShowFeedMenu: (_) async {},
     );
@@ -248,7 +252,9 @@ void main() {
     expect(find.text('Rename'), findsOneWidget);
   });
 
-  testWidgets('Miniflux sidebar keeps source refresh actions', (tester) async {
+  testWidgets('Miniflux sidebar uses account sync wording for root refresh', (
+    tester,
+  ) async {
     debugFleurTargetPlatformOverride = TargetPlatform.macOS;
     addTearDown(() => debugFleurTargetPlatformOverride = null);
 
@@ -292,20 +298,20 @@ void main() {
     await tester.tap(find.byIcon(Icons.more_horiz));
     await tester.pumpAndSettle();
 
-    expect(find.text('Refresh all'), findsOneWidget);
-    expect(find.text('Sync account'), findsNothing);
+    expect(find.text('Sync account'), findsOneWidget);
+    expect(find.text('Refresh all'), findsNothing);
 
     await tester.tapAt(const Offset(5, 5));
     await tester.pumpAndSettle();
 
     await _openContextMenuOnText(tester, 'Subscriptions');
 
-    expect(_popupMenuText('Refresh all'), findsOneWidget);
+    expect(_popupMenuText('Sync account'), findsOneWidget);
     expect(_popupMenuText('Add subscription'), findsOneWidget);
     expect(_popupMenuText('New category'), findsOneWidget);
     expect(_popupMenuText('Export OPML'), findsOneWidget);
     expect(_popupMenuText('Import OPML'), findsNothing);
-    expect(_popupMenuText('Sync account'), findsNothing);
+    expect(_popupMenuText('Refresh all'), findsNothing);
 
     await tester.tapAt(const Offset(5, 5));
     await tester.pumpAndSettle();
@@ -429,9 +435,10 @@ void main() {
     expect(container.read(selectedCategoryIdProvider), 1);
     expect(container.read(selectedFeedIdProvider), isNull);
 
-    await tester.tap(_popupMenuText('Show all'));
+    await tester.tapAt(const Offset(5, 5));
     await tester.pumpAndSettle();
-    expect(container.read(selectedCategoryIdProvider), isNull);
+
+    expect(container.read(selectedCategoryIdProvider), 1);
 
     await _openContextMenuOnText(tester, 'Subscriptions');
 
@@ -442,6 +449,121 @@ void main() {
     expect(_popupMenuText('Import OPML'), findsOneWidget);
     expect(_popupMenuText('Export OPML'), findsOneWidget);
     expect(_popupMenuText('Settings'), findsOneWidget);
+    expect(container.read(selectedCategoryIdProvider), 1);
+
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
+
+    await _openContextMenuOnText(tester, 'All Articles');
+    await tester.tap(_popupMenuText('Show all'));
+    await tester.pumpAndSettle();
+    expect(container.read(selectedCategoryIdProvider), isNull);
+  });
+
+  testWidgets(
+    'sidebar header overflow and explicit action buttons stay scoped',
+    (tester) async {
+      debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+      addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+      var addFeedCount = 0;
+      var addCategoryCount = 0;
+      final category = Category()
+        ..id = 1
+        ..name = 'Tech';
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            theme: AppTheme.light(),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: _SidebarHarness(
+                categories: [category],
+                feeds: const <Feed>[],
+                unreadCounts: const {null: 1},
+                onAddFeed: () async => addFeedCount++,
+                onAddCategory: () async => addCategoryCount++,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.more_horiz));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Settings'), findsOneWidget);
+      expect(find.text('Refresh all'), findsOneWidget);
+      expect(find.text('Import OPML'), findsOneWidget);
+      expect(find.text('Export OPML'), findsOneWidget);
+      expect(find.text('Add subscription'), findsNothing);
+      expect(find.text('New category'), findsNothing);
+
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Add subscription'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('New category'));
+      await tester.pumpAndSettle();
+
+      expect(addFeedCount, 1);
+      expect(addCategoryCount, 1);
+
+      await tester.tapAt(
+        tester.getCenter(find.byTooltip('Add subscription')),
+        buttons: kSecondaryMouseButton,
+      );
+      await tester.pumpAndSettle();
+
+      expect(_popupMenuText('Refresh all'), findsNothing);
+      expect(_popupMenuText('Settings'), findsNothing);
+
+      await tester.tapAt(
+        tester.getCenter(find.byTooltip('New category')),
+        buttons: kSecondaryMouseButton,
+      );
+      await tester.pumpAndSettle();
+
+      expect(_popupMenuText('Refresh all'), findsNothing);
+      expect(_popupMenuText('Settings'), findsNothing);
+    },
+  );
+
+  testWidgets('sidebar root and header context menus are desktop only', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.iOS;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const Scaffold(
+            body: _SidebarHarness(
+              categories: <Category>[],
+              feeds: <Feed>[],
+              unreadCounts: {null: 1},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await _openContextMenuOnText(tester, 'All Articles');
+    expect(_popupMenuText('Show all'), findsNothing);
+    expect(_popupMenuText('Refresh all'), findsNothing);
+
+    await _openContextMenuOnText(tester, 'Subscriptions');
+    expect(_popupMenuText('Refresh all'), findsNothing);
+    expect(_popupMenuText('Add subscription'), findsNothing);
   });
 
   testWidgets('Fever desktop context menu keeps only local feed actions', (

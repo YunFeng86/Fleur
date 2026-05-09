@@ -5,6 +5,7 @@ import 'package:fleur/l10n/app_localizations.dart';
 import '../providers/backend_sync_semantics_provider.dart';
 import '../providers/core_providers.dart';
 import '../providers/unread_providers.dart';
+import '../ui/actions/subscription_object_menus.dart';
 import '../ui/global_nav.dart';
 import '../ui/hero_tags.dart';
 import '../ui/home/home_scene_commands.dart';
@@ -28,9 +29,10 @@ class HomeScreen extends ConsumerWidget {
     final showSyncCapsule =
         LayoutSpec.fromContext(context).globalNavMode == GlobalNavMode.rail;
     final syncSemantics = ref.watch(backendSyncSemanticsProvider);
-    final refreshActionLabel = syncSemantics.isAccountWideRefresh
-        ? l10n.syncAccount
-        : l10n.refreshAll;
+    final refreshActionLabel = SubscriptionObjectMenus.rootRefreshLabel(
+      l10n,
+      syncSemantics,
+    );
     final refreshSuccessLabel = syncSemantics.isAccountWideRefresh
         ? l10n.syncedAccount
         : l10n.refreshedAll;

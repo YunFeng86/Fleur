@@ -142,6 +142,28 @@ class SubscriptionObjectMenus {
   }
 
   static List<SubscriptionObjectMenuItem<SubscriptionRootMenuAction>>
+  sidebarOverflowItems(
+    AppLocalizations l10n,
+    BackendCapabilities capabilities,
+    BackendSyncSemantics syncSemantics,
+  ) {
+    return [
+      SubscriptionObjectMenuItem(
+        action: SubscriptionRootMenuAction.settings,
+        icon: Icons.settings_outlined,
+        label: l10n.settings,
+      ),
+      ...managementItems(
+        l10n,
+        capabilities,
+        syncSemantics,
+        includeSettings: false,
+        includeAddActions: false,
+      ),
+    ];
+  }
+
+  static List<SubscriptionObjectMenuItem<SubscriptionRootMenuAction>>
   globalDefaultsItems(AppLocalizations l10n) {
     return [
       SubscriptionObjectMenuItem(
@@ -167,36 +189,58 @@ class SubscriptionObjectMenus {
   }
 
   static List<SubscriptionObjectMenuItem<SubscriptionRootMenuAction>>
+  toolbarOverflowItems(
+    AppLocalizations l10n,
+    BackendCapabilities capabilities,
+    BackendSyncSemantics syncSemantics,
+  ) {
+    return managementItems(
+      l10n,
+      capabilities,
+      syncSemantics,
+      includeSettings: false,
+      includeAddActions: false,
+    );
+  }
+
+  static bool showsRootRefresh(BackendCapabilities capabilities) {
+    return capabilities.isVisible(BackendFeature.refreshAllSources) ||
+        capabilities.isVisible(BackendFeature.syncNow);
+  }
+
+  static String rootRefreshLabel(
+    AppLocalizations l10n,
+    BackendSyncSemantics syncSemantics,
+  ) {
+    return syncSemantics.isAccountWideRefresh
+        ? l10n.syncAccount
+        : l10n.refreshAll;
+  }
+
+  static List<SubscriptionObjectMenuItem<SubscriptionRootMenuAction>>
   managementItems(
     AppLocalizations l10n,
     BackendCapabilities capabilities,
     BackendSyncSemantics syncSemantics, {
     required bool includeSettings,
+    bool includeAddActions = true,
   }) {
-    final showsSourceRefresh = capabilities.isVisible(
-      BackendFeature.refreshAllSources,
-    );
-    final showsRootRefresh =
-        showsSourceRefresh || capabilities.isVisible(BackendFeature.syncNow);
-    final rootRefreshLabel =
-        !showsSourceRefresh && syncSemantics.isAccountWideRefresh
-        ? l10n.syncAccount
-        : l10n.refreshAll;
-
     return [
-      if (showsRootRefresh)
+      if (showsRootRefresh(capabilities))
         SubscriptionObjectMenuItem(
           action: SubscriptionRootMenuAction.refreshAll,
           icon: Icons.refresh,
-          label: rootRefreshLabel,
+          label: rootRefreshLabel(l10n, syncSemantics),
         ),
-      if (capabilities.isVisible(BackendFeature.addSubscription))
+      if (includeAddActions &&
+          capabilities.isVisible(BackendFeature.addSubscription))
         SubscriptionObjectMenuItem(
           action: SubscriptionRootMenuAction.addSubscription,
           icon: Icons.add,
           label: l10n.addSubscription,
         ),
-      if (capabilities.isVisible(BackendFeature.addCategory))
+      if (includeAddActions &&
+          capabilities.isVisible(BackendFeature.addCategory))
         SubscriptionObjectMenuItem(
           action: SubscriptionRootMenuAction.addCategory,
           icon: Icons.create_new_folder_outlined,
