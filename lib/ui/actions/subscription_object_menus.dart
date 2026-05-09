@@ -7,6 +7,7 @@ import '../../models/feed.dart';
 import '../../providers/backend_capabilities_provider.dart';
 import '../../providers/subscription_settings_provider.dart';
 import '../../services/sync/backend_capabilities.dart';
+import '../context_menu_position.dart';
 import 'subscription_actions.dart';
 
 enum SubscriptionFeedMenuAction { rename, refresh, offlineCache, move, delete }
@@ -141,12 +142,7 @@ class SubscriptionObjectMenus {
     final errorColor = Theme.of(context).colorScheme.error;
     return showMenu<T>(
       context: context,
-      position: RelativeRect.fromLTRB(
-        position.dx,
-        position.dy,
-        position.dx,
-        position.dy,
-      ),
+      position: contextMenuPositionForGlobalPoint(context, position),
       items: [
         for (final item in items)
           PopupMenuItem<T>(

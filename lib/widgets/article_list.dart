@@ -15,6 +15,7 @@ import '../providers/query_providers.dart';
 import '../providers/service_providers.dart';
 import '../providers/unread_providers.dart';
 import '../services/settings/app_settings.dart';
+import '../ui/context_menu_position.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/layout.dart';
 import '../ui/layout_spec.dart';
@@ -141,12 +142,7 @@ class _ArticleListState extends ConsumerState<ArticleList> {
     final l10n = AppLocalizations.of(context)!;
     final action = await showMenu<_ArticleContextAction>(
       context: context,
-      position: RelativeRect.fromLTRB(
-        position.dx,
-        position.dy,
-        position.dx,
-        position.dy,
-      ),
+      position: contextMenuPositionForGlobalPoint(context, position),
       items: [
         PopupMenuItem(
           value: _ArticleContextAction.open,
