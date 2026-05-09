@@ -272,6 +272,47 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
     });
   }
 
+  Future<void> _showRootContextMenu(
+    Offset position,
+    List<SubscriptionObjectMenuItem<SubscriptionRootMenuAction>> items,
+  ) async {
+    final action = await SubscriptionObjectMenus.showContextMenu(
+      context: context,
+      position: position,
+      items: items,
+    );
+    if (!mounted || action == null) return;
+    await _performRootAction(action);
+  }
+
+  Future<void> _performRootAction(SubscriptionRootMenuAction action) async {
+    switch (action) {
+      case SubscriptionRootMenuAction.showAll:
+        selectionActions.selectAll();
+        return;
+      case SubscriptionRootMenuAction.addSubscription:
+        await onAddFeed();
+        return;
+      case SubscriptionRootMenuAction.addCategory:
+        await onAddCategory();
+        return;
+      case SubscriptionRootMenuAction.refreshAll:
+        await managementActions.refreshAll();
+        return;
+      case SubscriptionRootMenuAction.importOpml:
+        await managementActions.importOpml();
+        return;
+      case SubscriptionRootMenuAction.exportOpml:
+        await managementActions.exportOpml();
+        return;
+      case SubscriptionRootMenuAction.settings:
+        await managementActions.openSettings();
+        return;
+      case SubscriptionRootMenuAction.globalDefaults:
+        return;
+    }
+  }
+
   @override
   void didUpdateWidget(covariant SidebarNavigationTree oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -331,6 +372,35 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
               }
             }
             final tagsExpanded = _tagsExpanded ?? selectedTagId != null;
+            final allContextMenuItems = SubscriptionObjectMenus.sidebarAllItems(
+              l10n,
+              capabilities,
+              syncSemantics,
+            );
+            final headerContextMenuItems =
+                SubscriptionObjectMenus.sidebarHeaderItems(
+                  l10n,
+                  capabilities,
+                  syncSemantics,
+                );
+            final showAllContextMenu =
+                isDesktop && allContextMenuItems.isNotEmpty
+                ? (TapDownDetails details) => unawaited(
+                    _showRootContextMenu(
+                      details.globalPosition,
+                      allContextMenuItems,
+                    ),
+                  )
+                : null;
+            final showHeaderContextMenu =
+                isDesktop && headerContextMenuItems.isNotEmpty
+                ? (TapDownDetails details) => unawaited(
+                    _showRootContextMenu(
+                      details.globalPosition,
+                      headerContextMenuItems,
+                    ),
+                  )
+                : null;
 
             final rows = <_SidebarTreeRow>[
               _SidebarTreeRow(
@@ -345,6 +415,7 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
                         selectedTagId == null,
                     icon: Icons.all_inbox,
                     title: l10n.all,
+                    onSecondaryTapDown: showAllContextMenu,
                     onTap: selectionActions.selectAll,
                   ),
                   error: (_, _) => _SidebarItem(
@@ -357,6 +428,7 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
                         selectedTagId == null,
                     icon: Icons.all_inbox,
                     title: l10n.all,
+                    onSecondaryTapDown: showAllContextMenu,
                     onTap: selectionActions.selectAll,
                   ),
                   data: (counts) => _SidebarItem(
@@ -369,6 +441,7 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
                     icon: Icons.all_inbox,
                     title: l10n.all,
                     count: counts[null] ?? 0,
+                    onSecondaryTapDown: showAllContextMenu,
                     onTap: selectionActions.selectAll,
                   ),
                 ),
@@ -415,95 +488,103 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
             rows.add(
               _SidebarTreeRow(
                 rowId: 'section:subscriptions',
-                builder: (_) => Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 8, 4),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          l10n.subscriptions,
-                          style: Theme.of(context).textTheme.titleSmall
-                              ?.copyWith(
-                                color: Theme.of(context).colorScheme.primary,
-                                fontWeight: AppTypography.platformWeight(
-                                  FontWeight.w700,
+                builder: (_) => GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onSecondaryTapDown: showHeaderContextMenu,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 8, 4),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            l10n.subscriptions,
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontWeight: AppTypography.platformWeight(
+                                    FontWeight.w700,
+                                  ),
                                 ),
+                          ),
+                        ),
+                        PopupMenuButton<_SidebarTreeMenu>(
+                          icon: const Icon(Icons.more_horiz, size: 20),
+                          tooltip: l10n.more,
+                          iconSize: 20,
+                          onSelected: (value) async {
+                            switch (value) {
+                              case _SidebarTreeMenu.settings:
+                                await managementActions.openSettings();
+                                return;
+                              case _SidebarTreeMenu.refreshAll:
+                                await managementActions.refreshAll();
+                                return;
+                              case _SidebarTreeMenu.importOpml:
+                                await managementActions.importOpml();
+                                return;
+                              case _SidebarTreeMenu.exportOpml:
+                                await managementActions.exportOpml();
+                                return;
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            PopupMenuItem(
+                              value: _SidebarTreeMenu.settings,
+                              child: Text(l10n.settings),
+                            ),
+                            if (showsRootRefresh)
+                              PopupMenuItem(
+                                value: _SidebarTreeMenu.refreshAll,
+                                child: Text(rootRefreshLabel),
                               ),
+                            if (capabilities.isVisible(
+                              BackendFeature.importOpml,
+                            ))
+                              PopupMenuItem(
+                                value: _SidebarTreeMenu.importOpml,
+                                child: Text(l10n.importOpml),
+                              ),
+                            if (capabilities.isVisible(
+                              BackendFeature.exportOpml,
+                            ))
+                              PopupMenuItem(
+                                value: _SidebarTreeMenu.exportOpml,
+                                child: Text(l10n.exportOpml),
+                              ),
+                          ],
                         ),
-                      ),
-                      PopupMenuButton<_SidebarTreeMenu>(
-                        icon: const Icon(Icons.more_horiz, size: 20),
-                        tooltip: l10n.more,
-                        iconSize: 20,
-                        onSelected: (value) async {
-                          switch (value) {
-                            case _SidebarTreeMenu.settings:
-                              await managementActions.openSettings();
-                              return;
-                            case _SidebarTreeMenu.refreshAll:
-                              await managementActions.refreshAll();
-                              return;
-                            case _SidebarTreeMenu.importOpml:
-                              await managementActions.importOpml();
-                              return;
-                            case _SidebarTreeMenu.exportOpml:
-                              await managementActions.exportOpml();
-                              return;
-                          }
-                        },
-                        itemBuilder: (context) => [
-                          PopupMenuItem(
-                            value: _SidebarTreeMenu.settings,
-                            child: Text(l10n.settings),
+                        if (capabilities.isVisible(
+                          BackendFeature.addSubscription,
+                        )) ...[
+                          const SizedBox(width: 8),
+                          IconButton(
+                            iconSize: 20,
+                            constraints: const BoxConstraints(
+                              minWidth: 48,
+                              minHeight: 48,
+                            ),
+                            tooltip: l10n.addSubscription,
+                            onPressed: onAddFeed,
+                            icon: const Icon(Icons.add),
                           ),
-                          if (showsRootRefresh)
-                            PopupMenuItem(
-                              value: _SidebarTreeMenu.refreshAll,
-                              child: Text(rootRefreshLabel),
-                            ),
-                          if (capabilities.isVisible(BackendFeature.importOpml))
-                            PopupMenuItem(
-                              value: _SidebarTreeMenu.importOpml,
-                              child: Text(l10n.importOpml),
-                            ),
-                          if (capabilities.isVisible(BackendFeature.exportOpml))
-                            PopupMenuItem(
-                              value: _SidebarTreeMenu.exportOpml,
-                              child: Text(l10n.exportOpml),
-                            ),
                         ],
-                      ),
-                      if (capabilities.isVisible(
-                        BackendFeature.addSubscription,
-                      )) ...[
-                        const SizedBox(width: 8),
-                        IconButton(
-                          iconSize: 20,
-                          constraints: const BoxConstraints(
-                            minWidth: 48,
-                            minHeight: 48,
+                        if (capabilities.isVisible(
+                          BackendFeature.addCategory,
+                        )) ...[
+                          const SizedBox(width: 8),
+                          IconButton(
+                            iconSize: 20,
+                            constraints: const BoxConstraints(
+                              minWidth: 48,
+                              minHeight: 48,
+                            ),
+                            tooltip: l10n.newCategory,
+                            onPressed: onAddCategory,
+                            icon: const Icon(Icons.create_new_folder_outlined),
                           ),
-                          tooltip: l10n.addSubscription,
-                          onPressed: onAddFeed,
-                          icon: const Icon(Icons.add),
-                        ),
+                        ],
                       ],
-                      if (capabilities.isVisible(
-                        BackendFeature.addCategory,
-                      )) ...[
-                        const SizedBox(width: 8),
-                        IconButton(
-                          iconSize: 20,
-                          constraints: const BoxConstraints(
-                            minWidth: 48,
-                            minHeight: 48,
-                          ),
-                          tooltip: l10n.newCategory,
-                          onPressed: onAddCategory,
-                          icon: const Icon(Icons.create_new_folder_outlined),
-                        ),
-                      ],
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -974,6 +1055,7 @@ class _SidebarItem extends StatelessWidget {
     this.count,
     this.indent = 0,
     this.iconColor,
+    this.onSecondaryTapDown,
   });
 
   final bool selected;
@@ -983,16 +1065,23 @@ class _SidebarItem extends StatelessWidget {
   final int? count;
   final double indent;
   final Color? iconColor;
+  final GestureTapDownCallback? onSecondaryTapDown;
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
+    final tile = ListTile(
       selected: selected,
       contentPadding: EdgeInsets.only(left: 16 + indent, right: 8),
       leading: Icon(icon, color: iconColor),
       title: Text(title),
       trailing: count == null ? null : _UnreadBadge(count!),
       onTap: onTap,
+    );
+    if (onSecondaryTapDown == null) return tile;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onSecondaryTapDown: onSecondaryTapDown,
+      child: tile,
     );
   }
 }

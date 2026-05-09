@@ -5,14 +5,27 @@ import '../../l10n/app_localizations.dart';
 import '../../models/category.dart';
 import '../../models/feed.dart';
 import '../../providers/backend_capabilities_provider.dart';
+import '../../providers/backend_sync_semantics_provider.dart';
 import '../../providers/subscription_settings_provider.dart';
 import '../../services/sync/backend_capabilities.dart';
+import '../../services/sync/backend_sync_semantics.dart';
 import '../context_menu_position.dart';
 import 'subscription_actions.dart';
 
 enum SubscriptionFeedMenuAction { rename, refresh, offlineCache, move, delete }
 
 enum SubscriptionCategoryMenuAction { rename, delete }
+
+enum SubscriptionRootMenuAction {
+  showAll,
+  globalDefaults,
+  addSubscription,
+  addCategory,
+  refreshAll,
+  importOpml,
+  exportOpml,
+  settings,
+}
 
 class SubscriptionObjectMenuItem<T> {
   const SubscriptionObjectMenuItem({
@@ -89,6 +102,123 @@ class SubscriptionObjectMenus {
           icon: Icons.delete_outline,
           label: l10n.deleteCategory,
           destructive: true,
+        ),
+    ];
+  }
+
+  static List<SubscriptionObjectMenuItem<SubscriptionRootMenuAction>>
+  sidebarAllItems(
+    AppLocalizations l10n,
+    BackendCapabilities capabilities,
+    BackendSyncSemantics syncSemantics,
+  ) {
+    return [
+      SubscriptionObjectMenuItem(
+        action: SubscriptionRootMenuAction.showAll,
+        icon: Icons.all_inbox,
+        label: l10n.showAll,
+      ),
+      ...managementItems(
+        l10n,
+        capabilities,
+        syncSemantics,
+        includeSettings: true,
+      ),
+    ];
+  }
+
+  static List<SubscriptionObjectMenuItem<SubscriptionRootMenuAction>>
+  sidebarHeaderItems(
+    AppLocalizations l10n,
+    BackendCapabilities capabilities,
+    BackendSyncSemantics syncSemantics,
+  ) {
+    return managementItems(
+      l10n,
+      capabilities,
+      syncSemantics,
+      includeSettings: true,
+    );
+  }
+
+  static List<SubscriptionObjectMenuItem<SubscriptionRootMenuAction>>
+  globalDefaultsItems(AppLocalizations l10n) {
+    return [
+      SubscriptionObjectMenuItem(
+        action: SubscriptionRootMenuAction.globalDefaults,
+        icon: Icons.tune_outlined,
+        label: l10n.globalDefaults,
+      ),
+    ];
+  }
+
+  static List<SubscriptionObjectMenuItem<SubscriptionRootMenuAction>>
+  settingsHeaderItems(
+    AppLocalizations l10n,
+    BackendCapabilities capabilities,
+    BackendSyncSemantics syncSemantics,
+  ) {
+    return managementItems(
+      l10n,
+      capabilities,
+      syncSemantics,
+      includeSettings: false,
+    );
+  }
+
+  static List<SubscriptionObjectMenuItem<SubscriptionRootMenuAction>>
+  managementItems(
+    AppLocalizations l10n,
+    BackendCapabilities capabilities,
+    BackendSyncSemantics syncSemantics, {
+    required bool includeSettings,
+  }) {
+    final showsSourceRefresh = capabilities.isVisible(
+      BackendFeature.refreshAllSources,
+    );
+    final showsRootRefresh =
+        showsSourceRefresh || capabilities.isVisible(BackendFeature.syncNow);
+    final rootRefreshLabel =
+        !showsSourceRefresh && syncSemantics.isAccountWideRefresh
+        ? l10n.syncAccount
+        : l10n.refreshAll;
+
+    return [
+      if (showsRootRefresh)
+        SubscriptionObjectMenuItem(
+          action: SubscriptionRootMenuAction.refreshAll,
+          icon: Icons.refresh,
+          label: rootRefreshLabel,
+        ),
+      if (capabilities.isVisible(BackendFeature.addSubscription))
+        SubscriptionObjectMenuItem(
+          action: SubscriptionRootMenuAction.addSubscription,
+          icon: Icons.add,
+          label: l10n.addSubscription,
+        ),
+      if (capabilities.isVisible(BackendFeature.addCategory))
+        SubscriptionObjectMenuItem(
+          action: SubscriptionRootMenuAction.addCategory,
+          icon: Icons.create_new_folder_outlined,
+          label: l10n.newCategory,
+        ),
+      if (capabilities.isVisible(BackendFeature.importOpml))
+        SubscriptionObjectMenuItem(
+          action: SubscriptionRootMenuAction.importOpml,
+          icon: Icons.file_upload_outlined,
+          label: l10n.importOpml,
+        ),
+      if (capabilities.isVisible(BackendFeature.exportOpml))
+        SubscriptionObjectMenuItem(
+          action: SubscriptionRootMenuAction.exportOpml,
+          icon: Icons.file_download_outlined,
+          label: l10n.exportOpml,
+        ),
+      if (includeSettings)
+        SubscriptionObjectMenuItem(
+          action: SubscriptionRootMenuAction.settings,
+          icon: Icons.settings_outlined,
+          label: l10n.settings,
         ),
     ];
   }
@@ -195,6 +325,51 @@ class SubscriptionObjectMenus {
     );
     if (!context.mounted || action == null) return;
     await performSettingsCategoryAction(context, ref, category, action);
+  }
+
+  static Future<void> showSettingsManagementContextMenu(
+    BuildContext context,
+    WidgetRef ref, {
+    required Offset position,
+  }) async {
+    final l10n = AppLocalizations.of(context)!;
+    final capabilities = ref.read(backendCapabilitiesProvider);
+    final syncSemantics = ref.read(backendSyncSemanticsProvider);
+    final action = await showContextMenu(
+      context: context,
+      position: position,
+      items: settingsHeaderItems(l10n, capabilities, syncSemantics),
+    );
+    if (!context.mounted || action == null) return;
+    await performSettingsManagementAction(context, ref, action);
+  }
+
+  static Future<void> performSettingsManagementAction(
+    BuildContext context,
+    WidgetRef ref,
+    SubscriptionRootMenuAction action,
+  ) async {
+    switch (action) {
+      case SubscriptionRootMenuAction.addSubscription:
+        await SubscriptionActions.showAddFeedDialog(context, ref);
+        return;
+      case SubscriptionRootMenuAction.addCategory:
+        await SubscriptionActions.showAddCategoryDialog(context, ref);
+        return;
+      case SubscriptionRootMenuAction.refreshAll:
+        await SubscriptionActions.refreshAll(context, ref);
+        return;
+      case SubscriptionRootMenuAction.importOpml:
+        await SubscriptionActions.importOpml(context, ref);
+        return;
+      case SubscriptionRootMenuAction.exportOpml:
+        await SubscriptionActions.exportOpml(context, ref);
+        return;
+      case SubscriptionRootMenuAction.showAll:
+      case SubscriptionRootMenuAction.globalDefaults:
+      case SubscriptionRootMenuAction.settings:
+        return;
+    }
   }
 
   static Future<void> performSettingsFeedAction(

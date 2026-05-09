@@ -52,9 +52,39 @@ class CategoryListComponent extends ConsumerWidget {
             .toList(growable: false);
 
         final globalSelected = selection.isGlobalDefaults;
+        final showSettingsManagementContextMenu = isDesktop
+            ? (TapDownDetails details) => unawaited(
+                SubscriptionObjectMenus.showSettingsManagementContextMenu(
+                  context,
+                  ref,
+                  position: details.globalPosition,
+                ),
+              )
+            : null;
 
-        Widget buildSectionLabel(String label) {
-          return Padding(
+        Future<void> showGlobalDefaultsContextMenu(Offset position) async {
+          final action = await SubscriptionObjectMenus.showContextMenu(
+            context: context,
+            position: position,
+            items: SubscriptionObjectMenus.globalDefaultsItems(l10n),
+          );
+          if (!context.mounted || action == null) return;
+          if (action == SubscriptionRootMenuAction.globalDefaults) {
+            notifier.showGlobalDefaults();
+          }
+        }
+
+        final showGlobalDefaultsMenu = isDesktop
+            ? (TapDownDetails details) => unawaited(
+                showGlobalDefaultsContextMenu(details.globalPosition),
+              )
+            : null;
+
+        Widget buildSectionLabel(
+          String label, {
+          GestureTapDownCallback? onSecondaryTapDown,
+        }) {
+          final labelWidget = Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Text(
               label,
@@ -63,6 +93,12 @@ class CategoryListComponent extends ConsumerWidget {
                 fontWeight: FontWeight.w700,
               ),
             ),
+          );
+          if (onSecondaryTapDown == null) return labelWidget;
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onSecondaryTapDown: onSecondaryTapDown,
+            child: labelWidget,
           );
         }
 
@@ -97,6 +133,7 @@ class CategoryListComponent extends ConsumerWidget {
         return SettingsPane(
           color: surfaces.sidebar,
           title: l10n.subscriptions,
+          onHeaderSecondaryTapDown: showSettingsManagementContextMenu,
           child: AppScrollbar(
             child: ListView(
               padding: const EdgeInsets.only(top: 4, bottom: 12),
@@ -111,9 +148,13 @@ class CategoryListComponent extends ConsumerWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   selected: globalSelected,
+                  onSecondaryTapDown: showGlobalDefaultsMenu,
                   onTap: () => notifier.showGlobalDefaults(),
                 ),
-                buildSectionLabel(l10n.folders),
+                buildSectionLabel(
+                  l10n.folders,
+                  onSecondaryTapDown: showSettingsManagementContextMenu,
+                ),
                 for (final category in categories)
                   buildScopeTile(
                     leading: const Icon(Icons.folder_outlined),

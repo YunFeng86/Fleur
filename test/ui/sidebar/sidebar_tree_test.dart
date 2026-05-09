@@ -91,10 +91,17 @@ class _SidebarHarnessState extends ConsumerState<_SidebarHarness> {
 
 Future<void> _openContextMenuOnText(WidgetTester tester, String text) async {
   await tester.tapAt(
-    tester.getCenter(find.text(text)),
+    tester.getCenter(find.text(text).first),
     buttons: kSecondaryMouseButton,
   );
   await tester.pumpAndSettle();
+}
+
+Finder _popupMenuText(String text) {
+  return find.descendant(
+    of: find.byWidgetPredicate((widget) => widget is PopupMenuItem),
+    matching: find.text(text),
+  );
 }
 
 void main() {
@@ -214,6 +221,18 @@ void main() {
     await tester.tapAt(const Offset(5, 5));
     await tester.pumpAndSettle();
 
+    await _openContextMenuOnText(tester, 'All Articles');
+
+    expect(_popupMenuText('Sync account'), findsOneWidget);
+    expect(_popupMenuText('Export OPML'), findsOneWidget);
+    expect(_popupMenuText('Add subscription'), findsNothing);
+    expect(_popupMenuText('New category'), findsNothing);
+    expect(_popupMenuText('Import OPML'), findsNothing);
+    expect(_popupMenuText('Refresh all'), findsNothing);
+
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
+
     await tester.tap(find.byIcon(Icons.chevron_right));
     await tester.pumpAndSettle();
 
@@ -275,6 +294,18 @@ void main() {
 
     expect(find.text('Refresh all'), findsOneWidget);
     expect(find.text('Sync account'), findsNothing);
+
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
+
+    await _openContextMenuOnText(tester, 'Subscriptions');
+
+    expect(_popupMenuText('Refresh all'), findsOneWidget);
+    expect(_popupMenuText('Add subscription'), findsOneWidget);
+    expect(_popupMenuText('New category'), findsOneWidget);
+    expect(_popupMenuText('Export OPML'), findsOneWidget);
+    expect(_popupMenuText('Import OPML'), findsNothing);
+    expect(_popupMenuText('Sync account'), findsNothing);
 
     await tester.tapAt(const Offset(5, 5));
     await tester.pumpAndSettle();
@@ -344,6 +375,73 @@ void main() {
     expect(find.text('Delete subscription'), findsOneWidget);
     expect(container.read(selectedCategoryIdProvider), isNull);
     expect(container.read(selectedFeedIdProvider), isNull);
+  });
+
+  testWidgets('desktop context menu shows root and header actions', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    final category = Category()
+      ..id = 1
+      ..name = 'Tech';
+    final feed = Feed()
+      ..id = 101
+      ..url = 'https://example.com/feed.xml'
+      ..title = 'Tech News'
+      ..categoryId = 1;
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: _SidebarHarness(
+              categories: [category],
+              feeds: [feed],
+              unreadCounts: const {null: 1, 101: 1},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(SidebarNavigationTree)),
+    );
+
+    await tester.tap(find.text('Tech'));
+    await tester.pumpAndSettle();
+    expect(container.read(selectedCategoryIdProvider), 1);
+
+    await _openContextMenuOnText(tester, 'All Articles');
+
+    expect(_popupMenuText('Show all'), findsOneWidget);
+    expect(_popupMenuText('Refresh all'), findsOneWidget);
+    expect(_popupMenuText('Add subscription'), findsOneWidget);
+    expect(_popupMenuText('New category'), findsOneWidget);
+    expect(_popupMenuText('Import OPML'), findsOneWidget);
+    expect(_popupMenuText('Export OPML'), findsOneWidget);
+    expect(_popupMenuText('Settings'), findsOneWidget);
+    expect(container.read(selectedCategoryIdProvider), 1);
+    expect(container.read(selectedFeedIdProvider), isNull);
+
+    await tester.tap(_popupMenuText('Show all'));
+    await tester.pumpAndSettle();
+    expect(container.read(selectedCategoryIdProvider), isNull);
+
+    await _openContextMenuOnText(tester, 'Subscriptions');
+
+    expect(_popupMenuText('Show all'), findsNothing);
+    expect(_popupMenuText('Refresh all'), findsOneWidget);
+    expect(_popupMenuText('Add subscription'), findsOneWidget);
+    expect(_popupMenuText('New category'), findsOneWidget);
+    expect(_popupMenuText('Import OPML'), findsOneWidget);
+    expect(_popupMenuText('Export OPML'), findsOneWidget);
+    expect(_popupMenuText('Settings'), findsOneWidget);
   });
 
   testWidgets('Fever desktop context menu keeps only local feed actions', (
