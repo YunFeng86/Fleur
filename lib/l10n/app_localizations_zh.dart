@@ -730,7 +730,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get autoRefresh => '自动刷新';
 
   @override
-  String get autoRefreshSubtitle => '在后台自动刷新订阅源';
+  String get autoRefreshSubtitle =>
+      'App 打开时按所选周期刷新；移动端后台刷新由系统调度，通常不会短于 15 分钟，且不保证准点。';
 
   @override
   String get off => '关闭';
@@ -1865,7 +1866,8 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get autoRefresh => '自動重新整理';
 
   @override
-  String get autoRefreshSubtitle => '在背景自動重新整理訂閱來源';
+  String get autoRefreshSubtitle =>
+      'App 開啟時按所選週期重新整理；行動裝置背景重新整理由系統排程，通常不會短於 15 分鐘，且不保證準時。';
 
   @override
   String get off => '關閉';

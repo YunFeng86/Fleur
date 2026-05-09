@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app_settings_providers.dart';
-import 'repository_providers.dart';
-import 'service_providers.dart';
+import 'refresh_all_providers.dart';
+import '../services/sync/refresh_all_coordinator.dart';
 
 class AutoRefreshController extends AutoDisposeNotifier<void> {
   Timer? _timer;
@@ -35,10 +35,12 @@ class AutoRefreshController extends AutoDisposeNotifier<void> {
       if (settings?.syncEnabled == false) return;
       final concurrency = settings?.autoRefreshConcurrency ?? 2;
 
-      final feeds = await ref.read(feedRepositoryProvider).getAll();
       await ref
-          .read(syncServiceProvider)
-          .refreshFeedsSafe(feeds.map((f) => f.id), maxConcurrent: concurrency);
+          .read(refreshAllCoordinatorProvider)
+          .refreshAll(
+            trigger: RefreshAllTrigger.foregroundAuto,
+            maxConcurrent: concurrency,
+          );
     } finally {
       _running = false;
     }

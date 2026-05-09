@@ -1500,7 +1500,7 @@ abstract class AppLocalizations {
   /// autoRefreshSubtitle
   ///
   /// In en, this message translates to:
-  /// **'Automatically refresh feeds in background'**
+  /// **'Refresh at the selected interval while the app is open. Mobile background refresh is system scheduled, usually no more often than every 15 minutes, and may not run exactly on time.'**
   String get autoRefreshSubtitle;
 
   /// off

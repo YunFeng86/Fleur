@@ -6,13 +6,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers/account_providers.dart';
 import '../../../providers/app_settings_providers.dart';
-import '../../../providers/backend_capabilities_provider.dart';
 import '../../../providers/backend_content_capabilities_provider.dart';
 import '../../../providers/backend_sync_semantics_provider.dart';
-import '../../../providers/repository_providers.dart';
-import '../../../providers/service_providers.dart';
+import '../../../providers/refresh_all_providers.dart';
 import '../../../services/accounts/account.dart';
 import '../../../services/settings/app_settings.dart';
+import '../../../services/sync/refresh_all_coordinator.dart';
 import '../../../services/sync/backend_sync_semantics.dart';
 import '../../../utils/context_extensions.dart';
 import '../../../widgets/account_avatar.dart';
@@ -33,7 +32,6 @@ class ServicesTab extends ConsumerWidget {
         ref.watch(appSettingsProvider).valueOrNull ?? AppSettings.defaults();
     final accountsAsync = ref.watch(accountsControllerProvider);
     final activeAccount = ref.watch(activeAccountProvider);
-    final capabilities = ref.watch(backendCapabilitiesProvider);
     final contentCapabilities = ref.watch(backendContentCapabilitiesProvider);
     final syncSemantics = ref.watch(backendSyncSemanticsProvider);
 
@@ -71,10 +69,6 @@ class ServicesTab extends ConsumerWidget {
     }
 
     Future<void> refreshNow() async {
-      final feeds = await ref.read(feedRepositoryProvider).getAll();
-      // Remote-backed accounts can sync even when local DB is empty.
-      if (feeds.isEmpty && !capabilities.isRemoteBacked) return;
-
       final concurrency = appSettings.autoRefreshConcurrency;
 
       if (!context.mounted) return;
@@ -82,7 +76,7 @@ class ServicesTab extends ConsumerWidget {
 
       // Show progress dialog.
       final progressNotifier = ValueNotifier<String>(
-        refreshProgressLabel(0, feeds.length),
+        refreshProgressLabel(0, 0),
       );
       try {
         unawaited(
@@ -111,17 +105,17 @@ class ServicesTab extends ConsumerWidget {
           ).then((_) {}),
         );
 
-        final batch = await ref
-            .read(syncServiceProvider)
-            .refreshFeedsSafe(
-              feeds.map((f) => f.id),
+        final result = await ref
+            .read(refreshAllCoordinatorProvider)
+            .refreshAll(
+              trigger: RefreshAllTrigger.manual,
               maxConcurrent: concurrency,
               onProgress: (current, total) {
                 progressNotifier.value = refreshProgressLabel(current, total);
               },
             );
 
-        final err = batch.firstError?.error;
+        final err = result.firstError;
         if (!context.mounted) return;
         context.showSnack(
           err == null ? refreshSuccessLabel : l10n.errorMessage(err.toString()),

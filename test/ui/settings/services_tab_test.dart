@@ -253,6 +253,34 @@ void main() {
     expect(find.text('Add Fever'), findsOneWidget);
   });
 
+  testWidgets('auto refresh interval persists and explains background limits', (
+    tester,
+  ) async {
+    final appStore = await pumpTab(
+      tester,
+      account: buildTestAccount(type: AccountType.local, name: 'Local'),
+    );
+
+    expect(find.textContaining('Mobile background refresh'), findsWidgets);
+
+    await tester.tap(
+      find.byWidgetPredicate(
+        (widget) => widget is DropdownButton<int?> && widget.value == null,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Every 5 min').last, findsOneWidget);
+    expect(find.text('Every 15 min').last, findsOneWidget);
+    expect(find.text('Every 30 min').last, findsOneWidget);
+    expect(find.text('Every 60 min').last, findsOneWidget);
+
+    await tester.tap(find.text('Every 15 min').last);
+    await tester.pumpAndSettle();
+
+    expect(appStore.settings.autoRefreshMinutes, 15);
+  });
+
   testWidgets('remote entry window updates the shared setting', (tester) async {
     final appStore = await pumpTab(
       tester,

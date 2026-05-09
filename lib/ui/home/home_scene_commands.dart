@@ -6,10 +6,12 @@ import '../../providers/article_list_controller.dart';
 import '../../providers/backend_capabilities_provider.dart';
 import '../../providers/backend_sync_semantics_provider.dart';
 import '../../providers/query_providers.dart';
+import '../../providers/refresh_all_providers.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/service_providers.dart';
 import '../../providers/unread_providers.dart';
 import '../../services/sync/backend_capabilities.dart';
+import '../../services/sync/refresh_all_coordinator.dart';
 import '../../services/sync/sync_service.dart';
 
 class HomeSceneCommands {
@@ -27,7 +29,10 @@ class HomeSceneCommands {
   Future<BatchRefreshResult> refreshAll() async {
     final syncSemantics = _ref.read(backendSyncSemanticsProvider);
     if (syncSemantics.isAccountWideRefresh) {
-      return _ref.read(syncServiceProvider).refreshFeedsSafe(const <int>[]);
+      final result = await _ref
+          .read(refreshAllCoordinatorProvider)
+          .refreshAll(trigger: RefreshAllTrigger.manual);
+      return result.batch;
     }
 
     final capabilities = _ref.read(backendCapabilitiesProvider);
@@ -44,10 +49,15 @@ class HomeSceneCommands {
       return _ref.read(syncServiceProvider).refreshFeedsSafe([feedId]);
     }
 
+    if (categoryId == null) {
+      final result = await _ref
+          .read(refreshAllCoordinatorProvider)
+          .refreshAll(trigger: RefreshAllTrigger.manual);
+      return result.batch;
+    }
+
     final feeds = await _ref.read(feedRepositoryProvider).getAll();
-    final filtered = categoryId == null
-        ? feeds
-        : feeds.where((feed) => feed.categoryId == categoryId);
+    final filtered = feeds.where((feed) => feed.categoryId == categoryId);
     return _ref
         .read(syncServiceProvider)
         .refreshFeedsSafe(filtered.map((feed) => feed.id));

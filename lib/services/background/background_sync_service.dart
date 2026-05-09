@@ -17,6 +17,9 @@ import '../settings/app_settings.dart';
 import '../settings/app_settings_store.dart';
 import '../sync/backend_capabilities.dart';
 import '../sync/outbox/outbox_store.dart';
+import '../sync/refresh_all_coordinator.dart';
+import '../sync/remote_client_factory.dart';
+import '../sync/remote_subscription_structure_executor.dart';
 import '../sync/sync_mutex.dart';
 import '../sync/sync_service.dart';
 import '../../utils/platform.dart';
@@ -126,6 +129,7 @@ class BackgroundSyncRunner {
     })?
     openIsarForAccountFn,
     Future<T> Function<T>(String key, Future<T> Function() op)? runWithMutex,
+    Future<void> Function(Account account)? refreshAllRemoteFeeds,
     Future<List<Feed>> Function(FeedRepository feeds, Account account)?
     loadAllFeeds,
     SyncServiceBase Function({
@@ -147,6 +151,7 @@ class BackgroundSyncRunner {
        _nowProvider = nowProvider ?? DateTime.now,
        _openIsarForAccountFn = openIsarForAccountFn ?? openIsarForAccount,
        _runWithMutex = runWithMutex ?? SyncMutex.instance.run,
+       _refreshAllRemoteFeeds = refreshAllRemoteFeeds,
        _loadAllFeeds = loadAllFeeds,
        _syncServiceBuilder = syncServiceBuilder;
 
@@ -165,6 +170,7 @@ class BackgroundSyncRunner {
   _openIsarForAccountFn;
   final Future<T> Function<T>(String key, Future<T> Function() op)
   _runWithMutex;
+  final Future<void> Function(Account account)? _refreshAllRemoteFeeds;
   final Future<List<Feed>> Function(FeedRepository feeds, Account account)?
   _loadAllFeeds;
   final SyncServiceBase Function({
@@ -266,6 +272,7 @@ class BackgroundSyncRunner {
         final categories = CategoryRepository(isar);
         final articles = ArticleRepository(isar);
         final dio = createAppDio();
+        final credentials = createCredentialStore();
         final syncServiceBuilder = _syncServiceBuilder;
         final loadAllFeeds = _loadAllFeeds;
         final notifications = createNotificationService();
@@ -287,7 +294,7 @@ class BackgroundSyncRunner {
                 outbox: _outboxStore,
                 appSettingsStore: _appSettingsStore,
                 dio: dio,
-                credentials: createCredentialStore(),
+                credentials: credentials,
                 notifications: notifications,
                 cache: createArticleCacheService(),
                 extractor: createArticleExtractor(dio: dio),
@@ -305,11 +312,42 @@ class BackgroundSyncRunner {
         if (allFeeds.isEmpty && !capabilities.isRemoteBacked) return;
 
         final concurrency = appSettings.autoRefreshConcurrency;
-        await svc.refreshFeedsSafe(
-          allFeeds.map((f) => f.id),
-          maxConcurrent: concurrency,
-          notify: true,
-        );
+        RefreshAllUpstreamRefresh? refreshAllRemoteFeeds;
+        if (activeAccount.type == AccountType.miniflux) {
+          final injectedRefresh = _refreshAllRemoteFeeds;
+          refreshAllRemoteFeeds = injectedRefresh == null
+              ? () async {
+                  final client = await RemoteClientFactory(
+                    dio: dio,
+                    credentials: credentials,
+                  ).miniflux(activeAccount);
+                  await MinifluxRemoteSubscriptionStructureExecutor(
+                    client,
+                  ).refreshAllFeeds();
+                }
+              : () => injectedRefresh(activeAccount);
+        }
+        final result =
+            await RefreshAllCoordinator(
+              account: activeAccount,
+              feeds: feeds,
+              syncService: svc,
+              refreshAllRemoteFeeds: refreshAllRemoteFeeds,
+            ).refreshAll(
+              trigger: RefreshAllTrigger.background,
+              maxConcurrent: concurrency,
+              notify: true,
+              feedsOverride: allFeeds,
+            );
+        final err = result.firstError;
+        if (err != null) {
+          AppLogger.w(
+            'Background refresh failed',
+            tag: 'bg',
+            error: err,
+            stackTrace: result.stackTrace,
+          );
+        }
       } finally {
         await isar.close();
       }

@@ -982,7 +982,7 @@
   "@autoRefresh": {
     "description": "autoRefresh"
   },
-  "autoRefreshSubtitle": "在后台自动刷新订阅源",
+  "autoRefreshSubtitle": "App 打开时按所选周期刷新；移动端后台刷新由系统调度，通常不会短于 15 分钟，且不保证准点。",
   "@autoRefreshSubtitle": {
     "description": "autoRefreshSubtitle"
   },

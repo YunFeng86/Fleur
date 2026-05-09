@@ -14,6 +14,7 @@ import '../../providers/app_settings_providers.dart';
 import '../../providers/backend_capabilities_provider.dart';
 import '../../providers/opml_providers.dart';
 import '../../providers/query_providers.dart';
+import '../../providers/refresh_all_providers.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/service_providers.dart';
 import '../../services/accounts/account.dart';
@@ -21,6 +22,7 @@ import '../../services/logging/app_logger.dart';
 import '../../services/logging/log_context.dart';
 import '../../services/opml/opml_service.dart';
 import '../../services/sync/backend_capabilities.dart';
+import '../../services/sync/refresh_all_coordinator.dart';
 import '../../services/sync/remote_subscription_structure_executor.dart';
 import '../../ui/actions/remote_structure_feedback.dart' as remote_feedback;
 import '../../ui/dialogs/add_subscription_dialog.dart';
@@ -1064,65 +1066,30 @@ class SubscriptionActions {
 
   static Future<void> refreshAll(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context)!;
-    final feeds = await ref.read(feedRepositoryProvider).getAll();
-    if (!context.mounted) return;
-
     final appSettings = ref.read(appSettingsProvider).valueOrNull;
     final concurrency = appSettings?.autoRefreshConcurrency ?? 2;
-    final capabilities = _capabilities(ref);
-    final feedIds = feeds.map((f) => f.id);
 
-    if (!capabilities.isVisible(BackendFeature.refreshAllSources) &&
-        capabilities.isVisible(BackendFeature.syncNow)) {
-      final batch = await ref
-          .read(syncServiceProvider)
-          .refreshFeedsSafe(feedIds, maxConcurrent: concurrency);
-
-      if (!context.mounted) return;
-
-      final err = batch.firstError?.error;
-      context.showSnack(
-        err == null ? l10n.refreshedAll : l10n.errorMessage(err.toString()),
+    final result = await ref
+        .read(refreshAllCoordinatorProvider)
+        .refreshAll(
+          trigger: RefreshAllTrigger.manual,
+          maxConcurrent: concurrency,
+        );
+    if (!context.mounted) return;
+    final err = result.firstError;
+    if (result.error != null) {
+      _logSubscriptionFailure(
+        ref,
+        'refreshAllFeeds',
+        result.error!,
+        result.stackTrace,
       );
+      remote_feedback.showRemoteStructureFailure(context, l10n, result.error!);
       return;
     }
-
-    if (!capabilities.isVisible(BackendFeature.refreshAllSources)) {
-      remote_feedback.showUnsupportedRemoteCommand(context, l10n);
-      return;
-    }
-
-    if (!_isOnlineRequired(capabilities, BackendFeature.refreshAllSources)) {
-      final batch = await ref
-          .read(syncServiceProvider)
-          .refreshFeedsSafe(feedIds, maxConcurrent: concurrency);
-
-      if (!context.mounted) return;
-
-      final err = batch.firstError?.error;
-      context.showSnack(
-        err == null ? l10n.refreshedAll : l10n.errorMessage(err.toString()),
-      );
-      return;
-    }
-
-    try {
-      final account = ref.read(activeAccountProvider);
-      final executor = await _buildMinifluxStructureExecutor(ref, account);
-      await executor.refreshAllFeeds();
-      final batch = await ref
-          .read(syncServiceProvider)
-          .refreshFeedsSafe(feedIds, maxConcurrent: concurrency, notify: false);
-      if (!context.mounted) return;
-      final err = batch.firstError?.error;
-      context.showSnack(
-        err == null ? l10n.refreshedAll : l10n.errorMessage(err.toString()),
-      );
-    } catch (error, stackTrace) {
-      _logSubscriptionFailure(ref, 'refreshAllFeeds', error, stackTrace);
-      if (!context.mounted) return;
-      remote_feedback.showRemoteStructureFailure(context, l10n, error);
-    }
+    context.showSnack(
+      err == null ? l10n.refreshedAll : l10n.errorMessage(err.toString()),
+    );
   }
 
   static Future<void> moveFeedToCategory(

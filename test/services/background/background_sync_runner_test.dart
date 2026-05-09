@@ -131,6 +131,7 @@ void main() {
       ),
       outboxStore: outbox,
       runWithMutex: _runWithoutMutex,
+      refreshAllRemoteFeeds: (_) async {},
       openIsarForAccountFn:
           ({required accountId, required dbName, required isPrimary}) async =>
               isar,
@@ -251,6 +252,7 @@ void main() {
       ),
       outboxStore: outbox,
       runWithMutex: _runWithoutMutex,
+      refreshAllRemoteFeeds: (_) async {},
       openIsarForAccountFn:
           ({required accountId, required dbName, required isPrimary}) async =>
               isar,
@@ -299,6 +301,7 @@ void main() {
         ),
         outboxStore: FakeOutboxStore(),
         runWithMutex: _runWithoutMutex,
+        refreshAllRemoteFeeds: (_) async {},
         openIsarForAccountFn:
             ({required accountId, required dbName, required isPrimary}) async =>
                 isar,
@@ -325,6 +328,118 @@ void main() {
       expect(isar.closeCalls, 1);
     },
   );
+
+  testWidgets(
+    'miniflux background refresh triggers upstream refresh before sync',
+    (tester) async {
+      debugFleurTargetPlatformOverride = TargetPlatform.iOS;
+      addTearDown(() => debugFleurTargetPlatformOverride = null);
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+
+      final events = <String>[];
+      final syncService = FakeSyncService(
+        onRefresh: (feedIds) async {
+          events.add('sync');
+          return const BatchRefreshResult(<FeedRefreshResult>[]);
+        },
+      );
+      final isar = _FakeIsar();
+      final feed = Feed()
+        ..id = 1
+        ..url = 'https://example.com/feed.xml'
+        ..title = 'Feed 1';
+      final runner = BackgroundSyncRunner(
+        accounts: buildAccountsState(type: AccountType.miniflux),
+        appSettingsStore: buildAppSettingsStore(
+          AppSettings.defaults().copyWith(
+            autoRefreshMinutes: 30,
+            syncEnabled: true,
+          ),
+        ),
+        outboxStore: FakeOutboxStore(),
+        runWithMutex: _runWithoutMutex,
+        refreshAllRemoteFeeds: (_) async {
+          events.add('upstream');
+        },
+        openIsarForAccountFn:
+            ({required accountId, required dbName, required isPrimary}) async =>
+                isar,
+        loadAllFeeds: (feeds, account) async => [feed],
+        syncServiceBuilder:
+            ({
+              required account,
+              required feeds,
+              required categories,
+              required articles,
+              required outbox,
+              required appSettingsStore,
+            }) {
+              return syncService;
+            },
+      );
+
+      await runner.run(
+        taskName: kBackgroundSyncTaskName,
+        inputData: const <String, dynamic>{},
+      );
+
+      expect(events, ['upstream', 'sync']);
+      expect(syncService.refreshCalls, [
+        [1],
+      ]);
+      expect(isar.closeCalls, 1);
+    },
+  );
+
+  testWidgets('fever background refresh syncs without upstream refresh', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.iOS;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+
+    var upstreamCalls = 0;
+    final syncService = FakeSyncService();
+    final isar = _FakeIsar();
+    final runner = BackgroundSyncRunner(
+      accounts: buildAccountsState(type: AccountType.fever),
+      appSettingsStore: buildAppSettingsStore(
+        AppSettings.defaults().copyWith(
+          autoRefreshMinutes: 30,
+          syncEnabled: true,
+        ),
+      ),
+      outboxStore: FakeOutboxStore(),
+      runWithMutex: _runWithoutMutex,
+      refreshAllRemoteFeeds: (_) async {
+        upstreamCalls++;
+      },
+      openIsarForAccountFn:
+          ({required accountId, required dbName, required isPrimary}) async =>
+              isar,
+      loadAllFeeds: (feeds, account) async => <Feed>[],
+      syncServiceBuilder:
+          ({
+            required account,
+            required feeds,
+            required categories,
+            required articles,
+            required outbox,
+            required appSettingsStore,
+          }) {
+            return syncService;
+          },
+    );
+
+    await runner.run(
+      taskName: kBackgroundSyncTaskName,
+      inputData: const <String, dynamic>{},
+    );
+
+    expect(upstreamCalls, 0);
+    expect(syncService.refreshCalls, [<int>[]]);
+    expect(isar.closeCalls, 1);
+  });
 
   testWidgets('skips refresh when iOS gating says interval has not elapsed', (
     tester,

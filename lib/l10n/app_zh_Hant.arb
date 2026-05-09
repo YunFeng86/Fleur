@@ -982,7 +982,7 @@
   "@autoRefresh": {
     "description": "autoRefresh"
   },
-  "autoRefreshSubtitle": "在背景自動重新整理訂閱來源",
+  "autoRefreshSubtitle": "App 開啟時按所選週期重新整理；行動裝置背景重新整理由系統排程，通常不會短於 15 分鐘，且不保證準時。",
   "@autoRefreshSubtitle": {
     "description": "autoRefreshSubtitle"
   },
