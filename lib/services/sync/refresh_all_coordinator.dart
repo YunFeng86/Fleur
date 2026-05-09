@@ -1,6 +1,6 @@
 import '../../models/feed.dart';
 import '../../repositories/feed_repository.dart';
-import '../accounts/account.dart';
+import 'backend_capabilities.dart';
 import 'sync_service.dart';
 
 enum AccountSyncTrigger { manual, foregroundAuto, background }
@@ -10,13 +10,13 @@ enum RefreshSourcesTrigger { manual, foregroundAuto, background }
 typedef RefreshSourcesUpstreamRefresh = Future<void> Function();
 
 class RefreshSourcesUnsupportedException implements Exception {
-  const RefreshSourcesUnsupportedException(this.accountType);
+  const RefreshSourcesUnsupportedException(this.diagnosticAccountType);
 
-  final AccountType accountType;
+  final String diagnosticAccountType;
 
   @override
   String toString() {
-    return 'Refresh sources is not supported for ${accountType.wire} accounts';
+    return 'Refresh sources is not supported for $diagnosticAccountType accounts';
   }
 }
 
@@ -48,14 +48,14 @@ class RefreshAllResult {
 
 class AccountSyncCoordinator {
   const AccountSyncCoordinator({
-    required Account account,
+    required BackendCapabilities capabilities,
     required FeedRepository feeds,
     required SyncServiceBase syncService,
-  }) : _account = account,
+  }) : _capabilities = capabilities,
        _feeds = feeds,
        _syncService = syncService;
 
-  final Account _account;
+  final BackendCapabilities _capabilities;
   final FeedRepository _feeds;
   final SyncServiceBase _syncService;
 
@@ -68,7 +68,7 @@ class AccountSyncCoordinator {
   }) async {
     final feeds = feedsOverride ?? await _feeds.getAll();
 
-    if (feeds.isEmpty && _account.type == AccountType.local) {
+    if (feeds.isEmpty && !_capabilities.isRemoteBacked) {
       return const RefreshAllResult(batch: BatchRefreshResult([]));
     }
 
@@ -84,16 +84,16 @@ class AccountSyncCoordinator {
 
 class RefreshSourcesCoordinator {
   const RefreshSourcesCoordinator({
-    required Account account,
+    required BackendCapabilities capabilities,
     required FeedRepository feeds,
     required SyncServiceBase syncService,
     RefreshSourcesUpstreamRefresh? refreshAllRemoteFeeds,
-  }) : _account = account,
+  }) : _capabilities = capabilities,
        _feeds = feeds,
        _syncService = syncService,
        _refreshAllRemoteFeeds = refreshAllRemoteFeeds;
 
-  final Account _account;
+  final BackendCapabilities _capabilities;
   final FeedRepository _feeds;
   final SyncServiceBase _syncService;
   final RefreshSourcesUpstreamRefresh? _refreshAllRemoteFeeds;
@@ -105,16 +105,16 @@ class RefreshSourcesCoordinator {
     bool notify = true,
     List<Feed>? feedsOverride,
   }) async {
-    if (_account.type == AccountType.fever) {
+    if (!_capabilities.isVisible(BackendFeature.refreshAllSources)) {
       return RefreshAllResult.failure(
-        RefreshSourcesUnsupportedException(_account.type),
+        RefreshSourcesUnsupportedException(_capabilities.diagnosticAccountType),
         StackTrace.current,
       );
     }
 
     final feeds = feedsOverride ?? await _feeds.getAll();
 
-    if (_account.type == AccountType.miniflux) {
+    if (_capabilities.refreshesRemoteSourcesUpstream) {
       final refreshAllRemoteFeeds = _refreshAllRemoteFeeds;
       if (refreshAllRemoteFeeds == null) {
         return RefreshAllResult.failure(
@@ -129,7 +129,7 @@ class RefreshSourcesCoordinator {
       }
     }
 
-    if (feeds.isEmpty && _account.type == AccountType.local) {
+    if (feeds.isEmpty && !_capabilities.isRemoteBacked) {
       return const RefreshAllResult(batch: BatchRefreshResult([]));
     }
 

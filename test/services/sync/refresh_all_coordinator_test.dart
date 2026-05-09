@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fleur/models/feed.dart';
 import 'package:fleur/repositories/feed_repository.dart';
 import 'package:fleur/services/accounts/account.dart';
+import 'package:fleur/services/sync/backend_capabilities.dart';
 import 'package:fleur/services/sync/refresh_all_coordinator.dart';
 import 'package:fleur/services/sync/sync_service.dart';
 
@@ -27,8 +28,9 @@ Feed _feed(int id) {
 void main() {
   test('miniflux account sync does not refresh upstream sources', () async {
     final syncService = FakeSyncService();
+    final account = buildTestAccount(type: AccountType.miniflux);
     final coordinator = AccountSyncCoordinator(
-      account: buildTestAccount(type: AccountType.miniflux),
+      capabilities: BackendCapabilities.forAccountType(account.type),
       feeds: _FakeFeedRepository([_feed(1)]),
       syncService: syncService,
     );
@@ -53,8 +55,9 @@ void main() {
           return const BatchRefreshResult(<FeedRefreshResult>[]);
         },
       );
+      final account = buildTestAccount(type: AccountType.miniflux);
       final coordinator = RefreshSourcesCoordinator(
-        account: buildTestAccount(type: AccountType.miniflux),
+        capabilities: BackendCapabilities.forAccountType(account.type),
         feeds: _FakeFeedRepository([_feed(1)]),
         syncService: syncService,
         refreshAllRemoteFeeds: () async {
@@ -77,8 +80,9 @@ void main() {
   test('miniflux source refresh failure skips local sync', () async {
     final error = StateError('remote refresh failed');
     final syncService = FakeSyncService();
+    final account = buildTestAccount(type: AccountType.miniflux);
     final coordinator = RefreshSourcesCoordinator(
-      account: buildTestAccount(type: AccountType.miniflux),
+      capabilities: BackendCapabilities.forAccountType(account.type),
       feeds: _FakeFeedRepository([_feed(1)]),
       syncService: syncService,
       refreshAllRemoteFeeds: () async {
@@ -98,8 +102,9 @@ void main() {
 
   test('local source refresh syncs local feed sources', () async {
     final syncService = FakeSyncService();
+    final account = buildTestAccount(type: AccountType.local);
     final coordinator = RefreshSourcesCoordinator(
-      account: buildTestAccount(type: AccountType.local),
+      capabilities: BackendCapabilities.forAccountType(account.type),
       feeds: _FakeFeedRepository([_feed(1), _feed(2)]),
       syncService: syncService,
     );
@@ -116,8 +121,9 @@ void main() {
 
   test('fever account sync syncs remote state', () async {
     final syncService = FakeSyncService();
+    final account = buildTestAccount(type: AccountType.fever);
     final coordinator = AccountSyncCoordinator(
-      account: buildTestAccount(type: AccountType.fever),
+      capabilities: BackendCapabilities.forAccountType(account.type),
       feeds: _FakeFeedRepository([_feed(1)]),
       syncService: syncService,
     );
@@ -134,8 +140,9 @@ void main() {
 
   test('fever source refresh reports unsupported without syncing', () async {
     final syncService = FakeSyncService();
+    final account = buildTestAccount(type: AccountType.fever);
     final coordinator = RefreshSourcesCoordinator(
-      account: buildTestAccount(type: AccountType.fever),
+      capabilities: BackendCapabilities.forAccountType(account.type),
       feeds: _FakeFeedRepository([_feed(1)]),
       syncService: syncService,
     );

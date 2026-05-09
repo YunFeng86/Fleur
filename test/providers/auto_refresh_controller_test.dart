@@ -10,6 +10,7 @@ import 'package:fleur/providers/refresh_all_providers.dart';
 import 'package:fleur/repositories/feed_repository.dart';
 import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/services/settings/app_settings.dart';
+import 'package:fleur/services/sync/backend_capabilities.dart';
 import 'package:fleur/services/sync/refresh_all_coordinator.dart';
 import 'package:fleur/services/sync/sync_service.dart';
 
@@ -59,12 +60,12 @@ void main() {
       },
     );
     final accountSyncCoordinator = AccountSyncCoordinator(
-      account: account,
+      capabilities: BackendCapabilities.forAccountType(account.type),
       feeds: _FakeFeedRepository(),
       syncService: accountSyncService,
     );
     final refreshSourcesCoordinator = RefreshSourcesCoordinator(
-      account: account,
+      capabilities: BackendCapabilities.forAccountType(account.type),
       feeds: _FakeFeedRepository(),
       syncService: sourceRefreshService,
       refreshAllRemoteFeeds: () async {

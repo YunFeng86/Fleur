@@ -45,6 +45,9 @@ class BackendCapabilities {
 
   bool get isRemoteBacked => accountType != AccountType.local;
 
+  bool get refreshesRemoteSourcesUpstream =>
+      accountType == AccountType.miniflux;
+
   bool get isOutboxCapable =>
       availability(BackendFeature.outboxFlush) != FeatureAvailability.hidden;
 

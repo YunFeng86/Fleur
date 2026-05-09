@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'account_providers.dart';
 import 'app_settings_providers.dart';
+import 'backend_capabilities_provider.dart';
 import 'refresh_all_providers.dart';
-import '../services/accounts/account.dart';
+import '../services/sync/backend_capabilities.dart';
 import '../services/sync/refresh_all_coordinator.dart';
 
 class AutoRefreshController extends AutoDisposeNotifier<void> {
@@ -19,7 +19,7 @@ class AutoRefreshController extends AutoDisposeNotifier<void> {
   void build() {
     final settings = ref.watch(appSettingsProvider).valueOrNull;
     final sourceRefreshMinutes = settings?.sourceRefreshMinutes;
-    final account = ref.watch(activeAccountProvider);
+    final capabilities = ref.watch(backendCapabilitiesProvider);
 
     _timer?.cancel();
     _timer = null;
@@ -28,11 +28,11 @@ class AutoRefreshController extends AutoDisposeNotifier<void> {
 
     if (settings?.syncEnabled == false) return;
 
-    final shouldSyncAccount = account.type != AccountType.local;
+    final shouldSyncAccount = capabilities.isRemoteBacked;
     final shouldRefreshSources =
         sourceRefreshMinutes != null &&
         sourceRefreshMinutes > 0 &&
-        account.type != AccountType.fever;
+        capabilities.isVisible(BackendFeature.refreshAllSources);
     if (!shouldSyncAccount && !shouldRefreshSources) return;
 
     final tickMinutes = shouldSyncAccount
@@ -50,12 +50,12 @@ class AutoRefreshController extends AutoDisposeNotifier<void> {
       final settings = ref.read(appSettingsProvider).valueOrNull;
       if (settings?.syncEnabled == false) return;
       final concurrency = settings?.autoRefreshConcurrency ?? 2;
-      final account = ref.read(activeAccountProvider);
+      final capabilities = ref.read(backendCapabilitiesProvider);
       final sourceRefreshMinutes = settings?.sourceRefreshMinutes;
       final shouldRefreshSources =
           sourceRefreshMinutes != null &&
           sourceRefreshMinutes > 0 &&
-          account.type != AccountType.fever;
+          capabilities.isVisible(BackendFeature.refreshAllSources);
 
       if (shouldRefreshSources) {
         _sourceElapsedMinutes += tickMinutes;
@@ -71,7 +71,7 @@ class AutoRefreshController extends AutoDisposeNotifier<void> {
         }
       }
 
-      if (account.type == AccountType.local) return;
+      if (!capabilities.isRemoteBacked) return;
 
       await ref
           .read(accountSyncCoordinatorProvider)

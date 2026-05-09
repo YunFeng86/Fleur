@@ -322,7 +322,7 @@ class BackgroundSyncRunner {
         final concurrency = appSettings.autoRefreshConcurrency;
         RefreshSourcesUpstreamRefresh? refreshAllRemoteFeeds;
         if (shouldRefreshSources &&
-            activeAccount.type == AccountType.miniflux) {
+            capabilities.refreshesRemoteSourcesUpstream) {
           final injectedRefresh = _refreshAllRemoteFeeds;
           refreshAllRemoteFeeds = injectedRefresh == null
               ? () async {
@@ -339,7 +339,7 @@ class BackgroundSyncRunner {
 
         final result = shouldRefreshSources
             ? await RefreshSourcesCoordinator(
-                account: activeAccount,
+                capabilities: capabilities,
                 feeds: feeds,
                 syncService: svc,
                 refreshAllRemoteFeeds: refreshAllRemoteFeeds,
@@ -350,7 +350,7 @@ class BackgroundSyncRunner {
                 feedsOverride: allFeeds,
               )
             : await AccountSyncCoordinator(
-                account: activeAccount,
+                capabilities: capabilities,
                 feeds: feeds,
                 syncService: svc,
               ).syncAccount(
