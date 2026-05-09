@@ -5,6 +5,157 @@ import '../models/feed.dart';
 import '../services/logging/app_logger.dart';
 import 'remote_mirror_upsert_result.dart';
 
+class FeedRemoteMirrorIndex {
+  FeedRemoteMirrorIndex._(Iterable<Feed> feeds) {
+    for (final feed in feeds) {
+      _add(feed);
+    }
+  }
+
+  final Map<int, Feed> _byId = <int, Feed>{};
+  final Map<String, Feed> _byRemoteId = <String, Feed>{};
+  final Map<String, Feed> _byUrl = <String, Feed>{};
+  final Map<String, List<Feed>> _byNormalizedUrl = <String, List<Feed>>{};
+
+  Feed? byId(int id) => _byId[id];
+
+  Feed? byRemoteId(String remoteId) {
+    final normalized = FeedRepository._normalizeRemoteId(remoteId);
+    if (normalized.isEmpty) return null;
+    return _byRemoteId[normalized];
+  }
+
+  Feed? byUrl(String url) {
+    final normalized = url.trim();
+    if (normalized.isEmpty) return null;
+    return _byUrl[normalized];
+  }
+
+  Feed? bindableByNormalizedUrl(String url) {
+    final feeds = _feedsByNormalizedUrl(url);
+    if (feeds == null) return null;
+    for (final feed in feeds) {
+      final remoteId = feed.remoteId?.trim();
+      if (remoteId != null && remoteId.isNotEmpty) continue;
+      return feed;
+    }
+    return null;
+  }
+
+  Feed? conflictingByNormalizedUrl(
+    String url,
+    String remoteId, {
+    int? excludeFeedId,
+  }) {
+    final feeds = _feedsByNormalizedUrl(url);
+    if (feeds == null) return null;
+    for (final feed in feeds) {
+      if (feed.id == excludeFeedId) continue;
+      if (FeedRepository._remoteIdCanBeBound(feed, remoteId)) continue;
+      return feed;
+    }
+    return null;
+  }
+
+  Feed? duplicateForTarget(Feed target, String url) {
+    final feeds = _feedsByNormalizedUrl(url);
+    if (feeds == null) return null;
+    for (final feed in feeds) {
+      if (feed.id == target.id) continue;
+      final remoteId = feed.remoteId?.trim();
+      final targetRemoteId = target.remoteId?.trim();
+      if (remoteId != null &&
+          remoteId.isNotEmpty &&
+          remoteId != targetRemoteId) {
+        continue;
+      }
+      return feed;
+    }
+    return null;
+  }
+
+  void removeById(int id) {
+    final feed = _byId.remove(id);
+    if (feed == null) return;
+
+    final remoteId = feed.remoteId?.trim();
+    if (remoteId != null && remoteId.isNotEmpty) {
+      _removePrimary(_byRemoteId, remoteId, id);
+      _restoreRemoteId(remoteId);
+    }
+
+    final url = feed.url.trim();
+    if (url.isNotEmpty) {
+      _removePrimary(_byUrl, url, id);
+      _restoreUrl(url);
+    }
+
+    final normalizedUrl = FeedRepository._normalizeUrlIdentity(feed.url);
+    final normalizedFeeds = _byNormalizedUrl[normalizedUrl];
+    normalizedFeeds?.removeWhere((item) => item.id == id);
+    if (normalizedFeeds != null && normalizedFeeds.isEmpty) {
+      _byNormalizedUrl.remove(normalizedUrl);
+    }
+  }
+
+  void put(Feed feed) {
+    removeById(feed.id);
+    _add(feed);
+  }
+
+  List<Feed>? _feedsByNormalizedUrl(String url) {
+    final normalized = FeedRepository._normalizeUrlIdentity(url);
+    if (normalized.isEmpty) return null;
+    return _byNormalizedUrl[normalized];
+  }
+
+  void _add(Feed feed) {
+    _byId[feed.id] = feed;
+
+    final remoteId = feed.remoteId?.trim();
+    if (remoteId != null && remoteId.isNotEmpty) {
+      _byRemoteId.putIfAbsent(remoteId, () => feed);
+    }
+
+    final url = feed.url.trim();
+    if (url.isNotEmpty) {
+      _byUrl.putIfAbsent(url, () => feed);
+    }
+
+    final normalizedUrl = FeedRepository._normalizeUrlIdentity(feed.url);
+    if (normalizedUrl.isNotEmpty) {
+      (_byNormalizedUrl[normalizedUrl] ??= <Feed>[]).add(feed);
+    }
+  }
+
+  void _removePrimary(Map<String, Feed> map, String key, int id) {
+    final current = map[key];
+    if (current != null && current.id == id) {
+      map.remove(key);
+    }
+  }
+
+  void _restoreRemoteId(String remoteId) {
+    if (_byRemoteId.containsKey(remoteId)) return;
+    for (final feed in _byId.values) {
+      if (feed.remoteId?.trim() == remoteId) {
+        _byRemoteId[remoteId] = feed;
+        return;
+      }
+    }
+  }
+
+  void _restoreUrl(String url) {
+    if (_byUrl.containsKey(url)) return;
+    for (final feed in _byId.values) {
+      if (feed.url.trim() == url) {
+        _byUrl[url] = feed;
+        return;
+      }
+    }
+  }
+}
+
 class FeedRepository {
   FeedRepository(this._isar);
 
@@ -31,6 +182,10 @@ class FeedRepository {
 
   Future<List<Feed>> getAll() {
     return _isar.feeds.where().findAll();
+  }
+
+  Future<FeedRemoteMirrorIndex> createRemoteMirrorIndex() async {
+    return FeedRemoteMirrorIndex._(await getAll());
   }
 
   Future<Feed?> getById(int id) {
@@ -84,6 +239,7 @@ class FeedRepository {
     DateTime? lastSyncedAt,
     int? preferredLocalFeedId,
     bool updateCategory = true,
+    FeedRemoteMirrorIndex? lookupIndex,
   }) async {
     final result = await upsertRemoteDetailed(
       remoteId: remoteId,
@@ -95,6 +251,7 @@ class FeedRepository {
       lastSyncedAt: lastSyncedAt,
       preferredLocalFeedId: preferredLocalFeedId,
       updateCategory: updateCategory,
+      lookupIndex: lookupIndex,
     );
     return result.localId;
   }
@@ -109,6 +266,7 @@ class FeedRepository {
     DateTime? lastSyncedAt,
     int? preferredLocalFeedId,
     bool updateCategory = true,
+    FeedRemoteMirrorIndex? lookupIndex,
   }) async {
     final normalizedRemoteId = _normalizeRemoteId(remoteId);
     if (normalizedRemoteId.isEmpty) {
@@ -120,9 +278,13 @@ class FeedRepository {
       throw ArgumentError('Feed url is empty');
     }
 
-    final byRemoteId = await getByRemoteId(normalizedRemoteId);
+    final byRemoteId = lookupIndex == null
+        ? await getByRemoteId(normalizedRemoteId)
+        : lookupIndex.byRemoteId(normalizedRemoteId);
     final preferred = byRemoteId == null && preferredLocalFeedId != null
-        ? await _isar.feeds.get(preferredLocalFeedId)
+        ? lookupIndex == null
+              ? await _isar.feeds.get(preferredLocalFeedId)
+              : lookupIndex.byId(preferredLocalFeedId)
         : null;
     final bindablePreferred =
         preferred != null &&
@@ -130,7 +292,9 @@ class FeedRepository {
             _urlIdentityMatches(preferred, normalizedUrl)
         ? preferred
         : null;
-    final byUrl = await getByUrl(normalizedUrl);
+    final byUrl = lookupIndex == null
+        ? await getByUrl(normalizedUrl)
+        : lookupIndex.byUrl(normalizedUrl);
     final bindableByUrl =
         byUrl != null && _remoteIdCanBeBound(byUrl, normalizedRemoteId)
         ? byUrl
@@ -141,16 +305,24 @@ class FeedRepository {
         : null;
     final byNormalizedUrl =
         byRemoteId == null && bindablePreferred == null && bindableByUrl == null
-        ? await _getByNormalizedUrl(normalizedUrl)
+        ? lookupIndex == null
+              ? await _getByNormalizedUrl(normalizedUrl)
+              : lookupIndex.bindableByNormalizedUrl(normalizedUrl)
         : null;
     final target =
         byRemoteId ?? bindablePreferred ?? bindableByUrl ?? byNormalizedUrl;
     final conflictingByNormalizedUrl = conflictingByUrl == null
-        ? await _getConflictingByNormalizedUrl(
-            normalizedUrl,
-            normalizedRemoteId,
-            excludeFeedId: target?.id,
-          )
+        ? lookupIndex == null
+              ? await _getConflictingByNormalizedUrl(
+                  normalizedUrl,
+                  normalizedRemoteId,
+                  excludeFeedId: target?.id,
+                )
+              : lookupIndex.conflictingByNormalizedUrl(
+                  normalizedUrl,
+                  normalizedRemoteId,
+                  excludeFeedId: target?.id,
+                )
         : null;
     final conflict = conflictingByUrl ?? conflictingByNormalizedUrl;
     if (target == null && conflict != null) {
@@ -175,10 +347,13 @@ class FeedRepository {
         target != null && conflict != null && conflict.id != target.id;
     final duplicate = target == null
         ? null
-        : await _findDuplicateForTarget(target, normalizedUrl);
+        : lookupIndex == null
+        ? await _findDuplicateForTarget(target, normalizedUrl)
+        : lookupIndex.duplicateForTarget(target, normalizedUrl);
     var duplicateDeleted = false;
     if (duplicate != null && await _canDeleteDuplicate(duplicate)) {
       await delete(duplicate.id);
+      lookupIndex?.removeById(duplicate.id);
       duplicateDeleted = true;
     } else if (duplicate != null) {
       AppLogger.w(
@@ -198,7 +373,8 @@ class FeedRepository {
         ? target!.url
         : normalizedUrl;
 
-    return _isar.writeTxn(() async {
+    Feed? indexedFeed;
+    final result = await _isar.writeTxn(() async {
       final existing = target == null ? null : await _isar.feeds.get(target.id);
       final now = DateTime.now();
       final feed = existing ?? Feed()
@@ -218,6 +394,8 @@ class FeedRepository {
       }
 
       final id = await _isar.feeds.put(feed);
+      feed.id = id;
+      indexedFeed = feed;
       if (updateCategory) {
         await _setArticleCategoryInTxn(id, categoryId, now);
       }
@@ -228,6 +406,14 @@ class FeedRepository {
         status: RemoteMirrorUpsertStatus.bound,
       );
     });
+    if (target != null) {
+      lookupIndex?.removeById(target.id);
+    }
+    final feedForIndex = indexedFeed;
+    if (feedForIndex != null) {
+      lookupIndex?.put(feedForIndex);
+    }
+    return result;
   }
 
   Future<Feed?> _getByNormalizedUrl(String url) async {

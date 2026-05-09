@@ -300,6 +300,7 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
     final protectedFeedRemoteIds = <String>{};
     final categoryMappingsTrustworthy =
         feedGroupMappingsAvailable && groupListTrustworthy;
+    final feedMirrorIndex = await _feeds.createRemoteMirrorIndex();
 
     var processed = 0;
     for (final f in remoteFeeds) {
@@ -323,6 +324,7 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
         categoryId: localCatId,
         lastSyncedAt: DateTime.now(),
         updateCategory: categoryMappingsTrustworthy,
+        lookupIndex: feedMirrorIndex,
       );
       if (!result.isBound) {
         final protectedId = result.effectiveRemoteId;

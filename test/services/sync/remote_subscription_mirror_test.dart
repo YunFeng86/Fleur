@@ -59,6 +59,18 @@ class _NoopNotificationService extends NotificationService {
   }) async {}
 }
 
+class _CountingFeedRepository extends FeedRepository {
+  _CountingFeedRepository(super.isar);
+
+  int getAllCalls = 0;
+
+  @override
+  Future<List<Feed>> getAll() {
+    getAllCalls += 1;
+    return super.getAll();
+  }
+}
+
 class _UnusedCacheManager extends Fake implements BaseCacheManager {}
 
 ArticleCacheService _unusedCache() {
@@ -347,6 +359,52 @@ void main() {
   );
 
   test(
+    'Miniflux sync builds feed mirror index once per account sync',
+    () async {
+      final feedRepo = _CountingFeedRepository(isar!);
+      final service = MinifluxSyncService(
+        account: buildTestAccount(
+          type: AccountType.miniflux,
+          baseUrl: 'https://miniflux.example.com',
+        ),
+        dio: _minifluxDio(
+          categories: () => const <Map<String, Object?>>[],
+          feeds: () => const <Map<String, Object?>>[
+            {
+              'id': 10,
+              'feed_url': 'https://example.com/one.xml',
+              'title': 'One',
+            },
+            {
+              'id': 11,
+              'feed_url': 'https://example.com/two.xml',
+              'title': 'Two',
+            },
+            {
+              'id': 12,
+              'feed_url': 'https://example.com/three.xml',
+              'title': 'Three',
+            },
+          ],
+        ),
+        credentials: _FakeCredentialStore(),
+        feeds: feedRepo,
+        categories: CategoryRepository(isar!),
+        articles: ArticleRepository(isar!),
+        outbox: _MemoryOutboxStore(),
+        appSettingsStore: FakeAppSettingsStore(_subscriptionsOnlySettings()),
+        cache: _unusedCache(),
+        extractor: ArticleExtractor(Dio()),
+      );
+
+      await service.syncNow();
+
+      expect(feedRepo.getAllCalls, 1);
+      expect(await isar!.feeds.count(), 3);
+    },
+  );
+
+  test(
     'Fever sync keeps remote identities and prunes missing mirrors',
     () async {
       var groups = <Map<String, Object?>>[
@@ -453,6 +511,39 @@ void main() {
       expect(articles.single.categoryId, firstCategory.id);
     },
   );
+
+  test('Fever sync builds feed mirror index once per account sync', () async {
+    final feedRepo = _CountingFeedRepository(isar!);
+    final service = FeverSyncService(
+      account: buildTestAccount(
+        type: AccountType.fever,
+        baseUrl: 'https://fever.example.com',
+      ),
+      dio: _feverDio(
+        groups: () => const <Map<String, Object?>>[],
+        feeds: () => const <Map<String, Object?>>[
+          {'id': 10, 'url': 'https://example.com/one.xml', 'title': 'One'},
+          {'id': 11, 'url': 'https://example.com/two.xml', 'title': 'Two'},
+          {'id': 12, 'url': 'https://example.com/three.xml', 'title': 'Three'},
+        ],
+        feedsGroups: () => const <Map<String, Object?>>[],
+      ),
+      credentials: _FakeCredentialStore(),
+      feeds: feedRepo,
+      categories: CategoryRepository(isar!),
+      articles: ArticleRepository(isar!),
+      outbox: _MemoryOutboxStore(),
+      appSettingsStore: FakeAppSettingsStore(_subscriptionsOnlySettings()),
+      notifications: _NoopNotificationService(),
+      cache: _unusedCache(),
+      extractor: ArticleExtractor(Dio()),
+    );
+
+    await service.syncNow(notify: false);
+
+    expect(feedRepo.getAllCalls, 1);
+    expect(await isar!.feeds.count(), 3);
+  });
 
   test(
     'Miniflux sync skips feed prune when remote feed list is empty',

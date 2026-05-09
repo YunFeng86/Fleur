@@ -12,6 +12,18 @@ import 'package:fleur/repositories/remote_mirror_upsert_result.dart';
 
 import '../test_utils/isar_test_utils.dart';
 
+class _CountingFeedRepository extends FeedRepository {
+  _CountingFeedRepository(super.isar);
+
+  int getAllCalls = 0;
+
+  @override
+  Future<List<Feed>> getAll() {
+    getAllCalls += 1;
+    return super.getAll();
+  }
+}
+
 void main() {
   Isar? isar;
   Directory? tempDir;
@@ -326,6 +338,176 @@ void main() {
     expect(target?.url, 'https://example.com/feed.xml');
     expect(target?.title, 'Updated Target');
     expect(duplicate, isNull);
+  });
+
+  test(
+    'indexed upsertRemote binds equivalent url to preferred local feed',
+    () async {
+      final repo = FeedRepository(isar!);
+      await seedCategorizedFeed(url: 'https://example.com/feed.xml/');
+      final index = await repo.createRemoteMirrorIndex();
+
+      final id = await repo.upsertRemote(
+        remoteId: '91',
+        url: 'https://example.com/feed.xml',
+        title: 'Remote Feed',
+        preferredLocalFeedId: 1,
+        lookupIndex: index,
+      );
+
+      final feeds = await isar!.feeds.where().findAll();
+      final feed = await isar!.feeds.get(1);
+
+      expect(id, 1);
+      expect(feeds, hasLength(1));
+      expect(feed?.remoteId, '91');
+      expect(feed?.url, 'https://example.com/feed.xml');
+      expect(feed?.title, 'Remote Feed');
+    },
+  );
+
+  test(
+    'indexed upsertRemote does not bind exact url with different remote id',
+    () async {
+      final repo = FeedRepository(isar!);
+      await seedCategorizedFeed(remoteId: '77');
+      final index = await repo.createRemoteMirrorIndex();
+
+      final result = await repo.upsertRemoteDetailed(
+        remoteId: '91',
+        url: 'https://example.com/feed.xml',
+        title: 'Remote Feed',
+        lookupIndex: index,
+      );
+
+      final feeds = await isar!.feeds.where().findAll();
+      final original = await isar!.feeds.get(1);
+      final remote = await repo.getByRemoteId('91');
+
+      expect(result.localId, 1);
+      expect(result.status, RemoteMirrorUpsertStatus.identityConflict);
+      expect(result.effectiveRemoteId, '77');
+      expect(feeds, hasLength(1));
+      expect(original?.remoteId, '77');
+      expect(original?.title, 'Feed');
+      expect(remote, isNull);
+    },
+  );
+
+  test('indexed upsertRemote keeps article-bearing duplicate feed', () async {
+    final repo = FeedRepository(isar!);
+    final now = DateTime.utc(2026, 3, 1, 10);
+    await isar!.writeTxn(() async {
+      await isar!.feeds.putAll([
+        Feed()
+          ..id = 1
+          ..remoteId = '91'
+          ..url = 'https://example.com/old.xml'
+          ..title = 'Target'
+          ..createdAt = now
+          ..updatedAt = now,
+        Feed()
+          ..id = 2
+          ..url = 'https://example.com/feed.xml'
+          ..title = 'Duplicate'
+          ..createdAt = now
+          ..updatedAt = now,
+      ]);
+      await isar!.articles.put(
+        Article()
+          ..feedId = 2
+          ..link = 'https://example.com/articles/duplicate'
+          ..title = 'Duplicate Article'
+          ..publishedAt = now
+          ..fetchedAt = now
+          ..updatedAt = now,
+      );
+    });
+    final index = await repo.createRemoteMirrorIndex();
+
+    final result = await repo.upsertRemoteDetailed(
+      remoteId: '91',
+      url: 'https://example.com/feed.xml',
+      title: 'Updated Target',
+      lookupIndex: index,
+    );
+
+    final feeds = await isar!.feeds.where().findAll();
+    final target = await isar!.feeds.get(1);
+    final duplicate = await isar!.feeds.get(2);
+    final articles = await isar!.articles.where().findAll();
+
+    expect(result.status, RemoteMirrorUpsertStatus.bound);
+    expect(feeds, hasLength(2));
+    expect(target?.url, 'https://example.com/old.xml');
+    expect(duplicate?.url, 'https://example.com/feed.xml');
+    expect(articles, hasLength(1));
+    expect(articles.single.feedId, 2);
+  });
+
+  test('indexed upsertRemote deletes empty unbound duplicate feed', () async {
+    final repo = FeedRepository(isar!);
+    final now = DateTime.utc(2026, 3, 1, 10);
+    await isar!.writeTxn(() async {
+      await isar!.feeds.putAll([
+        Feed()
+          ..id = 1
+          ..remoteId = '91'
+          ..url = 'https://example.com/old.xml'
+          ..title = 'Target'
+          ..createdAt = now
+          ..updatedAt = now,
+        Feed()
+          ..id = 2
+          ..url = 'https://example.com/feed.xml'
+          ..title = 'Duplicate'
+          ..createdAt = now
+          ..updatedAt = now,
+      ]);
+    });
+    final index = await repo.createRemoteMirrorIndex();
+
+    final result = await repo.upsertRemoteDetailed(
+      remoteId: '91',
+      url: 'https://example.com/feed.xml',
+      title: 'Updated Target',
+      lookupIndex: index,
+    );
+
+    final feeds = await isar!.feeds.where().findAll();
+    final target = await isar!.feeds.get(1);
+    final duplicate = await isar!.feeds.get(2);
+
+    expect(result.status, RemoteMirrorUpsertStatus.bound);
+    expect(feeds, hasLength(1));
+    expect(target?.url, 'https://example.com/feed.xml');
+    expect(target?.title, 'Updated Target');
+    expect(duplicate, isNull);
+  });
+
+  test('indexed upsertRemote does not reread all feeds per upsert', () async {
+    final repo = _CountingFeedRepository(isar!);
+    await seedCategorizedFeed(url: 'https://example.com/feed.xml/');
+    final index = await repo.createRemoteMirrorIndex();
+
+    expect(repo.getAllCalls, 1);
+
+    await repo.upsertRemoteDetailed(
+      remoteId: '91',
+      url: 'https://example.com/feed.xml',
+      title: 'Remote Feed',
+      lookupIndex: index,
+    );
+    await repo.upsertRemoteDetailed(
+      remoteId: '92',
+      url: 'https://example.com/second.xml',
+      title: 'Second Feed',
+      lookupIndex: index,
+    );
+
+    expect(repo.getAllCalls, 1);
+    expect(await repo.getByRemoteId('91'), isNotNull);
+    expect(await repo.getByRemoteId('92'), isNotNull);
   });
 
   test('deleteRemoteMissing keeps protected remote feeds', () async {

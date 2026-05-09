@@ -247,6 +247,7 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
     final localFeedIdToSettings = <int, EffectiveFeedSettings>{};
     final seenFeedRemoteIds = <String>{};
     final protectedFeedRemoteIds = <String>{};
+    final feedMirrorIndex = await _feeds.createRemoteMirrorIndex();
     var feedProcessed = 0;
     for (final f in feeds) {
       feedProcessed += 1;
@@ -292,6 +293,7 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
         description: f['description'] as String?,
         categoryId: localCatId,
         updateCategory: updateCategory,
+        lookupIndex: feedMirrorIndex,
       );
       if (!result.isBound) {
         final protectedId = result.effectiveRemoteId;

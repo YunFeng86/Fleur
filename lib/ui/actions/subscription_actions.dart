@@ -677,6 +677,7 @@ class SubscriptionActions {
       final seenFeedRemoteIds = <String>{};
       final protectedFeedRemoteIds = <String>{};
       final remoteFeeds = await executor.listFeeds();
+      final feedMirrorIndex = await feeds.createRemoteMirrorIndex();
       for (final remoteFeed in remoteFeeds) {
         final remoteFeedId = remoteFeed['id'];
         final remoteUrl = remoteFeed['feed_url'];
@@ -698,6 +699,7 @@ class SubscriptionActions {
           description: remoteFeed['description'] as String?,
           categoryId: localCategoryId,
           updateCategory: updateCategory,
+          lookupIndex: feedMirrorIndex,
         );
         if (result.isBound) {
           seenFeedRemoteIds.add(remoteFeedIdString);
