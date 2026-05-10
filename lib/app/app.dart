@@ -386,9 +386,15 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
         final syncSemantics = ref.watch(backendSyncSemanticsProvider);
         final refreshActionLabel = SubscriptionObjectMenus.rootRefreshLabel(
           l10n,
+          capabilities,
           syncSemantics,
         );
-        final refreshSuccessLabel = l10n.refreshedAll;
+        final refreshSuccessLabel =
+            SubscriptionObjectMenus.rootRefreshSuccessLabel(
+              l10n,
+              capabilities,
+              syncSemantics,
+            );
 
         final leading = canPop
             ? IconButton(
@@ -434,25 +440,26 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
                 title: title,
                 leading: leading,
                 actions: [
-                  if (isFeedsSection && showRootRefresh) ...[
-                    IconButton(
-                      tooltip: refreshActionLabel,
-                      onPressed: () async {
-                        final batch = await commands.refreshAll();
-                        if (!context.mounted) return;
-                        final err = batch.firstError?.error;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              err == null
-                                  ? refreshSuccessLabel
-                                  : l10n.errorMessage(err.toString()),
+                  if (isFeedsSection) ...[
+                    if (showRootRefresh)
+                      IconButton(
+                        tooltip: refreshActionLabel,
+                        onPressed: () async {
+                          final batch = await commands.refreshAll();
+                          if (!context.mounted) return;
+                          final err = batch.firstError?.error;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                err == null
+                                    ? refreshSuccessLabel
+                                    : l10n.errorMessage(err.toString()),
+                              ),
                             ),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.refresh),
-                    ),
+                          );
+                        },
+                        icon: const Icon(Icons.refresh),
+                      ),
                     Consumer(
                       builder: (context, ref, _) {
                         final unreadOnly = ref.watch(unreadOnlyProvider);

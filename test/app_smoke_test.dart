@@ -18,9 +18,11 @@ import 'package:fleur/providers/app_settings_providers.dart';
 import 'package:fleur/providers/background_sync_providers.dart';
 import 'package:fleur/providers/outbox_status_providers.dart';
 import 'package:fleur/providers/query_providers.dart';
+import 'package:fleur/providers/repository_providers.dart';
 import 'package:fleur/providers/service_providers.dart';
 import 'package:fleur/providers/sync_status_providers.dart';
 import 'package:fleur/providers/unread_providers.dart';
+import 'package:fleur/repositories/feed_repository.dart';
 import 'package:fleur/screens/home_screen.dart';
 import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/screens/saved_screen.dart';
@@ -200,6 +202,15 @@ class _RecordingHomeSceneCommands extends HomeSceneCommands {
   }
 }
 
+class _FakeFeedRepository extends Fake implements FeedRepository {
+  _FakeFeedRepository(this.feeds);
+
+  final List<Feed> feeds;
+
+  @override
+  Future<List<Feed>> getAll() async => feeds;
+}
+
 void main() {
   testWidgets('App builds', (tester) async {
     TestWidgetsFlutterBinding.ensureInitialized();
@@ -216,6 +227,43 @@ void main() {
 
     expect(find.byType(App), findsOneWidget);
   });
+
+  testWidgets(
+    'Desktop chrome shows Fever account sync without hiding feed actions',
+    (tester) async {
+      debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+      tester.view.physicalSize = const Size(1200, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => debugFleurTargetPlatformOverride = null);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final router = _buildRouter();
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            routerProvider.overrideWithValue(router),
+            activeAccountProvider.overrideWithValue(
+              buildTestAccount(type: AccountType.fever),
+            ),
+            appSettingsStoreProvider.overrideWithValue(
+              FakeAppSettingsStore(AppSettings.defaults()),
+            ),
+            outboxPendingCountProvider.overrideWith((ref) async => 0),
+          ],
+          child: const App(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip('Sync account'), findsOneWidget);
+      expect(find.byTooltip('Refresh sources'), findsNothing);
+      expect(find.byTooltip('Unread only'), findsOneWidget);
+      expect(find.byTooltip('Mark all read'), findsOneWidget);
+    },
+  );
 
   test('App theme exposes Fleur semantic tokens for desktop and mobile', () {
     debugFleurTargetPlatformOverride = TargetPlatform.windows;
@@ -691,52 +739,58 @@ void main() {
     },
   );
 
-  testWidgets(
-    'Home scene commands skip source refresh for unsupported remote accounts',
-    (tester) async {
-      final syncService = FakeSyncService();
-      late HomeSceneCommands homeCommands;
-      final router = GoRouter(
-        routes: [
-          GoRoute(
-            path: '/',
-            builder: (context, state) {
-              return Consumer(
-                builder: (context, ref, _) {
-                  homeCommands = HomeSceneCommands(
-                    context: context,
-                    ref: ref,
-                    selectedArticleId: null,
-                  );
-                  return const SizedBox(key: ValueKey('remote_commands_host'));
-                },
-              );
-            },
-          ),
-        ],
-      );
-      addTearDown(router.dispose);
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            activeAccountProvider.overrideWithValue(
-              buildTestAccount(type: AccountType.fever, name: 'Fever'),
-            ),
-            selectedFeedIdProvider.overrideWith((ref) => 10),
-            selectedCategoryIdProvider.overrideWith((ref) => 1),
-            syncServiceProvider.overrideWithValue(syncService),
-          ],
-          child: MaterialApp.router(routerConfig: router),
+  testWidgets('Home scene commands sync unsupported-source remote accounts', (
+    tester,
+  ) async {
+    final syncService = FakeSyncService();
+    final feed = Feed()
+      ..id = 1
+      ..url = 'https://example.com/feed.xml'
+      ..title = 'Feed';
+    late HomeSceneCommands homeCommands;
+    final router = GoRouter(
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (context, state) {
+            return Consumer(
+              builder: (context, ref, _) {
+                homeCommands = HomeSceneCommands(
+                  context: context,
+                  ref: ref,
+                  selectedArticleId: null,
+                );
+                return const SizedBox(key: ValueKey('remote_commands_host'));
+              },
+            );
+          },
         ),
-      );
-      await tester.pumpAndSettle();
+      ],
+    );
+    addTearDown(router.dispose);
 
-      await homeCommands.refreshAll();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          activeAccountProvider.overrideWithValue(
+            buildTestAccount(type: AccountType.fever, name: 'Fever'),
+          ),
+          selectedFeedIdProvider.overrideWith((ref) => 10),
+          selectedCategoryIdProvider.overrideWith((ref) => 1),
+          feedRepositoryProvider.overrideWithValue(_FakeFeedRepository([feed])),
+          syncServiceProvider.overrideWithValue(syncService),
+        ],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      expect(syncService.refreshCalls, isEmpty);
-    },
-  );
+    await homeCommands.refreshAll();
+
+    expect(syncService.refreshCalls, [
+      [1],
+    ]);
+  });
 
   testWidgets('Home refresh tooltip follows backend refresh scope', (
     tester,
@@ -781,7 +835,7 @@ void main() {
     expect(find.byTooltip('Sync account'), findsNothing);
 
     await pumpHome(AccountType.fever);
-    expect(find.byTooltip('Sync account'), findsNothing);
+    expect(find.byTooltip('Sync account'), findsOneWidget);
     expect(find.byTooltip('Refresh sources'), findsNothing);
   });
 

@@ -349,7 +349,7 @@ void main() {
       await tester.pumpAndSettle();
       await _openContextMenu(tester, find.text('Subscriptions').last);
 
-      expect(_popupMenuText('Sync account'), findsNothing);
+      expect(_popupMenuText('Sync account'), findsOneWidget);
       expect(_popupMenuText('Export OPML'), findsOneWidget);
       expect(_popupMenuText('Refresh sources'), findsNothing);
       expect(_popupMenuText('Add subscription'), findsNothing);

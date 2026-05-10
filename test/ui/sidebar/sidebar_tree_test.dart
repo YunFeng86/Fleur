@@ -219,7 +219,7 @@ void main() {
 
     expect(find.text('Import OPML'), findsNothing);
     expect(find.text('Export OPML'), findsOneWidget);
-    expect(find.text('Sync account'), findsNothing);
+    expect(find.text('Sync account'), findsOneWidget);
     expect(find.text('Refresh sources'), findsNothing);
 
     await tester.tapAt(const Offset(5, 5));
@@ -227,7 +227,7 @@ void main() {
 
     await _openContextMenuOnText(tester, 'All Articles');
 
-    expect(_popupMenuText('Sync account'), findsNothing);
+    expect(_popupMenuText('Sync account'), findsOneWidget);
     expect(_popupMenuText('Export OPML'), findsOneWidget);
     expect(_popupMenuText('Add subscription'), findsNothing);
     expect(_popupMenuText('New category'), findsNothing);

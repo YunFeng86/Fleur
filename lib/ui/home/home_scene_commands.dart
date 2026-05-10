@@ -13,6 +13,7 @@ import '../../providers/unread_providers.dart';
 import '../../services/sync/backend_capabilities.dart';
 import '../../services/sync/refresh_all_coordinator.dart';
 import '../../services/sync/sync_service.dart';
+import '../actions/root_sync_action.dart';
 
 class HomeSceneCommands {
   const HomeSceneCommands({
@@ -28,18 +29,25 @@ class HomeSceneCommands {
 
   Future<BatchRefreshResult> refreshAll() async {
     final syncSemantics = _ref.read(backendSyncSemanticsProvider);
+    final capabilities = _ref.read(backendCapabilitiesProvider);
     if (syncSemantics.isAccountWideRefresh) {
-      final capabilities = _ref.read(backendCapabilitiesProvider);
-      if (!capabilities.isVisible(BackendFeature.refreshAllSources)) {
-        return const BatchRefreshResult([]);
+      final mode = resolveSubscriptionRootSyncMode(capabilities);
+      switch (mode) {
+        case SubscriptionRootSyncMode.refreshSources:
+          final result = await _ref
+              .read(refreshSourcesCoordinatorProvider)
+              .refreshSources(trigger: RefreshSourcesTrigger.manual);
+          return result.batch;
+        case SubscriptionRootSyncMode.syncAccount:
+          final result = await _ref
+              .read(accountSyncCoordinatorProvider)
+              .syncAccount(trigger: AccountSyncTrigger.manual);
+          return result.batch;
+        case null:
+          return const BatchRefreshResult([]);
       }
-      final result = await _ref
-          .read(refreshSourcesCoordinatorProvider)
-          .refreshSources(trigger: RefreshSourcesTrigger.manual);
-      return result.batch;
     }
 
-    final capabilities = _ref.read(backendCapabilitiesProvider);
     final feedId = _ref.read(selectedFeedIdProvider);
     final categoryId = _ref.read(selectedCategoryIdProvider);
     if (feedId != null &&

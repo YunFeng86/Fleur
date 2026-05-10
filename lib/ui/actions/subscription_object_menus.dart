@@ -10,6 +10,7 @@ import '../../providers/subscription_settings_provider.dart';
 import '../../services/sync/backend_capabilities.dart';
 import '../../services/sync/backend_sync_semantics.dart';
 import '../context_menu_position.dart';
+import 'root_sync_action.dart';
 import 'subscription_actions.dart';
 
 enum SubscriptionFeedMenuAction { rename, refresh, offlineCache, move, delete }
@@ -203,15 +204,36 @@ class SubscriptionObjectMenus {
     );
   }
 
+  static SubscriptionRootSyncMode? rootSyncMode(
+    BackendCapabilities capabilities,
+  ) {
+    return resolveSubscriptionRootSyncMode(capabilities);
+  }
+
   static bool showsRootRefresh(BackendCapabilities capabilities) {
-    return capabilities.isVisible(BackendFeature.refreshAllSources);
+    return rootSyncMode(capabilities) != null;
   }
 
   static String rootRefreshLabel(
     AppLocalizations l10n,
+    BackendCapabilities capabilities,
     BackendSyncSemantics syncSemantics,
   ) {
-    return l10n.refreshAll;
+    final mode = rootSyncMode(capabilities);
+    return mode == null
+        ? l10n.refreshAll
+        : subscriptionRootSyncLabel(l10n, mode);
+  }
+
+  static String rootRefreshSuccessLabel(
+    AppLocalizations l10n,
+    BackendCapabilities capabilities,
+    BackendSyncSemantics syncSemantics,
+  ) {
+    final mode = rootSyncMode(capabilities);
+    return mode == null
+        ? l10n.refreshedAll
+        : subscriptionRootSyncSuccessLabel(l10n, mode);
   }
 
   static List<SubscriptionObjectMenuItem<SubscriptionRootMenuAction>>
@@ -227,7 +249,7 @@ class SubscriptionObjectMenus {
         SubscriptionObjectMenuItem(
           action: SubscriptionRootMenuAction.refreshAll,
           icon: Icons.refresh,
-          label: rootRefreshLabel(l10n, syncSemantics),
+          label: rootRefreshLabel(l10n, capabilities, syncSemantics),
         ),
       if (includeAddActions &&
           capabilities.isVisible(BackendFeature.addSubscription))

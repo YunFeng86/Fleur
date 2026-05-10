@@ -28,6 +28,7 @@ import '../../ui/actions/remote_structure_feedback.dart' as remote_feedback;
 import '../../ui/dialogs/add_subscription_dialog.dart';
 import '../../utils/context_extensions.dart';
 import '../../utils/platform.dart';
+import 'root_sync_action.dart';
 
 typedef ProviderReadCallback = T Function<T>(ProviderListenable<T> provider);
 typedef SubscriptionActionDialogPresenter =
@@ -1068,28 +1069,54 @@ class SubscriptionActions {
     final l10n = AppLocalizations.of(context)!;
     final appSettings = ref.read(appSettingsProvider).valueOrNull;
     final concurrency = appSettings?.autoRefreshConcurrency ?? 2;
+    final capabilities = _capabilities(ref);
+    final mode = resolveSubscriptionRootSyncMode(capabilities);
 
-    final result = await ref
-        .read(refreshSourcesCoordinatorProvider)
-        .refreshSources(
-          trigger: RefreshSourcesTrigger.manual,
-          maxConcurrent: concurrency,
+    switch (mode) {
+      case SubscriptionRootSyncMode.refreshSources:
+        final result = await ref
+            .read(refreshSourcesCoordinatorProvider)
+            .refreshSources(
+              trigger: RefreshSourcesTrigger.manual,
+              maxConcurrent: concurrency,
+            );
+        if (!context.mounted) return;
+        final err = result.firstError;
+        if (result.error != null) {
+          _logSubscriptionFailure(
+            ref,
+            'refreshAllFeeds',
+            result.error!,
+            result.stackTrace,
+          );
+          remote_feedback.showRemoteStructureFailure(
+            context,
+            l10n,
+            result.error!,
+          );
+          return;
+        }
+        context.showSnack(
+          err == null ? l10n.refreshedAll : l10n.errorMessage(err.toString()),
         );
-    if (!context.mounted) return;
-    final err = result.firstError;
-    if (result.error != null) {
-      _logSubscriptionFailure(
-        ref,
-        'refreshAllFeeds',
-        result.error!,
-        result.stackTrace,
-      );
-      remote_feedback.showRemoteStructureFailure(context, l10n, result.error!);
-      return;
+        return;
+      case SubscriptionRootSyncMode.syncAccount:
+        final result = await ref
+            .read(accountSyncCoordinatorProvider)
+            .syncAccount(
+              trigger: AccountSyncTrigger.manual,
+              maxConcurrent: concurrency,
+            );
+        if (!context.mounted) return;
+        final err = result.firstError;
+        context.showSnack(
+          err == null ? l10n.syncedAccount : l10n.errorMessage(err.toString()),
+        );
+        return;
+      case null:
+        remote_feedback.showUnsupportedRemoteCommand(context, l10n);
+        return;
     }
-    context.showSnack(
-      err == null ? l10n.refreshedAll : l10n.errorMessage(err.toString()),
-    );
   }
 
   static Future<void> moveFeedToCategory(

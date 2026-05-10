@@ -4,13 +4,32 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:fleur/l10n/app_localizations.dart';
+import 'package:fleur/models/feed.dart';
 import 'package:fleur/providers/account_providers.dart';
+import 'package:fleur/providers/app_settings_providers.dart';
+import 'package:fleur/providers/refresh_all_providers.dart';
+import 'package:fleur/repositories/feed_repository.dart';
 import 'package:fleur/services/accounts/account.dart';
+import 'package:fleur/services/settings/app_settings.dart';
+import 'package:fleur/services/sync/backend_capabilities.dart';
+import 'package:fleur/services/sync/refresh_all_coordinator.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/ui/settings/subscriptions/subscription_toolbar.dart';
 import 'package:fleur/utils/platform.dart';
 
 import '../../../test_utils/critical_workflow_test_support.dart';
+
+class _FakeFeedRepository extends Fake implements FeedRepository {
+  @override
+  Future<List<Feed>> getAll() async {
+    return [
+      Feed()
+        ..id = 1
+        ..url = 'https://example.com/feed.xml'
+        ..title = 'Feed',
+    ];
+  }
+}
 
 void main() {
   testWidgets('SubscriptionToolbar does not overflow on macOS medium width', (
@@ -55,14 +74,24 @@ void main() {
     }
   });
 
-  testWidgets('Fever toolbar hides category and import actions', (
+  testWidgets('Fever toolbar syncs account and hides source actions', (
     tester,
   ) async {
+    final account = buildTestAccount(type: AccountType.fever);
+    final syncService = FakeSyncService();
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          activeAccountProvider.overrideWithValue(
-            buildTestAccount(type: AccountType.fever),
+          activeAccountProvider.overrideWithValue(account),
+          appSettingsStoreProvider.overrideWithValue(
+            FakeAppSettingsStore(AppSettings.defaults()),
+          ),
+          accountSyncCoordinatorProvider.overrideWithValue(
+            AccountSyncCoordinator(
+              capabilities: BackendCapabilities.forAccountType(account.type),
+              feeds: _FakeFeedRepository(),
+              syncService: syncService,
+            ),
           ),
         ],
         child: MaterialApp(
@@ -83,8 +112,16 @@ void main() {
 
     expect(find.text('Import OPML'), findsNothing);
     expect(find.text('Export OPML'), findsOneWidget);
-    expect(find.text('Sync account'), findsNothing);
+    expect(find.text('Sync account'), findsOneWidget);
     expect(find.text('Refresh sources'), findsNothing);
+
+    await tester.tap(find.text('Sync account'));
+    await tester.pumpAndSettle();
+
+    expect(syncService.refreshCalls, [
+      [1],
+    ]);
+    expect(find.text('Account synced'), findsOneWidget);
   });
 
   testWidgets('Local toolbar uses Refresh sources wording', (tester) async {

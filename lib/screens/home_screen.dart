@@ -36,9 +36,14 @@ class HomeScreen extends ConsumerWidget {
     final syncSemantics = ref.watch(backendSyncSemanticsProvider);
     final refreshActionLabel = SubscriptionObjectMenus.rootRefreshLabel(
       l10n,
+      capabilities,
       syncSemantics,
     );
-    final refreshSuccessLabel = l10n.refreshedAll;
+    final refreshSuccessLabel = SubscriptionObjectMenus.rootRefreshSuccessLabel(
+      l10n,
+      capabilities,
+      syncSemantics,
+    );
     final commands = HomeSceneCommands(
       context: context,
       ref: ref,
