@@ -5,6 +5,7 @@ import 'package:fleur/l10n/app_localizations.dart';
 import '../providers/backend_capabilities_provider.dart';
 import '../providers/backend_sync_semantics_provider.dart';
 import '../providers/core_providers.dart';
+import '../providers/query_providers.dart';
 import '../providers/unread_providers.dart';
 import '../theme/fleur_icons.dart';
 import '../ui/actions/subscription_object_menus.dart';
@@ -35,11 +36,14 @@ class HomeScreen extends ConsumerWidget {
       capabilities,
     );
     final syncSemantics = ref.watch(backendSyncSemanticsProvider);
-    final refreshActionLabel = SubscriptionObjectMenus.rootRefreshLabel(
-      l10n,
-      capabilities,
-      syncSemantics,
-    );
+    final selectedFeedId = ref.watch(selectedFeedIdProvider);
+    final selectedCategoryId = ref.watch(selectedCategoryIdProvider);
+    final refreshActionLabel = resolveHomeRefreshIntent(
+      capabilities: capabilities,
+      syncSemantics: syncSemantics,
+      selectedFeedId: selectedFeedId,
+      selectedCategoryId: selectedCategoryId,
+    ).label(l10n);
     final commands = HomeSceneCommands(
       context: context,
       ref: ref,

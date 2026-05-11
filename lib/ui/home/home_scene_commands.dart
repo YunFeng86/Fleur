@@ -4,20 +4,77 @@ import 'package:go_router/go_router.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../models/feed.dart';
-import '../../providers/account_providers.dart';
 import '../../providers/article_list_controller.dart';
 import '../../providers/app_settings_providers.dart';
 import '../../providers/backend_capabilities_provider.dart';
+import '../../providers/backend_sync_semantics_provider.dart';
 import '../../providers/query_providers.dart';
 import '../../providers/refresh_all_providers.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/service_providers.dart';
-import '../../services/accounts/account.dart';
 import '../../services/sync/backend_capabilities.dart';
+import '../../services/sync/backend_sync_semantics.dart';
 import '../../services/sync/refresh_all_coordinator.dart';
 import '../../services/sync/sync_service.dart';
 
-enum HomeRefreshSuccessFeedback { refreshed, refreshedAll, syncedAccount }
+enum HomeRefreshIntent {
+  refreshFeed,
+  refreshCategory,
+  refreshSources,
+  refreshFeedAndSync,
+  refreshCategoryAndSync,
+  refreshSourcesAndSync,
+  syncAccount;
+
+  String label(AppLocalizations l10n) {
+    return switch (this) {
+      HomeRefreshIntent.refreshFeed => l10n.refreshFeed,
+      HomeRefreshIntent.refreshCategory => l10n.refreshCategory,
+      HomeRefreshIntent.refreshSources => l10n.refreshAll,
+      HomeRefreshIntent.refreshFeedAndSync => l10n.refreshFeedAndSync,
+      HomeRefreshIntent.refreshCategoryAndSync => l10n.refreshCategoryAndSync,
+      HomeRefreshIntent.refreshSourcesAndSync => l10n.refreshSourcesAndSync,
+      HomeRefreshIntent.syncAccount => l10n.syncAccount,
+    };
+  }
+}
+
+enum HomeRefreshSuccessFeedback {
+  refreshed,
+  refreshedAll,
+  refreshedAndSynced,
+  syncedAccount,
+}
+
+HomeRefreshIntent resolveHomeRefreshIntent({
+  required BackendCapabilities capabilities,
+  required BackendSyncSemantics syncSemantics,
+  required int? selectedFeedId,
+  required int? selectedCategoryId,
+}) {
+  final refreshesSources = capabilities.isVisible(
+    BackendFeature.refreshAllSources,
+  );
+  final syncsAccount =
+      capabilities.isVisible(BackendFeature.syncNow) &&
+      syncSemantics.isAccountWideRefresh;
+
+  if (!refreshesSources && syncsAccount) {
+    return HomeRefreshIntent.syncAccount;
+  }
+
+  if (capabilities.refreshesRemoteSourcesUpstream && syncsAccount) {
+    if (selectedFeedId != null) return HomeRefreshIntent.refreshFeedAndSync;
+    if (selectedCategoryId != null) {
+      return HomeRefreshIntent.refreshCategoryAndSync;
+    }
+    return HomeRefreshIntent.refreshSourcesAndSync;
+  }
+
+  if (selectedFeedId != null) return HomeRefreshIntent.refreshFeed;
+  if (selectedCategoryId != null) return HomeRefreshIntent.refreshCategory;
+  return HomeRefreshIntent.refreshSources;
+}
 
 class HomeRefreshOutcome {
   const HomeRefreshOutcome({
@@ -32,6 +89,7 @@ class HomeRefreshOutcome {
     return switch (successFeedback) {
       HomeRefreshSuccessFeedback.refreshed => l10n.refreshed,
       HomeRefreshSuccessFeedback.refreshedAll => l10n.refreshedAll,
+      HomeRefreshSuccessFeedback.refreshedAndSynced => l10n.refreshedAndSynced,
       HomeRefreshSuccessFeedback.syncedAccount => l10n.syncedAccount,
     };
   }
@@ -51,40 +109,59 @@ class HomeSceneCommands {
 
   Future<HomeRefreshOutcome> refreshAll() async {
     final capabilities = _ref.read(backendCapabilitiesProvider);
+    final syncSemantics = _ref.read(backendSyncSemanticsProvider);
     final appSettings = _ref.read(appSettingsProvider).valueOrNull;
     final maxConcurrent = appSettings?.autoRefreshConcurrency ?? 2;
     final feedId = _ref.read(selectedFeedIdProvider);
     final categoryId = _ref.read(selectedCategoryIdProvider);
+    final intent = resolveHomeRefreshIntent(
+      capabilities: capabilities,
+      syncSemantics: syncSemantics,
+      selectedFeedId: feedId,
+      selectedCategoryId: categoryId,
+    );
 
-    switch (capabilities.accountType) {
-      case AccountType.local:
-        return _refreshLocal(
-          capabilities: capabilities,
-          feedId: feedId,
-          categoryId: categoryId,
-          maxConcurrent: maxConcurrent,
-        );
-      case AccountType.miniflux:
-        return _refreshMiniflux(
-          feedId: feedId,
-          categoryId: categoryId,
-          maxConcurrent: maxConcurrent,
-        );
-      case AccountType.fever:
-        return _syncAccount(maxConcurrent: maxConcurrent);
-    }
+    return switch (intent) {
+      HomeRefreshIntent.refreshFeed => _refreshFeed(
+        capabilities: capabilities,
+        feedId: feedId!,
+        maxConcurrent: maxConcurrent,
+      ),
+      HomeRefreshIntent.refreshCategory => _refreshCategory(
+        categoryId: categoryId!,
+        maxConcurrent: maxConcurrent,
+      ),
+      HomeRefreshIntent.refreshSources => _refreshSources(
+        maxConcurrent: maxConcurrent,
+        successFeedback: HomeRefreshSuccessFeedback.refreshedAll,
+      ),
+      HomeRefreshIntent.refreshFeedAndSync => _refreshRemoteFeedAndSync(
+        feedId: feedId!,
+        maxConcurrent: maxConcurrent,
+      ),
+      HomeRefreshIntent.refreshCategoryAndSync => _refreshRemoteCategoryAndSync(
+        categoryId: categoryId!,
+        maxConcurrent: maxConcurrent,
+      ),
+      HomeRefreshIntent.refreshSourcesAndSync => _refreshSources(
+        maxConcurrent: maxConcurrent,
+        successFeedback: HomeRefreshSuccessFeedback.refreshedAndSynced,
+      ),
+      HomeRefreshIntent.syncAccount => _syncAccount(
+        maxConcurrent: maxConcurrent,
+      ),
+    };
   }
 
-  Future<HomeRefreshOutcome> _refreshLocal({
+  Future<HomeRefreshOutcome> _refreshFeed({
     required BackendCapabilities capabilities,
-    required int? feedId,
-    required int? categoryId,
+    required int feedId,
     required int maxConcurrent,
   }) async {
-    if (feedId != null &&
-        capabilities.isVisible(BackendFeature.refreshSubscriptionSource)) {
-      final feed = await _ref.read(feedRepositoryProvider).getById(feedId);
-      if (feed == null) return _feedNotFound(feedId);
+    final feed = await _ref.read(feedRepositoryProvider).getById(feedId);
+    if (feed == null) return _feedNotFound(feedId);
+
+    if (capabilities.isVisible(BackendFeature.refreshSubscriptionSource)) {
       final result = await _ref
           .read(syncServiceProvider)
           .refreshFeedSafe(feed.id);
@@ -93,31 +170,20 @@ class HomeSceneCommands {
         successFeedback: HomeRefreshSuccessFeedback.refreshed,
       );
     }
-    if (feedId != null) {
-      final feed = await _ref.read(feedRepositoryProvider).getById(feedId);
-      if (feed == null) return _feedNotFound(feedId);
-      final batch = await _ref.read(syncServiceProvider).refreshFeedsSafe([
-        feed.id,
-      ], maxConcurrent: maxConcurrent);
-      return HomeRefreshOutcome(
-        batch: batch,
-        successFeedback: HomeRefreshSuccessFeedback.refreshed,
-      );
-    }
 
-    if (categoryId == null) {
-      final result = await _ref
-          .read(refreshSourcesCoordinatorProvider)
-          .refreshSources(
-            trigger: RefreshSourcesTrigger.manual,
-            maxConcurrent: maxConcurrent,
-          );
-      return HomeRefreshOutcome(
-        batch: result.batch,
-        successFeedback: HomeRefreshSuccessFeedback.refreshedAll,
-      );
-    }
+    final batch = await _ref.read(syncServiceProvider).refreshFeedsSafe([
+      feed.id,
+    ], maxConcurrent: maxConcurrent);
+    return HomeRefreshOutcome(
+      batch: batch,
+      successFeedback: HomeRefreshSuccessFeedback.refreshed,
+    );
+  }
 
+  Future<HomeRefreshOutcome> _refreshCategory({
+    required int categoryId,
+    required int maxConcurrent,
+  }) async {
     final feeds = await _ref.read(feedRepositoryProvider).getAll();
     final filtered = feeds.where((feed) => feed.categoryId == categoryId);
     final batch = await _ref
@@ -132,44 +198,10 @@ class HomeSceneCommands {
     );
   }
 
-  Future<HomeRefreshOutcome> _refreshMiniflux({
-    required int? feedId,
-    required int? categoryId,
+  Future<HomeRefreshOutcome> _refreshSources({
     required int maxConcurrent,
+    required HomeRefreshSuccessFeedback successFeedback,
   }) async {
-    if (feedId != null) {
-      final feed = await _ref.read(feedRepositoryProvider).getById(feedId);
-      if (feed == null) return _feedNotFound(feedId);
-      final refreshFailure = await _refreshMinifluxSources([feed]);
-      if (refreshFailure != null) return refreshFailure;
-      return _syncAccount(
-        maxConcurrent: maxConcurrent,
-        successFeedback: HomeRefreshSuccessFeedback.refreshed,
-      );
-    }
-
-    if (categoryId != null) {
-      final feeds = await _ref.read(feedRepositoryProvider).getAll();
-      final filtered = feeds
-          .where((feed) => feed.categoryId == categoryId)
-          .toList(growable: false);
-      if (filtered.isEmpty) {
-        return const HomeRefreshOutcome(
-          batch: BatchRefreshResult([]),
-          successFeedback: HomeRefreshSuccessFeedback.refreshed,
-        );
-      }
-      final refreshFailure = await _refreshMinifluxSources(
-        filtered,
-        maxConcurrent: maxConcurrent,
-      );
-      if (refreshFailure != null) return refreshFailure;
-      return _syncAccount(
-        maxConcurrent: maxConcurrent,
-        successFeedback: HomeRefreshSuccessFeedback.refreshed,
-      );
-    }
-
     final result = await _ref
         .read(refreshSourcesCoordinatorProvider)
         .refreshSources(
@@ -178,11 +210,50 @@ class HomeSceneCommands {
         );
     return HomeRefreshOutcome(
       batch: result.batch,
-      successFeedback: HomeRefreshSuccessFeedback.refreshedAll,
+      successFeedback: successFeedback,
     );
   }
 
-  Future<HomeRefreshOutcome?> _refreshMinifluxSources(
+  Future<HomeRefreshOutcome> _refreshRemoteFeedAndSync({
+    required int feedId,
+    required int maxConcurrent,
+  }) async {
+    final feed = await _ref.read(feedRepositoryProvider).getById(feedId);
+    if (feed == null) return _feedNotFound(feedId);
+    final refreshFailure = await _refreshRemoteSources([feed]);
+    if (refreshFailure != null) return refreshFailure;
+    return _syncAccount(
+      maxConcurrent: maxConcurrent,
+      successFeedback: HomeRefreshSuccessFeedback.refreshedAndSynced,
+    );
+  }
+
+  Future<HomeRefreshOutcome> _refreshRemoteCategoryAndSync({
+    required int categoryId,
+    required int maxConcurrent,
+  }) async {
+    final feeds = await _ref.read(feedRepositoryProvider).getAll();
+    final filtered = feeds
+        .where((feed) => feed.categoryId == categoryId)
+        .toList(growable: false);
+    if (filtered.isEmpty) {
+      return const HomeRefreshOutcome(
+        batch: BatchRefreshResult([]),
+        successFeedback: HomeRefreshSuccessFeedback.refreshed,
+      );
+    }
+    final refreshFailure = await _refreshRemoteSources(
+      filtered,
+      maxConcurrent: maxConcurrent,
+    );
+    if (refreshFailure != null) return refreshFailure;
+    return _syncAccount(
+      maxConcurrent: maxConcurrent,
+      successFeedback: HomeRefreshSuccessFeedback.refreshedAndSynced,
+    );
+  }
+
+  Future<HomeRefreshOutcome?> _refreshRemoteSources(
     List<Feed> feeds, {
     int maxConcurrent = 2,
   }) async {

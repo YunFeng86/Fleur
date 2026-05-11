@@ -211,6 +211,26 @@
   "@refreshAll": {
     "description": "refreshAll"
   },
+  "refreshFeed": "重新整理目前訂閱源",
+  "@refreshFeed": {
+    "description": "Tooltip for refreshing the currently selected feed"
+  },
+  "refreshCategory": "重新整理目前分類",
+  "@refreshCategory": {
+    "description": "Tooltip for refreshing the currently selected category"
+  },
+  "refreshFeedAndSync": "重新整理目前訂閱源並同步",
+  "@refreshFeedAndSync": {
+    "description": "Tooltip for refreshing the selected remote feed source and syncing the account"
+  },
+  "refreshCategoryAndSync": "重新整理目前分類並同步",
+  "@refreshCategoryAndSync": {
+    "description": "Tooltip for refreshing selected remote category sources and syncing the account"
+  },
+  "refreshSourcesAndSync": "重新整理訂閱源並同步",
+  "@refreshSourcesAndSync": {
+    "description": "Tooltip for refreshing remote subscription sources and syncing the account"
+  },
   "accountSync": "帳號同步",
   "@accountSync": {
     "description": "accountSync"
@@ -383,6 +403,10 @@
   "refreshedAll": "全部已重新整理",
   "@refreshedAll": {
     "description": "refreshedAll"
+  },
+  "refreshedAndSynced": "已重新整理並同步",
+  "@refreshedAndSynced": {
+    "description": "Shown after refreshing remote sources and syncing the account"
   },
   "add": "新增",
   "@add": {

@@ -411,6 +411,36 @@ abstract class AppLocalizations {
   /// **'Refresh sources'**
   String get refreshAll;
 
+  /// Tooltip for refreshing the currently selected feed
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh feed'**
+  String get refreshFeed;
+
+  /// Tooltip for refreshing the currently selected category
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh category'**
+  String get refreshCategory;
+
+  /// Tooltip for refreshing the selected remote feed source and syncing the account
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh feed and sync'**
+  String get refreshFeedAndSync;
+
+  /// Tooltip for refreshing selected remote category sources and syncing the account
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh category and sync'**
+  String get refreshCategoryAndSync;
+
+  /// Tooltip for refreshing remote subscription sources and syncing the account
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh sources and sync'**
+  String get refreshSourcesAndSync;
+
   /// accountSync
   ///
   /// In en, this message translates to:
@@ -644,6 +674,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Refreshed all'**
   String get refreshedAll;
+
+  /// Shown after refreshing remote sources and syncing the account
+  ///
+  /// In en, this message translates to:
+  /// **'Refreshed and synced'**
+  String get refreshedAndSynced;
 
   /// add
   ///

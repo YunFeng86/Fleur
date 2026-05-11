@@ -16,6 +16,7 @@ import '../providers/backend_sync_semantics_provider.dart';
 import '../providers/core_providers.dart';
 import '../providers/outbox_flush_providers.dart';
 import '../providers/outbox_status_providers.dart';
+import '../providers/query_providers.dart';
 import '../providers/service_providers.dart';
 import '../providers/unread_providers.dart';
 import '../services/logging/app_logger.dart';
@@ -385,11 +386,14 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
           capabilities,
         );
         final syncSemantics = ref.watch(backendSyncSemanticsProvider);
-        final refreshActionLabel = SubscriptionObjectMenus.rootRefreshLabel(
-          l10n,
-          capabilities,
-          syncSemantics,
-        );
+        final selectedFeedId = ref.watch(selectedFeedIdProvider);
+        final selectedCategoryId = ref.watch(selectedCategoryIdProvider);
+        final refreshActionLabel = resolveHomeRefreshIntent(
+          capabilities: capabilities,
+          syncSemantics: syncSemantics,
+          selectedFeedId: selectedFeedId,
+          selectedCategoryId: selectedCategoryId,
+        ).label(l10n);
         final leading = canPop
             ? IconButton(
                 tooltip: MaterialLocalizations.of(context).backButtonTooltip,

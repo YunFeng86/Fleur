@@ -211,6 +211,26 @@
   "@refreshAll": {
     "description": "refreshAll"
   },
+  "refreshFeed": "刷新当前订阅源",
+  "@refreshFeed": {
+    "description": "Tooltip for refreshing the currently selected feed"
+  },
+  "refreshCategory": "刷新当前分类",
+  "@refreshCategory": {
+    "description": "Tooltip for refreshing the currently selected category"
+  },
+  "refreshFeedAndSync": "刷新当前订阅源并同步",
+  "@refreshFeedAndSync": {
+    "description": "Tooltip for refreshing the selected remote feed source and syncing the account"
+  },
+  "refreshCategoryAndSync": "刷新当前分类并同步",
+  "@refreshCategoryAndSync": {
+    "description": "Tooltip for refreshing selected remote category sources and syncing the account"
+  },
+  "refreshSourcesAndSync": "刷新订阅源并同步",
+  "@refreshSourcesAndSync": {
+    "description": "Tooltip for refreshing remote subscription sources and syncing the account"
+  },
   "accountSync": "账号同步",
   "@accountSync": {
     "description": "accountSync"
@@ -383,6 +403,10 @@
   "refreshedAll": "全部已刷新",
   "@refreshedAll": {
     "description": "refreshedAll"
+  },
+  "refreshedAndSynced": "已刷新并同步",
+  "@refreshedAndSynced": {
+    "description": "Shown after refreshing remote sources and syncing the account"
   },
   "add": "添加",
   "@add": {

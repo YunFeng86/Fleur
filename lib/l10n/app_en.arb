@@ -211,6 +211,26 @@
   "@refreshAll": {
     "description": "refreshAll"
   },
+  "refreshFeed": "Refresh feed",
+  "@refreshFeed": {
+    "description": "Tooltip for refreshing the currently selected feed"
+  },
+  "refreshCategory": "Refresh category",
+  "@refreshCategory": {
+    "description": "Tooltip for refreshing the currently selected category"
+  },
+  "refreshFeedAndSync": "Refresh feed and sync",
+  "@refreshFeedAndSync": {
+    "description": "Tooltip for refreshing the selected remote feed source and syncing the account"
+  },
+  "refreshCategoryAndSync": "Refresh category and sync",
+  "@refreshCategoryAndSync": {
+    "description": "Tooltip for refreshing selected remote category sources and syncing the account"
+  },
+  "refreshSourcesAndSync": "Refresh sources and sync",
+  "@refreshSourcesAndSync": {
+    "description": "Tooltip for refreshing remote subscription sources and syncing the account"
+  },
   "accountSync": "Account sync",
   "@accountSync": {
     "description": "accountSync"
@@ -383,6 +403,10 @@
   "refreshedAll": "Refreshed all",
   "@refreshedAll": {
     "description": "refreshedAll"
+  },
+  "refreshedAndSynced": "Refreshed and synced",
+  "@refreshedAndSynced": {
+    "description": "Shown after refreshing remote sources and syncing the account"
   },
   "add": "Add",
   "@add": {

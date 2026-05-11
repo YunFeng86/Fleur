@@ -167,6 +167,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get refreshAll => '刷新订阅源';
 
   @override
+  String get refreshFeed => '刷新当前订阅源';
+
+  @override
+  String get refreshCategory => '刷新当前分类';
+
+  @override
+  String get refreshFeedAndSync => '刷新当前订阅源并同步';
+
+  @override
+  String get refreshCategoryAndSync => '刷新当前分类并同步';
+
+  @override
+  String get refreshSourcesAndSync => '刷新订阅源并同步';
+
+  @override
   String get accountSync => '账号同步';
 
   @override
@@ -288,6 +303,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get refreshedAll => '全部已刷新';
+
+  @override
+  String get refreshedAndSynced => '已刷新并同步';
 
   @override
   String get add => '添加';
@@ -1303,6 +1321,21 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get refreshAll => '重新整理訂閱源';
 
   @override
+  String get refreshFeed => '重新整理目前訂閱源';
+
+  @override
+  String get refreshCategory => '重新整理目前分類';
+
+  @override
+  String get refreshFeedAndSync => '重新整理目前訂閱源並同步';
+
+  @override
+  String get refreshCategoryAndSync => '重新整理目前分類並同步';
+
+  @override
+  String get refreshSourcesAndSync => '重新整理訂閱源並同步';
+
+  @override
   String get accountSync => '帳號同步';
 
   @override
@@ -1424,6 +1457,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get refreshedAll => '全部已重新整理';
+
+  @override
+  String get refreshedAndSynced => '已重新整理並同步';
 
   @override
   String get add => '新增';

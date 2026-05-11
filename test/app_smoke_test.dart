@@ -997,7 +997,10 @@ void main() {
       expect(syncService.refreshCalls, [
         [10],
       ]);
-      expect(outcome.successFeedback, HomeRefreshSuccessFeedback.refreshed);
+      expect(
+        outcome.successFeedback,
+        HomeRefreshSuccessFeedback.refreshedAndSynced,
+      );
     },
   );
 
@@ -1034,7 +1037,10 @@ void main() {
       expect(syncService.refreshCalls, [
         [1, 2, 3],
       ]);
-      expect(outcome.successFeedback, HomeRefreshSuccessFeedback.refreshed);
+      expect(
+        outcome.successFeedback,
+        HomeRefreshSuccessFeedback.refreshedAndSynced,
+      );
     },
   );
 
@@ -1096,7 +1102,10 @@ void main() {
       expect(syncService.refreshCalls, [
         [10],
       ]);
-      expect(outcome.successFeedback, HomeRefreshSuccessFeedback.refreshedAll);
+      expect(
+        outcome.successFeedback,
+        HomeRefreshSuccessFeedback.refreshedAndSynced,
+      );
     },
   );
 
@@ -1164,13 +1173,16 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
+    var pumpIndex = 0;
+
     Future<void> pumpHome(
       AccountType type, {
       List<Override> extraOverrides = const <Override>[],
     }) async {
+      pumpIndex++;
       await tester.pumpWidget(
         ProviderScope(
-          key: ValueKey('home_${type.name}_${extraOverrides.length}'),
+          key: ValueKey('home_${type.name}_$pumpIndex'),
           overrides: [
             activeAccountProvider.overrideWithValue(
               buildTestAccount(type: type),
@@ -1206,13 +1218,42 @@ void main() {
         ),
       ],
     );
-    expect(find.byTooltip('Refresh sources'), findsOneWidget);
+    expect(find.byTooltip('Refresh feed'), findsOneWidget);
     expect(find.byTooltip('Sync account'), findsNothing);
 
-    await tester.tap(find.byTooltip('Refresh sources'));
+    await tester.tap(find.byTooltip('Refresh feed'));
     await tester.pump();
     expect(find.text('Refreshed'), findsOneWidget);
     expect(find.text('Refreshed all'), findsNothing);
+
+    await pumpHome(
+      AccountType.local,
+      extraOverrides: [selectedCategoryIdProvider.overrideWith((ref) => 7)],
+    );
+    expect(find.byTooltip('Refresh category'), findsOneWidget);
+    expect(find.byTooltip('Refresh sources'), findsNothing);
+
+    await pumpHome(AccountType.local);
+    expect(find.byTooltip('Refresh sources'), findsOneWidget);
+    expect(find.byTooltip('Sync account'), findsNothing);
+
+    await pumpHome(
+      AccountType.miniflux,
+      extraOverrides: [selectedFeedIdProvider.overrideWith((ref) => 10)],
+    );
+    expect(find.byTooltip('Refresh feed and sync'), findsOneWidget);
+    expect(find.byTooltip('Refresh sources'), findsNothing);
+
+    await pumpHome(
+      AccountType.miniflux,
+      extraOverrides: [selectedCategoryIdProvider.overrideWith((ref) => 7)],
+    );
+    expect(find.byTooltip('Refresh category and sync'), findsOneWidget);
+    expect(find.byTooltip('Refresh sources'), findsNothing);
+
+    await pumpHome(AccountType.miniflux);
+    expect(find.byTooltip('Refresh sources and sync'), findsOneWidget);
+    expect(find.byTooltip('Refresh sources'), findsNothing);
 
     await pumpHome(AccountType.fever);
     expect(find.byTooltip('Sync account'), findsOneWidget);

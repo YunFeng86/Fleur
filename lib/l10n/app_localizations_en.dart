@@ -174,6 +174,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get refreshAll => 'Refresh sources';
 
   @override
+  String get refreshFeed => 'Refresh feed';
+
+  @override
+  String get refreshCategory => 'Refresh category';
+
+  @override
+  String get refreshFeedAndSync => 'Refresh feed and sync';
+
+  @override
+  String get refreshCategoryAndSync => 'Refresh category and sync';
+
+  @override
+  String get refreshSourcesAndSync => 'Refresh sources and sync';
+
+  @override
   String get accountSync => 'Account sync';
 
   @override
@@ -304,6 +319,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get refreshedAll => 'Refreshed all';
+
+  @override
+  String get refreshedAndSynced => 'Refreshed and synced';
 
   @override
   String get add => 'Add';
