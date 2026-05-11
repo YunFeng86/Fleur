@@ -293,6 +293,61 @@ void main() {
     ]);
   });
 
+  testWidgets('sidebar more menu remains interactive after hover leaves row', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    final category = Category()
+      ..id = 1
+      ..name = 'Tech';
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: _SidebarHarness(
+              categories: [category],
+              feeds: const <Feed>[],
+              unreadCounts: const {null: 1},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(SidebarNavigationTree)),
+    );
+
+    final hover = await _hoverText(tester, 'Tech');
+    expect(container.read(selectedCategoryIdProvider), isNull);
+    expect(find.byTooltip('More'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('More'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Rename'), findsOneWidget);
+    expect(find.text('Delete category'), findsOneWidget);
+
+    await hover.removePointer();
+    await tester.pumpAndSettle();
+
+    expect(container.read(selectedCategoryIdProvider), isNull);
+    expect(find.byTooltip('More'), findsOneWidget);
+    expect(find.text('Rename'), findsOneWidget);
+
+    await tester.tap(find.text('Rename'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Rename'), findsNothing);
+  });
+
   testWidgets('sidebar feed rows show one-line title with padded unread edge', (
     tester,
   ) async {

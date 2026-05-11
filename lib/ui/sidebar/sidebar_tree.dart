@@ -744,7 +744,7 @@ class _SidebarCategoryTile extends StatelessWidget {
 
     return _SidebarRevealActions(
       selected: selected,
-      builder: (context, showActions) {
+      builder: (context, showActions, onMenuOpenChanged) {
         final child = Semantics(
           container: true,
           selected: selected,
@@ -787,6 +787,7 @@ class _SidebarCategoryTile extends StatelessWidget {
                               unawaited(_performAction(action)),
                         )
                       : const <Widget>[],
+                  onMenuOpenChanged: onMenuOpenChanged,
                   onAddFeed: () async {
                     final feedId = await managementActions.addFeed(
                       initialCategoryId: category.id,
@@ -891,7 +892,7 @@ class _SidebarFeedTile extends StatelessWidget {
 
     return _SidebarRevealActions(
       selected: selected,
-      builder: (context, showActions) {
+      builder: (context, showActions, onMenuOpenChanged) {
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
           onSecondaryTapDown: isDesktop && hasFeedActions
@@ -928,6 +929,7 @@ class _SidebarFeedTile extends StatelessWidget {
                       onSelected: (action) => unawaited(_performAction(action)),
                     )
                   : const <Widget>[],
+              onMenuOpenChanged: onMenuOpenChanged,
               onMarkRead: () => managementActions.markAllRead(feedId: feed.id),
             ),
             onTap: () => selectionActions.selectFeed(feed.id),
@@ -942,7 +944,11 @@ class _SidebarFeedTile extends StatelessWidget {
 }
 
 typedef _SidebarRevealBuilder =
-    Widget Function(BuildContext context, bool showActions);
+    Widget Function(
+      BuildContext context,
+      bool showActions,
+      ValueChanged<bool> onMenuOpenChanged,
+    );
 
 class _SidebarRevealActions extends StatefulWidget {
   const _SidebarRevealActions({required this.selected, required this.builder});
@@ -957,10 +963,16 @@ class _SidebarRevealActions extends StatefulWidget {
 class _SidebarRevealActionsState extends State<_SidebarRevealActions> {
   bool _hovered = false;
   bool _focused = false;
+  bool _menuOpen = false;
+
+  void _handleMenuOpenChanged(bool value) {
+    if (!mounted || _menuOpen == value) return;
+    setState(() => _menuOpen = value);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final showActions = widget.selected || _hovered || _focused;
+    final showActions = widget.selected || _hovered || _focused || _menuOpen;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -978,7 +990,7 @@ class _SidebarRevealActionsState extends State<_SidebarRevealActions> {
           if (_focused == value) return;
           setState(() => _focused = value);
         },
-        child: widget.builder(context, showActions),
+        child: widget.builder(context, showActions, _handleMenuOpenChanged),
       ),
     );
   }
@@ -996,6 +1008,7 @@ class _SidebarCategoryTrailing extends StatelessWidget {
     required this.canMarkRead,
     required this.onShowMenu,
     required this.menuChildren,
+    required this.onMenuOpenChanged,
     required this.onAddFeed,
     required this.onMarkRead,
   });
@@ -1012,6 +1025,7 @@ class _SidebarCategoryTrailing extends StatelessWidget {
   final bool canMarkRead;
   final VoidCallback? onShowMenu;
   final List<Widget> menuChildren;
+  final ValueChanged<bool> onMenuOpenChanged;
   final Future<void> Function() onAddFeed;
   final Future<void> Function() onMarkRead;
 
@@ -1047,6 +1061,7 @@ class _SidebarCategoryTrailing extends StatelessWidget {
                                   tooltip: l10n.more,
                                   active: selected,
                                   menuChildren: menuChildren,
+                                  onMenuOpenChanged: onMenuOpenChanged,
                                 )
                               : _SidebarActionIconButton(
                                   tooltip: l10n.more,
@@ -1089,6 +1104,7 @@ class _SidebarFeedTrailing extends StatelessWidget {
     required this.canMarkRead,
     required this.onShowMenu,
     required this.menuChildren,
+    required this.onMenuOpenChanged,
     required this.onMarkRead,
   });
 
@@ -1101,6 +1117,7 @@ class _SidebarFeedTrailing extends StatelessWidget {
   final bool canMarkRead;
   final VoidCallback? onShowMenu;
   final List<Widget> menuChildren;
+  final ValueChanged<bool> onMenuOpenChanged;
   final Future<void> Function() onMarkRead;
 
   @override
@@ -1124,6 +1141,7 @@ class _SidebarFeedTrailing extends StatelessWidget {
                             tooltip: l10n.more,
                             active: selected,
                             menuChildren: menuChildren,
+                            onMenuOpenChanged: onMenuOpenChanged,
                           )
                         : _SidebarActionIconButton(
                             tooltip: l10n.more,
@@ -1151,15 +1169,19 @@ class _SidebarMenuActionButton extends StatelessWidget {
     required this.tooltip,
     required this.active,
     required this.menuChildren,
+    required this.onMenuOpenChanged,
   });
 
   final String tooltip;
   final bool active;
   final List<Widget> menuChildren;
+  final ValueChanged<bool> onMenuOpenChanged;
 
   @override
   Widget build(BuildContext context) {
     return MenuAnchor(
+      onOpen: () => onMenuOpenChanged(true),
+      onClose: () => onMenuOpenChanged(false),
       menuChildren: menuChildren,
       builder: (context, controller, child) {
         return _SidebarActionIconButton(
