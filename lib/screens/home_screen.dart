@@ -40,11 +40,6 @@ class HomeScreen extends ConsumerWidget {
       capabilities,
       syncSemantics,
     );
-    final refreshSuccessLabel = SubscriptionObjectMenus.rootRefreshSuccessLabel(
-      l10n,
-      capabilities,
-      syncSemantics,
-    );
     final commands = HomeSceneCommands(
       context: context,
       ref: ref,
@@ -52,14 +47,14 @@ class HomeScreen extends ConsumerWidget {
     );
 
     Future<void> refreshAll() async {
-      final batch = await commands.refreshAll();
-      final err = batch.firstError?.error;
+      final outcome = await commands.refreshAll();
+      final err = outcome.batch.firstError?.error;
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             err == null
-                ? refreshSuccessLabel
+                ? outcome.successLabel(l10n)
                 : l10n.errorMessage(err.toString()),
           ),
         ),

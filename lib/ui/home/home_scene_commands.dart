@@ -2,17 +2,40 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../l10n/app_localizations.dart';
+import '../../models/feed.dart';
+import '../../providers/account_providers.dart';
 import '../../providers/article_list_controller.dart';
+import '../../providers/app_settings_providers.dart';
 import '../../providers/backend_capabilities_provider.dart';
-import '../../providers/backend_sync_semantics_provider.dart';
 import '../../providers/query_providers.dart';
 import '../../providers/refresh_all_providers.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/service_providers.dart';
+import '../../services/accounts/account.dart';
 import '../../services/sync/backend_capabilities.dart';
 import '../../services/sync/refresh_all_coordinator.dart';
 import '../../services/sync/sync_service.dart';
-import '../actions/root_sync_action.dart';
+
+enum HomeRefreshSuccessFeedback { refreshed, refreshedAll, syncedAccount }
+
+class HomeRefreshOutcome {
+  const HomeRefreshOutcome({
+    required this.batch,
+    required this.successFeedback,
+  });
+
+  final BatchRefreshResult batch;
+  final HomeRefreshSuccessFeedback successFeedback;
+
+  String successLabel(AppLocalizations l10n) {
+    return switch (successFeedback) {
+      HomeRefreshSuccessFeedback.refreshed => l10n.refreshed,
+      HomeRefreshSuccessFeedback.refreshedAll => l10n.refreshedAll,
+      HomeRefreshSuccessFeedback.syncedAccount => l10n.syncedAccount,
+    };
+  }
+}
 
 class HomeSceneCommands {
   const HomeSceneCommands({
@@ -26,52 +49,193 @@ class HomeSceneCommands {
   final WidgetRef _ref;
   final int? selectedArticleId;
 
-  Future<BatchRefreshResult> refreshAll() async {
-    final syncSemantics = _ref.read(backendSyncSemanticsProvider);
+  Future<HomeRefreshOutcome> refreshAll() async {
     final capabilities = _ref.read(backendCapabilitiesProvider);
-    if (syncSemantics.isAccountWideRefresh) {
-      final mode = resolveSubscriptionRootSyncMode(capabilities);
-      switch (mode) {
-        case SubscriptionRootSyncMode.refreshSources:
-          final result = await _ref
-              .read(refreshSourcesCoordinatorProvider)
-              .refreshSources(trigger: RefreshSourcesTrigger.manual);
-          return result.batch;
-        case SubscriptionRootSyncMode.syncAccount:
-          final result = await _ref
-              .read(accountSyncCoordinatorProvider)
-              .syncAccount(trigger: AccountSyncTrigger.manual);
-          return result.batch;
-        case null:
-          return const BatchRefreshResult([]);
-      }
-    }
-
+    final appSettings = _ref.read(appSettingsProvider).valueOrNull;
+    final maxConcurrent = appSettings?.autoRefreshConcurrency ?? 2;
     final feedId = _ref.read(selectedFeedIdProvider);
     final categoryId = _ref.read(selectedCategoryIdProvider);
+
+    switch (capabilities.accountType) {
+      case AccountType.local:
+        return _refreshLocal(
+          capabilities: capabilities,
+          feedId: feedId,
+          categoryId: categoryId,
+          maxConcurrent: maxConcurrent,
+        );
+      case AccountType.miniflux:
+        return _refreshMiniflux(
+          feedId: feedId,
+          categoryId: categoryId,
+          maxConcurrent: maxConcurrent,
+        );
+      case AccountType.fever:
+        return _syncAccount(maxConcurrent: maxConcurrent);
+    }
+  }
+
+  Future<HomeRefreshOutcome> _refreshLocal({
+    required BackendCapabilities capabilities,
+    required int? feedId,
+    required int? categoryId,
+    required int maxConcurrent,
+  }) async {
     if (feedId != null &&
         capabilities.isVisible(BackendFeature.refreshSubscriptionSource)) {
+      final feed = await _ref.read(feedRepositoryProvider).getById(feedId);
+      if (feed == null) return _feedNotFound(feedId);
       final result = await _ref
           .read(syncServiceProvider)
-          .refreshFeedSafe(feedId);
-      return BatchRefreshResult([result]);
+          .refreshFeedSafe(feed.id);
+      return HomeRefreshOutcome(
+        batch: BatchRefreshResult([result]),
+        successFeedback: HomeRefreshSuccessFeedback.refreshed,
+      );
     }
     if (feedId != null) {
-      return _ref.read(syncServiceProvider).refreshFeedsSafe([feedId]);
+      final feed = await _ref.read(feedRepositoryProvider).getById(feedId);
+      if (feed == null) return _feedNotFound(feedId);
+      final batch = await _ref.read(syncServiceProvider).refreshFeedsSafe([
+        feed.id,
+      ], maxConcurrent: maxConcurrent);
+      return HomeRefreshOutcome(
+        batch: batch,
+        successFeedback: HomeRefreshSuccessFeedback.refreshed,
+      );
     }
 
     if (categoryId == null) {
       final result = await _ref
           .read(refreshSourcesCoordinatorProvider)
-          .refreshSources(trigger: RefreshSourcesTrigger.manual);
-      return result.batch;
+          .refreshSources(
+            trigger: RefreshSourcesTrigger.manual,
+            maxConcurrent: maxConcurrent,
+          );
+      return HomeRefreshOutcome(
+        batch: result.batch,
+        successFeedback: HomeRefreshSuccessFeedback.refreshedAll,
+      );
     }
 
     final feeds = await _ref.read(feedRepositoryProvider).getAll();
     final filtered = feeds.where((feed) => feed.categoryId == categoryId);
-    return _ref
+    final batch = await _ref
         .read(syncServiceProvider)
-        .refreshFeedsSafe(filtered.map((feed) => feed.id));
+        .refreshFeedsSafe(
+          filtered.map((feed) => feed.id),
+          maxConcurrent: maxConcurrent,
+        );
+    return HomeRefreshOutcome(
+      batch: batch,
+      successFeedback: HomeRefreshSuccessFeedback.refreshed,
+    );
+  }
+
+  Future<HomeRefreshOutcome> _refreshMiniflux({
+    required int? feedId,
+    required int? categoryId,
+    required int maxConcurrent,
+  }) async {
+    if (feedId != null) {
+      final feed = await _ref.read(feedRepositoryProvider).getById(feedId);
+      if (feed == null) return _feedNotFound(feedId);
+      final refreshFailure = await _refreshMinifluxSources([feed]);
+      if (refreshFailure != null) return refreshFailure;
+      return _syncAccount(
+        maxConcurrent: maxConcurrent,
+        successFeedback: HomeRefreshSuccessFeedback.refreshed,
+      );
+    }
+
+    if (categoryId != null) {
+      final feeds = await _ref.read(feedRepositoryProvider).getAll();
+      final filtered = feeds
+          .where((feed) => feed.categoryId == categoryId)
+          .toList(growable: false);
+      if (filtered.isEmpty) {
+        return const HomeRefreshOutcome(
+          batch: BatchRefreshResult([]),
+          successFeedback: HomeRefreshSuccessFeedback.refreshed,
+        );
+      }
+      final refreshFailure = await _refreshMinifluxSources(
+        filtered,
+        maxConcurrent: maxConcurrent,
+      );
+      if (refreshFailure != null) return refreshFailure;
+      return _syncAccount(
+        maxConcurrent: maxConcurrent,
+        successFeedback: HomeRefreshSuccessFeedback.refreshed,
+      );
+    }
+
+    final result = await _ref
+        .read(refreshSourcesCoordinatorProvider)
+        .refreshSources(
+          trigger: RefreshSourcesTrigger.manual,
+          maxConcurrent: maxConcurrent,
+        );
+    return HomeRefreshOutcome(
+      batch: result.batch,
+      successFeedback: HomeRefreshSuccessFeedback.refreshedAll,
+    );
+  }
+
+  Future<HomeRefreshOutcome?> _refreshMinifluxSources(
+    List<Feed> feeds, {
+    int maxConcurrent = 2,
+  }) async {
+    try {
+      await _ref
+          .read(minifluxSourceRefreshProvider)
+          .refreshFeeds(feeds, maxConcurrent: maxConcurrent);
+      return null;
+    } catch (error) {
+      final feedId = feeds.isEmpty ? -1 : feeds.first.id;
+      return HomeRefreshOutcome(
+        batch: BatchRefreshResult([
+          FeedRefreshResult(
+            feedId: feedId,
+            incomingCount: 0,
+            newCount: 0,
+            error: error,
+          ),
+        ]),
+        successFeedback: HomeRefreshSuccessFeedback.refreshed,
+      );
+    }
+  }
+
+  Future<HomeRefreshOutcome> _syncAccount({
+    required int maxConcurrent,
+    HomeRefreshSuccessFeedback successFeedback =
+        HomeRefreshSuccessFeedback.syncedAccount,
+  }) async {
+    final result = await _ref
+        .read(accountSyncCoordinatorProvider)
+        .syncAccount(
+          trigger: AccountSyncTrigger.manual,
+          maxConcurrent: maxConcurrent,
+        );
+    return HomeRefreshOutcome(
+      batch: result.batch,
+      successFeedback: successFeedback,
+    );
+  }
+
+  HomeRefreshOutcome _feedNotFound(int feedId) {
+    return HomeRefreshOutcome(
+      batch: BatchRefreshResult([
+        FeedRefreshResult(
+          feedId: feedId,
+          incomingCount: 0,
+          newCount: 0,
+          error: StateError('Feed $feedId not found'),
+        ),
+      ]),
+      successFeedback: HomeRefreshSuccessFeedback.refreshed,
+    );
   }
 
   Future<void> markAllRead() async {

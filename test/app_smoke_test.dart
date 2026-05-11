@@ -18,6 +18,7 @@ import 'package:fleur/providers/app_settings_providers.dart';
 import 'package:fleur/providers/background_sync_providers.dart';
 import 'package:fleur/providers/outbox_status_providers.dart';
 import 'package:fleur/providers/query_providers.dart';
+import 'package:fleur/providers/refresh_all_providers.dart';
 import 'package:fleur/providers/repository_providers.dart';
 import 'package:fleur/providers/service_providers.dart';
 import 'package:fleur/providers/sync_status_providers.dart';
@@ -169,9 +170,12 @@ class _RecordingHomeSceneCommands extends HomeSceneCommands {
   final List<String> calls = <String>[];
 
   @override
-  Future<BatchRefreshResult> refreshAll() async {
+  Future<HomeRefreshOutcome> refreshAll() async {
     calls.add('refresh');
-    return const BatchRefreshResult(<FeedRefreshResult>[]);
+    return const HomeRefreshOutcome(
+      batch: BatchRefreshResult(<FeedRefreshResult>[]),
+      successFeedback: HomeRefreshSuccessFeedback.refreshed,
+    );
   }
 
   @override
@@ -212,6 +216,70 @@ class _FakeFeedRepository extends Fake implements FeedRepository {
 
   @override
   Future<List<Feed>> getAll() async => feeds;
+
+  @override
+  Future<Feed?> getById(int id) async {
+    for (final feed in feeds) {
+      if (feed.id == id) return feed;
+    }
+    return null;
+  }
+}
+
+class _FakeMinifluxSourceRefresh implements MinifluxSourceRefresh {
+  int refreshAllCalls = 0;
+  final List<int> refreshedFeedIds = <int>[];
+
+  @override
+  Future<void> refreshAll() async {
+    refreshAllCalls++;
+  }
+
+  @override
+  Future<void> refreshFeed(Feed feed) async {
+    refreshedFeedIds.add(feed.id);
+  }
+
+  @override
+  Future<void> refreshFeeds(List<Feed> feeds, {int maxConcurrent = 2}) async {
+    refreshedFeedIds.addAll(feeds.map((feed) => feed.id));
+  }
+}
+
+Future<HomeSceneCommands> _pumpHomeCommandsHarness(
+  WidgetTester tester, {
+  required List<Override> overrides,
+}) async {
+  late HomeSceneCommands commands;
+  final router = GoRouter(
+    routes: [
+      GoRoute(
+        path: '/',
+        builder: (context, state) {
+          return Consumer(
+            builder: (context, ref, _) {
+              commands = HomeSceneCommands(
+                context: context,
+                ref: ref,
+                selectedArticleId: null,
+              );
+              return const SizedBox(key: ValueKey('home_commands_harness'));
+            },
+          );
+        },
+      ),
+    ],
+  );
+  addTearDown(router.dispose);
+
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: overrides,
+      child: MaterialApp.router(routerConfig: router),
+    ),
+  );
+  await tester.pumpAndSettle();
+  return commands;
 }
 
 void main() {
@@ -754,6 +822,7 @@ void main() {
     (tester) async {
       final syncService = FakeSyncService();
       final actionService = RecordingArticleActionService();
+      final feed = _buildFeed(id: 10);
       late HomeSceneCommands homeCommands;
       final router = GoRouter(
         routes: [
@@ -794,6 +863,9 @@ void main() {
               _FixedArticleListController.new,
             ),
             articleActionServiceProvider.overrideWithValue(actionService),
+            feedRepositoryProvider.overrideWithValue(
+              _FakeFeedRepository([feed]),
+            ),
             syncServiceProvider.overrideWithValue(syncService),
           ],
           child: MaterialApp.router(routerConfig: router),
@@ -806,10 +878,14 @@ void main() {
       );
       await container.read(articleListControllerProvider.future);
 
-      await homeCommands.refreshAll();
+      final refreshOutcome = await homeCommands.refreshAll();
       expect(syncService.refreshCalls, [
         [10],
       ]);
+      expect(
+        refreshOutcome.successFeedback,
+        HomeRefreshSuccessFeedback.refreshed,
+      );
 
       await homeCommands.markAllRead();
       expect(actionService.markAllReadCalls, [(feedId: 10, categoryId: null)]);
@@ -832,6 +908,138 @@ void main() {
       homeCommands.goToNextArticle();
       await tester.pumpAndSettle();
       expect(find.text('3'), findsOneWidget);
+    },
+  );
+
+  testWidgets('Home scene commands refresh the selected local category only', (
+    tester,
+  ) async {
+    final syncService = FakeSyncService();
+    final feeds = [
+      _buildFeed(id: 1)..categoryId = 7,
+      _buildFeed(id: 2, url: 'https://example.com/2.xml')..categoryId = 7,
+      _buildFeed(id: 3, url: 'https://example.com/3.xml')..categoryId = 9,
+    ];
+
+    final homeCommands = await _pumpHomeCommandsHarness(
+      tester,
+      overrides: [
+        activeAccountProvider.overrideWithValue(
+          buildTestAccount(type: AccountType.local, name: 'Local'),
+        ),
+        selectedCategoryIdProvider.overrideWith((ref) => 7),
+        feedRepositoryProvider.overrideWithValue(_FakeFeedRepository(feeds)),
+        syncServiceProvider.overrideWithValue(syncService),
+      ],
+    );
+
+    final outcome = await homeCommands.refreshAll();
+
+    expect(syncService.refreshCalls, [
+      [1, 2],
+    ]);
+    expect(outcome.successFeedback, HomeRefreshSuccessFeedback.refreshed);
+  });
+
+  testWidgets(
+    'Home scene commands refresh selected Miniflux feed source before sync',
+    (tester) async {
+      final syncService = FakeSyncService();
+      final minifluxSourceRefresh = _FakeMinifluxSourceRefresh();
+      final feed = _buildFeed(id: 10)..remoteId = '42';
+
+      final homeCommands = await _pumpHomeCommandsHarness(
+        tester,
+        overrides: [
+          activeAccountProvider.overrideWithValue(
+            buildTestAccount(type: AccountType.miniflux, name: 'Miniflux'),
+          ),
+          selectedFeedIdProvider.overrideWith((ref) => 10),
+          feedRepositoryProvider.overrideWithValue(_FakeFeedRepository([feed])),
+          minifluxSourceRefreshProvider.overrideWithValue(
+            minifluxSourceRefresh,
+          ),
+          syncServiceProvider.overrideWithValue(syncService),
+        ],
+      );
+
+      final outcome = await homeCommands.refreshAll();
+
+      expect(minifluxSourceRefresh.refreshedFeedIds, [10]);
+      expect(minifluxSourceRefresh.refreshAllCalls, 0);
+      expect(syncService.refreshCalls, [
+        [10],
+      ]);
+      expect(outcome.successFeedback, HomeRefreshSuccessFeedback.refreshed);
+    },
+  );
+
+  testWidgets(
+    'Home scene commands refresh selected Miniflux category sources before sync',
+    (tester) async {
+      final syncService = FakeSyncService();
+      final minifluxSourceRefresh = _FakeMinifluxSourceRefresh();
+      final feeds = [
+        _buildFeed(id: 1)..categoryId = 7,
+        _buildFeed(id: 2, url: 'https://example.com/2.xml')..categoryId = 7,
+        _buildFeed(id: 3, url: 'https://example.com/3.xml')..categoryId = 9,
+      ];
+
+      final homeCommands = await _pumpHomeCommandsHarness(
+        tester,
+        overrides: [
+          activeAccountProvider.overrideWithValue(
+            buildTestAccount(type: AccountType.miniflux, name: 'Miniflux'),
+          ),
+          selectedCategoryIdProvider.overrideWith((ref) => 7),
+          feedRepositoryProvider.overrideWithValue(_FakeFeedRepository(feeds)),
+          minifluxSourceRefreshProvider.overrideWithValue(
+            minifluxSourceRefresh,
+          ),
+          syncServiceProvider.overrideWithValue(syncService),
+        ],
+      );
+
+      final outcome = await homeCommands.refreshAll();
+
+      expect(minifluxSourceRefresh.refreshedFeedIds, [1, 2]);
+      expect(minifluxSourceRefresh.refreshAllCalls, 0);
+      expect(syncService.refreshCalls, [
+        [1, 2, 3],
+      ]);
+      expect(outcome.successFeedback, HomeRefreshSuccessFeedback.refreshed);
+    },
+  );
+
+  testWidgets(
+    'Home scene commands keep Miniflux all-subscriptions refresh global',
+    (tester) async {
+      final syncService = FakeSyncService();
+      final minifluxSourceRefresh = _FakeMinifluxSourceRefresh();
+      final feed = _buildFeed(id: 10);
+
+      final homeCommands = await _pumpHomeCommandsHarness(
+        tester,
+        overrides: [
+          activeAccountProvider.overrideWithValue(
+            buildTestAccount(type: AccountType.miniflux, name: 'Miniflux'),
+          ),
+          feedRepositoryProvider.overrideWithValue(_FakeFeedRepository([feed])),
+          minifluxSourceRefreshProvider.overrideWithValue(
+            minifluxSourceRefresh,
+          ),
+          syncServiceProvider.overrideWithValue(syncService),
+        ],
+      );
+
+      final outcome = await homeCommands.refreshAll();
+
+      expect(minifluxSourceRefresh.refreshAllCalls, 1);
+      expect(minifluxSourceRefresh.refreshedFeedIds, isEmpty);
+      expect(syncService.refreshCalls, [
+        [10],
+      ]);
+      expect(outcome.successFeedback, HomeRefreshSuccessFeedback.refreshedAll);
     },
   );
 
@@ -881,11 +1089,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await homeCommands.refreshAll();
+    final outcome = await homeCommands.refreshAll();
 
     expect(syncService.refreshCalls, [
       [1],
     ]);
+    expect(outcome.successFeedback, HomeRefreshSuccessFeedback.syncedAccount);
   });
 
   testWidgets('Home refresh tooltip follows backend refresh scope', (

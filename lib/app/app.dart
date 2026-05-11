@@ -390,13 +390,6 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
           capabilities,
           syncSemantics,
         );
-        final refreshSuccessLabel =
-            SubscriptionObjectMenus.rootRefreshSuccessLabel(
-              l10n,
-              capabilities,
-              syncSemantics,
-            );
-
         final leading = canPop
             ? IconButton(
                 tooltip: MaterialLocalizations.of(context).backButtonTooltip,
@@ -446,14 +439,14 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
                       IconButton(
                         tooltip: refreshActionLabel,
                         onPressed: () async {
-                          final batch = await commands.refreshAll();
+                          final outcome = await commands.refreshAll();
                           if (!context.mounted) return;
-                          final err = batch.firstError?.error;
+                          final err = outcome.batch.firstError?.error;
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
                                 err == null
-                                    ? refreshSuccessLabel
+                                    ? outcome.successLabel(l10n)
                                     : l10n.errorMessage(err.toString()),
                               ),
                             ),
