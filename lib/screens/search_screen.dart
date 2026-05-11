@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../providers/app_settings_providers.dart';
 import '../providers/query_providers.dart';
+import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/hero_tags.dart';
 import '../ui/layout.dart';
@@ -140,7 +141,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                           autofocus: widget.selectedArticleId == null,
                           decoration: InputDecoration(
                             hintText: l10n.search,
-                            prefixIcon: const Icon(Icons.search),
+                            prefixIcon: const Icon(FleurIcons.search),
                             suffixIcon: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -148,7 +149,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                   IconButton(
                                     tooltip: l10n.delete,
                                     onPressed: () => _applyQuery(''),
-                                    icon: const Icon(Icons.clear),
+                                    icon: const Icon(FleurIcons.clear),
                                   ),
                               ],
                             ),
@@ -179,7 +180,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         autofocus: widget.selectedArticleId == null,
                         decoration: InputDecoration(
                           hintText: l10n.search,
-                          prefixIcon: const Icon(Icons.search),
+                          prefixIcon: const Icon(FleurIcons.search),
                           suffixIcon: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -187,7 +188,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 IconButton(
                                   tooltip: l10n.delete,
                                   onPressed: () => _applyQuery(''),
-                                  icon: const Icon(Icons.clear),
+                                  icon: const Icon(FleurIcons.clear),
                                 ),
                             ],
                           ),

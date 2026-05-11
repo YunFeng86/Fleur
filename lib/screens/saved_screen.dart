@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../providers/query_providers.dart';
 import '../providers/unread_providers.dart';
+import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/hero_tags.dart';
 import '../ui/layout.dart';
@@ -114,7 +115,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
           textInputAction: TextInputAction.search,
           decoration: InputDecoration(
             hintText: l10n.searchInContent,
-            prefixIcon: const Icon(Icons.search),
+            prefixIcon: const Icon(FleurIcons.search),
             suffixIcon: searchQuery.trim().isEmpty
                 ? null
                 : IconButton(
@@ -125,7 +126,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
                           .read(articleListFilterProvider.notifier)
                           .update((filter) => filter.copyWith(searchQuery: ''));
                     },
-                    icon: const Icon(Icons.clear),
+                    icon: const Icon(FleurIcons.clear),
                   ),
           ),
         );
@@ -147,14 +148,14 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
                           label: Text(
                             _labelWithCount(l10n.starred, starredCount),
                           ),
-                          icon: const Icon(Icons.star),
+                          icon: const Icon(FleurIcons.star),
                         ),
                         ButtonSegment(
                           value: _SavedMode.readLater,
                           label: Text(
                             _labelWithCount(l10n.readLater, readLaterCount),
                           ),
-                          icon: const Icon(Icons.bookmark),
+                          icon: const Icon(FleurIcons.readLater),
                         ),
                       ],
                       selected: {_mode},
@@ -286,7 +287,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
       (false, false, true) => l10n.noReadLaterArticles,
       _ => l10n.noArticles,
     };
-    final icon = isStarred ? Icons.star_border : Icons.bookmark_border;
+    final icon = isStarred ? FleurIcons.star : FleurIcons.readLater;
 
     return Container(
       color: surfaces.list,
@@ -324,12 +325,12 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
               children: [
                 FilledButton.tonalIcon(
                   onPressed: () => context.go('/'),
-                  icon: const Icon(Icons.rss_feed),
+                  icon: const Icon(FleurIcons.feed),
                   label: Text(l10n.feeds),
                 ),
                 OutlinedButton.icon(
                   onPressed: () => context.go('/search'),
-                  icon: const Icon(Icons.search),
+                  icon: const Icon(FleurIcons.search),
                   label: Text(l10n.search),
                 ),
               ],

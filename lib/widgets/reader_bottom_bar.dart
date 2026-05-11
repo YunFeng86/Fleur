@@ -113,7 +113,7 @@ class ReaderBottomBar extends ConsumerWidget {
                 ),
                 if (hasTranslation)
                   ListTile(
-                    leading: const Icon(Icons.close),
+                    leading: const Icon(FleurIcons.close),
                     title: Text(l10n.clearTranslation),
                     onTap: () {
                       Navigator.of(context).pop();
@@ -583,7 +583,7 @@ class _TagsDialogState extends ConsumerState<_TagsDialog> {
             final isSelected = selectedIds.contains(tag.id);
             return ListTile(
               leading: Icon(
-                Icons.label,
+                FleurIcons.tag,
                 color: resolveTagColor(tag.name, tag.color),
               ),
               title: Text(tag.name),
@@ -593,7 +593,7 @@ class _TagsDialogState extends ConsumerState<_TagsDialog> {
                 children: [
                   IconButton(
                     tooltip: l10n.delete,
-                    icon: const Icon(Icons.delete_outline),
+                    icon: const Icon(FleurIcons.delete),
                     onPressed: () => unawaited(deleteTag(tag)),
                   ),
                   Checkbox(
@@ -636,7 +636,7 @@ class _TagsDialogState extends ConsumerState<_TagsDialog> {
                   ),
                   IconButton(
                     onPressed: _createTag,
-                    icon: const Icon(Icons.add),
+                    icon: const Icon(FleurIcons.add),
                   ),
                 ],
               ),
@@ -700,7 +700,7 @@ class _TagsDialogState extends ConsumerState<_TagsDialog> {
                                 ),
                                 child: selected
                                     ? Icon(
-                                        Icons.check,
+                                        FleurIcons.check,
                                         size: 16,
                                         color: checkColor,
                                       )

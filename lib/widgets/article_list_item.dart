@@ -5,6 +5,7 @@ import 'package:timeago/timeago.dart' as timeago;
 import '../models/article.dart';
 import '../providers/query_providers.dart';
 import '../theme/app_typography.dart';
+import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../utils/html_utils.dart';
 import '../utils/timeago_locale.dart';
@@ -80,7 +81,7 @@ class ArticleListItem extends ConsumerWidget {
                         imageUrl,
                         fit: BoxFit.cover,
                         errorBuilder: (ctx, err, stack) => Icon(
-                          Icons.broken_image,
+                          FleurIcons.brokenImage,
                           size: 24,
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
@@ -111,7 +112,7 @@ class ArticleListItem extends ConsumerWidget {
                                     siteUri: siteUri,
                                     diameter: 28,
                                     avatarSize: 18,
-                                    fallbackIcon: Icons.rss_feed,
+                                    fallbackIcon: FleurIcons.feed,
                                     fallbackColor:
                                         theme.colorScheme.onSurfaceVariant,
                                   ),
@@ -196,7 +197,11 @@ class ArticleListItem extends ConsumerWidget {
                       // Star Icon (if starred)
                       if (article.isStarred) ...[
                         const SizedBox(height: 6),
-                        Icon(Icons.star, size: 14, color: states.savedAccent),
+                        Icon(
+                          FleurIcons.starActive,
+                          size: 14,
+                          color: states.savedAccent,
+                        ),
                       ],
                     ],
                   ),

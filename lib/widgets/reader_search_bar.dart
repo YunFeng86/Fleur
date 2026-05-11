@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fleur/l10n/app_localizations.dart';
 
 import '../providers/reader_search_providers.dart';
+import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/motion.dart';
 
@@ -127,7 +128,7 @@ class ReaderSearchBarState extends ConsumerState<ReaderSearchBar> {
                         children: [
                           const SizedBox(width: 4),
                           Icon(
-                            Icons.search,
+                            FleurIcons.search,
                             size: 18,
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
@@ -155,7 +156,7 @@ class ReaderSearchBarState extends ConsumerState<ReaderSearchBar> {
                             onPressed: state.totalMatches > 0
                                 ? controller.previousMatch
                                 : null,
-                            icon: const Icon(Icons.keyboard_arrow_up),
+                            icon: const Icon(FleurIcons.previousMatch),
                           ),
                           IconButton(
                             iconSize: 20,
@@ -163,7 +164,7 @@ class ReaderSearchBarState extends ConsumerState<ReaderSearchBar> {
                             onPressed: state.totalMatches > 0
                                 ? controller.nextMatch
                                 : null,
-                            icon: const Icon(Icons.keyboard_arrow_down),
+                            icon: const Icon(FleurIcons.nextMatch),
                           ),
                           IconButton(
                             iconSize: 20,
@@ -172,7 +173,7 @@ class ReaderSearchBarState extends ConsumerState<ReaderSearchBar> {
                             color: state.caseSensitive
                                 ? statesTheme.syncAccent
                                 : null,
-                            icon: const Icon(Icons.keyboard_capslock),
+                            icon: const Icon(FleurIcons.caseSensitive),
                           ),
                           if (state.isSearching) ...[
                             const SizedBox(width: 4),
@@ -190,7 +191,7 @@ class ReaderSearchBarState extends ConsumerState<ReaderSearchBar> {
                               _controller.clear();
                               controller.close(clearQuery: true);
                             },
-                            icon: const Icon(Icons.close),
+                            icon: const Icon(FleurIcons.close),
                           ),
                         ],
                       ),

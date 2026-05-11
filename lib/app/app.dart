@@ -26,6 +26,7 @@ import '../ui/global_nav.dart';
 import '../ui/home/home_scene_commands.dart';
 import '../ui/layout.dart';
 import '../theme/app_theme.dart';
+import '../theme/fleur_icons.dart';
 import '../theme/seed_color_presets.dart';
 import '../utils/macos_locale_bridge.dart';
 import '../utils/platform.dart';
@@ -458,7 +459,7 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
                             ),
                           );
                         },
-                        icon: const Icon(Icons.refresh),
+                        icon: const Icon(FleurIcons.refresh),
                       ),
                     Consumer(
                       builder: (context, ref, _) {
@@ -468,8 +469,8 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
                           onPressed: commands.toggleUnreadOnly,
                           icon: Icon(
                             unreadOnly
-                                ? Icons.filter_alt
-                                : Icons.filter_alt_outlined,
+                                ? FleurIcons.filterActive
+                                : FleurIcons.filter,
                           ),
                         );
                       },
@@ -483,7 +484,7 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
                           context,
                         ).showSnackBar(SnackBar(content: Text(l10n.done)));
                       },
-                      icon: const Icon(Icons.done_all),
+                      icon: const Icon(FleurIcons.markAllRead),
                     ),
                   ],
                   if (showOutboxAction) const OutboxStatusAction(),

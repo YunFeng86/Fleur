@@ -32,6 +32,7 @@ import 'package:fleur/services/settings/reader_progress_store.dart';
 import 'package:fleur/services/settings/reader_settings.dart';
 import 'package:fleur/services/settings/translation_ai_settings.dart';
 import 'package:fleur/theme/app_theme.dart';
+import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
 import 'package:fleur/ui/reader/reader_selectable_rich_text.dart';
 import 'package:fleur/utils/path_manager.dart';
@@ -776,7 +777,10 @@ void main() {
       expect(colorTarget, findsOneWidget);
       expect(tester.getSize(colorTarget), const Size(48, 48));
       expect(
-        find.descendant(of: tooltipFinder, matching: find.byIcon(Icons.check)),
+        find.descendant(
+          of: tooltipFinder,
+          matching: find.byIcon(FleurIcons.check),
+        ),
         findsNothing,
       );
 
@@ -785,7 +789,10 @@ void main() {
       await settleReader(tester, rounds: 2);
 
       expect(
-        find.descendant(of: tooltipFinder, matching: find.byIcon(Icons.check)),
+        find.descendant(
+          of: tooltipFinder,
+          matching: find.byIcon(FleurIcons.check),
+        ),
         findsOneWidget,
       );
     },

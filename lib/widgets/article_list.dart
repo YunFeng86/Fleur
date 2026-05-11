@@ -15,6 +15,7 @@ import '../providers/query_providers.dart';
 import '../providers/service_providers.dart';
 import '../providers/unread_providers.dart';
 import '../services/settings/app_settings.dart';
+import '../theme/fleur_icons.dart';
 import '../ui/context_menu_position.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/layout.dart';
@@ -147,7 +148,7 @@ class _ArticleListState extends ConsumerState<ArticleList> {
         PopupMenuItem(
           value: _ArticleContextAction.open,
           child: ListTile(
-            leading: const Icon(Icons.article_outlined),
+            leading: const Icon(FleurIcons.article),
             title: Text(l10n.openArticle),
             contentPadding: EdgeInsets.zero,
           ),
@@ -156,7 +157,7 @@ class _ArticleListState extends ConsumerState<ArticleList> {
           value: _ArticleContextAction.markRead,
           child: ListTile(
             leading: Icon(
-              article.isRead ? Icons.mark_email_unread : Icons.mark_email_read,
+              article.isRead ? FleurIcons.markUnread : FleurIcons.markRead,
             ),
             title: Text(article.isRead ? l10n.markUnread : l10n.markRead),
             contentPadding: EdgeInsets.zero,
@@ -165,7 +166,9 @@ class _ArticleListState extends ConsumerState<ArticleList> {
         PopupMenuItem(
           value: _ArticleContextAction.toggleStar,
           child: ListTile(
-            leading: Icon(article.isStarred ? Icons.star : Icons.star_border),
+            leading: Icon(
+              article.isStarred ? FleurIcons.starActive : FleurIcons.star,
+            ),
             title: Text(article.isStarred ? l10n.unstar : l10n.star),
             contentPadding: EdgeInsets.zero,
           ),
@@ -175,8 +178,8 @@ class _ArticleListState extends ConsumerState<ArticleList> {
           child: ListTile(
             leading: Icon(
               article.isReadLater
-                  ? Icons.watch_later
-                  : Icons.watch_later_outlined,
+                  ? FleurIcons.readLaterActive
+                  : FleurIcons.readLater,
             ),
             title: Text(
               article.isReadLater ? l10n.removeReadLater : l10n.readLater,
@@ -187,7 +190,7 @@ class _ArticleListState extends ConsumerState<ArticleList> {
         PopupMenuItem(
           value: _ArticleContextAction.copyLink,
           child: ListTile(
-            leading: const Icon(Icons.content_copy),
+            leading: const Icon(FleurIcons.copy),
             title: Text(l10n.copyLink),
             contentPadding: EdgeInsets.zero,
           ),
@@ -195,7 +198,7 @@ class _ArticleListState extends ConsumerState<ArticleList> {
         PopupMenuItem(
           value: _ArticleContextAction.openInBrowser,
           child: ListTile(
-            leading: const Icon(Icons.open_in_browser),
+            leading: const Icon(FleurIcons.openExternal),
             title: Text(l10n.openInBrowser),
             contentPadding: EdgeInsets.zero,
           ),
@@ -406,8 +409,8 @@ class _ArticleListState extends ConsumerState<ArticleList> {
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Icon(
                             live.isRead
-                                ? Icons.mark_email_unread
-                                : Icons.mark_email_read,
+                                ? FleurIcons.markUnread
+                                : FleurIcons.markRead,
                             color: Colors.white,
                           ),
                         ),
@@ -416,7 +419,9 @@ class _ArticleListState extends ConsumerState<ArticleList> {
                           alignment: Alignment.centerRight,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Icon(
-                            live.isStarred ? Icons.star_border : Icons.star,
+                            live.isStarred
+                                ? FleurIcons.star
+                                : FleurIcons.starActive,
                             color: Colors.white,
                           ),
                         ),

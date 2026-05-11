@@ -1546,7 +1546,7 @@ void main() {
 
       expect(rowDecoration.color, theme.fleurSurface.cardSelected);
       expect(title.style?.fontWeight, FontWeight.w700);
-      expect(find.byIcon(Icons.star), findsOneWidget);
+      expect(find.byIcon(FleurIcons.starActive), findsOneWidget);
     },
   );
 

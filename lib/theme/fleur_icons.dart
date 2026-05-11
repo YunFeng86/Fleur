@@ -16,6 +16,13 @@ abstract final class FleurIcons {
   static const IconData translate = PhosphorIconsRegular.translate;
   static const IconData fullText = PhosphorIconsRegular.article;
   static const IconData refresh = PhosphorIconsRegular.arrowClockwise;
+  static const IconData markAllRead = PhosphorIconsRegular.checks;
+  static const IconData filter = PhosphorIconsRegular.funnelSimple;
+  static const IconData filterActive = PhosphorIconsBold.funnelSimple;
+  static const IconData clear = PhosphorIconsRegular.x;
+  static const IconData close = PhosphorIconsRegular.x;
+  static const IconData article = PhosphorIconsRegular.article;
+  static const IconData brokenImage = PhosphorIconsRegular.imageBroken;
   static const IconData star = PhosphorIconsRegular.star;
   static const IconData starActive = PhosphorIconsFill.star;
   static const IconData markRead = PhosphorIconsRegular.envelopeSimpleOpen;
@@ -29,6 +36,11 @@ abstract final class FleurIcons {
   static const IconData tag = PhosphorIconsRegular.tagSimple;
   static const IconData copy = PhosphorIconsRegular.copySimple;
   static const IconData share = PhosphorIconsRegular.share;
+  static const IconData previousMatch = PhosphorIconsRegular.caretUp;
+  static const IconData nextMatch = PhosphorIconsRegular.caretDown;
+  static const IconData caseSensitive = PhosphorIconsRegular.textAa;
+  static const IconData check = PhosphorIconsRegular.check;
+  static const IconData autoScroll = PhosphorIconsRegular.caretUpDown;
 
   static const IconData allArticles = PhosphorIconsRegular.tray;
   static const IconData feed = PhosphorIconsRegular.rssSimple;
