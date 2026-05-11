@@ -144,12 +144,36 @@ jobs:
         continue-on-error: true  # 测试失败不阻塞构建（Alpha版本容忍测试失败）
 
       - name: Build ${{ matrix.platform }} release
+        if: matrix.platform != 'macos'
         shell: bash
         run: |
           flutter build ${{ matrix.build-args }} \
             --dart-define=APP_COMMIT_HASH="${{ steps.version_vars.outputs.commit_hash }}" \
             --dart-define=APP_BUILD_TIME="${{ steps.version_vars.outputs.build_time }}" \
             --dart-define=APP_BUILD_NUMBER="${{ steps.version_vars.outputs.build_number }}"
+
+      - name: Build macOS unsigned release
+        if: matrix.platform == 'macos'
+        shell: bash
+        run: |
+          flutter build macos --release --config-only \
+            --dart-define=APP_COMMIT_HASH="${{ steps.version_vars.outputs.commit_hash }}" \
+            --dart-define=APP_BUILD_TIME="${{ steps.version_vars.outputs.build_time }}" \
+            --dart-define=APP_BUILD_NUMBER="${{ steps.version_vars.outputs.build_number }}"
+
+          xcodebuild \
+            -workspace macos/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -derivedDataPath build/macos \
+            -destination 'generic/platform=macOS' \
+            OBJROOT="$PWD/build/macos/Build/Intermediates.noindex" \
+            SYMROOT="$PWD/build/macos/Build/Products" \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_ENTITLEMENTS=""
 
       - name: Archive build artifacts
         shell: bash
@@ -405,6 +429,8 @@ jobs:
                - 运行 `fleur.exe`
 
             **macOS:**
+            > 当前 macOS 包未签名、未公证，仅适合测试分发。
+
             1. 下载 `fleur-macos.dmg`
             2. 双击打开 DMG 文件
             3. 拖动 `Fleur.app` 到应用程序文件夹
