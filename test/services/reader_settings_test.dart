@@ -25,4 +25,16 @@ void main() {
     expect(settings.lineHeight, 1.5);
     expect(settings.horizontalPadding, 16);
   });
+
+  test('ReaderSettings.fromJson defaults non-finite values', () {
+    final settings = ReaderSettings.fromJson(<String, Object?>{
+      'fontSize': double.nan,
+      'lineHeight': double.infinity,
+      'horizontalPadding': double.negativeInfinity,
+    });
+
+    expect(settings.fontSize, 16);
+    expect(settings.lineHeight, 1.5);
+    expect(settings.horizontalPadding, 16);
+  });
 }

@@ -19,12 +19,13 @@ String? readOptionalString(Object? raw) {
 
 String readStringOrEmpty(Object? raw) => readOptionalString(raw) ?? '';
 
-int? readOptionalInt(Object? raw) => raw is num ? raw.toInt() : null;
+int? readOptionalInt(Object? raw) =>
+    raw is num && raw.isFinite ? raw.toInt() : null;
 
 int readIntOr(Object? raw, int fallback) => readOptionalInt(raw) ?? fallback;
 
 double readDoubleOr(Object? raw, double fallback) {
-  return raw is num ? raw.toDouble() : fallback;
+  return raw is num && raw.isFinite ? raw.toDouble() : fallback;
 }
 
 bool readBoolOr(Object? raw, {required bool fallback}) {
