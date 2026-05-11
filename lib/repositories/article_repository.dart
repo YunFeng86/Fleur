@@ -351,7 +351,7 @@ class ArticleRepository {
           .group(
             (q) => q
                 .anyOf(
-                  ingestionPlan.normalizedLinks,
+                  ingestionPlan.linkLookupKeys,
                   (q, link) => q.linkEqualTo(link),
                 )
                 .or()

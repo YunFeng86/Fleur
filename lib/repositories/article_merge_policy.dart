@@ -4,11 +4,11 @@ import '../utils/link_normalizer.dart';
 
 class ArticleIngestionPlan {
   const ArticleIngestionPlan({
-    required this.normalizedLinks,
+    required this.linkLookupKeys,
     required this.remoteIds,
   });
 
-  final List<String> normalizedLinks;
+  final List<String> linkLookupKeys;
   final List<String> remoteIds;
 }
 
@@ -19,7 +19,7 @@ class ArticleMergeLookup {
       if (remoteId != null && remoteId.isNotEmpty) {
         _byRemoteId[remoteId] = article;
       }
-      _byLink[article.link] = article;
+      _byLink[LinkNormalizer.normalize(article.link)] = article;
     }
   }
 
@@ -42,12 +42,17 @@ class ArticleMergePolicy {
     List<Article> incoming, {
     required bool preserveUserState,
   }) {
-    final normalizedLinks = <String>[];
+    final linkLookupKeys = <String>{};
     final remoteIds = <String>[];
 
     for (final article in incoming) {
       article.link = LinkNormalizer.normalize(article.link);
-      normalizedLinks.add(article.link);
+      linkLookupKeys.add(article.link);
+      if (article.link.isNotEmpty) {
+        // Compatibility with links written by the previous normalizer, which
+        // accidentally persisted an empty fragment marker.
+        linkLookupKeys.add('${article.link}#');
+      }
 
       final remoteId = article.remoteId;
       if (remoteId != null && remoteId.trim().isNotEmpty) {
@@ -60,7 +65,7 @@ class ArticleMergePolicy {
     }
 
     return ArticleIngestionPlan(
-      normalizedLinks: normalizedLinks,
+      linkLookupKeys: linkLookupKeys.toList(growable: false),
       remoteIds: remoteIds,
     );
   }

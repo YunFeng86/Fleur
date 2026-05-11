@@ -260,6 +260,32 @@ void main() {
     );
   });
 
+  test('matches existing legacy links with empty fragments', () async {
+    final feedId = await insertFeed();
+    final existingId = await insertArticle(
+      feedId: feedId,
+      link: 'https://example.com/articles/legacy#',
+      contentHtml: '<p>same</p>',
+      isRead: true,
+    );
+
+    final newArticles = await ArticleRepository(isar!).upsertMany(feedId, [
+      incomingArticle(
+        link: 'https://example.com/articles/legacy',
+        contentHtml: '<p>same</p>',
+        publishedAt: DateTime.utc(2025, 5, 5),
+      ),
+    ]);
+
+    final allArticles = await isar!.articles.where().findAll();
+    final stored = await isar!.articles.get(existingId);
+    expect(newArticles, isEmpty);
+    expect(allArticles, hasLength(1));
+    expect(stored, isNotNull);
+    expect(stored!.link, 'https://example.com/articles/legacy');
+    expect(stored.isRead, isTrue);
+  });
+
   test('falls back publishedAt for existing and new articles', () async {
     final feedId = await insertFeed();
     final existingPublishedAt = DateTime.utc(2025, 1, 1);
