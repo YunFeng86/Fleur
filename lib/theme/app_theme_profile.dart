@@ -35,8 +35,8 @@ class AppThemeProfile {
       return const AppThemeProfile(
         platformClass: AppThemePlatformClass.desktop,
         visualDensity: VisualDensity.compact,
-        cardRadius: 14,
-        fieldRadius: 14,
+        cardRadius: 8,
+        fieldRadius: 10,
         persistentScrollbar: true,
         centerCupertinoStyleTitles: false,
         readerHorizontalPadding: 20,
@@ -48,8 +48,8 @@ class AppThemeProfile {
     return const AppThemeProfile(
       platformClass: AppThemePlatformClass.mobile,
       visualDensity: VisualDensity.standard,
-      cardRadius: 16,
-      fieldRadius: 16,
+      cardRadius: 8,
+      fieldRadius: 10,
       persistentScrollbar: false,
       centerCupertinoStyleTitles: false,
       readerHorizontalPadding: 16,

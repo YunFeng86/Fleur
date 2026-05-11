@@ -1504,10 +1504,21 @@ void main() {
       await tester.pumpAndSettle();
 
       final theme = AppTheme.light();
-      final card = tester.widget<Card>(find.byType(Card));
+      final rowDecoration =
+          tester
+                  .widget<DecoratedBox>(
+                    find
+                        .descendant(
+                          of: find.byType(ArticleListItem),
+                          matching: find.byType(DecoratedBox),
+                        )
+                        .first,
+                  )
+                  .decoration
+              as BoxDecoration;
       final title = tester.widget<Text>(find.text('Selected Article'));
 
-      expect(card.color, theme.fleurSurface.cardSelected);
+      expect(rowDecoration.color, theme.fleurSurface.cardSelected);
       expect(title.style?.fontWeight, FontWeight.w700);
       expect(find.byIcon(Icons.star), findsOneWidget);
     },

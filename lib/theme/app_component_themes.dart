@@ -15,9 +15,12 @@ class AppComponentThemes {
     required FleurReaderTheme reader,
   }) {
     final scheme = base.colorScheme;
+    final panelBorder = surfaces.subtleDivider.withAlpha(
+      profile.isDesktop ? 64 : 72,
+    );
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(profile.cardRadius),
-      side: BorderSide(color: surfaces.subtleDivider),
+      side: BorderSide(color: panelBorder),
     );
 
     WidgetStateProperty<Color?> stateLayer(Color baseColor) {
@@ -139,7 +142,7 @@ class AppComponentThemes {
         labelStyle: base.textTheme.labelLarge?.copyWith(
           color: scheme.onSurface,
         ),
-        side: BorderSide(color: surfaces.subtleDivider),
+        side: BorderSide(color: panelBorder),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(profile.cardRadius),
         ),
