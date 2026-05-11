@@ -85,6 +85,27 @@ void main() {
     expect(meta.updatedAt.toIso8601String(), now.toIso8601String());
   });
 
+  test('ImageMeta.fromJson rejects non-finite dimensions', () {
+    final now = DateTime(2026, 2, 4, 12, 0, 0).toIso8601String();
+
+    expect(
+      ImageMeta.fromJson({
+        'width': double.nan,
+        'height': 480,
+        'updatedAt': now,
+      }),
+      isNull,
+    );
+    expect(
+      ImageMeta.fromJson({
+        'width': 640,
+        'height': double.infinity,
+        'updatedAt': now,
+      }),
+      isNull,
+    );
+  });
+
   test('clear removes cached data', () async {
     final store = ImageMetaStore();
     await store.saveMany({
