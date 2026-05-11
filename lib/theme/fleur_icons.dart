@@ -1,39 +1,39 @@
 import 'package:flutter/widgets.dart';
-import 'package:fluentui_system_icons/fluentui_system_icons.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 abstract final class FleurIcons {
   const FleurIcons._();
 
-  static const IconData feeds = FluentIcons.rss_24_regular;
-  static const IconData feedsSelected = FluentIcons.rss_24_filled;
-  static const IconData saved = FluentIcons.bookmark_24_regular;
-  static const IconData savedSelected = FluentIcons.bookmark_24_filled;
-  static const IconData search = FluentIcons.search_24_regular;
-  static const IconData searchSelected = FluentIcons.search_24_filled;
-  static const IconData settings = FluentIcons.settings_24_regular;
-  static const IconData settingsSelected = FluentIcons.settings_24_filled;
+  static const IconData feeds = LucideIcons.rss;
+  static const IconData feedsSelected = LucideIcons.rss500;
+  static const IconData saved = LucideIcons.bookmark;
+  static const IconData savedSelected = LucideIcons.bookmark500;
+  static const IconData search = LucideIcons.search;
+  static const IconData searchSelected = LucideIcons.search500;
+  static const IconData settings = LucideIcons.settings;
+  static const IconData settingsSelected = LucideIcons.settings500;
 
   static const IconData translate = PhosphorIconsRegular.translate;
-  static const IconData fullText = FluentIcons.document_text_24_regular;
+  static const IconData fullText = LucideIcons.fileText;
   static const IconData refresh = PhosphorIconsRegular.arrowClockwise;
   static const IconData markAllRead = PhosphorIconsRegular.checks;
-  static const IconData filter = FluentIcons.filter_24_regular;
-  static const IconData filterActive = FluentIcons.filter_24_filled;
+  static const IconData filter = LucideIcons.funnel;
+  static const IconData filterActive = LucideIcons.funnel500;
   static const IconData clear = PhosphorIconsRegular.x;
   static const IconData close = PhosphorIconsRegular.x;
-  static const IconData article = FluentIcons.document_text_24_regular;
+  static const IconData article = LucideIcons.fileText;
   static const IconData brokenImage = PhosphorIconsRegular.imageBroken;
-  static const IconData star = FluentIcons.star_24_regular;
-  static const IconData starActive = FluentIcons.star_24_filled;
-  static const IconData markRead = FluentIcons.mail_read_24_regular;
-  static const IconData markUnread = FluentIcons.mail_unread_24_regular;
+  static const IconData star = LucideIcons.star;
+  static const IconData starActive = LucideIcons.star500;
+  static const IconData markRead = LucideIcons.mailOpen;
+  static const IconData markUnread = LucideIcons.mail;
   static const IconData openExternal = PhosphorIconsRegular.arrowSquareOut;
   static const IconData moreHorizontal = PhosphorIconsRegular.dotsThree;
   static const IconData readerSettings = PhosphorIconsRegular.textT;
   static const IconData aiSummary = PhosphorIconsRegular.sparkle;
-  static const IconData readLater = FluentIcons.clock_24_regular;
-  static const IconData readLaterActive = FluentIcons.clock_24_filled;
+  static const IconData readLater = LucideIcons.clock;
+  static const IconData readLaterActive = LucideIcons.clock500;
   static const IconData tag = PhosphorIconsRegular.tagSimple;
   static const IconData copy = PhosphorIconsRegular.copySimple;
   static const IconData share = PhosphorIconsRegular.share;
@@ -49,9 +49,9 @@ abstract final class FleurIcons {
   static const IconData accountSwitcher = PhosphorIconsRegular.caretUpDown;
 
   static const IconData allArticles = PhosphorIconsRegular.tray;
-  static const IconData feed = FluentIcons.rss_24_regular;
-  static const IconData category = FluentIcons.folder_24_regular;
-  static const IconData categoryOpen = FluentIcons.folder_open_24_regular;
+  static const IconData feed = LucideIcons.rss;
+  static const IconData category = LucideIcons.folder;
+  static const IconData categoryOpen = LucideIcons.folderOpen;
   static const IconData expand = PhosphorIconsRegular.caretRight;
   static const IconData collapse = PhosphorIconsRegular.caretDown;
   static const IconData moreVertical = PhosphorIconsRegular.dotsThreeVertical;
@@ -70,7 +70,7 @@ abstract final class FleurIcons {
   static const IconData dropdown = PhosphorIconsRegular.caretDown;
   static const IconData inherit = PhosphorIconsRegular.arrowCounterClockwise;
   static const IconData reset = PhosphorIconsRegular.arrowCounterClockwise;
-  static const IconData localAccount = FluentIcons.rss_24_regular;
+  static const IconData localAccount = LucideIcons.rss;
   static const IconData minifluxAccount = PhosphorIconsRegular.cloud;
   static const IconData feverAccount = PhosphorIconsRegular.flame;
   static const IconData activeAccount = PhosphorIconsRegular.checkCircle;
@@ -81,16 +81,16 @@ abstract final class FleurIcons {
   static const IconData download = PhosphorIconsRegular.downloadSimple;
   static const IconData document = PhosphorIconsRegular.fileText;
 
-  static const IconData appPreferences = FluentIcons.settings_24_regular;
-  static const IconData appPreferencesSelected = FluentIcons.settings_24_filled;
-  static const IconData grouping = FluentIcons.list_24_regular;
-  static const IconData groupingSelected = FluentIcons.list_24_filled;
-  static const IconData services = FluentIcons.cloud_24_regular;
-  static const IconData servicesSelected = FluentIcons.cloud_24_filled;
-  static const IconData translationAi = FluentIcons.translate_24_regular;
-  static const IconData translationAiSelected = FluentIcons.translate_24_filled;
-  static const IconData about = FluentIcons.info_24_regular;
-  static const IconData aboutSelected = FluentIcons.info_24_filled;
+  static const IconData appPreferences = LucideIcons.settings;
+  static const IconData appPreferencesSelected = LucideIcons.settings500;
+  static const IconData grouping = LucideIcons.list;
+  static const IconData groupingSelected = LucideIcons.list500;
+  static const IconData services = LucideIcons.cloud;
+  static const IconData servicesSelected = LucideIcons.cloud500;
+  static const IconData translationAi = LucideIcons.languages;
+  static const IconData translationAiSelected = LucideIcons.languages500;
+  static const IconData about = LucideIcons.info;
+  static const IconData aboutSelected = LucideIcons.info500;
   static const IconData aiChat = PhosphorIconsRegular.chatCircle;
   static const IconData aiResponses = PhosphorIconsRegular.lightning;
   static const IconData aiGemini = PhosphorIconsRegular.sparkle;
