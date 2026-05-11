@@ -5,28 +5,7 @@ import 'package:fleur/services/settings/reader_progress_store.dart';
 import 'package:fleur/utils/path_manager.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 
-class _FakePathProviderPlatform extends PathProviderPlatform {
-  _FakePathProviderPlatform({
-    required String documentsPath,
-    required String supportPath,
-    required String cachePath,
-  }) : _documentsPath = documentsPath,
-       _supportPath = supportPath,
-       _cachePath = cachePath;
-
-  final String _documentsPath;
-  final String _supportPath;
-  final String _cachePath;
-
-  @override
-  Future<String?> getApplicationDocumentsPath() async => _documentsPath;
-
-  @override
-  Future<String?> getApplicationSupportPath() async => _supportPath;
-
-  @override
-  Future<String?> getApplicationCachePath() async => _cachePath;
-}
+import '../test_utils/fake_path_provider_platform.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -49,7 +28,7 @@ void main() {
     final cache = await Directory(
       '${tempDir.path}/cache',
     ).create(recursive: true);
-    PathProviderPlatform.instance = _FakePathProviderPlatform(
+    PathProviderPlatform.instance = FakePathProviderPlatform(
       documentsPath: docs.path,
       supportPath: support.path,
       cachePath: cache.path,
