@@ -8,6 +8,7 @@ import 'package:fleur/l10n/app_localizations.dart';
 
 import '../providers/account_providers.dart';
 import '../services/accounts/account.dart';
+import '../theme/fleur_icons.dart';
 import '../ui/dialogs/add_account_dialogs.dart';
 import '../ui/dialogs/text_input_dialog.dart';
 import '../utils/context_extensions.dart';
@@ -30,21 +31,21 @@ class AccountManagerDialog extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 _AccountTypeCard(
-                  icon: Icons.rss_feed,
+                  icon: FleurIcons.localAccount,
                   title: l10n.addLocal,
                   subtitle: l10n.local,
                   onTap: () =>
                       Navigator.of(dialogContext).pop(AccountType.local),
                 ),
                 _AccountTypeCard(
-                  icon: Icons.cloud_outlined,
+                  icon: FleurIcons.minifluxAccount,
                   title: l10n.addMiniflux,
                   subtitle: l10n.miniflux,
                   onTap: () =>
                       Navigator.of(dialogContext).pop(AccountType.miniflux),
                 ),
                 _AccountTypeCard(
-                  icon: Icons.local_fire_department_outlined,
+                  icon: FleurIcons.feverAccount,
                   title: l10n.addFever,
                   subtitle: l10n.fever,
                   onTap: () =>
@@ -191,7 +192,7 @@ class AccountManagerDialog extends ConsumerWidget {
                           context,
                         ).closeButtonTooltip,
                         onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.close),
+                        icon: const Icon(FleurIcons.close),
                       ),
                     ],
                   ),
@@ -202,13 +203,13 @@ class AccountManagerDialog extends ConsumerWidget {
                     children: [
                       FilledButton.icon(
                         onPressed: () => unawaited(_addAccount(context, ref)),
-                        icon: const Icon(Icons.add),
+                        icon: const Icon(FleurIcons.add),
                         label: Text(l10n.add),
                       ),
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.check_circle_outline),
+                          const Icon(FleurIcons.activeAccount),
                           const SizedBox(width: 4),
                           Text(active.name),
                         ],
@@ -297,7 +298,7 @@ class AccountManagerDialog extends ConsumerWidget {
                                             left: 8.0,
                                           ),
                                           child: Icon(
-                                            Icons.check_circle,
+                                            FleurIcons.activeAccount,
                                             size: 18,
                                             color: scheme.primary,
                                           ),
@@ -316,7 +317,7 @@ class AccountManagerDialog extends ConsumerWidget {
                                         tooltip: l10n.rename,
                                         onPressed: () =>
                                             _renameAccount(context, ref, a),
-                                        icon: const Icon(Icons.edit_outlined),
+                                        icon: const Icon(FleurIcons.rename),
                                       ),
                                       IconButton(
                                         tooltip: l10n.delete,
@@ -327,7 +328,7 @@ class AccountManagerDialog extends ConsumerWidget {
                                                 ref,
                                                 a,
                                               ),
-                                        icon: const Icon(Icons.delete_outline),
+                                        icon: const Icon(FleurIcons.delete),
                                       ),
                                     ],
                                   ),
@@ -392,7 +393,7 @@ class _AccountTypeCard extends StatelessWidget {
         ),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: Text(subtitle),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+        trailing: const Icon(FleurIcons.chevronRight, size: 14),
         onTap: onTap,
       ),
     );

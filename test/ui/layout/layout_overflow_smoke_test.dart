@@ -8,6 +8,7 @@ import 'package:path_provider_platform_interface/path_provider_platform_interfac
 
 import 'package:fleur/l10n/app_localizations.dart';
 import 'package:fleur/screens/settings_screen.dart';
+import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/ui/dialogs/add_account_dialogs.dart';
 import 'package:fleur/ui/settings/tabs/about_tab.dart';
 import 'package:fleur/utils/path_manager.dart';
@@ -316,7 +317,7 @@ void main() {
 
         final viewLicenseButton = find.widgetWithIcon(
           OutlinedButton,
-          Icons.description_outlined,
+          FleurIcons.document,
         );
         await tester.scrollUntilVisible(
           viewLicenseButton,

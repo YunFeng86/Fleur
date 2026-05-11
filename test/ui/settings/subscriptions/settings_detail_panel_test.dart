@@ -16,6 +16,7 @@ import 'package:fleur/repositories/feed_repository.dart';
 import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/theme/app_theme.dart';
+import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/ui/settings/subscriptions/subscription_layout_manager.dart';
 import 'package:fleur/ui/settings/subscriptions/settings_detail_panel.dart';
 
@@ -278,11 +279,11 @@ void main() {
         matching: find.byType(ListTile),
       );
       expect(
-        find.descendant(of: tile, matching: find.byIcon(Icons.refresh)),
+        find.descendant(of: tile, matching: find.byIcon(FleurIcons.inherit)),
         findsNothing,
       );
       await tester.tap(
-        find.descendant(of: tile, matching: find.byIcon(Icons.arrow_drop_down)),
+        find.descendant(of: tile, matching: find.byIcon(FleurIcons.dropdown)),
       );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
@@ -293,19 +294,19 @@ void main() {
       expect(fakeRepo.currentFeed.autoTranslate, isFalse);
       expect(find.text('Off'), findsWidgets);
       expect(
-        find.descendant(of: tile, matching: find.byIcon(Icons.refresh)),
+        find.descendant(of: tile, matching: find.byIcon(FleurIcons.inherit)),
         findsOneWidget,
       );
 
       await tester.tap(
-        find.descendant(of: tile, matching: find.byIcon(Icons.refresh)),
+        find.descendant(of: tile, matching: find.byIcon(FleurIcons.inherit)),
       );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
 
       expect(fakeRepo.currentFeed.autoTranslate, isNull);
       expect(
-        find.descendant(of: tile, matching: find.byIcon(Icons.refresh)),
+        find.descendant(of: tile, matching: find.byIcon(FleurIcons.inherit)),
         findsNothing,
       );
     },
@@ -345,7 +346,7 @@ void main() {
     expect(find.text('https://example.com/feed.xml'), findsOneWidget);
     expect(find.text('Refresh'), findsOneWidget);
     expect(find.text('Delete'), findsOneWidget);
-    expect(find.byIcon(Icons.delete_outline), findsOneWidget);
+    expect(find.byIcon(FleurIcons.delete), findsOneWidget);
   });
 
   testWidgets('Miniflux feed details keep source refresh action', (

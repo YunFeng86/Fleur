@@ -139,7 +139,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.folder_outlined), findsNothing);
+      expect(find.byIcon(FleurIcons.category), findsNothing);
       expect(find.text('Tech News'), findsNothing);
       expect(
         tester.getCenter(find.byIcon(FleurIcons.expand)).dx,
@@ -496,12 +496,12 @@ void main() {
       await tester.tap(find.byIcon(FleurIcons.moreHorizontal));
       await tester.pumpAndSettle();
 
-      expect(find.text('Settings'), findsOneWidget);
-      expect(find.text('Refresh sources'), findsOneWidget);
-      expect(find.text('Import OPML'), findsOneWidget);
-      expect(find.text('Export OPML'), findsOneWidget);
-      expect(find.text('Add subscription'), findsNothing);
-      expect(find.text('New category'), findsNothing);
+      expect(_popupMenuText('Settings'), findsOneWidget);
+      expect(_popupMenuText('Refresh sources'), findsOneWidget);
+      expect(_popupMenuText('Import OPML'), findsOneWidget);
+      expect(_popupMenuText('Export OPML'), findsOneWidget);
+      expect(_popupMenuText('Add subscription'), findsNothing);
+      expect(_popupMenuText('New category'), findsNothing);
 
       await tester.tapAt(const Offset(5, 5));
       await tester.pumpAndSettle();

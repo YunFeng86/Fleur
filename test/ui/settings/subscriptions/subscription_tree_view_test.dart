@@ -618,7 +618,7 @@ void main() {
       tester.element(find.byType(SubscriptionTreeView)),
     );
 
-    expect(find.byIcon(Icons.folder_outlined), findsNothing);
+    expect(find.byIcon(FleurIcons.category), findsNothing);
     expect(
       tester.getCenter(find.byIcon(FleurIcons.expand)).dx,
       lessThan(tester.getCenter(find.text('Tech')).dx),

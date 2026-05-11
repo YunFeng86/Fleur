@@ -16,6 +16,7 @@ import '../providers/unread_providers.dart';
 import '../providers/sync_status_providers.dart';
 import '../services/accounts/account.dart';
 import '../services/sync/sync_status_reporter.dart';
+import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/layout_spec.dart';
 import '../ui/motion.dart';
@@ -390,8 +391,8 @@ class _AccountFooter extends StatelessWidget {
                                   else
                                     Icon(
                                       sync.label == SyncStatusLabel.failed
-                                          ? Icons.error_outline
-                                          : Icons.check,
+                                          ? FleurIcons.statusError
+                                          : FleurIcons.statusOk,
                                       size: 12,
                                       color:
                                           sync.label == SyncStatusLabel.failed
@@ -417,7 +418,11 @@ class _AccountFooter extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(Icons.unfold_more, size: 18, color: scheme.onSurfaceVariant),
+              Icon(
+                FleurIcons.accountSwitcher,
+                size: 18,
+                color: scheme.onSurfaceVariant,
+              ),
             ],
           ),
         ),

@@ -13,6 +13,7 @@ import '../../../services/accounts/account.dart';
 import '../../../services/settings/app_settings.dart';
 import '../../../services/sync/backend_capabilities.dart';
 import '../../../services/sync/backend_sync_semantics.dart';
+import '../../../theme/fleur_icons.dart';
 import '../../../utils/context_extensions.dart';
 import '../../../widgets/account_avatar.dart';
 import '../../actions/subscription_actions.dart';
@@ -85,21 +86,21 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 ListTile(
-                  leading: const Icon(Icons.rss_feed),
+                  leading: const Icon(FleurIcons.localAccount),
                   title: Text(l10n.addLocal),
                   subtitle: Text(l10n.local),
                   onTap: () =>
                       Navigator.of(dialogContext).pop(AccountType.local),
                 ),
                 ListTile(
-                  leading: const Icon(Icons.cloud_outlined),
+                  leading: const Icon(FleurIcons.minifluxAccount),
                   title: Text(l10n.addMiniflux),
                   subtitle: Text(l10n.miniflux),
                   onTap: () =>
                       Navigator.of(dialogContext).pop(AccountType.miniflux),
                 ),
                 ListTile(
-                  leading: const Icon(Icons.local_fire_department_outlined),
+                  leading: const Icon(FleurIcons.feverAccount),
                   title: Text(l10n.addFever),
                   subtitle: Text(l10n.fever),
                   onTap: () =>
@@ -244,10 +245,10 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
                       key: const Key('services_add_account'),
                       leading: const CircleAvatar(
                         radius: 18,
-                        child: Icon(Icons.add),
+                        child: Icon(FleurIcons.add),
                       ),
                       title: Text(l10n.addOrRegisterAccount),
-                      trailing: const Icon(Icons.chevron_right, size: 20),
+                      trailing: const Icon(FleurIcons.chevronRight, size: 20),
                       onTap: () => unawaited(addAccount()),
                     ),
                   ],
@@ -324,7 +325,7 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
                             height: 18,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.refresh),
+                        : const Icon(FleurIcons.refresh),
                     label: Text(refreshActionLabel),
                   ),
                 ],
@@ -496,7 +497,7 @@ class _AccountSettingsTile extends StatelessWidget {
         children: [
           if (isActive)
             Icon(
-              Icons.check_circle,
+              FleurIcons.activeAccount,
               key: Key('services_account_selected_${account.id}'),
               color: scheme.primary,
               size: 20,
@@ -504,6 +505,7 @@ class _AccountSettingsTile extends StatelessWidget {
           PopupMenuButton<_AccountAction>(
             key: Key('services_account_menu_${account.id}'),
             tooltip: l10n.more,
+            icon: const Icon(FleurIcons.moreVertical),
             onSelected: (action) {
               switch (action) {
                 case _AccountAction.rename:
@@ -520,7 +522,7 @@ class _AccountSettingsTile extends StatelessWidget {
                   key: Key('services_account_rename_${account.id}'),
                   value: _AccountAction.rename,
                   child: _AccountMenuItem(
-                    icon: Icons.edit_outlined,
+                    icon: FleurIcons.rename,
                     label: l10n.rename,
                   ),
                 ),
@@ -529,7 +531,7 @@ class _AccountSettingsTile extends StatelessWidget {
                   value: _AccountAction.delete,
                   enabled: onDelete != null,
                   child: _AccountMenuItem(
-                    icon: Icons.delete_outline,
+                    icon: FleurIcons.delete,
                     label: l10n.delete,
                   ),
                 ),

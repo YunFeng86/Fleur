@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/accounts/account.dart';
+import '../theme/fleur_icons.dart';
 
 Color _colorForAccount(Account account) {
   // Stable-ish accent per account id; avoids importing more deps.
@@ -38,9 +39,9 @@ class AccountAvatar extends StatelessWidget {
   final bool showTypeBadge;
 
   IconData _typeIcon(AccountType type) => switch (type) {
-    AccountType.local => Icons.rss_feed,
-    AccountType.miniflux => Icons.cloud_outlined,
-    AccountType.fever => Icons.local_fire_department_outlined,
+    AccountType.local => FleurIcons.localAccount,
+    AccountType.miniflux => FleurIcons.minifluxAccount,
+    AccountType.fever => FleurIcons.feverAccount,
   };
 
   @override

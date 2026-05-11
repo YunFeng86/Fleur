@@ -10,6 +10,7 @@ import '../../../providers/app_settings_providers.dart';
 import '../../../providers/translation_ai_settings_providers.dart';
 import '../../../services/settings/app_settings.dart';
 import '../../../services/settings/translation_ai_settings.dart';
+import '../../../theme/fleur_icons.dart';
 import '../../../utils/context_extensions.dart';
 import '../../../utils/language_utils.dart';
 import '../../../utils/prompt_template.dart';
@@ -83,7 +84,7 @@ class TranslationAiServicesTab extends ConsumerWidget {
                                 ),
                               ),
                               trailing: option == current
-                                  ? const Icon(Icons.check)
+                                  ? const Icon(FleurIcons.check)
                                   : null,
                               onTap: () => Navigator.of(context).pop(option),
                             ),
@@ -389,7 +390,7 @@ class TranslationAiServicesTab extends ConsumerWidget {
                       tooltip: MaterialLocalizations.of(
                         context,
                       ).closeButtonTooltip,
-                      icon: const Icon(Icons.close),
+                      icon: const Icon(FleurIcons.close),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                   ],
@@ -563,7 +564,7 @@ class TranslationAiServicesTab extends ConsumerWidget {
                               ),
                             ),
                             trailing: settings.targetLanguageTag == null
-                                ? const Icon(Icons.check)
+                                ? const Icon(FleurIcons.check)
                                 : null,
                             onTap: () => Navigator.of(
                               context,
@@ -576,7 +577,7 @@ class TranslationAiServicesTab extends ConsumerWidget {
                               ),
                               subtitle: Text(tag),
                               trailing: current == tag
-                                  ? const Icon(Icons.check)
+                                  ? const Icon(FleurIcons.check)
                                   : null,
                               onTap: () => Navigator.of(
                                 context,
@@ -625,7 +626,7 @@ class TranslationAiServicesTab extends ConsumerWidget {
                               defaultAiServiceName ?? l10n.aiNotConfigured,
                             ),
                             trailing: explicitAiSummaryServiceId == null
-                                ? const Icon(Icons.check)
+                                ? const Icon(FleurIcons.check)
                                 : null,
                             onTap: () => Navigator.of(
                               context,
@@ -639,13 +640,16 @@ class TranslationAiServicesTab extends ConsumerWidget {
                                   if (s.id == defaultAiServiceId)
                                     const Padding(
                                       padding: EdgeInsets.only(left: 8),
-                                      child: Icon(Icons.star, size: 18),
+                                      child: Icon(
+                                        FleurIcons.starActive,
+                                        size: 18,
+                                      ),
                                     ),
                                 ],
                               ),
                               subtitle: Text(apiTypeLabel(s.apiType)),
                               trailing: explicitAiSummaryServiceId == s.id
-                                  ? const Icon(Icons.check)
+                                  ? const Icon(FleurIcons.check)
                                   : null,
                               onTap: () => Navigator.of(
                                 context,
@@ -665,7 +669,7 @@ class TranslationAiServicesTab extends ConsumerWidget {
                               ),
                             ),
                           ListTile(
-                            leading: const Icon(Icons.add),
+                            leading: const Icon(FleurIcons.add),
                             title: Text(l10n.addAiService),
                             onTap: () {
                               Navigator.of(context).pop();
@@ -877,34 +881,34 @@ class TranslationAiServicesTab extends ConsumerWidget {
                 child: SettingsTileGroup(
                   children: [
                     SettingsTile(
-                      leading: const Icon(Icons.translate),
+                      leading: const Icon(FleurIcons.translate),
                       title: Text(l10n.translationProvider),
                       subtitle: Text(translationLabel),
-                      trailing: const Icon(Icons.chevron_right),
+                      trailing: const Icon(FleurIcons.chevronRight),
                       onTap: pickTranslationProvider,
                     ),
                     SettingsTile(
-                      leading: const Icon(Icons.language),
+                      leading: const Icon(FleurIcons.language),
                       title: Text(l10n.targetLanguage),
                       subtitle: Text(targetLanguageSubtitle),
-                      trailing: const Icon(Icons.chevron_right),
+                      trailing: const Icon(FleurIcons.chevronRight),
                       onTap: pickTargetLanguage,
                     ),
                     SettingsTile(
-                      leading: const Icon(Icons.edit_note),
+                      leading: const Icon(FleurIcons.prompt),
                       title: Text(l10n.aiTranslationPrompt),
                       subtitle: Text(
                         effectiveAiTranslationPrompt,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      trailing: const Icon(Icons.chevron_right),
+                      trailing: const Icon(FleurIcons.chevronRight),
                       onTap: editAiTranslationPrompt,
                     ),
                     SettingsTile(
                       title: Text(l10n.translationProviderBaiduApi),
                       subtitle: Text(l10n.translationProviderBaiduApiSubtitle),
-                      trailing: const Icon(Icons.chevron_right),
+                      trailing: const Icon(FleurIcons.chevronRight),
                       onTap: configureBaidu,
                     ),
                     SettingsTile(
@@ -912,7 +916,7 @@ class TranslationAiServicesTab extends ConsumerWidget {
                       subtitle: Text(
                         '${l10n.deepLEndpoint}: ${_deepLEndpointLabel(l10n, settings.deepL.endpoint)} · ${l10n.apiKey}',
                       ),
-                      trailing: const Icon(Icons.chevron_right),
+                      trailing: const Icon(FleurIcons.chevronRight),
                       onTap: configureDeepL,
                     ),
                     SettingsTile(
@@ -924,7 +928,7 @@ class TranslationAiServicesTab extends ConsumerWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      trailing: const Icon(Icons.chevron_right),
+                      trailing: const Icon(FleurIcons.chevronRight),
                       onTap: setDeepLXBaseUrl,
                     ),
                   ],
@@ -938,30 +942,30 @@ class TranslationAiServicesTab extends ConsumerWidget {
                 child: SettingsTileGroup(
                   children: [
                     SettingsTile(
-                      leading: const Icon(Icons.summarize),
+                      leading: const Icon(FleurIcons.aiSummary),
                       title: Text(l10n.aiSummaryService),
                       subtitle: Text(aiSummaryServiceSubtitle),
-                      trailing: const Icon(Icons.chevron_right),
+                      trailing: const Icon(FleurIcons.chevronRight),
                       onTap: pickAiSummaryService,
                     ),
                     SettingsTile(
-                      leading: const Icon(Icons.edit_note),
+                      leading: const Icon(FleurIcons.prompt),
                       title: Text(l10n.aiSummaryPrompt),
                       subtitle: Text(
                         effectiveAiSummaryPrompt,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      trailing: const Icon(Icons.chevron_right),
+                      trailing: const Icon(FleurIcons.chevronRight),
                       onTap: editAiSummaryPrompt,
                     ),
                     SettingsTile(
-                      leading: const Icon(Icons.speed),
+                      leading: const Icon(FleurIcons.speed),
                       title: Text(l10n.tpmLimit),
                       subtitle: Text(
                         '${settings.tpmLimit} · ${l10n.tpmLimitSubtitle}',
                       ),
-                      trailing: const Icon(Icons.chevron_right),
+                      trailing: const Icon(FleurIcons.chevronRight),
                       onTap: editTpmLimit,
                     ),
                   ],
@@ -978,7 +982,7 @@ class TranslationAiServicesTab extends ConsumerWidget {
                     alignment: Alignment.centerRight,
                     child: FilledButton.icon(
                       onPressed: addAiService,
-                      icon: const Icon(Icons.add),
+                      icon: const Icon(FleurIcons.add),
                       label: Text(l10n.addAiService),
                     ),
                   ),
@@ -1037,6 +1041,7 @@ class TranslationAiServicesTab extends ConsumerWidget {
                               Widget buildMenuButton() {
                                 return PopupMenuButton<_AiServiceAction>(
                                   tooltip: l10n.more,
+                                  icon: const Icon(FleurIcons.moreVertical),
                                   onSelected: (action) {
                                     unawaited(handleAction(action));
                                   },
@@ -1141,7 +1146,8 @@ class TranslationAiServicesTab extends ConsumerWidget {
                                                                 left: 8,
                                                               ),
                                                           child: Icon(
-                                                            Icons.star,
+                                                            FleurIcons
+                                                                .starActive,
                                                             size: 18,
                                                           ),
                                                         ),
@@ -1215,7 +1221,10 @@ class TranslationAiServicesTab extends ConsumerWidget {
                                         if (isDefault)
                                           const Padding(
                                             padding: EdgeInsets.only(left: 8),
-                                            child: Icon(Icons.star, size: 18),
+                                            child: Icon(
+                                              FleurIcons.starActive,
+                                              size: 18,
+                                            ),
                                           ),
                                       ],
                                     ),

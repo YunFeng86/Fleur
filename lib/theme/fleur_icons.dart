@@ -41,6 +41,11 @@ abstract final class FleurIcons {
   static const IconData caseSensitive = PhosphorIconsRegular.textAa;
   static const IconData check = PhosphorIconsRegular.check;
   static const IconData autoScroll = PhosphorIconsRegular.caretUpDown;
+  static const IconData statusOk = PhosphorIconsRegular.check;
+  static const IconData statusError = PhosphorIconsRegular.warningCircle;
+  static const IconData syncUpload = PhosphorIconsRegular.cloudArrowUp;
+  static const IconData syncWarning = PhosphorIconsRegular.cloudWarning;
+  static const IconData accountSwitcher = PhosphorIconsRegular.caretUpDown;
 
   static const IconData allArticles = PhosphorIconsRegular.tray;
   static const IconData feed = PhosphorIconsRegular.rssSimple;
@@ -60,6 +65,20 @@ abstract final class FleurIcons {
   static const IconData moveToCategory = PhosphorIconsRegular.folderOpen;
   static const IconData importOpml = PhosphorIconsRegular.uploadSimple;
   static const IconData exportOpml = PhosphorIconsRegular.downloadSimple;
+  static const IconData chevronRight = PhosphorIconsRegular.caretRight;
+  static const IconData dropdown = PhosphorIconsRegular.caretDown;
+  static const IconData inherit = PhosphorIconsRegular.arrowCounterClockwise;
+  static const IconData reset = PhosphorIconsRegular.arrowCounterClockwise;
+  static const IconData localAccount = PhosphorIconsRegular.rssSimple;
+  static const IconData minifluxAccount = PhosphorIconsRegular.cloud;
+  static const IconData feverAccount = PhosphorIconsRegular.flame;
+  static const IconData activeAccount = PhosphorIconsRegular.checkCircle;
+  static const IconData themeSystem = PhosphorIconsRegular.monitor;
+  static const IconData themeLight = PhosphorIconsRegular.sun;
+  static const IconData themeDark = PhosphorIconsRegular.moon;
+  static const IconData colorPicker = PhosphorIconsRegular.eyedropper;
+  static const IconData download = PhosphorIconsRegular.downloadSimple;
+  static const IconData document = PhosphorIconsRegular.fileText;
 
   static const IconData appPreferences = PhosphorIconsRegular.gearSix;
   static const IconData appPreferencesSelected = PhosphorIconsBold.gearSix;
@@ -71,4 +90,11 @@ abstract final class FleurIcons {
   static const IconData translationAiSelected = PhosphorIconsBold.translate;
   static const IconData about = PhosphorIconsRegular.info;
   static const IconData aboutSelected = PhosphorIconsBold.info;
+  static const IconData aiChat = PhosphorIconsRegular.chatCircle;
+  static const IconData aiResponses = PhosphorIconsRegular.lightning;
+  static const IconData aiGemini = PhosphorIconsRegular.sparkle;
+  static const IconData aiAnthropic = PhosphorIconsRegular.brain;
+  static const IconData language = PhosphorIconsRegular.globeHemisphereEast;
+  static const IconData prompt = PhosphorIconsRegular.notePencil;
+  static const IconData speed = PhosphorIconsRegular.speedometer;
 }
