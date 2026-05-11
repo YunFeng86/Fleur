@@ -31,6 +31,7 @@ import 'package:fleur/services/sync/sync_service.dart';
 import 'package:fleur/services/sync/sync_status_reporter.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/app_typography.dart';
+import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
 import 'package:fleur/ui/app_shell.dart';
 import 'package:fleur/ui/home/home_scene_commands.dart';
@@ -1201,7 +1202,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.tap(find.byIcon(FleurIcons.moreVertical));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Refresh').last);
       await tester.pumpAndSettle();

@@ -17,6 +17,7 @@ import '../models/tag.dart';
 import '../services/logging/app_logger.dart';
 import '../services/translation/article_translation.dart';
 import '../theme/app_typography.dart';
+import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../utils/platform.dart';
 import '../utils/tag_colors.dart';
@@ -85,7 +86,7 @@ class ReaderBottomBar extends ConsumerWidget {
               children: [
                 ListTile(title: Text(l10n.translationMode)),
                 ListTile(
-                  leading: const Icon(Icons.auto_awesome_outlined),
+                  leading: const Icon(FleurIcons.aiSummary),
                   title: Text(l10n.immersiveTranslation),
                   onTap: () {
                     Navigator.of(context).pop();
@@ -98,7 +99,7 @@ class ReaderBottomBar extends ConsumerWidget {
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.translate_outlined),
+                  leading: const Icon(FleurIcons.translate),
                   title: Text(l10n.traditionalTranslation),
                   onTap: () {
                     Navigator.of(context).pop();
@@ -223,7 +224,7 @@ class ReaderBottomBar extends ConsumerWidget {
                               child: FaviconAvatar(
                                 siteUri: siteUri,
                                 size: 16,
-                                fallbackIcon: Icons.rss_feed,
+                                fallbackIcon: FleurIcons.feed,
                                 fallbackColor:
                                     theme.colorScheme.onSurfaceVariant,
                               ),
@@ -263,7 +264,7 @@ class ReaderBottomBar extends ConsumerWidget {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : Icon(
-                              Icons.translate,
+                              FleurIcons.translate,
                               color: hasTranslation ? states.syncAccent : null,
                             ),
                     ),
@@ -285,8 +286,8 @@ class ReaderBottomBar extends ConsumerWidget {
                             )
                           : Icon(
                               extractionFailed
-                                  ? Icons.refresh
-                                  : Icons.chrome_reader_mode,
+                                  ? FleurIcons.refresh
+                                  : FleurIcons.fullText,
                               color: extractionFailed
                                   ? states.errorAccent
                                   : showFull
@@ -300,7 +301,9 @@ class ReaderBottomBar extends ConsumerWidget {
                           .read(articleActionServiceProvider)
                           .toggleStar(article.id),
                       icon: Icon(
-                        article.isStarred ? Icons.star : Icons.star_border,
+                        article.isStarred
+                            ? FleurIcons.starActive
+                            : FleurIcons.star,
                         color: article.isStarred ? states.savedAccent : null,
                       ),
                     ),
@@ -311,8 +314,8 @@ class ReaderBottomBar extends ConsumerWidget {
                           .markRead(article.id, !article.isRead),
                       icon: Icon(
                         article.isRead
-                            ? Icons.mark_email_unread
-                            : Icons.mark_email_read,
+                            ? FleurIcons.markUnread
+                            : FleurIcons.markRead,
                       ),
                     ),
                     IconButton(
@@ -326,12 +329,12 @@ class ReaderBottomBar extends ConsumerWidget {
                           );
                         }
                       },
-                      icon: const Icon(Icons.open_in_browser),
+                      icon: const Icon(FleurIcons.openExternal),
                     ),
                     PopupMenuButton<_ReaderOverflowAction>(
                       key: const Key('reader_more_actions_button'),
                       tooltip: l10n.more,
-                      icon: const Icon(Icons.more_horiz),
+                      icon: const Icon(FleurIcons.moreHorizontal),
                       onSelected: (value) {
                         unawaited(handleOverflowAction(value));
                       },
@@ -340,7 +343,7 @@ class ReaderBottomBar extends ConsumerWidget {
                           key: const Key('reader_overflow_settings'),
                           value: _ReaderOverflowAction.settings,
                           child: ListTile(
-                            leading: const Icon(Icons.text_fields),
+                            leading: const Icon(FleurIcons.readerSettings),
                             title: Text(l10n.readerSettings),
                             contentPadding: EdgeInsets.zero,
                           ),
@@ -359,7 +362,7 @@ class ReaderBottomBar extends ConsumerWidget {
                                     ),
                                   )
                                 : Icon(
-                                    Icons.summarize_outlined,
+                                    FleurIcons.aiSummary,
                                     color: hasSummary
                                         ? states.syncAccent
                                         : null,
@@ -374,8 +377,8 @@ class ReaderBottomBar extends ConsumerWidget {
                           child: ListTile(
                             leading: Icon(
                               article.isReadLater
-                                  ? Icons.watch_later
-                                  : Icons.watch_later_outlined,
+                                  ? FleurIcons.readLaterActive
+                                  : FleurIcons.readLater,
                               color: article.isReadLater
                                   ? states.savedAccent
                                   : null,
@@ -388,7 +391,7 @@ class ReaderBottomBar extends ConsumerWidget {
                           key: const Key('reader_overflow_tags'),
                           value: _ReaderOverflowAction.tags,
                           child: ListTile(
-                            leading: const Icon(Icons.label_outline),
+                            leading: const Icon(FleurIcons.tag),
                             title: Text(l10n.manageTags),
                             contentPadding: EdgeInsets.zero,
                           ),
@@ -397,7 +400,7 @@ class ReaderBottomBar extends ConsumerWidget {
                           key: const Key('reader_overflow_copy_link'),
                           value: _ReaderOverflowAction.copyLink,
                           child: ListTile(
-                            leading: const Icon(Icons.content_copy),
+                            leading: const Icon(FleurIcons.copy),
                             title: Text(l10n.copyLink),
                             contentPadding: EdgeInsets.zero,
                           ),
@@ -406,7 +409,7 @@ class ReaderBottomBar extends ConsumerWidget {
                           key: const Key('reader_overflow_share'),
                           value: _ReaderOverflowAction.share,
                           child: ListTile(
-                            leading: const Icon(Icons.share_outlined),
+                            leading: const Icon(FleurIcons.share),
                             title: Text(l10n.share),
                             contentPadding: EdgeInsets.zero,
                           ),

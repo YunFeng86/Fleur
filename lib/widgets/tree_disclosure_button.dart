@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/fleur_icons.dart';
+
 class TreeDisclosureButton extends StatelessWidget {
   const TreeDisclosureButton({
     super.key,
@@ -23,7 +25,7 @@ class TreeDisclosureButton extends StatelessWidget {
         style: const ButtonStyle(shape: WidgetStatePropertyAll(CircleBorder())),
         tooltip: tooltip,
         onPressed: onPressed,
-        icon: Icon(expanded ? Icons.keyboard_arrow_down : Icons.chevron_right),
+        icon: Icon(expanded ? FleurIcons.collapse : FleurIcons.expand),
       ),
     );
   }

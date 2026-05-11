@@ -12,6 +12,7 @@ import '../ui/settings/tabs/services_tab.dart';
 import '../ui/settings/tabs/translation_ai_services_tab.dart';
 import '../ui/settings/widgets/section_header.dart';
 import '../providers/subscription_settings_provider.dart';
+import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../utils/platform.dart';
 import '../widgets/app_scrollbar.dart';
@@ -53,43 +54,43 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return [
       _SettingsPageItem(
         tab: SettingsTab.appPreferences,
-        icon: Icons.settings_outlined,
-        selectedIcon: Icons.settings,
+        icon: FleurIcons.appPreferences,
+        selectedIcon: FleurIcons.appPreferencesSelected,
         label: l10n.appPreferences,
         content: AppPreferencesTab(showPageTitle: showPageTitle),
       ),
       _SettingsPageItem(
         tab: SettingsTab.subscriptions,
-        icon: Icons.rss_feed_outlined,
-        selectedIcon: Icons.rss_feed,
+        icon: FleurIcons.feeds,
+        selectedIcon: FleurIcons.feedsSelected,
         label: l10n.subscriptions,
         content: SubscriptionsSettingsTab(showPageTitle: showPageTitle),
       ),
       _SettingsPageItem(
         tab: SettingsTab.groupingAndSorting,
-        icon: Icons.format_list_bulleted,
-        selectedIcon: Icons.format_list_bulleted,
+        icon: FleurIcons.grouping,
+        selectedIcon: FleurIcons.groupingSelected,
         label: l10n.groupingAndSorting,
         content: GroupingSortingTab(showPageTitle: showPageTitle),
       ),
       _SettingsPageItem(
         tab: SettingsTab.services,
-        icon: Icons.cloud_outlined,
-        selectedIcon: Icons.cloud,
+        icon: FleurIcons.services,
+        selectedIcon: FleurIcons.servicesSelected,
         label: l10n.services,
         content: ServicesTab(showPageTitle: showPageTitle),
       ),
       _SettingsPageItem(
         tab: SettingsTab.translationAndAiServices,
-        icon: Icons.translate_outlined,
-        selectedIcon: Icons.translate,
+        icon: FleurIcons.translationAi,
+        selectedIcon: FleurIcons.translationAiSelected,
         label: l10n.translationAndAiServices,
         content: TranslationAiServicesTab(showPageTitle: showPageTitle),
       ),
       _SettingsPageItem(
         tab: SettingsTab.about,
-        icon: Icons.info_outline,
-        selectedIcon: Icons.info,
+        icon: FleurIcons.about,
+        selectedIcon: FleurIcons.aboutSelected,
         label: l10n.about,
         content: AboutTab(showPageTitle: showPageTitle),
       ),
@@ -213,7 +214,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           SettingsTile(
                             leading: Icon(items[index].icon, size: 20),
                             title: Text(items[index].label),
-                            trailing: const Icon(Icons.chevron_right, size: 20),
+                            trailing: const Icon(FleurIcons.expand, size: 20),
                             onTap: () {
                               setState(() => _selectedTab = items[index].tab);
                             },

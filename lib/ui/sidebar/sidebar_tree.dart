@@ -10,6 +10,7 @@ import '../../models/tag.dart';
 import '../../services/sync/backend_capabilities.dart';
 import '../../services/sync/backend_sync_semantics.dart';
 import '../../theme/app_typography.dart';
+import '../../theme/fleur_icons.dart';
 import '../../ui/sidebar/sidebar_management_actions.dart';
 import '../../ui/sidebar/sidebar_selection_actions.dart';
 import '../actions/subscription_object_menus.dart';
@@ -51,7 +52,7 @@ class SidebarSearchField extends StatelessWidget {
               controller: controller,
               decoration: InputDecoration(
                 hintText: l10n.search,
-                prefixIcon: const Icon(Icons.search, size: 20),
+                prefixIcon: const Icon(FleurIcons.search, size: 20),
               ),
               style: Theme.of(context).textTheme.bodyMedium,
             ),
@@ -410,7 +411,7 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
                         selectedFeedId == null &&
                         selectedCategoryId == null &&
                         selectedTagId == null,
-                    icon: Icons.all_inbox,
+                    icon: FleurIcons.allArticles,
                     title: l10n.all,
                     onSecondaryTapDown: showAllContextMenu,
                     onTap: selectionActions.selectAll,
@@ -423,7 +424,7 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
                         selectedFeedId == null &&
                         selectedCategoryId == null &&
                         selectedTagId == null,
-                    icon: Icons.all_inbox,
+                    icon: FleurIcons.allArticles,
                     title: l10n.all,
                     onSecondaryTapDown: showAllContextMenu,
                     onTap: selectionActions.selectAll,
@@ -435,7 +436,7 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
                         selectedFeedId == null &&
                         selectedCategoryId == null &&
                         selectedTagId == null,
-                    icon: Icons.all_inbox,
+                    icon: FleurIcons.allArticles,
                     title: l10n.all,
                     count: counts[null] ?? 0,
                     onSecondaryTapDown: showAllContextMenu,
@@ -467,7 +468,7 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
                       rowId: 'tag:${tag.id}',
                       builder: (_) => _SidebarItem(
                         selected: selectedTagId == tag.id,
-                        icon: Icons.label,
+                        icon: FleurIcons.tag,
                         title: tag.name,
                         iconColor: resolveTagColor(tag.name, tag.color),
                         onTap: () => _runWithScrollAnchor(
@@ -514,7 +515,7 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
                         ),
                       ),
                       PopupMenuButton<SubscriptionRootMenuAction>(
-                        icon: const Icon(Icons.more_horiz, size: 20),
+                        icon: const Icon(FleurIcons.moreHorizontal, size: 20),
                         tooltip: l10n.more,
                         iconSize: 20,
                         onSelected: (action) =>
@@ -539,7 +540,7 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
                           ),
                           tooltip: l10n.addSubscription,
                           onPressed: onAddFeed,
-                          icon: const Icon(Icons.add),
+                          icon: const Icon(FleurIcons.add),
                         ),
                       ],
                       if (capabilities.isVisible(
@@ -554,7 +555,7 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
                           ),
                           tooltip: l10n.newCategory,
                           onPressed: onAddCategory,
-                          icon: const Icon(Icons.create_new_folder_outlined),
+                          icon: const Icon(FleurIcons.addCategory),
                         ),
                       ],
                     ],
@@ -699,7 +700,7 @@ class _SidebarTagHeaderTile extends StatelessWidget {
             ),
             title: Row(
               children: [
-                const Icon(Icons.label_outline, size: 20),
+                const Icon(FleurIcons.tag, size: 20),
                 const SizedBox(width: 12),
                 Expanded(child: Text(l10n.tags)),
               ],
@@ -801,7 +802,7 @@ class _SidebarCategoryTile extends StatelessWidget {
                   Tooltip(
                     message: l10n.remoteReadOnlyTaxonomyTitle,
                     child: Icon(
-                      Icons.lock_outline,
+                      FleurIcons.lock,
                       size: 16,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
@@ -810,7 +811,7 @@ class _SidebarCategoryTile extends StatelessWidget {
                   IconButton(
                     tooltip: l10n.more,
                     onPressed: () => onShowCategoryMenu(category),
-                    icon: const Icon(Icons.more_vert),
+                    icon: const Icon(FleurIcons.moreVertical),
                   ),
                 if (isDesktop && hasCategoryActions)
                   MenuAnchor(
@@ -827,7 +828,7 @@ class _SidebarCategoryTile extends StatelessWidget {
                               ? controller.close()
                               : controller.open();
                         },
-                        icon: const Icon(Icons.more_vert),
+                        icon: const Icon(FleurIcons.moreVertical),
                       );
                     },
                   ),
@@ -933,7 +934,7 @@ class _SidebarFeedTile extends StatelessWidget {
           siteUri: siteUri,
           diameter: 28,
           avatarSize: 18,
-          fallbackIcon: Icons.rss_feed,
+          fallbackIcon: FleurIcons.feed,
           fallbackColor: theme.colorScheme.onSurfaceVariant,
         ),
         title: Text(displayTitle),
@@ -963,7 +964,7 @@ class _SidebarFeedTile extends StatelessWidget {
                                 ? controller.close()
                                 : controller.open();
                           },
-                          icon: const Icon(Icons.more_vert),
+                          icon: const Icon(FleurIcons.moreVertical),
                         );
                       },
                     ),
@@ -977,7 +978,7 @@ class _SidebarFeedTile extends StatelessWidget {
                     IconButton(
                       tooltip: l10n.more,
                       onPressed: () => onShowFeedMenu(feed),
-                      icon: const Icon(Icons.more_vert),
+                      icon: const Icon(FleurIcons.moreVertical),
                     ),
                 ],
               ),

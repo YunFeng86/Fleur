@@ -11,6 +11,7 @@ import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/services/sync/backend_capabilities.dart';
 import 'package:fleur/services/sync/backend_sync_semantics.dart';
 import 'package:fleur/theme/app_theme.dart';
+import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/ui/sidebar/sidebar_management_actions.dart';
 import 'package:fleur/ui/sidebar/sidebar_selection_actions.dart';
 import 'package:fleur/ui/sidebar/sidebar_tree.dart';
@@ -141,7 +142,7 @@ void main() {
       expect(find.byIcon(Icons.folder_outlined), findsNothing);
       expect(find.text('Tech News'), findsNothing);
       expect(
-        tester.getCenter(find.byIcon(Icons.chevron_right)).dx,
+        tester.getCenter(find.byIcon(FleurIcons.expand)).dx,
         lessThan(tester.getCenter(find.text('Tech')).dx),
       );
       final tileFinder = find.ancestor(
@@ -161,7 +162,7 @@ void main() {
         tester.element(find.byType(SidebarNavigationTree)),
       );
 
-      await tester.tap(find.byIcon(Icons.chevron_right));
+      await tester.tap(find.byIcon(FleurIcons.expand));
       await tester.pumpAndSettle();
 
       expect(find.text('Tech News'), findsOneWidget);
@@ -173,7 +174,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(container.read(selectedCategoryIdProvider), 1);
-      expect(find.byIcon(Icons.keyboard_arrow_down), findsOneWidget);
+      expect(find.byIcon(FleurIcons.collapse), findsOneWidget);
     },
   );
 
@@ -214,7 +215,7 @@ void main() {
     expect(find.byTooltip('Read-only remote groups'), findsOneWidget);
     expect(find.text('Tech'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.more_horiz));
+    await tester.tap(find.byIcon(FleurIcons.moreHorizontal));
     await tester.pumpAndSettle();
 
     expect(find.text('Import OPML'), findsNothing);
@@ -237,13 +238,13 @@ void main() {
     await tester.tapAt(const Offset(5, 5));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.tap(find.byIcon(FleurIcons.expand));
     await tester.pumpAndSettle();
 
     expect(find.text('Tech News'), findsOneWidget);
-    expect(find.byIcon(Icons.more_vert), findsOneWidget);
+    expect(find.byIcon(FleurIcons.moreVertical), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.more_vert).last);
+    await tester.tap(find.byIcon(FleurIcons.moreVertical).last);
     await tester.pumpAndSettle();
 
     expect(find.text('Move to category'), findsNothing);
@@ -286,7 +287,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byTooltip('Read-only remote groups'), findsNothing);
-    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.tap(find.byIcon(FleurIcons.moreVertical));
     await tester.pumpAndSettle();
 
     expect(find.text('Rename'), findsOneWidget);
@@ -295,7 +296,7 @@ void main() {
     await tester.tapAt(const Offset(5, 5));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.more_horiz));
+    await tester.tap(find.byIcon(FleurIcons.moreHorizontal));
     await tester.pumpAndSettle();
 
     expect(find.text('Refresh sources'), findsOneWidget);
@@ -316,9 +317,9 @@ void main() {
     await tester.tapAt(const Offset(5, 5));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.tap(find.byIcon(FleurIcons.expand));
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.more_vert).last);
+    await tester.tap(find.byIcon(FleurIcons.moreVertical).last);
     await tester.pumpAndSettle();
 
     expect(find.text('Refresh'), findsOneWidget);
@@ -369,7 +370,7 @@ void main() {
 
     await tester.tapAt(const Offset(5, 5));
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.tap(find.byIcon(FleurIcons.expand));
     await tester.pumpAndSettle();
 
     await _openContextMenuOnText(tester, 'Tech News');
@@ -492,7 +493,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.more_horiz));
+      await tester.tap(find.byIcon(FleurIcons.moreHorizontal));
       await tester.pumpAndSettle();
 
       expect(find.text('Settings'), findsOneWidget);
@@ -604,7 +605,7 @@ void main() {
     expect(find.text('Rename'), findsNothing);
     expect(find.text('Delete category'), findsNothing);
 
-    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.tap(find.byIcon(FleurIcons.expand));
     await tester.pumpAndSettle();
     await _openContextMenuOnText(tester, 'Tech News');
 

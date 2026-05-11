@@ -14,6 +14,7 @@ import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/sync/backend_capabilities.dart';
 import 'package:fleur/services/sync/refresh_all_coordinator.dart';
 import 'package:fleur/theme/app_theme.dart';
+import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/ui/settings/subscriptions/subscription_toolbar.dart';
 import 'package:fleur/utils/platform.dart';
 
@@ -107,7 +108,7 @@ void main() {
 
     expect(find.byTooltip('New category'), findsNothing);
 
-    await tester.tap(find.byIcon(Icons.more_horiz));
+    await tester.tap(find.byIcon(FleurIcons.moreHorizontal));
     await tester.pumpAndSettle();
 
     expect(find.text('Import OPML'), findsNothing);
@@ -143,7 +144,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.more_horiz));
+    await tester.tap(find.byIcon(FleurIcons.moreHorizontal));
     await tester.pumpAndSettle();
 
     expect(find.text('Refresh sources'), findsOneWidget);
@@ -169,7 +170,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.more_horiz));
+    await tester.tap(find.byIcon(FleurIcons.moreHorizontal));
     await tester.pumpAndSettle();
 
     expect(find.text('Refresh sources'), findsOneWidget);

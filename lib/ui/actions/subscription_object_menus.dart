@@ -9,6 +9,7 @@ import '../../providers/backend_sync_semantics_provider.dart';
 import '../../providers/subscription_settings_provider.dart';
 import '../../services/sync/backend_capabilities.dart';
 import '../../services/sync/backend_sync_semantics.dart';
+import '../../theme/fleur_icons.dart';
 import '../context_menu_position.dart';
 import 'root_sync_action.dart';
 import 'subscription_actions.dart';
@@ -57,31 +58,31 @@ class SubscriptionObjectMenus {
       if (capabilities.isVisible(BackendFeature.clientFeedSettings))
         SubscriptionObjectMenuItem(
           action: SubscriptionFeedMenuAction.rename,
-          icon: Icons.edit_outlined,
+          icon: FleurIcons.rename,
           label: l10n.rename,
         ),
       if (capabilities.isVisible(BackendFeature.refreshSubscriptionSource))
         SubscriptionObjectMenuItem(
           action: SubscriptionFeedMenuAction.refresh,
-          icon: Icons.refresh,
+          icon: FleurIcons.refresh,
           label: l10n.refresh,
         ),
       if (capabilities.isVisible(BackendFeature.offlineCache))
         SubscriptionObjectMenuItem(
           action: SubscriptionFeedMenuAction.offlineCache,
-          icon: Icons.download_for_offline_outlined,
+          icon: FleurIcons.offlineCache,
           label: l10n.makeAvailableOffline,
         ),
       if (canMove)
         SubscriptionObjectMenuItem(
           action: SubscriptionFeedMenuAction.move,
-          icon: Icons.drive_file_move_outline,
+          icon: FleurIcons.moveToCategory,
           label: l10n.moveToCategory,
         ),
       if (capabilities.isVisible(BackendFeature.deleteSubscription))
         SubscriptionObjectMenuItem(
           action: SubscriptionFeedMenuAction.delete,
-          icon: Icons.delete_outline,
+          icon: FleurIcons.delete,
           label: l10n.deleteSubscription,
           destructive: true,
         ),
@@ -94,13 +95,13 @@ class SubscriptionObjectMenus {
       if (capabilities.isVisible(BackendFeature.renameCategory))
         SubscriptionObjectMenuItem(
           action: SubscriptionCategoryMenuAction.rename,
-          icon: Icons.edit_outlined,
+          icon: FleurIcons.rename,
           label: l10n.rename,
         ),
       if (capabilities.isVisible(BackendFeature.deleteCategory))
         SubscriptionObjectMenuItem(
           action: SubscriptionCategoryMenuAction.delete,
-          icon: Icons.delete_outline,
+          icon: FleurIcons.delete,
           label: l10n.deleteCategory,
           destructive: true,
         ),
@@ -116,7 +117,7 @@ class SubscriptionObjectMenus {
     return [
       SubscriptionObjectMenuItem(
         action: SubscriptionRootMenuAction.showAll,
-        icon: Icons.all_inbox,
+        icon: FleurIcons.allArticles,
         label: l10n.showAll,
       ),
       ...managementItems(
@@ -151,7 +152,7 @@ class SubscriptionObjectMenus {
     return [
       SubscriptionObjectMenuItem(
         action: SubscriptionRootMenuAction.settings,
-        icon: Icons.settings_outlined,
+        icon: FleurIcons.settings,
         label: l10n.settings,
       ),
       ...managementItems(
@@ -169,7 +170,7 @@ class SubscriptionObjectMenus {
     return [
       SubscriptionObjectMenuItem(
         action: SubscriptionRootMenuAction.globalDefaults,
-        icon: Icons.tune_outlined,
+        icon: FleurIcons.subscriptionDefaults,
         label: l10n.globalDefaults,
       ),
     ];
@@ -248,39 +249,39 @@ class SubscriptionObjectMenus {
       if (showsRootRefresh(capabilities))
         SubscriptionObjectMenuItem(
           action: SubscriptionRootMenuAction.refreshAll,
-          icon: Icons.refresh,
+          icon: FleurIcons.refresh,
           label: rootRefreshLabel(l10n, capabilities, syncSemantics),
         ),
       if (includeAddActions &&
           capabilities.isVisible(BackendFeature.addSubscription))
         SubscriptionObjectMenuItem(
           action: SubscriptionRootMenuAction.addSubscription,
-          icon: Icons.add,
+          icon: FleurIcons.add,
           label: l10n.addSubscription,
         ),
       if (includeAddActions &&
           capabilities.isVisible(BackendFeature.addCategory))
         SubscriptionObjectMenuItem(
           action: SubscriptionRootMenuAction.addCategory,
-          icon: Icons.create_new_folder_outlined,
+          icon: FleurIcons.addCategory,
           label: l10n.newCategory,
         ),
       if (capabilities.isVisible(BackendFeature.importOpml))
         SubscriptionObjectMenuItem(
           action: SubscriptionRootMenuAction.importOpml,
-          icon: Icons.file_upload_outlined,
+          icon: FleurIcons.importOpml,
           label: l10n.importOpml,
         ),
       if (capabilities.isVisible(BackendFeature.exportOpml))
         SubscriptionObjectMenuItem(
           action: SubscriptionRootMenuAction.exportOpml,
-          icon: Icons.file_download_outlined,
+          icon: FleurIcons.exportOpml,
           label: l10n.exportOpml,
         ),
       if (includeSettings)
         SubscriptionObjectMenuItem(
           action: SubscriptionRootMenuAction.settings,
-          icon: Icons.settings_outlined,
+          icon: FleurIcons.settings,
           label: l10n.settings,
         ),
     ];

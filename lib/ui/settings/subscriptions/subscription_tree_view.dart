@@ -8,6 +8,7 @@ import '../../../../models/category.dart';
 import '../../../../models/feed.dart';
 import '../../../../providers/query_providers.dart';
 import '../../../../providers/subscription_settings_provider.dart';
+import '../../../../theme/fleur_icons.dart';
 import '../../../../theme/fleur_theme_extensions.dart';
 import '../../../../ui/actions/subscription_object_menus.dart';
 import '../../../../utils/platform.dart';
@@ -231,7 +232,7 @@ class _SubscriptionTreeViewState extends ConsumerState<SubscriptionTreeView> {
               _SubscriptionTreeRow(
                 rowId: 'scope:global-defaults',
                 builder: (_) => _ScopeTreeRow(
-                  icon: Icons.tune_outlined,
+                  icon: FleurIcons.subscriptionDefaults,
                   title: l10n.globalDefaults,
                   subtitle: l10n.globalDefaultsDescription,
                   selected: selection.isGlobalDefaults,
@@ -620,7 +621,7 @@ class _IndentedAvatar extends StatelessWidget {
         child: FaviconAvatar(
           siteUri: siteUri,
           size: 16,
-          fallbackIcon: Icons.rss_feed,
+          fallbackIcon: FleurIcons.feed,
           fallbackColor: theme.colorScheme.onSurfaceVariant,
         ),
       ),

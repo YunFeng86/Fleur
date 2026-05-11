@@ -11,6 +11,7 @@ import 'package:fleur/providers/account_providers.dart';
 import 'package:fleur/providers/query_providers.dart';
 import 'package:fleur/providers/subscription_settings_provider.dart';
 import 'package:fleur/services/accounts/account.dart';
+import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/ui/settings/subscriptions/subscription_tree_view.dart';
 import 'package:fleur/ui/settings/widgets/section_header.dart';
 import 'package:fleur/utils/platform.dart';
@@ -215,7 +216,7 @@ void main() {
 
       await tester.tapAt(const Offset(5, 5));
       await tester.pumpAndSettle();
-      await tester.tap(find.byIcon(Icons.chevron_right));
+      await tester.tap(find.byIcon(FleurIcons.expand));
       await tester.pumpAndSettle();
 
       await _openContextMenuOnText(tester, 'Tech News');
@@ -497,7 +498,7 @@ void main() {
       expect(find.text('Rename'), findsNothing);
       expect(find.text('Delete category'), findsNothing);
 
-      await tester.tap(find.byIcon(Icons.chevron_right));
+      await tester.tap(find.byIcon(FleurIcons.expand));
       await tester.pumpAndSettle();
       await _openContextMenuOnText(tester, 'Tech News');
 
@@ -619,11 +620,11 @@ void main() {
 
     expect(find.byIcon(Icons.folder_outlined), findsNothing);
     expect(
-      tester.getCenter(find.byIcon(Icons.chevron_right)).dx,
+      tester.getCenter(find.byIcon(FleurIcons.expand)).dx,
       lessThan(tester.getCenter(find.text('Tech')).dx),
     );
 
-    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.tap(find.byIcon(FleurIcons.expand));
     await tester.pumpAndSettle();
 
     expect(find.text('Tech News'), findsOneWidget);
@@ -636,7 +637,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(container.read(subscriptionSelectionProvider).activeCategoryId, 1);
-    expect(find.byIcon(Icons.keyboard_arrow_down), findsOneWidget);
+    expect(find.byIcon(FleurIcons.collapse), findsOneWidget);
   });
 
   testWidgets(
@@ -740,7 +741,7 @@ void main() {
 
     expect(find.text('Tech News'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.keyboard_arrow_down));
+    await tester.tap(find.byIcon(FleurIcons.collapse));
     await tester.pumpAndSettle();
 
     expect(find.text('Tech News'), findsNothing);

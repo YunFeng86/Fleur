@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../l10n/app_localizations.dart';
 import '../models/nav_destination.dart';
 import '../providers/account_providers.dart';
+import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/actions/global_nav_actions.dart';
 import '../ui/actions/subscription_actions.dart';
@@ -45,28 +46,31 @@ class GlobalNavRail extends ConsumerWidget {
                     color: states.selectionTint,
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Icon(Icons.rss_feed, color: theme.colorScheme.primary),
+                  child: Icon(
+                    FleurIcons.feedsSelected,
+                    color: theme.colorScheme.primary,
+                  ),
                 ),
               ),
               destinations: [
                 NavigationRailDestination(
-                  icon: const Icon(Icons.rss_feed_outlined),
-                  selectedIcon: const Icon(Icons.rss_feed),
+                  icon: const Icon(FleurIcons.feeds),
+                  selectedIcon: const Icon(FleurIcons.feedsSelected),
                   label: Text(l10n.feeds),
                 ),
                 NavigationRailDestination(
-                  icon: const Icon(Icons.bookmark_outline),
-                  selectedIcon: const Icon(Icons.bookmark),
+                  icon: const Icon(FleurIcons.saved),
+                  selectedIcon: const Icon(FleurIcons.savedSelected),
                   label: Text(l10n.saved),
                 ),
                 NavigationRailDestination(
-                  icon: const Icon(Icons.search_outlined),
-                  selectedIcon: const Icon(Icons.search),
+                  icon: const Icon(FleurIcons.search),
+                  selectedIcon: const Icon(FleurIcons.searchSelected),
                   label: Text(l10n.search),
                 ),
                 NavigationRailDestination(
-                  icon: const Icon(Icons.settings_outlined),
-                  selectedIcon: const Icon(Icons.settings),
+                  icon: const Icon(FleurIcons.settings),
+                  selectedIcon: const Icon(FleurIcons.settingsSelected),
                   label: Text(l10n.settings),
                 ),
               ],
@@ -88,7 +92,7 @@ class GlobalNavRail extends ConsumerWidget {
                         SubscriptionActions.selectFeed(ref, id);
                         if (context.mounted) context.go('/');
                       },
-                      icon: const Icon(Icons.add),
+                      icon: const Icon(FleurIcons.add),
                     ),
                     const SizedBox(height: 8),
                     Visibility(
