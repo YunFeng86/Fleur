@@ -148,7 +148,6 @@ class AppMenuButton<T> extends StatefulWidget {
     required this.onSelected,
     required this.icon,
     required this.tooltip,
-    this.active = false,
     this.buttonKey,
     this.iconSize,
     this.constraints,
@@ -161,7 +160,6 @@ class AppMenuButton<T> extends StatefulWidget {
   final ValueChanged<T> onSelected;
   final IconData icon;
   final String tooltip;
-  final bool active;
   final Key? buttonKey;
   final double? iconSize;
   final BoxConstraints? constraints;

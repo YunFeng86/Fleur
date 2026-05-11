@@ -31,19 +31,13 @@ enum SubscriptionRootMenuAction {
 
 class SubscriptionObjectMenuItem<T> extends AppMenuItem<T> {
   const SubscriptionObjectMenuItem({
-    required this.action,
-    required this.icon,
-    required this.label,
-    this.destructive = false,
-  }) : super(value: action, icon: icon, label: label, destructive: destructive);
+    required T action,
+    required super.icon,
+    required super.label,
+    super.destructive = false,
+  }) : super(value: action);
 
-  final T action;
-  @override
-  final IconData icon;
-  @override
-  final String label;
-  @override
-  final bool destructive;
+  T get action => value;
 }
 
 class SubscriptionObjectMenus {

@@ -1193,13 +1193,11 @@ class _SidebarActionIconButton extends StatelessWidget {
     required this.tooltip,
     required this.icon,
     required this.onPressed,
-    this.active = false,
   });
 
   final String tooltip;
   final IconData icon;
   final VoidCallback? onPressed;
-  final bool active;
 
   @override
   Widget build(BuildContext context) {
@@ -1220,8 +1218,7 @@ class _SidebarActionIconButton extends StatelessWidget {
           if (states.contains(WidgetState.disabled)) {
             return colorScheme.onSurface.withAlpha(96);
           }
-          if (active ||
-              states.contains(WidgetState.hovered) ||
+          if (states.contains(WidgetState.hovered) ||
               states.contains(WidgetState.focused) ||
               states.contains(WidgetState.pressed)) {
             return colorScheme.primary;
