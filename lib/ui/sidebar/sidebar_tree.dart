@@ -651,6 +651,7 @@ class _SidebarTagHeaderTile extends StatelessWidget {
       child: Column(
         children: [
           ListTile(
+            contentPadding: const EdgeInsets.only(left: 4, right: 8),
             minLeadingWidth: 0,
             horizontalTitleGap: 4,
             leading: TreeDisclosureButton(
@@ -752,6 +753,7 @@ class _SidebarCategoryTile extends StatelessWidget {
             children: [
               ListTile(
                 selected: selected,
+                contentPadding: const EdgeInsets.only(left: 4, right: 8),
                 minLeadingWidth: 0,
                 horizontalTitleGap: 4,
                 leading: TreeDisclosureButton(
@@ -1065,11 +1067,11 @@ class _SidebarCategoryTrailing extends StatelessWidget {
                           ),
                       ],
                     )
-                  : _UnreadBadge(unreadCount),
+                  : _UnreadCountText(unreadCount, selected: selected),
             ),
           )
         else
-          _UnreadBadge(unreadCount),
+          _UnreadCountText(unreadCount, selected: selected),
       ],
     );
   }
@@ -1103,7 +1105,7 @@ class _SidebarFeedTrailing extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final hasActions = hasFeedActions || canMarkRead;
 
-    if (!hasActions) return _UnreadBadge(unreadCount);
+    if (!hasActions) return _UnreadCountText(unreadCount, selected: selected);
 
     return SizedBox(
       width: _actionsWidth,
@@ -1135,7 +1137,7 @@ class _SidebarFeedTrailing extends StatelessWidget {
                     ),
                 ],
               )
-            : _UnreadBadge(unreadCount),
+            : _UnreadCountText(unreadCount, selected: selected),
       ),
     );
   }
@@ -1217,25 +1219,23 @@ class _SidebarActionIconButton extends StatelessWidget {
   }
 }
 
-class _UnreadBadge extends StatelessWidget {
-  const _UnreadBadge(this.count);
+class _UnreadCountText extends StatelessWidget {
+  const _UnreadCountText(this.count, {this.selected = false});
 
   final int count;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
     if (count <= 0) return const SizedBox.shrink();
     final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(999),
-      ),
+    return SizedBox(
+      width: 30,
       child: Text(
         count > 99 ? '99+' : '$count',
+        textAlign: TextAlign.right,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: colorScheme.onPrimaryContainer,
+          color: selected ? colorScheme.primary : colorScheme.onSurfaceVariant,
           fontWeight: AppTypography.platformWeight(FontWeight.w700),
           fontFeatures: const [FontFeature.tabularFigures()],
         ),
@@ -1273,7 +1273,9 @@ class _SidebarItem extends StatelessWidget {
       contentPadding: EdgeInsets.only(left: 16 + indent, right: 8),
       leading: Icon(icon, color: iconColor),
       title: Text(title),
-      trailing: count == null ? null : _UnreadBadge(count!),
+      trailing: count == null
+          ? null
+          : _UnreadCountText(count!, selected: selected),
       onTap: onTap,
     );
     if (onSecondaryTapDown == null) return tile;

@@ -620,6 +620,11 @@ void main() {
 
     expect(find.byIcon(FleurIcons.category), findsNothing);
     expect(
+      tester.getSize(find.byType(TreeDisclosureButton).first),
+      const Size(40, 48),
+    );
+    expect(tester.getCenter(find.byIcon(FleurIcons.expand)).dx, lessThan(32));
+    expect(
       tester.getCenter(find.byIcon(FleurIcons.expand)).dx,
       lessThan(tester.getCenter(find.text('Tech')).dx),
     );

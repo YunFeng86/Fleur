@@ -538,7 +538,7 @@ class _CategoryTreeNode extends StatelessWidget {
       child: Column(
         children: [
           SettingsTile(
-            contentPadding: const EdgeInsets.only(left: 8, right: 16),
+            contentPadding: const EdgeInsets.only(left: 4, right: 16),
             leading: TreeDisclosureButton(
               expanded: expanded,
               tooltip: expanded ? l10n.collapse : l10n.expand,

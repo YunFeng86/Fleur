@@ -153,6 +153,11 @@ void main() {
       expect(find.byIcon(FleurIcons.category), findsNothing);
       expect(find.text('Tech News'), findsNothing);
       expect(
+        tester.getSize(find.byType(TreeDisclosureButton).first),
+        const Size(40, 48),
+      );
+      expect(tester.getCenter(find.byIcon(FleurIcons.expand)).dx, lessThan(32));
+      expect(
         tester.getCenter(find.byIcon(FleurIcons.expand)).dx,
         lessThan(tester.getCenter(find.text('Tech')).dx),
       );
@@ -228,6 +233,13 @@ void main() {
 
     expect(find.text('99+'), findsOneWidget);
     expect(find.text('240'), findsNothing);
+    final unreadText = tester.widget<Text>(find.text('99+'));
+    final unreadContext = tester.element(find.text('99+'));
+    expect(unreadText.textAlign, TextAlign.right);
+    expect(
+      unreadText.style?.color,
+      Theme.of(unreadContext).colorScheme.onSurfaceVariant,
+    );
     expect(find.byTooltip('Mark all read'), findsNothing);
     expect(find.byTooltip('Add subscription'), findsNothing);
 

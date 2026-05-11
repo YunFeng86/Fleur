@@ -18,17 +18,18 @@ class TreeDisclosureButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return SizedBox.square(
-      dimension: 48,
+    return SizedBox(
+      width: 40,
+      height: 48,
       child: IconButton(
-        constraints: const BoxConstraints.tightFor(width: 48, height: 48),
+        constraints: const BoxConstraints.tightFor(width: 40, height: 48),
         padding: EdgeInsets.zero,
         alignment: Alignment.center,
         style: ButtonStyle(
           backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
           foregroundColor: WidgetStatePropertyAll(colorScheme.onSurfaceVariant),
           overlayColor: const WidgetStatePropertyAll(Colors.transparent),
-          shape: const WidgetStatePropertyAll(CircleBorder()),
+          shape: const WidgetStatePropertyAll(RoundedRectangleBorder()),
         ),
         tooltip: tooltip,
         onPressed: onPressed,
