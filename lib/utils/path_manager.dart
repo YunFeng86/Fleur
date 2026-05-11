@@ -922,7 +922,7 @@ class _PendingDelete {
     final length = raw['length'];
     if (srcPath is! String || srcPath.trim().isEmpty) return null;
     if (dstPath is! String || dstPath.trim().isEmpty) return null;
-    if (length is! num) return null;
+    if (length is! num || !length.isFinite) return null;
     final srcMd5 = raw['srcMd5'];
     final dstMd5 = raw['dstMd5'];
     final srcMtimeMs = raw['srcMtimeMs'];
@@ -933,8 +933,12 @@ class _PendingDelete {
       length: length.toInt(),
       srcMd5: srcMd5 is String && srcMd5.trim().isNotEmpty ? srcMd5 : null,
       dstMd5: dstMd5 is String && dstMd5.trim().isNotEmpty ? dstMd5 : null,
-      srcMtimeMs: srcMtimeMs is num ? srcMtimeMs.toInt() : null,
-      dstMtimeMs: dstMtimeMs is num ? dstMtimeMs.toInt() : null,
+      srcMtimeMs: srcMtimeMs is num && srcMtimeMs.isFinite
+          ? srcMtimeMs.toInt()
+          : null,
+      dstMtimeMs: dstMtimeMs is num && dstMtimeMs.isFinite
+          ? dstMtimeMs.toInt()
+          : null,
     );
   }
 }
