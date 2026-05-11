@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../network/user_agents.dart';
 import '../../theme/seed_color_presets.dart';
 import '../../utils/language_utils.dart';
+import 'settings_json.dart';
 
 enum ArticleGroupMode { none, day }
 
@@ -218,115 +219,67 @@ class AppSettings {
   };
 
   static AppSettings fromJson(Map<String, Object?> json) {
-    final rawThemeMode = json['themeMode'];
-    final mode = switch (rawThemeMode) {
-      'light' => ThemeMode.light,
-      'dark' => ThemeMode.dark,
-      _ => ThemeMode.system,
-    };
-
-    final useDynamicColor = json['useDynamicColor'];
-    final seedColorPreset = json['seedColorPreset'];
-    final localeTag = json['localeTag'];
-
-    final autoMarkRead = json['autoMarkRead'];
-    final sourceRefreshMinutes = json['sourceRefreshMinutes'];
-    final autoRefreshMinutes = json['autoRefreshMinutes'];
-    final autoRefreshConcurrency = json['autoRefreshConcurrency'];
-    final searchInContent = json['searchInContent'];
-    final cleanupReadOlderThanDays = json['cleanupReadOlderThanDays'];
-
-    // Global defaults
-    final filterEnabled = json['filterEnabled'];
+    final sourceRefreshMinutes = readOptionalInt(json['sourceRefreshMinutes']);
+    final autoRefreshMinutes = readOptionalInt(json['autoRefreshMinutes']);
+    final remoteEntriesLimit = readOptionalInt(json['remoteEntriesLimit']);
+    final minifluxEntriesLimit = readOptionalInt(json['minifluxEntriesLimit']);
     final filterKeywords = json['filterKeywords'];
-    final syncEnabled = json['syncEnabled'];
-    final syncImages = json['syncImages'];
-    final syncWebPages = json['syncWebPages'];
-    final showAiSummary = json['showAiSummary'];
-    final autoTranslate = json['autoTranslate'];
-    final remoteEntriesLimit = json['remoteEntriesLimit'];
-    final minifluxEntriesLimit = json['minifluxEntriesLimit'];
-    final remoteFetchConcurrency = json['remoteFetchConcurrency'];
-    final minifluxWebFetchMode = json['minifluxWebFetchMode'];
-    final rssUserAgent = json['rssUserAgent'];
-    final webUserAgent = json['webUserAgent'];
-
-    ArticleGroupMode parseGroupMode(Object? v) {
-      final s = v is String ? v : '';
-      return switch (s) {
-        'day' => ArticleGroupMode.day,
-        _ => ArticleGroupMode.none,
-      };
-    }
-
-    ArticleSortOrder parseSortOrder(Object? v) {
-      final s = v is String ? v : '';
-      return switch (s) {
-        'oldestFirst' => ArticleSortOrder.oldestFirst,
-        _ => ArticleSortOrder.newestFirst,
-      };
-    }
-
-    SeedColorPreset parseSeedColorPreset(Object? v) {
-      final s = v is String ? v : '';
-      for (final p in SeedColorPreset.values) {
-        if (p.name == s) return p;
-      }
-      return SeedColorPreset.blue;
-    }
-
-    MinifluxWebFetchMode parseMinifluxWebFetchMode(Object? v) {
-      final s = v is String ? v : '';
-      for (final m in MinifluxWebFetchMode.values) {
-        if (m.name == s) return m;
-      }
-      return MinifluxWebFetchMode.clientReadability;
-    }
 
     final loaded = AppSettings(
-      themeMode: mode,
-      useDynamicColor: useDynamicColor is! bool || useDynamicColor,
-      seedColorPreset: parseSeedColorPreset(seedColorPreset),
-      localeTag: localeTag is String && localeTag.trim().isNotEmpty
-          ? localeTag
-          : null,
-      autoMarkRead: autoMarkRead is! bool || autoMarkRead,
-      sourceRefreshMinutes: sourceRefreshMinutes is num
-          ? sourceRefreshMinutes.toInt()
-          : autoRefreshMinutes is num
-          ? _migrateLegacySourceRefreshMinutes(autoRefreshMinutes.toInt())
-          : null,
-      autoRefreshConcurrency: autoRefreshConcurrency is num
-          ? autoRefreshConcurrency.toInt()
-          : 2,
-      articleGroupMode: parseGroupMode(json['articleGroupMode']),
-      articleSortOrder: parseSortOrder(json['articleSortOrder']),
-      searchInContent: searchInContent is! bool || searchInContent,
-      cleanupReadOlderThanDays: cleanupReadOlderThanDays is num
-          ? cleanupReadOlderThanDays.toInt()
-          : null,
-      filterEnabled: filterEnabled is bool && filterEnabled,
+      themeMode: readEnumByNameOr(
+        ThemeMode.values,
+        json['themeMode'],
+        ThemeMode.system,
+        trim: false,
+      ),
+      useDynamicColor: readBoolOr(json['useDynamicColor'], fallback: true),
+      seedColorPreset: readEnumByNameOr(
+        SeedColorPreset.values,
+        json['seedColorPreset'],
+        SeedColorPreset.blue,
+        trim: false,
+      ),
+      localeTag: readOptionalString(json['localeTag']),
+      autoMarkRead: readBoolOr(json['autoMarkRead'], fallback: true),
+      sourceRefreshMinutes:
+          sourceRefreshMinutes ??
+          _migrateLegacySourceRefreshMinutes(autoRefreshMinutes),
+      autoRefreshConcurrency: readIntOr(json['autoRefreshConcurrency'], 2),
+      articleGroupMode: readEnumByNameOr(
+        ArticleGroupMode.values,
+        json['articleGroupMode'],
+        ArticleGroupMode.none,
+        trim: false,
+      ),
+      articleSortOrder: readEnumByNameOr(
+        ArticleSortOrder.values,
+        json['articleSortOrder'],
+        ArticleSortOrder.newestFirst,
+        trim: false,
+      ),
+      searchInContent: readBoolOr(json['searchInContent'], fallback: true),
+      cleanupReadOlderThanDays: readOptionalInt(
+        json['cleanupReadOlderThanDays'],
+      ),
+      filterEnabled: readBoolOr(json['filterEnabled'], fallback: false),
       filterKeywords: filterKeywords is String ? filterKeywords : '',
-      syncEnabled: syncEnabled is! bool || syncEnabled,
-      syncImages: syncImages is! bool || syncImages,
-      syncWebPages: syncWebPages is bool && syncWebPages,
-      showAiSummary: showAiSummary is bool && showAiSummary,
-      autoTranslate: autoTranslate is bool && autoTranslate,
-      minifluxEntriesLimit: remoteEntriesLimit is num
-          ? remoteEntriesLimit.toInt()
-          : minifluxEntriesLimit is num
-          ? minifluxEntriesLimit.toInt()
-          : 400,
-      remoteFetchConcurrency: remoteFetchConcurrency is num
-          ? remoteFetchConcurrency.toInt()
-          : 2,
-      minifluxWebFetchMode: parseMinifluxWebFetchMode(minifluxWebFetchMode),
-      rssUserAgent: rssUserAgent is String && rssUserAgent.trim().isNotEmpty
-          ? rssUserAgent
-          : UserAgents.rss,
-      webUserAgent: webUserAgent is String && webUserAgent.trim().isNotEmpty
-          ? webUserAgent
-          : UserAgents.webForCurrentPlatform(),
+      syncEnabled: readBoolOr(json['syncEnabled'], fallback: true),
+      syncImages: readBoolOr(json['syncImages'], fallback: true),
+      syncWebPages: readBoolOr(json['syncWebPages'], fallback: false),
+      showAiSummary: readBoolOr(json['showAiSummary'], fallback: false),
+      autoTranslate: readBoolOr(json['autoTranslate'], fallback: false),
+      minifluxEntriesLimit: remoteEntriesLimit ?? minifluxEntriesLimit ?? 400,
+      remoteFetchConcurrency: readIntOr(json['remoteFetchConcurrency'], 2),
+      minifluxWebFetchMode: readEnumByNameOr(
+        MinifluxWebFetchMode.values,
+        json['minifluxWebFetchMode'],
+        MinifluxWebFetchMode.clientReadability,
+        trim: false,
+      ),
+      rssUserAgent: readOptionalString(json['rssUserAgent']) ?? UserAgents.rss,
+      webUserAgent:
+          readOptionalString(json['webUserAgent']) ??
+          UserAgents.webForCurrentPlatform(),
     );
     return loaded.normalized();
   }
