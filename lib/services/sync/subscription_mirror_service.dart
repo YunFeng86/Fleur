@@ -441,7 +441,9 @@ int? _remoteIdAsInt(String? remoteId) {
 
 String? _remoteIdString(Object? value) {
   if (value is int && value > 0) return value.toString();
-  if (value is num && value > 0) return value.toInt().toString();
+  if (value is num && value.isFinite && value > 0) {
+    return value.toInt().toString();
+  }
   if (value is String && value.trim().isNotEmpty) return value.trim();
   return null;
 }
