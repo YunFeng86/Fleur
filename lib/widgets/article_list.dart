@@ -16,7 +16,7 @@ import '../providers/service_providers.dart';
 import '../providers/unread_providers.dart';
 import '../services/settings/app_settings.dart';
 import '../theme/fleur_icons.dart';
-import '../ui/context_menu_position.dart';
+import '../ui/app_menu.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/layout.dart';
 import '../ui/layout_spec.dart';
@@ -141,67 +141,41 @@ class _ArticleListState extends ConsumerState<ArticleList> {
     LayoutSpec spec,
   ) async {
     final l10n = AppLocalizations.of(context)!;
-    final action = await showMenu<_ArticleContextAction>(
-      context: context,
-      position: contextMenuPositionForGlobalPoint(context, position),
+    final action = await AppMenuHost.showAt<_ArticleContextAction>(
+      context,
+      position: position,
       items: [
-        PopupMenuItem(
+        AppMenuItem(
           value: _ArticleContextAction.open,
-          child: ListTile(
-            leading: const Icon(FleurIcons.article),
-            title: Text(l10n.openArticle),
-            contentPadding: EdgeInsets.zero,
-          ),
+          icon: FleurIcons.article,
+          label: l10n.openArticle,
         ),
-        PopupMenuItem(
+        AppMenuItem(
           value: _ArticleContextAction.markRead,
-          child: ListTile(
-            leading: Icon(
-              article.isRead ? FleurIcons.markUnread : FleurIcons.markRead,
-            ),
-            title: Text(article.isRead ? l10n.markUnread : l10n.markRead),
-            contentPadding: EdgeInsets.zero,
-          ),
+          icon: article.isRead ? FleurIcons.markUnread : FleurIcons.markRead,
+          label: article.isRead ? l10n.markUnread : l10n.markRead,
         ),
-        PopupMenuItem(
+        AppMenuItem(
           value: _ArticleContextAction.toggleStar,
-          child: ListTile(
-            leading: Icon(
-              article.isStarred ? FleurIcons.starActive : FleurIcons.star,
-            ),
-            title: Text(article.isStarred ? l10n.unstar : l10n.star),
-            contentPadding: EdgeInsets.zero,
-          ),
+          icon: article.isStarred ? FleurIcons.starActive : FleurIcons.star,
+          label: article.isStarred ? l10n.unstar : l10n.star,
         ),
-        PopupMenuItem(
+        AppMenuItem(
           value: _ArticleContextAction.toggleReadLater,
-          child: ListTile(
-            leading: Icon(
-              article.isReadLater
-                  ? FleurIcons.readLaterActive
-                  : FleurIcons.readLater,
-            ),
-            title: Text(
-              article.isReadLater ? l10n.removeReadLater : l10n.readLater,
-            ),
-            contentPadding: EdgeInsets.zero,
-          ),
+          icon: article.isReadLater
+              ? FleurIcons.readLaterActive
+              : FleurIcons.readLater,
+          label: article.isReadLater ? l10n.removeReadLater : l10n.readLater,
         ),
-        PopupMenuItem(
+        AppMenuItem(
           value: _ArticleContextAction.copyLink,
-          child: ListTile(
-            leading: const Icon(FleurIcons.copy),
-            title: Text(l10n.copyLink),
-            contentPadding: EdgeInsets.zero,
-          ),
+          icon: FleurIcons.copy,
+          label: l10n.copyLink,
         ),
-        PopupMenuItem(
+        AppMenuItem(
           value: _ArticleContextAction.openInBrowser,
-          child: ListTile(
-            leading: const Icon(FleurIcons.openExternal),
-            title: Text(l10n.openInBrowser),
-            contentPadding: EdgeInsets.zero,
-          ),
+          icon: FleurIcons.openExternal,
+          label: l10n.openInBrowser,
         ),
       ],
     );

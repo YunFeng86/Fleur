@@ -11,6 +11,7 @@ import 'package:fleur/providers/account_providers.dart';
 import 'package:fleur/providers/query_providers.dart';
 import 'package:fleur/providers/subscription_settings_provider.dart';
 import 'package:fleur/services/accounts/account.dart';
+import 'package:fleur/ui/app_menu.dart';
 import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/ui/settings/subscriptions/subscription_tree_view.dart';
 import 'package:fleur/ui/settings/widgets/section_header.dart';
@@ -72,7 +73,7 @@ Future<void> _openContextMenu(WidgetTester tester, Finder finder) async {
 
 Finder _popupMenuText(String text) {
   return find.descendant(
-    of: find.byWidgetPredicate((widget) => widget is PopupMenuItem),
+    of: find.byType(MenuItemButton),
     matching: find.text(text),
   );
 }
@@ -100,20 +101,22 @@ void main() {
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: Consumer(
-            builder: (context, ref, _) {
-              // Simulate "already drilled down" state by initialising the provider state
-              // We can't easily mock the notifier logic directly unless we override the provider.
-              // We can just act on it in build or use a microtask.
-              unawaited(
-                Future.microtask(() {
-                  ref
-                      .read(subscriptionSelectionProvider.notifier)
-                      .selectCategory(1);
-                }),
-              );
-              return const Scaffold(body: SubscriptionTreeView());
-            },
+          home: AppMenuHost(
+            child: Consumer(
+              builder: (context, ref, _) {
+                // Simulate "already drilled down" state by initialising the provider state
+                // We can't easily mock the notifier logic directly unless we override the provider.
+                // We can just act on it in build or use a microtask.
+                unawaited(
+                  Future.microtask(() {
+                    ref
+                        .read(subscriptionSelectionProvider.notifier)
+                        .selectCategory(1);
+                  }),
+                );
+                return const Scaffold(body: SubscriptionTreeView());
+              },
+            ),
           ),
         ),
       ),
@@ -150,7 +153,9 @@ void main() {
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: const Scaffold(body: SubscriptionTreeView()),
+            home: const AppMenuHost(
+              child: Scaffold(body: SubscriptionTreeView()),
+            ),
           ),
         ),
       );
@@ -191,7 +196,9 @@ void main() {
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: const Scaffold(body: SubscriptionTreeView()),
+            home: const AppMenuHost(
+              child: Scaffold(body: SubscriptionTreeView()),
+            ),
           ),
         ),
       );
@@ -262,7 +269,9 @@ void main() {
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: const Scaffold(body: SubscriptionTreeView()),
+            home: const AppMenuHost(
+              child: Scaffold(body: SubscriptionTreeView()),
+            ),
           ),
         ),
       );
@@ -342,7 +351,9 @@ void main() {
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: const Scaffold(body: SubscriptionTreeView()),
+            home: const AppMenuHost(
+              child: Scaffold(body: SubscriptionTreeView()),
+            ),
           ),
         ),
       );
@@ -379,7 +390,9 @@ void main() {
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: const Scaffold(body: SubscriptionTreeView()),
+            home: const AppMenuHost(
+              child: Scaffold(body: SubscriptionTreeView()),
+            ),
           ),
         ),
       );
@@ -412,7 +425,9 @@ void main() {
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: const Scaffold(body: SubscriptionTreeView()),
+          home: const AppMenuHost(
+            child: Scaffold(body: SubscriptionTreeView()),
+          ),
         ),
       ),
     );
@@ -442,7 +457,9 @@ void main() {
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: const Scaffold(body: SubscriptionTreeView()),
+            home: const AppMenuHost(
+              child: Scaffold(body: SubscriptionTreeView()),
+            ),
           ),
         ),
       );
@@ -486,7 +503,9 @@ void main() {
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: const Scaffold(body: SubscriptionTreeView()),
+            home: const AppMenuHost(
+              child: Scaffold(body: SubscriptionTreeView()),
+            ),
           ),
         ),
       );
@@ -532,17 +551,19 @@ void main() {
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: Consumer(
-            builder: (context, ref, _) {
-              unawaited(
-                Future.microtask(() {
-                  ref
-                      .read(subscriptionSelectionProvider.notifier)
-                      .selectCategory(1);
-                }),
-              );
-              return const Scaffold(body: SubscriptionTreeView());
-            },
+          home: AppMenuHost(
+            child: Consumer(
+              builder: (context, ref, _) {
+                unawaited(
+                  Future.microtask(() {
+                    ref
+                        .read(subscriptionSelectionProvider.notifier)
+                        .selectCategory(1);
+                  }),
+                );
+                return const Scaffold(body: SubscriptionTreeView());
+              },
+            ),
           ),
         ),
       ),
@@ -575,7 +596,9 @@ void main() {
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: const Scaffold(body: SubscriptionTreeView()),
+          home: const AppMenuHost(
+            child: Scaffold(body: SubscriptionTreeView()),
+          ),
         ),
       ),
     );
@@ -607,7 +630,9 @@ void main() {
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: const Scaffold(body: SubscriptionTreeView()),
+          home: const AppMenuHost(
+            child: Scaffold(body: SubscriptionTreeView()),
+          ),
         ),
       ),
     );
@@ -674,7 +699,9 @@ void main() {
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: const Scaffold(body: SubscriptionTreeView()),
+            home: const AppMenuHost(
+              child: Scaffold(body: SubscriptionTreeView()),
+            ),
           ),
         ),
       );
@@ -726,17 +753,19 @@ void main() {
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: Consumer(
-            builder: (context, ref, _) {
-              unawaited(
-                Future.microtask(() {
-                  ref
-                      .read(subscriptionSelectionProvider.notifier)
-                      .selectCategory(1);
-                }),
-              );
-              return const Scaffold(body: SubscriptionTreeView());
-            },
+          home: AppMenuHost(
+            child: Consumer(
+              builder: (context, ref, _) {
+                unawaited(
+                  Future.microtask(() {
+                    ref
+                        .read(subscriptionSelectionProvider.notifier)
+                        .selectCategory(1);
+                  }),
+                );
+                return const Scaffold(body: SubscriptionTreeView());
+              },
+            ),
           ),
         ),
       ),

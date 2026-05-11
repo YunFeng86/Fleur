@@ -318,10 +318,10 @@ void main() {
 
     expect(find.text('Rename'), findsOneWidget);
     expect(find.text('Delete'), findsOneWidget);
-    final deleteItem = tester.widget<PopupMenuItem>(
+    final deleteItem = tester.widget<MenuItemButton>(
       find.byKey(const Key('services_account_delete_local')),
     );
-    expect(deleteItem.enabled, isFalse);
+    expect(deleteItem.onPressed, isNull);
   });
 
   testWidgets('add or register account opens account type picker', (

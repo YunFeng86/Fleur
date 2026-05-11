@@ -23,6 +23,7 @@ import '../services/logging/app_logger.dart';
 import '../services/notifications/notification_service.dart';
 import '../services/settings/app_settings.dart';
 import '../ui/actions/subscription_object_menus.dart';
+import '../ui/app_menu.dart';
 import '../ui/global_nav.dart';
 import '../ui/home/home_scene_commands.dart';
 import '../ui/layout.dart';
@@ -113,8 +114,9 @@ class App extends ConsumerWidget {
                 initialEntries: [
                   OverlayEntry(
                     opaque: true,
-                    builder: (_) =>
-                        _DesktopChrome(router: router, content: wrapped),
+                    builder: (_) => AppMenuHost(
+                      child: _DesktopChrome(router: router, content: wrapped),
+                    ),
                   ),
                 ],
               );

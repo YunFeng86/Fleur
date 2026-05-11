@@ -14,6 +14,7 @@ import 'package:fleur/providers/query_providers.dart';
 import 'package:fleur/providers/service_providers.dart';
 import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/theme/app_theme.dart';
+import 'package:fleur/ui/app_menu.dart';
 import 'package:fleur/utils/platform.dart';
 import 'package:fleur/widgets/article_list.dart';
 
@@ -76,11 +77,13 @@ Future<GoRouter> _pumpArticleList(
     String baseLocation = '/',
     String articleRoutePrefix = '',
   }) {
-    return Scaffold(
-      body: ArticleList(
-        selectedArticleId: selectedArticleId,
-        baseLocation: baseLocation,
-        articleRoutePrefix: articleRoutePrefix,
+    return AppMenuHost(
+      child: Scaffold(
+        body: ArticleList(
+          selectedArticleId: selectedArticleId,
+          baseLocation: baseLocation,
+          articleRoutePrefix: articleRoutePrefix,
+        ),
       ),
     );
   }

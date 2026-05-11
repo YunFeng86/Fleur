@@ -10,6 +10,7 @@ import '../../../../providers/subscription_settings_provider.dart';
 import '../../../../services/sync/backend_capabilities.dart';
 import '../../../../theme/fleur_icons.dart';
 import '../../../../ui/actions/subscription_object_menus.dart';
+import '../../../../ui/app_menu.dart';
 import '../../../../utils/platform.dart';
 import 'subscription_actions.dart';
 
@@ -101,9 +102,10 @@ class SubscriptionToolbar extends ConsumerWidget {
                     );
                   },
                 ),
-              PopupMenuButton<SubscriptionRootMenuAction>(
+              AppMenuButton<SubscriptionRootMenuAction>(
                 tooltip: l10n.manage,
-                icon: const Icon(FleurIcons.moreHorizontal),
+                icon: FleurIcons.moreHorizontal,
+                items: overflowItems,
                 onSelected: (action) => unawaited(
                   SubscriptionObjectMenus.performSettingsManagementAction(
                     context,
@@ -111,19 +113,6 @@ class SubscriptionToolbar extends ConsumerWidget {
                     action,
                   ),
                 ),
-                itemBuilder: (context) {
-                  return [
-                    for (final item in overflowItems)
-                      PopupMenuItem<SubscriptionRootMenuAction>(
-                        value: item.action,
-                        child: ListTile(
-                          leading: Icon(item.icon),
-                          title: Text(item.label),
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                      ),
-                  ];
-                },
               ),
             ],
           ),

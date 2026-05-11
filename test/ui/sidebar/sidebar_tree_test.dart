@@ -13,6 +13,7 @@ import 'package:fleur/services/sync/backend_capabilities.dart';
 import 'package:fleur/services/sync/backend_sync_semantics.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/fleur_icons.dart';
+import 'package:fleur/ui/app_menu.dart';
 import 'package:fleur/ui/sidebar/sidebar_management_actions.dart';
 import 'package:fleur/ui/sidebar/sidebar_selection_actions.dart';
 import 'package:fleur/ui/sidebar/sidebar_tree.dart';
@@ -69,30 +70,32 @@ class _SidebarHarnessState extends ConsumerState<_SidebarHarness> {
       showDialogRoute: <T>({required builder}) async => null,
     );
 
-    return SidebarNavigationTree(
-      scrollController: _scrollController,
-      searchText: '',
-      feeds: AsyncValue.data(widget.feeds),
-      categories: AsyncValue.data(widget.categories),
-      tags: AsyncValue.data(widget.tags),
-      allUnreadCounts: AsyncValue.data(widget.unreadCounts),
-      selectedFeedId: ref.watch(selectedFeedIdProvider),
-      selectedCategoryId: ref.watch(selectedCategoryIdProvider),
-      selectedTagId: ref.watch(selectedTagIdProvider),
-      starredOnly: ref.watch(starredOnlyProvider),
-      readLaterOnly: ref.watch(readLaterOnlyProvider),
-      expandedCategoryId: _expandedCategoryId,
-      onExpandedCategoryChanged: (categoryId) {
-        setState(() => _expandedCategoryId = categoryId);
-      },
-      selectionActions: selectionActions,
-      managementActions: managementActions,
-      capabilities: BackendCapabilities.forAccountType(widget.accountType),
-      syncSemantics: BackendSyncSemantics.forAccountType(widget.accountType),
-      onAddFeed: widget.onAddFeed ?? () async {},
-      onAddCategory: widget.onAddCategory ?? () async {},
-      onShowCategoryMenu: (_) async {},
-      onShowFeedMenu: (_) async {},
+    return AppMenuHost(
+      child: SidebarNavigationTree(
+        scrollController: _scrollController,
+        searchText: '',
+        feeds: AsyncValue.data(widget.feeds),
+        categories: AsyncValue.data(widget.categories),
+        tags: AsyncValue.data(widget.tags),
+        allUnreadCounts: AsyncValue.data(widget.unreadCounts),
+        selectedFeedId: ref.watch(selectedFeedIdProvider),
+        selectedCategoryId: ref.watch(selectedCategoryIdProvider),
+        selectedTagId: ref.watch(selectedTagIdProvider),
+        starredOnly: ref.watch(starredOnlyProvider),
+        readLaterOnly: ref.watch(readLaterOnlyProvider),
+        expandedCategoryId: _expandedCategoryId,
+        onExpandedCategoryChanged: (categoryId) {
+          setState(() => _expandedCategoryId = categoryId);
+        },
+        selectionActions: selectionActions,
+        managementActions: managementActions,
+        capabilities: BackendCapabilities.forAccountType(widget.accountType),
+        syncSemantics: BackendSyncSemantics.forAccountType(widget.accountType),
+        onAddFeed: widget.onAddFeed ?? () async {},
+        onAddCategory: widget.onAddCategory ?? () async {},
+        onShowCategoryMenu: (_) async {},
+        onShowFeedMenu: (_) async {},
+      ),
     );
   }
 }
@@ -107,7 +110,7 @@ Future<void> _openContextMenuOnText(WidgetTester tester, String text) async {
 
 Finder _popupMenuText(String text) {
   return find.descendant(
-    of: find.byWidgetPredicate((widget) => widget is PopupMenuItem),
+    of: find.byType(MenuItemButton),
     matching: find.text(text),
   );
 }
@@ -1085,7 +1088,7 @@ void main() {
           .widget<TreeDisclosureButton>(find.byType(TreeDisclosureButton).first)
           .onPressed();
       await tester.pumpAndSettle();
-      expect(find.byType(MenuAnchor), findsNothing);
+      expect(find.byType(MenuAnchor), findsOneWidget);
 
       final scrollable = tester
           .stateList<ScrollableState>(find.byType(Scrollable))

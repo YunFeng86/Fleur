@@ -11,6 +11,7 @@ import '../../services/sync/backend_capabilities.dart';
 import '../../services/sync/backend_sync_semantics.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/fleur_icons.dart';
+import '../app_menu.dart';
 import '../../ui/sidebar/sidebar_management_actions.dart';
 import '../../ui/sidebar/sidebar_selection_actions.dart';
 import '../actions/subscription_object_menus.dart';
@@ -779,14 +780,15 @@ class _SidebarCategoryTile extends StatelessWidget {
                   onShowMenu: isDesktop
                       ? null
                       : () => onShowCategoryMenu(category),
-                  menuChildren: isDesktop
-                      ? SubscriptionObjectMenus.menuButtons(
-                          context: context,
-                          items: menuItems,
-                          onSelected: (action) =>
-                              unawaited(_performAction(action)),
-                        )
-                      : const <Widget>[],
+                  menuItems: isDesktop
+                      ? menuItems
+                      : const <
+                          SubscriptionObjectMenuItem<
+                            SubscriptionCategoryMenuAction
+                          >
+                        >[],
+                  onMenuActionSelected: (action) =>
+                      unawaited(_performAction(action)),
                   onMenuOpenChanged: onMenuOpenChanged,
                   onAddFeed: () async {
                     final feedId = await managementActions.addFeed(
@@ -922,13 +924,13 @@ class _SidebarFeedTile extends StatelessWidget {
               hasFeedActions: hasFeedActions,
               canMarkRead: canMarkRead,
               onShowMenu: isDesktop ? null : () => onShowFeedMenu(feed),
-              menuChildren: isDesktop
-                  ? SubscriptionObjectMenus.menuButtons(
-                      context: context,
-                      items: menuItems,
-                      onSelected: (action) => unawaited(_performAction(action)),
-                    )
-                  : const <Widget>[],
+              menuItems: isDesktop
+                  ? menuItems
+                  : const <
+                      SubscriptionObjectMenuItem<SubscriptionFeedMenuAction>
+                    >[],
+              onMenuActionSelected: (action) =>
+                  unawaited(_performAction(action)),
               onMenuOpenChanged: onMenuOpenChanged,
               onMarkRead: () => managementActions.markAllRead(feedId: feed.id),
             ),
@@ -1007,7 +1009,8 @@ class _SidebarCategoryTrailing extends StatelessWidget {
     required this.canAddFeed,
     required this.canMarkRead,
     required this.onShowMenu,
-    required this.menuChildren,
+    required this.menuItems,
+    required this.onMenuActionSelected,
     required this.onMenuOpenChanged,
     required this.onAddFeed,
     required this.onMarkRead,
@@ -1024,7 +1027,9 @@ class _SidebarCategoryTrailing extends StatelessWidget {
   final bool canAddFeed;
   final bool canMarkRead;
   final VoidCallback? onShowMenu;
-  final List<Widget> menuChildren;
+  final List<SubscriptionObjectMenuItem<SubscriptionCategoryMenuAction>>
+  menuItems;
+  final ValueChanged<SubscriptionCategoryMenuAction> onMenuActionSelected;
   final ValueChanged<bool> onMenuOpenChanged;
   final Future<void> Function() onAddFeed;
   final Future<void> Function() onMarkRead;
@@ -1060,7 +1065,8 @@ class _SidebarCategoryTrailing extends StatelessWidget {
                               ? _SidebarMenuActionButton(
                                   tooltip: l10n.more,
                                   active: selected,
-                                  menuChildren: menuChildren,
+                                  items: menuItems,
+                                  onSelected: onMenuActionSelected,
                                   onMenuOpenChanged: onMenuOpenChanged,
                                 )
                               : _SidebarActionIconButton(
@@ -1103,7 +1109,8 @@ class _SidebarFeedTrailing extends StatelessWidget {
     required this.hasFeedActions,
     required this.canMarkRead,
     required this.onShowMenu,
-    required this.menuChildren,
+    required this.menuItems,
+    required this.onMenuActionSelected,
     required this.onMenuOpenChanged,
     required this.onMarkRead,
   });
@@ -1116,7 +1123,8 @@ class _SidebarFeedTrailing extends StatelessWidget {
   final bool hasFeedActions;
   final bool canMarkRead;
   final VoidCallback? onShowMenu;
-  final List<Widget> menuChildren;
+  final List<SubscriptionObjectMenuItem<SubscriptionFeedMenuAction>> menuItems;
+  final ValueChanged<SubscriptionFeedMenuAction> onMenuActionSelected;
   final ValueChanged<bool> onMenuOpenChanged;
   final Future<void> Function() onMarkRead;
 
@@ -1140,7 +1148,8 @@ class _SidebarFeedTrailing extends StatelessWidget {
                         ? _SidebarMenuActionButton(
                             tooltip: l10n.more,
                             active: selected,
-                            menuChildren: menuChildren,
+                            items: menuItems,
+                            onSelected: onMenuActionSelected,
                             onMenuOpenChanged: onMenuOpenChanged,
                           )
                         : _SidebarActionIconButton(
@@ -1164,35 +1173,70 @@ class _SidebarFeedTrailing extends StatelessWidget {
   }
 }
 
-class _SidebarMenuActionButton extends StatelessWidget {
+class _SidebarMenuActionButton<T> extends StatefulWidget {
   const _SidebarMenuActionButton({
     required this.tooltip,
     required this.active,
-    required this.menuChildren,
+    required this.items,
+    required this.onSelected,
     required this.onMenuOpenChanged,
   });
 
   final String tooltip;
   final bool active;
-  final List<Widget> menuChildren;
+  final List<AppMenuItem<T>> items;
+  final ValueChanged<T> onSelected;
   final ValueChanged<bool> onMenuOpenChanged;
 
   @override
+  State<_SidebarMenuActionButton<T>> createState() =>
+      _SidebarMenuActionButtonState<T>();
+}
+
+class _SidebarMenuActionButtonState<T>
+    extends State<_SidebarMenuActionButton<T>> {
+  bool _menuOpen = false;
+
+  void _handleMenuOpenChanged(bool value) {
+    if (_menuOpen != value) {
+      setState(() => _menuOpen = value);
+    }
+    widget.onMenuOpenChanged(value);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return MenuAnchor(
-      onOpen: () => onMenuOpenChanged(true),
-      onClose: () => onMenuOpenChanged(false),
-      menuChildren: menuChildren,
-      builder: (context, controller, child) {
-        return _SidebarActionIconButton(
-          tooltip: tooltip,
-          active: active || controller.isOpen,
-          onPressed: () {
-            controller.isOpen ? controller.close() : controller.open();
-          },
-          icon: FleurIcons.moreVertical,
-        );
-      },
+    final colorScheme = Theme.of(context).colorScheme;
+    final active = widget.active || _menuOpen;
+
+    return AppMenuButton<T>(
+      tooltip: widget.tooltip,
+      icon: FleurIcons.moreVertical,
+      iconSize: 20,
+      constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+      padding: EdgeInsets.zero,
+      style: ButtonStyle(
+        backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
+        fixedSize: const WidgetStatePropertyAll(Size.square(32)),
+        minimumSize: const WidgetStatePropertyAll(Size.square(32)),
+        overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        foregroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return colorScheme.onSurface.withAlpha(96);
+          }
+          if (active ||
+              states.contains(WidgetState.hovered) ||
+              states.contains(WidgetState.focused) ||
+              states.contains(WidgetState.pressed)) {
+            return colorScheme.primary;
+          }
+          return colorScheme.onSurfaceVariant;
+        }),
+      ),
+      items: widget.items,
+      onSelected: widget.onSelected,
+      onOpenChanged: _handleMenuOpenChanged,
     );
   }
 }

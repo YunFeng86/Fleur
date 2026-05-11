@@ -15,6 +15,7 @@ import '../../../utils/context_extensions.dart';
 import '../../../utils/language_utils.dart';
 import '../../../utils/prompt_template.dart';
 import '../../../widgets/app_scrollbar.dart';
+import '../../app_menu.dart';
 import '../../dialogs/side_panel.dart';
 import '../../dialogs/text_input_dialog.dart';
 import '../translation_ai/ai_service_editor_dialog.dart';
@@ -1039,30 +1040,29 @@ class TranslationAiServicesTab extends ConsumerWidget {
                               }
 
                               Widget buildMenuButton() {
-                                return PopupMenuButton<_AiServiceAction>(
+                                return AppMenuButton<_AiServiceAction>(
                                   tooltip: l10n.more,
-                                  icon: const Icon(FleurIcons.moreVertical),
+                                  icon: FleurIcons.moreVertical,
+                                  items: [
+                                    AppMenuItem(
+                                      value: _AiServiceAction.setDefault,
+                                      label: isDefault
+                                          ? l10n.defaultAlreadySet
+                                          : l10n.setAsDefault,
+                                    ),
+                                    AppMenuItem(
+                                      value: _AiServiceAction.edit,
+                                      label: l10n.edit,
+                                    ),
+                                    AppMenuItem(
+                                      value: _AiServiceAction.delete,
+                                      label: l10n.delete,
+                                      destructive: true,
+                                    ),
+                                  ],
                                   onSelected: (action) {
                                     unawaited(handleAction(action));
                                   },
-                                  itemBuilder: (context) => [
-                                    PopupMenuItem(
-                                      value: _AiServiceAction.setDefault,
-                                      child: Text(
-                                        isDefault
-                                            ? l10n.defaultAlreadySet
-                                            : l10n.setAsDefault,
-                                      ),
-                                    ),
-                                    PopupMenuItem(
-                                      value: _AiServiceAction.edit,
-                                      child: Text(l10n.edit),
-                                    ),
-                                    PopupMenuItem(
-                                      value: _AiServiceAction.delete,
-                                      child: Text(l10n.delete),
-                                    ),
-                                  ],
                                 );
                               }
 

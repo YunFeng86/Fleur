@@ -19,6 +19,7 @@ import '../services/translation/article_translation.dart';
 import '../theme/app_typography.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
+import '../ui/app_menu.dart';
 import '../utils/platform.dart';
 import '../utils/tag_colors.dart';
 import 'app_scrollbar.dart';
@@ -185,6 +186,60 @@ class ReaderBottomBar extends ConsumerWidget {
       }
     }
 
+    final overflowItems = [
+      AppMenuItem(
+        key: const Key('reader_overflow_settings'),
+        value: _ReaderOverflowAction.settings,
+        icon: FleurIcons.readerSettings,
+        label: l10n.readerSettings,
+      ),
+      AppMenuItem(
+        key: const Key('reader_overflow_summary'),
+        value: _ReaderOverflowAction.summary,
+        enabled: !isSummaryBusy,
+        label: l10n.aiSummaryAction,
+        leadingBuilder: (context) => isSummaryBusy
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Icon(
+                FleurIcons.aiSummary,
+                color: hasSummary ? states.syncAccent : null,
+              ),
+      ),
+      AppMenuItem(
+        key: const Key('reader_overflow_read_later'),
+        value: _ReaderOverflowAction.readLater,
+        label: l10n.readLater,
+        leadingBuilder: (context) => Icon(
+          article.isReadLater
+              ? FleurIcons.readLaterActive
+              : FleurIcons.readLater,
+          color: article.isReadLater ? states.savedAccent : null,
+        ),
+      ),
+      AppMenuItem(
+        key: const Key('reader_overflow_tags'),
+        value: _ReaderOverflowAction.tags,
+        icon: FleurIcons.tag,
+        label: l10n.manageTags,
+      ),
+      AppMenuItem(
+        key: const Key('reader_overflow_copy_link'),
+        value: _ReaderOverflowAction.copyLink,
+        icon: FleurIcons.copy,
+        label: l10n.copyLink,
+      ),
+      AppMenuItem(
+        key: const Key('reader_overflow_share'),
+        value: _ReaderOverflowAction.share,
+        icon: FleurIcons.share,
+        label: l10n.share,
+      ),
+    ];
+
     final hasFeedInfo =
         feed != null && feedTitle != null && feedTitle.isNotEmpty;
 
@@ -331,90 +386,13 @@ class ReaderBottomBar extends ConsumerWidget {
                       },
                       icon: const Icon(FleurIcons.openExternal),
                     ),
-                    PopupMenuButton<_ReaderOverflowAction>(
-                      key: const Key('reader_more_actions_button'),
+                    AppMenuButton<_ReaderOverflowAction>(
+                      buttonKey: const Key('reader_more_actions_button'),
                       tooltip: l10n.more,
-                      icon: const Icon(FleurIcons.moreHorizontal),
-                      onSelected: (value) {
-                        unawaited(handleOverflowAction(value));
-                      },
-                      itemBuilder: (context) => [
-                        PopupMenuItem<_ReaderOverflowAction>(
-                          key: const Key('reader_overflow_settings'),
-                          value: _ReaderOverflowAction.settings,
-                          child: ListTile(
-                            leading: const Icon(FleurIcons.readerSettings),
-                            title: Text(l10n.readerSettings),
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                        ),
-                        PopupMenuItem<_ReaderOverflowAction>(
-                          key: const Key('reader_overflow_summary'),
-                          value: _ReaderOverflowAction.summary,
-                          enabled: !isSummaryBusy,
-                          child: ListTile(
-                            leading: isSummaryBusy
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : Icon(
-                                    FleurIcons.aiSummary,
-                                    color: hasSummary
-                                        ? states.syncAccent
-                                        : null,
-                                  ),
-                            title: Text(l10n.aiSummaryAction),
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                        ),
-                        PopupMenuItem<_ReaderOverflowAction>(
-                          key: const Key('reader_overflow_read_later'),
-                          value: _ReaderOverflowAction.readLater,
-                          child: ListTile(
-                            leading: Icon(
-                              article.isReadLater
-                                  ? FleurIcons.readLaterActive
-                                  : FleurIcons.readLater,
-                              color: article.isReadLater
-                                  ? states.savedAccent
-                                  : null,
-                            ),
-                            title: Text(l10n.readLater),
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                        ),
-                        PopupMenuItem<_ReaderOverflowAction>(
-                          key: const Key('reader_overflow_tags'),
-                          value: _ReaderOverflowAction.tags,
-                          child: ListTile(
-                            leading: const Icon(FleurIcons.tag),
-                            title: Text(l10n.manageTags),
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                        ),
-                        PopupMenuItem<_ReaderOverflowAction>(
-                          key: const Key('reader_overflow_copy_link'),
-                          value: _ReaderOverflowAction.copyLink,
-                          child: ListTile(
-                            leading: const Icon(FleurIcons.copy),
-                            title: Text(l10n.copyLink),
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                        ),
-                        PopupMenuItem<_ReaderOverflowAction>(
-                          key: const Key('reader_overflow_share'),
-                          value: _ReaderOverflowAction.share,
-                          child: ListTile(
-                            leading: const Icon(FleurIcons.share),
-                            title: Text(l10n.share),
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                        ),
-                      ],
+                      icon: FleurIcons.moreHorizontal,
+                      items: overflowItems,
+                      onSelected: (value) =>
+                          unawaited(handleOverflowAction(value)),
                     ),
                   ],
                 ),

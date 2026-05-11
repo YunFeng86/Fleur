@@ -10,7 +10,7 @@ import '../../providers/subscription_settings_provider.dart';
 import '../../services/sync/backend_capabilities.dart';
 import '../../services/sync/backend_sync_semantics.dart';
 import '../../theme/fleur_icons.dart';
-import '../context_menu_position.dart';
+import '../app_menu.dart';
 import 'root_sync_action.dart';
 import 'subscription_actions.dart';
 
@@ -29,17 +29,20 @@ enum SubscriptionRootMenuAction {
   settings,
 }
 
-class SubscriptionObjectMenuItem<T> {
+class SubscriptionObjectMenuItem<T> extends AppMenuItem<T> {
   const SubscriptionObjectMenuItem({
     required this.action,
     required this.icon,
     required this.label,
     this.destructive = false,
-  });
+  }) : super(value: action, icon: icon, label: label, destructive: destructive);
 
   final T action;
+  @override
   final IconData icon;
+  @override
   final String label;
+  @override
   final bool destructive;
 }
 
@@ -292,39 +295,18 @@ class SubscriptionObjectMenus {
     required List<SubscriptionObjectMenuItem<T>> items,
     required ValueChanged<T> onSelected,
   }) {
-    final errorColor = Theme.of(context).colorScheme.error;
-    return [
-      for (final item in items)
-        MenuItemButton(
-          leadingIcon: Icon(
-            item.icon,
-            color: item.destructive ? errorColor : null,
-          ),
-          onPressed: () => onSelected(item.action),
-          child: Text(
-            item.label,
-            style: item.destructive ? TextStyle(color: errorColor) : null,
-          ),
-        ),
-    ];
+    return AppMenuTiles.menuButtons<T>(
+      context: context,
+      items: items,
+      onSelected: onSelected,
+    );
   }
 
   static List<Widget> bottomSheetTiles<T>({
     required BuildContext context,
     required List<SubscriptionObjectMenuItem<T>> items,
   }) {
-    final errorColor = Theme.of(context).colorScheme.error;
-    return [
-      for (final item in items)
-        ListTile(
-          leading: Icon(item.icon, color: item.destructive ? errorColor : null),
-          title: Text(
-            item.label,
-            style: item.destructive ? TextStyle(color: errorColor) : null,
-          ),
-          onTap: () => Navigator.of(context).pop(item.action),
-        ),
-    ];
+    return AppMenuTiles.bottomSheetTiles<T>(context: context, items: items);
   }
 
   static Future<T?> showContextMenu<T>({
@@ -332,29 +314,7 @@ class SubscriptionObjectMenus {
     required Offset position,
     required List<SubscriptionObjectMenuItem<T>> items,
   }) {
-    if (items.isEmpty) return Future<T?>.value();
-    final errorColor = Theme.of(context).colorScheme.error;
-    return showMenu<T>(
-      context: context,
-      position: contextMenuPositionForGlobalPoint(context, position),
-      items: [
-        for (final item in items)
-          PopupMenuItem<T>(
-            value: item.action,
-            child: ListTile(
-              leading: Icon(
-                item.icon,
-                color: item.destructive ? errorColor : null,
-              ),
-              title: Text(
-                item.label,
-                style: item.destructive ? TextStyle(color: errorColor) : null,
-              ),
-              contentPadding: EdgeInsets.zero,
-            ),
-          ),
-      ],
-    );
+    return AppMenuHost.showAt<T>(context, position: position, items: items);
   }
 
   static Future<void> showSettingsFeedContextMenu(

@@ -11,6 +11,7 @@ import 'package:fleur/providers/query_providers.dart';
 import 'package:fleur/providers/subscription_settings_provider.dart';
 import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/theme/app_theme.dart';
+import 'package:fleur/ui/app_menu.dart';
 import 'package:fleur/ui/settings/subscriptions/category_list_component.dart';
 import 'package:fleur/utils/platform.dart';
 import 'package:fleur/widgets/app_scrollbar.dart';
@@ -28,7 +29,7 @@ Future<void> _openContextMenu(WidgetTester tester, Finder finder) async {
 
 Finder _popupMenuText(String text) {
   return find.descendant(
-    of: find.byWidgetPredicate((widget) => widget is PopupMenuItem),
+    of: find.byType(MenuItemButton),
     matching: find.text(text),
   );
 }
@@ -56,7 +57,9 @@ void main() {
           theme: AppTheme.light(),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: const Scaffold(body: CategoryListComponent()),
+          home: const AppMenuHost(
+            child: Scaffold(body: CategoryListComponent()),
+          ),
         ),
       ),
     );
@@ -99,7 +102,9 @@ void main() {
             theme: AppTheme.light(),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: const Scaffold(body: CategoryListComponent()),
+            home: const AppMenuHost(
+              child: Scaffold(body: CategoryListComponent()),
+            ),
           ),
         ),
       );
@@ -150,7 +155,9 @@ void main() {
             theme: AppTheme.light(),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: const Scaffold(body: CategoryListComponent()),
+            home: const AppMenuHost(
+              child: Scaffold(body: CategoryListComponent()),
+            ),
           ),
         ),
       );
@@ -232,7 +239,9 @@ void main() {
           theme: AppTheme.light(),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: const Scaffold(body: CategoryListComponent()),
+          home: const AppMenuHost(
+            child: Scaffold(body: CategoryListComponent()),
+          ),
         ),
       ),
     );

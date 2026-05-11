@@ -10,6 +10,7 @@ import 'package:fleur/providers/account_providers.dart';
 import 'package:fleur/providers/query_providers.dart';
 import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/theme/app_theme.dart';
+import 'package:fleur/ui/app_menu.dart';
 import 'package:fleur/ui/settings/subscriptions/feed_list_component.dart';
 import 'package:fleur/utils/platform.dart';
 
@@ -49,7 +50,7 @@ Future<void> _pumpFeedList(
         theme: AppTheme.light(),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: const Scaffold(body: FeedListComponent()),
+        home: const AppMenuHost(child: Scaffold(body: FeedListComponent())),
       ),
     ),
   );

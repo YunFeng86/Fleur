@@ -16,6 +16,7 @@ import '../../../services/sync/backend_sync_semantics.dart';
 import '../../../theme/fleur_icons.dart';
 import '../../../utils/context_extensions.dart';
 import '../../../widgets/account_avatar.dart';
+import '../../app_menu.dart';
 import '../../actions/subscription_actions.dart';
 import '../../dialogs/add_account_dialogs.dart';
 import '../../dialogs/text_input_dialog.dart';
@@ -502,10 +503,25 @@ class _AccountSettingsTile extends StatelessWidget {
               color: scheme.primary,
               size: 20,
             ),
-          PopupMenuButton<_AccountAction>(
-            key: Key('services_account_menu_${account.id}'),
+          AppMenuButton<_AccountAction>(
+            buttonKey: Key('services_account_menu_${account.id}'),
             tooltip: l10n.more,
-            icon: const Icon(FleurIcons.moreVertical),
+            icon: FleurIcons.moreVertical,
+            items: [
+              AppMenuItem(
+                key: Key('services_account_rename_${account.id}'),
+                value: _AccountAction.rename,
+                icon: FleurIcons.rename,
+                label: l10n.rename,
+              ),
+              AppMenuItem(
+                key: Key('services_account_delete_${account.id}'),
+                value: _AccountAction.delete,
+                icon: FleurIcons.delete,
+                label: l10n.delete,
+                enabled: onDelete != null,
+              ),
+            ],
             onSelected: (action) {
               switch (action) {
                 case _AccountAction.rename:
@@ -516,45 +532,10 @@ class _AccountSettingsTile extends StatelessWidget {
                   return;
               }
             },
-            itemBuilder: (context) {
-              return [
-                PopupMenuItem<_AccountAction>(
-                  key: Key('services_account_rename_${account.id}'),
-                  value: _AccountAction.rename,
-                  child: _AccountMenuItem(
-                    icon: FleurIcons.rename,
-                    label: l10n.rename,
-                  ),
-                ),
-                PopupMenuItem<_AccountAction>(
-                  key: Key('services_account_delete_${account.id}'),
-                  value: _AccountAction.delete,
-                  enabled: onDelete != null,
-                  child: _AccountMenuItem(
-                    icon: FleurIcons.delete,
-                    label: l10n.delete,
-                  ),
-                ),
-              ];
-            },
           ),
         ],
       ),
       onTap: onTap,
-    );
-  }
-}
-
-class _AccountMenuItem extends StatelessWidget {
-  const _AccountMenuItem({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [Icon(icon, size: 20), const SizedBox(width: 12), Text(label)],
     );
   }
 }
