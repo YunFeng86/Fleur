@@ -48,11 +48,31 @@ DateTime? _tryParseRfc822Like(String s) {
   if (day <= 0 || month <= 0 || year <= 0) return null;
 
   final baseUtc = DateTime.utc(year, month, day, hour, minute, second);
+  if (!_hasExactUtcFields(baseUtc, year, month, day, hour, minute, second)) {
+    return null;
+  }
 
   final offset = _parseTzOffsetMinutes(tz);
   if (offset == null) return baseUtc; // fall back to treating it as UTC
 
   return baseUtc.subtract(Duration(minutes: offset));
+}
+
+bool _hasExactUtcFields(
+  DateTime value,
+  int year,
+  int month,
+  int day,
+  int hour,
+  int minute,
+  int second,
+) {
+  return value.year == year &&
+      value.month == month &&
+      value.day == day &&
+      value.hour == hour &&
+      value.minute == minute &&
+      value.second == second;
 }
 
 int? _parseTzOffsetMinutes(String tz) {
