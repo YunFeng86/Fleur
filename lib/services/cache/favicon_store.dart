@@ -28,9 +28,10 @@ class FaviconCacheEntry {
     final fetchedAt = DateTime.tryParse(fetchedAtRaw);
     if (fetchedAt == null) return null;
     final iconUrlRaw = raw['iconUrl'];
+    final iconUrl = iconUrlRaw is String ? iconUrlRaw.trim() : '';
     return FaviconCacheEntry(
       fetchedAt: fetchedAt,
-      iconUrl: iconUrlRaw is String ? iconUrlRaw : null,
+      iconUrl: iconUrl.isEmpty ? null : iconUrl,
     );
   }
 }
