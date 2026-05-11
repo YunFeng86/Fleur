@@ -34,12 +34,6 @@ typedef SubscriptionActionDialogPresenter =
     Future<T?> Function<T>({required WidgetBuilder builder});
 
 class SubscriptionActions {
-  static void _resetFeedBrowseFilters(WidgetRef ref) {
-    ref.read(starredOnlyProvider.notifier).state = false;
-    ref.read(readLaterOnlyProvider.notifier).state = false;
-    ref.read(articleSearchQueryProvider.notifier).state = '';
-  }
-
   static BackendCapabilities _capabilities(WidgetRef ref) {
     return ref.read(backendCapabilitiesProvider);
   }
@@ -239,11 +233,21 @@ class SubscriptionActions {
     int feedId, {
     bool resetFilters = true,
   }) {
-    if (resetFilters) _resetFeedBrowseFilters(ref);
-    ref.read(selectedFeedIdProvider.notifier).state = feedId;
-    // Selecting a feed should exit category/tag browsing context.
-    ref.read(selectedCategoryIdProvider.notifier).state = null;
-    ref.read(selectedTagIdProvider.notifier).state = null;
+    if (resetFilters) {
+      ref
+          .read(articleListFilterProvider.notifier)
+          .update((filter) => filter.selectFeed(feedId));
+      return;
+    }
+    ref
+        .read(articleListFilterProvider.notifier)
+        .update(
+          (filter) => filter.copyWith(
+            selectedFeedId: feedId,
+            selectedCategoryId: null,
+            selectedTagId: null,
+          ),
+        );
   }
 
   static Future<int?> addFeed(

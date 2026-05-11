@@ -18,10 +18,8 @@ class SidebarSelectionActions {
   final SidebarFeedSelectionCallback _onSelectFeed;
   final VoidCallback _closeSidebar;
 
-  void _resetBrowseFilters() {
-    _ref.read(starredOnlyProvider.notifier).state = false;
-    _ref.read(readLaterOnlyProvider.notifier).state = false;
-    _ref.read(articleSearchQueryProvider.notifier).state = '';
+  void _updateFilter(ArticleListFilter Function(ArticleListFilter) update) {
+    _ref.read(articleListFilterProvider.notifier).update(update);
   }
 
   void selectFeed(int feedId) {
@@ -30,19 +28,13 @@ class SidebarSelectionActions {
       return;
     }
 
-    _resetBrowseFilters();
-    _ref.read(selectedFeedIdProvider.notifier).state = feedId;
-    _ref.read(selectedCategoryIdProvider.notifier).state = null;
-    _ref.read(selectedTagIdProvider.notifier).state = null;
+    _updateFilter((filter) => filter.selectFeed(feedId));
     _onSelectFeed(feedId);
     _closeSidebar();
   }
 
   void selectAll() {
-    _resetBrowseFilters();
-    _ref.read(selectedFeedIdProvider.notifier).state = null;
-    _ref.read(selectedCategoryIdProvider.notifier).state = null;
-    _ref.read(selectedTagIdProvider.notifier).state = null;
+    _updateFilter((filter) => filter.selectAll());
     _onSelectFeed(null);
     _closeSidebar();
   }
@@ -53,10 +45,7 @@ class SidebarSelectionActions {
       return;
     }
 
-    _resetBrowseFilters();
-    _ref.read(selectedFeedIdProvider.notifier).state = null;
-    _ref.read(selectedCategoryIdProvider.notifier).state = categoryId;
-    _ref.read(selectedTagIdProvider.notifier).state = null;
+    _updateFilter((filter) => filter.selectCategory(categoryId));
     _onSelectFeed(null);
     _closeSidebar();
   }
@@ -67,10 +56,7 @@ class SidebarSelectionActions {
       return;
     }
 
-    _resetBrowseFilters();
-    _ref.read(selectedFeedIdProvider.notifier).state = null;
-    _ref.read(selectedCategoryIdProvider.notifier).state = null;
-    _ref.read(selectedTagIdProvider.notifier).state = tagId;
+    _updateFilter((filter) => filter.selectTag(tagId));
     _onSelectFeed(null);
     _closeSidebar();
   }

@@ -14,10 +14,9 @@ void handleGlobalNavSelection(
     case GlobalNavDestination.feeds:
       // Leaving other top-level sections should bring you back to the normal
       // feed browsing state.
-      ref.read(starredOnlyProvider.notifier).state = false;
-      ref.read(readLaterOnlyProvider.notifier).state = false;
-      // Keep current feed/category selection, but clear global search.
-      ref.read(articleSearchQueryProvider.notifier).state = '';
+      ref
+          .read(articleListFilterProvider.notifier)
+          .update((filter) => filter.enterFeedsSection());
       context.go(destinationLocation(dest));
       return;
     case GlobalNavDestination.saved:

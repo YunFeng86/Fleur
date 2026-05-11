@@ -9,7 +9,6 @@ import '../../providers/query_providers.dart';
 import '../../providers/refresh_all_providers.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/service_providers.dart';
-import '../../providers/unread_providers.dart';
 import '../../services/sync/backend_capabilities.dart';
 import '../../services/sync/refresh_all_coordinator.dart';
 import '../../services/sync/sync_service.dart';
@@ -87,8 +86,9 @@ class HomeSceneCommands {
   }
 
   void toggleUnreadOnly() {
-    final unreadOnly = _ref.read(unreadOnlyProvider);
-    _ref.read(unreadOnlyProvider.notifier).state = !unreadOnly;
+    _ref
+        .read(articleListFilterProvider.notifier)
+        .update((filter) => filter.toggleUnreadOnly());
   }
 
   Future<void> toggleSelectedArticleRead() async {

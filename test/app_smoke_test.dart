@@ -1032,12 +1032,13 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            selectedFeedIdProvider.overrideWith((ref) => null),
-            selectedCategoryIdProvider.overrideWith((ref) => null),
-            selectedTagIdProvider.overrideWith((ref) => null),
-            starredOnlyProvider.overrideWith((ref) => true),
-            readLaterOnlyProvider.overrideWith((ref) => true),
-            articleSearchQueryProvider.overrideWith((ref) => 'needle'),
+            articleListFilterProvider.overrideWith(
+              (ref) => const ArticleListFilter(
+                starredOnly: true,
+                readLaterOnly: true,
+                searchQuery: 'needle',
+              ),
+            ),
           ],
           child: MaterialApp(
             home: Consumer(
@@ -1076,9 +1077,15 @@ void main() {
       expect(selectedFeedCallback, isNull);
       expect(closeCount, 2);
 
-      container.read(starredOnlyProvider.notifier).state = true;
-      container.read(readLaterOnlyProvider.notifier).state = true;
-      container.read(articleSearchQueryProvider.notifier).state = 'category';
+      container
+          .read(articleListFilterProvider.notifier)
+          .update(
+            (filter) => filter.copyWith(
+              starredOnly: true,
+              readLaterOnly: true,
+              searchQuery: 'category',
+            ),
+          );
       actions.selectCategory(34);
       expect(container.read(selectedFeedIdProvider), isNull);
       expect(container.read(selectedCategoryIdProvider), 34);
@@ -1089,9 +1096,15 @@ void main() {
       expect(selectedFeedCallback, isNull);
       expect(closeCount, 3);
 
-      container.read(starredOnlyProvider.notifier).state = true;
-      container.read(readLaterOnlyProvider.notifier).state = true;
-      container.read(articleSearchQueryProvider.notifier).state = 'tag';
+      container
+          .read(articleListFilterProvider.notifier)
+          .update(
+            (filter) => filter.copyWith(
+              starredOnly: true,
+              readLaterOnly: true,
+              searchQuery: 'tag',
+            ),
+          );
       actions.selectTag(56);
       expect(container.read(selectedFeedIdProvider), isNull);
       expect(container.read(selectedCategoryIdProvider), isNull);
