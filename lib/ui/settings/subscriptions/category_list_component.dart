@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,6 +8,8 @@ import '../../../../models/feed.dart';
 import '../../../../providers/query_providers.dart';
 import '../../../../providers/subscription_settings_provider.dart';
 import '../../../../theme/fleur_theme_extensions.dart';
+import '../../../../ui/actions/subscription_object_menus.dart';
+import '../../../../utils/platform.dart';
 import '../../../../widgets/app_scrollbar.dart';
 import '../../../../widgets/favicon_avatar.dart';
 import '../widgets/section_header.dart';
@@ -48,9 +52,39 @@ class CategoryListComponent extends ConsumerWidget {
             .toList(growable: false);
 
         final globalSelected = selection.isGlobalDefaults;
+        final showSettingsManagementContextMenu = isDesktop
+            ? (TapDownDetails details) => unawaited(
+                SubscriptionObjectMenus.showSettingsManagementContextMenu(
+                  context,
+                  ref,
+                  position: details.globalPosition,
+                ),
+              )
+            : null;
 
-        Widget buildSectionLabel(String label) {
-          return Padding(
+        Future<void> showGlobalDefaultsContextMenu(Offset position) async {
+          final action = await SubscriptionObjectMenus.showContextMenu(
+            context: context,
+            position: position,
+            items: SubscriptionObjectMenus.globalDefaultsItems(l10n),
+          );
+          if (!context.mounted || action == null) return;
+          if (action == SubscriptionRootMenuAction.globalDefaults) {
+            notifier.showGlobalDefaults();
+          }
+        }
+
+        final showGlobalDefaultsMenu = isDesktop
+            ? (TapDownDetails details) => unawaited(
+                showGlobalDefaultsContextMenu(details.globalPosition),
+              )
+            : null;
+
+        Widget buildSectionLabel(
+          String label, {
+          GestureTapDownCallback? onSecondaryTapDown,
+        }) {
+          final labelWidget = Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Text(
               label,
@@ -59,6 +93,12 @@ class CategoryListComponent extends ConsumerWidget {
                 fontWeight: FontWeight.w700,
               ),
             ),
+          );
+          if (onSecondaryTapDown == null) return labelWidget;
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onSecondaryTapDown: onSecondaryTapDown,
+            child: labelWidget,
           );
         }
 
@@ -69,6 +109,7 @@ class CategoryListComponent extends ConsumerWidget {
           required VoidCallback onTap,
           int? count,
           Widget? subtitle,
+          GestureTapDownCallback? onSecondaryTapDown,
         }) {
           return SettingsTile(
             leading: leading,
@@ -84,6 +125,7 @@ class CategoryListComponent extends ConsumerWidget {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
+            onSecondaryTapDown: onSecondaryTapDown,
             onTap: onTap,
           );
         }
@@ -91,6 +133,7 @@ class CategoryListComponent extends ConsumerWidget {
         return SettingsPane(
           color: surfaces.sidebar,
           title: l10n.subscriptions,
+          onHeaderSecondaryTapDown: showSettingsManagementContextMenu,
           child: AppScrollbar(
             child: ListView(
               padding: const EdgeInsets.only(top: 4, bottom: 12),
@@ -105,9 +148,13 @@ class CategoryListComponent extends ConsumerWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   selected: globalSelected,
+                  onSecondaryTapDown: showGlobalDefaultsMenu,
                   onTap: () => notifier.showGlobalDefaults(),
                 ),
-                buildSectionLabel(l10n.folders),
+                buildSectionLabel(
+                  l10n.folders,
+                  onSecondaryTapDown: showSettingsManagementContextMenu,
+                ),
                 for (final category in categories)
                   buildScopeTile(
                     leading: const Icon(Icons.folder_outlined),
@@ -116,6 +163,16 @@ class CategoryListComponent extends ConsumerWidget {
                     selected:
                         !globalSelected &&
                         selection.activeCategoryId == category.id,
+                    onSecondaryTapDown: isDesktop
+                        ? (details) => unawaited(
+                            SubscriptionObjectMenus.showSettingsCategoryContextMenu(
+                              context,
+                              ref,
+                              category: category,
+                              position: details.globalPosition,
+                            ),
+                          )
+                        : null,
                     onTap: () => notifier.selectCategory(category.id),
                   ),
                 if (categories.isNotEmpty && uncategorizedFeeds.isNotEmpty)
@@ -124,6 +181,16 @@ class CategoryListComponent extends ConsumerWidget {
                   _RootFeedTile(
                     feed: feed,
                     selected: selection.selectedFeedId == feed.id,
+                    onSecondaryTapDown: isDesktop
+                        ? (details) => unawaited(
+                            SubscriptionObjectMenus.showSettingsFeedContextMenu(
+                              context,
+                              ref,
+                              feed: feed,
+                              position: details.globalPosition,
+                            ),
+                          )
+                        : null,
                     onTap: () => notifier.selectFeed(
                       feed.id,
                       categoryScope: const SubscriptionCategoryAll(),
@@ -143,11 +210,13 @@ class _RootFeedTile extends StatelessWidget {
     required this.feed,
     required this.selected,
     required this.onTap,
+    this.onSecondaryTapDown,
   });
 
   final Feed feed;
   final bool selected;
   final VoidCallback onTap;
+  final GestureTapDownCallback? onSecondaryTapDown;
 
   @override
   Widget build(BuildContext context) {
@@ -174,6 +243,7 @@ class _RootFeedTile extends StatelessWidget {
       ),
       subtitle: Text(feed.url, maxLines: 1, overflow: TextOverflow.ellipsis),
       selected: selected,
+      onSecondaryTapDown: onSecondaryTapDown,
       onTap: onTap,
     );
   }

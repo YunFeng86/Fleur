@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -7,6 +9,8 @@ import '../../../../models/feed.dart';
 import '../../../../providers/query_providers.dart';
 import '../../../../providers/subscription_settings_provider.dart';
 import '../../../../theme/fleur_theme_extensions.dart';
+import '../../../../ui/actions/subscription_object_menus.dart';
+import '../../../../utils/platform.dart';
 import '../../../../widgets/app_scrollbar.dart';
 import '../../../../widgets/favicon_avatar.dart';
 import '../../../../widgets/tree_disclosure_button.dart';
@@ -165,8 +169,43 @@ class _SubscriptionTreeViewState extends ConsumerState<SubscriptionTreeView> {
               },
             };
 
-            Widget buildSectionLabel(String label) {
-              return Padding(
+            final showSettingsManagementContextMenu = isDesktop
+                ? (TapDownDetails details) => unawaited(
+                    SubscriptionObjectMenus.showSettingsManagementContextMenu(
+                      context,
+                      ref,
+                      position: details.globalPosition,
+                    ),
+                  )
+                : null;
+
+            Future<void> showGlobalDefaultsContextMenu(Offset position) async {
+              final action = await SubscriptionObjectMenus.showContextMenu(
+                context: context,
+                position: position,
+                items: SubscriptionObjectMenus.globalDefaultsItems(l10n),
+              );
+              if (!mounted || action == null) return;
+              if (action == SubscriptionRootMenuAction.globalDefaults) {
+                _runWithScrollAnchor(
+                  () => notifier.showGlobalDefaults(
+                    showDetailPane: widget.showDetailPaneOnSelection,
+                  ),
+                );
+              }
+            }
+
+            final showGlobalDefaultsMenu = isDesktop
+                ? (TapDownDetails details) => unawaited(
+                    showGlobalDefaultsContextMenu(details.globalPosition),
+                  )
+                : null;
+
+            Widget buildSectionLabel(
+              String label, {
+              GestureTapDownCallback? onSecondaryTapDown,
+            }) {
+              final labelWidget = Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                 child: Text(
                   label,
@@ -175,6 +214,12 @@ class _SubscriptionTreeViewState extends ConsumerState<SubscriptionTreeView> {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
+              );
+              if (onSecondaryTapDown == null) return labelWidget;
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onSecondaryTapDown: onSecondaryTapDown,
+                child: labelWidget,
               );
             }
 
@@ -190,6 +235,7 @@ class _SubscriptionTreeViewState extends ConsumerState<SubscriptionTreeView> {
                   title: l10n.globalDefaults,
                   subtitle: l10n.globalDefaultsDescription,
                   selected: selection.isGlobalDefaults,
+                  onSecondaryTapDown: showGlobalDefaultsMenu,
                   onTap: () => _runWithScrollAnchor(
                     () => notifier.showGlobalDefaults(
                       showDetailPane: widget.showDetailPaneOnSelection,
@@ -199,7 +245,10 @@ class _SubscriptionTreeViewState extends ConsumerState<SubscriptionTreeView> {
               ),
               _SubscriptionTreeRow(
                 rowId: 'section:folders',
-                builder: (_) => buildSectionLabel(l10n.folders),
+                builder: (_) => buildSectionLabel(
+                  l10n.folders,
+                  onSecondaryTapDown: showSettingsManagementContextMenu,
+                ),
               ),
             ];
             for (final category in categories) {
@@ -235,6 +284,16 @@ class _SubscriptionTreeViewState extends ConsumerState<SubscriptionTreeView> {
                         showDetailPane: widget.showDetailPaneOnSelection,
                       ),
                     ),
+                    onSecondaryTapDown: isDesktop
+                        ? (details) => unawaited(
+                            SubscriptionObjectMenus.showSettingsCategoryContextMenu(
+                              context,
+                              ref,
+                              category: category,
+                              position: details.globalPosition,
+                            ),
+                          )
+                        : null,
                   ),
                 ),
               );
@@ -254,6 +313,16 @@ class _SubscriptionTreeViewState extends ConsumerState<SubscriptionTreeView> {
                           showDetailPane: widget.showDetailPaneOnSelection,
                         ),
                       ),
+                      onSecondaryTapDown: isDesktop
+                          ? (details) => unawaited(
+                              SubscriptionObjectMenus.showSettingsFeedContextMenu(
+                                context,
+                                ref,
+                                feed: feed,
+                                position: details.globalPosition,
+                              ),
+                            )
+                          : null,
                     ),
                   ),
                 );
@@ -282,6 +351,16 @@ class _SubscriptionTreeViewState extends ConsumerState<SubscriptionTreeView> {
                         showDetailPane: widget.showDetailPaneOnSelection,
                       ),
                     ),
+                    onSecondaryTapDown: isDesktop
+                        ? (details) => unawaited(
+                            SubscriptionObjectMenus.showSettingsFeedContextMenu(
+                              context,
+                              ref,
+                              feed: feed,
+                              position: details.globalPosition,
+                            ),
+                          )
+                        : null,
                   ),
                 ),
               );
@@ -295,6 +374,9 @@ class _SubscriptionTreeViewState extends ConsumerState<SubscriptionTreeView> {
             return SettingsPane(
               color: surfaces.sidebar,
               title: widget.showPaneHeader ? l10n.subscriptions : null,
+              onHeaderSecondaryTapDown: widget.showPaneHeader
+                  ? showSettingsManagementContextMenu
+                  : null,
               child: AppScrollbar(
                 controller: _scrollController,
                 child: ListView.builder(
@@ -399,11 +481,13 @@ class _ScopeTreeRow extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.subtitle,
+    this.onSecondaryTapDown,
   });
 
   final IconData icon;
   final String title;
   final String? subtitle;
+  final GestureTapDownCallback? onSecondaryTapDown;
   final bool selected;
   final VoidCallback onTap;
 
@@ -416,6 +500,7 @@ class _ScopeTreeRow extends StatelessWidget {
           ? null
           : Text(subtitle!, maxLines: 2, overflow: TextOverflow.ellipsis),
       selected: selected,
+      onSecondaryTapDown: onSecondaryTapDown,
       onTap: onTap,
     );
   }
@@ -429,6 +514,7 @@ class _CategoryTreeNode extends StatelessWidget {
     required this.isSelected,
     required this.onToggleExpanded,
     required this.onSelectCategory,
+    this.onSecondaryTapDown,
   });
 
   final Category category;
@@ -437,6 +523,7 @@ class _CategoryTreeNode extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onToggleExpanded;
   final VoidCallback onSelectCategory;
+  final GestureTapDownCallback? onSecondaryTapDown;
 
   @override
   Widget build(BuildContext context) {
@@ -463,6 +550,7 @@ class _CategoryTreeNode extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
             selected: isSelected,
+            onSecondaryTapDown: onSecondaryTapDown,
             trailing: Text(
               '$feedCount',
               style: theme.textTheme.labelMedium?.copyWith(
@@ -484,12 +572,14 @@ class _FeedTreeRow extends StatelessWidget {
     required this.selected,
     required this.indent,
     required this.onTap,
+    this.onSecondaryTapDown,
   });
 
   final Feed feed;
   final bool selected;
   final double indent;
   final VoidCallback onTap;
+  final GestureTapDownCallback? onSecondaryTapDown;
 
   @override
   Widget build(BuildContext context) {
@@ -508,6 +598,7 @@ class _FeedTreeRow extends StatelessWidget {
       ),
       subtitle: Text(feed.url, maxLines: 1, overflow: TextOverflow.ellipsis),
       selected: selected,
+      onSecondaryTapDown: onSecondaryTapDown,
       onTap: onTap,
     );
   }

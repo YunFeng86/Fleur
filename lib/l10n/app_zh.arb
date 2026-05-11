@@ -207,7 +207,7 @@
   "@uncategorized": {
     "description": "uncategorized"
   },
-  "refreshAll": "刷新全部",
+  "refreshAll": "刷新订阅源",
   "@refreshAll": {
     "description": "refreshAll"
   },
@@ -603,6 +603,14 @@
   "@readLater": {
     "description": "readLater"
   },
+  "removeReadLater": "移出稍后读",
+  "@removeReadLater": {
+    "description": "Action label for removing an article from the read-later list"
+  },
+  "openArticle": "打开文章",
+  "@openArticle": {
+    "description": "Action label for opening an article from a list"
+  },
   "markRead": "标记为已读",
   "@markRead": {
     "description": "markRead"
@@ -756,6 +764,10 @@
   "account": "账号",
   "@account": {
     "description": "account"
+  },
+  "addOrRegisterAccount": "添加或注册账号",
+  "@addOrRegisterAccount": {
+    "description": "Action label for adding or registering an account"
   },
   "local": "本地",
   "@local": {
@@ -966,11 +978,11 @@
   "@onlySupportedInLocalAccount": {
     "description": "onlySupportedInLocalAccount"
   },
-  "autoRefresh": "自动刷新",
+  "autoRefresh": "自动刷新订阅源",
   "@autoRefresh": {
     "description": "autoRefresh"
   },
-  "autoRefreshSubtitle": "在后台自动刷新订阅源",
+  "autoRefreshSubtitle": "按所选周期刷新订阅源；移动端后台刷新由系统调度，通常不会短于 15 分钟，且不保证准点。",
   "@autoRefreshSubtitle": {
     "description": "autoRefreshSubtitle"
   },

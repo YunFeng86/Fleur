@@ -8,6 +8,7 @@ import '../../../../providers/backend_capabilities_provider.dart';
 import '../../../../providers/backend_sync_semantics_provider.dart';
 import '../../../../providers/subscription_settings_provider.dart';
 import '../../../../services/sync/backend_capabilities.dart';
+import '../../../../ui/actions/subscription_object_menus.dart';
 import '../../../../utils/platform.dart';
 import 'subscription_actions.dart';
 
@@ -25,15 +26,11 @@ class SubscriptionToolbar extends ConsumerWidget {
     final notifier = ref.read(subscriptionSelectionProvider.notifier);
     final capabilities = ref.watch(backendCapabilitiesProvider);
     final syncSemantics = ref.watch(backendSyncSemanticsProvider);
-    final showsSourceRefresh = capabilities.isVisible(
-      BackendFeature.refreshAllSources,
+    final overflowItems = SubscriptionObjectMenus.toolbarOverflowItems(
+      l10n,
+      capabilities,
+      syncSemantics,
     );
-    final showsRootRefresh =
-        showsSourceRefresh || capabilities.isVisible(BackendFeature.syncNow);
-    final rootRefreshLabel =
-        !showsSourceRefresh && syncSemantics.isAccountWideRefresh
-        ? l10n.syncAccount
-        : l10n.refreshAll;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -103,48 +100,24 @@ class SubscriptionToolbar extends ConsumerWidget {
                     );
                   },
                 ),
-              PopupMenuButton<_ManageAction>(
+              PopupMenuButton<SubscriptionRootMenuAction>(
                 tooltip: l10n.manage,
                 icon: const Icon(Icons.more_horiz),
-                onSelected: (value) {
-                  switch (value) {
-                    case _ManageAction.refreshAll:
-                      unawaited(SubscriptionActions.refreshAll(context, ref));
-                      return;
-                    case _ManageAction.importOpml:
-                      unawaited(SubscriptionActions.importOpml(context, ref));
-                      return;
-                    case _ManageAction.exportOpml:
-                      unawaited(SubscriptionActions.exportOpml(context, ref));
-                      return;
-                  }
-                },
+                onSelected: (action) => unawaited(
+                  SubscriptionObjectMenus.performSettingsManagementAction(
+                    context,
+                    ref,
+                    action,
+                  ),
+                ),
                 itemBuilder: (context) {
                   return [
-                    if (showsRootRefresh)
-                      PopupMenuItem<_ManageAction>(
-                        value: _ManageAction.refreshAll,
+                    for (final item in overflowItems)
+                      PopupMenuItem<SubscriptionRootMenuAction>(
+                        value: item.action,
                         child: ListTile(
-                          leading: const Icon(Icons.refresh),
-                          title: Text(rootRefreshLabel),
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                      ),
-                    if (capabilities.isVisible(BackendFeature.importOpml))
-                      PopupMenuItem<_ManageAction>(
-                        value: _ManageAction.importOpml,
-                        child: ListTile(
-                          leading: const Icon(Icons.file_upload_outlined),
-                          title: Text(l10n.importOpml),
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                      ),
-                    if (capabilities.isVisible(BackendFeature.exportOpml))
-                      PopupMenuItem<_ManageAction>(
-                        value: _ManageAction.exportOpml,
-                        child: ListTile(
-                          leading: const Icon(Icons.file_download_outlined),
-                          title: Text(l10n.exportOpml),
+                          leading: Icon(item.icon),
+                          title: Text(item.label),
                           contentPadding: EdgeInsets.zero,
                         ),
                       ),
@@ -158,5 +131,3 @@ class SubscriptionToolbar extends ConsumerWidget {
     );
   }
 }
-
-enum _ManageAction { refreshAll, importOpml, exportOpml }

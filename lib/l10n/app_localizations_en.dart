@@ -171,7 +171,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get uncategorized => 'Uncategorized';
 
   @override
-  String get refreshAll => 'Refresh all';
+  String get refreshAll => 'Refresh sources';
 
   @override
   String get accountSync => 'Account sync';
@@ -452,6 +452,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get readLater => 'Read Later';
 
   @override
+  String get removeReadLater => 'Remove from Read Later';
+
+  @override
+  String get openArticle => 'Open article';
+
+  @override
   String get markRead => 'Mark read';
 
   @override
@@ -582,6 +588,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get account => 'Account';
+
+  @override
+  String get addOrRegisterAccount => 'Add or register account';
 
   @override
   String get local => 'Local';
@@ -748,10 +757,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onlySupportedInLocalAccount => 'Only supported in Local account';
 
   @override
-  String get autoRefresh => 'Auto refresh';
+  String get autoRefresh => 'Auto source refresh';
 
   @override
-  String get autoRefreshSubtitle => 'Automatically refresh feeds in background';
+  String get autoRefreshSubtitle =>
+      'Refresh subscription sources at the selected interval. Mobile background refresh is system scheduled, usually no more often than every 15 minutes, and may not run exactly on time.';
 
   @override
   String get off => 'Off';

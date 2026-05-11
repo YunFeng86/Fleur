@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/gestures.dart';
@@ -39,6 +40,7 @@ import '../utils/platform.dart';
 import '../utils/content_hash.dart';
 import '../utils/language_utils.dart';
 import '../ui/layout.dart';
+import '../ui/reader/reader_selectable_rich_text.dart';
 
 part '../ui/reader/reader_session_coordinator.dart';
 part '../ui/reader/reader_progress_coordinator.dart';
@@ -214,12 +216,59 @@ class _QuickAction {
 }
 
 class _ReaderWidgetFactory extends WidgetFactory {
-  _ReaderWidgetFactory(this._cacheManager);
+  _ReaderWidgetFactory(this._cacheManager, {required ReaderSettings settings})
+    : _settings = settings;
 
   final BaseCacheManager _cacheManager;
+  final ReaderSettings _settings;
 
   @override
   BaseCacheManager? get cacheManager => _cacheManager;
+
+  @override
+  Widget? buildText(
+    BuildTree tree,
+    InheritedProperties resolved,
+    InlineSpan text,
+  ) {
+    final softWrap = resolved.get<CssWhitespace>() != CssWhitespace.nowrap;
+    final textAlign = resolved.get<TextAlign>() ?? TextAlign.start;
+    final textDirection = resolved.get<ui.TextDirection>();
+    final textStyle = resolved.prepareTextStyle();
+    final strutStyle = StrutStyle.fromTextStyle(
+      textStyle,
+      fontSize: textStyle.fontSize ?? _settings.fontSize,
+      height: textStyle.height ?? _settings.lineHeight,
+      forceStrutHeight: false,
+    );
+
+    return Builder(
+      builder: (context) {
+        final selectionRegistrar = SelectionContainer.maybeOf(context);
+        final selectionColor = selectionRegistrar != null
+            ? DefaultSelectionStyle.of(context).selectionColor ??
+                  DefaultSelectionStyle.defaultColor
+            : null;
+
+        Widget built = ReaderSelectableRichText(
+          overflow: TextOverflow.clip,
+          selectionColor: selectionColor,
+          selectionRegistrar: selectionRegistrar,
+          softWrap: softWrap,
+          strutStyle: strutStyle,
+          text: text,
+          textAlign: textAlign,
+          textDirection: textDirection,
+        );
+
+        if (selectionRegistrar != null) {
+          built = MouseRegion(cursor: SystemMouseCursors.text, child: built);
+        }
+
+        return built;
+      },
+    );
+  }
 }
 
 class _ChunkAnchor {

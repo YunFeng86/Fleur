@@ -143,6 +143,7 @@ class SettingsPane extends StatelessWidget {
     this.subtitle,
     this.trailing,
     this.color,
+    this.onHeaderSecondaryTapDown,
   });
 
   final Widget child;
@@ -150,6 +151,7 @@ class SettingsPane extends StatelessWidget {
   final String? subtitle;
   final Widget? trailing;
   final Color? color;
+  final GestureTapDownCallback? onHeaderSecondaryTapDown;
 
   @override
   Widget build(BuildContext context) {
@@ -163,39 +165,43 @@ class SettingsPane extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (hasHeader)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (title case final title?)
-                          Text(
-                            title,
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w700,
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onSecondaryTapDown: onHeaderSecondaryTapDown,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (title case final title?)
+                            Text(
+                              title,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
-                          ),
-                        if (subtitle case final subtitle?) ...[
-                          if (title != null) const SizedBox(height: 4),
-                          Text(
-                            subtitle,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
+                          if (subtitle case final subtitle?) ...[
+                            if (title != null) const SizedBox(height: 4),
+                            Text(
+                              subtitle,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
                             ),
-                          ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
-                  ),
-                  if (trailing != null) ...[
-                    const SizedBox(width: 12),
-                    trailing!,
+                    if (trailing != null) ...[
+                      const SizedBox(width: 12),
+                      trailing!,
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           if (hasHeader) Divider(color: surfaces.subtleDivider, height: 1),
@@ -236,6 +242,7 @@ class SettingsTile extends StatelessWidget {
     this.leading,
     this.trailing,
     this.onTap,
+    this.onSecondaryTapDown,
     this.destructive = false,
     this.selected = false,
     this.contentPadding = const EdgeInsets.symmetric(horizontal: 16),
@@ -246,6 +253,7 @@ class SettingsTile extends StatelessWidget {
   final Widget? leading;
   final Widget? trailing;
   final VoidCallback? onTap;
+  final GestureTapDownCallback? onSecondaryTapDown;
   final bool destructive;
   final bool selected;
   final EdgeInsetsGeometry contentPadding;
@@ -258,19 +266,23 @@ class SettingsTile extends StatelessWidget {
 
     return IconTheme.merge(
       data: IconThemeData(color: destructive ? states.errorAccent : null),
-      child: ListTile(
-        contentPadding: contentPadding,
-        selected: selected,
-        leading: leading,
-        title: DefaultTextStyle.merge(
-          style: titleColor == null
-              ? const TextStyle()
-              : TextStyle(color: titleColor),
-          child: title,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onSecondaryTapDown: onSecondaryTapDown,
+        child: ListTile(
+          contentPadding: contentPadding,
+          selected: selected,
+          leading: leading,
+          title: DefaultTextStyle.merge(
+            style: titleColor == null
+                ? const TextStyle()
+                : TextStyle(color: titleColor),
+            child: title,
+          ),
+          subtitle: subtitle,
+          trailing: trailing,
+          onTap: onTap,
         ),
-        subtitle: subtitle,
-        trailing: trailing,
-        onTap: onTap,
       ),
     );
   }

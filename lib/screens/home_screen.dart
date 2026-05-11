@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fleur/l10n/app_localizations.dart';
 
+import '../providers/backend_capabilities_provider.dart';
 import '../providers/backend_sync_semantics_provider.dart';
 import '../providers/core_providers.dart';
 import '../providers/unread_providers.dart';
+import '../ui/actions/subscription_object_menus.dart';
 import '../ui/global_nav.dart';
 import '../ui/hero_tags.dart';
 import '../ui/home/home_scene_commands.dart';
@@ -27,13 +29,21 @@ class HomeScreen extends ConsumerWidget {
     final useCompactTopBar = !isDesktop;
     final showSyncCapsule =
         LayoutSpec.fromContext(context).globalNavMode == GlobalNavMode.rail;
+    final capabilities = ref.watch(backendCapabilitiesProvider);
+    final showRootRefresh = SubscriptionObjectMenus.showsRootRefresh(
+      capabilities,
+    );
     final syncSemantics = ref.watch(backendSyncSemanticsProvider);
-    final refreshActionLabel = syncSemantics.isAccountWideRefresh
-        ? l10n.syncAccount
-        : l10n.refreshAll;
-    final refreshSuccessLabel = syncSemantics.isAccountWideRefresh
-        ? l10n.syncedAccount
-        : l10n.refreshedAll;
+    final refreshActionLabel = SubscriptionObjectMenus.rootRefreshLabel(
+      l10n,
+      capabilities,
+      syncSemantics,
+    );
+    final refreshSuccessLabel = SubscriptionObjectMenus.rootRefreshSuccessLabel(
+      l10n,
+      capabilities,
+      syncSemantics,
+    );
     final commands = HomeSceneCommands(
       context: context,
       ref: ref,
@@ -86,6 +96,7 @@ class HomeScreen extends ConsumerWidget {
             useCompactTopBar,
             commands,
             refreshAll,
+            showRootRefresh,
             refreshActionLabel,
             markAllRead,
           );
@@ -98,11 +109,12 @@ class HomeScreen extends ConsumerWidget {
             appBar: AppBar(
               title: Text(l10n.feeds),
               actions: [
-                IconButton(
-                  tooltip: refreshActionLabel,
-                  onPressed: refreshAll,
-                  icon: const Icon(Icons.refresh),
-                ),
+                if (showRootRefresh)
+                  IconButton(
+                    tooltip: refreshActionLabel,
+                    onPressed: refreshAll,
+                    icon: const Icon(Icons.refresh),
+                  ),
                 // On mobile we have dedicated Saved/Search tabs in the
                 // global bottom navigation. Avoid duplicating those
                 // shortcuts here to keep the AppBar focused on feed-only
@@ -134,11 +146,12 @@ class HomeScreen extends ConsumerWidget {
                 ? AppBar(
                     title: Text(l10n.feeds),
                     actions: [
-                      IconButton(
-                        tooltip: refreshActionLabel,
-                        onPressed: refreshAll,
-                        icon: const Icon(Icons.refresh),
-                      ),
+                      if (showRootRefresh)
+                        IconButton(
+                          tooltip: refreshActionLabel,
+                          onPressed: refreshAll,
+                          icon: const Icon(Icons.refresh),
+                        ),
                       Consumer(
                         builder: (context, ref, _) {
                           final unreadOnly = ref.watch(unreadOnlyProvider);
@@ -199,6 +212,7 @@ class HomeScreen extends ConsumerWidget {
     bool useCompactTopBar,
     HomeSceneCommands commands,
     Future<void> Function() refreshAll,
+    bool showRootRefresh,
     String refreshActionLabel,
     Future<void> Function() markAllRead,
   ) {
@@ -268,11 +282,12 @@ class HomeScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(l10n.feeds),
         actions: [
-          IconButton(
-            tooltip: refreshActionLabel,
-            onPressed: refreshAll,
-            icon: const Icon(Icons.refresh),
-          ),
+          if (showRootRefresh)
+            IconButton(
+              tooltip: refreshActionLabel,
+              onPressed: refreshAll,
+              icon: const Icon(Icons.refresh),
+            ),
           Consumer(
             builder: (context, ref, _) {
               final unreadOnly = ref.watch(unreadOnlyProvider);

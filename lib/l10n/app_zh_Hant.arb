@@ -207,7 +207,7 @@
   "@uncategorized": {
     "description": "uncategorized"
   },
-  "refreshAll": "重新整理全部",
+  "refreshAll": "重新整理訂閱源",
   "@refreshAll": {
     "description": "refreshAll"
   },
@@ -603,6 +603,14 @@
   "@readLater": {
     "description": "readLater"
   },
+  "removeReadLater": "移出稍後讀",
+  "@removeReadLater": {
+    "description": "Action label for removing an article from the read-later list"
+  },
+  "openArticle": "打開文章",
+  "@openArticle": {
+    "description": "Action label for opening an article from a list"
+  },
   "markRead": "標記為已讀",
   "@markRead": {
     "description": "markRead"
@@ -756,6 +764,10 @@
   "account": "帳號",
   "@account": {
     "description": "account"
+  },
+  "addOrRegisterAccount": "新增或註冊帳號",
+  "@addOrRegisterAccount": {
+    "description": "Action label for adding or registering an account"
   },
   "local": "本地",
   "@local": {
@@ -966,11 +978,11 @@
   "@onlySupportedInLocalAccount": {
     "description": "onlySupportedInLocalAccount"
   },
-  "autoRefresh": "自動重新整理",
+  "autoRefresh": "自動重新整理訂閱源",
   "@autoRefresh": {
     "description": "autoRefresh"
   },
-  "autoRefreshSubtitle": "在背景自動重新整理訂閱來源",
+  "autoRefreshSubtitle": "按所選週期重新整理訂閱源；行動裝置背景重新整理由系統排程，通常不會短於 15 分鐘，且不保證準時。",
   "@autoRefreshSubtitle": {
     "description": "autoRefreshSubtitle"
   },

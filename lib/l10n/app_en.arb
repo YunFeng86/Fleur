@@ -207,7 +207,7 @@
   "@uncategorized": {
     "description": "uncategorized"
   },
-  "refreshAll": "Refresh all",
+  "refreshAll": "Refresh sources",
   "@refreshAll": {
     "description": "refreshAll"
   },
@@ -574,6 +574,14 @@
   "@readLater": {
     "description": "readLater"
   },
+  "removeReadLater": "Remove from Read Later",
+  "@removeReadLater": {
+    "description": "Action label for removing an article from the read-later list"
+  },
+  "openArticle": "Open article",
+  "@openArticle": {
+    "description": "Action label for opening an article from a list"
+  },
   "markRead": "Mark read",
   "@markRead": {
     "description": "markRead"
@@ -755,6 +763,10 @@
   "account": "Account",
   "@account": {
     "description": "account"
+  },
+  "addOrRegisterAccount": "Add or register account",
+  "@addOrRegisterAccount": {
+    "description": "Action label for adding or registering an account"
   },
   "local": "Local",
   "@local": {
@@ -965,11 +977,11 @@
   "@onlySupportedInLocalAccount": {
     "description": "onlySupportedInLocalAccount"
   },
-  "autoRefresh": "Auto refresh",
+  "autoRefresh": "Auto source refresh",
   "@autoRefresh": {
     "description": "autoRefresh"
   },
-  "autoRefreshSubtitle": "Automatically refresh feeds in background",
+  "autoRefreshSubtitle": "Refresh subscription sources at the selected interval. Mobile background refresh is system scheduled, usually no more often than every 15 minutes, and may not run exactly on time.",
   "@autoRefreshSubtitle": {
     "description": "autoRefreshSubtitle"
   },

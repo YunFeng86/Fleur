@@ -6,11 +6,14 @@ import '../../providers/article_list_controller.dart';
 import '../../providers/backend_capabilities_provider.dart';
 import '../../providers/backend_sync_semantics_provider.dart';
 import '../../providers/query_providers.dart';
+import '../../providers/refresh_all_providers.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/service_providers.dart';
 import '../../providers/unread_providers.dart';
 import '../../services/sync/backend_capabilities.dart';
+import '../../services/sync/refresh_all_coordinator.dart';
 import '../../services/sync/sync_service.dart';
+import '../actions/root_sync_action.dart';
 
 class HomeSceneCommands {
   const HomeSceneCommands({
@@ -26,11 +29,25 @@ class HomeSceneCommands {
 
   Future<BatchRefreshResult> refreshAll() async {
     final syncSemantics = _ref.read(backendSyncSemanticsProvider);
+    final capabilities = _ref.read(backendCapabilitiesProvider);
     if (syncSemantics.isAccountWideRefresh) {
-      return _ref.read(syncServiceProvider).refreshFeedsSafe(const <int>[]);
+      final mode = resolveSubscriptionRootSyncMode(capabilities);
+      switch (mode) {
+        case SubscriptionRootSyncMode.refreshSources:
+          final result = await _ref
+              .read(refreshSourcesCoordinatorProvider)
+              .refreshSources(trigger: RefreshSourcesTrigger.manual);
+          return result.batch;
+        case SubscriptionRootSyncMode.syncAccount:
+          final result = await _ref
+              .read(accountSyncCoordinatorProvider)
+              .syncAccount(trigger: AccountSyncTrigger.manual);
+          return result.batch;
+        case null:
+          return const BatchRefreshResult([]);
+      }
     }
 
-    final capabilities = _ref.read(backendCapabilitiesProvider);
     final feedId = _ref.read(selectedFeedIdProvider);
     final categoryId = _ref.read(selectedCategoryIdProvider);
     if (feedId != null &&
@@ -44,10 +61,15 @@ class HomeSceneCommands {
       return _ref.read(syncServiceProvider).refreshFeedsSafe([feedId]);
     }
 
+    if (categoryId == null) {
+      final result = await _ref
+          .read(refreshSourcesCoordinatorProvider)
+          .refreshSources(trigger: RefreshSourcesTrigger.manual);
+      return result.batch;
+    }
+
     final feeds = await _ref.read(feedRepositoryProvider).getAll();
-    final filtered = categoryId == null
-        ? feeds
-        : feeds.where((feed) => feed.categoryId == categoryId);
+    final filtered = feeds.where((feed) => feed.categoryId == categoryId);
     return _ref
         .read(syncServiceProvider)
         .refreshFeedsSafe(filtered.map((feed) => feed.id));

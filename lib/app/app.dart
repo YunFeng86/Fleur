@@ -11,6 +11,7 @@ import 'router.dart';
 import '../providers/app_settings_providers.dart';
 import '../providers/auto_refresh_providers.dart';
 import '../providers/background_sync_providers.dart';
+import '../providers/backend_capabilities_provider.dart';
 import '../providers/backend_sync_semantics_provider.dart';
 import '../providers/core_providers.dart';
 import '../providers/outbox_flush_providers.dart';
@@ -20,6 +21,7 @@ import '../providers/unread_providers.dart';
 import '../services/logging/app_logger.dart';
 import '../services/notifications/notification_service.dart';
 import '../services/settings/app_settings.dart';
+import '../ui/actions/subscription_object_menus.dart';
 import '../ui/global_nav.dart';
 import '../ui/home/home_scene_commands.dart';
 import '../ui/layout.dart';
@@ -377,13 +379,22 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
           ref: ref,
           selectedArticleId: null,
         );
+        final capabilities = ref.watch(backendCapabilitiesProvider);
+        final showRootRefresh = SubscriptionObjectMenus.showsRootRefresh(
+          capabilities,
+        );
         final syncSemantics = ref.watch(backendSyncSemanticsProvider);
-        final refreshActionLabel = syncSemantics.isAccountWideRefresh
-            ? l10n.syncAccount
-            : l10n.refreshAll;
-        final refreshSuccessLabel = syncSemantics.isAccountWideRefresh
-            ? l10n.syncedAccount
-            : l10n.refreshedAll;
+        final refreshActionLabel = SubscriptionObjectMenus.rootRefreshLabel(
+          l10n,
+          capabilities,
+          syncSemantics,
+        );
+        final refreshSuccessLabel =
+            SubscriptionObjectMenus.rootRefreshSuccessLabel(
+              l10n,
+              capabilities,
+              syncSemantics,
+            );
 
         final leading = canPop
             ? IconButton(
@@ -430,24 +441,25 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
                 leading: leading,
                 actions: [
                   if (isFeedsSection) ...[
-                    IconButton(
-                      tooltip: refreshActionLabel,
-                      onPressed: () async {
-                        final batch = await commands.refreshAll();
-                        if (!context.mounted) return;
-                        final err = batch.firstError?.error;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              err == null
-                                  ? refreshSuccessLabel
-                                  : l10n.errorMessage(err.toString()),
+                    if (showRootRefresh)
+                      IconButton(
+                        tooltip: refreshActionLabel,
+                        onPressed: () async {
+                          final batch = await commands.refreshAll();
+                          if (!context.mounted) return;
+                          final err = batch.firstError?.error;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                err == null
+                                    ? refreshSuccessLabel
+                                    : l10n.errorMessage(err.toString()),
+                              ),
                             ),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.refresh),
-                    ),
+                          );
+                        },
+                        icon: const Icon(Icons.refresh),
+                      ),
                     Consumer(
                       builder: (context, ref, _) {
                         final unreadOnly = ref.watch(unreadOnlyProvider);

@@ -7,6 +7,7 @@ import 'package:fleur/l10n/app_localizations.dart';
 
 import '../models/category.dart';
 import '../models/feed.dart';
+import '../models/nav_destination.dart';
 import '../providers/account_providers.dart';
 import '../providers/backend_capabilities_provider.dart';
 import '../providers/backend_sync_semantics_provider.dart';
@@ -14,18 +15,17 @@ import '../providers/query_providers.dart';
 import '../providers/unread_providers.dart';
 import '../providers/sync_status_providers.dart';
 import '../services/accounts/account.dart';
-import '../services/sync/backend_capabilities.dart';
 import '../services/sync/sync_status_reporter.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/layout_spec.dart';
 import '../ui/motion.dart';
 import '../ui/global_nav.dart';
+import '../ui/actions/subscription_object_menus.dart';
 import '../ui/sidebar/sidebar_management_actions.dart';
 import '../ui/sidebar/sidebar_selection_actions.dart';
 import '../ui/sidebar/sidebar_tree.dart';
 import '../utils/platform.dart';
 import 'account_avatar.dart';
-import 'account_manager_dialog.dart';
 import 'overflow_marquee.dart';
 
 class Sidebar extends ConsumerStatefulWidget {
@@ -44,15 +44,25 @@ class _SidebarState extends ConsumerState<Sidebar> {
   final _scrollController = ScrollController();
   String _searchText = '';
 
-  void _closeDrawerIfDesktopDrawer() {
-    if (!isDesktop || widget.router == null) return;
+  void _closeSidebarIfDrawerOpen() {
     final scaffold = Scaffold.maybeOf(context);
-    if (scaffold != null) {
+    if (scaffold != null && scaffold.isDrawerOpen) {
       scaffold.closeDrawer();
       return;
     }
     final router = widget.router;
-    if (router != null && router.canPop()) router.pop();
+    if (isDesktop && router != null && router.canPop()) router.pop();
+  }
+
+  void _openServicesSettings() {
+    _closeSidebarIfDrawerOpen();
+    final location = settingsLocation(tab: SettingsTab.services);
+    final router = widget.router;
+    if (router != null) {
+      router.go(location);
+      return;
+    }
+    context.go(location);
   }
 
   @override
@@ -85,7 +95,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
   SidebarSelectionActions get _selectionActions => SidebarSelectionActions(
     ref: ref,
     onSelectFeed: widget.onSelectFeed,
-    closeSidebar: _closeDrawerIfDesktopDrawer,
+    closeSidebar: _closeSidebarIfDrawerOpen,
   );
 
   SidebarManagementActions get _managementActions => SidebarManagementActions(
@@ -159,7 +169,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
           SidebarSearchField(
             controller: _searchController,
             showDrawerClose: showDrawerClose,
-            onCloseDrawer: _closeDrawerIfDesktopDrawer,
+            onCloseDrawer: _closeSidebarIfDrawerOpen,
           ),
           Expanded(
             child: SidebarNavigationTree(
@@ -197,13 +207,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
             _AccountFooter(
               account: activeAccount,
               sync: syncStatus,
-              onTap: () {
-                unawaited(
-                  _showDialog<void>(
-                    builder: (_) => const AccountManagerDialog(),
-                  ),
-                );
-              },
+              onTap: _openServicesSettings,
             ),
         ],
       ),
@@ -216,36 +220,26 @@ class _SidebarState extends ConsumerState<Sidebar> {
   ) async {
     final l10n = AppLocalizations.of(context)!;
     final capabilities = ref.read(backendCapabilitiesProvider);
-    final v = await _showModalBottomSheet<_CategoryAction>(
+    final items = SubscriptionObjectMenus.categoryItems(l10n, capabilities);
+    if (items.isEmpty) return;
+    final v = await _showModalBottomSheet<SubscriptionCategoryMenuAction>(
       builder: (context) {
         return SafeArea(
           child: Wrap(
-            children: [
-              if (capabilities.isVisible(BackendFeature.renameCategory))
-                ListTile(
-                  leading: const Icon(Icons.edit_outlined),
-                  title: Text(l10n.rename),
-                  onTap: () =>
-                      Navigator.of(context).pop(_CategoryAction.rename),
-                ),
-              if (capabilities.isVisible(BackendFeature.deleteCategory))
-                ListTile(
-                  leading: const Icon(Icons.delete_outline),
-                  title: Text(l10n.deleteCategory),
-                  onTap: () =>
-                      Navigator.of(context).pop(_CategoryAction.delete),
-                ),
-            ],
+            children: SubscriptionObjectMenus.bottomSheetTiles(
+              context: context,
+              items: items,
+            ),
           ),
         );
       },
     );
     if (!context.mounted) return;
     switch (v) {
-      case _CategoryAction.rename:
+      case SubscriptionCategoryMenuAction.rename:
         await managementActions.renameCategory(c);
         return;
-      case _CategoryAction.delete:
+      case SubscriptionCategoryMenuAction.delete:
         await managementActions.deleteCategory(c);
         return;
       case null:
@@ -259,48 +253,16 @@ class _SidebarState extends ConsumerState<Sidebar> {
   ) async {
     final l10n = AppLocalizations.of(context)!;
     final capabilities = ref.read(backendCapabilitiesProvider);
-    final canMove =
-        capabilities.isVisible(BackendFeature.moveSubscriptionToCategory) ||
-        capabilities.isVisible(BackendFeature.moveSubscriptionToUncategorized);
-    final action = await _showModalBottomSheet<_FeedAction>(
+    final items = SubscriptionObjectMenus.feedItems(l10n, capabilities);
+    if (items.isEmpty) return;
+    final action = await _showModalBottomSheet<SubscriptionFeedMenuAction>(
       builder: (context) {
         return SafeArea(
           child: Wrap(
-            children: [
-              if (capabilities.isVisible(BackendFeature.clientFeedSettings))
-                ListTile(
-                  leading: const Icon(Icons.edit_outlined),
-                  title: Text(l10n.edit),
-                  onTap: () => Navigator.of(context).pop(_FeedAction.edit),
-                ),
-              if (capabilities.isVisible(
-                BackendFeature.refreshSubscriptionSource,
-              ))
-                ListTile(
-                  leading: const Icon(Icons.refresh),
-                  title: Text(l10n.refresh),
-                  onTap: () => Navigator.of(context).pop(_FeedAction.refresh),
-                ),
-              if (capabilities.isVisible(BackendFeature.offlineCache))
-                ListTile(
-                  leading: const Icon(Icons.download_for_offline_outlined),
-                  title: Text(l10n.makeAvailableOffline),
-                  onTap: () =>
-                      Navigator.of(context).pop(_FeedAction.offlineCache),
-                ),
-              if (canMove)
-                ListTile(
-                  leading: const Icon(Icons.drive_file_move_outline),
-                  title: Text(l10n.moveToCategory),
-                  onTap: () => Navigator.of(context).pop(_FeedAction.move),
-                ),
-              if (capabilities.isVisible(BackendFeature.deleteSubscription))
-                ListTile(
-                  leading: const Icon(Icons.delete_outline),
-                  title: Text(l10n.deleteSubscription),
-                  onTap: () => Navigator.of(context).pop(_FeedAction.delete),
-                ),
-            ],
+            children: SubscriptionObjectMenus.bottomSheetTiles(
+              context: context,
+              items: items,
+            ),
           ),
         );
       },
@@ -308,19 +270,19 @@ class _SidebarState extends ConsumerState<Sidebar> {
     if (!context.mounted) return;
 
     switch (action) {
-      case _FeedAction.edit:
+      case SubscriptionFeedMenuAction.rename:
         await managementActions.editFeedTitle(f);
         return;
-      case _FeedAction.refresh:
+      case SubscriptionFeedMenuAction.refresh:
         await managementActions.refreshFeed(f);
         return;
-      case _FeedAction.offlineCache:
+      case SubscriptionFeedMenuAction.offlineCache:
         await managementActions.cacheFeedOffline(f);
         return;
-      case _FeedAction.move:
+      case SubscriptionFeedMenuAction.move:
         await managementActions.moveFeedToCategory(f);
         return;
-      case _FeedAction.delete:
+      case SubscriptionFeedMenuAction.delete:
         await managementActions.deleteFeed(f);
         return;
       case null:
@@ -328,10 +290,6 @@ class _SidebarState extends ConsumerState<Sidebar> {
     }
   }
 }
-
-enum _FeedAction { edit, refresh, offlineCache, move, delete }
-
-enum _CategoryAction { rename, delete }
 
 class _AccountFooter extends StatelessWidget {
   const _AccountFooter({

@@ -18,9 +18,11 @@ import 'package:fleur/providers/app_settings_providers.dart';
 import 'package:fleur/providers/background_sync_providers.dart';
 import 'package:fleur/providers/outbox_status_providers.dart';
 import 'package:fleur/providers/query_providers.dart';
+import 'package:fleur/providers/repository_providers.dart';
 import 'package:fleur/providers/service_providers.dart';
 import 'package:fleur/providers/sync_status_providers.dart';
 import 'package:fleur/providers/unread_providers.dart';
+import 'package:fleur/repositories/feed_repository.dart';
 import 'package:fleur/screens/home_screen.dart';
 import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/screens/saved_screen.dart';
@@ -32,6 +34,7 @@ import 'package:fleur/theme/app_typography.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
 import 'package:fleur/ui/app_shell.dart';
 import 'package:fleur/ui/home/home_scene_commands.dart';
+import 'package:fleur/ui/home/home_scene_panes.dart';
 import 'package:fleur/ui/home/home_scene_shortcuts.dart';
 import 'package:fleur/ui/sidebar/sidebar_selection_actions.dart';
 import 'package:fleur/utils/platform.dart';
@@ -200,6 +203,15 @@ class _RecordingHomeSceneCommands extends HomeSceneCommands {
   }
 }
 
+class _FakeFeedRepository extends Fake implements FeedRepository {
+  _FakeFeedRepository(this.feeds);
+
+  final List<Feed> feeds;
+
+  @override
+  Future<List<Feed>> getAll() async => feeds;
+}
+
 void main() {
   testWidgets('App builds', (tester) async {
     TestWidgetsFlutterBinding.ensureInitialized();
@@ -216,6 +228,43 @@ void main() {
 
     expect(find.byType(App), findsOneWidget);
   });
+
+  testWidgets(
+    'Desktop chrome shows Fever account sync without hiding feed actions',
+    (tester) async {
+      debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+      tester.view.physicalSize = const Size(1200, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => debugFleurTargetPlatformOverride = null);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final router = _buildRouter();
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            routerProvider.overrideWithValue(router),
+            activeAccountProvider.overrideWithValue(
+              buildTestAccount(type: AccountType.fever),
+            ),
+            appSettingsStoreProvider.overrideWithValue(
+              FakeAppSettingsStore(AppSettings.defaults()),
+            ),
+            outboxPendingCountProvider.overrideWith((ref) async => 0),
+          ],
+          child: const App(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip('Sync account'), findsOneWidget);
+      expect(find.byTooltip('Refresh sources'), findsNothing);
+      expect(find.byTooltip('Unread only'), findsOneWidget);
+      expect(find.byTooltip('Mark all read'), findsOneWidget);
+    },
+  );
 
   test('App theme exposes Fleur semantic tokens for desktop and mobile', () {
     debugFleurTargetPlatformOverride = TargetPlatform.windows;
@@ -454,6 +503,115 @@ void main() {
     expect(find.byType(GlobalNavRail), findsNothing);
   });
 
+  testWidgets('rail account button opens services settings tab', (
+    tester,
+  ) async {
+    final router = GoRouter(
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (context, state) => GlobalNavRail(currentUri: state.uri),
+        ),
+        GoRoute(
+          path: '/settings',
+          builder: (context, state) => GlobalNavRail(currentUri: state.uri),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          activeAccountProvider.overrideWithValue(buildTestAccount()),
+        ],
+        child: MaterialApp.router(
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('global_nav_account_button')));
+    await tester.pumpAndSettle();
+
+    expect(
+      router.routerDelegate.currentConfiguration.uri.toString(),
+      '/settings?tab=services',
+    );
+  });
+
+  testWidgets('sidebar account footer closes drawer before opening services', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.android;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(640, 900);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    final scaffoldKey = GlobalKey<ScaffoldState>();
+    late final GoRouter router;
+    router = GoRouter(
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (context, state) {
+            return Scaffold(
+              key: scaffoldKey,
+              drawer: const HomeSidebarDrawer(),
+              body: const SizedBox.shrink(),
+            );
+          },
+        ),
+        GoRoute(
+          path: '/settings',
+          builder: (context, state) =>
+              const Scaffold(body: Center(child: Text('Services settings'))),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          activeAccountProvider.overrideWithValue(buildTestAccount()),
+          feedsProvider.overrideWith((ref) => Stream.value(<Feed>[])),
+          categoriesProvider.overrideWith((ref) => Stream.value(<Category>[])),
+          tagsProvider.overrideWith((ref) => Stream.value(<Tag>[])),
+          allUnreadCountsProvider.overrideWith(
+            (ref) => Stream.value(<int?, int>{}),
+          ),
+        ],
+        child: MaterialApp.router(
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    scaffoldKey.currentState!.openDrawer();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Test Account'), findsOneWidget);
+
+    await tester.tap(find.text('Test Account'));
+    await tester.pumpAndSettle();
+
+    expect(
+      router.routerDelegate.currentConfiguration.uri.toString(),
+      '/settings?tab=services',
+    );
+    expect(find.text('Services settings'), findsOneWidget);
+    expect(find.text('Test Account'), findsNothing);
+  });
+
   testWidgets(
     'App runtime host does not repeat startup side effects on rebuild',
     (tester) async {
@@ -651,10 +809,14 @@ void main() {
     },
   );
 
-  testWidgets('Home scene commands sync account-wide for remote accounts', (
+  testWidgets('Home scene commands sync unsupported-source remote accounts', (
     tester,
   ) async {
     final syncService = FakeSyncService();
+    final feed = Feed()
+      ..id = 1
+      ..url = 'https://example.com/feed.xml'
+      ..title = 'Feed';
     late HomeSceneCommands homeCommands;
     final router = GoRouter(
       routes: [
@@ -685,6 +847,7 @@ void main() {
           ),
           selectedFeedIdProvider.overrideWith((ref) => 10),
           selectedCategoryIdProvider.overrideWith((ref) => 1),
+          feedRepositoryProvider.overrideWithValue(_FakeFeedRepository([feed])),
           syncServiceProvider.overrideWithValue(syncService),
         ],
         child: MaterialApp.router(routerConfig: router),
@@ -694,7 +857,9 @@ void main() {
 
     await homeCommands.refreshAll();
 
-    expect(syncService.refreshCalls, [<int>[]]);
+    expect(syncService.refreshCalls, [
+      [1],
+    ]);
   });
 
   testWidgets('Home refresh tooltip follows backend refresh scope', (
@@ -736,12 +901,12 @@ void main() {
     }
 
     await pumpHome(AccountType.local);
-    expect(find.byTooltip('Refresh all'), findsOneWidget);
+    expect(find.byTooltip('Refresh sources'), findsOneWidget);
     expect(find.byTooltip('Sync account'), findsNothing);
 
     await pumpHome(AccountType.fever);
     expect(find.byTooltip('Sync account'), findsOneWidget);
-    expect(find.byTooltip('Refresh all'), findsNothing);
+    expect(find.byTooltip('Refresh sources'), findsNothing);
   });
 
   testWidgets('Home scene shortcuts reuse the shared action wiring', (

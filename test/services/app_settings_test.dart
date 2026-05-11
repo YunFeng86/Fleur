@@ -15,6 +15,33 @@ void main() {
     expect(s.seedColorPreset, SeedColorPreset.blue);
   });
 
+  test('AppSettings defaults source refresh to disabled', () {
+    const s = AppSettings();
+    expect(s.sourceRefreshMinutes, isNull);
+  });
+
+  test('AppSettings persists source refresh with new JSON key', () {
+    final s = const AppSettings().copyWith(sourceRefreshMinutes: 30);
+    final json = s.toJson();
+    expect(json['sourceRefreshMinutes'], 30);
+    expect(json.containsKey('autoRefreshMinutes'), isFalse);
+
+    final restored = AppSettings.fromJson(json.cast<String, Object?>());
+    expect(restored.sourceRefreshMinutes, 30);
+  });
+
+  test('AppSettings migrates legacy auto refresh to source refresh', () {
+    final restoredFive = AppSettings.fromJson(<String, Object?>{
+      'autoRefreshMinutes': 5,
+    });
+    final restoredThirty = AppSettings.fromJson(<String, Object?>{
+      'autoRefreshMinutes': 30,
+    });
+
+    expect(restoredFive.sourceRefreshMinutes, 15);
+    expect(restoredThirty.sourceRefreshMinutes, 30);
+  });
+
   test('AppSettings persists useDynamicColor in JSON', () {
     final s = const AppSettings().copyWith(useDynamicColor: false);
     final json = s.toJson();

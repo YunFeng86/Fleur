@@ -164,7 +164,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get uncategorized => '未分类';
 
   @override
-  String get refreshAll => '刷新全部';
+  String get refreshAll => '刷新订阅源';
 
   @override
   String get accountSync => '账号同步';
@@ -430,6 +430,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get readLater => '稍后读';
 
   @override
+  String get removeReadLater => '移出稍后读';
+
+  @override
+  String get openArticle => '打开文章';
+
+  @override
   String get markRead => '标记为已读';
 
   @override
@@ -560,6 +566,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get account => '账号';
+
+  @override
+  String get addOrRegisterAccount => '添加或注册账号';
 
   @override
   String get local => '本地';
@@ -718,10 +727,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onlySupportedInLocalAccount => '仅本地账号支持此操作';
 
   @override
-  String get autoRefresh => '自动刷新';
+  String get autoRefresh => '自动刷新订阅源';
 
   @override
-  String get autoRefreshSubtitle => '在后台自动刷新订阅源';
+  String get autoRefreshSubtitle =>
+      '按所选周期刷新订阅源；移动端后台刷新由系统调度，通常不会短于 15 分钟，且不保证准点。';
 
   @override
   String get off => '关闭';
@@ -1290,7 +1300,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get uncategorized => '未分類';
 
   @override
-  String get refreshAll => '重新整理全部';
+  String get refreshAll => '重新整理訂閱源';
 
   @override
   String get accountSync => '帳號同步';
@@ -1556,6 +1566,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get readLater => '稍後讀';
 
   @override
+  String get removeReadLater => '移出稍後讀';
+
+  @override
+  String get openArticle => '打開文章';
+
+  @override
   String get markRead => '標記為已讀';
 
   @override
@@ -1686,6 +1702,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get account => '帳號';
+
+  @override
+  String get addOrRegisterAccount => '新增或註冊帳號';
 
   @override
   String get local => '本地';
@@ -1844,10 +1863,11 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get onlySupportedInLocalAccount => '僅本地帳號支援此操作';
 
   @override
-  String get autoRefresh => '自動重新整理';
+  String get autoRefresh => '自動重新整理訂閱源';
 
   @override
-  String get autoRefreshSubtitle => '在背景自動重新整理訂閱來源';
+  String get autoRefreshSubtitle =>
+      '按所選週期重新整理訂閱源；行動裝置背景重新整理由系統排程，通常不會短於 15 分鐘，且不保證準時。';
 
   @override
   String get off => '關閉';

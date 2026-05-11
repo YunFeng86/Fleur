@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -5,6 +7,8 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../providers/query_providers.dart';
 import '../../../../providers/subscription_settings_provider.dart';
 import '../../../../theme/fleur_theme_extensions.dart';
+import '../../../../ui/actions/subscription_object_menus.dart';
+import '../../../../utils/platform.dart';
 import '../../../../widgets/app_scrollbar.dart';
 import '../../../../widgets/favicon_avatar.dart';
 import '../widgets/section_header.dart';
@@ -95,6 +99,16 @@ class FeedListComponent extends ConsumerWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                         selected: isSelected,
+                        onSecondaryTapDown: isDesktop
+                            ? (details) => unawaited(
+                                SubscriptionObjectMenus.showSettingsFeedContextMenu(
+                                  context,
+                                  ref,
+                                  feed: feed,
+                                  position: details.globalPosition,
+                                ),
+                              )
+                            : null,
                         onTap: () {
                           ref
                               .read(subscriptionSelectionProvider.notifier)

@@ -408,7 +408,7 @@ abstract class AppLocalizations {
   /// refreshAll
   ///
   /// In en, this message translates to:
-  /// **'Refresh all'**
+  /// **'Refresh sources'**
   String get refreshAll;
 
   /// accountSync
@@ -915,6 +915,18 @@ abstract class AppLocalizations {
   /// **'Read Later'**
   String get readLater;
 
+  /// Action label for removing an article from the read-later list
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from Read Later'**
+  String get removeReadLater;
+
+  /// Action label for opening an article from a list
+  ///
+  /// In en, this message translates to:
+  /// **'Open article'**
+  String get openArticle;
+
   /// markRead
   ///
   /// In en, this message translates to:
@@ -1166,6 +1178,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Account'**
   String get account;
+
+  /// Action label for adding or registering an account
+  ///
+  /// In en, this message translates to:
+  /// **'Add or register account'**
+  String get addOrRegisterAccount;
 
   /// local
   ///
@@ -1476,13 +1494,13 @@ abstract class AppLocalizations {
   /// autoRefresh
   ///
   /// In en, this message translates to:
-  /// **'Auto refresh'**
+  /// **'Auto source refresh'**
   String get autoRefresh;
 
   /// autoRefreshSubtitle
   ///
   /// In en, this message translates to:
-  /// **'Automatically refresh feeds in background'**
+  /// **'Refresh subscription sources at the selected interval. Mobile background refresh is system scheduled, usually no more often than every 15 minutes, and may not run exactly on time.'**
   String get autoRefreshSubtitle;
 
   /// off
