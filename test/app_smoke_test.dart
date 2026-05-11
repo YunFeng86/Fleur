@@ -941,6 +941,33 @@ void main() {
     expect(outcome.successFeedback, HomeRefreshSuccessFeedback.refreshed);
   });
 
+  testWidgets('Home scene commands fail fast when selected feed is missing', (
+    tester,
+  ) async {
+    final syncService = FakeSyncService();
+    final minifluxSourceRefresh = _FakeMinifluxSourceRefresh();
+
+    final homeCommands = await _pumpHomeCommandsHarness(
+      tester,
+      overrides: [
+        activeAccountProvider.overrideWithValue(
+          buildTestAccount(type: AccountType.miniflux, name: 'Miniflux'),
+        ),
+        selectedFeedIdProvider.overrideWith((ref) => 404),
+        feedRepositoryProvider.overrideWithValue(_FakeFeedRepository([])),
+        minifluxSourceRefreshProvider.overrideWithValue(minifluxSourceRefresh),
+        syncServiceProvider.overrideWithValue(syncService),
+      ],
+    );
+
+    final outcome = await homeCommands.refreshAll();
+
+    expect(outcome.batch.firstError?.feedId, 404);
+    expect(outcome.batch.firstError?.error, isA<StateError>());
+    expect(minifluxSourceRefresh.refreshedFeedIds, isEmpty);
+    expect(syncService.refreshCalls, isEmpty);
+  });
+
   testWidgets(
     'Home scene commands refresh selected Miniflux feed source before sync',
     (tester) async {
@@ -1008,6 +1035,36 @@ void main() {
         [1, 2, 3],
       ]);
       expect(outcome.successFeedback, HomeRefreshSuccessFeedback.refreshed);
+    },
+  );
+
+  testWidgets(
+    'Home scene commands treat empty Miniflux category as refreshed',
+    (tester) async {
+      final syncService = FakeSyncService();
+      final minifluxSourceRefresh = _FakeMinifluxSourceRefresh();
+
+      final homeCommands = await _pumpHomeCommandsHarness(
+        tester,
+        overrides: [
+          activeAccountProvider.overrideWithValue(
+            buildTestAccount(type: AccountType.miniflux, name: 'Miniflux'),
+          ),
+          selectedCategoryIdProvider.overrideWith((ref) => 7),
+          feedRepositoryProvider.overrideWithValue(_FakeFeedRepository([])),
+          minifluxSourceRefreshProvider.overrideWithValue(
+            minifluxSourceRefresh,
+          ),
+          syncServiceProvider.overrideWithValue(syncService),
+        ],
+      );
+
+      final outcome = await homeCommands.refreshAll();
+
+      expect(outcome.batch.results, isEmpty);
+      expect(outcome.successFeedback, HomeRefreshSuccessFeedback.refreshed);
+      expect(minifluxSourceRefresh.refreshedFeedIds, isEmpty);
+      expect(syncService.refreshCalls, isEmpty);
     },
   );
 
@@ -1107,9 +1164,13 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    Future<void> pumpHome(AccountType type) async {
+    Future<void> pumpHome(
+      AccountType type, {
+      List<Override> extraOverrides = const <Override>[],
+    }) async {
       await tester.pumpWidget(
         ProviderScope(
+          key: ValueKey('home_${type.name}_${extraOverrides.length}'),
           overrides: [
             activeAccountProvider.overrideWithValue(
               buildTestAccount(type: type),
@@ -1122,6 +1183,7 @@ void main() {
             ),
             outboxPendingCountProvider.overrideWith((ref) async => 0),
             syncServiceProvider.overrideWithValue(FakeSyncService()),
+            ...extraOverrides,
           ],
           child: MaterialApp(
             locale: const Locale('en'),
@@ -1135,9 +1197,22 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    await pumpHome(AccountType.local);
+    await pumpHome(
+      AccountType.local,
+      extraOverrides: [
+        selectedFeedIdProvider.overrideWith((ref) => 10),
+        feedRepositoryProvider.overrideWithValue(
+          _FakeFeedRepository([_buildFeed(id: 10)]),
+        ),
+      ],
+    );
     expect(find.byTooltip('Refresh sources'), findsOneWidget);
     expect(find.byTooltip('Sync account'), findsNothing);
+
+    await tester.tap(find.byTooltip('Refresh sources'));
+    await tester.pump();
+    expect(find.text('Refreshed'), findsOneWidget);
+    expect(find.text('Refreshed all'), findsNothing);
 
     await pumpHome(AccountType.fever);
     expect(find.byTooltip('Sync account'), findsOneWidget);
