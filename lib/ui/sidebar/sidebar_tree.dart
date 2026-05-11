@@ -744,8 +744,7 @@ class _SidebarCategoryTile extends StatelessWidget {
         unreadCount > 0;
 
     return _SidebarRevealActions(
-      selected: selected,
-      builder: (context, showActions, onMenuOpenChanged) {
+      builder: (context, showActions) {
         final child = Semantics(
           container: true,
           selected: selected,
@@ -771,7 +770,6 @@ class _SidebarCategoryTile extends StatelessWidget {
                 trailing: _SidebarCategoryTrailing(
                   unreadCount: unreadCount,
                   showActions: showActions,
-                  selected: selected,
                   showReadOnlyLock: syncSemantics.isRemoteReadOnlyTaxonomy,
                   readOnlyTooltip: l10n.remoteReadOnlyTaxonomyTitle,
                   hasCategoryActions: hasCategoryActions,
@@ -789,7 +787,6 @@ class _SidebarCategoryTile extends StatelessWidget {
                         >[],
                   onMenuActionSelected: (action) =>
                       unawaited(_performAction(action)),
-                  onMenuOpenChanged: onMenuOpenChanged,
                   onAddFeed: () async {
                     final feedId = await managementActions.addFeed(
                       initialCategoryId: category.id,
@@ -893,8 +890,7 @@ class _SidebarFeedTile extends StatelessWidget {
         (unreadCount ?? 0) > 0;
 
     return _SidebarRevealActions(
-      selected: selected,
-      builder: (context, showActions, onMenuOpenChanged) {
+      builder: (context, showActions) {
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
           onSecondaryTapDown: isDesktop && hasFeedActions
@@ -920,7 +916,6 @@ class _SidebarFeedTile extends StatelessWidget {
             trailing: _SidebarFeedTrailing(
               unreadCount: unreadCount ?? 0,
               showActions: showActions,
-              selected: selected,
               hasFeedActions: hasFeedActions,
               canMarkRead: canMarkRead,
               onShowMenu: isDesktop ? null : () => onShowFeedMenu(feed),
@@ -931,7 +926,6 @@ class _SidebarFeedTile extends StatelessWidget {
                     >[],
               onMenuActionSelected: (action) =>
                   unawaited(_performAction(action)),
-              onMenuOpenChanged: onMenuOpenChanged,
               onMarkRead: () => managementActions.markAllRead(feedId: feed.id),
             ),
             onTap: () => selectionActions.selectFeed(feed.id),
@@ -946,16 +940,11 @@ class _SidebarFeedTile extends StatelessWidget {
 }
 
 typedef _SidebarRevealBuilder =
-    Widget Function(
-      BuildContext context,
-      bool showActions,
-      ValueChanged<bool> onMenuOpenChanged,
-    );
+    Widget Function(BuildContext context, bool showActions);
 
 class _SidebarRevealActions extends StatefulWidget {
-  const _SidebarRevealActions({required this.selected, required this.builder});
+  const _SidebarRevealActions({required this.builder});
 
-  final bool selected;
   final _SidebarRevealBuilder builder;
 
   @override
@@ -965,16 +954,10 @@ class _SidebarRevealActions extends StatefulWidget {
 class _SidebarRevealActionsState extends State<_SidebarRevealActions> {
   bool _hovered = false;
   bool _focused = false;
-  bool _menuOpen = false;
-
-  void _handleMenuOpenChanged(bool value) {
-    if (!mounted || _menuOpen == value) return;
-    setState(() => _menuOpen = value);
-  }
 
   @override
   Widget build(BuildContext context) {
-    final showActions = widget.selected || _hovered || _focused || _menuOpen;
+    final showActions = _hovered || _focused;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -992,7 +975,7 @@ class _SidebarRevealActionsState extends State<_SidebarRevealActions> {
           if (_focused == value) return;
           setState(() => _focused = value);
         },
-        child: widget.builder(context, showActions, _handleMenuOpenChanged),
+        child: widget.builder(context, showActions),
       ),
     );
   }
@@ -1002,7 +985,6 @@ class _SidebarCategoryTrailing extends StatelessWidget {
   const _SidebarCategoryTrailing({
     required this.unreadCount,
     required this.showActions,
-    required this.selected,
     required this.showReadOnlyLock,
     required this.readOnlyTooltip,
     required this.hasCategoryActions,
@@ -1011,7 +993,6 @@ class _SidebarCategoryTrailing extends StatelessWidget {
     required this.onShowMenu,
     required this.menuItems,
     required this.onMenuActionSelected,
-    required this.onMenuOpenChanged,
     required this.onAddFeed,
     required this.onMarkRead,
   });
@@ -1020,7 +1001,6 @@ class _SidebarCategoryTrailing extends StatelessWidget {
 
   final int unreadCount;
   final bool showActions;
-  final bool selected;
   final bool showReadOnlyLock;
   final String readOnlyTooltip;
   final bool hasCategoryActions;
@@ -1030,7 +1010,6 @@ class _SidebarCategoryTrailing extends StatelessWidget {
   final List<SubscriptionObjectMenuItem<SubscriptionCategoryMenuAction>>
   menuItems;
   final ValueChanged<SubscriptionCategoryMenuAction> onMenuActionSelected;
-  final ValueChanged<bool> onMenuOpenChanged;
   final Future<void> Function() onAddFeed;
   final Future<void> Function() onMarkRead;
 
@@ -1064,38 +1043,33 @@ class _SidebarCategoryTrailing extends StatelessWidget {
                           isDesktop
                               ? _SidebarMenuActionButton(
                                   tooltip: l10n.more,
-                                  active: selected,
                                   items: menuItems,
                                   onSelected: onMenuActionSelected,
-                                  onMenuOpenChanged: onMenuOpenChanged,
                                 )
                               : _SidebarActionIconButton(
                                   tooltip: l10n.more,
-                                  active: selected,
                                   onPressed: onShowMenu,
                                   icon: FleurIcons.moreVertical,
                                 ),
                         if (canAddFeed)
                           _SidebarActionIconButton(
                             tooltip: l10n.addSubscription,
-                            active: selected,
                             onPressed: () => unawaited(onAddFeed()),
                             icon: FleurIcons.add,
                           ),
                         if (canMarkRead)
                           _SidebarActionIconButton(
                             tooltip: l10n.markAllRead,
-                            active: selected,
                             onPressed: () => unawaited(onMarkRead()),
                             icon: FleurIcons.markAllRead,
                           ),
                       ],
                     )
-                  : _UnreadCountText(unreadCount, selected: selected),
+                  : _UnreadCountText(unreadCount),
             ),
           )
         else
-          _UnreadCountText(unreadCount, selected: selected),
+          _UnreadCountText(unreadCount),
       ],
     );
   }
@@ -1105,13 +1079,11 @@ class _SidebarFeedTrailing extends StatelessWidget {
   const _SidebarFeedTrailing({
     required this.unreadCount,
     required this.showActions,
-    required this.selected,
     required this.hasFeedActions,
     required this.canMarkRead,
     required this.onShowMenu,
     required this.menuItems,
     required this.onMenuActionSelected,
-    required this.onMenuOpenChanged,
     required this.onMarkRead,
   });
 
@@ -1119,13 +1091,11 @@ class _SidebarFeedTrailing extends StatelessWidget {
 
   final int unreadCount;
   final bool showActions;
-  final bool selected;
   final bool hasFeedActions;
   final bool canMarkRead;
   final VoidCallback? onShowMenu;
   final List<SubscriptionObjectMenuItem<SubscriptionFeedMenuAction>> menuItems;
   final ValueChanged<SubscriptionFeedMenuAction> onMenuActionSelected;
-  final ValueChanged<bool> onMenuOpenChanged;
   final Future<void> Function() onMarkRead;
 
   @override
@@ -1133,7 +1103,7 @@ class _SidebarFeedTrailing extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final hasActions = hasFeedActions || canMarkRead;
 
-    if (!hasActions) return _UnreadCountText(unreadCount, selected: selected);
+    if (!hasActions) return _UnreadCountText(unreadCount);
 
     return SizedBox(
       width: _actionsWidth,
@@ -1147,27 +1117,23 @@ class _SidebarFeedTrailing extends StatelessWidget {
                     isDesktop
                         ? _SidebarMenuActionButton(
                             tooltip: l10n.more,
-                            active: selected,
                             items: menuItems,
                             onSelected: onMenuActionSelected,
-                            onMenuOpenChanged: onMenuOpenChanged,
                           )
                         : _SidebarActionIconButton(
                             tooltip: l10n.more,
-                            active: selected,
                             onPressed: onShowMenu,
                             icon: FleurIcons.moreVertical,
                           ),
                   if (canMarkRead)
                     _SidebarActionIconButton(
                       tooltip: l10n.markAllRead,
-                      active: selected,
                       onPressed: () => unawaited(onMarkRead()),
                       icon: FleurIcons.markAllRead,
                     ),
                 ],
               )
-            : _UnreadCountText(unreadCount, selected: selected),
+            : _UnreadCountText(unreadCount),
       ),
     );
   }
@@ -1176,17 +1142,13 @@ class _SidebarFeedTrailing extends StatelessWidget {
 class _SidebarMenuActionButton<T> extends StatefulWidget {
   const _SidebarMenuActionButton({
     required this.tooltip,
-    required this.active,
     required this.items,
     required this.onSelected,
-    required this.onMenuOpenChanged,
   });
 
   final String tooltip;
-  final bool active;
   final List<AppMenuItem<T>> items;
   final ValueChanged<T> onSelected;
-  final ValueChanged<bool> onMenuOpenChanged;
 
   @override
   State<_SidebarMenuActionButton<T>> createState() =>
@@ -1195,54 +1157,39 @@ class _SidebarMenuActionButton<T> extends StatefulWidget {
 
 class _SidebarMenuActionButtonState<T>
     extends State<_SidebarMenuActionButton<T>> {
-  bool _menuOpen = false;
+  final GlobalKey _buttonKey = GlobalKey();
 
-  void _handleMenuOpenChanged(bool value) {
-    if (_menuOpen != value) {
-      setState(() => _menuOpen = value);
-    }
-    widget.onMenuOpenChanged(value);
+  Future<void> _showMenu(BuildContext context) async {
+    final renderObject = _buttonKey.currentContext?.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) return;
+    final position = renderObject.localToGlobal(
+      renderObject.size.center(Offset.zero),
+    );
+    final action = await AppMenuHost.showAt<T>(
+      context,
+      position: position,
+      items: widget.items,
+    );
+    if (action == null) return;
+    widget.onSelected(action);
   }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final active = widget.active || _menuOpen;
-
-    return AppMenuButton<T>(
+    return _SidebarActionIconButton(
+      key: _buttonKey,
       tooltip: widget.tooltip,
+      onPressed: widget.items.isEmpty
+          ? null
+          : () => unawaited(_showMenu(context)),
       icon: FleurIcons.moreVertical,
-      iconSize: 20,
-      constraints: const BoxConstraints.tightFor(width: 32, height: 32),
-      padding: EdgeInsets.zero,
-      style: ButtonStyle(
-        backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
-        fixedSize: const WidgetStatePropertyAll(Size.square(32)),
-        minimumSize: const WidgetStatePropertyAll(Size.square(32)),
-        overlayColor: const WidgetStatePropertyAll(Colors.transparent),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        foregroundColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.disabled)) {
-            return colorScheme.onSurface.withAlpha(96);
-          }
-          if (active ||
-              states.contains(WidgetState.hovered) ||
-              states.contains(WidgetState.focused) ||
-              states.contains(WidgetState.pressed)) {
-            return colorScheme.primary;
-          }
-          return colorScheme.onSurfaceVariant;
-        }),
-      ),
-      items: widget.items,
-      onSelected: widget.onSelected,
-      onOpenChanged: _handleMenuOpenChanged,
     );
   }
 }
 
 class _SidebarActionIconButton extends StatelessWidget {
   const _SidebarActionIconButton({
+    super.key,
     required this.tooltip,
     required this.icon,
     required this.onPressed,
@@ -1289,13 +1236,12 @@ class _SidebarActionIconButton extends StatelessWidget {
 }
 
 class _UnreadCountText extends StatelessWidget {
-  const _UnreadCountText(this.count, {this.selected = false});
+  const _UnreadCountText(this.count);
 
   static const double _rightInset = 8;
   static const double _textWidth = 30;
 
   final int count;
-  final bool selected;
 
   @override
   Widget build(BuildContext context) {
@@ -1309,9 +1255,7 @@ class _UnreadCountText extends StatelessWidget {
           count > 99 ? '99+' : '$count',
           textAlign: TextAlign.right,
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: selected
-                ? colorScheme.primary
-                : colorScheme.onSurfaceVariant,
+            color: colorScheme.onSurfaceVariant,
             fontWeight: AppTypography.platformWeight(FontWeight.w700),
             fontFeatures: const [FontFeature.tabularFigures()],
           ),
@@ -1350,9 +1294,7 @@ class _SidebarItem extends StatelessWidget {
       contentPadding: EdgeInsets.only(left: 16 + indent, right: 8),
       leading: Icon(icon, color: iconColor),
       title: Text(title),
-      trailing: count == null
-          ? null
-          : _UnreadCountText(count!, selected: selected),
+      trailing: count == null ? null : _UnreadCountText(count!),
       onTap: onTap,
     );
     if (onSecondaryTapDown == null) return tile;

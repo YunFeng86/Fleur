@@ -273,11 +273,18 @@ void main() {
     await tester.tap(find.text('Tech'));
     await tester.pumpAndSettle();
 
+    expect(find.byTooltip('More'), findsNothing);
+    expect(find.byTooltip('Add subscription'), findsNothing);
+    expect(find.byTooltip('Mark all read'), findsNothing);
+
+    final selectedCategoryHover = await _hoverText(tester, 'Tech');
     expect(find.byTooltip('More'), findsOneWidget);
     expect(find.byTooltip('Add subscription'), findsOneWidget);
     expect(find.byTooltip('Mark all read'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Mark all read'));
+    await tester.pumpAndSettle();
+    await selectedCategoryHover.removePointer();
     await tester.pumpAndSettle();
 
     expect(actionService.markAllReadCalls, [(feedId: null, categoryId: 1)]);
@@ -287,7 +294,28 @@ void main() {
     await tester.tap(find.text('Tech News'));
     await tester.pumpAndSettle();
 
+    expect(
+      ProviderScope.containerOf(
+        tester.element(find.byType(SidebarNavigationTree)),
+      ).read(selectedCategoryIdProvider),
+      isNull,
+    );
+    expect(
+      ProviderScope.containerOf(
+        tester.element(find.byType(SidebarNavigationTree)),
+      ).read(selectedFeedIdProvider),
+      101,
+    );
+    expect(find.byTooltip('More'), findsNothing);
+    expect(find.byTooltip('Mark all read'), findsNothing);
+
+    final feedHover = await _hoverText(tester, 'Tech News');
+    expect(find.byTooltip('More'), findsOneWidget);
+    expect(find.byTooltip('Mark all read'), findsOneWidget);
+
     await tester.tap(find.byTooltip('Mark all read'));
+    await tester.pumpAndSettle();
+    await feedHover.removePointer();
     await tester.pumpAndSettle();
 
     expect(actionService.markAllReadCalls, [
@@ -342,7 +370,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(container.read(selectedCategoryIdProvider), isNull);
-    expect(find.byTooltip('More'), findsOneWidget);
+    expect(find.byTooltip('More'), findsNothing);
     expect(find.text('Rename'), findsOneWidget);
 
     await tester.tap(find.text('Rename'));
@@ -478,9 +506,13 @@ void main() {
     expect(find.text('Tech News'), findsOneWidget);
     await tester.tap(find.text('Tech News'));
     await tester.pumpAndSettle();
+    expect(find.byTooltip('More'), findsNothing);
+    final feverFeedHover = await _hoverText(tester, 'Tech News');
     expect(find.byTooltip('More'), findsOneWidget);
 
     await tester.tap(find.byTooltip('More'));
+    await tester.pumpAndSettle();
+    await feverFeedHover.removePointer();
     await tester.pumpAndSettle();
 
     expect(find.text('Move to category'), findsNothing);
@@ -525,7 +557,11 @@ void main() {
     expect(find.byTooltip('Read-only remote groups'), findsNothing);
     await tester.tap(find.text('Tech'));
     await tester.pumpAndSettle();
+    expect(find.byTooltip('More'), findsNothing);
+    final categoryHover = await _hoverText(tester, 'Tech');
     await tester.tap(find.byTooltip('More'));
+    await tester.pumpAndSettle();
+    await categoryHover.removePointer();
     await tester.pumpAndSettle();
 
     expect(find.text('Rename'), findsOneWidget);
@@ -559,7 +595,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Tech News'));
     await tester.pumpAndSettle();
+    expect(find.byTooltip('More'), findsNothing);
+    final feedHover = await _hoverText(tester, 'Tech News');
     await tester.tap(find.byTooltip('More'));
+    await tester.pumpAndSettle();
+    await feedHover.removePointer();
     await tester.pumpAndSettle();
 
     expect(find.text('Refresh'), findsOneWidget);
