@@ -9,25 +9,31 @@ import '../../../providers/app_settings_providers.dart';
 import '../../../providers/backend_capabilities_provider.dart';
 import '../../../providers/backend_content_capabilities_provider.dart';
 import '../../../providers/backend_sync_semantics_provider.dart';
-import '../../../providers/refresh_all_providers.dart';
 import '../../../services/accounts/account.dart';
 import '../../../services/settings/app_settings.dart';
 import '../../../services/sync/backend_capabilities.dart';
 import '../../../services/sync/backend_sync_semantics.dart';
-import '../../../services/sync/refresh_all_coordinator.dart';
 import '../../../utils/context_extensions.dart';
 import '../../../widgets/account_avatar.dart';
+import '../../actions/subscription_actions.dart';
 import '../../dialogs/add_account_dialogs.dart';
 import '../../dialogs/text_input_dialog.dart';
 import '../widgets/section_header.dart';
 
-class ServicesTab extends ConsumerWidget {
+class ServicesTab extends ConsumerStatefulWidget {
   const ServicesTab({super.key, this.showPageTitle = true});
 
   final bool showPageTitle;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ServicesTab> createState() => _ServicesTabState();
+}
+
+class _ServicesTabState extends ConsumerState<ServicesTab> {
+  bool _isRefreshing = false;
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final appSettings =
@@ -45,7 +51,6 @@ class ServicesTab extends ConsumerWidget {
     final refreshSectionTitle = l10n.refreshAll;
     final refreshSectionDescription = l10n.autoRefreshSubtitle;
     final refreshActionLabel = l10n.refreshAll;
-    final refreshSuccessLabel = l10n.refreshedAll;
     final remoteStrategySubtitle = switch (syncSemantics.historyCoverage) {
       BackendHistoryCoverage.remotePaginatedEntries =>
         l10n.remoteSyncStrategyMinifluxSubtitle,
@@ -60,72 +65,13 @@ class ServicesTab extends ConsumerWidget {
         contentCapabilities.canChooseServerArticleContentFetchMode;
     final showRefreshConcurrency = syncSemantics.isFeedScopedRefresh;
 
-    String refreshProgressLabel(int current, int total) {
-      return l10n.refreshingProgress(current, total);
-    }
-
     Future<void> refreshNow() async {
-      final concurrency = appSettings.autoRefreshConcurrency;
-
-      if (!context.mounted) return;
-      final navigator = Navigator.of(context, rootNavigator: true);
-
-      // Show progress dialog.
-      final progressNotifier = ValueNotifier<String>(
-        refreshProgressLabel(0, 0),
-      );
+      if (_isRefreshing) return;
+      setState(() => _isRefreshing = true);
       try {
-        unawaited(
-          showDialog<void>(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) {
-              return PopScope(
-                canPop: false,
-                child: AlertDialog(
-                  content: Row(
-                    children: [
-                      const CircularProgressIndicator(),
-                      const SizedBox(width: 24),
-                      ValueListenableBuilder<String>(
-                        valueListenable: progressNotifier,
-                        builder: (context, value, _) {
-                          return Text(value);
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ).then((_) {}),
-        );
-
-        final result = await ref
-            .read(refreshSourcesCoordinatorProvider)
-            .refreshSources(
-              trigger: RefreshSourcesTrigger.manual,
-              maxConcurrent: concurrency,
-              onProgress: (current, total) {
-                progressNotifier.value = refreshProgressLabel(current, total);
-              },
-            );
-
-        final err = result.firstError;
-        if (!context.mounted) return;
-        context.showSnack(
-          err == null ? refreshSuccessLabel : l10n.errorMessage(err.toString()),
-        );
+        await SubscriptionActions.refreshAll(context, ref);
       } finally {
-        // Close progress dialog even if the settings page was popped.
-        try {
-          if (navigator.mounted && navigator.canPop()) {
-            navigator.pop();
-          }
-        } catch (_) {
-          // ignore: best-effort cleanup
-        }
-        progressNotifier.dispose();
+        if (mounted) setState(() => _isRefreshing = false);
       }
     }
 
@@ -253,7 +199,7 @@ class ServicesTab extends ConsumerWidget {
 
     return SettingsPageBody(
       children: [
-        if (showPageTitle) ...[
+        if (widget.showPageTitle) ...[
           SectionHeader(title: l10n.services),
           const SizedBox(height: 8),
         ],
@@ -369,8 +315,16 @@ class ServicesTab extends ConsumerWidget {
                   ],
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
-                    onPressed: refreshNow,
-                    icon: const Icon(Icons.refresh),
+                    onPressed: _isRefreshing
+                        ? null
+                        : () => unawaited(refreshNow()),
+                    icon: _isRefreshing
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.refresh),
                     label: Text(refreshActionLabel),
                   ),
                 ],

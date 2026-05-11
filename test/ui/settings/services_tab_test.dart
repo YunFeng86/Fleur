@@ -1,11 +1,20 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:fleur/models/feed.dart';
 import 'package:fleur/providers/account_providers.dart';
 import 'package:fleur/providers/app_settings_providers.dart';
+import 'package:fleur/providers/refresh_all_providers.dart';
+import 'package:fleur/repositories/feed_repository.dart';
 import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/services/accounts/account_store.dart';
 import 'package:fleur/services/settings/app_settings.dart';
+import 'package:fleur/services/sync/backend_capabilities.dart';
+import 'package:fleur/services/sync/refresh_all_coordinator.dart';
+import 'package:fleur/services/sync/sync_service.dart';
 import 'package:fleur/ui/settings/tabs/services_tab.dart';
 
 import '../../test_utils/critical_workflow_test_support.dart';
@@ -22,6 +31,22 @@ class _FakeAccountStore extends AccountStore {
   Future<void> save(AccountsState next) async {
     state = next;
   }
+}
+
+class _FakeFeedRepository extends Fake implements FeedRepository {
+  _FakeFeedRepository(this.feeds);
+
+  final List<Feed> feeds;
+
+  @override
+  Future<List<Feed>> getAll() async => feeds;
+}
+
+Feed _feed(int id) {
+  return Feed()
+    ..id = id
+    ..url = 'https://example.com/$id.xml'
+    ..title = 'Feed $id';
 }
 
 void main() {
@@ -43,6 +68,7 @@ void main() {
     List<Account>? accounts,
     String? activeAccountId,
     AppSettings? appSettings,
+    List<Override> overrides = const <Override>[],
   }) async {
     final appStore = FakeAppSettingsStore(
       appSettings ?? AppSettings.defaults(),
@@ -60,6 +86,7 @@ void main() {
       overrides: [
         accountStoreProvider.overrideWithValue(accountStore),
         appSettingsStoreProvider.overrideWithValue(appStore),
+        ...overrides,
       ],
       size: const Size(900, 1200),
     );
@@ -138,6 +165,59 @@ void main() {
     expect(find.text('Remote fetch concurrency'), findsOneWidget);
     expect(find.text('Web page fetching'), findsOneWidget);
     expect(find.text('Client (Readability)'), findsOneWidget);
+  });
+
+  testWidgets('source refresh button uses inline loading while refreshing', (
+    tester,
+  ) async {
+    final finishRefresh = Completer<void>();
+    final syncService = FakeSyncService(
+      onRefresh: (feedIds) async {
+        await finishRefresh.future;
+        return const BatchRefreshResult(<FeedRefreshResult>[]);
+      },
+    );
+    final account = buildTestAccount(type: AccountType.local, name: 'Local');
+    final coordinator = RefreshSourcesCoordinator(
+      capabilities: BackendCapabilities.forAccountType(account.type),
+      feeds: _FakeFeedRepository([_feed(1)]),
+      syncService: syncService,
+    );
+
+    await pumpTabWithStores(
+      tester,
+      account: account,
+      overrides: [
+        refreshSourcesCoordinatorProvider.overrideWithValue(coordinator),
+      ],
+    );
+
+    final buttonFinder = find.widgetWithText(OutlinedButton, 'Refresh sources');
+    expect(buttonFinder, findsOneWidget);
+    expect(tester.widget<OutlinedButton>(buttonFinder).onPressed, isNotNull);
+
+    await tester.tap(buttonFinder);
+    await tester.pump();
+
+    expect(syncService.refreshCalls, [
+      [1],
+    ]);
+    expect(tester.widget<OutlinedButton>(buttonFinder).onPressed, isNull);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.text('Refreshing 0/0...'), findsNothing);
+
+    await tester.tap(buttonFinder);
+    await tester.pump();
+    expect(syncService.refreshCalls, [
+      [1],
+    ]);
+
+    finishRefresh.complete();
+    await tester.pump();
+    await tester.pump();
+
+    expect(tester.widget<OutlinedButton>(buttonFinder).onPressed, isNotNull);
   });
 
   testWidgets(
