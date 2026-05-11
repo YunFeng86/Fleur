@@ -71,6 +71,7 @@ dependencies:
   flutter_secure_storage: ^10.0.0
   archive: ^4.0.7
   workmanager: ^0.9.0
+  fluentui_system_icons: ^1.1.273
 
 dev_dependencies:
   flutter_test:
