@@ -21,5 +21,11 @@ void main() {
 
       expect(parsed, isNull);
     });
+
+    test('rejects invalid numeric timezone offsets', () {
+      final parsed = tryParseFeedDate('Tue, 06 Aug 2024 10:00:00 +2460');
+
+      expect(parsed, isNull);
+    });
   });
 }

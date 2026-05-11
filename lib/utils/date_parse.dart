@@ -53,7 +53,10 @@ DateTime? _tryParseRfc822Like(String s) {
   }
 
   final offset = _parseTzOffsetMinutes(tz);
-  if (offset == null) return baseUtc; // fall back to treating it as UTC
+  if (offset == null) {
+    if (_isNumericTzOffset(tz)) return null;
+    return baseUtc; // fall back to treating unknown text zones as UTC
+  }
 
   return baseUtc.subtract(Duration(minutes: offset));
 }
@@ -87,5 +90,10 @@ int? _parseTzOffsetMinutes(String tz) {
   final sign = m.group(1) == '-' ? -1 : 1;
   final hh = int.tryParse(m.group(2)!) ?? 0;
   final mm = int.tryParse(m.group(3)!) ?? 0;
+  if (hh > 23 || mm > 59) return null;
   return sign * (hh * 60 + mm);
+}
+
+bool _isNumericTzOffset(String tz) {
+  return RegExp(r'^[+-]\d{4}$').hasMatch(tz.trim());
 }
