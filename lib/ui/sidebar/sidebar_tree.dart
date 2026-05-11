@@ -897,7 +897,7 @@ class _SidebarFeedTile extends StatelessWidget {
               : null,
           child: ListTile(
             selected: selected,
-            contentPadding: EdgeInsets.only(left: 16 + indent, right: 8),
+            contentPadding: EdgeInsets.only(left: 16 + indent, right: 16),
             leading: FaviconCircle(
               siteUri: siteUri,
               diameter: 28,
@@ -905,12 +905,11 @@ class _SidebarFeedTile extends StatelessWidget {
               fallbackIcon: FleurIcons.feed,
               fallbackColor: theme.colorScheme.onSurfaceVariant,
             ),
-            title: Text(displayTitle),
-            subtitle:
-                (feed.userTitle?.trim().isNotEmpty == true ||
-                    feed.title?.trim().isNotEmpty == true)
-                ? Text(feed.url, maxLines: 1, overflow: TextOverflow.ellipsis)
-                : null,
+            title: Text(
+              displayTitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
             trailing: _SidebarFeedTrailing(
               unreadCount: unreadCount ?? 0,
               showActions: showActions,

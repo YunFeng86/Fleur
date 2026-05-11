@@ -276,6 +276,67 @@ void main() {
     ]);
   });
 
+  testWidgets('sidebar feed rows show one-line title with padded unread edge', (
+    tester,
+  ) async {
+    final category = Category()
+      ..id = 1
+      ..name = 'Tech';
+    final titledFeed = Feed()
+      ..id = 101
+      ..url = 'https://example.com/feed.xml'
+      ..title = 'Tech News'
+      ..categoryId = 1;
+    final urlOnlyFeed = Feed()
+      ..id = 102
+      ..url = 'https://fallback.example/rss'
+      ..categoryId = 1;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: _SidebarHarness(
+              categories: [category],
+              feeds: [titledFeed, urlOnlyFeed],
+              unreadCounts: const {101: 240, 102: 1},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(FleurIcons.expand));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tech News'), findsOneWidget);
+    expect(find.text('https://example.com/feed.xml'), findsNothing);
+    expect(find.text('https://fallback.example/rss'), findsOneWidget);
+
+    final titledText = tester.widget<Text>(find.text('Tech News'));
+    expect(titledText.maxLines, 1);
+    expect(titledText.overflow, TextOverflow.ellipsis);
+
+    final urlText = tester.widget<Text>(
+      find.text('https://fallback.example/rss'),
+    );
+    expect(urlText.maxLines, 1);
+    expect(urlText.overflow, TextOverflow.ellipsis);
+
+    final feedTile = tester.widget<ListTile>(
+      find
+          .ancestor(of: find.text('Tech News'), matching: find.byType(ListTile))
+          .first,
+    );
+    final contentPadding = feedTile.contentPadding!.resolve(TextDirection.ltr);
+    expect(contentPadding.right, 16);
+    expect(find.text('99+'), findsAtLeastNWidgets(1));
+  });
+
   testWidgets('Fever sidebar hides structure actions and OPML import', (
     tester,
   ) async {
