@@ -116,6 +116,7 @@ Dio _feverDio({
   String itemHtml = '<p>feed</p>',
   int feedCount = 1,
   int itemCount = 1,
+  List<Map<String, Object?>> groups = const [],
 }) {
   final generatedItemIds = List.generate(itemCount, (index) => 100 + index);
   final unreadItemIds = unreadIds ?? generatedItemIds.join(',');
@@ -138,7 +139,7 @@ Dio _feverDio({
         Object? data;
 
         if (query == 'api&groups') {
-          data = <String, Object?>{'auth': 1, 'groups': const []};
+          data = <String, Object?>{'auth': 1, 'groups': groups};
         } else if (query == 'api&feeds') {
           data = <String, Object?>{'auth': 1, 'feeds': feeds};
         } else if (query == 'api&feeds&groups') {
@@ -297,6 +298,29 @@ void main() {
       contains('/feed.png'),
     );
     expect(cache.prefetchedHtml, isEmpty);
+  });
+
+  test('skips non-finite Fever group ids during sync', () async {
+    final cache = _RecordingArticleCacheService();
+    final extractor = _FakeArticleExtractor();
+
+    final articles = await _syncFeverArticles(
+      isar!,
+      settings: AppSettings.defaults().copyWith(
+        syncWebPages: false,
+        syncImages: false,
+      ),
+      cache: cache,
+      extractor: extractor,
+      dio: _feverDio(
+        groups: [
+          {'id': double.infinity, 'title': 'Invalid Group'},
+        ],
+      ),
+    );
+
+    expect(articles, hasLength(1));
+    expect(await CategoryRepository(isar!).getByRemoteId('Infinity'), isNull);
   });
 
   test(

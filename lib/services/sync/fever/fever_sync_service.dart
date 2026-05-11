@@ -91,7 +91,7 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
 
   static int? _asInt(Object? v) {
     if (v is int) return v;
-    if (v is num) return v.toInt();
+    if (v is num) return v.isFinite ? v.toInt() : null;
     if (v is String) return int.tryParse(v.trim());
     return null;
   }
