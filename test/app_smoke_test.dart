@@ -34,6 +34,7 @@ import 'package:fleur/theme/app_typography.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
 import 'package:fleur/ui/app_shell.dart';
 import 'package:fleur/ui/home/home_scene_commands.dart';
+import 'package:fleur/ui/home/home_scene_panes.dart';
 import 'package:fleur/ui/home/home_scene_shortcuts.dart';
 import 'package:fleur/ui/sidebar/sidebar_selection_actions.dart';
 import 'package:fleur/utils/platform.dart';
@@ -540,6 +541,75 @@ void main() {
       router.routerDelegate.currentConfiguration.uri.toString(),
       '/settings?tab=services',
     );
+  });
+
+  testWidgets('sidebar account footer closes drawer before opening services', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.android;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(640, 900);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    final scaffoldKey = GlobalKey<ScaffoldState>();
+    late final GoRouter router;
+    router = GoRouter(
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (context, state) {
+            return Scaffold(
+              key: scaffoldKey,
+              drawer: const HomeSidebarDrawer(),
+              body: const SizedBox.shrink(),
+            );
+          },
+        ),
+        GoRoute(
+          path: '/settings',
+          builder: (context, state) =>
+              const Scaffold(body: Center(child: Text('Services settings'))),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          activeAccountProvider.overrideWithValue(buildTestAccount()),
+          feedsProvider.overrideWith((ref) => Stream.value(<Feed>[])),
+          categoriesProvider.overrideWith((ref) => Stream.value(<Category>[])),
+          tagsProvider.overrideWith((ref) => Stream.value(<Tag>[])),
+          allUnreadCountsProvider.overrideWith(
+            (ref) => Stream.value(<int?, int>{}),
+          ),
+        ],
+        child: MaterialApp.router(
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    scaffoldKey.currentState!.openDrawer();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Test Account'), findsOneWidget);
+
+    await tester.tap(find.text('Test Account'));
+    await tester.pumpAndSettle();
+
+    expect(
+      router.routerDelegate.currentConfiguration.uri.toString(),
+      '/settings?tab=services',
+    );
+    expect(find.text('Services settings'), findsOneWidget);
+    expect(find.text('Test Account'), findsNothing);
   });
 
   testWidgets(

@@ -44,15 +44,25 @@ class _SidebarState extends ConsumerState<Sidebar> {
   final _scrollController = ScrollController();
   String _searchText = '';
 
-  void _closeDrawerIfDesktopDrawer() {
-    if (!isDesktop || widget.router == null) return;
+  void _closeSidebarIfDrawerOpen() {
     final scaffold = Scaffold.maybeOf(context);
-    if (scaffold != null) {
+    if (scaffold != null && scaffold.isDrawerOpen) {
       scaffold.closeDrawer();
       return;
     }
     final router = widget.router;
-    if (router != null && router.canPop()) router.pop();
+    if (isDesktop && router != null && router.canPop()) router.pop();
+  }
+
+  void _openServicesSettings() {
+    _closeSidebarIfDrawerOpen();
+    final location = settingsLocation(tab: SettingsTab.services);
+    final router = widget.router;
+    if (router != null) {
+      router.go(location);
+      return;
+    }
+    context.go(location);
   }
 
   @override
@@ -85,7 +95,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
   SidebarSelectionActions get _selectionActions => SidebarSelectionActions(
     ref: ref,
     onSelectFeed: widget.onSelectFeed,
-    closeSidebar: _closeDrawerIfDesktopDrawer,
+    closeSidebar: _closeSidebarIfDrawerOpen,
   );
 
   SidebarManagementActions get _managementActions => SidebarManagementActions(
@@ -159,7 +169,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
           SidebarSearchField(
             controller: _searchController,
             showDrawerClose: showDrawerClose,
-            onCloseDrawer: _closeDrawerIfDesktopDrawer,
+            onCloseDrawer: _closeSidebarIfDrawerOpen,
           ),
           Expanded(
             child: SidebarNavigationTree(
@@ -197,15 +207,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
             _AccountFooter(
               account: activeAccount,
               sync: syncStatus,
-              onTap: () {
-                final location = settingsLocation(tab: SettingsTab.services);
-                final router = widget.router;
-                if (router != null) {
-                  router.go(location);
-                  return;
-                }
-                context.go(location);
-              },
+              onTap: _openServicesSettings,
             ),
         ],
       ),
