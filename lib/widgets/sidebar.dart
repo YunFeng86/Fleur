@@ -193,7 +193,9 @@ class _SidebarState extends ConsumerState<Sidebar> {
               managementActions: managementActions,
               capabilities: capabilities,
               syncSemantics: syncSemantics,
-              onAddFeed: managementActions.addFeed,
+              onAddFeed: () async {
+                await managementActions.addFeed();
+              },
               onAddCategory: () async {
                 final id = await managementActions.addCategory();
                 if (id == null) return;

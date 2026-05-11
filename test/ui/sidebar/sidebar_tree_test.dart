@@ -7,6 +7,7 @@ import 'package:fleur/models/category.dart';
 import 'package:fleur/models/feed.dart';
 import 'package:fleur/models/tag.dart';
 import 'package:fleur/providers/query_providers.dart';
+import 'package:fleur/providers/service_providers.dart';
 import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/services/sync/backend_capabilities.dart';
 import 'package:fleur/services/sync/backend_sync_semantics.dart';
@@ -17,6 +18,8 @@ import 'package:fleur/ui/sidebar/sidebar_selection_actions.dart';
 import 'package:fleur/ui/sidebar/sidebar_tree.dart';
 import 'package:fleur/utils/platform.dart';
 import 'package:fleur/widgets/tree_disclosure_button.dart';
+
+import '../../test_utils/critical_workflow_test_support.dart';
 
 class _SidebarHarness extends ConsumerStatefulWidget {
   const _SidebarHarness({
@@ -109,6 +112,14 @@ Finder _popupMenuText(String text) {
   );
 }
 
+Future<TestGesture> _hoverText(WidgetTester tester, String text) async {
+  final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+  await gesture.addPointer();
+  await gesture.moveTo(tester.getCenter(find.text(text).first));
+  await tester.pumpAndSettle();
+  return gesture;
+}
+
 void main() {
   testWidgets(
     'sidebar categories use left disclosure and preserve selection semantics',
@@ -178,6 +189,81 @@ void main() {
     },
   );
 
+  testWidgets('sidebar reveal actions replace capped unread counts by scope', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    final actionService = RecordingArticleActionService();
+    final category = Category()
+      ..id = 1
+      ..name = 'Tech';
+    final feed = Feed()
+      ..id = 101
+      ..url = 'https://example.com/feed.xml'
+      ..title = 'Tech News'
+      ..categoryId = 1;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          articleActionServiceProvider.overrideWithValue(actionService),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: _SidebarHarness(
+              categories: [category],
+              feeds: [feed],
+              unreadCounts: const {101: 240},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('99+'), findsOneWidget);
+    expect(find.text('240'), findsNothing);
+    expect(find.byTooltip('Mark all read'), findsNothing);
+    expect(find.byTooltip('Add subscription'), findsNothing);
+
+    final categoryHover = await _hoverText(tester, 'Tech');
+    expect(find.byTooltip('More'), findsOneWidget);
+    expect(find.byTooltip('Add subscription'), findsOneWidget);
+    expect(find.byTooltip('Mark all read'), findsOneWidget);
+    await categoryHover.removePointer();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Tech'));
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('More'), findsOneWidget);
+    expect(find.byTooltip('Add subscription'), findsOneWidget);
+    expect(find.byTooltip('Mark all read'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Mark all read'));
+    await tester.pumpAndSettle();
+
+    expect(actionService.markAllReadCalls, [(feedId: null, categoryId: 1)]);
+
+    await tester.tap(find.byIcon(FleurIcons.expand));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Tech News'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Mark all read'));
+    await tester.pumpAndSettle();
+
+    expect(actionService.markAllReadCalls, [
+      (feedId: null, categoryId: 1),
+      (feedId: 101, categoryId: null),
+    ]);
+  });
+
   testWidgets('Fever sidebar hides structure actions and OPML import', (
     tester,
   ) async {
@@ -215,7 +301,7 @@ void main() {
     expect(find.byTooltip('Read-only remote groups'), findsOneWidget);
     expect(find.text('Tech'), findsOneWidget);
 
-    await tester.tap(find.byIcon(FleurIcons.moreHorizontal));
+    await _openContextMenuOnText(tester, 'Subscriptions');
     await tester.pumpAndSettle();
 
     expect(find.text('Import OPML'), findsNothing);
@@ -242,9 +328,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Tech News'), findsOneWidget);
-    expect(find.byIcon(FleurIcons.moreVertical), findsOneWidget);
+    await tester.tap(find.text('Tech News'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('More'), findsOneWidget);
 
-    await tester.tap(find.byIcon(FleurIcons.moreVertical).last);
+    await tester.tap(find.byTooltip('More'));
     await tester.pumpAndSettle();
 
     expect(find.text('Move to category'), findsNothing);
@@ -287,7 +375,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byTooltip('Read-only remote groups'), findsNothing);
-    await tester.tap(find.byIcon(FleurIcons.moreVertical));
+    await tester.tap(find.text('Tech'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('More'));
     await tester.pumpAndSettle();
 
     expect(find.text('Rename'), findsOneWidget);
@@ -296,7 +386,7 @@ void main() {
     await tester.tapAt(const Offset(5, 5));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(FleurIcons.moreHorizontal));
+    await _openContextMenuOnText(tester, 'Subscriptions');
     await tester.pumpAndSettle();
 
     expect(find.text('Refresh sources'), findsOneWidget);
@@ -319,7 +409,9 @@ void main() {
 
     await tester.tap(find.byIcon(FleurIcons.expand));
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(FleurIcons.moreVertical).last);
+    await tester.tap(find.text('Tech News'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('More'));
     await tester.pumpAndSettle();
 
     expect(find.text('Refresh'), findsOneWidget);
@@ -461,78 +553,66 @@ void main() {
     expect(container.read(selectedCategoryIdProvider), isNull);
   });
 
-  testWidgets(
-    'sidebar header overflow and explicit action buttons stay scoped',
-    (tester) async {
-      debugFleurTargetPlatformOverride = TargetPlatform.macOS;
-      addTearDown(() => debugFleurTargetPlatformOverride = null);
+  testWidgets('sidebar header keeps only folder action visible', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
 
-      var addFeedCount = 0;
-      var addCategoryCount = 0;
-      final category = Category()
-        ..id = 1
-        ..name = 'Tech';
+    var addCategoryCount = 0;
+    final category = Category()
+      ..id = 1
+      ..name = 'Tech';
 
-      await tester.pumpWidget(
-        ProviderScope(
-          child: MaterialApp(
-            theme: AppTheme.light(),
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            home: Scaffold(
-              body: _SidebarHarness(
-                categories: [category],
-                feeds: const <Feed>[],
-                unreadCounts: const {null: 1},
-                onAddFeed: () async => addFeedCount++,
-                onAddCategory: () async => addCategoryCount++,
-              ),
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: _SidebarHarness(
+              categories: [category],
+              feeds: const <Feed>[],
+              unreadCounts: const {null: 1},
+              onAddFeed: () async {},
+              onAddCategory: () async => addCategoryCount++,
             ),
           ),
         ),
-      );
-      await tester.pumpAndSettle();
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(FleurIcons.moreHorizontal));
-      await tester.pumpAndSettle();
+    expect(find.byTooltip('Add subscription'), findsNothing);
+    expect(find.byTooltip('New category'), findsOneWidget);
 
-      expect(_popupMenuText('Settings'), findsOneWidget);
-      expect(_popupMenuText('Refresh sources'), findsOneWidget);
-      expect(_popupMenuText('Import OPML'), findsOneWidget);
-      expect(_popupMenuText('Export OPML'), findsOneWidget);
-      expect(_popupMenuText('Add subscription'), findsNothing);
-      expect(_popupMenuText('New category'), findsNothing);
+    await _openContextMenuOnText(tester, 'Subscriptions');
 
-      await tester.tapAt(const Offset(5, 5));
-      await tester.pumpAndSettle();
+    expect(_popupMenuText('Settings'), findsOneWidget);
+    expect(_popupMenuText('Refresh sources'), findsOneWidget);
+    expect(_popupMenuText('Import OPML'), findsOneWidget);
+    expect(_popupMenuText('Export OPML'), findsOneWidget);
+    expect(_popupMenuText('Add subscription'), findsOneWidget);
+    expect(_popupMenuText('New category'), findsOneWidget);
 
-      await tester.tap(find.byTooltip('Add subscription'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('New category'));
-      await tester.pumpAndSettle();
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
 
-      expect(addFeedCount, 1);
-      expect(addCategoryCount, 1);
+    await tester.tap(find.byTooltip('New category'));
+    await tester.pumpAndSettle();
 
-      await tester.tapAt(
-        tester.getCenter(find.byTooltip('Add subscription')),
-        buttons: kSecondaryMouseButton,
-      );
-      await tester.pumpAndSettle();
+    expect(addCategoryCount, 1);
 
-      expect(_popupMenuText('Refresh sources'), findsNothing);
-      expect(_popupMenuText('Settings'), findsNothing);
+    await tester.tapAt(
+      tester.getCenter(find.byTooltip('New category')),
+      buttons: kSecondaryMouseButton,
+    );
+    await tester.pumpAndSettle();
 
-      await tester.tapAt(
-        tester.getCenter(find.byTooltip('New category')),
-        buttons: kSecondaryMouseButton,
-      );
-      await tester.pumpAndSettle();
-
-      expect(_popupMenuText('Refresh sources'), findsNothing);
-      expect(_popupMenuText('Settings'), findsNothing);
-    },
-  );
+    expect(_popupMenuText('Refresh sources'), findsNothing);
+    expect(_popupMenuText('Settings'), findsNothing);
+  });
 
   testWidgets('sidebar root and header context menus are desktop only', (
     tester,
@@ -812,7 +892,7 @@ void main() {
   });
 
   testWidgets(
-    'desktop expanded large category with menus keeps maxScrollExtent stable while scrolling',
+    'desktop expanded large category with hidden actions keeps maxScrollExtent stable while scrolling',
     (tester) async {
       debugFleurTargetPlatformOverride = TargetPlatform.macOS;
       addTearDown(() => debugFleurTargetPlatformOverride = null);
@@ -860,7 +940,7 @@ void main() {
           .widget<TreeDisclosureButton>(find.byType(TreeDisclosureButton).first)
           .onPressed();
       await tester.pumpAndSettle();
-      expect(find.byType(MenuAnchor), findsWidgets);
+      expect(find.byType(MenuAnchor), findsNothing);
 
       final scrollable = tester
           .stateList<ScrollableState>(find.byType(Scrollable))

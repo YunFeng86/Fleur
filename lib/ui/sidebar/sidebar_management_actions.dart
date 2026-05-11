@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../models/category.dart';
 import '../../models/feed.dart';
 import '../../providers/query_providers.dart';
+import '../../providers/service_providers.dart';
 import '../actions/subscription_actions.dart';
 import 'sidebar_selection_actions.dart';
 
@@ -43,14 +44,16 @@ class SidebarManagementActions {
     await target.push('/settings');
   }
 
-  Future<void> addFeed() async {
+  Future<int?> addFeed({int? initialCategoryId}) async {
     final id = await SubscriptionActions.addFeed(
       _context,
       _ref,
       navigator: _navigator,
+      initialCategoryId: initialCategoryId,
     );
-    if (id == null) return;
+    if (id == null) return null;
     _selectionActions.selectFeed(id);
+    return id;
   }
 
   Future<int?> addCategory() {
@@ -126,6 +129,15 @@ class SidebarManagementActions {
 
   Future<void> refreshAll() {
     return SubscriptionActions.refreshAll(_context, _ref);
+  }
+
+  Future<void> markAllRead({int? feedId, int? categoryId}) {
+    return _ref
+        .read(articleActionServiceProvider)
+        .markAllRead(
+          feedId: feedId,
+          categoryId: feedId == null ? categoryId : null,
+        );
   }
 
   Future<void> importOpml() {
