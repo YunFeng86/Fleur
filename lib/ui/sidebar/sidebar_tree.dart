@@ -762,7 +762,11 @@ class _SidebarCategoryTile extends StatelessWidget {
                   onPressed: () =>
                       onExpandedCategoryChanged(expanded ? null : category.id),
                 ),
-                title: Text(category.name),
+                title: Text(
+                  category.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 trailing: _SidebarCategoryTrailing(
                   unreadCount: unreadCount,
                   showActions: showActions,

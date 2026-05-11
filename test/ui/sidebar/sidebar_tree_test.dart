@@ -161,6 +161,9 @@ void main() {
         tester.getCenter(find.byIcon(FleurIcons.expand)).dx,
         lessThan(tester.getCenter(find.text('Tech')).dx),
       );
+      final categoryTitle = tester.widget<Text>(find.text('Tech'));
+      expect(categoryTitle.maxLines, 1);
+      expect(categoryTitle.overflow, TextOverflow.ellipsis);
       final tileFinder = find.ancestor(
         of: find.text('Tech'),
         matching: find.byType(ListTile),
