@@ -291,7 +291,7 @@ class SubscriptionActions {
     if (name == null || name.trim().isEmpty) return null;
 
     try {
-      return _mirrorService(ref).addCategory(name);
+      return await _mirrorService(ref).addCategory(name);
     } catch (error, stackTrace) {
       _logSubscriptionFailure(ref, 'createCategory', error, stackTrace);
       if (!context.mounted) return null;
