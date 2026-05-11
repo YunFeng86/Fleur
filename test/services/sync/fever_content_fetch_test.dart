@@ -267,7 +267,7 @@ void main() {
       extractor: extractor,
     );
 
-    expect(extractor.urls, ['https://example.com/articles/100#']);
+    expect(extractor.urls, ['https://example.com/articles/100']);
     expect(extractor.userAgents, ['Fleur Test UA']);
     expect(articles.single.extractedContentHtml, contains('readable'));
     expect(articles.single.contentSource, ContentSource.extracted);
@@ -406,7 +406,7 @@ void main() {
       extractor: extractor,
     );
 
-    expect(extractor.urls, ['https://example.com/articles/100#']);
+    expect(extractor.urls, ['https://example.com/articles/100']);
     expect(articles.single.extractedContentHtml, isNull);
     expect(articles.single.contentSource, ContentSource.feed);
   });
