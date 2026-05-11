@@ -1221,6 +1221,9 @@ class _SidebarActionIconButton extends StatelessWidget {
 class _UnreadCountText extends StatelessWidget {
   const _UnreadCountText(this.count, {this.selected = false});
 
+  static const double _rightInset = 8;
+  static const double _textWidth = 30;
+
   final int count;
   final bool selected;
 
@@ -1229,14 +1232,19 @@ class _UnreadCountText extends StatelessWidget {
     if (count <= 0) return const SizedBox.shrink();
     final colorScheme = Theme.of(context).colorScheme;
     return SizedBox(
-      width: 30,
-      child: Text(
-        count > 99 ? '99+' : '$count',
-        textAlign: TextAlign.right,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: selected ? colorScheme.primary : colorScheme.onSurfaceVariant,
-          fontWeight: AppTypography.platformWeight(FontWeight.w700),
-          fontFeatures: const [FontFeature.tabularFigures()],
+      width: _textWidth + _rightInset,
+      child: Padding(
+        padding: const EdgeInsets.only(right: _rightInset),
+        child: Text(
+          count > 99 ? '99+' : '$count',
+          textAlign: TextAlign.right,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: selected
+                ? colorScheme.primary
+                : colorScheme.onSurfaceVariant,
+            fontWeight: AppTypography.platformWeight(FontWeight.w700),
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
         ),
       ),
     );

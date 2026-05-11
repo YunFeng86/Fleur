@@ -240,6 +240,20 @@ void main() {
       unreadText.style?.color,
       Theme.of(unreadContext).colorScheme.onSurfaceVariant,
     );
+    expect(
+      find.ancestor(
+        of: find.text('99+').first,
+        matching: find.byWidgetPredicate((widget) {
+          if (widget is! Padding) return false;
+          final padding = widget.padding.resolve(TextDirection.ltr);
+          return padding.left == 0 &&
+              padding.top == 0 &&
+              padding.right == 8 &&
+              padding.bottom == 0;
+        }),
+      ),
+      findsOneWidget,
+    );
     expect(find.byTooltip('Mark all read'), findsNothing);
     expect(find.byTooltip('Add subscription'), findsNothing);
 
