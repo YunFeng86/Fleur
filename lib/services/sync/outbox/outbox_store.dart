@@ -6,6 +6,13 @@ import '../../logging/app_logger.dart';
 import '../../../utils/path_manager.dart';
 import '../sync_mutex.dart';
 
+typedef _OutboxJsonRead = ({
+  List<Object?>? decoded,
+  bool existed,
+  Object? error,
+  StackTrace? stackTrace,
+});
+
 enum OutboxActionType { markRead, bookmark, markAllRead }
 
 extension OutboxActionTypeX on OutboxActionType {
@@ -209,101 +216,35 @@ class OutboxStore {
     required File tmp,
     required File bak,
   }) async {
-    Future<
-      ({
-        List<Object?>? decoded,
-        bool existed,
-        Object? error,
-        StackTrace? stackTrace,
-      })
-    >
-    tryRead(File file) async {
-      try {
-        if (!await file.exists()) {
-          return (decoded: null, existed: false, error: null, stackTrace: null);
-        }
-        final raw = await file.readAsString(encoding: utf8);
-        final decoded = jsonDecode(raw);
-        if (decoded is! List) {
-          return (
-            decoded: null,
-            existed: true,
-            error: StateError('Outbox JSON root is not a list'),
-            stackTrace: null,
-          );
-        }
-        return (
-          decoded: decoded.cast<Object?>(),
-          existed: true,
-          error: null,
-          stackTrace: null,
-        );
-      } catch (e, st) {
-        return (decoded: null, existed: true, error: e, stackTrace: st);
-      }
-    }
-
     // Prefer the primary file when it's valid.
-    final primaryRead = await tryRead(primary);
+    final primaryRead = await _tryReadJsonList(primary);
     if (primaryRead.decoded != null) return primaryRead.decoded;
 
     // Crash safety: if an atomic write was interrupted, `.tmp` may contain the
     // new full payload; `.bak` may contain the previous valid payload.
-    final tmpRead = await tryRead(tmp);
-    if (tmpRead.decoded != null) {
-      try {
-        await _writeJsonAtomically(
-          primary,
-          jsonEncode(tmpRead.decoded),
-          accountId: accountId,
-          actionCount: tmpRead.decoded!.length,
-          compactedCount: tmpRead.decoded!.length,
-          operation: 'recover',
-        );
-      } catch (e, st) {
-        _logOutboxWarning(
-          'Outbox recovery write failed',
-          accountId: accountId,
-          operation: 'recover',
-          recoveredFrom: 'tmp',
-          primaryExists: primaryRead.existed,
-          tmpExists: tmpRead.existed,
-          bakExists: await bak.exists(),
-          error: e,
-          stackTrace: st,
-        );
-        // ignore: best-effort recovery
-      }
-      return tmpRead.decoded;
-    }
+    final tmpRead = await _tryReadJsonList(tmp);
+    final tmpRecovery = await _recoverDecodedJson(
+      accountId: accountId,
+      primary: primary,
+      sourceRead: tmpRead,
+      recoveredFrom: 'tmp',
+      primaryExists: primaryRead.existed,
+      tmpExists: tmpRead.existed,
+      bakExists: await bak.exists(),
+    );
+    if (tmpRecovery != null) return tmpRecovery;
 
-    final bakRead = await tryRead(bak);
-    if (bakRead.decoded != null) {
-      try {
-        await _writeJsonAtomically(
-          primary,
-          jsonEncode(bakRead.decoded),
-          accountId: accountId,
-          actionCount: bakRead.decoded!.length,
-          compactedCount: bakRead.decoded!.length,
-          operation: 'recover',
-        );
-      } catch (e, st) {
-        _logOutboxWarning(
-          'Outbox recovery write failed',
-          accountId: accountId,
-          operation: 'recover',
-          recoveredFrom: 'bak',
-          primaryExists: primaryRead.existed,
-          tmpExists: tmpRead.existed,
-          bakExists: bakRead.existed,
-          error: e,
-          stackTrace: st,
-        );
-        // ignore: best-effort recovery
-      }
-      return bakRead.decoded;
-    }
+    final bakRead = await _tryReadJsonList(bak);
+    final bakRecovery = await _recoverDecodedJson(
+      accountId: accountId,
+      primary: primary,
+      sourceRead: bakRead,
+      recoveredFrom: 'bak',
+      primaryExists: primaryRead.existed,
+      tmpExists: tmpRead.existed,
+      bakExists: bakRead.existed,
+    );
+    if (bakRecovery != null) return bakRecovery;
 
     final anyFileExists =
         primaryRead.existed || tmpRead.existed || bakRead.existed;
@@ -324,6 +265,70 @@ class OutboxStore {
     }
 
     return null;
+  }
+
+  Future<_OutboxJsonRead> _tryReadJsonList(File file) async {
+    try {
+      if (!await file.exists()) {
+        return (decoded: null, existed: false, error: null, stackTrace: null);
+      }
+      final raw = await file.readAsString(encoding: utf8);
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) {
+        return (
+          decoded: null,
+          existed: true,
+          error: StateError('Outbox JSON root is not a list'),
+          stackTrace: null,
+        );
+      }
+      return (
+        decoded: decoded.cast<Object?>(),
+        existed: true,
+        error: null,
+        stackTrace: null,
+      );
+    } catch (e, st) {
+      return (decoded: null, existed: true, error: e, stackTrace: st);
+    }
+  }
+
+  Future<List<Object?>?> _recoverDecodedJson({
+    required String accountId,
+    required File primary,
+    required _OutboxJsonRead sourceRead,
+    required String recoveredFrom,
+    required bool primaryExists,
+    required bool tmpExists,
+    required bool bakExists,
+  }) async {
+    final decoded = sourceRead.decoded;
+    if (decoded == null) return null;
+
+    try {
+      await _writeJsonAtomically(
+        primary,
+        jsonEncode(decoded),
+        accountId: accountId,
+        actionCount: decoded.length,
+        compactedCount: decoded.length,
+        operation: 'recover',
+      );
+    } catch (e, st) {
+      _logOutboxWarning(
+        'Outbox recovery write failed',
+        accountId: accountId,
+        operation: 'recover',
+        recoveredFrom: recoveredFrom,
+        primaryExists: primaryExists,
+        tmpExists: tmpExists,
+        bakExists: bakExists,
+        error: e,
+        stackTrace: st,
+      );
+      // ignore: best-effort recovery
+    }
+    return decoded;
   }
 
   Future<void> _writeJsonAtomically(
