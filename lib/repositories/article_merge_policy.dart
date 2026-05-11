@@ -46,12 +46,17 @@ class ArticleMergePolicy {
     final remoteIds = <String>[];
 
     for (final article in incoming) {
+      final rawLink = article.link;
       article.link = LinkNormalizer.normalize(article.link);
       linkLookupKeys.add(article.link);
       if (article.link.isNotEmpty) {
         // Compatibility with links written by the previous normalizer, which
         // accidentally persisted an empty fragment marker.
         linkLookupKeys.add('${article.link}#');
+      }
+      final legacyLink = _legacyEmptyFragmentLookupKey(rawLink);
+      if (legacyLink.isNotEmpty) {
+        linkLookupKeys.add(legacyLink);
       }
 
       final remoteId = article.remoteId;
@@ -68,6 +73,16 @@ class ArticleMergePolicy {
       linkLookupKeys: linkLookupKeys.toList(growable: false),
       remoteIds: remoteIds,
     );
+  }
+
+  static String _legacyEmptyFragmentLookupKey(String link) {
+    final trimmed = link.trim();
+    if (trimmed.isEmpty) return trimmed;
+
+    final uri = Uri.tryParse(trimmed);
+    if (uri == null) return trimmed;
+
+    return uri.replace(fragment: '').toString();
   }
 
   bool merge({
