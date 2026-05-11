@@ -122,6 +122,54 @@ void main() {
     expect(restoredLegacy.anchorFraction, isNull);
   });
 
+  test('ReaderProgress.fromJson rejects non-finite required values', () {
+    final now = DateTime(2026, 2, 4, 10, 30, 0).toIso8601String();
+    final json = <String, Object?>{
+      'articleId': 1,
+      'contentHash': 'hash-1',
+      'pixels': 120.5,
+      'progress': 0.42,
+      'updatedAt': now,
+    };
+
+    expect(
+      ReaderProgress.fromJson(<String, Object?>{
+        ...json,
+        'articleId': double.infinity,
+      }),
+      isNull,
+    );
+    expect(
+      ReaderProgress.fromJson(<String, Object?>{...json, 'pixels': double.nan}),
+      isNull,
+    );
+    expect(
+      ReaderProgress.fromJson(<String, Object?>{
+        ...json,
+        'progress': double.infinity,
+      }),
+      isNull,
+    );
+  });
+
+  test('ReaderProgress.fromJson ignores non-finite optional anchors', () {
+    final now = DateTime(2026, 2, 4, 10, 30, 0).toIso8601String();
+
+    final restored = ReaderProgress.fromJson(<String, Object?>{
+      'articleId': 1,
+      'contentHash': 'hash-1',
+      'pixels': 120.5,
+      'progress': 0.42,
+      'updatedAt': now,
+      'anchorIndex': double.infinity,
+      'anchorFraction': double.nan,
+    });
+
+    expect(restored, isNotNull);
+    expect(restored!.anchorIndex, isNull);
+    expect(restored.anchorFraction, isNull);
+  });
+
   test('trim keeps latest entries', () async {
     final store = ReaderProgressStore();
     final base = DateTime(2026, 2, 4, 9, 0, 0);
