@@ -11,38 +11,11 @@ import 'package:fleur/services/logging/app_logger.dart';
 import 'package:fleur/services/settings/translation_ai_secret_store.dart';
 import 'package:fleur/utils/path_manager.dart';
 
+import '../../test_utils/fake_path_provider_platform.dart';
+
 const MethodChannel _secureStorageChannel = MethodChannel(
   'plugins.it_nomads.com/flutter_secure_storage',
 );
-
-class _FakePathProviderPlatform extends PathProviderPlatform {
-  _FakePathProviderPlatform({
-    required String documentsPath,
-    required String supportPath,
-    required String cachePath,
-    required String temporaryPath,
-  }) : _documentsPath = documentsPath,
-       _supportPath = supportPath,
-       _cachePath = cachePath,
-       _temporaryPath = temporaryPath;
-
-  final String _documentsPath;
-  final String _supportPath;
-  final String _cachePath;
-  final String _temporaryPath;
-
-  @override
-  Future<String?> getApplicationDocumentsPath() async => _documentsPath;
-
-  @override
-  Future<String?> getApplicationSupportPath() async => _supportPath;
-
-  @override
-  Future<String?> getApplicationCachePath() async => _cachePath;
-
-  @override
-  Future<String?> getTemporaryPath() async => _temporaryPath;
-}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -78,7 +51,7 @@ void main() {
     final temporary = await Directory(
       '${tempDir.path}/temporary',
     ).create(recursive: true);
-    PathProviderPlatform.instance = _FakePathProviderPlatform(
+    PathProviderPlatform.instance = FakePathProviderPlatform(
       documentsPath: documents.path,
       supportPath: support.path,
       cachePath: cache.path,
