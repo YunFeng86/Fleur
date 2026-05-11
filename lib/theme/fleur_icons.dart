@@ -5,8 +5,8 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 abstract final class FleurIcons {
   const FleurIcons._();
 
-  static const IconData feeds = FluentIcons.news_24_regular;
-  static const IconData feedsSelected = FluentIcons.news_24_filled;
+  static const IconData feeds = FluentIcons.rss_24_regular;
+  static const IconData feedsSelected = FluentIcons.rss_24_filled;
   static const IconData saved = FluentIcons.bookmark_24_regular;
   static const IconData savedSelected = FluentIcons.bookmark_24_filled;
   static const IconData search = FluentIcons.search_24_regular;
