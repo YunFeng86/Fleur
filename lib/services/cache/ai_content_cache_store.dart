@@ -93,7 +93,9 @@ class AiContentCacheEntry {
 
     final accountId = (keyMap['accountId'] as String?)?.trim() ?? '';
     final articleIdNum = keyMap['articleId'];
-    final articleId = articleIdNum is num ? articleIdNum.toInt() : null;
+    final articleId = articleIdNum is num && articleIdNum.isFinite
+        ? articleIdNum.toInt()
+        : null;
     final targetLanguageTag =
         (keyMap['targetLanguageTag'] as String?)?.trim() ?? '';
     if (accountId.isEmpty || articleId == null || targetLanguageTag.isEmpty) {
