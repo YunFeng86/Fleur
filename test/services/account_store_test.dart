@@ -113,4 +113,33 @@ void main() {
       expect(state.activeAccountId, 'valid-account');
     },
   );
+
+  test('AccountStore keeps valid accounts when version is malformed', () async {
+    final now = DateTime.utc(2026, 1, 1).toIso8601String();
+    final stateDir = await PathManager.getStateDir();
+    final file = File('${stateDir.path}${Platform.pathSeparator}accounts.json');
+    await file.writeAsString(
+      jsonEncode(<String, Object?>{
+        'version': 'broken',
+        'activeAccountId': 'valid-account',
+        'accounts': <Object?>[
+          <String, Object?>{
+            'id': 'valid-account',
+            'type': 'local',
+            'name': 'Valid',
+            'isPrimary': true,
+            'createdAt': now,
+            'updatedAt': now,
+          },
+        ],
+      }),
+    );
+
+    final state = await AccountStore().loadOrCreate();
+
+    expect(state.accounts, hasLength(1));
+    expect(state.accounts.single.id, 'valid-account');
+    expect(state.activeAccountId, 'valid-account');
+    expect(state.version, AccountStore.currentVersion);
+  });
 }

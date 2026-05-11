@@ -31,9 +31,10 @@ class AccountsState {
         }
       }
     }
+    final version = json['version'];
     final activeAccountId = json['activeAccountId'];
     return AccountsState(
-      version: (json['version'] as int?) ?? 1,
+      version: version is int ? version : 1,
       activeAccountId: activeAccountId is String ? activeAccountId : '',
       accounts: accounts,
     );
