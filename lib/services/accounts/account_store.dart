@@ -23,7 +23,12 @@ class AccountsState {
     if (rawAccounts is List) {
       for (final raw in rawAccounts) {
         if (raw is! Map) continue;
-        accounts.add(Account.fromJson(raw.cast<String, Object?>()));
+        try {
+          accounts.add(Account.fromJson(raw.cast<String, Object?>()));
+        } catch (_) {
+          // Skip corrupt entries so one bad account does not invalidate the
+          // rest of the account file.
+        }
       }
     }
     return AccountsState(
