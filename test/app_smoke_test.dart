@@ -34,6 +34,7 @@ import 'package:fleur/theme/app_typography.dart';
 import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
 import 'package:fleur/ui/app_shell.dart';
+import 'package:fleur/ui/global_nav.dart';
 import 'package:fleur/ui/home/home_scene_commands.dart';
 import 'package:fleur/ui/home/home_scene_panes.dart';
 import 'package:fleur/ui/home/home_scene_shortcuts.dart';
@@ -495,6 +496,10 @@ void main() {
 
     expect(find.byType(GlobalNavRail), findsOneWidget);
     expect(find.byType(GlobalNavBar), findsNothing);
+    expect(
+      tester.getSize(find.byType(GlobalNavRail)).width,
+      kGlobalNavRailWidth,
+    );
 
     tester.view.physicalSize = const Size(640, 900);
     await tester.pumpWidget(_buildShellHarness());
@@ -504,9 +509,14 @@ void main() {
     expect(find.byType(GlobalNavRail), findsNothing);
   });
 
-  testWidgets('rail account button opens services settings tab', (
+  testWidgets('rail keeps add in top group and opens settings routes', (
     tester,
   ) async {
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(1200, 900);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
     final router = GoRouter(
       routes: [
         GoRoute(
@@ -534,6 +544,21 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+
+    final viewportMidpoint =
+        tester.view.physicalSize.height / tester.view.devicePixelRatio / 2;
+    expect(
+      tester.getCenter(find.byKey(const Key('global_nav_add_button'))).dy,
+      lessThan(viewportMidpoint),
+    );
+
+    await tester.tap(find.byKey(const Key('global_nav_settings_button')));
+    await tester.pumpAndSettle();
+
+    expect(
+      router.routerDelegate.currentConfiguration.uri.toString(),
+      '/settings',
+    );
 
     await tester.tap(find.byKey(const Key('global_nav_account_button')));
     await tester.pumpAndSettle();
