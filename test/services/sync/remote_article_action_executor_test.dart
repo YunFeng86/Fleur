@@ -253,6 +253,40 @@ void main() {
         throwsStateError,
       );
     });
+
+    test(
+      'skips non-finite feed ids when marking all Fever feeds read',
+      () async {
+        final requests = <_RecordedRequest>[];
+        final executor = FeverRemoteArticleActionExecutor(
+          _feverClient(
+            _feverDio(
+              requests,
+              feeds: [
+                {'id': double.infinity, 'url': 'https://example.com/bad.xml'},
+                {'id': 7, 'url': 'https://example.com/feed.xml'},
+              ],
+            ),
+          ),
+        );
+
+        expect(
+          await executor.apply(
+            OutboxAction(
+              type: OutboxActionType.markAllRead,
+              value: true,
+              createdAt: now,
+            ),
+          ),
+          isTrue,
+        );
+
+        expect(requests, hasLength(2));
+        expect(requests[0].query, 'api&feeds');
+        expect(requests[1].query, contains('mark=feed'));
+        expect(requests[1].query, contains('id=7'));
+      },
+    );
   });
 }
 

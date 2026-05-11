@@ -43,9 +43,19 @@ class ReaderProgress {
     if (articleId is! num) return null;
     if (contentHash is! String || contentHash.trim().isEmpty) return null;
     if (pixels is! num || progress is! num) return null;
+    if (!articleId.isFinite || !pixels.isFinite || !progress.isFinite) {
+      return null;
+    }
     if (updatedAt is! String) return null;
     final parsedUpdatedAt = DateTime.tryParse(updatedAt);
     if (parsedUpdatedAt == null) return null;
+    final parsedAnchorIndex = anchorIndex is num && anchorIndex.isFinite
+        ? anchorIndex.toInt()
+        : null;
+    final parsedAnchorFraction =
+        anchorFraction is num && anchorFraction.isFinite
+        ? anchorFraction.toDouble().clamp(0.0, 1.0).toDouble()
+        : null;
 
     return ReaderProgress(
       articleId: articleId.toInt(),
@@ -53,10 +63,8 @@ class ReaderProgress {
       pixels: pixels.toDouble(),
       progress: progress.toDouble().clamp(0.0, 1.0).toDouble(),
       updatedAt: parsedUpdatedAt,
-      anchorIndex: anchorIndex is num ? anchorIndex.toInt() : null,
-      anchorFraction: anchorFraction is num
-          ? anchorFraction.toDouble().clamp(0.0, 1.0).toDouble()
-          : null,
+      anchorIndex: parsedAnchorIndex,
+      anchorFraction: parsedAnchorFraction,
     );
   }
 }

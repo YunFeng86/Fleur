@@ -26,18 +26,160 @@ final tagsProvider = StreamProvider<List<Tag>>((ref) {
   return ref.watch(tagRepositoryProvider).watchAll();
 }, dependencies: [tagRepositoryProvider]);
 
-final selectedFeedIdProvider = StateProvider<int?>((ref) => null);
-final selectedCategoryIdProvider = StateProvider<int?>((ref) => null);
-final selectedTagIdProvider = StateProvider<int?>((ref) => null);
+const _unchanged = Object();
 
-/// Whether the article list should show only starred articles.
-final starredOnlyProvider = StateProvider<bool>((ref) => false);
+class ArticleListFilter {
+  const ArticleListFilter({
+    this.selectedFeedId,
+    this.selectedCategoryId,
+    this.selectedTagId,
+    this.unreadOnly = false,
+    this.starredOnly = false,
+    this.readLaterOnly = false,
+    this.searchQuery = '',
+  });
 
-/// Whether the article list should show only read-later articles.
-final readLaterOnlyProvider = StateProvider<bool>((ref) => false);
+  final int? selectedFeedId;
+  final int? selectedCategoryId;
+  final int? selectedTagId;
+  final bool unreadOnly;
+  final bool starredOnly;
+  final bool readLaterOnly;
+  final String searchQuery;
 
-/// User-entered article search query (best-effort substring match).
-final articleSearchQueryProvider = StateProvider<String>((ref) => '');
+  ArticleListFilter copyWith({
+    Object? selectedFeedId = _unchanged,
+    Object? selectedCategoryId = _unchanged,
+    Object? selectedTagId = _unchanged,
+    bool? unreadOnly,
+    bool? starredOnly,
+    bool? readLaterOnly,
+    String? searchQuery,
+  }) {
+    return ArticleListFilter(
+      selectedFeedId: identical(selectedFeedId, _unchanged)
+          ? this.selectedFeedId
+          : selectedFeedId as int?,
+      selectedCategoryId: identical(selectedCategoryId, _unchanged)
+          ? this.selectedCategoryId
+          : selectedCategoryId as int?,
+      selectedTagId: identical(selectedTagId, _unchanged)
+          ? this.selectedTagId
+          : selectedTagId as int?,
+      unreadOnly: unreadOnly ?? this.unreadOnly,
+      starredOnly: starredOnly ?? this.starredOnly,
+      readLaterOnly: readLaterOnly ?? this.readLaterOnly,
+      searchQuery: searchQuery ?? this.searchQuery,
+    );
+  }
+
+  ArticleListFilter clearBrowseFilters() {
+    return copyWith(starredOnly: false, readLaterOnly: false, searchQuery: '');
+  }
+
+  ArticleListFilter selectAll() {
+    return clearBrowseFilters().copyWith(
+      selectedFeedId: null,
+      selectedCategoryId: null,
+      selectedTagId: null,
+    );
+  }
+
+  ArticleListFilter selectFeed(int feedId) {
+    return clearBrowseFilters().copyWith(
+      selectedFeedId: feedId,
+      selectedCategoryId: null,
+      selectedTagId: null,
+    );
+  }
+
+  ArticleListFilter selectCategory(int categoryId) {
+    return clearBrowseFilters().copyWith(
+      selectedFeedId: null,
+      selectedCategoryId: categoryId,
+      selectedTagId: null,
+    );
+  }
+
+  ArticleListFilter selectTag(int tagId) {
+    return clearBrowseFilters().copyWith(
+      selectedFeedId: null,
+      selectedCategoryId: null,
+      selectedTagId: tagId,
+    );
+  }
+
+  ArticleListFilter enterFeedsSection() {
+    return clearBrowseFilters();
+  }
+
+  ArticleListFilter enterSearchSection() {
+    return copyWith(
+      selectedFeedId: null,
+      selectedCategoryId: null,
+      selectedTagId: null,
+      unreadOnly: false,
+      starredOnly: false,
+      readLaterOnly: false,
+    );
+  }
+
+  ArticleListFilter savedOnly({required bool starred}) {
+    return copyWith(
+      selectedFeedId: null,
+      selectedCategoryId: null,
+      selectedTagId: null,
+      unreadOnly: false,
+      starredOnly: starred,
+      readLaterOnly: !starred,
+      searchQuery: '',
+    );
+  }
+
+  ArticleListFilter toggleUnreadOnly() {
+    return copyWith(unreadOnly: !unreadOnly);
+  }
+}
+
+final articleListFilterProvider = StateProvider<ArticleListFilter>(
+  (ref) => const ArticleListFilter(),
+);
+
+final selectedFeedIdProvider = Provider<int?>((ref) {
+  return ref.watch(
+    articleListFilterProvider.select((filter) => filter.selectedFeedId),
+  );
+});
+
+final selectedCategoryIdProvider = Provider<int?>((ref) {
+  return ref.watch(
+    articleListFilterProvider.select((filter) => filter.selectedCategoryId),
+  );
+});
+
+final selectedTagIdProvider = Provider<int?>((ref) {
+  return ref.watch(
+    articleListFilterProvider.select((filter) => filter.selectedTagId),
+  );
+});
+
+final starredOnlyProvider = Provider<bool>((ref) {
+  return ref.watch(
+    articleListFilterProvider.select((filter) => filter.starredOnly),
+  );
+});
+
+final readLaterOnlyProvider = Provider<bool>((ref) {
+  return ref.watch(
+    articleListFilterProvider.select((filter) => filter.readLaterOnly),
+  );
+});
+
+final articleSearchQueryProvider = Provider<String>((ref) {
+  return ref.watch(
+    articleListFilterProvider.select((filter) => filter.searchQuery),
+  );
+});
 
 final articlesProvider = StreamProvider.family<List<Article>, int?>((
   ref,

@@ -54,16 +54,12 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
 
   void _applyMode(_SavedMode mode) {
     // Ensure this top-level section is not affected by feed/category/tag/search.
-    ref.read(unreadOnlyProvider.notifier).state = false;
-    ref.read(selectedFeedIdProvider.notifier).state = null;
-    ref.read(selectedCategoryIdProvider.notifier).state = null;
-    ref.read(selectedTagIdProvider.notifier).state = null;
-
-    ref.read(starredOnlyProvider.notifier).state = mode == _SavedMode.starred;
-    ref.read(readLaterOnlyProvider.notifier).state =
-        mode == _SavedMode.readLater;
     _searchController.text = '';
-    ref.read(articleSearchQueryProvider.notifier).state = '';
+    ref
+        .read(articleListFilterProvider.notifier)
+        .update(
+          (filter) => filter.savedOnly(starred: mode == _SavedMode.starred),
+        );
   }
 
   @override
@@ -111,7 +107,9 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
         final searchField = TextField(
           controller: _searchController,
           onChanged: (value) {
-            ref.read(articleSearchQueryProvider.notifier).state = value;
+            ref
+                .read(articleListFilterProvider.notifier)
+                .update((filter) => filter.copyWith(searchQuery: value));
           },
           textInputAction: TextInputAction.search,
           decoration: InputDecoration(
@@ -123,7 +121,9 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
                     tooltip: l10n.delete,
                     onPressed: () {
                       _searchController.clear();
-                      ref.read(articleSearchQueryProvider.notifier).state = '';
+                      ref
+                          .read(articleListFilterProvider.notifier)
+                          .update((filter) => filter.copyWith(searchQuery: ''));
                     },
                     icon: const Icon(Icons.clear),
                   ),

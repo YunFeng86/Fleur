@@ -23,6 +23,16 @@ class _TestFaviconStore extends FaviconStore {
 }
 
 void main() {
+  test('FaviconCacheEntry.fromJson treats blank iconUrl as cached miss', () {
+    final entry = FaviconCacheEntry.fromJson(<String, Object?>{
+      'fetchedAt': DateTime.utc(2026, 2, 10).toIso8601String(),
+      'iconUrl': '   ',
+    });
+
+    expect(entry, isNotNull);
+    expect(entry!.iconUrl, isNull);
+  });
+
   test('Error: does not persist favicon resolution', () async {
     final store = _TestFaviconStore();
     final dio = Dio();

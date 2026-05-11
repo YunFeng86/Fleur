@@ -5,28 +5,7 @@ import 'package:fleur/services/cache/image_meta_store.dart';
 import 'package:fleur/utils/path_manager.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 
-class _FakePathProviderPlatform extends PathProviderPlatform {
-  _FakePathProviderPlatform({
-    required String documentsPath,
-    required String supportPath,
-    required String cachePath,
-  }) : _documentsPath = documentsPath,
-       _supportPath = supportPath,
-       _cachePath = cachePath;
-
-  final String _documentsPath;
-  final String _supportPath;
-  final String _cachePath;
-
-  @override
-  Future<String?> getApplicationDocumentsPath() async => _documentsPath;
-
-  @override
-  Future<String?> getApplicationSupportPath() async => _supportPath;
-
-  @override
-  Future<String?> getApplicationCachePath() async => _cachePath;
-}
+import '../test_utils/fake_path_provider_platform.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -49,7 +28,7 @@ void main() {
     final cache = await Directory(
       '${tempDir.path}/cache',
     ).create(recursive: true);
-    PathProviderPlatform.instance = _FakePathProviderPlatform(
+    PathProviderPlatform.instance = FakePathProviderPlatform(
       documentsPath: docs.path,
       supportPath: support.path,
       cachePath: cache.path,
@@ -83,6 +62,27 @@ void main() {
     expect(meta!.width, 640);
     expect(meta.height, 480);
     expect(meta.updatedAt.toIso8601String(), now.toIso8601String());
+  });
+
+  test('ImageMeta.fromJson rejects non-finite dimensions', () {
+    final now = DateTime(2026, 2, 4, 12, 0, 0).toIso8601String();
+
+    expect(
+      ImageMeta.fromJson({
+        'width': double.nan,
+        'height': 480,
+        'updatedAt': now,
+      }),
+      isNull,
+    );
+    expect(
+      ImageMeta.fromJson({
+        'width': 640,
+        'height': double.infinity,
+        'updatedAt': now,
+      }),
+      isNull,
+    );
   });
 
   test('clear removes cached data', () async {

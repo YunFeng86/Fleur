@@ -1,4 +1,5 @@
 import '../../utils/language_utils.dart';
+import 'settings_json.dart';
 
 class TranslationAiSettings {
   const TranslationAiSettings({
@@ -127,44 +128,23 @@ class TranslationAiSettings {
   };
 
   static TranslationAiSettings fromJson(Map<String, Object?> json) {
-    final rawVersion = json['version'];
-    final version = rawVersion is num ? rawVersion.toInt() : currentVersion;
+    final version = readIntOr(json['version'], currentVersion);
 
     final translationProvider = TranslationProviderSelection.fromJson(
       json['translationProvider'],
     );
 
-    final rawAiSummaryServiceId = json['aiSummaryServiceId'];
-    final aiSummaryServiceId =
-        rawAiSummaryServiceId is String &&
-            rawAiSummaryServiceId.trim().isNotEmpty
-        ? rawAiSummaryServiceId.trim()
-        : null;
-
-    final rawTargetLang = json['targetLanguageTag'];
-    final targetLanguageTag =
-        rawTargetLang is String && rawTargetLang.trim().isNotEmpty
-        ? rawTargetLang.trim()
-        : null;
-
-    String? parseOptionalString(Object? raw) {
-      final s = raw is String ? raw.trim() : '';
-      return s.isEmpty ? null : s;
-    }
-
-    final aiSummaryPrompt = parseOptionalString(json['aiSummaryPrompt']);
-    final aiTranslationPrompt = parseOptionalString(
-      json['aiTranslationPrompt'],
-    );
-
-    final rawTpm = json['tpmLimit'];
-    final tpmLimit = rawTpm is num ? rawTpm.toInt() : 0;
+    final aiSummaryServiceId = readOptionalString(json['aiSummaryServiceId']);
+    final targetLanguageTag = readOptionalString(json['targetLanguageTag']);
+    final aiSummaryPrompt = readOptionalString(json['aiSummaryPrompt']);
+    final aiTranslationPrompt = readOptionalString(json['aiTranslationPrompt']);
+    final tpmLimit = readIntOr(json['tpmLimit'], 0);
 
     final disabledTranslationReminderLanguages = <String>[];
     final rawDisabled = json['disabledTranslationReminderLanguages'];
     if (rawDisabled is List) {
       for (final raw in rawDisabled) {
-        final s = raw is String ? raw.trim() : '';
+        final s = readStringOrEmpty(raw);
         if (s.isEmpty) continue;
         disabledTranslationReminderLanguages.add(s);
       }
@@ -180,10 +160,7 @@ class TranslationAiSettings {
       }
     }
 
-    final rawDefaultId = json['defaultAiServiceId'];
-    final defaultId = rawDefaultId is String && rawDefaultId.trim().isNotEmpty
-        ? rawDefaultId.trim()
-        : null;
+    final defaultId = readOptionalString(json['defaultAiServiceId']);
 
     final deepL = DeepLSettings.fromJson(json['deepL']);
     final deepLX = DeepLXSettings.fromJson(json['deepLX']);
@@ -256,11 +233,6 @@ class TranslationAiSettings {
       return canonical == unknownLanguageTag ? '' : canonical;
     })();
 
-    String? normalizeOptionalString(String? v) {
-      final s = (v ?? '').trim();
-      return s.isEmpty ? null : s;
-    }
-
     final normalizedDisabledReminderLangs = <String>[];
     final seenLangs = <String>{};
     for (final raw in disabledTranslationReminderLanguages) {
@@ -278,8 +250,8 @@ class TranslationAiSettings {
       targetLanguageTag: normalizedTargetLang.isEmpty
           ? null
           : normalizedTargetLang,
-      aiSummaryPrompt: normalizeOptionalString(aiSummaryPrompt),
-      aiTranslationPrompt: normalizeOptionalString(aiTranslationPrompt),
+      aiSummaryPrompt: readOptionalString(aiSummaryPrompt),
+      aiTranslationPrompt: readOptionalString(aiTranslationPrompt),
       tpmLimit: tpmLimit < 0 ? 0 : tpmLimit,
       disabledTranslationReminderLanguages: normalizedDisabledReminderLangs,
       aiServices: normalizedServices,
@@ -352,11 +324,11 @@ class TranslationProviderSelection {
   }
 
   static TranslationProviderKind _parseKind(Object? raw) {
-    final s = raw is String ? raw.trim() : '';
-    for (final v in TranslationProviderKind.values) {
-      if (v.name == s) return v;
-    }
-    return TranslationProviderKind.googleWeb;
+    return readEnumByNameOr(
+      TranslationProviderKind.values,
+      raw,
+      TranslationProviderKind.googleWeb,
+    );
   }
 
   static TranslationProviderSelection _fromKind(
@@ -445,39 +417,22 @@ class AiServiceConfig {
   static AiServiceConfig? fromJson(Object? json) {
     if (json is! Map) return null;
     final map = json.cast<String, Object?>();
-    final rawId = map['id'];
-    final rawName = map['name'];
-    final rawApiType = map['apiType'];
-    final rawBaseUrl = map['baseUrl'];
-    final rawDefaultModel = map['defaultModel'];
-    final rawEnabled = map['enabled'];
-
-    final id = rawId is String ? rawId.trim() : '';
+    final id = readStringOrEmpty(map['id']);
     if (id.isEmpty) return null;
-    final name = rawName is String ? rawName.trim() : '';
-    final baseUrl = rawBaseUrl is String ? rawBaseUrl.trim() : '';
-    final defaultModel = rawDefaultModel is String
-        ? rawDefaultModel.trim()
-        : '';
-
-    AiServiceApiType parseApiType(Object? raw) {
-      final s = raw is String ? raw.trim() : '';
-      for (final t in AiServiceApiType.values) {
-        if (t.name == s) return t;
-      }
-      return AiServiceApiType.openAiChatCompletions;
-    }
-
-    final apiType = parseApiType(rawApiType);
-    final enabled = rawEnabled is! bool || rawEnabled;
+    final name = readStringOrEmpty(map['name']);
+    final apiType = readEnumByNameOr(
+      AiServiceApiType.values,
+      map['apiType'],
+      AiServiceApiType.openAiChatCompletions,
+    );
 
     return AiServiceConfig(
       id: id,
       name: name.isEmpty ? id : name,
       apiType: apiType,
-      baseUrl: baseUrl,
-      defaultModel: defaultModel,
-      enabled: enabled,
+      baseUrl: readStringOrEmpty(map['baseUrl']),
+      defaultModel: readStringOrEmpty(map['defaultModel']),
+      enabled: readBoolOr(map['enabled'], fallback: true),
     );
   }
 }
@@ -494,12 +449,13 @@ class DeepLSettings {
   static DeepLSettings fromJson(Object? json) {
     if (json is! Map) return const DeepLSettings();
     final map = json.cast<String, Object?>();
-    final raw = map['endpoint'];
-    final s = raw is String ? raw.trim() : '';
-    for (final e in DeepLEndpoint.values) {
-      if (e.name == s) return DeepLSettings(endpoint: e);
-    }
-    return const DeepLSettings();
+    return DeepLSettings(
+      endpoint: readEnumByNameOr(
+        DeepLEndpoint.values,
+        map['endpoint'],
+        DeepLEndpoint.free,
+      ),
+    );
   }
 }
 
@@ -513,9 +469,7 @@ class DeepLXSettings {
   static DeepLXSettings fromJson(Object? json) {
     if (json is! Map) return const DeepLXSettings();
     final map = json.cast<String, Object?>();
-    final raw = map['baseUrl'];
-    final baseUrl = raw is String ? raw.trim() : '';
-    return DeepLXSettings(baseUrl: baseUrl);
+    return DeepLXSettings(baseUrl: readStringOrEmpty(map['baseUrl']));
   }
 }
 

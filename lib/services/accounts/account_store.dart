@@ -23,12 +23,19 @@ class AccountsState {
     if (rawAccounts is List) {
       for (final raw in rawAccounts) {
         if (raw is! Map) continue;
-        accounts.add(Account.fromJson(raw.cast<String, Object?>()));
+        try {
+          accounts.add(Account.fromJson(raw.cast<String, Object?>()));
+        } catch (_) {
+          // Skip corrupt entries so one bad account does not invalidate the
+          // rest of the account file.
+        }
       }
     }
+    final version = json['version'];
+    final activeAccountId = json['activeAccountId'];
     return AccountsState(
-      version: (json['version'] as int?) ?? 1,
-      activeAccountId: json['activeAccountId'] as String,
+      version: version is int ? version : 1,
+      activeAccountId: activeAccountId is String ? activeAccountId : '',
       accounts: accounts,
     );
   }

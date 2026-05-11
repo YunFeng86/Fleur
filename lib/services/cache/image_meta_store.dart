@@ -28,6 +28,7 @@ class ImageMeta {
     if (updatedAt is! String) return null;
     final parsedUpdatedAt = DateTime.tryParse(updatedAt);
     if (parsedUpdatedAt == null) return null;
+    if (!width.isFinite || !height.isFinite) return null;
     if (width <= 0 || height <= 0) return null;
     return ImageMeta(
       width: width.toDouble(),

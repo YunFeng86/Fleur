@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 
 import '../providers/app_settings_providers.dart';
 import '../providers/query_providers.dart';
-import '../providers/unread_providers.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/hero_tags.dart';
 import '../ui/layout.dart';
@@ -36,7 +35,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   void _applyQuery(String q) {
     // Typing/searching should reset any embedded selection.
     if (widget.selectedArticleId != null) context.go('/search');
-    ref.read(articleSearchQueryProvider.notifier).state = q;
+    ref
+        .read(articleListFilterProvider.notifier)
+        .update((filter) => filter.copyWith(searchQuery: q));
   }
 
   @override
@@ -57,12 +58,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
       // Riverpod: avoid modifying providers during initState/build.
       // Apply section state after the first frame.
-      ref.read(unreadOnlyProvider.notifier).state = false;
-      ref.read(starredOnlyProvider.notifier).state = false;
-      ref.read(readLaterOnlyProvider.notifier).state = false;
-      ref.read(selectedFeedIdProvider.notifier).state = null;
-      ref.read(selectedCategoryIdProvider.notifier).state = null;
-      ref.read(selectedTagIdProvider.notifier).state = null;
+      ref
+          .read(articleListFilterProvider.notifier)
+          .update((filter) => filter.enterSearchSection());
 
       if (!mounted) return;
       setState(() => _initialized = true);

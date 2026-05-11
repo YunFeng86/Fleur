@@ -42,26 +42,30 @@ class LinkNormalizer {
     final uri = Uri.tryParse(trimmed);
     if (uri == null) return trimmed;
 
-    // Filter out tracking parameters
-    final cleanParams = Map<String, String>.fromEntries(
-      uri.queryParameters.entries.where(
-        (e) => !_trackingParams.contains(e.key.toLowerCase()),
-      ),
-    );
-
-    // Rebuild URI without fragment
-    final normalized = uri.replace(
-      queryParameters: cleanParams.isEmpty ? null : cleanParams,
-      fragment: '',
-    );
-
-    var result = normalized.toString();
-
-    // Remove trailing slash (except for root path like https://example.com/)
-    if (result.endsWith('/') && normalized.pathSegments.isNotEmpty) {
-      result = result.substring(0, result.length - 1);
+    final cleanParams = <String, List<String>>{};
+    for (final entry in uri.queryParametersAll.entries) {
+      if (!_trackingParams.contains(entry.key.toLowerCase())) {
+        cleanParams[entry.key] = entry.value;
+      }
     }
 
-    return result;
+    final normalized = Uri(
+      scheme: uri.scheme,
+      userInfo: uri.hasAuthority ? uri.userInfo : '',
+      host: uri.hasAuthority ? uri.host : null,
+      port: uri.hasPort ? uri.port : null,
+      path: _withoutTrailingSlash(uri),
+      queryParameters: cleanParams.isEmpty ? null : cleanParams,
+    );
+
+    return normalized.toString();
+  }
+
+  static String _withoutTrailingSlash(Uri uri) {
+    final path = uri.path;
+    if (path.endsWith('/') && uri.pathSegments.isNotEmpty) {
+      return path.substring(0, path.length - 1);
+    }
+    return path;
   }
 }

@@ -5,28 +5,7 @@ import 'package:fleur/services/settings/reader_progress_store.dart';
 import 'package:fleur/utils/path_manager.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 
-class _FakePathProviderPlatform extends PathProviderPlatform {
-  _FakePathProviderPlatform({
-    required String documentsPath,
-    required String supportPath,
-    required String cachePath,
-  }) : _documentsPath = documentsPath,
-       _supportPath = supportPath,
-       _cachePath = cachePath;
-
-  final String _documentsPath;
-  final String _supportPath;
-  final String _cachePath;
-
-  @override
-  Future<String?> getApplicationDocumentsPath() async => _documentsPath;
-
-  @override
-  Future<String?> getApplicationSupportPath() async => _supportPath;
-
-  @override
-  Future<String?> getApplicationCachePath() async => _cachePath;
-}
+import '../test_utils/fake_path_provider_platform.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -49,7 +28,7 @@ void main() {
     final cache = await Directory(
       '${tempDir.path}/cache',
     ).create(recursive: true);
-    PathProviderPlatform.instance = _FakePathProviderPlatform(
+    PathProviderPlatform.instance = FakePathProviderPlatform(
       documentsPath: docs.path,
       supportPath: support.path,
       cachePath: cache.path,
@@ -120,6 +99,54 @@ void main() {
     expect(restoredLegacy, isNotNull);
     expect(restoredLegacy!.anchorIndex, isNull);
     expect(restoredLegacy.anchorFraction, isNull);
+  });
+
+  test('ReaderProgress.fromJson rejects non-finite required values', () {
+    final now = DateTime(2026, 2, 4, 10, 30, 0).toIso8601String();
+    final json = <String, Object?>{
+      'articleId': 1,
+      'contentHash': 'hash-1',
+      'pixels': 120.5,
+      'progress': 0.42,
+      'updatedAt': now,
+    };
+
+    expect(
+      ReaderProgress.fromJson(<String, Object?>{
+        ...json,
+        'articleId': double.infinity,
+      }),
+      isNull,
+    );
+    expect(
+      ReaderProgress.fromJson(<String, Object?>{...json, 'pixels': double.nan}),
+      isNull,
+    );
+    expect(
+      ReaderProgress.fromJson(<String, Object?>{
+        ...json,
+        'progress': double.infinity,
+      }),
+      isNull,
+    );
+  });
+
+  test('ReaderProgress.fromJson ignores non-finite optional anchors', () {
+    final now = DateTime(2026, 2, 4, 10, 30, 0).toIso8601String();
+
+    final restored = ReaderProgress.fromJson(<String, Object?>{
+      'articleId': 1,
+      'contentHash': 'hash-1',
+      'pixels': 120.5,
+      'progress': 0.42,
+      'updatedAt': now,
+      'anchorIndex': double.infinity,
+      'anchorFraction': double.nan,
+    });
+
+    expect(restored, isNotNull);
+    expect(restored!.anchorIndex, isNull);
+    expect(restored.anchorFraction, isNull);
   });
 
   test('trim keeps latest entries', () async {

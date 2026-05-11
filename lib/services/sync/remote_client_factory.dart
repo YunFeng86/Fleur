@@ -19,53 +19,25 @@ class RemoteClientFactory {
   final CredentialStore _credentials;
 
   Future<MinifluxClient> miniflux(Account account) async {
-    final baseUrl = (account.baseUrl ?? '').trim();
-    if (baseUrl.isEmpty) {
-      throw StateError('Miniflux baseUrl is empty');
-    }
-
-    final token = await _credentials.getApiToken(
-      account.id,
-      AccountType.miniflux,
-    );
-    if (token != null && token.trim().isNotEmpty) {
-      return MinifluxClient(
-        dio: _dio,
-        baseUrl: baseUrl,
-        apiToken: token.trim(),
-      );
-    }
-
-    final basic = await _credentials.getBasicAuth(
-      account.id,
-      AccountType.miniflux,
-    );
-    if (basic != null) {
-      return MinifluxClient(
-        dio: _dio,
-        baseUrl: baseUrl,
-        username: basic.username,
-        password: basic.password,
-      );
-    }
-
-    throw StateError('Miniflux credentials are missing');
+    final baseUrl = _requireBaseUrl(account, backendName: 'Miniflux');
+    final client = await _minifluxClientOrNull(account, baseUrl);
+    if (client == null) throw StateError('Miniflux credentials are missing');
+    return client;
   }
 
   Future<MinifluxClient?> minifluxOrNull(Account account) async {
-    final baseUrl = (account.baseUrl ?? '').trim();
+    final baseUrl = _trimmedBaseUrl(account);
     if (baseUrl.isEmpty) return null;
+    return _minifluxClientOrNull(account, baseUrl);
+  }
 
-    final token = await _credentials.getApiToken(
-      account.id,
-      AccountType.miniflux,
-    );
-    if (token != null && token.trim().isNotEmpty) {
-      return MinifluxClient(
-        dio: _dio,
-        baseUrl: baseUrl,
-        apiToken: token.trim(),
-      );
+  Future<MinifluxClient?> _minifluxClientOrNull(
+    Account account,
+    String baseUrl,
+  ) async {
+    final token = await _apiTokenOrNull(account, AccountType.miniflux);
+    if (token != null) {
+      return MinifluxClient(dio: _dio, baseUrl: baseUrl, apiToken: token);
     }
 
     final basic = await _credentials.getBasicAuth(
@@ -82,38 +54,25 @@ class RemoteClientFactory {
   }
 
   Future<FeverClient> fever(Account account) async {
-    final baseUrl = (account.baseUrl ?? '').trim();
-    if (baseUrl.isEmpty) {
-      throw StateError('Fever baseUrl is empty');
-    }
-
-    final token = await _credentials.getApiToken(account.id, AccountType.fever);
-    if (token != null && token.trim().isNotEmpty) {
-      return FeverClient(dio: _dio, baseUrl: baseUrl, apiKey: token.trim());
-    }
-
-    final basic = await _credentials.getBasicAuth(
-      account.id,
-      AccountType.fever,
-    );
-    if (basic != null) {
-      return FeverClient(
-        dio: _dio,
-        baseUrl: baseUrl,
-        apiKey: _feverApiKeyFromBasicAuth(basic),
-      );
-    }
-
-    throw StateError('Fever credentials are missing');
+    final baseUrl = _requireBaseUrl(account, backendName: 'Fever');
+    final client = await _feverClientOrNull(account, baseUrl);
+    if (client == null) throw StateError('Fever credentials are missing');
+    return client;
   }
 
   Future<FeverClient?> feverOrNull(Account account) async {
-    final baseUrl = (account.baseUrl ?? '').trim();
+    final baseUrl = _trimmedBaseUrl(account);
     if (baseUrl.isEmpty) return null;
+    return _feverClientOrNull(account, baseUrl);
+  }
 
-    final token = await _credentials.getApiToken(account.id, AccountType.fever);
-    if (token != null && token.trim().isNotEmpty) {
-      return FeverClient(dio: _dio, baseUrl: baseUrl, apiKey: token.trim());
+  Future<FeverClient?> _feverClientOrNull(
+    Account account,
+    String baseUrl,
+  ) async {
+    final token = await _apiTokenOrNull(account, AccountType.fever);
+    if (token != null) {
+      return FeverClient(dio: _dio, baseUrl: baseUrl, apiKey: token);
     }
 
     final basic = await _credentials.getBasicAuth(
@@ -126,6 +85,24 @@ class RemoteClientFactory {
       baseUrl: baseUrl,
       apiKey: _feverApiKeyFromBasicAuth(basic),
     );
+  }
+
+  String _requireBaseUrl(Account account, {required String backendName}) {
+    final baseUrl = _trimmedBaseUrl(account);
+    if (baseUrl.isEmpty) {
+      throw StateError('$backendName baseUrl is empty');
+    }
+    return baseUrl;
+  }
+
+  String _trimmedBaseUrl(Account account) {
+    return (account.baseUrl ?? '').trim();
+  }
+
+  Future<String?> _apiTokenOrNull(Account account, AccountType type) async {
+    final token = await _credentials.getApiToken(account.id, type);
+    final trimmed = token?.trim();
+    return trimmed == null || trimmed.isEmpty ? null : trimmed;
   }
 
   static String _feverApiKeyFromBasicAuth(

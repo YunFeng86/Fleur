@@ -2,12 +2,11 @@ import 'dart:async';
 
 import 'package:isar/isar.dart';
 
+import 'article_merge_policy.dart';
 import '../models/article.dart';
 import '../models/feed.dart';
 import '../models/tag.dart';
 import '../services/html_sanitizer.dart';
-import '../utils/content_hash.dart';
-import '../utils/link_normalizer.dart';
 
 class ArticleQuery {
   const ArticleQuery({
@@ -61,6 +60,7 @@ class ArticleRepository {
   ArticleRepository(this._isar);
 
   final Isar _isar;
+  final ArticleMergePolicy _mergePolicy = const ArticleMergePolicy();
 
   static const int defaultPageSize = 50;
 
@@ -332,138 +332,56 @@ class ArticleRepository {
     bool preserveUserState = true,
   }) {
     if (incoming.isEmpty) return Future.value(<Article>[]);
-    if (preserveUserState) {
-      for (final a in incoming) {
-        a.contentHash = ContentHash.compute(a.contentHtml);
-      }
-    } else {
-      // Remote-authoritative sync (e.g. Miniflux): skip expensive hashing here.
-      // ReaderView can compute a correct hash on-demand when needed.
-      for (final a in incoming) {
-        a.contentHash = null;
-      }
-    }
+    final ingestionPlan = _mergePolicy.prepareIncoming(
+      incoming,
+      preserveUserState: preserveUserState,
+    );
     return _isar.writeTxn(() async {
       final newArticles = <Article>[];
 
-      // Get Feed's categoryId once before the loop (prevents N+1 query problem)
-      // Within a transaction, feedId and categoryId won't change
       final feed = await _isar.feeds.get(feedId);
       if (feed == null) {
         throw ArgumentError('Feed $feedId not found');
       }
       final categoryId = feed.categoryId;
 
-      // [FIX] Batch query all existing articles by remoteId and links (eliminates N+1 query)
-      // Normalize links first to ensure consistent matching
-      final normalizedLinks = <String>[];
-      final remoteIds = <String>[];
-      for (final a in incoming) {
-        a.link = LinkNormalizer.normalize(a.link);
-        normalizedLinks.add(a.link);
-        if (a.remoteId != null && a.remoteId!.trim().isNotEmpty) {
-          remoteIds.add(a.remoteId!);
-        }
-      }
-
-      // Query by both remoteId (primary) and link (fallback)
-      // This prevents duplicates even if URL changes but guid stays the same
       final existingArticles = await _isar.articles
           .filter()
           .feedIdEqualTo(feedId)
           .group(
             (q) => q
-                .anyOf(normalizedLinks, (q, link) => q.linkEqualTo(link))
+                .anyOf(
+                  ingestionPlan.linkLookupKeys,
+                  (q, link) => q.linkEqualTo(link),
+                )
                 .or()
                 .optional(
-                  remoteIds.isNotEmpty,
-                  (q) => q.anyOf(remoteIds, (q, rid) => q.remoteIdEqualTo(rid)),
+                  ingestionPlan.remoteIds.isNotEmpty,
+                  (q) => q.anyOf(
+                    ingestionPlan.remoteIds,
+                    (q, rid) => q.remoteIdEqualTo(rid),
+                  ),
                 ),
           )
           .findAll();
 
-      // Build dual lookup maps for O(1) access
-      // remoteId takes priority over link for deduplication
-      final existingByRemoteId = <String, Article>{};
-      final existingByLink = <String, Article>{};
-      for (var article in existingArticles) {
-        if (article.remoteId != null && article.remoteId!.isNotEmpty) {
-          existingByRemoteId[article.remoteId!] = article;
-        }
-        existingByLink[article.link] = article;
-      }
-
+      final lookup = ArticleMergeLookup(existingArticles);
       final now = DateTime.now();
 
       for (final a in incoming) {
-        // Link already normalized above
-
-        // [V2.0] Content hash is only required when we preserve local user state
-        // (to detect content changes and mark items unread).
-        final String? newHash = preserveUserState
-            ? (a.contentHash ?? '')
-            : null;
-
-        // Dual-key O(1) lookup: remoteId takes priority over link
-        // This prevents duplicates when URLs change but guid remains the same
-        final existing = (a.remoteId != null && a.remoteId!.isNotEmpty)
-            ? existingByRemoteId[a.remoteId!] ?? existingByLink[a.link]
-            : existingByLink[a.link];
-
-        a.feedId = feedId;
-        a.categoryId = categoryId; // [V2.0] Denormalize categoryId
-        a.updatedAt = now;
-        a.fetchedAt = now;
-
-        bool isNew = false;
-
-        if (existing != null) {
-          a.id = existing.id;
-
-          if (preserveUserState) {
-            // [V2.0] Only update if content changed.
-            if (existing.contentHash != newHash) {
-              a.contentHash = newHash;
-              a.isRead = false; // Content changed -> mark unread
-            } else {
-              // Content unchanged -> preserve user state.
-              a.isRead = existing.isRead;
-              a.contentHash = existing.contentHash;
-            }
-
-            a.isStarred = existing.isStarred;
-          } else {
-            // We didn't compute a hash for this update, so clear it to avoid
-            // stale hashes being used as a progress key.
-            a.contentHash = null;
-          }
-          // Read-later and preferred reading mode remain client-only for
-          // remote-backed accounts, so sync always preserves local values.
-          a.isReadLater = existing.isReadLater;
-          a.contentSource = existing.contentSource;
-          a.extractedContentHtml = existing.extractedContentHtml;
-          a.preferredContentView = existing.preferredContentView;
-          if (a.contentHtml == null || a.contentHtml!.trim().isEmpty) {
-            a.contentHtml = existing.contentHtml;
-          }
-          if (a.publishedAt.millisecondsSinceEpoch == 0) {
-            a.publishedAt = existing.publishedAt;
-          }
-        } else {
-          isNew = true;
-          a.contentHash = preserveUserState ? newHash : null;
-          if (a.publishedAt.millisecondsSinceEpoch == 0) {
-            // Some feeds omit pubDate/updated; use fetchedAt for reasonable sorting.
-            a.publishedAt = now.toUtc();
-          }
-        }
-
+        final isNew = _mergePolicy.merge(
+          incoming: a,
+          existing: lookup.findFor(a),
+          feedId: feedId,
+          categoryId: categoryId,
+          now: now,
+          preserveUserState: preserveUserState,
+        );
         if (isNew) {
           newArticles.add(a);
         }
       }
 
-      // Batch write all articles at once (more efficient than individual puts)
       await _isar.articles.putAll(incoming);
 
       return newArticles;

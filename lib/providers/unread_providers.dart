@@ -3,8 +3,13 @@ import 'package:isar/isar.dart';
 
 import '../models/article.dart';
 import 'core_providers.dart';
+import 'query_providers.dart';
 
-final unreadOnlyProvider = StateProvider<bool>((ref) => false);
+final unreadOnlyProvider = Provider<bool>((ref) {
+  return ref.watch(
+    articleListFilterProvider.select((filter) => filter.unreadOnly),
+  );
+});
 
 /// Watches unread count for a given feedId. Use `null` for "All".
 final unreadCountProvider = StreamProvider.family<int, int?>((

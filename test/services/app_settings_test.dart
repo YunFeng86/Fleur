@@ -159,6 +159,20 @@ void main() {
     expect(restored.remoteFetchConcurrency, 2);
   });
 
+  test('AppSettings.fromJson defaults non-finite numeric values', () {
+    final restored = AppSettings.fromJson(<String, Object?>{
+      'sourceRefreshMinutes': double.infinity,
+      'cleanupReadOlderThanDays': double.nan,
+      'remoteEntriesLimit': double.negativeInfinity,
+      'remoteFetchConcurrency': double.nan,
+    });
+
+    expect(restored.sourceRefreshMinutes, isNull);
+    expect(restored.cleanupReadOlderThanDays, isNull);
+    expect(restored.remoteEntriesLimit, 400);
+    expect(restored.remoteFetchConcurrency, 2);
+  });
+
   test('AppSettings normalizes remote fetch concurrency range', () {
     final low = const AppSettings(remoteFetchConcurrency: 0).normalized();
     final high = const AppSettings(remoteFetchConcurrency: 9).normalized();

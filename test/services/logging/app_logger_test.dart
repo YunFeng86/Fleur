@@ -15,34 +15,7 @@ import 'package:fleur/services/settings/translation_ai_settings.dart';
 import 'package:fleur/services/settings/translation_ai_settings_store.dart';
 import 'package:fleur/utils/path_manager.dart';
 
-class _FakePathProviderPlatform extends PathProviderPlatform {
-  _FakePathProviderPlatform({
-    required String documentsPath,
-    required String supportPath,
-    required String cachePath,
-    required String temporaryPath,
-  }) : _documentsPath = documentsPath,
-       _supportPath = supportPath,
-       _cachePath = cachePath,
-       _temporaryPath = temporaryPath;
-
-  final String _documentsPath;
-  final String _supportPath;
-  final String _cachePath;
-  final String _temporaryPath;
-
-  @override
-  Future<String?> getApplicationDocumentsPath() async => _documentsPath;
-
-  @override
-  Future<String?> getApplicationSupportPath() async => _supportPath;
-
-  @override
-  Future<String?> getApplicationCachePath() async => _cachePath;
-
-  @override
-  Future<String?> getTemporaryPath() async => _temporaryPath;
-}
+import '../../test_utils/fake_path_provider_platform.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -76,7 +49,7 @@ void main() {
     final temporary = await Directory(
       '${tempDir.path}/temporary',
     ).create(recursive: true);
-    PathProviderPlatform.instance = _FakePathProviderPlatform(
+    PathProviderPlatform.instance = FakePathProviderPlatform(
       documentsPath: documents.path,
       supportPath: support.path,
       cachePath: cache.path,
