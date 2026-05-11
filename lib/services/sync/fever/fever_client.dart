@@ -56,7 +56,7 @@ class FeverClient {
 
   static bool _truthy(Object? v) {
     if (v is bool) return v;
-    if (v is num) return v.toInt() == 1;
+    if (v is num) return v.isFinite && v.toInt() == 1;
     if (v is String) {
       final s = v.trim().toLowerCase();
       return s == '1' || s == 'true';
@@ -66,7 +66,7 @@ class FeverClient {
 
   static int? _asInt(Object? v) {
     if (v is int) return v;
-    if (v is num) return v.toInt();
+    if (v is num) return v.isFinite ? v.toInt() : null;
     if (v is String) return int.tryParse(v.trim());
     return null;
   }
@@ -198,10 +198,7 @@ class FeverClient {
           .toList(growable: false);
     }
     if (v is List) {
-      return v
-          .map((e) => e is int ? e : (e is num ? e.toInt() : _asInt(e)))
-          .whereType<int>()
-          .toList(growable: false);
+      return v.map(_asInt).whereType<int>().toList(growable: false);
     }
     return const [];
   }
