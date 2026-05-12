@@ -25,6 +25,7 @@ import 'package:fleur/providers/sync_status_providers.dart';
 import 'package:fleur/providers/unread_providers.dart';
 import 'package:fleur/repositories/feed_repository.dart';
 import 'package:fleur/screens/home_screen.dart';
+import 'package:fleur/screens/search_screen.dart';
 import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/screens/saved_screen.dart';
 import 'package:fleur/services/settings/app_settings.dart';
@@ -1928,9 +1929,39 @@ void main() {
       );
 
       expect(find.text(l10n.noUnreadArticles), findsOneWidget);
+      expect(find.text(l10n.unreadEmptySubtitle), findsOneWidget);
       expect(container.color, theme.fleurSurface.list);
     },
   );
+
+  testWidgets('Home reader empty state uses quiet reader copy', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Builder(
+          builder: (context) {
+            final l10n = AppLocalizations.of(context)!;
+            return Scaffold(
+              body: HomeReaderPane(
+                selectedArticleId: null,
+                placeholderText: l10n.selectAnArticle,
+                placeholderSubtitle: l10n.readerEmptySubtitle,
+              ),
+            );
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final element = tester.element(find.byType(HomeReaderPane));
+    final l10n = AppLocalizations.of(element)!;
+
+    expect(find.text(l10n.selectAnArticle), findsOneWidget);
+    expect(find.text(l10n.readerEmptySubtitle), findsOneWidget);
+  });
 
   testWidgets('Saved screen shows mode-specific empty feedback', (
     tester,
@@ -1979,12 +2010,74 @@ void main() {
 
     expect(find.text(l10n.noStarredArticles), findsOneWidget);
     expect(find.text(l10n.noReadLaterArticles), findsNothing);
+    expect(find.text(l10n.savedReaderEmptyTitle), findsOneWidget);
+    expect(find.text(l10n.savedReaderEmptySubtitle), findsOneWidget);
 
     await tester.tap(find.text('${l10n.readLater} (0)'));
     await tester.pumpAndSettle();
 
     expect(find.text(l10n.noReadLaterArticles), findsOneWidget);
     expect(find.text(l10n.noStarredArticles), findsNothing);
+  });
+
+  testWidgets('Search screen shows start and no-result empty states', (
+    tester,
+  ) async {
+    const searchSectionKey = ValueKey<String>('search-section-test');
+    final router = GoRouter(
+      initialLocation: '/search',
+      routes: [
+        GoRoute(path: '/', builder: (context, state) => const SizedBox()),
+        GoRoute(
+          path: '/search',
+          pageBuilder: (context, state) => const NoTransitionPage(
+            key: searchSectionKey,
+            child: SearchScreen(selectedArticleId: null),
+          ),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appSettingsStoreProvider.overrideWithValue(
+            FakeAppSettingsStore(AppSettings.defaults()),
+          ),
+          articleListControllerProvider.overrideWith(
+            _EmptyArticleListController.new,
+          ),
+        ],
+        child: MaterialApp.router(
+          routerConfig: router,
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final element = tester.element(find.byType(SearchScreen));
+    final l10n = AppLocalizations.of(element)!;
+
+    expect(find.text(l10n.searchStartTitle), findsOneWidget);
+    expect(find.text(l10n.searchStartSubtitle), findsOneWidget);
+    expect(find.text(l10n.searchReaderEmptyTitle), findsOneWidget);
+    expect(find.text(l10n.searchReaderEmptySubtitle), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField).first, 'claude');
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.notFound), findsOneWidget);
+    expect(find.text(l10n.searchNoResultsSubtitle('claude')), findsOneWidget);
+    expect(find.text(l10n.clearSearch), findsOneWidget);
+
+    await tester.tap(find.text(l10n.clearSearch));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.searchStartTitle), findsOneWidget);
   });
 }
 

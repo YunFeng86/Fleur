@@ -651,6 +651,36 @@ abstract class AppLocalizations {
   /// **'Select an article'**
   String get selectAnArticle;
 
+  /// Reader pane helper text when no article is selected
+  ///
+  /// In en, this message translates to:
+  /// **'Open an article from the list to read it here.'**
+  String get readerEmptySubtitle;
+
+  /// Reader pane title when the saved section has no selected article
+  ///
+  /// In en, this message translates to:
+  /// **'Select a saved article'**
+  String get savedReaderEmptyTitle;
+
+  /// Reader pane helper text for the saved section
+  ///
+  /// In en, this message translates to:
+  /// **'Open an article from Saved or Read Later.'**
+  String get savedReaderEmptySubtitle;
+
+  /// Reader pane title when the search section has no selected article
+  ///
+  /// In en, this message translates to:
+  /// **'Select a search result'**
+  String get searchReaderEmptyTitle;
+
+  /// Reader pane helper text for the search section
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a keyword, then open a result from the list.'**
+  String get searchReaderEmptySubtitle;
+
   /// errorMessage
   ///
   /// In en, this message translates to:
@@ -927,6 +957,24 @@ abstract class AppLocalizations {
   /// **'No unread articles'**
   String get noUnreadArticles;
 
+  /// Article list empty state helper text when there are no articles
+  ///
+  /// In en, this message translates to:
+  /// **'Add a subscription or refresh sources, and articles will appear here.'**
+  String get articleListEmptySubtitle;
+
+  /// Article list empty state helper text when the unread filter has no results
+  ///
+  /// In en, this message translates to:
+  /// **'Everything in the current scope has been read.'**
+  String get unreadEmptySubtitle;
+
+  /// Saved section empty state helper text when searching saved articles has no results
+  ///
+  /// In en, this message translates to:
+  /// **'No saved articles match this search.'**
+  String get savedSearchEmptySubtitle;
+
   /// star
   ///
   /// In en, this message translates to:
@@ -1028,6 +1076,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Search in content'**
   String get searchInContent;
+
+  /// Action label for clearing article search text
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get clearSearch;
+
+  /// Search page empty state title before the user enters a query
+  ///
+  /// In en, this message translates to:
+  /// **'Start searching'**
+  String get searchStartTitle;
+
+  /// Search page empty state helper text before the user enters a query
+  ///
+  /// In en, this message translates to:
+  /// **'Enter keywords to search titles, summaries, and content.'**
+  String get searchStartSubtitle;
+
+  /// Search page empty state helper text when a query has no results
+  ///
+  /// In en, this message translates to:
+  /// **'No articles match “{query}”.'**
+  String searchNoResultsSubtitle(Object query);
+
+  /// Reader helper text when an article id cannot be found
+  ///
+  /// In en, this message translates to:
+  /// **'This article may have been deleted or is no longer available locally.'**
+  String get articleNotFoundSubtitle;
 
   /// findInPage
   ///

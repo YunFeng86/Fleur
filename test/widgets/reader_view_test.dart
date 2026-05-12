@@ -11,6 +11,7 @@ import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 
+import 'package:fleur/l10n/app_localizations.dart';
 import 'package:fleur/models/article.dart';
 import 'package:fleur/models/feed.dart';
 import 'package:fleur/models/tag.dart';
@@ -244,6 +245,41 @@ void main() {
     );
 
     expect(actionService.markReadCalls, [(articleId: articleId, isRead: true)]);
+  });
+
+  testWidgets('missing article shows reader empty feedback', (tester) async {
+    await pumpLocalizedTestApp(
+      tester,
+      home: const ReaderView(articleId: articleId),
+      overrides: [
+        appSettingsStoreProvider.overrideWithValue(
+          FakeAppSettingsStore(AppSettings.defaults()),
+        ),
+        readerSettingsStoreProvider.overrideWithValue(
+          FakeReaderSettingsStore(const ReaderSettings()),
+        ),
+        translationAiSettingsStoreProvider.overrideWithValue(
+          FakeTranslationAiSettingsStore(TranslationAiSettings.defaults()),
+        ),
+        translationAiSecretStoreProvider.overrideWithValue(
+          FakeTranslationAiSecretStore(),
+        ),
+        articleProvider(articleId).overrideWith((ref) => Stream.value(null)),
+        readerProgressStoreProvider.overrideWithValue(
+          InMemoryReaderProgressStore(),
+        ),
+        imageMetaStoreProvider.overrideWithValue(InMemoryImageMetaStore()),
+        fullTextControllerProvider.overrideWith(_FakeFullTextController.new),
+      ],
+      size: const Size(800, 1200),
+    );
+    await settleReader(tester, rounds: 4);
+
+    final element = tester.element(find.byType(ReaderView));
+    final l10n = AppLocalizations.of(element)!;
+
+    expect(find.text(l10n.notFound), findsOneWidget);
+    expect(find.text(l10n.articleNotFoundSubtitle), findsOneWidget);
   });
 
   testWidgets(

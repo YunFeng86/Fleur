@@ -378,6 +378,26 @@
   "@selectAnArticle": {
     "description": "selectAnArticle"
   },
+  "readerEmptySubtitle": "从左侧列表打开文章后，会在这里阅读。",
+  "@readerEmptySubtitle": {
+    "description": "Reader pane helper text when no article is selected"
+  },
+  "savedReaderEmptyTitle": "选择一篇收藏",
+  "@savedReaderEmptyTitle": {
+    "description": "Reader pane title when the saved section has no selected article"
+  },
+  "savedReaderEmptySubtitle": "从已收藏或稍后读列表中打开文章。",
+  "@savedReaderEmptySubtitle": {
+    "description": "Reader pane helper text for the saved section"
+  },
+  "searchReaderEmptyTitle": "选择一条搜索结果",
+  "@searchReaderEmptyTitle": {
+    "description": "Reader pane title when the search section has no selected article"
+  },
+  "searchReaderEmptySubtitle": "输入关键词后，从左侧结果中打开文章。",
+  "@searchReaderEmptySubtitle": {
+    "description": "Reader pane helper text for the search section"
+  },
   "errorMessage": "错误：{error}",
   "@errorMessage": {
     "placeholders": {
@@ -611,6 +631,18 @@
   "@noUnreadArticles": {
     "description": "noUnreadArticles"
   },
+  "articleListEmptySubtitle": "添加订阅或同步后，文章会出现在这里。",
+  "@articleListEmptySubtitle": {
+    "description": "Article list empty state helper text when there are no articles"
+  },
+  "unreadEmptySubtitle": "当前筛选范围内的文章都已读完。",
+  "@unreadEmptySubtitle": {
+    "description": "Article list empty state helper text when the unread filter has no results"
+  },
+  "savedSearchEmptySubtitle": "当前收藏中没有匹配结果。",
+  "@savedSearchEmptySubtitle": {
+    "description": "Saved section empty state helper text when searching saved articles has no results"
+  },
   "star": "收藏",
   "@star": {
     "description": "star"
@@ -678,6 +710,29 @@
   "searchInContent": "搜索正文",
   "@searchInContent": {
     "description": "searchInContent"
+  },
+  "clearSearch": "清除搜索",
+  "@clearSearch": {
+    "description": "Action label for clearing article search text"
+  },
+  "searchStartTitle": "开始搜索",
+  "@searchStartTitle": {
+    "description": "Search page empty state title before the user enters a query"
+  },
+  "searchStartSubtitle": "输入关键词查找标题、摘要和正文。",
+  "@searchStartSubtitle": {
+    "description": "Search page empty state helper text before the user enters a query"
+  },
+  "searchNoResultsSubtitle": "没有匹配“{query}”的文章。",
+  "@searchNoResultsSubtitle": {
+    "description": "Search page empty state helper text when a query has no results",
+    "placeholders": {
+      "query": {}
+    }
+  },
+  "articleNotFoundSubtitle": "这篇文章可能已被删除，或本地暂时不可用。",
+  "@articleNotFoundSubtitle": {
+    "description": "Reader helper text when an article id cannot be found"
   },
   "findInPage": "页面内查找",
   "@findInPage": {

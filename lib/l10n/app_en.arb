@@ -378,6 +378,26 @@
   "@selectAnArticle": {
     "description": "selectAnArticle"
   },
+  "readerEmptySubtitle": "Open an article from the list to read it here.",
+  "@readerEmptySubtitle": {
+    "description": "Reader pane helper text when no article is selected"
+  },
+  "savedReaderEmptyTitle": "Select a saved article",
+  "@savedReaderEmptyTitle": {
+    "description": "Reader pane title when the saved section has no selected article"
+  },
+  "savedReaderEmptySubtitle": "Open an article from Saved or Read Later.",
+  "@savedReaderEmptySubtitle": {
+    "description": "Reader pane helper text for the saved section"
+  },
+  "searchReaderEmptyTitle": "Select a search result",
+  "@searchReaderEmptyTitle": {
+    "description": "Reader pane title when the search section has no selected article"
+  },
+  "searchReaderEmptySubtitle": "Enter a keyword, then open a result from the list.",
+  "@searchReaderEmptySubtitle": {
+    "description": "Reader pane helper text for the search section"
+  },
   "errorMessage": "Error: {error}",
   "@errorMessage": {
     "placeholders": {
@@ -582,6 +602,18 @@
   "@noUnreadArticles": {
     "description": "noUnreadArticles"
   },
+  "articleListEmptySubtitle": "Add a subscription or refresh sources, and articles will appear here.",
+  "@articleListEmptySubtitle": {
+    "description": "Article list empty state helper text when there are no articles"
+  },
+  "unreadEmptySubtitle": "Everything in the current scope has been read.",
+  "@unreadEmptySubtitle": {
+    "description": "Article list empty state helper text when the unread filter has no results"
+  },
+  "savedSearchEmptySubtitle": "No saved articles match this search.",
+  "@savedSearchEmptySubtitle": {
+    "description": "Saved section empty state helper text when searching saved articles has no results"
+  },
   "star": "Star",
   "@star": {
     "description": "star"
@@ -649,6 +681,29 @@
   "searchInContent": "Search in content",
   "@searchInContent": {
     "description": "searchInContent"
+  },
+  "clearSearch": "Clear search",
+  "@clearSearch": {
+    "description": "Action label for clearing article search text"
+  },
+  "searchStartTitle": "Start searching",
+  "@searchStartTitle": {
+    "description": "Search page empty state title before the user enters a query"
+  },
+  "searchStartSubtitle": "Enter keywords to search titles, summaries, and content.",
+  "@searchStartSubtitle": {
+    "description": "Search page empty state helper text before the user enters a query"
+  },
+  "searchNoResultsSubtitle": "No articles match “{query}”.",
+  "@searchNoResultsSubtitle": {
+    "description": "Search page empty state helper text when a query has no results",
+    "placeholders": {
+      "query": {}
+    }
+  },
+  "articleNotFoundSubtitle": "This article may have been deleted or is no longer available locally.",
+  "@articleNotFoundSubtitle": {
+    "description": "Reader helper text when an article id cannot be found"
   },
   "findInPage": "Find in page",
   "@findInPage": {

@@ -194,6 +194,7 @@ class HomeScreen extends ConsumerWidget {
                   child: HomeReaderPane(
                     selectedArticleId: selectedArticleId,
                     placeholderText: l10n.selectAnArticle,
+                    placeholderSubtitle: l10n.readerEmptySubtitle,
                   ),
                 ),
               ],
@@ -244,6 +245,7 @@ class HomeScreen extends ConsumerWidget {
             child: HomeReaderPane(
               selectedArticleId: selectedArticleId,
               placeholderText: l10n.selectAnArticle,
+              placeholderSubtitle: l10n.readerEmptySubtitle,
             ),
           ),
         ],
@@ -262,6 +264,7 @@ class HomeScreen extends ConsumerWidget {
             child: HomeReaderPane(
               selectedArticleId: selectedArticleId,
               placeholderText: l10n.selectAnArticle,
+              placeholderSubtitle: l10n.readerEmptySubtitle,
             ),
           ),
         ],

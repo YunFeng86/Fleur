@@ -12,6 +12,7 @@ import '../ui/layout.dart';
 import '../ui/layout_spec.dart';
 import '../utils/platform.dart';
 import '../widgets/article_list.dart';
+import '../widgets/fleur_empty_state.dart';
 import '../widgets/reader_view.dart';
 import '../widgets/sidebar_pane_hero.dart';
 import '../widgets/staggered_reveal.dart';
@@ -61,6 +62,13 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
         .update(
           (filter) => filter.savedOnly(starred: mode == _SavedMode.starred),
         );
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    ref
+        .read(articleListFilterProvider.notifier)
+        .update((filter) => filter.copyWith(searchQuery: ''));
   }
 
   @override
@@ -120,12 +128,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
                 ? null
                 : IconButton(
                     tooltip: l10n.delete,
-                    onPressed: () {
-                      _searchController.clear();
-                      ref
-                          .read(articleListFilterProvider.notifier)
-                          .update((filter) => filter.copyWith(searchQuery: ''));
-                    },
+                    onPressed: _clearSearch,
                     icon: const Icon(FleurIcons.clear),
                   ),
           ),
@@ -217,10 +220,11 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
         Widget readerPane({required bool embedded}) {
           final id = widget.selectedArticleId;
           if (id == null) {
-            return Container(
-              color: surfaces.reader,
-              alignment: Alignment.center,
-              child: Text(l10n.selectAnArticle),
+            return FleurEmptyState(
+              variant: FleurEmptyStateVariant.reader,
+              icon: FleurIcons.saved,
+              title: l10n.savedReaderEmptyTitle,
+              subtitle: l10n.savedReaderEmptySubtitle,
             );
           }
           return Container(
@@ -271,73 +275,48 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
     AppLocalizations l10n,
     ArticleListEmptyState state,
   ) {
-    final theme = Theme.of(context);
-    final surfaces = theme.fleurSurface;
     final isStarred = state.starredOnly && !state.readLaterOnly;
-    final title = isStarred
-        ? l10n.starred
-        : (state.readLaterOnly ? l10n.readLater : l10n.saved);
-    final subtitle = switch ((
-      state.hasSearch,
-      isStarred,
-      state.readLaterOnly,
-    )) {
-      (true, _, _) => l10n.notFound,
-      (false, true, _) => l10n.noStarredArticles,
-      (false, false, true) => l10n.noReadLaterArticles,
-      _ => l10n.noArticles,
-    };
-    final icon = isStarred ? FleurIcons.star : FleurIcons.readLater;
+    final isReadLater = state.readLaterOnly;
+    final title = state.hasSearch
+        ? l10n.notFound
+        : (isStarred
+              ? l10n.starred
+              : (isReadLater ? l10n.readLater : l10n.saved));
+    final subtitle = state.hasSearch
+        ? l10n.savedSearchEmptySubtitle
+        : (isStarred
+              ? l10n.noStarredArticles
+              : (isReadLater ? l10n.noReadLaterArticles : l10n.noArticles));
+    final icon = state.hasSearch
+        ? FleurIcons.search
+        : (isStarred ? FleurIcons.star : FleurIcons.readLater);
+    final actions = state.hasSearch
+        ? <Widget>[
+            OutlinedButton.icon(
+              onPressed: _clearSearch,
+              icon: const Icon(FleurIcons.clear),
+              label: Text(l10n.clearSearch),
+            ),
+          ]
+        : <Widget>[
+            FilledButton.tonalIcon(
+              onPressed: () => context.go('/'),
+              icon: const Icon(FleurIcons.feed),
+              label: Text(l10n.feeds),
+            ),
+            OutlinedButton.icon(
+              onPressed: () => context.go('/search'),
+              icon: const Icon(FleurIcons.search),
+              label: Text(l10n.search),
+            ),
+          ];
 
-    return Container(
-      color: surfaces.list,
-      alignment: Alignment.center,
-      padding: const EdgeInsets.all(24),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: surfaces.floating,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, size: 54, color: theme.colorScheme.primary),
-            ),
-            const SizedBox(height: 16),
-            Text(title, style: theme.textTheme.titleLarge),
-            const SizedBox(height: 8),
-            Text(
-              subtitle,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              alignment: WrapAlignment.center,
-              children: [
-                FilledButton.tonalIcon(
-                  onPressed: () => context.go('/'),
-                  icon: const Icon(FleurIcons.feed),
-                  label: Text(l10n.feeds),
-                ),
-                OutlinedButton.icon(
-                  onPressed: () => context.go('/search'),
-                  icon: const Icon(FleurIcons.search),
-                  label: Text(l10n.search),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+    return FleurEmptyState(
+      variant: FleurEmptyStateVariant.list,
+      icon: icon,
+      title: title,
+      subtitle: subtitle,
+      actions: actions,
     );
   }
 }

@@ -289,6 +289,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get selectAnArticle => '请选择一篇文章';
 
   @override
+  String get readerEmptySubtitle => '从左侧列表打开文章后，会在这里阅读。';
+
+  @override
+  String get savedReaderEmptyTitle => '选择一篇收藏';
+
+  @override
+  String get savedReaderEmptySubtitle => '从已收藏或稍后读列表中打开文章。';
+
+  @override
+  String get searchReaderEmptyTitle => '选择一条搜索结果';
+
+  @override
+  String get searchReaderEmptySubtitle => '输入关键词后，从左侧结果中打开文章。';
+
+  @override
   String errorMessage(String error) {
     return '错误：$error';
   }
@@ -436,6 +451,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noUnreadArticles => '暂无未读文章';
 
   @override
+  String get articleListEmptySubtitle => '添加订阅或同步后，文章会出现在这里。';
+
+  @override
+  String get unreadEmptySubtitle => '当前筛选范围内的文章都已读完。';
+
+  @override
+  String get savedSearchEmptySubtitle => '当前收藏中没有匹配结果。';
+
+  @override
   String get star => '收藏';
 
   @override
@@ -485,6 +509,23 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get searchInContent => '搜索正文';
+
+  @override
+  String get clearSearch => '清除搜索';
+
+  @override
+  String get searchStartTitle => '开始搜索';
+
+  @override
+  String get searchStartSubtitle => '输入关键词查找标题、摘要和正文。';
+
+  @override
+  String searchNoResultsSubtitle(Object query) {
+    return '没有匹配“$query”的文章。';
+  }
+
+  @override
+  String get articleNotFoundSubtitle => '这篇文章可能已被删除，或本地暂时不可用。';
 
   @override
   String get findInPage => '页面内查找';
@@ -1443,6 +1484,21 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get selectAnArticle => '請選擇一篇文章';
 
   @override
+  String get readerEmptySubtitle => '從左側列表打開文章後，會在這裡閱讀。';
+
+  @override
+  String get savedReaderEmptyTitle => '選擇一篇收藏';
+
+  @override
+  String get savedReaderEmptySubtitle => '從已收藏或稍後讀列表中打開文章。';
+
+  @override
+  String get searchReaderEmptyTitle => '選擇一條搜尋結果';
+
+  @override
+  String get searchReaderEmptySubtitle => '輸入關鍵字後，從左側結果中打開文章。';
+
+  @override
   String errorMessage(String error) {
     return '錯誤：$error';
   }
@@ -1590,6 +1646,15 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get noUnreadArticles => '暫無未讀文章';
 
   @override
+  String get articleListEmptySubtitle => '新增訂閱或同步後，文章會出現在這裡。';
+
+  @override
+  String get unreadEmptySubtitle => '目前篩選範圍內的文章都已讀完。';
+
+  @override
+  String get savedSearchEmptySubtitle => '目前收藏中沒有符合的結果。';
+
+  @override
   String get star => '收藏';
 
   @override
@@ -1639,6 +1704,23 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get searchInContent => '搜尋內容';
+
+  @override
+  String get clearSearch => '清除搜尋';
+
+  @override
+  String get searchStartTitle => '開始搜尋';
+
+  @override
+  String get searchStartSubtitle => '輸入關鍵字查找標題、摘要和正文。';
+
+  @override
+  String searchNoResultsSubtitle(Object query) {
+    return '沒有符合「$query」的文章。';
+  }
+
+  @override
+  String get articleNotFoundSubtitle => '這篇文章可能已被刪除，或本地暫時不可用。';
 
   @override
   String get findInPage => '頁面內尋找';
