@@ -6,7 +6,9 @@ import 'package:fleur/models/feed.dart';
 import 'package:fleur/providers/account_providers.dart';
 import 'package:fleur/providers/app_settings_providers.dart';
 import 'package:fleur/providers/auto_refresh_providers.dart';
+import 'package:fleur/providers/repository_providers.dart';
 import 'package:fleur/providers/refresh_all_providers.dart';
+import 'package:fleur/providers/service_providers.dart';
 import 'package:fleur/repositories/feed_repository.dart';
 import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/services/settings/app_settings.dart';
@@ -26,6 +28,23 @@ class _FakeFeedRepository extends Fake implements FeedRepository {
         ..title = 'Feed',
     ];
   }
+}
+
+class _FakeMinifluxSourceRefresh implements MinifluxSourceRefresh {
+  _FakeMinifluxSourceRefresh(this.events);
+
+  final List<String> events;
+
+  @override
+  Future<void> refreshAll() async {
+    events.add('upstream');
+  }
+
+  @override
+  Future<void> refreshFeed(Feed feed) async {}
+
+  @override
+  Future<void> refreshFeeds(List<Feed> feeds, {int maxConcurrent = 2}) async {}
 }
 
 class _AutoRefreshHost extends ConsumerWidget {
@@ -178,6 +197,56 @@ void main() {
     await tester.pump();
 
     expect(events, isEmpty);
+
+    await disposeController(tester);
+  });
+
+  testWidgets('auto scheduler reads refresh dependencies from nested scope', (
+    tester,
+  ) async {
+    final events = <String>[];
+    final account = buildTestAccount(type: AccountType.miniflux);
+    final syncService = FakeSyncService(
+      onRefresh: (feedIds) async {
+        events.add('sync:${feedIds.join(',')}');
+        return const BatchRefreshResult(<FeedRefreshResult>[]);
+      },
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          activeAccountProvider.overrideWithValue(account),
+          appSettingsStoreProvider.overrideWithValue(
+            FakeAppSettingsStore(
+              AppSettings.defaults().copyWith(sourceRefreshMinutes: 15),
+            ),
+          ),
+        ],
+        child: ProviderScope(
+          overrides: [
+            feedRepositoryProvider.overrideWithValue(_FakeFeedRepository()),
+            syncServiceProvider.overrideWithValue(syncService),
+            minifluxSourceRefreshProvider.overrideWithValue(
+              _FakeMinifluxSourceRefresh(events),
+            ),
+          ],
+          child: const _AutoRefreshHost(),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    await tester.pump(const Duration(minutes: 5));
+    await tester.pump();
+    await tester.pump(const Duration(minutes: 5));
+    await tester.pump();
+    await tester.pump(const Duration(minutes: 5));
+    await tester.pump();
+
+    expect(events, ['sync:1', 'sync:1', 'upstream', 'sync:1']);
+    expect(tester.takeException(), isNull);
 
     await disposeController(tester);
   });
