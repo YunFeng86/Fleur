@@ -513,11 +513,22 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
                         BackendFeature.addCategory,
                       )) ...[
                         const SizedBox(width: 8),
-                        _SidebarActionIconButton(
-                          tooltip: l10n.newCategory,
-                          onPressed: onAddCategory,
-                          icon: FleurIcons.addCategory,
-                        ),
+                        isDesktop
+                            ? _SidebarActionIconButton(
+                                tooltip: l10n.newCategory,
+                                onPressed: onAddCategory,
+                                icon: FleurIcons.addCategory,
+                              )
+                            : IconButton(
+                                tooltip: l10n.newCategory,
+                                iconSize: 20,
+                                constraints: const BoxConstraints(
+                                  minWidth: 48,
+                                  minHeight: 48,
+                                ),
+                                onPressed: onAddCategory,
+                                icon: const Icon(FleurIcons.addCategory),
+                              ),
                       ],
                     ],
                   ),
@@ -594,6 +605,17 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
               }
             }
 
+            if (!isDesktop &&
+                capabilities.isVisible(BackendFeature.addSubscription)) {
+              rows.add(
+                _SidebarTreeRow(
+                  rowId: 'action:add-subscription',
+                  builder: (_) =>
+                      _SidebarAddSubscriptionTile(onAddFeed: onAddFeed),
+                ),
+              );
+            }
+
             final rowIndexById = <String, int>{
               for (var index = 0; index < rows.length; index++)
                 rows[index].rowId: index,
@@ -629,6 +651,31 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
           },
         );
       },
+    );
+  }
+}
+
+class _SidebarAddSubscriptionTile extends StatelessWidget {
+  const _SidebarAddSubscriptionTile({required this.onAddFeed});
+
+  final Future<void> Function() onAddFeed;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: SizedBox(
+        width: double.infinity,
+        height: 48,
+        child: FilledButton.icon(
+          key: const Key('sidebar_add_subscription_cta'),
+          onPressed: () => unawaited(onAddFeed()),
+          icon: const Icon(FleurIcons.add),
+          label: Text(l10n.addSubscription),
+        ),
+      ),
     );
   }
 }

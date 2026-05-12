@@ -835,6 +835,107 @@ void main() {
     expect(_popupMenuText('Add subscription'), findsNothing);
   });
 
+  testWidgets('mobile sidebar shows bottom add subscription CTA', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.android;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    var addFeedCount = 0;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          locale: const Locale('en'),
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: _SidebarHarness(
+              categories: const <Category>[],
+              feeds: const <Feed>[],
+              unreadCounts: const {null: 0},
+              onAddFeed: () async => addFeedCount++,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final addSubscriptionCta = find.byKey(
+      const Key('sidebar_add_subscription_cta'),
+    );
+    expect(addSubscriptionCta, findsOneWidget);
+    expect(find.text('Add subscription'), findsOneWidget);
+    expect(tester.getSize(addSubscriptionCta).height, greaterThanOrEqualTo(48));
+
+    await tester.tap(addSubscriptionCta);
+    await tester.pumpAndSettle();
+
+    expect(addFeedCount, 1);
+  });
+
+  testWidgets(
+    'mobile sidebar hides bottom CTA when subscriptions cannot be added',
+    (tester) async {
+      debugFleurTargetPlatformOverride = TargetPlatform.android;
+      addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            theme: AppTheme.light(),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const Scaffold(
+              body: _SidebarHarness(
+                categories: <Category>[],
+                feeds: <Feed>[],
+                unreadCounts: {null: 0},
+                accountType: AccountType.fever,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('sidebar_add_subscription_cta')),
+        findsNothing,
+      );
+      expect(find.text('Add subscription'), findsNothing);
+    },
+  );
+
+  testWidgets('desktop sidebar does not show bottom add subscription CTA', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const Scaffold(
+            body: _SidebarHarness(
+              categories: <Category>[],
+              feeds: <Feed>[],
+              unreadCounts: {null: 0},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('sidebar_add_subscription_cta')), findsNothing);
+  });
+
   testWidgets('Fever desktop context menu keeps only local feed actions', (
     tester,
   ) async {

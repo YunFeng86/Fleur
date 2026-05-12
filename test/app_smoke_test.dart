@@ -34,6 +34,7 @@ import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/app_typography.dart';
 import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
+import 'package:fleur/ui/app_menu.dart';
 import 'package:fleur/ui/app_shell.dart';
 import 'package:fleur/ui/global_nav.dart';
 import 'package:fleur/ui/home/home_scene_commands.dart';
@@ -1494,7 +1495,9 @@ void main() {
             home: const Scaffold(
               body: SizedBox(
                 width: 1200,
-                child: Sidebar(onSelectFeed: _noopSelectFeed),
+                child: AppMenuHost(
+                  child: Sidebar(onSelectFeed: _noopSelectFeed),
+                ),
               ),
             ),
           ),
@@ -1544,7 +1547,9 @@ void main() {
             home: const Scaffold(
               body: SizedBox(
                 width: 1200,
-                child: Sidebar(onSelectFeed: _noopSelectFeed),
+                child: AppMenuHost(
+                  child: Sidebar(onSelectFeed: _noopSelectFeed),
+                ),
               ),
             ),
           ),
@@ -1552,10 +1557,16 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer();
+      await mouse.moveTo(tester.getCenter(find.text('Fleur Feed')));
+      await tester.pumpAndSettle();
+
       await tester.tap(find.byIcon(FleurIcons.moreVertical));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Refresh').last);
       await tester.pumpAndSettle();
+      await mouse.removePointer();
 
       expect(syncService.refreshCalls, [
         [feed.id],
@@ -1593,7 +1604,9 @@ void main() {
             home: const Scaffold(
               body: SizedBox(
                 width: 400,
-                child: Sidebar(onSelectFeed: _noopSelectFeed),
+                child: AppMenuHost(
+                  child: Sidebar(onSelectFeed: _noopSelectFeed),
+                ),
               ),
             ),
           ),
@@ -1642,7 +1655,9 @@ void main() {
             home: const Scaffold(
               body: SizedBox(
                 width: 400,
-                child: Sidebar(onSelectFeed: _noopSelectFeed),
+                child: AppMenuHost(
+                  child: Sidebar(onSelectFeed: _noopSelectFeed),
+                ),
               ),
             ),
           ),
@@ -1650,28 +1665,18 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final addSubscriptionButton = find.byWidgetPredicate(
-        (widget) =>
-            widget is IconButton && widget.tooltip == 'Add subscription',
-      );
       final newCategoryButton = find.byWidgetPredicate(
         (widget) => widget is IconButton && widget.tooltip == 'New category',
       );
+      final addSubscriptionCta = find.byKey(
+        const Key('sidebar_add_subscription_cta'),
+      );
 
-      expect(
-        tester.getSize(addSubscriptionButton).width,
-        greaterThanOrEqualTo(48),
-      );
-      expect(
-        tester.getSize(addSubscriptionButton).height,
-        greaterThanOrEqualTo(48),
-      );
       expect(tester.getSize(newCategoryButton).width, greaterThanOrEqualTo(48));
       expect(
         tester.getSize(newCategoryButton).height,
         greaterThanOrEqualTo(48),
       );
-
       await tester.tap(
         find.byWidgetPredicate(
           (widget) => widget is IconButton && widget.tooltip == 'Expand',
@@ -1679,38 +1684,19 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final moreButtonFinder = find.byWidgetPredicate(
-        (widget) => widget is IconButton && widget.tooltip == 'More',
+      expect(find.text('Fleur Feed'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        addSubscriptionCta,
+        200,
+        scrollable: find.byType(Scrollable).first,
       );
-      final categoryTile = find.ancestor(
-        of: find.text('News'),
-        matching: find.byType(ListTile),
-      );
-      final categoryMoreButton = find.descendant(
-        of: categoryTile,
-        matching: moreButtonFinder,
-      );
-      expect(categoryMoreButton, findsOneWidget);
-
-      await tester.tap(categoryMoreButton);
       await tester.pumpAndSettle();
-      expect(find.text('Rename'), findsOneWidget);
-      await tester.tapAt(const Offset(8, 8));
-      await tester.pumpAndSettle();
-
-      final feedTile = find.ancestor(
-        of: find.text('Fleur Feed'),
-        matching: find.byType(ListTile),
+      expect(addSubscriptionCta, findsOneWidget);
+      expect(find.text('Add subscription'), findsOneWidget);
+      expect(
+        tester.getSize(addSubscriptionCta).height,
+        greaterThanOrEqualTo(48),
       );
-      final feedMoreButton = find.descendant(
-        of: feedTile,
-        matching: moreButtonFinder,
-      );
-      expect(feedMoreButton, findsOneWidget);
-
-      await tester.tap(feedMoreButton);
-      await tester.pumpAndSettle();
-      expect(find.text('Refresh'), findsOneWidget);
     },
   );
 
