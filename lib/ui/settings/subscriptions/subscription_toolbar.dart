@@ -8,7 +8,9 @@ import '../../../../providers/backend_capabilities_provider.dart';
 import '../../../../providers/backend_sync_semantics_provider.dart';
 import '../../../../providers/subscription_settings_provider.dart';
 import '../../../../services/sync/backend_capabilities.dart';
+import '../../../../theme/fleur_icons.dart';
 import '../../../../ui/actions/subscription_object_menus.dart';
+import '../../../../ui/app_menu.dart';
 import '../../../../utils/platform.dart';
 import 'subscription_actions.dart';
 
@@ -76,13 +78,13 @@ class SubscriptionToolbar extends ConsumerWidget {
                       SubscriptionActions.showAddFeedDialog(context, ref),
                     );
                   },
-                  icon: const Icon(Icons.add),
+                  icon: const Icon(FleurIcons.add),
                   label: Text(l10n.addSubscription),
                 )
               else if (capabilities.isVisible(BackendFeature.addSubscription))
                 IconButton(
                   tooltip: l10n.addSubscription,
-                  icon: const Icon(Icons.add),
+                  icon: const Icon(FleurIcons.add),
                   onPressed: () {
                     unawaited(
                       SubscriptionActions.showAddFeedDialog(context, ref),
@@ -93,16 +95,17 @@ class SubscriptionToolbar extends ConsumerWidget {
               if (capabilities.isVisible(BackendFeature.addCategory))
                 IconButton(
                   tooltip: l10n.newCategory,
-                  icon: const Icon(Icons.create_new_folder_outlined),
+                  icon: const Icon(FleurIcons.addCategory),
                   onPressed: () {
                     unawaited(
                       SubscriptionActions.showAddCategoryDialog(context, ref),
                     );
                   },
                 ),
-              PopupMenuButton<SubscriptionRootMenuAction>(
+              AppMenuButton<SubscriptionRootMenuAction>(
                 tooltip: l10n.manage,
-                icon: const Icon(Icons.more_horiz),
+                icon: FleurIcons.moreHorizontal,
+                items: overflowItems,
                 onSelected: (action) => unawaited(
                   SubscriptionObjectMenus.performSettingsManagementAction(
                     context,
@@ -110,19 +113,6 @@ class SubscriptionToolbar extends ConsumerWidget {
                     action,
                   ),
                 ),
-                itemBuilder: (context) {
-                  return [
-                    for (final item in overflowItems)
-                      PopupMenuItem<SubscriptionRootMenuAction>(
-                        value: item.action,
-                        child: ListTile(
-                          leading: Icon(item.icon),
-                          title: Text(item.label),
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                      ),
-                  ];
-                },
               ),
             ],
           ),

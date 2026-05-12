@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app_settings_providers.dart';
 import 'backend_capabilities_provider.dart';
 import 'refresh_all_providers.dart';
+import '../services/logging/app_logger.dart';
 import '../services/sync/backend_capabilities.dart';
 import '../services/sync/refresh_all_coordinator.dart';
 
@@ -79,6 +80,13 @@ class AutoRefreshController extends AutoDisposeNotifier<void> {
             trigger: AccountSyncTrigger.foregroundAuto,
             maxConcurrent: concurrency,
           );
+    } catch (error, stackTrace) {
+      AppLogger.w(
+        'Foreground auto refresh failed',
+        tag: 'sync',
+        error: error,
+        stackTrace: stackTrace,
+      );
     } finally {
       _running = false;
     }
@@ -88,4 +96,10 @@ class AutoRefreshController extends AutoDisposeNotifier<void> {
 final autoRefreshControllerProvider =
     AutoDisposeNotifierProvider<AutoRefreshController, void>(
       AutoRefreshController.new,
+      dependencies: [
+        appSettingsProvider,
+        backendCapabilitiesProvider,
+        refreshSourcesCoordinatorProvider,
+        accountSyncCoordinatorProvider,
+      ],
     );

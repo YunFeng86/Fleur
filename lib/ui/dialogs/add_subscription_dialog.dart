@@ -102,6 +102,7 @@ Future<int?> showAddSubscriptionDialog(
   BuildContext context,
   WidgetRef ref, {
   NavigatorState? navigator,
+  int? initialCategoryId,
 }) async {
   final l10n = AppLocalizations.of(context)!;
   final nav = navigator ?? Navigator.of(context);
@@ -515,7 +516,9 @@ Future<int?> showAddSubscriptionDialog(
   }
 
   if (addSubscriptionAvailability != FeatureAvailability.onlineRequired) {
-    final catPick = await pickLocalCategoryId();
+    final catPick = initialCategoryId == null
+        ? await pickLocalCategoryId()
+        : (canceled: false, categoryId: initialCategoryId);
     if (catPick.canceled) return null;
 
     final id = await ref
@@ -548,10 +551,25 @@ Future<int?> showAddSubscriptionDialog(
     return null;
   }
 
-  final catPick = await pickMinifluxCategoryId(executor);
-  if (catPick.canceled) return null;
-  final categoryId = catPick.categoryId;
-  if (categoryId == null || categoryId <= 0) return null;
+  int? initialRemoteCategoryId;
+  if (initialCategoryId != null) {
+    final category = await ref
+        .read(categoryRepositoryProvider)
+        .getById(initialCategoryId);
+    final remoteId = int.tryParse((category?.remoteId ?? '').trim());
+    if (remoteId != null && remoteId > 0) {
+      initialRemoteCategoryId = remoteId;
+    }
+  }
+
+  int? categoryId = initialRemoteCategoryId;
+  if (categoryId == null) {
+    final catPick = await pickMinifluxCategoryId(executor);
+    if (catPick.canceled) return null;
+    categoryId = catPick.categoryId;
+  }
+  final effectiveCategoryId = categoryId;
+  if (effectiveCategoryId == null || effectiveCategoryId <= 0) return null;
 
   BatchRefreshResult batch;
   try {
@@ -559,7 +577,7 @@ Future<int?> showAddSubscriptionDialog(
       return SyncMutex.instance.run('sync', () async {
         await executor.createFeed(
           feedUrl: feedUri.toString(),
-          categoryId: categoryId,
+          categoryId: effectiveCategoryId,
         );
         return ref.read(syncServiceProvider).refreshFeedsSafe(const []);
       });

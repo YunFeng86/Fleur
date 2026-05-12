@@ -9,13 +9,17 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'package:fleur/l10n/app_localizations.dart';
 
+import '../providers/backend_capabilities_provider.dart';
 import '../providers/article_list_controller.dart';
 import '../providers/app_settings_providers.dart';
 import '../providers/query_providers.dart';
 import '../providers/service_providers.dart';
 import '../providers/unread_providers.dart';
+import '../services/sync/backend_capabilities.dart';
 import '../services/settings/app_settings.dart';
-import '../ui/context_menu_position.dart';
+import '../theme/fleur_icons.dart';
+import '../ui/app_menu.dart';
+import '../ui/actions/subscription_actions.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/layout.dart';
 import '../ui/layout_spec.dart';
@@ -25,6 +29,7 @@ import '../models/article.dart';
 import 'app_scrollbar.dart';
 import 'appear.dart';
 import 'article_list_item.dart';
+import 'fleur_empty_state.dart';
 
 class ArticleList extends ConsumerStatefulWidget {
   const ArticleList({
@@ -140,65 +145,41 @@ class _ArticleListState extends ConsumerState<ArticleList> {
     LayoutSpec spec,
   ) async {
     final l10n = AppLocalizations.of(context)!;
-    final action = await showMenu<_ArticleContextAction>(
-      context: context,
-      position: contextMenuPositionForGlobalPoint(context, position),
+    final action = await AppMenuHost.showAt<_ArticleContextAction>(
+      context,
+      position: position,
       items: [
-        PopupMenuItem(
+        AppMenuItem(
           value: _ArticleContextAction.open,
-          child: ListTile(
-            leading: const Icon(Icons.article_outlined),
-            title: Text(l10n.openArticle),
-            contentPadding: EdgeInsets.zero,
-          ),
+          icon: FleurIcons.article,
+          label: l10n.openArticle,
         ),
-        PopupMenuItem(
+        AppMenuItem(
           value: _ArticleContextAction.markRead,
-          child: ListTile(
-            leading: Icon(
-              article.isRead ? Icons.mark_email_unread : Icons.mark_email_read,
-            ),
-            title: Text(article.isRead ? l10n.markUnread : l10n.markRead),
-            contentPadding: EdgeInsets.zero,
-          ),
+          icon: article.isRead ? FleurIcons.markUnread : FleurIcons.markRead,
+          label: article.isRead ? l10n.markUnread : l10n.markRead,
         ),
-        PopupMenuItem(
+        AppMenuItem(
           value: _ArticleContextAction.toggleStar,
-          child: ListTile(
-            leading: Icon(article.isStarred ? Icons.star : Icons.star_border),
-            title: Text(article.isStarred ? l10n.unstar : l10n.star),
-            contentPadding: EdgeInsets.zero,
-          ),
+          icon: article.isStarred ? FleurIcons.starActive : FleurIcons.star,
+          label: article.isStarred ? l10n.unstar : l10n.star,
         ),
-        PopupMenuItem(
+        AppMenuItem(
           value: _ArticleContextAction.toggleReadLater,
-          child: ListTile(
-            leading: Icon(
-              article.isReadLater
-                  ? Icons.watch_later
-                  : Icons.watch_later_outlined,
-            ),
-            title: Text(
-              article.isReadLater ? l10n.removeReadLater : l10n.readLater,
-            ),
-            contentPadding: EdgeInsets.zero,
-          ),
+          icon: article.isReadLater
+              ? FleurIcons.readLaterActive
+              : FleurIcons.readLater,
+          label: article.isReadLater ? l10n.removeReadLater : l10n.readLater,
         ),
-        PopupMenuItem(
+        AppMenuItem(
           value: _ArticleContextAction.copyLink,
-          child: ListTile(
-            leading: const Icon(Icons.content_copy),
-            title: Text(l10n.copyLink),
-            contentPadding: EdgeInsets.zero,
-          ),
+          icon: FleurIcons.copy,
+          label: l10n.copyLink,
         ),
-        PopupMenuItem(
+        AppMenuItem(
           value: _ArticleContextAction.openInBrowser,
-          child: ListTile(
-            leading: const Icon(Icons.open_in_browser),
-            title: Text(l10n.openInBrowser),
-            contentPadding: EdgeInsets.zero,
-          ),
+          icon: FleurIcons.openExternal,
+          label: l10n.openInBrowser,
         ),
       ],
     );
@@ -282,17 +263,7 @@ class _ArticleListState extends ConsumerState<ArticleList> {
           if (widget.emptyBuilder != null) {
             return widget.emptyBuilder!(context, emptyState);
           }
-          Widget child;
-          if (searchQuery.isNotEmpty || starredOnly) {
-            child = Text(l10n.notFound);
-          } else {
-            child = Text(unreadOnly ? l10n.noUnreadArticles : l10n.noArticles);
-          }
-          return Container(
-            color: surfaces.list,
-            alignment: Alignment.center,
-            child: child,
-          );
+          return _buildDefaultEmptyState(context, l10n, emptyState);
         }
 
         final spec = LayoutSpec.fromContext(context);
@@ -406,8 +377,8 @@ class _ArticleListState extends ConsumerState<ArticleList> {
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Icon(
                             live.isRead
-                                ? Icons.mark_email_unread
-                                : Icons.mark_email_read,
+                                ? FleurIcons.markUnread
+                                : FleurIcons.markRead,
                             color: Colors.white,
                           ),
                         ),
@@ -416,7 +387,9 @@ class _ArticleListState extends ConsumerState<ArticleList> {
                           alignment: Alignment.centerRight,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Icon(
-                            live.isStarred ? Icons.star_border : Icons.star,
+                            live.isStarred
+                                ? FleurIcons.star
+                                : FleurIcons.starActive,
                             color: Colors.white,
                           ),
                         ),
@@ -472,6 +445,80 @@ class _ArticleListState extends ConsumerState<ArticleList> {
           child: list,
         );
       },
+    );
+  }
+
+  Widget _buildDefaultEmptyState(
+    BuildContext context,
+    AppLocalizations l10n,
+    ArticleListEmptyState state,
+  ) {
+    final capabilities = ref.watch(backendCapabilitiesProvider);
+    final actions = <Widget>[];
+
+    if (state.hasSearch) {
+      actions.add(
+        OutlinedButton.icon(
+          onPressed: () {
+            ref
+                .read(articleListFilterProvider.notifier)
+                .update((filter) => filter.copyWith(searchQuery: ''));
+          },
+          icon: const Icon(FleurIcons.clear),
+          label: Text(l10n.clearSearch),
+        ),
+      );
+    } else if (state.unreadOnly) {
+      actions.add(
+        OutlinedButton.icon(
+          onPressed: () {
+            ref
+                .read(articleListFilterProvider.notifier)
+                .update((filter) => filter.copyWith(unreadOnly: false));
+          },
+          icon: const Icon(FleurIcons.allArticles),
+          label: Text(l10n.showAll),
+        ),
+      );
+    } else if (!state.hasSearch && !state.starredOnly && !state.readLaterOnly) {
+      if (capabilities.isVisible(BackendFeature.addSubscription)) {
+        actions.add(
+          FilledButton.tonalIcon(
+            onPressed: () =>
+                unawaited(SubscriptionActions.addFeed(context, ref)),
+            icon: const Icon(FleurIcons.add),
+            label: Text(l10n.addSubscription),
+          ),
+        );
+      }
+      if (capabilities.isVisible(BackendFeature.refreshAllSources)) {
+        actions.add(
+          OutlinedButton.icon(
+            onPressed: () =>
+                unawaited(SubscriptionActions.refreshAll(context, ref)),
+            icon: const Icon(FleurIcons.refresh),
+            label: Text(l10n.refreshAll),
+          ),
+        );
+      }
+    }
+
+    final hasSearch = state.hasSearch;
+    final isUnread = state.unreadOnly && !hasSearch;
+    return FleurEmptyState(
+      variant: FleurEmptyStateVariant.list,
+      icon: hasSearch
+          ? FleurIcons.search
+          : (isUnread ? FleurIcons.markRead : FleurIcons.article),
+      title: hasSearch
+          ? l10n.notFound
+          : (isUnread ? l10n.noUnreadArticles : l10n.noArticles),
+      subtitle: hasSearch
+          ? l10n.searchNoResultsSubtitle(state.searchQuery)
+          : (isUnread
+                ? l10n.unreadEmptySubtitle
+                : l10n.articleListEmptySubtitle),
+      actions: actions,
     );
   }
 }

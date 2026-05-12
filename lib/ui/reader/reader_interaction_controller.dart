@@ -167,7 +167,7 @@ final class _ReaderInteractionController {
                 ),
                 child: Center(
                   child: Icon(
-                    Icons.unfold_more,
+                    FleurIcons.autoScroll,
                     size: 16,
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -306,7 +306,7 @@ final class _ReaderInteractionController {
     if (copyItem != null) {
       actions.add(
         _QuickAction(
-          icon: Icons.content_copy,
+          icon: FleurIcons.copy,
           label: AdaptiveTextSelectionToolbar.getButtonLabel(context, copyItem),
           onPressed: () {
             copyItem.onPressed?.call();
@@ -317,7 +317,7 @@ final class _ReaderInteractionController {
     }
     actions.add(
       _QuickAction(
-        icon: Icons.search,
+        icon: FleurIcons.search,
         label: l10n.search,
         onPressed: () {
           _searchSelectedText(text);
@@ -327,7 +327,7 @@ final class _ReaderInteractionController {
     );
     actions.add(
       _QuickAction(
-        icon: Icons.keyboard_arrow_up,
+        icon: FleurIcons.previousMatch,
         label: l10n.more,
         onPressed: () {
           _suppressContextMenuOnce();
@@ -447,7 +447,7 @@ final class _ReaderInteractionController {
                   right: 8,
                   child: IconButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(FleurIcons.close),
                   ),
                 ),
               ],

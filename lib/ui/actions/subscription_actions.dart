@@ -254,8 +254,14 @@ class SubscriptionActions {
     BuildContext context,
     WidgetRef ref, {
     NavigatorState? navigator,
+    int? initialCategoryId,
   }) {
-    return showAddSubscriptionDialog(context, ref, navigator: navigator);
+    return showAddSubscriptionDialog(
+      context,
+      ref,
+      navigator: navigator,
+      initialCategoryId: initialCategoryId,
+    );
   }
 
   // Back-compat alias for old call sites.

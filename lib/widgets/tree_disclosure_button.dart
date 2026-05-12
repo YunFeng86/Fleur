@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/fleur_icons.dart';
+
 class TreeDisclosureButton extends StatelessWidget {
   const TreeDisclosureButton({
     super.key,
@@ -14,16 +16,24 @@ class TreeDisclosureButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox.square(
-      dimension: 48,
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return SizedBox(
+      width: 40,
+      height: 48,
       child: IconButton(
-        constraints: const BoxConstraints.tightFor(width: 48, height: 48),
+        constraints: const BoxConstraints.tightFor(width: 40, height: 48),
         padding: EdgeInsets.zero,
         alignment: Alignment.center,
-        style: const ButtonStyle(shape: WidgetStatePropertyAll(CircleBorder())),
+        style: ButtonStyle(
+          backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
+          foregroundColor: WidgetStatePropertyAll(colorScheme.onSurfaceVariant),
+          overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+          shape: const WidgetStatePropertyAll(RoundedRectangleBorder()),
+        ),
         tooltip: tooltip,
         onPressed: onPressed,
-        icon: Icon(expanded ? Icons.keyboard_arrow_down : Icons.chevron_right),
+        icon: Icon(expanded ? FleurIcons.collapse : FleurIcons.expand),
       ),
     );
   }

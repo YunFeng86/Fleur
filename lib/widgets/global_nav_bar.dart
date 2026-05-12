@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/nav_destination.dart';
+import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/actions/global_nav_actions.dart';
 
@@ -28,23 +29,23 @@ class GlobalNavBar extends ConsumerWidget {
         },
         destinations: [
           NavigationDestination(
-            icon: const Icon(Icons.rss_feed_outlined),
-            selectedIcon: const Icon(Icons.rss_feed),
+            icon: const Icon(FleurIcons.feeds),
+            selectedIcon: const Icon(FleurIcons.feedsSelected),
             label: l10n.feeds,
           ),
           NavigationDestination(
-            icon: const Icon(Icons.bookmark_outline),
-            selectedIcon: const Icon(Icons.bookmark),
+            icon: const Icon(FleurIcons.saved),
+            selectedIcon: const Icon(FleurIcons.savedSelected),
             label: l10n.saved,
           ),
           NavigationDestination(
-            icon: const Icon(Icons.search_outlined),
-            selectedIcon: const Icon(Icons.search),
+            icon: const Icon(FleurIcons.search),
+            selectedIcon: const Icon(FleurIcons.searchSelected),
             label: l10n.search,
           ),
           NavigationDestination(
-            icon: const Icon(Icons.settings_outlined),
-            selectedIcon: const Icon(Icons.settings),
+            icon: const Icon(FleurIcons.settings),
+            selectedIcon: const Icon(FleurIcons.settingsSelected),
             label: l10n.settings,
           ),
         ],

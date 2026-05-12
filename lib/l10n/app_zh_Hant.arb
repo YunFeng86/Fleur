@@ -211,6 +211,26 @@
   "@refreshAll": {
     "description": "refreshAll"
   },
+  "refreshFeed": "重新整理目前訂閱源",
+  "@refreshFeed": {
+    "description": "Tooltip for refreshing the currently selected feed"
+  },
+  "refreshCategory": "重新整理目前分類",
+  "@refreshCategory": {
+    "description": "Tooltip for refreshing the currently selected category"
+  },
+  "refreshFeedAndSync": "重新整理目前訂閱源並同步",
+  "@refreshFeedAndSync": {
+    "description": "Tooltip for refreshing the selected remote feed source and syncing the account"
+  },
+  "refreshCategoryAndSync": "重新整理目前分類並同步",
+  "@refreshCategoryAndSync": {
+    "description": "Tooltip for refreshing selected remote category sources and syncing the account"
+  },
+  "refreshSourcesAndSync": "重新整理訂閱源並同步",
+  "@refreshSourcesAndSync": {
+    "description": "Tooltip for refreshing remote subscription sources and syncing the account"
+  },
   "accountSync": "帳號同步",
   "@accountSync": {
     "description": "accountSync"
@@ -358,6 +378,26 @@
   "@selectAnArticle": {
     "description": "selectAnArticle"
   },
+  "readerEmptySubtitle": "從左側列表打開文章後，會在這裡閱讀。",
+  "@readerEmptySubtitle": {
+    "description": "Reader pane helper text when no article is selected"
+  },
+  "savedReaderEmptyTitle": "選擇一篇收藏",
+  "@savedReaderEmptyTitle": {
+    "description": "Reader pane title when the saved section has no selected article"
+  },
+  "savedReaderEmptySubtitle": "從已收藏或稍後讀列表中打開文章。",
+  "@savedReaderEmptySubtitle": {
+    "description": "Reader pane helper text for the saved section"
+  },
+  "searchReaderEmptyTitle": "選擇一條搜尋結果",
+  "@searchReaderEmptyTitle": {
+    "description": "Reader pane title when the search section has no selected article"
+  },
+  "searchReaderEmptySubtitle": "輸入關鍵字後，從左側結果中打開文章。",
+  "@searchReaderEmptySubtitle": {
+    "description": "Reader pane helper text for the search section"
+  },
   "errorMessage": "錯誤：{error}",
   "@errorMessage": {
     "placeholders": {
@@ -383,6 +423,10 @@
   "refreshedAll": "全部已重新整理",
   "@refreshedAll": {
     "description": "refreshedAll"
+  },
+  "refreshedAndSynced": "已重新整理並同步",
+  "@refreshedAndSynced": {
+    "description": "Shown after refreshing remote sources and syncing the account"
   },
   "add": "新增",
   "@add": {
@@ -587,6 +631,18 @@
   "@noUnreadArticles": {
     "description": "noUnreadArticles"
   },
+  "articleListEmptySubtitle": "新增訂閱或同步後，文章會出現在這裡。",
+  "@articleListEmptySubtitle": {
+    "description": "Article list empty state helper text when there are no articles"
+  },
+  "unreadEmptySubtitle": "目前篩選範圍內的文章都已讀完。",
+  "@unreadEmptySubtitle": {
+    "description": "Article list empty state helper text when the unread filter has no results"
+  },
+  "savedSearchEmptySubtitle": "目前收藏中沒有符合的結果。",
+  "@savedSearchEmptySubtitle": {
+    "description": "Saved section empty state helper text when searching saved articles has no results"
+  },
   "star": "收藏",
   "@star": {
     "description": "star"
@@ -654,6 +710,29 @@
   "searchInContent": "搜尋內容",
   "@searchInContent": {
     "description": "searchInContent"
+  },
+  "clearSearch": "清除搜尋",
+  "@clearSearch": {
+    "description": "Action label for clearing article search text"
+  },
+  "searchStartTitle": "開始搜尋",
+  "@searchStartTitle": {
+    "description": "Search page empty state title before the user enters a query"
+  },
+  "searchStartSubtitle": "輸入關鍵字查找標題、摘要和正文。",
+  "@searchStartSubtitle": {
+    "description": "Search page empty state helper text before the user enters a query"
+  },
+  "searchNoResultsSubtitle": "沒有符合「{query}」的文章。",
+  "@searchNoResultsSubtitle": {
+    "description": "Search page empty state helper text when a query has no results",
+    "placeholders": {
+      "query": {}
+    }
+  },
+  "articleNotFoundSubtitle": "這篇文章可能已被刪除，或本地暫時不可用。",
+  "@articleNotFoundSubtitle": {
+    "description": "Reader helper text when an article id cannot be found"
   },
   "findInPage": "頁面內尋找",
   "@findInPage": {

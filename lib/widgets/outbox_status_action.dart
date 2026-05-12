@@ -10,6 +10,7 @@ import '../providers/outbox_status_providers.dart';
 import '../providers/service_providers.dart';
 import '../services/sync/backend_capabilities.dart';
 import '../services/sync/sync_service.dart';
+import '../theme/fleur_icons.dart';
 
 class OutboxStatusAction extends ConsumerWidget {
   const OutboxStatusAction({super.key});
@@ -66,9 +67,7 @@ class OutboxStatusAction extends ConsumerWidget {
       icon: Badge(
         backgroundColor: badgeColor,
         label: Text(label, style: const TextStyle(fontSize: 10)),
-        child: Icon(
-          isWarning ? Icons.sync_problem : Icons.cloud_upload_outlined,
-        ),
+        child: Icon(isWarning ? FleurIcons.syncWarning : FleurIcons.syncUpload),
       ),
     );
   }

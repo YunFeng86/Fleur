@@ -9,25 +9,33 @@ import '../../../providers/app_settings_providers.dart';
 import '../../../providers/backend_capabilities_provider.dart';
 import '../../../providers/backend_content_capabilities_provider.dart';
 import '../../../providers/backend_sync_semantics_provider.dart';
-import '../../../providers/refresh_all_providers.dart';
 import '../../../services/accounts/account.dart';
 import '../../../services/settings/app_settings.dart';
 import '../../../services/sync/backend_capabilities.dart';
 import '../../../services/sync/backend_sync_semantics.dart';
-import '../../../services/sync/refresh_all_coordinator.dart';
+import '../../../theme/fleur_icons.dart';
 import '../../../utils/context_extensions.dart';
 import '../../../widgets/account_avatar.dart';
+import '../../app_menu.dart';
+import '../../actions/subscription_actions.dart';
 import '../../dialogs/add_account_dialogs.dart';
 import '../../dialogs/text_input_dialog.dart';
 import '../widgets/section_header.dart';
 
-class ServicesTab extends ConsumerWidget {
+class ServicesTab extends ConsumerStatefulWidget {
   const ServicesTab({super.key, this.showPageTitle = true});
 
   final bool showPageTitle;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ServicesTab> createState() => _ServicesTabState();
+}
+
+class _ServicesTabState extends ConsumerState<ServicesTab> {
+  bool _isRefreshing = false;
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final appSettings =
@@ -45,7 +53,6 @@ class ServicesTab extends ConsumerWidget {
     final refreshSectionTitle = l10n.refreshAll;
     final refreshSectionDescription = l10n.autoRefreshSubtitle;
     final refreshActionLabel = l10n.refreshAll;
-    final refreshSuccessLabel = l10n.refreshedAll;
     final remoteStrategySubtitle = switch (syncSemantics.historyCoverage) {
       BackendHistoryCoverage.remotePaginatedEntries =>
         l10n.remoteSyncStrategyMinifluxSubtitle,
@@ -60,72 +67,13 @@ class ServicesTab extends ConsumerWidget {
         contentCapabilities.canChooseServerArticleContentFetchMode;
     final showRefreshConcurrency = syncSemantics.isFeedScopedRefresh;
 
-    String refreshProgressLabel(int current, int total) {
-      return l10n.refreshingProgress(current, total);
-    }
-
     Future<void> refreshNow() async {
-      final concurrency = appSettings.autoRefreshConcurrency;
-
-      if (!context.mounted) return;
-      final navigator = Navigator.of(context, rootNavigator: true);
-
-      // Show progress dialog.
-      final progressNotifier = ValueNotifier<String>(
-        refreshProgressLabel(0, 0),
-      );
+      if (_isRefreshing) return;
+      setState(() => _isRefreshing = true);
       try {
-        unawaited(
-          showDialog<void>(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) {
-              return PopScope(
-                canPop: false,
-                child: AlertDialog(
-                  content: Row(
-                    children: [
-                      const CircularProgressIndicator(),
-                      const SizedBox(width: 24),
-                      ValueListenableBuilder<String>(
-                        valueListenable: progressNotifier,
-                        builder: (context, value, _) {
-                          return Text(value);
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ).then((_) {}),
-        );
-
-        final result = await ref
-            .read(refreshSourcesCoordinatorProvider)
-            .refreshSources(
-              trigger: RefreshSourcesTrigger.manual,
-              maxConcurrent: concurrency,
-              onProgress: (current, total) {
-                progressNotifier.value = refreshProgressLabel(current, total);
-              },
-            );
-
-        final err = result.firstError;
-        if (!context.mounted) return;
-        context.showSnack(
-          err == null ? refreshSuccessLabel : l10n.errorMessage(err.toString()),
-        );
+        await SubscriptionActions.refreshAll(context, ref);
       } finally {
-        // Close progress dialog even if the settings page was popped.
-        try {
-          if (navigator.mounted && navigator.canPop()) {
-            navigator.pop();
-          }
-        } catch (_) {
-          // ignore: best-effort cleanup
-        }
-        progressNotifier.dispose();
+        if (mounted) setState(() => _isRefreshing = false);
       }
     }
 
@@ -139,21 +87,21 @@ class ServicesTab extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 ListTile(
-                  leading: const Icon(Icons.rss_feed),
+                  leading: const Icon(FleurIcons.localAccount),
                   title: Text(l10n.addLocal),
                   subtitle: Text(l10n.local),
                   onTap: () =>
                       Navigator.of(dialogContext).pop(AccountType.local),
                 ),
                 ListTile(
-                  leading: const Icon(Icons.cloud_outlined),
+                  leading: const Icon(FleurIcons.minifluxAccount),
                   title: Text(l10n.addMiniflux),
                   subtitle: Text(l10n.miniflux),
                   onTap: () =>
                       Navigator.of(dialogContext).pop(AccountType.miniflux),
                 ),
                 ListTile(
-                  leading: const Icon(Icons.local_fire_department_outlined),
+                  leading: const Icon(FleurIcons.feverAccount),
                   title: Text(l10n.addFever),
                   subtitle: Text(l10n.fever),
                   onTap: () =>
@@ -253,7 +201,7 @@ class ServicesTab extends ConsumerWidget {
 
     return SettingsPageBody(
       children: [
-        if (showPageTitle) ...[
+        if (widget.showPageTitle) ...[
           SectionHeader(title: l10n.services),
           const SizedBox(height: 8),
         ],
@@ -298,10 +246,10 @@ class ServicesTab extends ConsumerWidget {
                       key: const Key('services_add_account'),
                       leading: const CircleAvatar(
                         radius: 18,
-                        child: Icon(Icons.add),
+                        child: Icon(FleurIcons.add),
                       ),
                       title: Text(l10n.addOrRegisterAccount),
-                      trailing: const Icon(Icons.chevron_right, size: 20),
+                      trailing: const Icon(FleurIcons.chevronRight, size: 20),
                       onTap: () => unawaited(addAccount()),
                     ),
                   ],
@@ -369,8 +317,16 @@ class ServicesTab extends ConsumerWidget {
                   ],
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
-                    onPressed: refreshNow,
-                    icon: const Icon(Icons.refresh),
+                    onPressed: _isRefreshing
+                        ? null
+                        : () => unawaited(refreshNow()),
+                    icon: _isRefreshing
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(FleurIcons.refresh),
                     label: Text(refreshActionLabel),
                   ),
                 ],
@@ -542,14 +498,30 @@ class _AccountSettingsTile extends StatelessWidget {
         children: [
           if (isActive)
             Icon(
-              Icons.check_circle,
+              FleurIcons.activeAccount,
               key: Key('services_account_selected_${account.id}'),
               color: scheme.primary,
               size: 20,
             ),
-          PopupMenuButton<_AccountAction>(
-            key: Key('services_account_menu_${account.id}'),
+          AppMenuButton<_AccountAction>(
+            buttonKey: Key('services_account_menu_${account.id}'),
             tooltip: l10n.more,
+            icon: FleurIcons.moreVertical,
+            items: [
+              AppMenuItem(
+                key: Key('services_account_rename_${account.id}'),
+                value: _AccountAction.rename,
+                icon: FleurIcons.rename,
+                label: l10n.rename,
+              ),
+              AppMenuItem(
+                key: Key('services_account_delete_${account.id}'),
+                value: _AccountAction.delete,
+                icon: FleurIcons.delete,
+                label: l10n.delete,
+                enabled: onDelete != null,
+              ),
+            ],
             onSelected: (action) {
               switch (action) {
                 case _AccountAction.rename:
@@ -560,45 +532,10 @@ class _AccountSettingsTile extends StatelessWidget {
                   return;
               }
             },
-            itemBuilder: (context) {
-              return [
-                PopupMenuItem<_AccountAction>(
-                  key: Key('services_account_rename_${account.id}'),
-                  value: _AccountAction.rename,
-                  child: _AccountMenuItem(
-                    icon: Icons.edit_outlined,
-                    label: l10n.rename,
-                  ),
-                ),
-                PopupMenuItem<_AccountAction>(
-                  key: Key('services_account_delete_${account.id}'),
-                  value: _AccountAction.delete,
-                  enabled: onDelete != null,
-                  child: _AccountMenuItem(
-                    icon: Icons.delete_outline,
-                    label: l10n.delete,
-                  ),
-                ),
-              ];
-            },
           ),
         ],
       ),
       onTap: onTap,
-    );
-  }
-}
-
-class _AccountMenuItem extends StatelessWidget {
-  const _AccountMenuItem({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [Icon(icon, size: 20), const SizedBox(width: 12), Text(label)],
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../services/settings/translation_ai_settings.dart';
+import '../../../theme/fleur_icons.dart';
 
 class AiServiceTemplate {
   const AiServiceTemplate({
@@ -92,8 +93,8 @@ String apiTypeLabel(AiServiceApiType apiType) => switch (apiType) {
 };
 
 IconData apiTypeIcon(AiServiceApiType apiType) => switch (apiType) {
-  AiServiceApiType.openAiChatCompletions => Icons.chat_bubble_outline,
-  AiServiceApiType.openAiResponses => Icons.bolt_outlined,
-  AiServiceApiType.gemini => Icons.auto_awesome_outlined,
-  AiServiceApiType.anthropic => Icons.psychology_outlined,
+  AiServiceApiType.openAiChatCompletions => FleurIcons.aiChat,
+  AiServiceApiType.openAiResponses => FleurIcons.aiResponses,
+  AiServiceApiType.gemini => FleurIcons.aiGemini,
+  AiServiceApiType.anthropic => FleurIcons.aiAnthropic,
 };

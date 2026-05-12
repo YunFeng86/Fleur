@@ -11,6 +11,7 @@ import '../../../providers/service_providers.dart';
 import '../../../providers/settings_providers.dart';
 import '../../../services/settings/app_settings.dart';
 import '../../../services/settings/reader_settings.dart';
+import '../../../theme/fleur_icons.dart';
 import '../../../theme/seed_color_presets.dart';
 import '../../../utils/context_extensions.dart';
 import '../../../utils/platform.dart';
@@ -107,17 +108,17 @@ class AppPreferencesTab extends ConsumerWidget {
                           ButtonSegment<ThemeMode>(
                             value: ThemeMode.system,
                             label: Text(l10n.system),
-                            icon: const Icon(Icons.brightness_auto),
+                            icon: const Icon(FleurIcons.themeSystem),
                           ),
                           ButtonSegment<ThemeMode>(
                             value: ThemeMode.light,
                             label: Text(l10n.light),
-                            icon: const Icon(Icons.light_mode_outlined),
+                            icon: const Icon(FleurIcons.themeLight),
                           ),
                           ButtonSegment<ThemeMode>(
                             value: ThemeMode.dark,
                             label: Text(l10n.dark),
-                            icon: const Icon(Icons.dark_mode_outlined),
+                            icon: const Icon(FleurIcons.themeDark),
                           ),
                         ],
                         selected: {appSettings.themeMode},
@@ -162,7 +163,7 @@ class AppPreferencesTab extends ConsumerWidget {
                                   ),
                             );
                           },
-                          icon: const Icon(Icons.restart_alt),
+                          icon: const Icon(FleurIcons.reset),
                         ),
                       ],
                     ),
@@ -179,7 +180,7 @@ class AppPreferencesTab extends ConsumerWidget {
                               scheme: Theme.of(context).colorScheme,
                               semanticLabel: l10n.dynamicColor,
                               trailingIcon: const Icon(
-                                Icons.colorize,
+                                FleurIcons.colorPicker,
                                 size: 18,
                               ),
                               onTap: () {
@@ -430,7 +431,7 @@ class _ThemeColorCard extends StatelessWidget {
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        Icons.check,
+                        FleurIcons.check,
                         size: 18,
                         color: onSelectedColor,
                       ),

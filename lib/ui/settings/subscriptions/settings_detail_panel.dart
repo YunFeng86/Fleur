@@ -14,6 +14,7 @@ import '../../../../models/category.dart';
 import '../../../../services/settings/app_settings.dart';
 import '../../../../services/sync/backend_capabilities.dart';
 import '../../../../services/network/user_agents.dart';
+import '../../../../theme/fleur_icons.dart';
 import '../../../../utils/timeago_locale.dart';
 import '../widgets/section_header.dart';
 import 'subscription_actions.dart';
@@ -295,7 +296,7 @@ class _CategorySettings extends ConsumerWidget {
           SettingsCard(
             padding: EdgeInsets.zero,
             child: SettingsTile(
-              leading: const Icon(Icons.cloud_done_outlined),
+              leading: const Icon(FleurIcons.services),
               title: Text(l10n.remoteWritableTaxonomyTitle),
               subtitle: Text(l10n.remoteWritableTaxonomyDescription),
             ),
@@ -304,7 +305,7 @@ class _CategorySettings extends ConsumerWidget {
           SettingsCard(
             padding: EdgeInsets.zero,
             child: SettingsTile(
-              leading: const Icon(Icons.lock_outline),
+              leading: const Icon(FleurIcons.lock),
               title: Text(l10n.remoteReadOnlyTaxonomyTitle),
               subtitle: Text(l10n.remoteReadOnlyTaxonomyDescription),
             ),
@@ -317,7 +318,7 @@ class _CategorySettings extends ConsumerWidget {
               children: [
                 if (capabilities.isVisible(BackendFeature.renameCategory))
                   SettingsTile(
-                    leading: const Icon(Icons.edit),
+                    leading: const Icon(FleurIcons.rename),
                     title: Text(l10n.rename),
                     onTap: () => SubscriptionActions.renameCategory(
                       context,
@@ -329,7 +330,7 @@ class _CategorySettings extends ConsumerWidget {
                 if (capabilities.isVisible(BackendFeature.deleteCategory))
                   SettingsTile(
                     destructive: true,
-                    leading: const Icon(Icons.delete_outline),
+                    leading: const Icon(FleurIcons.delete),
                     title: Text(l10n.delete),
                     onTap: () async {
                       final deleted = await SubscriptionActions.deleteCategory(
@@ -407,7 +408,7 @@ class _FeedSettings extends ConsumerWidget {
             children: [
               if (capabilities.isVisible(BackendFeature.clientFeedSettings))
                 SettingsTile(
-                  leading: const Icon(Icons.edit),
+                  leading: const Icon(FleurIcons.rename),
                   title: Text(l10n.rename),
                   onTap: () => SubscriptionActions.editFeedTitle(
                     context,
@@ -418,7 +419,7 @@ class _FeedSettings extends ConsumerWidget {
                 ),
               if (canMove)
                 SettingsTile(
-                  leading: const Icon(Icons.folder_open),
+                  leading: const Icon(FleurIcons.moveToCategory),
                   title: Text(l10n.moveToCategory),
                   subtitle: Text(category?.name ?? l10n.uncategorized),
                   onTap: () => SubscriptionActions.moveFeedToCategory(
@@ -429,7 +430,7 @@ class _FeedSettings extends ConsumerWidget {
                 ),
               if (!canMove && syncSemantics.isRemoteReadOnlyTaxonomy)
                 SettingsTile(
-                  leading: const Icon(Icons.lock_outline),
+                  leading: const Icon(FleurIcons.lock),
                   title: Text(l10n.feedCategoryReadOnlyTaxonomyTitle),
                   subtitle: Text(l10n.feedCategoryReadOnlyTaxonomyDescription),
                 ),
@@ -437,7 +438,7 @@ class _FeedSettings extends ConsumerWidget {
                 BackendFeature.refreshSubscriptionSource,
               ))
                 SettingsTile(
-                  leading: const Icon(Icons.refresh),
+                  leading: const Icon(FleurIcons.refresh),
                   title: Text(l10n.refresh),
                   onTap: () =>
                       SubscriptionActions.refreshFeed(context, ref, feed.id),
@@ -445,7 +446,7 @@ class _FeedSettings extends ConsumerWidget {
               if (capabilities.isVisible(BackendFeature.deleteSubscription))
                 SettingsTile(
                   destructive: true,
-                  leading: const Icon(Icons.delete_outline),
+                  leading: const Icon(FleurIcons.delete),
                   title: Text(l10n.delete),
                   onTap: () async {
                     final deleted = await SubscriptionActions.deleteFeed(
@@ -898,12 +899,12 @@ class _TriStateSwitchState extends State<_TriStateSwitch> {
         children: [
           if (isSpecific)
             IconButton(
-              icon: const Icon(Icons.refresh),
+              icon: const Icon(FleurIcons.inherit),
               tooltip: l10n.inherit,
               onPressed: () => widget.onChanged(null),
             ),
           IconButton(
-            icon: const Icon(Icons.arrow_drop_down),
+            icon: const Icon(FleurIcons.dropdown),
             onPressed: () => _showMenu(context),
           ),
         ],
@@ -1014,7 +1015,7 @@ class _FilterKeywordsInputState extends ConsumerState<_FilterKeywordsInput> {
                 ? null
                 : (_isInherit
                       ? IconButton(
-                          icon: const Icon(Icons.edit),
+                          icon: const Icon(FleurIcons.rename),
                           tooltip: l10n.edit,
                           onPressed: () {
                             // Create an explicit override based on the current effective value,
@@ -1031,7 +1032,7 @@ class _FilterKeywordsInputState extends ConsumerState<_FilterKeywordsInput> {
                       : ((_currentValue != null &&
                                 _currentValue!.trim().isNotEmpty)
                             ? IconButton(
-                                icon: const Icon(Icons.undo),
+                                icon: const Icon(FleurIcons.inherit),
                                 tooltip: l10n.inherit,
                                 onPressed: () {
                                   _controller.text = _effectiveValue;
@@ -1140,7 +1141,7 @@ class _UserAgentSectionState extends ConsumerState<_UserAgentSection> {
                 helperText: l10n.userAgentRssHint,
                 helperMaxLines: 2,
                 suffixIcon: IconButton(
-                  icon: const Icon(Icons.refresh),
+                  icon: const Icon(FleurIcons.reset),
                   tooltip: l10n.resetToDefault,
                   onPressed: () {
                     _rssController.text = UserAgents.rss;
@@ -1166,7 +1167,7 @@ class _UserAgentSectionState extends ConsumerState<_UserAgentSection> {
                 helperText: l10n.userAgentWebHint,
                 helperMaxLines: 2,
                 suffixIcon: IconButton(
-                  icon: const Icon(Icons.refresh),
+                  icon: const Icon(FleurIcons.reset),
                   tooltip: l10n.resetToDefault,
                   onPressed: () {
                     _webController.text = UserAgents.webForCurrentPlatform();

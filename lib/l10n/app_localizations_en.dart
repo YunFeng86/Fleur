@@ -174,6 +174,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get refreshAll => 'Refresh sources';
 
   @override
+  String get refreshFeed => 'Refresh feed';
+
+  @override
+  String get refreshCategory => 'Refresh category';
+
+  @override
+  String get refreshFeedAndSync => 'Refresh feed and sync';
+
+  @override
+  String get refreshCategoryAndSync => 'Refresh category and sync';
+
+  @override
+  String get refreshSourcesAndSync => 'Refresh sources and sync';
+
+  @override
   String get accountSync => 'Account sync';
 
   @override
@@ -290,6 +305,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get selectAnArticle => 'Select an article';
 
   @override
+  String get readerEmptySubtitle =>
+      'Open an article from the list to read it here.';
+
+  @override
+  String get savedReaderEmptyTitle => 'Select a saved article';
+
+  @override
+  String get savedReaderEmptySubtitle =>
+      'Open an article from Saved or Read Later.';
+
+  @override
+  String get searchReaderEmptyTitle => 'Select a search result';
+
+  @override
+  String get searchReaderEmptySubtitle =>
+      'Enter a keyword, then open a result from the list.';
+
+  @override
   String errorMessage(String error) {
     return 'Error: $error';
   }
@@ -304,6 +337,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get refreshedAll => 'Refreshed all';
+
+  @override
+  String get refreshedAndSynced => 'Refreshed and synced';
 
   @override
   String get add => 'Add';
@@ -440,6 +476,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noUnreadArticles => 'No unread articles';
 
   @override
+  String get articleListEmptySubtitle =>
+      'Add a subscription or refresh sources, and articles will appear here.';
+
+  @override
+  String get unreadEmptySubtitle =>
+      'Everything in the current scope has been read.';
+
+  @override
+  String get savedSearchEmptySubtitle => 'No saved articles match this search.';
+
+  @override
   String get star => 'Star';
 
   @override
@@ -489,6 +536,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchInContent => 'Search in content';
+
+  @override
+  String get clearSearch => 'Clear search';
+
+  @override
+  String get searchStartTitle => 'Start searching';
+
+  @override
+  String get searchStartSubtitle =>
+      'Enter keywords to search titles, summaries, and content.';
+
+  @override
+  String searchNoResultsSubtitle(Object query) {
+    return 'No articles match “$query”.';
+  }
+
+  @override
+  String get articleNotFoundSubtitle =>
+      'This article may have been deleted or is no longer available locally.';
 
   @override
   String get findInPage => 'Find in page';

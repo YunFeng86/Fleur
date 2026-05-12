@@ -45,30 +45,22 @@ class FleurSurfaceTheme extends ThemeExtension<FleurSurfaceTheme> {
   }) {
     final dark = brightness == Brightness.dark;
     final baseSurface = scheme.surface;
-    final chrome = _blend(baseSurface, scheme.primary, dark ? 16 : 6);
+    final chrome = _blend(baseSurface, scheme.primary, dark ? 10 : 3);
     final nav = _blend(
       scheme.surfaceContainerLow,
       scheme.primary,
-      dark ? 18 : 8,
+      dark ? 10 : 4,
     );
     final sidebar = _blend(
       scheme.surfaceContainerLow,
       scheme.secondary,
-      dark ? 18 : 8,
+      dark ? 10 : 4,
     );
     final list = dark ? scheme.surface : scheme.surfaceContainerLowest;
-    final reader = _blend(baseSurface, scheme.secondary, dark ? 8 : 3);
-    final card = dark
-        ? scheme.surfaceContainerLow
-        : scheme.surfaceContainerHigh;
-    final cardSelected = _blend(
-      card,
-      scheme.secondaryContainer,
-      dark ? 108 : 148,
-    );
-    final floating = dark
-        ? scheme.surfaceContainerHigh
-        : scheme.surfaceContainerHighest;
+    final reader = _blend(baseSurface, scheme.secondary, dark ? 5 : 2);
+    final card = scheme.surfaceContainerLow;
+    final cardSelected = _blend(card, scheme.primaryContainer, dark ? 60 : 52);
+    final floating = dark ? scheme.surfaceContainerHigh : scheme.surface;
 
     return FleurSurfaceTheme(
       chrome: chrome,
@@ -79,7 +71,7 @@ class FleurSurfaceTheme extends ThemeExtension<FleurSurfaceTheme> {
       card: card,
       cardSelected: cardSelected,
       floating: floating,
-      subtleDivider: scheme.outlineVariant.withAlpha(dark ? 112 : 132),
+      subtleDivider: scheme.outlineVariant.withAlpha(dark ? 80 : 92),
     );
   }
 
@@ -162,9 +154,9 @@ class FleurStateTheme extends ThemeExtension<FleurStateTheme> {
       savedAccent: scheme.tertiary,
       syncAccent: scheme.primary,
       focusRing: scheme.primary,
-      hoverTint: scheme.primary.withAlpha(dark ? 38 : 18),
-      pressedTint: scheme.primary.withAlpha(dark ? 56 : 28),
-      selectionTint: scheme.primary.withAlpha(dark ? 92 : 68),
+      hoverTint: scheme.primary.withAlpha(dark ? 30 : 14),
+      pressedTint: scheme.primary.withAlpha(dark ? 44 : 22),
+      selectionTint: scheme.primary.withAlpha(dark ? 62 : 40),
       errorAccent: scheme.error,
     );
   }
@@ -277,7 +269,7 @@ class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
       contentPaddingBottom: profile.readerBottomPadding,
       titleStyle: (textTheme.headlineMedium ?? const TextStyle()).copyWith(
         fontWeight: AppTypography.platformWeight(FontWeight.w700),
-        letterSpacing: -0.7,
+        letterSpacing: 0,
         height: 1.12,
         color: scheme.onSurface,
       ),
@@ -288,16 +280,16 @@ class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
       bodyStyle: (textTheme.bodyLarge ?? const TextStyle()).copyWith(
         color: scheme.onSurface,
         height: 1.72,
-        letterSpacing: 0.08,
+        letterSpacing: 0,
       ),
       summaryStyle: (textTheme.bodyMedium ?? const TextStyle()).copyWith(
         color: scheme.onSurface,
         height: 1.56,
       ),
-      summarySurface: _blend(scheme.surfaceContainerLow, scheme.secondary, 18),
-      toolbarSurface: _blend(scheme.surfaceContainerLow, scheme.primary, 10),
-      searchBarSurface: _blend(scheme.surfaceContainerHigh, scheme.primary, 12),
-      bannerSurface: _blend(scheme.surfaceContainerHigh, scheme.secondary, 14),
+      summarySurface: _blend(scheme.surfaceContainerLow, scheme.secondary, 8),
+      toolbarSurface: _blend(scheme.surfaceContainerLow, scheme.primary, 4),
+      searchBarSurface: _blend(scheme.surfaceContainerHigh, scheme.primary, 6),
+      bannerSurface: _blend(scheme.surfaceContainerHigh, scheme.secondary, 6),
       blockquoteAccent: scheme.primary,
       codeBlockSurface: scheme.surfaceContainerHigh,
     );

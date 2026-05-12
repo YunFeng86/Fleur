@@ -5,12 +5,14 @@ import 'package:go_router/go_router.dart';
 
 import '../providers/app_settings_providers.dart';
 import '../providers/query_providers.dart';
+import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/hero_tags.dart';
 import '../ui/layout.dart';
 import '../ui/layout_spec.dart';
 import '../utils/platform.dart';
 import '../widgets/article_list.dart';
+import '../widgets/fleur_empty_state.dart';
 import '../widgets/reader_view.dart';
 import '../widgets/sidebar_pane_hero.dart';
 import '../widgets/staggered_reveal.dart';
@@ -38,6 +40,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     ref
         .read(articleListFilterProvider.notifier)
         .update((filter) => filter.copyWith(searchQuery: q));
+  }
+
+  void _clearQuery() {
+    _applyQuery('');
   }
 
   @override
@@ -127,90 +133,63 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           enabled: isDesktop,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (width >= kCompactWidth)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _controller,
-                          focusNode: _focusNode,
-                          autofocus: widget.selectedArticleId == null,
-                          decoration: InputDecoration(
-                            hintText: l10n.search,
-                            prefixIcon: const Icon(Icons.search),
-                            suffixIcon: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (query.trim().isNotEmpty)
-                                  IconButton(
-                                    tooltip: l10n.delete,
-                                    onPressed: () => _applyQuery(''),
-                                    icon: const Icon(Icons.clear),
-                                  ),
-                              ],
-                            ),
+            child: LayoutBuilder(
+              builder: (context, headerConstraints) {
+                final wideHeader = headerConstraints.maxWidth >= kCompactWidth;
+                final searchField = TextField(
+                  controller: _controller,
+                  focusNode: _focusNode,
+                  autofocus: widget.selectedArticleId == null,
+                  decoration: InputDecoration(
+                    hintText: l10n.search,
+                    prefixIcon: const Icon(FleurIcons.search),
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (query.trim().isNotEmpty)
+                          IconButton(
+                            tooltip: l10n.delete,
+                            onPressed: _clearQuery,
+                            icon: const Icon(FleurIcons.clear),
                           ),
-                          textInputAction: TextInputAction.search,
-                          onSubmitted: _applyQuery,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      FilterChip(
-                        label: Text(l10n.searchInContent),
-                        selected: searchInContent,
-                        onSelected: (v) async {
-                          await ref
-                              .read(appSettingsProvider.notifier)
-                              .setSearchInContent(v);
-                        },
-                      ),
-                    ],
-                  )
-                else
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      TextField(
-                        controller: _controller,
-                        focusNode: _focusNode,
-                        autofocus: widget.selectedArticleId == null,
-                        decoration: InputDecoration(
-                          hintText: l10n.search,
-                          prefixIcon: const Icon(Icons.search),
-                          suffixIcon: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (query.trim().isNotEmpty)
-                                IconButton(
-                                  tooltip: l10n.delete,
-                                  onPressed: () => _applyQuery(''),
-                                  icon: const Icon(Icons.clear),
-                                ),
-                            ],
-                          ),
-                        ),
-                        textInputAction: TextInputAction.search,
-                        onSubmitted: _applyQuery,
-                      ),
-                      const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: FilterChip(
-                          label: Text(l10n.searchInContent),
-                          selected: searchInContent,
-                          onSelected: (v) async {
-                            await ref
-                                .read(appSettingsProvider.notifier)
-                                .setSearchInContent(v);
-                          },
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-              ],
+                  textInputAction: TextInputAction.search,
+                  onSubmitted: _applyQuery,
+                );
+                final contentFilter = FilterChip(
+                  label: Text(l10n.searchInContent),
+                  selected: searchInContent,
+                  onSelected: (v) async {
+                    await ref
+                        .read(appSettingsProvider.notifier)
+                        .setSearchInContent(v);
+                  },
+                );
+
+                if (wideHeader) {
+                  return Row(
+                    children: [
+                      Expanded(child: searchField),
+                      const SizedBox(width: 12),
+                      contentFilter,
+                    ],
+                  );
+                }
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    searchField,
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: contentFilter,
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         );
@@ -230,13 +209,26 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                           selectedArticleId: widget.selectedArticleId,
                           baseLocation: '/search',
                           articleRoutePrefix: '/search',
+                          emptyBuilder: (context, state) => FleurEmptyState(
+                            variant: FleurEmptyStateVariant.list,
+                            icon: FleurIcons.search,
+                            title: l10n.notFound,
+                            subtitle: l10n.searchNoResultsSubtitle(trimmed),
+                            actions: [
+                              OutlinedButton.icon(
+                                onPressed: _clearQuery,
+                                icon: const Icon(FleurIcons.clear),
+                                label: Text(l10n.clearSearch),
+                              ),
+                            ],
+                          ),
                         ),
                       )
-                    : Container(
-                        color: surfaces.list,
-                        alignment: Alignment.center,
-                        padding: const EdgeInsets.all(24),
-                        child: Text(l10n.search),
+                    : FleurEmptyState(
+                        variant: FleurEmptyStateVariant.list,
+                        icon: FleurIcons.search,
+                        title: l10n.searchStartTitle,
+                        subtitle: l10n.searchStartSubtitle,
                       ),
               ),
             ],
@@ -246,10 +238,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         Widget readerPane({required bool embedded}) {
           final id = widget.selectedArticleId;
           if (id == null) {
-            return Container(
-              color: surfaces.reader,
-              alignment: Alignment.center,
-              child: Text(l10n.selectAnArticle),
+            return FleurEmptyState(
+              variant: FleurEmptyStateVariant.reader,
+              icon: FleurIcons.search,
+              title: l10n.searchReaderEmptyTitle,
+              subtitle: l10n.searchReaderEmptySubtitle,
             );
           }
           return Container(

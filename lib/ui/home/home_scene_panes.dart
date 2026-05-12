@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../theme/fleur_theme_extensions.dart';
+import '../../theme/fleur_icons.dart';
 import '../../widgets/article_list.dart';
+import '../../widgets/fleur_empty_state.dart';
 import '../../widgets/reader_view.dart';
 import '../../widgets/sidebar.dart';
 import '../../widgets/sidebar_pane_hero.dart';
@@ -79,21 +81,24 @@ class HomeReaderPane extends StatelessWidget {
     super.key,
     required this.selectedArticleId,
     required this.placeholderText,
+    required this.placeholderSubtitle,
     this.embedded = true,
   });
 
   final int? selectedArticleId;
   final String placeholderText;
+  final String placeholderSubtitle;
   final bool embedded;
 
   @override
   Widget build(BuildContext context) {
     final readerSurface = Theme.of(context).fleurSurface.reader;
     if (selectedArticleId == null) {
-      return Container(
-        color: readerSurface,
-        alignment: Alignment.center,
-        child: Text(placeholderText),
+      return FleurEmptyState(
+        variant: FleurEmptyStateVariant.reader,
+        icon: FleurIcons.article,
+        title: placeholderText,
+        subtitle: placeholderSubtitle,
       );
     }
     return Container(

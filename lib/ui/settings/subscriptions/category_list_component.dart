@@ -7,6 +7,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../models/feed.dart';
 import '../../../../providers/query_providers.dart';
 import '../../../../providers/subscription_settings_provider.dart';
+import '../../../../theme/fleur_icons.dart';
 import '../../../../theme/fleur_theme_extensions.dart';
 import '../../../../ui/actions/subscription_object_menus.dart';
 import '../../../../utils/platform.dart';
@@ -140,7 +141,7 @@ class CategoryListComponent extends ConsumerWidget {
               children: [
                 buildSectionLabel(l10n.defaultsGroup),
                 buildScopeTile(
-                  leading: const Icon(Icons.tune_outlined),
+                  leading: const Icon(FleurIcons.subscriptionDefaults),
                   title: Text(l10n.globalDefaults),
                   subtitle: Text(
                     l10n.globalDefaultsDescription,
@@ -157,7 +158,7 @@ class CategoryListComponent extends ConsumerWidget {
                 ),
                 for (final category in categories)
                   buildScopeTile(
-                    leading: const Icon(Icons.folder_outlined),
+                    leading: const Icon(FleurIcons.category),
                     title: Text(category.name),
                     count: feedCounts[category.id] ?? 0,
                     selected:
@@ -232,7 +233,7 @@ class _RootFeedTile extends StatelessWidget {
         child: FaviconAvatar(
           siteUri: siteUri,
           size: 16,
-          fallbackIcon: Icons.rss_feed,
+          fallbackIcon: FleurIcons.feed,
           fallbackColor: theme.colorScheme.onSurfaceVariant,
         ),
       ),

@@ -4,9 +4,9 @@ import 'layout.dart';
 
 // Global (leftmost) navigation rail sizing/breakpoints.
 //
-// NOTE: NavigationRail defaults to a 72px min width; keep this constant in sync
-// with the rail widget so width-based layout decisions stay correct.
-const double kGlobalNavRailWidth = 72;
+// Keep this constant in sync with the rail widget so width-based layout
+// decisions stay correct.
+const double kGlobalNavRailWidth = 56;
 const double kGlobalNavBreakpoint = 900;
 
 enum GlobalNavMode { rail, bottom }

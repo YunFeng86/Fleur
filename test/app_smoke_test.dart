@@ -18,12 +18,14 @@ import 'package:fleur/providers/app_settings_providers.dart';
 import 'package:fleur/providers/background_sync_providers.dart';
 import 'package:fleur/providers/outbox_status_providers.dart';
 import 'package:fleur/providers/query_providers.dart';
+import 'package:fleur/providers/refresh_all_providers.dart';
 import 'package:fleur/providers/repository_providers.dart';
 import 'package:fleur/providers/service_providers.dart';
 import 'package:fleur/providers/sync_status_providers.dart';
 import 'package:fleur/providers/unread_providers.dart';
 import 'package:fleur/repositories/feed_repository.dart';
 import 'package:fleur/screens/home_screen.dart';
+import 'package:fleur/screens/search_screen.dart';
 import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/screens/saved_screen.dart';
 import 'package:fleur/services/settings/app_settings.dart';
@@ -31,8 +33,11 @@ import 'package:fleur/services/sync/sync_service.dart';
 import 'package:fleur/services/sync/sync_status_reporter.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/app_typography.dart';
+import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
+import 'package:fleur/ui/app_menu.dart';
 import 'package:fleur/ui/app_shell.dart';
+import 'package:fleur/ui/global_nav.dart';
 import 'package:fleur/ui/home/home_scene_commands.dart';
 import 'package:fleur/ui/home/home_scene_panes.dart';
 import 'package:fleur/ui/home/home_scene_shortcuts.dart';
@@ -167,9 +172,12 @@ class _RecordingHomeSceneCommands extends HomeSceneCommands {
   final List<String> calls = <String>[];
 
   @override
-  Future<BatchRefreshResult> refreshAll() async {
+  Future<HomeRefreshOutcome> refreshAll() async {
     calls.add('refresh');
-    return const BatchRefreshResult(<FeedRefreshResult>[]);
+    return const HomeRefreshOutcome(
+      batch: BatchRefreshResult(<FeedRefreshResult>[]),
+      successFeedback: HomeRefreshSuccessFeedback.refreshed,
+    );
   }
 
   @override
@@ -210,6 +218,70 @@ class _FakeFeedRepository extends Fake implements FeedRepository {
 
   @override
   Future<List<Feed>> getAll() async => feeds;
+
+  @override
+  Future<Feed?> getById(int id) async {
+    for (final feed in feeds) {
+      if (feed.id == id) return feed;
+    }
+    return null;
+  }
+}
+
+class _FakeMinifluxSourceRefresh implements MinifluxSourceRefresh {
+  int refreshAllCalls = 0;
+  final List<int> refreshedFeedIds = <int>[];
+
+  @override
+  Future<void> refreshAll() async {
+    refreshAllCalls++;
+  }
+
+  @override
+  Future<void> refreshFeed(Feed feed) async {
+    refreshedFeedIds.add(feed.id);
+  }
+
+  @override
+  Future<void> refreshFeeds(List<Feed> feeds, {int maxConcurrent = 2}) async {
+    refreshedFeedIds.addAll(feeds.map((feed) => feed.id));
+  }
+}
+
+Future<HomeSceneCommands> _pumpHomeCommandsHarness(
+  WidgetTester tester, {
+  required List<Override> overrides,
+}) async {
+  late HomeSceneCommands commands;
+  final router = GoRouter(
+    routes: [
+      GoRoute(
+        path: '/',
+        builder: (context, state) {
+          return Consumer(
+            builder: (context, ref, _) {
+              commands = HomeSceneCommands(
+                context: context,
+                ref: ref,
+                selectedArticleId: null,
+              );
+              return const SizedBox(key: ValueKey('home_commands_harness'));
+            },
+          );
+        },
+      ),
+    ],
+  );
+  addTearDown(router.dispose);
+
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: overrides,
+      child: MaterialApp.router(routerConfig: router),
+    ),
+  );
+  await tester.pumpAndSettle();
+  return commands;
 }
 
 void main() {
@@ -494,6 +566,10 @@ void main() {
 
     expect(find.byType(GlobalNavRail), findsOneWidget);
     expect(find.byType(GlobalNavBar), findsNothing);
+    expect(
+      tester.getSize(find.byType(GlobalNavRail)).width,
+      kGlobalNavRailWidth,
+    );
 
     tester.view.physicalSize = const Size(640, 900);
     await tester.pumpWidget(_buildShellHarness());
@@ -503,9 +579,14 @@ void main() {
     expect(find.byType(GlobalNavRail), findsNothing);
   });
 
-  testWidgets('rail account button opens services settings tab', (
+  testWidgets('rail keeps add in top group and opens settings routes', (
     tester,
   ) async {
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(1200, 900);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
     final router = GoRouter(
       routes: [
         GoRoute(
@@ -533,6 +614,21 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+
+    final viewportMidpoint =
+        tester.view.physicalSize.height / tester.view.devicePixelRatio / 2;
+    expect(
+      tester.getCenter(find.byKey(const Key('global_nav_add_button'))).dy,
+      lessThan(viewportMidpoint),
+    );
+
+    await tester.tap(find.byKey(const Key('global_nav_settings_button')));
+    await tester.pumpAndSettle();
+
+    expect(
+      router.routerDelegate.currentConfiguration.uri.toString(),
+      '/settings',
+    );
 
     await tester.tap(find.byKey(const Key('global_nav_account_button')));
     await tester.pumpAndSettle();
@@ -728,6 +824,7 @@ void main() {
     (tester) async {
       final syncService = FakeSyncService();
       final actionService = RecordingArticleActionService();
+      final feed = _buildFeed(id: 10);
       late HomeSceneCommands homeCommands;
       final router = GoRouter(
         routes: [
@@ -768,6 +865,9 @@ void main() {
               _FixedArticleListController.new,
             ),
             articleActionServiceProvider.overrideWithValue(actionService),
+            feedRepositoryProvider.overrideWithValue(
+              _FakeFeedRepository([feed]),
+            ),
             syncServiceProvider.overrideWithValue(syncService),
           ],
           child: MaterialApp.router(routerConfig: router),
@@ -780,10 +880,14 @@ void main() {
       );
       await container.read(articleListControllerProvider.future);
 
-      await homeCommands.refreshAll();
+      final refreshOutcome = await homeCommands.refreshAll();
       expect(syncService.refreshCalls, [
         [10],
       ]);
+      expect(
+        refreshOutcome.successFeedback,
+        HomeRefreshSuccessFeedback.refreshed,
+      );
 
       await homeCommands.markAllRead();
       expect(actionService.markAllReadCalls, [(feedId: 10, categoryId: null)]);
@@ -806,6 +910,204 @@ void main() {
       homeCommands.goToNextArticle();
       await tester.pumpAndSettle();
       expect(find.text('3'), findsOneWidget);
+    },
+  );
+
+  testWidgets('Home scene commands refresh the selected local category only', (
+    tester,
+  ) async {
+    final syncService = FakeSyncService();
+    final feeds = [
+      _buildFeed(id: 1)..categoryId = 7,
+      _buildFeed(id: 2, url: 'https://example.com/2.xml')..categoryId = 7,
+      _buildFeed(id: 3, url: 'https://example.com/3.xml')..categoryId = 9,
+    ];
+
+    final homeCommands = await _pumpHomeCommandsHarness(
+      tester,
+      overrides: [
+        activeAccountProvider.overrideWithValue(
+          buildTestAccount(type: AccountType.local, name: 'Local'),
+        ),
+        selectedCategoryIdProvider.overrideWith((ref) => 7),
+        feedRepositoryProvider.overrideWithValue(_FakeFeedRepository(feeds)),
+        syncServiceProvider.overrideWithValue(syncService),
+      ],
+    );
+
+    final outcome = await homeCommands.refreshAll();
+
+    expect(syncService.refreshCalls, [
+      [1, 2],
+    ]);
+    expect(outcome.successFeedback, HomeRefreshSuccessFeedback.refreshed);
+  });
+
+  testWidgets('Home scene commands fail fast when selected feed is missing', (
+    tester,
+  ) async {
+    final syncService = FakeSyncService();
+    final minifluxSourceRefresh = _FakeMinifluxSourceRefresh();
+
+    final homeCommands = await _pumpHomeCommandsHarness(
+      tester,
+      overrides: [
+        activeAccountProvider.overrideWithValue(
+          buildTestAccount(type: AccountType.miniflux, name: 'Miniflux'),
+        ),
+        selectedFeedIdProvider.overrideWith((ref) => 404),
+        feedRepositoryProvider.overrideWithValue(_FakeFeedRepository([])),
+        minifluxSourceRefreshProvider.overrideWithValue(minifluxSourceRefresh),
+        syncServiceProvider.overrideWithValue(syncService),
+      ],
+    );
+
+    final outcome = await homeCommands.refreshAll();
+
+    expect(outcome.batch.firstError?.feedId, 404);
+    expect(outcome.batch.firstError?.error, isA<StateError>());
+    expect(minifluxSourceRefresh.refreshedFeedIds, isEmpty);
+    expect(syncService.refreshCalls, isEmpty);
+  });
+
+  testWidgets(
+    'Home scene commands refresh selected Miniflux feed source before sync',
+    (tester) async {
+      final syncService = FakeSyncService();
+      final minifluxSourceRefresh = _FakeMinifluxSourceRefresh();
+      final feed = _buildFeed(id: 10)..remoteId = '42';
+
+      final homeCommands = await _pumpHomeCommandsHarness(
+        tester,
+        overrides: [
+          activeAccountProvider.overrideWithValue(
+            buildTestAccount(type: AccountType.miniflux, name: 'Miniflux'),
+          ),
+          selectedFeedIdProvider.overrideWith((ref) => 10),
+          feedRepositoryProvider.overrideWithValue(_FakeFeedRepository([feed])),
+          minifluxSourceRefreshProvider.overrideWithValue(
+            minifluxSourceRefresh,
+          ),
+          syncServiceProvider.overrideWithValue(syncService),
+        ],
+      );
+
+      final outcome = await homeCommands.refreshAll();
+
+      expect(minifluxSourceRefresh.refreshedFeedIds, [10]);
+      expect(minifluxSourceRefresh.refreshAllCalls, 0);
+      expect(syncService.refreshCalls, [
+        [10],
+      ]);
+      expect(
+        outcome.successFeedback,
+        HomeRefreshSuccessFeedback.refreshedAndSynced,
+      );
+    },
+  );
+
+  testWidgets(
+    'Home scene commands refresh selected Miniflux category sources before sync',
+    (tester) async {
+      final syncService = FakeSyncService();
+      final minifluxSourceRefresh = _FakeMinifluxSourceRefresh();
+      final feeds = [
+        _buildFeed(id: 1)..categoryId = 7,
+        _buildFeed(id: 2, url: 'https://example.com/2.xml')..categoryId = 7,
+        _buildFeed(id: 3, url: 'https://example.com/3.xml')..categoryId = 9,
+      ];
+
+      final homeCommands = await _pumpHomeCommandsHarness(
+        tester,
+        overrides: [
+          activeAccountProvider.overrideWithValue(
+            buildTestAccount(type: AccountType.miniflux, name: 'Miniflux'),
+          ),
+          selectedCategoryIdProvider.overrideWith((ref) => 7),
+          feedRepositoryProvider.overrideWithValue(_FakeFeedRepository(feeds)),
+          minifluxSourceRefreshProvider.overrideWithValue(
+            minifluxSourceRefresh,
+          ),
+          syncServiceProvider.overrideWithValue(syncService),
+        ],
+      );
+
+      final outcome = await homeCommands.refreshAll();
+
+      expect(minifluxSourceRefresh.refreshedFeedIds, [1, 2]);
+      expect(minifluxSourceRefresh.refreshAllCalls, 0);
+      expect(syncService.refreshCalls, [
+        [1, 2, 3],
+      ]);
+      expect(
+        outcome.successFeedback,
+        HomeRefreshSuccessFeedback.refreshedAndSynced,
+      );
+    },
+  );
+
+  testWidgets(
+    'Home scene commands treat empty Miniflux category as refreshed',
+    (tester) async {
+      final syncService = FakeSyncService();
+      final minifluxSourceRefresh = _FakeMinifluxSourceRefresh();
+
+      final homeCommands = await _pumpHomeCommandsHarness(
+        tester,
+        overrides: [
+          activeAccountProvider.overrideWithValue(
+            buildTestAccount(type: AccountType.miniflux, name: 'Miniflux'),
+          ),
+          selectedCategoryIdProvider.overrideWith((ref) => 7),
+          feedRepositoryProvider.overrideWithValue(_FakeFeedRepository([])),
+          minifluxSourceRefreshProvider.overrideWithValue(
+            minifluxSourceRefresh,
+          ),
+          syncServiceProvider.overrideWithValue(syncService),
+        ],
+      );
+
+      final outcome = await homeCommands.refreshAll();
+
+      expect(outcome.batch.results, isEmpty);
+      expect(outcome.successFeedback, HomeRefreshSuccessFeedback.refreshed);
+      expect(minifluxSourceRefresh.refreshedFeedIds, isEmpty);
+      expect(syncService.refreshCalls, isEmpty);
+    },
+  );
+
+  testWidgets(
+    'Home scene commands keep Miniflux all-subscriptions refresh global',
+    (tester) async {
+      final syncService = FakeSyncService();
+      final minifluxSourceRefresh = _FakeMinifluxSourceRefresh();
+      final feed = _buildFeed(id: 10);
+
+      final homeCommands = await _pumpHomeCommandsHarness(
+        tester,
+        overrides: [
+          activeAccountProvider.overrideWithValue(
+            buildTestAccount(type: AccountType.miniflux, name: 'Miniflux'),
+          ),
+          feedRepositoryProvider.overrideWithValue(_FakeFeedRepository([feed])),
+          minifluxSourceRefreshProvider.overrideWithValue(
+            minifluxSourceRefresh,
+          ),
+          syncServiceProvider.overrideWithValue(syncService),
+        ],
+      );
+
+      final outcome = await homeCommands.refreshAll();
+
+      expect(minifluxSourceRefresh.refreshAllCalls, 1);
+      expect(minifluxSourceRefresh.refreshedFeedIds, isEmpty);
+      expect(syncService.refreshCalls, [
+        [10],
+      ]);
+      expect(
+        outcome.successFeedback,
+        HomeRefreshSuccessFeedback.refreshedAndSynced,
+      );
     },
   );
 
@@ -855,11 +1157,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await homeCommands.refreshAll();
+    final outcome = await homeCommands.refreshAll();
 
     expect(syncService.refreshCalls, [
       [1],
     ]);
+    expect(outcome.successFeedback, HomeRefreshSuccessFeedback.syncedAccount);
   });
 
   testWidgets('Home refresh tooltip follows backend refresh scope', (
@@ -872,9 +1175,16 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    Future<void> pumpHome(AccountType type) async {
+    var pumpIndex = 0;
+
+    Future<void> pumpHome(
+      AccountType type, {
+      List<Override> extraOverrides = const <Override>[],
+    }) async {
+      pumpIndex++;
       await tester.pumpWidget(
         ProviderScope(
+          key: ValueKey('home_${type.name}_$pumpIndex'),
           overrides: [
             activeAccountProvider.overrideWithValue(
               buildTestAccount(type: type),
@@ -887,6 +1197,7 @@ void main() {
             ),
             outboxPendingCountProvider.overrideWith((ref) async => 0),
             syncServiceProvider.overrideWithValue(FakeSyncService()),
+            ...extraOverrides,
           ],
           child: MaterialApp(
             locale: const Locale('en'),
@@ -900,9 +1211,51 @@ void main() {
       await tester.pumpAndSettle();
     }
 
+    await pumpHome(
+      AccountType.local,
+      extraOverrides: [
+        selectedFeedIdProvider.overrideWith((ref) => 10),
+        feedRepositoryProvider.overrideWithValue(
+          _FakeFeedRepository([_buildFeed(id: 10)]),
+        ),
+      ],
+    );
+    expect(find.byTooltip('Refresh feed'), findsOneWidget);
+    expect(find.byTooltip('Sync account'), findsNothing);
+
+    await tester.tap(find.byTooltip('Refresh feed'));
+    await tester.pump();
+    expect(find.text('Refreshed'), findsOneWidget);
+    expect(find.text('Refreshed all'), findsNothing);
+
+    await pumpHome(
+      AccountType.local,
+      extraOverrides: [selectedCategoryIdProvider.overrideWith((ref) => 7)],
+    );
+    expect(find.byTooltip('Refresh category'), findsOneWidget);
+    expect(find.byTooltip('Refresh sources'), findsNothing);
+
     await pumpHome(AccountType.local);
     expect(find.byTooltip('Refresh sources'), findsOneWidget);
     expect(find.byTooltip('Sync account'), findsNothing);
+
+    await pumpHome(
+      AccountType.miniflux,
+      extraOverrides: [selectedFeedIdProvider.overrideWith((ref) => 10)],
+    );
+    expect(find.byTooltip('Refresh feed and sync'), findsOneWidget);
+    expect(find.byTooltip('Refresh sources'), findsNothing);
+
+    await pumpHome(
+      AccountType.miniflux,
+      extraOverrides: [selectedCategoryIdProvider.overrideWith((ref) => 7)],
+    );
+    expect(find.byTooltip('Refresh category and sync'), findsOneWidget);
+    expect(find.byTooltip('Refresh sources'), findsNothing);
+
+    await pumpHome(AccountType.miniflux);
+    expect(find.byTooltip('Refresh sources and sync'), findsOneWidget);
+    expect(find.byTooltip('Refresh sources'), findsNothing);
 
     await pumpHome(AccountType.fever);
     expect(find.byTooltip('Sync account'), findsOneWidget);
@@ -1143,7 +1496,9 @@ void main() {
             home: const Scaffold(
               body: SizedBox(
                 width: 1200,
-                child: Sidebar(onSelectFeed: _noopSelectFeed),
+                child: AppMenuHost(
+                  child: Sidebar(onSelectFeed: _noopSelectFeed),
+                ),
               ),
             ),
           ),
@@ -1193,7 +1548,9 @@ void main() {
             home: const Scaffold(
               body: SizedBox(
                 width: 1200,
-                child: Sidebar(onSelectFeed: _noopSelectFeed),
+                child: AppMenuHost(
+                  child: Sidebar(onSelectFeed: _noopSelectFeed),
+                ),
               ),
             ),
           ),
@@ -1201,10 +1558,16 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.more_vert));
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer();
+      await mouse.moveTo(tester.getCenter(find.text('Fleur Feed')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(FleurIcons.moreVertical));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Refresh').last);
       await tester.pumpAndSettle();
+      await mouse.removePointer();
 
       expect(syncService.refreshCalls, [
         [feed.id],
@@ -1242,7 +1605,9 @@ void main() {
             home: const Scaffold(
               body: SizedBox(
                 width: 400,
-                child: Sidebar(onSelectFeed: _noopSelectFeed),
+                child: AppMenuHost(
+                  child: Sidebar(onSelectFeed: _noopSelectFeed),
+                ),
               ),
             ),
           ),
@@ -1291,7 +1656,9 @@ void main() {
             home: const Scaffold(
               body: SizedBox(
                 width: 400,
-                child: Sidebar(onSelectFeed: _noopSelectFeed),
+                child: AppMenuHost(
+                  child: Sidebar(onSelectFeed: _noopSelectFeed),
+                ),
               ),
             ),
           ),
@@ -1299,28 +1666,18 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final addSubscriptionButton = find.byWidgetPredicate(
-        (widget) =>
-            widget is IconButton && widget.tooltip == 'Add subscription',
-      );
       final newCategoryButton = find.byWidgetPredicate(
         (widget) => widget is IconButton && widget.tooltip == 'New category',
       );
+      final addSubscriptionCta = find.byKey(
+        const Key('sidebar_add_subscription_cta'),
+      );
 
-      expect(
-        tester.getSize(addSubscriptionButton).width,
-        greaterThanOrEqualTo(48),
-      );
-      expect(
-        tester.getSize(addSubscriptionButton).height,
-        greaterThanOrEqualTo(48),
-      );
       expect(tester.getSize(newCategoryButton).width, greaterThanOrEqualTo(48));
       expect(
         tester.getSize(newCategoryButton).height,
         greaterThanOrEqualTo(48),
       );
-
       await tester.tap(
         find.byWidgetPredicate(
           (widget) => widget is IconButton && widget.tooltip == 'Expand',
@@ -1328,38 +1685,19 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final moreButtonFinder = find.byWidgetPredicate(
-        (widget) => widget is IconButton && widget.tooltip == 'More',
+      expect(find.text('Fleur Feed'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        addSubscriptionCta,
+        200,
+        scrollable: find.byType(Scrollable).first,
       );
-      final categoryTile = find.ancestor(
-        of: find.text('News'),
-        matching: find.byType(ListTile),
-      );
-      final categoryMoreButton = find.descendant(
-        of: categoryTile,
-        matching: moreButtonFinder,
-      );
-      expect(categoryMoreButton, findsOneWidget);
-
-      await tester.tap(categoryMoreButton);
       await tester.pumpAndSettle();
-      expect(find.text('Rename'), findsOneWidget);
-      await tester.tapAt(const Offset(8, 8));
-      await tester.pumpAndSettle();
-
-      final feedTile = find.ancestor(
-        of: find.text('Fleur Feed'),
-        matching: find.byType(ListTile),
+      expect(addSubscriptionCta, findsOneWidget);
+      expect(find.text('Add subscription'), findsOneWidget);
+      expect(
+        tester.getSize(addSubscriptionCta).height,
+        greaterThanOrEqualTo(48),
       );
-      final feedMoreButton = find.descendant(
-        of: feedTile,
-        matching: moreButtonFinder,
-      );
-      expect(feedMoreButton, findsOneWidget);
-
-      await tester.tap(feedMoreButton);
-      await tester.pumpAndSettle();
-      expect(find.text('Refresh'), findsOneWidget);
     },
   );
 
@@ -1504,12 +1842,23 @@ void main() {
       await tester.pumpAndSettle();
 
       final theme = AppTheme.light();
-      final card = tester.widget<Card>(find.byType(Card));
+      final rowDecoration =
+          tester
+                  .widget<DecoratedBox>(
+                    find
+                        .descendant(
+                          of: find.byType(ArticleListItem),
+                          matching: find.byType(DecoratedBox),
+                        )
+                        .first,
+                  )
+                  .decoration
+              as BoxDecoration;
       final title = tester.widget<Text>(find.text('Selected Article'));
 
-      expect(card.color, theme.fleurSurface.cardSelected);
+      expect(rowDecoration.color, theme.fleurSurface.cardSelected);
       expect(title.style?.fontWeight, FontWeight.w700);
-      expect(find.byIcon(Icons.star), findsOneWidget);
+      expect(find.byIcon(FleurIcons.starActive), findsOneWidget);
     },
   );
 
@@ -1580,9 +1929,39 @@ void main() {
       );
 
       expect(find.text(l10n.noUnreadArticles), findsOneWidget);
+      expect(find.text(l10n.unreadEmptySubtitle), findsOneWidget);
       expect(container.color, theme.fleurSurface.list);
     },
   );
+
+  testWidgets('Home reader empty state uses quiet reader copy', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Builder(
+          builder: (context) {
+            final l10n = AppLocalizations.of(context)!;
+            return Scaffold(
+              body: HomeReaderPane(
+                selectedArticleId: null,
+                placeholderText: l10n.selectAnArticle,
+                placeholderSubtitle: l10n.readerEmptySubtitle,
+              ),
+            );
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final element = tester.element(find.byType(HomeReaderPane));
+    final l10n = AppLocalizations.of(element)!;
+
+    expect(find.text(l10n.selectAnArticle), findsOneWidget);
+    expect(find.text(l10n.readerEmptySubtitle), findsOneWidget);
+  });
 
   testWidgets('Saved screen shows mode-specific empty feedback', (
     tester,
@@ -1631,12 +2010,74 @@ void main() {
 
     expect(find.text(l10n.noStarredArticles), findsOneWidget);
     expect(find.text(l10n.noReadLaterArticles), findsNothing);
+    expect(find.text(l10n.savedReaderEmptyTitle), findsOneWidget);
+    expect(find.text(l10n.savedReaderEmptySubtitle), findsOneWidget);
 
     await tester.tap(find.text('${l10n.readLater} (0)'));
     await tester.pumpAndSettle();
 
     expect(find.text(l10n.noReadLaterArticles), findsOneWidget);
     expect(find.text(l10n.noStarredArticles), findsNothing);
+  });
+
+  testWidgets('Search screen shows start and no-result empty states', (
+    tester,
+  ) async {
+    const searchSectionKey = ValueKey<String>('search-section-test');
+    final router = GoRouter(
+      initialLocation: '/search',
+      routes: [
+        GoRoute(path: '/', builder: (context, state) => const SizedBox()),
+        GoRoute(
+          path: '/search',
+          pageBuilder: (context, state) => const NoTransitionPage(
+            key: searchSectionKey,
+            child: SearchScreen(selectedArticleId: null),
+          ),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appSettingsStoreProvider.overrideWithValue(
+            FakeAppSettingsStore(AppSettings.defaults()),
+          ),
+          articleListControllerProvider.overrideWith(
+            _EmptyArticleListController.new,
+          ),
+        ],
+        child: MaterialApp.router(
+          routerConfig: router,
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final element = tester.element(find.byType(SearchScreen));
+    final l10n = AppLocalizations.of(element)!;
+
+    expect(find.text(l10n.searchStartTitle), findsOneWidget);
+    expect(find.text(l10n.searchStartSubtitle), findsOneWidget);
+    expect(find.text(l10n.searchReaderEmptyTitle), findsOneWidget);
+    expect(find.text(l10n.searchReaderEmptySubtitle), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField).first, 'claude');
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.notFound), findsOneWidget);
+    expect(find.text(l10n.searchNoResultsSubtitle('claude')), findsOneWidget);
+    expect(find.text(l10n.clearSearch), findsOneWidget);
+
+    await tester.tap(find.text(l10n.clearSearch));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.searchStartTitle), findsOneWidget);
   });
 }
 

@@ -11,6 +11,8 @@ import 'package:fleur/providers/account_providers.dart';
 import 'package:fleur/providers/query_providers.dart';
 import 'package:fleur/providers/subscription_settings_provider.dart';
 import 'package:fleur/services/accounts/account.dart';
+import 'package:fleur/ui/app_menu.dart';
+import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/ui/settings/subscriptions/subscription_tree_view.dart';
 import 'package:fleur/ui/settings/widgets/section_header.dart';
 import 'package:fleur/utils/platform.dart';
@@ -71,7 +73,7 @@ Future<void> _openContextMenu(WidgetTester tester, Finder finder) async {
 
 Finder _popupMenuText(String text) {
   return find.descendant(
-    of: find.byWidgetPredicate((widget) => widget is PopupMenuItem),
+    of: find.byType(MenuItemButton),
     matching: find.text(text),
   );
 }
@@ -99,20 +101,22 @@ void main() {
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: Consumer(
-            builder: (context, ref, _) {
-              // Simulate "already drilled down" state by initialising the provider state
-              // We can't easily mock the notifier logic directly unless we override the provider.
-              // We can just act on it in build or use a microtask.
-              unawaited(
-                Future.microtask(() {
-                  ref
-                      .read(subscriptionSelectionProvider.notifier)
-                      .selectCategory(1);
-                }),
-              );
-              return const Scaffold(body: SubscriptionTreeView());
-            },
+          home: AppMenuHost(
+            child: Consumer(
+              builder: (context, ref, _) {
+                // Simulate "already drilled down" state by initialising the provider state
+                // We can't easily mock the notifier logic directly unless we override the provider.
+                // We can just act on it in build or use a microtask.
+                unawaited(
+                  Future.microtask(() {
+                    ref
+                        .read(subscriptionSelectionProvider.notifier)
+                        .selectCategory(1);
+                  }),
+                );
+                return const Scaffold(body: SubscriptionTreeView());
+              },
+            ),
           ),
         ),
       ),
@@ -149,7 +153,9 @@ void main() {
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: const Scaffold(body: SubscriptionTreeView()),
+            home: const AppMenuHost(
+              child: Scaffold(body: SubscriptionTreeView()),
+            ),
           ),
         ),
       );
@@ -190,7 +196,9 @@ void main() {
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: const Scaffold(body: SubscriptionTreeView()),
+            home: const AppMenuHost(
+              child: Scaffold(body: SubscriptionTreeView()),
+            ),
           ),
         ),
       );
@@ -215,7 +223,7 @@ void main() {
 
       await tester.tapAt(const Offset(5, 5));
       await tester.pumpAndSettle();
-      await tester.tap(find.byIcon(Icons.chevron_right));
+      await tester.tap(find.byIcon(FleurIcons.expand));
       await tester.pumpAndSettle();
 
       await _openContextMenuOnText(tester, 'Tech News');
@@ -261,7 +269,9 @@ void main() {
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: const Scaffold(body: SubscriptionTreeView()),
+            home: const AppMenuHost(
+              child: Scaffold(body: SubscriptionTreeView()),
+            ),
           ),
         ),
       );
@@ -341,7 +351,9 @@ void main() {
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: const Scaffold(body: SubscriptionTreeView()),
+            home: const AppMenuHost(
+              child: Scaffold(body: SubscriptionTreeView()),
+            ),
           ),
         ),
       );
@@ -378,7 +390,9 @@ void main() {
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: const Scaffold(body: SubscriptionTreeView()),
+            home: const AppMenuHost(
+              child: Scaffold(body: SubscriptionTreeView()),
+            ),
           ),
         ),
       );
@@ -411,7 +425,9 @@ void main() {
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: const Scaffold(body: SubscriptionTreeView()),
+          home: const AppMenuHost(
+            child: Scaffold(body: SubscriptionTreeView()),
+          ),
         ),
       ),
     );
@@ -441,7 +457,9 @@ void main() {
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: const Scaffold(body: SubscriptionTreeView()),
+            home: const AppMenuHost(
+              child: Scaffold(body: SubscriptionTreeView()),
+            ),
           ),
         ),
       );
@@ -485,7 +503,9 @@ void main() {
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: const Scaffold(body: SubscriptionTreeView()),
+            home: const AppMenuHost(
+              child: Scaffold(body: SubscriptionTreeView()),
+            ),
           ),
         ),
       );
@@ -497,7 +517,7 @@ void main() {
       expect(find.text('Rename'), findsNothing);
       expect(find.text('Delete category'), findsNothing);
 
-      await tester.tap(find.byIcon(Icons.chevron_right));
+      await tester.tap(find.byIcon(FleurIcons.expand));
       await tester.pumpAndSettle();
       await _openContextMenuOnText(tester, 'Tech News');
 
@@ -531,17 +551,19 @@ void main() {
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: Consumer(
-            builder: (context, ref, _) {
-              unawaited(
-                Future.microtask(() {
-                  ref
-                      .read(subscriptionSelectionProvider.notifier)
-                      .selectCategory(1);
-                }),
-              );
-              return const Scaffold(body: SubscriptionTreeView());
-            },
+          home: AppMenuHost(
+            child: Consumer(
+              builder: (context, ref, _) {
+                unawaited(
+                  Future.microtask(() {
+                    ref
+                        .read(subscriptionSelectionProvider.notifier)
+                        .selectCategory(1);
+                  }),
+                );
+                return const Scaffold(body: SubscriptionTreeView());
+              },
+            ),
           ),
         ),
       ),
@@ -574,7 +596,9 @@ void main() {
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: const Scaffold(body: SubscriptionTreeView()),
+          home: const AppMenuHost(
+            child: Scaffold(body: SubscriptionTreeView()),
+          ),
         ),
       ),
     );
@@ -606,7 +630,9 @@ void main() {
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: const Scaffold(body: SubscriptionTreeView()),
+          home: const AppMenuHost(
+            child: Scaffold(body: SubscriptionTreeView()),
+          ),
         ),
       ),
     );
@@ -617,13 +643,18 @@ void main() {
       tester.element(find.byType(SubscriptionTreeView)),
     );
 
-    expect(find.byIcon(Icons.folder_outlined), findsNothing);
+    expect(find.byIcon(FleurIcons.category), findsNothing);
     expect(
-      tester.getCenter(find.byIcon(Icons.chevron_right)).dx,
+      tester.getSize(find.byType(TreeDisclosureButton).first),
+      const Size(40, 48),
+    );
+    expect(tester.getCenter(find.byIcon(FleurIcons.expand)).dx, lessThan(32));
+    expect(
+      tester.getCenter(find.byIcon(FleurIcons.expand)).dx,
       lessThan(tester.getCenter(find.text('Tech')).dx),
     );
 
-    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.tap(find.byIcon(FleurIcons.expand));
     await tester.pumpAndSettle();
 
     expect(find.text('Tech News'), findsOneWidget);
@@ -636,7 +667,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(container.read(subscriptionSelectionProvider).activeCategoryId, 1);
-    expect(find.byIcon(Icons.keyboard_arrow_down), findsOneWidget);
+    expect(find.byIcon(FleurIcons.collapse), findsOneWidget);
   });
 
   testWidgets(
@@ -668,7 +699,9 @@ void main() {
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: const Scaffold(body: SubscriptionTreeView()),
+            home: const AppMenuHost(
+              child: Scaffold(body: SubscriptionTreeView()),
+            ),
           ),
         ),
       );
@@ -720,17 +753,19 @@ void main() {
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: Consumer(
-            builder: (context, ref, _) {
-              unawaited(
-                Future.microtask(() {
-                  ref
-                      .read(subscriptionSelectionProvider.notifier)
-                      .selectCategory(1);
-                }),
-              );
-              return const Scaffold(body: SubscriptionTreeView());
-            },
+          home: AppMenuHost(
+            child: Consumer(
+              builder: (context, ref, _) {
+                unawaited(
+                  Future.microtask(() {
+                    ref
+                        .read(subscriptionSelectionProvider.notifier)
+                        .selectCategory(1);
+                  }),
+                );
+                return const Scaffold(body: SubscriptionTreeView());
+              },
+            ),
           ),
         ),
       ),
@@ -740,7 +775,7 @@ void main() {
 
     expect(find.text('Tech News'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.keyboard_arrow_down));
+    await tester.tap(find.byIcon(FleurIcons.collapse));
     await tester.pumpAndSettle();
 
     expect(find.text('Tech News'), findsNothing);

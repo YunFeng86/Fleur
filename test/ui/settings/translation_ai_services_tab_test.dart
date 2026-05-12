@@ -6,6 +6,7 @@ import 'package:fleur/providers/app_settings_providers.dart';
 import 'package:fleur/providers/translation_ai_settings_providers.dart';
 import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/settings/translation_ai_settings.dart';
+import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/ui/settings/translation_ai/ai_service_editor_dialog.dart';
 import 'package:fleur/ui/settings/translation_ai/ai_service_templates.dart';
 import 'package:fleur/ui/settings/tabs/translation_ai_services_tab.dart';
@@ -298,7 +299,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(store.settings.aiServices.single.enabled, isFalse);
-        expect(find.byIcon(Icons.more_vert), findsWidgets);
+        expect(find.byIcon(FleurIcons.moreVertical), findsWidgets);
       } finally {
         FlutterError.onError = oldOnError;
       }

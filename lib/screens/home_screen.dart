@@ -5,7 +5,9 @@ import 'package:fleur/l10n/app_localizations.dart';
 import '../providers/backend_capabilities_provider.dart';
 import '../providers/backend_sync_semantics_provider.dart';
 import '../providers/core_providers.dart';
+import '../providers/query_providers.dart';
 import '../providers/unread_providers.dart';
+import '../theme/fleur_icons.dart';
 import '../ui/actions/subscription_object_menus.dart';
 import '../ui/global_nav.dart';
 import '../ui/hero_tags.dart';
@@ -34,16 +36,14 @@ class HomeScreen extends ConsumerWidget {
       capabilities,
     );
     final syncSemantics = ref.watch(backendSyncSemanticsProvider);
-    final refreshActionLabel = SubscriptionObjectMenus.rootRefreshLabel(
-      l10n,
-      capabilities,
-      syncSemantics,
-    );
-    final refreshSuccessLabel = SubscriptionObjectMenus.rootRefreshSuccessLabel(
-      l10n,
-      capabilities,
-      syncSemantics,
-    );
+    final selectedFeedId = ref.watch(selectedFeedIdProvider);
+    final selectedCategoryId = ref.watch(selectedCategoryIdProvider);
+    final refreshActionLabel = resolveHomeRefreshIntent(
+      capabilities: capabilities,
+      syncSemantics: syncSemantics,
+      selectedFeedId: selectedFeedId,
+      selectedCategoryId: selectedCategoryId,
+    ).label(l10n);
     final commands = HomeSceneCommands(
       context: context,
       ref: ref,
@@ -51,14 +51,14 @@ class HomeScreen extends ConsumerWidget {
     );
 
     Future<void> refreshAll() async {
-      final batch = await commands.refreshAll();
-      final err = batch.firstError?.error;
+      final outcome = await commands.refreshAll();
+      final err = outcome.batch.firstError?.error;
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             err == null
-                ? refreshSuccessLabel
+                ? outcome.successLabel(l10n)
                 : l10n.errorMessage(err.toString()),
           ),
         ),
@@ -77,7 +77,7 @@ class HomeScreen extends ConsumerWidget {
       return FloatingActionButton(
         onPressed: markAllRead,
         tooltip: l10n.markAllRead,
-        child: const Icon(Icons.done_all),
+        child: const Icon(FleurIcons.markAllRead),
       );
     }
 
@@ -113,7 +113,7 @@ class HomeScreen extends ConsumerWidget {
                   IconButton(
                     tooltip: refreshActionLabel,
                     onPressed: refreshAll,
-                    icon: const Icon(Icons.refresh),
+                    icon: const Icon(FleurIcons.refresh),
                   ),
                 // On mobile we have dedicated Saved/Search tabs in the
                 // global bottom navigation. Avoid duplicating those
@@ -123,7 +123,7 @@ class HomeScreen extends ConsumerWidget {
                   tooltip: unreadOnly ? l10n.showAll : l10n.unreadOnly,
                   onPressed: commands.toggleUnreadOnly,
                   icon: Icon(
-                    unreadOnly ? Icons.filter_alt : Icons.filter_alt_outlined,
+                    unreadOnly ? FleurIcons.filterActive : FleurIcons.filter,
                   ),
                 ),
                 const OutboxStatusAction(),
@@ -150,7 +150,7 @@ class HomeScreen extends ConsumerWidget {
                         IconButton(
                           tooltip: refreshActionLabel,
                           onPressed: refreshAll,
-                          icon: const Icon(Icons.refresh),
+                          icon: const Icon(FleurIcons.refresh),
                         ),
                       Consumer(
                         builder: (context, ref, _) {
@@ -162,8 +162,8 @@ class HomeScreen extends ConsumerWidget {
                             onPressed: commands.toggleUnreadOnly,
                             icon: Icon(
                               unreadOnly
-                                  ? Icons.filter_alt
-                                  : Icons.filter_alt_outlined,
+                                  ? FleurIcons.filterActive
+                                  : FleurIcons.filter,
                             ),
                           );
                         },
@@ -194,6 +194,7 @@ class HomeScreen extends ConsumerWidget {
                   child: HomeReaderPane(
                     selectedArticleId: selectedArticleId,
                     placeholderText: l10n.selectAnArticle,
+                    placeholderSubtitle: l10n.readerEmptySubtitle,
                   ),
                 ),
               ],
@@ -244,6 +245,7 @@ class HomeScreen extends ConsumerWidget {
             child: HomeReaderPane(
               selectedArticleId: selectedArticleId,
               placeholderText: l10n.selectAnArticle,
+              placeholderSubtitle: l10n.readerEmptySubtitle,
             ),
           ),
         ],
@@ -262,6 +264,7 @@ class HomeScreen extends ConsumerWidget {
             child: HomeReaderPane(
               selectedArticleId: selectedArticleId,
               placeholderText: l10n.selectAnArticle,
+              placeholderSubtitle: l10n.readerEmptySubtitle,
             ),
           ),
         ],
@@ -286,7 +289,7 @@ class HomeScreen extends ConsumerWidget {
             IconButton(
               tooltip: refreshActionLabel,
               onPressed: refreshAll,
-              icon: const Icon(Icons.refresh),
+              icon: const Icon(FleurIcons.refresh),
             ),
           Consumer(
             builder: (context, ref, _) {
@@ -295,7 +298,7 @@ class HomeScreen extends ConsumerWidget {
                 tooltip: unreadOnly ? l10n.showAll : l10n.unreadOnly,
                 onPressed: commands.toggleUnreadOnly,
                 icon: Icon(
-                  unreadOnly ? Icons.filter_alt : Icons.filter_alt_outlined,
+                  unreadOnly ? FleurIcons.filterActive : FleurIcons.filter,
                 ),
               );
             },
@@ -306,7 +309,7 @@ class HomeScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton(
         onPressed: markAllRead,
         tooltip: l10n.markAllRead,
-        child: const Icon(Icons.done_all),
+        child: const Icon(FleurIcons.markAllRead),
       ),
       drawer: drawerEnabled ? const HomeSidebarDrawer() : null,
       body: content,

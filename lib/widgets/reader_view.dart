@@ -20,6 +20,7 @@ import 'package:fleur/l10n/app_localizations.dart';
 import 'reader_bottom_bar.dart';
 import 'reader_search_bar.dart';
 import 'app_scrollbar.dart';
+import 'fleur_empty_state.dart';
 import '../models/article.dart';
 import '../providers/app_settings_providers.dart';
 import '../providers/article_ai_providers.dart';
@@ -35,6 +36,7 @@ import '../services/settings/reader_settings.dart';
 import '../services/settings/reader_progress_store.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_typography.dart';
+import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../utils/platform.dart';
 import '../utils/content_hash.dart';
@@ -175,13 +177,13 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
         final l10n = AppLocalizations.of(context)!;
         final baseTheme = Theme.of(context);
         final sceneTheme = AppTheme.readerScene(baseTheme);
-        final sceneSurfaces = sceneTheme.fleurSurface;
         final readerTokens = sceneTheme.fleurReader;
         if (article == null) {
-          return Container(
-            color: sceneSurfaces.reader,
-            alignment: Alignment.center,
-            child: Text(l10n.notFound),
+          return FleurEmptyState(
+            variant: FleurEmptyStateVariant.reader,
+            icon: FleurIcons.article,
+            title: l10n.notFound,
+            subtitle: l10n.articleNotFoundSubtitle,
           );
         }
 

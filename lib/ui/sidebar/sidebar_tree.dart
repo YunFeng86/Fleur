@@ -10,6 +10,8 @@ import '../../models/tag.dart';
 import '../../services/sync/backend_capabilities.dart';
 import '../../services/sync/backend_sync_semantics.dart';
 import '../../theme/app_typography.dart';
+import '../../theme/fleur_icons.dart';
+import '../app_menu.dart';
 import '../../ui/sidebar/sidebar_management_actions.dart';
 import '../../ui/sidebar/sidebar_selection_actions.dart';
 import '../actions/subscription_object_menus.dart';
@@ -51,7 +53,7 @@ class SidebarSearchField extends StatelessWidget {
               controller: controller,
               decoration: InputDecoration(
                 hintText: l10n.search,
-                prefixIcon: const Icon(Icons.search, size: 20),
+                prefixIcon: const Icon(FleurIcons.search, size: 20),
               ),
               style: Theme.of(context).textTheme.bodyMedium,
             ),
@@ -374,12 +376,6 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
                   capabilities,
                   syncSemantics,
                 );
-            final headerOverflowItems =
-                SubscriptionObjectMenus.sidebarOverflowItems(
-                  l10n,
-                  capabilities,
-                  syncSemantics,
-                );
             final showAllContextMenu =
                 isDesktop && allContextMenuItems.isNotEmpty
                 ? (TapDownDetails details) => unawaited(
@@ -410,7 +406,7 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
                         selectedFeedId == null &&
                         selectedCategoryId == null &&
                         selectedTagId == null,
-                    icon: Icons.all_inbox,
+                    icon: FleurIcons.allArticles,
                     title: l10n.all,
                     onSecondaryTapDown: showAllContextMenu,
                     onTap: selectionActions.selectAll,
@@ -423,7 +419,7 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
                         selectedFeedId == null &&
                         selectedCategoryId == null &&
                         selectedTagId == null,
-                    icon: Icons.all_inbox,
+                    icon: FleurIcons.allArticles,
                     title: l10n.all,
                     onSecondaryTapDown: showAllContextMenu,
                     onTap: selectionActions.selectAll,
@@ -435,7 +431,7 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
                         selectedFeedId == null &&
                         selectedCategoryId == null &&
                         selectedTagId == null,
-                    icon: Icons.all_inbox,
+                    icon: FleurIcons.allArticles,
                     title: l10n.all,
                     count: counts[null] ?? 0,
                     onSecondaryTapDown: showAllContextMenu,
@@ -467,7 +463,7 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
                       rowId: 'tag:${tag.id}',
                       builder: (_) => _SidebarItem(
                         selected: selectedTagId == tag.id,
-                        icon: Icons.label,
+                        icon: FleurIcons.tag,
                         title: tag.name,
                         iconColor: resolveTagColor(tag.name, tag.color),
                         onTap: () => _runWithScrollAnchor(
@@ -513,49 +509,26 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
                           ),
                         ),
                       ),
-                      PopupMenuButton<SubscriptionRootMenuAction>(
-                        icon: const Icon(Icons.more_horiz, size: 20),
-                        tooltip: l10n.more,
-                        iconSize: 20,
-                        onSelected: (action) =>
-                            unawaited(_performRootAction(action)),
-                        itemBuilder: (context) => [
-                          for (final item in headerOverflowItems)
-                            PopupMenuItem<SubscriptionRootMenuAction>(
-                              value: item.action,
-                              child: Text(item.label),
-                            ),
-                        ],
-                      ),
-                      if (capabilities.isVisible(
-                        BackendFeature.addSubscription,
-                      )) ...[
-                        const SizedBox(width: 8),
-                        IconButton(
-                          iconSize: 20,
-                          constraints: const BoxConstraints(
-                            minWidth: 48,
-                            minHeight: 48,
-                          ),
-                          tooltip: l10n.addSubscription,
-                          onPressed: onAddFeed,
-                          icon: const Icon(Icons.add),
-                        ),
-                      ],
                       if (capabilities.isVisible(
                         BackendFeature.addCategory,
                       )) ...[
                         const SizedBox(width: 8),
-                        IconButton(
-                          iconSize: 20,
-                          constraints: const BoxConstraints(
-                            minWidth: 48,
-                            minHeight: 48,
-                          ),
-                          tooltip: l10n.newCategory,
-                          onPressed: onAddCategory,
-                          icon: const Icon(Icons.create_new_folder_outlined),
-                        ),
+                        isDesktop
+                            ? _SidebarActionIconButton(
+                                tooltip: l10n.newCategory,
+                                onPressed: onAddCategory,
+                                icon: FleurIcons.addCategory,
+                              )
+                            : IconButton(
+                                tooltip: l10n.newCategory,
+                                iconSize: 20,
+                                constraints: const BoxConstraints(
+                                  minWidth: 48,
+                                  minHeight: 48,
+                                ),
+                                onPressed: onAddCategory,
+                                icon: const Icon(FleurIcons.addCategory),
+                              ),
                       ],
                     ],
                   ),
@@ -632,6 +605,17 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
               }
             }
 
+            if (!isDesktop &&
+                capabilities.isVisible(BackendFeature.addSubscription)) {
+              rows.add(
+                _SidebarTreeRow(
+                  rowId: 'action:add-subscription',
+                  builder: (_) =>
+                      _SidebarAddSubscriptionTile(onAddFeed: onAddFeed),
+                ),
+              );
+            }
+
             final rowIndexById = <String, int>{
               for (var index = 0; index < rows.length; index++)
                 rows[index].rowId: index,
@@ -671,6 +655,31 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
   }
 }
 
+class _SidebarAddSubscriptionTile extends StatelessWidget {
+  const _SidebarAddSubscriptionTile({required this.onAddFeed});
+
+  final Future<void> Function() onAddFeed;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: SizedBox(
+        width: double.infinity,
+        height: 48,
+        child: FilledButton.icon(
+          key: const Key('sidebar_add_subscription_cta'),
+          onPressed: () => unawaited(onAddFeed()),
+          icon: const Icon(FleurIcons.add),
+          label: Text(l10n.addSubscription),
+        ),
+      ),
+    );
+  }
+}
+
 class _SidebarTagHeaderTile extends StatelessWidget {
   const _SidebarTagHeaderTile({
     required this.expanded,
@@ -690,6 +699,7 @@ class _SidebarTagHeaderTile extends StatelessWidget {
       child: Column(
         children: [
           ListTile(
+            contentPadding: const EdgeInsets.only(left: 4, right: 8),
             minLeadingWidth: 0,
             horizontalTitleGap: 4,
             leading: TreeDisclosureButton(
@@ -699,7 +709,7 @@ class _SidebarTagHeaderTile extends StatelessWidget {
             ),
             title: Row(
               children: [
-                const Icon(Icons.label_outline, size: 20),
+                const Icon(FleurIcons.tag, size: 20),
                 const SizedBox(width: 12),
                 Expanded(child: Text(l10n.tags)),
               ],
@@ -775,81 +785,84 @@ class _SidebarCategoryTile extends StatelessWidget {
         selectedCategoryId == category.id;
     final menuItems = SubscriptionObjectMenus.categoryItems(l10n, capabilities);
     final hasCategoryActions = menuItems.isNotEmpty;
+    final canAddFeed = capabilities.isVisible(BackendFeature.addSubscription);
+    final canMarkRead =
+        capabilities.isVisible(BackendFeature.articleReadState) &&
+        unreadCount > 0;
 
-    final child = Semantics(
-      container: true,
-      selected: selected,
-      expanded: expanded,
-      child: Column(
-        children: [
-          ListTile(
-            selected: selected,
-            minLeadingWidth: 0,
-            horizontalTitleGap: 4,
-            leading: TreeDisclosureButton(
-              expanded: expanded,
-              tooltip: expanded ? l10n.collapse : l10n.expand,
-              onPressed: () =>
-                  onExpandedCategoryChanged(expanded ? null : category.id),
-            ),
-            title: Text(category.name),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _UnreadBadge(unreadCount),
-                if (syncSemantics.isRemoteReadOnlyTaxonomy)
-                  Tooltip(
-                    message: l10n.remoteReadOnlyTaxonomyTitle,
-                    child: Icon(
-                      Icons.lock_outline,
-                      size: 16,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                if (!isDesktop && hasCategoryActions)
-                  IconButton(
-                    tooltip: l10n.more,
-                    onPressed: () => onShowCategoryMenu(category),
-                    icon: const Icon(Icons.more_vert),
-                  ),
-                if (isDesktop && hasCategoryActions)
-                  MenuAnchor(
-                    menuChildren: SubscriptionObjectMenus.menuButtons(
-                      context: context,
-                      items: menuItems,
-                      onSelected: (action) => unawaited(_performAction(action)),
-                    ),
-                    builder: (context, controller, child) {
-                      return IconButton(
-                        tooltip: l10n.more,
-                        onPressed: () {
-                          controller.isOpen
-                              ? controller.close()
-                              : controller.open();
-                        },
-                        icon: const Icon(Icons.more_vert),
-                      );
-                    },
-                  ),
-              ],
-            ),
-            onTap: () => selectionActions.selectCategory(category.id),
-            onLongPress: isDesktop || !hasCategoryActions
-                ? null
-                : () => onShowCategoryMenu(category),
+    return _SidebarRevealActions(
+      builder: (context, showActions) {
+        final child = Semantics(
+          container: true,
+          selected: selected,
+          expanded: expanded,
+          child: Column(
+            children: [
+              ListTile(
+                selected: selected,
+                contentPadding: const EdgeInsets.only(left: 4, right: 8),
+                minLeadingWidth: 0,
+                horizontalTitleGap: 4,
+                leading: TreeDisclosureButton(
+                  expanded: expanded,
+                  tooltip: expanded ? l10n.collapse : l10n.expand,
+                  onPressed: () =>
+                      onExpandedCategoryChanged(expanded ? null : category.id),
+                ),
+                title: Text(
+                  category.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                trailing: _SidebarCategoryTrailing(
+                  unreadCount: unreadCount,
+                  showActions: showActions,
+                  showReadOnlyLock: syncSemantics.isRemoteReadOnlyTaxonomy,
+                  readOnlyTooltip: l10n.remoteReadOnlyTaxonomyTitle,
+                  hasCategoryActions: hasCategoryActions,
+                  canAddFeed: canAddFeed,
+                  canMarkRead: canMarkRead,
+                  onShowMenu: isDesktop
+                      ? null
+                      : () => onShowCategoryMenu(category),
+                  menuItems: isDesktop
+                      ? menuItems
+                      : const <
+                          SubscriptionObjectMenuItem<
+                            SubscriptionCategoryMenuAction
+                          >
+                        >[],
+                  onMenuActionSelected: (action) =>
+                      unawaited(_performAction(action)),
+                  onAddFeed: () async {
+                    final feedId = await managementActions.addFeed(
+                      initialCategoryId: category.id,
+                    );
+                    if (feedId == null) return;
+                    onExpandedCategoryChanged(category.id);
+                  },
+                  onMarkRead: () =>
+                      managementActions.markAllRead(categoryId: category.id),
+                ),
+                onTap: () => selectionActions.selectCategory(category.id),
+                onLongPress: isDesktop || !hasCategoryActions
+                    ? null
+                    : () => onShowCategoryMenu(category),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
+        );
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onSecondaryTapDown: isDesktop && hasCategoryActions
-          ? (details) => unawaited(
-              _showContextMenu(context, details.globalPosition, menuItems),
-            )
-          : null,
-      child: child,
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onSecondaryTapDown: isDesktop && hasCategoryActions
+              ? (details) => unawaited(
+                  _showContextMenu(context, details.globalPosition, menuItems),
+                )
+              : null,
+          child: child,
+        );
+      },
     );
   }
 }
@@ -918,80 +931,359 @@ class _SidebarFeedTile extends StatelessWidget {
     );
     final menuItems = SubscriptionObjectMenus.feedItems(l10n, capabilities);
     final hasFeedActions = menuItems.isNotEmpty;
+    final selected = selectedFeedId == feed.id;
+    final canMarkRead =
+        capabilities.isVisible(BackendFeature.articleReadState) &&
+        (unreadCount ?? 0) > 0;
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onSecondaryTapDown: isDesktop && hasFeedActions
-          ? (details) => unawaited(
-              _showContextMenu(context, details.globalPosition, menuItems),
-            )
-          : null,
-      child: ListTile(
-        selected: selectedFeedId == feed.id,
-        contentPadding: EdgeInsets.only(left: 16 + indent, right: 8),
-        leading: FaviconCircle(
-          siteUri: siteUri,
-          diameter: 28,
-          avatarSize: 18,
-          fallbackIcon: Icons.rss_feed,
-          fallbackColor: theme.colorScheme.onSurfaceVariant,
-        ),
-        title: Text(displayTitle),
-        subtitle:
-            (feed.userTitle?.trim().isNotEmpty == true ||
-                feed.title?.trim().isNotEmpty == true)
-            ? Text(feed.url, maxLines: 1, overflow: TextOverflow.ellipsis)
-            : null,
-        trailing: isDesktop
-            ? Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (unreadCount != null) _UnreadBadge(unreadCount!),
-                  if (hasFeedActions)
-                    MenuAnchor(
-                      menuChildren: SubscriptionObjectMenus.menuButtons(
-                        context: context,
-                        items: menuItems,
-                        onSelected: (action) =>
-                            unawaited(_performAction(action)),
-                      ),
-                      builder: (context, controller, child) {
-                        return IconButton(
-                          tooltip: l10n.more,
-                          onPressed: () {
-                            controller.isOpen
-                                ? controller.close()
-                                : controller.open();
-                          },
-                          icon: const Icon(Icons.more_vert),
-                        );
-                      },
-                    ),
-                ],
-              )
-            : Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (unreadCount != null) _UnreadBadge(unreadCount!),
-                  if (hasFeedActions)
-                    IconButton(
-                      tooltip: l10n.more,
-                      onPressed: () => onShowFeedMenu(feed),
-                      icon: const Icon(Icons.more_vert),
-                    ),
-                ],
-              ),
-        onTap: () => selectionActions.selectFeed(feed.id),
-        onLongPress: isDesktop || !hasFeedActions
-            ? null
-            : () => onShowFeedMenu(feed),
+    return _SidebarRevealActions(
+      builder: (context, showActions) {
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onSecondaryTapDown: isDesktop && hasFeedActions
+              ? (details) => unawaited(
+                  _showContextMenu(context, details.globalPosition, menuItems),
+                )
+              : null,
+          child: ListTile(
+            selected: selected,
+            contentPadding: EdgeInsets.only(left: 16 + indent, right: 16),
+            leading: FaviconCircle(
+              siteUri: siteUri,
+              diameter: 28,
+              avatarSize: 18,
+              fallbackIcon: FleurIcons.feed,
+              fallbackColor: theme.colorScheme.onSurfaceVariant,
+            ),
+            title: Text(
+              displayTitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            trailing: _SidebarFeedTrailing(
+              unreadCount: unreadCount ?? 0,
+              showActions: showActions,
+              hasFeedActions: hasFeedActions,
+              canMarkRead: canMarkRead,
+              onShowMenu: isDesktop ? null : () => onShowFeedMenu(feed),
+              menuItems: isDesktop
+                  ? menuItems
+                  : const <
+                      SubscriptionObjectMenuItem<SubscriptionFeedMenuAction>
+                    >[],
+              onMenuActionSelected: (action) =>
+                  unawaited(_performAction(action)),
+              onMarkRead: () => managementActions.markAllRead(feedId: feed.id),
+            ),
+            onTap: () => selectionActions.selectFeed(feed.id),
+            onLongPress: isDesktop || !hasFeedActions
+                ? null
+                : () => onShowFeedMenu(feed),
+          ),
+        );
+      },
+    );
+  }
+}
+
+typedef _SidebarRevealBuilder =
+    Widget Function(BuildContext context, bool showActions);
+
+class _SidebarRevealActions extends StatefulWidget {
+  const _SidebarRevealActions({required this.builder});
+
+  final _SidebarRevealBuilder builder;
+
+  @override
+  State<_SidebarRevealActions> createState() => _SidebarRevealActionsState();
+}
+
+class _SidebarRevealActionsState extends State<_SidebarRevealActions> {
+  bool _hovered = false;
+  bool _focused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final showActions = _hovered || _focused;
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) {
+        if (_hovered) return;
+        setState(() => _hovered = true);
+      },
+      onExit: (_) {
+        if (!_hovered) return;
+        setState(() => _hovered = false);
+      },
+      child: FocusableActionDetector(
+        mouseCursor: SystemMouseCursors.click,
+        onShowFocusHighlight: (value) {
+          if (_focused == value) return;
+          setState(() => _focused = value);
+        },
+        child: widget.builder(context, showActions),
       ),
     );
   }
 }
 
-class _UnreadBadge extends StatelessWidget {
-  const _UnreadBadge(this.count);
+class _SidebarCategoryTrailing extends StatelessWidget {
+  const _SidebarCategoryTrailing({
+    required this.unreadCount,
+    required this.showActions,
+    required this.showReadOnlyLock,
+    required this.readOnlyTooltip,
+    required this.hasCategoryActions,
+    required this.canAddFeed,
+    required this.canMarkRead,
+    required this.onShowMenu,
+    required this.menuItems,
+    required this.onMenuActionSelected,
+    required this.onAddFeed,
+    required this.onMarkRead,
+  });
+
+  static const double _actionsWidth = 96;
+
+  final int unreadCount;
+  final bool showActions;
+  final bool showReadOnlyLock;
+  final String readOnlyTooltip;
+  final bool hasCategoryActions;
+  final bool canAddFeed;
+  final bool canMarkRead;
+  final VoidCallback? onShowMenu;
+  final List<SubscriptionObjectMenuItem<SubscriptionCategoryMenuAction>>
+  menuItems;
+  final ValueChanged<SubscriptionCategoryMenuAction> onMenuActionSelected;
+  final Future<void> Function() onAddFeed;
+  final Future<void> Function() onMarkRead;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final hasActions = hasCategoryActions || canAddFeed || canMarkRead;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (showReadOnlyLock)
+          Tooltip(
+            message: readOnlyTooltip,
+            child: Icon(
+              FleurIcons.lock,
+              size: 16,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        if (hasActions)
+          SizedBox(
+            width: _actionsWidth,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: showActions
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (hasCategoryActions)
+                          isDesktop
+                              ? _SidebarMenuActionButton(
+                                  tooltip: l10n.more,
+                                  items: menuItems,
+                                  onSelected: onMenuActionSelected,
+                                )
+                              : _SidebarActionIconButton(
+                                  tooltip: l10n.more,
+                                  onPressed: onShowMenu,
+                                  icon: FleurIcons.moreVertical,
+                                ),
+                        if (canAddFeed)
+                          _SidebarActionIconButton(
+                            tooltip: l10n.addSubscription,
+                            onPressed: () => unawaited(onAddFeed()),
+                            icon: FleurIcons.add,
+                          ),
+                        if (canMarkRead)
+                          _SidebarActionIconButton(
+                            tooltip: l10n.markAllRead,
+                            onPressed: () => unawaited(onMarkRead()),
+                            icon: FleurIcons.markAllRead,
+                          ),
+                      ],
+                    )
+                  : _UnreadCountText(unreadCount),
+            ),
+          )
+        else
+          _UnreadCountText(unreadCount),
+      ],
+    );
+  }
+}
+
+class _SidebarFeedTrailing extends StatelessWidget {
+  const _SidebarFeedTrailing({
+    required this.unreadCount,
+    required this.showActions,
+    required this.hasFeedActions,
+    required this.canMarkRead,
+    required this.onShowMenu,
+    required this.menuItems,
+    required this.onMenuActionSelected,
+    required this.onMarkRead,
+  });
+
+  static const double _actionsWidth = 64;
+
+  final int unreadCount;
+  final bool showActions;
+  final bool hasFeedActions;
+  final bool canMarkRead;
+  final VoidCallback? onShowMenu;
+  final List<SubscriptionObjectMenuItem<SubscriptionFeedMenuAction>> menuItems;
+  final ValueChanged<SubscriptionFeedMenuAction> onMenuActionSelected;
+  final Future<void> Function() onMarkRead;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final hasActions = hasFeedActions || canMarkRead;
+
+    if (!hasActions) return _UnreadCountText(unreadCount);
+
+    return SizedBox(
+      width: _actionsWidth,
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: showActions
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (hasFeedActions)
+                    isDesktop
+                        ? _SidebarMenuActionButton(
+                            tooltip: l10n.more,
+                            items: menuItems,
+                            onSelected: onMenuActionSelected,
+                          )
+                        : _SidebarActionIconButton(
+                            tooltip: l10n.more,
+                            onPressed: onShowMenu,
+                            icon: FleurIcons.moreVertical,
+                          ),
+                  if (canMarkRead)
+                    _SidebarActionIconButton(
+                      tooltip: l10n.markAllRead,
+                      onPressed: () => unawaited(onMarkRead()),
+                      icon: FleurIcons.markAllRead,
+                    ),
+                ],
+              )
+            : _UnreadCountText(unreadCount),
+      ),
+    );
+  }
+}
+
+class _SidebarMenuActionButton<T> extends StatefulWidget {
+  const _SidebarMenuActionButton({
+    required this.tooltip,
+    required this.items,
+    required this.onSelected,
+  });
+
+  final String tooltip;
+  final List<AppMenuItem<T>> items;
+  final ValueChanged<T> onSelected;
+
+  @override
+  State<_SidebarMenuActionButton<T>> createState() =>
+      _SidebarMenuActionButtonState<T>();
+}
+
+class _SidebarMenuActionButtonState<T>
+    extends State<_SidebarMenuActionButton<T>> {
+  final GlobalKey _buttonKey = GlobalKey();
+
+  Future<void> _showMenu(BuildContext context) async {
+    final renderObject = _buttonKey.currentContext?.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) return;
+    final position = renderObject.localToGlobal(
+      renderObject.size.center(Offset.zero),
+    );
+    final action = await AppMenuHost.showAt<T>(
+      context,
+      position: position,
+      items: widget.items,
+    );
+    if (action == null) return;
+    widget.onSelected(action);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _SidebarActionIconButton(
+      key: _buttonKey,
+      tooltip: widget.tooltip,
+      onPressed: widget.items.isEmpty
+          ? null
+          : () => unawaited(_showMenu(context)),
+      icon: FleurIcons.moreVertical,
+    );
+  }
+}
+
+class _SidebarActionIconButton extends StatelessWidget {
+  const _SidebarActionIconButton({
+    super.key,
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return IconButton(
+      tooltip: tooltip,
+      iconSize: 20,
+      constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+      padding: EdgeInsets.zero,
+      style: ButtonStyle(
+        backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
+        fixedSize: const WidgetStatePropertyAll(Size.square(32)),
+        minimumSize: const WidgetStatePropertyAll(Size.square(32)),
+        overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        foregroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return colorScheme.onSurface.withAlpha(96);
+          }
+          if (states.contains(WidgetState.hovered) ||
+              states.contains(WidgetState.focused) ||
+              states.contains(WidgetState.pressed)) {
+            return colorScheme.primary;
+          }
+          return colorScheme.onSurfaceVariant;
+        }),
+      ),
+      onPressed: onPressed,
+      icon: Icon(icon),
+    );
+  }
+}
+
+class _UnreadCountText extends StatelessWidget {
+  const _UnreadCountText(this.count);
+
+  static const double _rightInset = 8;
+  static const double _textWidth = 30;
 
   final int count;
 
@@ -999,17 +1291,18 @@ class _UnreadBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     if (count <= 0) return const SizedBox.shrink();
     final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        '$count',
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: colorScheme.onPrimaryContainer,
-          fontWeight: AppTypography.platformWeight(FontWeight.w700),
+    return SizedBox(
+      width: _textWidth + _rightInset,
+      child: Padding(
+        padding: const EdgeInsets.only(right: _rightInset),
+        child: Text(
+          count > 99 ? '99+' : '$count',
+          textAlign: TextAlign.right,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+            fontWeight: AppTypography.platformWeight(FontWeight.w700),
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
         ),
       ),
     );
@@ -1045,7 +1338,7 @@ class _SidebarItem extends StatelessWidget {
       contentPadding: EdgeInsets.only(left: 16 + indent, right: 8),
       leading: Icon(icon, color: iconColor),
       title: Text(title),
-      trailing: count == null ? null : _UnreadBadge(count!),
+      trailing: count == null ? null : _UnreadCountText(count!),
       onTap: onTap,
     );
     if (onSecondaryTapDown == null) return tile;

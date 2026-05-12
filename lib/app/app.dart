@@ -16,16 +16,19 @@ import '../providers/backend_sync_semantics_provider.dart';
 import '../providers/core_providers.dart';
 import '../providers/outbox_flush_providers.dart';
 import '../providers/outbox_status_providers.dart';
+import '../providers/query_providers.dart';
 import '../providers/service_providers.dart';
 import '../providers/unread_providers.dart';
 import '../services/logging/app_logger.dart';
 import '../services/notifications/notification_service.dart';
 import '../services/settings/app_settings.dart';
 import '../ui/actions/subscription_object_menus.dart';
+import '../ui/app_menu.dart';
 import '../ui/global_nav.dart';
 import '../ui/home/home_scene_commands.dart';
 import '../ui/layout.dart';
 import '../theme/app_theme.dart';
+import '../theme/fleur_icons.dart';
 import '../theme/seed_color_presets.dart';
 import '../utils/macos_locale_bridge.dart';
 import '../utils/platform.dart';
@@ -111,8 +114,9 @@ class App extends ConsumerWidget {
                 initialEntries: [
                   OverlayEntry(
                     opaque: true,
-                    builder: (_) =>
-                        _DesktopChrome(router: router, content: wrapped),
+                    builder: (_) => AppMenuHost(
+                      child: _DesktopChrome(router: router, content: wrapped),
+                    ),
                   ),
                 ],
               );
@@ -384,18 +388,14 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
           capabilities,
         );
         final syncSemantics = ref.watch(backendSyncSemanticsProvider);
-        final refreshActionLabel = SubscriptionObjectMenus.rootRefreshLabel(
-          l10n,
-          capabilities,
-          syncSemantics,
-        );
-        final refreshSuccessLabel =
-            SubscriptionObjectMenus.rootRefreshSuccessLabel(
-              l10n,
-              capabilities,
-              syncSemantics,
-            );
-
+        final selectedFeedId = ref.watch(selectedFeedIdProvider);
+        final selectedCategoryId = ref.watch(selectedCategoryIdProvider);
+        final refreshActionLabel = resolveHomeRefreshIntent(
+          capabilities: capabilities,
+          syncSemantics: syncSemantics,
+          selectedFeedId: selectedFeedId,
+          selectedCategoryId: selectedCategoryId,
+        ).label(l10n);
         final leading = canPop
             ? IconButton(
                 tooltip: MaterialLocalizations.of(context).backButtonTooltip,
@@ -445,20 +445,20 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
                       IconButton(
                         tooltip: refreshActionLabel,
                         onPressed: () async {
-                          final batch = await commands.refreshAll();
+                          final outcome = await commands.refreshAll();
                           if (!context.mounted) return;
-                          final err = batch.firstError?.error;
+                          final err = outcome.batch.firstError?.error;
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
                                 err == null
-                                    ? refreshSuccessLabel
+                                    ? outcome.successLabel(l10n)
                                     : l10n.errorMessage(err.toString()),
                               ),
                             ),
                           );
                         },
-                        icon: const Icon(Icons.refresh),
+                        icon: const Icon(FleurIcons.refresh),
                       ),
                     Consumer(
                       builder: (context, ref, _) {
@@ -468,8 +468,8 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
                           onPressed: commands.toggleUnreadOnly,
                           icon: Icon(
                             unreadOnly
-                                ? Icons.filter_alt
-                                : Icons.filter_alt_outlined,
+                                ? FleurIcons.filterActive
+                                : FleurIcons.filter,
                           ),
                         );
                       },
@@ -483,7 +483,7 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
                           context,
                         ).showSnackBar(SnackBar(content: Text(l10n.done)));
                       },
-                      icon: const Icon(Icons.done_all),
+                      icon: const Icon(FleurIcons.markAllRead),
                     ),
                   ],
                   if (showOutboxAction) const OutboxStatusAction(),

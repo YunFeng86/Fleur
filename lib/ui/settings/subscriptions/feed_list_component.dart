@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../providers/query_providers.dart';
 import '../../../../providers/subscription_settings_provider.dart';
+import '../../../../theme/fleur_icons.dart';
 import '../../../../theme/fleur_theme_extensions.dart';
 import '../../../../ui/actions/subscription_object_menus.dart';
 import '../../../../utils/platform.dart';
@@ -84,7 +85,7 @@ class FeedListComponent extends ConsumerWidget {
                           child: FaviconAvatar(
                             siteUri: siteUri,
                             size: 16,
-                            fallbackIcon: Icons.rss_feed,
+                            fallbackIcon: FleurIcons.feed,
                             fallbackColor: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),

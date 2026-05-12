@@ -10,6 +10,7 @@ import 'package:path/path.dart' as p;
 import '../../../l10n/app_localizations.dart';
 import '../../../services/logging/app_logger.dart';
 import '../../../services/platform/shell_service.dart';
+import '../../../theme/fleur_icons.dart';
 import '../../../utils/context_extensions.dart';
 import '../../../utils/path_manager.dart';
 import '../../../utils/platform.dart';
@@ -367,7 +368,7 @@ class _AboutTabState extends State<AboutTab> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.download_outlined, size: 18),
+                            const Icon(FleurIcons.download, size: 18),
                             const SizedBox(width: 8),
                             Flexible(child: Text(l10n.exportLogs)),
                           ],
@@ -394,7 +395,7 @@ class _AboutTabState extends State<AboutTab> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.description_outlined, size: 18),
+                          const Icon(FleurIcons.document, size: 18),
                           const SizedBox(width: 8),
                           Flexible(child: Text(l10n.viewLicense)),
                         ],
@@ -426,7 +427,7 @@ class _AboutTabState extends State<AboutTab> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.article_outlined, size: 18),
+                          const Icon(FleurIcons.article, size: 18),
                           const SizedBox(width: 8),
                           Flexible(child: Text(l10n.viewThirdPartyLicenses)),
                         ],

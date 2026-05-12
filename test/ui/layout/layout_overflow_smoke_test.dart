@@ -314,9 +314,9 @@ void main() {
           home: const Scaffold(body: AboutTab()),
         );
 
-        final viewLicenseButton = find.widgetWithIcon(
+        final viewLicenseButton = find.widgetWithText(
           OutlinedButton,
-          Icons.description_outlined,
+          'View license',
         );
         await tester.scrollUntilVisible(
           viewLicenseButton,
