@@ -12,14 +12,16 @@ import '../models/nav_destination.dart';
 import '../providers/account_providers.dart';
 import '../providers/backend_capabilities_provider.dart';
 import '../providers/backend_sync_semantics_provider.dart';
+import '../providers/core_providers.dart';
 import '../providers/query_providers.dart';
 import '../providers/unread_providers.dart';
 import '../providers/sync_status_providers.dart';
 import '../services/accounts/account.dart';
 import '../services/sync/sync_status_reporter.dart';
+import '../services/sync/backend_capabilities.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
-import '../ui/layout_spec.dart';
+import '../ui/app_menu.dart';
 import '../ui/motion.dart';
 import '../ui/global_nav.dart';
 import '../ui/actions/subscription_object_menus.dart';
@@ -42,9 +44,8 @@ class Sidebar extends ConsumerStatefulWidget {
 
 class _SidebarState extends ConsumerState<Sidebar> {
   int? _expandedCategoryId;
-  final _searchController = TextEditingController();
   final _scrollController = ScrollController();
-  String _searchText = '';
+  final _accountFooterKey = GlobalKey();
 
   void _closeSidebarIfDrawerOpen() {
     final scaffold = Scaffold.maybeOf(context);
@@ -56,9 +57,8 @@ class _SidebarState extends ConsumerState<Sidebar> {
     if (isDesktop && router != null && router.canPop()) router.pop();
   }
 
-  void _openServicesSettings() {
+  void _goLocation(String location) {
     _closeSidebarIfDrawerOpen();
-    final location = settingsLocation(tab: SettingsTab.services);
     final router = widget.router;
     if (router != null) {
       router.go(location);
@@ -67,19 +67,20 @@ class _SidebarState extends ConsumerState<Sidebar> {
     context.go(location);
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _searchController.addListener(() {
-      setState(() {
-        _searchText = _searchController.text.trim().toLowerCase();
-      });
-    });
+  void _openAddSubscriptionPage() {
+    _goLocation('/add-subscription');
+  }
+
+  void _openAccountSettings() {
+    _goLocation(settingsLocation(tab: SettingsTab.services));
+  }
+
+  void _openSettings() {
+    _goLocation(settingsLocation());
   }
 
   @override
   void dispose() {
-    _searchController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -136,26 +137,55 @@ class _SidebarState extends ConsumerState<Sidebar> {
     );
   }
 
+  Future<void> _showAccountMenu() async {
+    final renderObject = _accountFooterKey.currentContext?.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) return;
+
+    final l10n = AppLocalizations.of(context)!;
+    final position = renderObject.localToGlobal(
+      Offset(renderObject.size.width / 2, 8),
+    );
+    final action = await AppMenuHost.showAt<_SidebarAccountMenuAction>(
+      context,
+      position: position,
+      items: [
+        AppMenuItem(
+          value: _SidebarAccountMenuAction.account,
+          icon: FleurIcons.services,
+          label: l10n.account,
+          key: const Key('sidebar_account_menu_account'),
+        ),
+        AppMenuItem(
+          value: _SidebarAccountMenuAction.settings,
+          icon: FleurIcons.settings,
+          label: l10n.settings,
+          key: const Key('sidebar_account_menu_settings'),
+        ),
+      ],
+    );
+    if (!mounted || action == null) return;
+    switch (action) {
+      case _SidebarAccountMenuAction.account:
+        _openAccountSettings();
+        return;
+      case _SidebarAccountMenuAction.settings:
+        _openSettings();
+        return;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final surfaces = theme.fleurSurface;
-    // On desktop we sometimes show the sidebar inside a Scaffold drawer that is
-    // *outside* the app's Navigator (see `App` overlay). In that case, using
-    // `Navigator.of(context)` will throw. We only show a close button when the
-    // caller provided a router to pop with.
-    final showDrawerClose = isDesktop && widget.router != null;
     final feeds = ref.watch(feedsProvider);
     final categories = ref.watch(categoriesProvider);
     final selectedFeedId = ref.watch(selectedFeedIdProvider);
     final selectedCategoryId = ref.watch(selectedCategoryIdProvider);
-    final selectedTagId = ref.watch(selectedTagIdProvider);
-    final tags = ref.watch(tagsProvider);
     final activeAccount = ref.watch(activeAccountProvider);
     final capabilities = ref.watch(backendCapabilitiesProvider);
     final syncSemantics = ref.watch(backendSyncSemanticsProvider);
-    final navMode = LayoutSpec.fromContext(context).globalNavMode;
-    final showAccountFooter = navMode == GlobalNavMode.bottom;
+    final presentationMode = ref.watch(sidebarPresentationModeProvider);
     final syncStatus = ref.watch(syncStatusControllerProvider);
     final selectionActions = _selectionActions;
     final managementActions = _managementActions;
@@ -163,27 +193,33 @@ class _SidebarState extends ConsumerState<Sidebar> {
     final starredOnly = ref.watch(starredOnlyProvider);
     final readLaterOnly = ref.watch(readLaterOnlyProvider);
     final allUnreadCounts = ref.watch(allUnreadCountsProvider);
+    final currentScope = ref.watch(currentArticleScopeProvider);
 
     return Material(
       color: surfaces.sidebar,
       child: Column(
         children: [
-          SidebarSearchField(
-            controller: _searchController,
-            showDrawerClose: showDrawerClose,
-            onCloseDrawer: _closeSidebarIfDrawerOpen,
+          _SidebarFixedItems(
+            mode: presentationMode,
+            currentScope: currentScope,
+            allUnreadCount: allUnreadCounts.valueOrNull?[null] ?? 0,
+            showAddSubscription: capabilities.isVisible(
+              BackendFeature.addSubscription,
+            ),
+            onSelectAll: selectionActions.selectAll,
+            onSelectStarred: selectionActions.selectStarred,
+            onSelectReadLater: selectionActions.selectReadLater,
+            onAddSubscription: _openAddSubscriptionPage,
           ),
           Expanded(
             child: SidebarNavigationTree(
+              presentationMode: presentationMode,
               scrollController: _scrollController,
-              searchText: _searchText,
               feeds: feeds,
               categories: categories,
-              tags: tags,
               allUnreadCounts: allUnreadCounts,
               selectedFeedId: selectedFeedId,
               selectedCategoryId: selectedCategoryId,
-              selectedTagId: selectedTagId,
               starredOnly: starredOnly,
               readLaterOnly: readLaterOnly,
               expandedCategoryId: _expandedCategoryId,
@@ -207,12 +243,13 @@ class _SidebarState extends ConsumerState<Sidebar> {
               onShowFeedMenu: (feed) => _showFeedMenu(feed, managementActions),
             ),
           ),
-          if (showAccountFooter)
-            _AccountFooter(
-              account: activeAccount,
-              sync: syncStatus,
-              onTap: _openServicesSettings,
-            ),
+          _AccountFooter(
+            key: _accountFooterKey,
+            account: activeAccount,
+            sync: syncStatus,
+            mode: presentationMode,
+            onTap: () => unawaited(_showAccountMenu()),
+          ),
         ],
       ),
     );
@@ -295,15 +332,193 @@ class _SidebarState extends ConsumerState<Sidebar> {
   }
 }
 
+enum _SidebarAccountMenuAction { account, settings }
+
+class _SidebarFixedItems extends StatelessWidget {
+  const _SidebarFixedItems({
+    required this.mode,
+    required this.currentScope,
+    required this.allUnreadCount,
+    required this.showAddSubscription,
+    required this.onSelectAll,
+    required this.onSelectStarred,
+    required this.onSelectReadLater,
+    required this.onAddSubscription,
+  });
+
+  final SidebarPresentationMode mode;
+  final ArticleScope currentScope;
+  final int allUnreadCount;
+  final bool showAddSubscription;
+  final VoidCallback onSelectAll;
+  final VoidCallback onSelectStarred;
+  final VoidCallback onSelectReadLater;
+  final VoidCallback onAddSubscription;
+
+  bool get _collapsed => mode == SidebarPresentationMode.collapsed;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final surfaces = Theme.of(context).fleurSurface;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: surfaces.subtleDivider)),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            _collapsed ? 4 : 8,
+            8,
+            _collapsed ? 4 : 8,
+            8,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _SidebarFixedItem(
+                key: const Key('sidebar_all_button'),
+                mode: mode,
+                selected: currentScope == ArticleScope.all,
+                icon: FleurIcons.allArticles,
+                title: l10n.all,
+                count: allUnreadCount,
+                onTap: onSelectAll,
+              ),
+              _SidebarFixedItem(
+                key: const Key('sidebar_starred_button'),
+                mode: mode,
+                selected: currentScope == ArticleScope.starred,
+                icon: FleurIcons.star,
+                selectedIcon: FleurIcons.starActive,
+                title: l10n.starred,
+                onTap: onSelectStarred,
+              ),
+              _SidebarFixedItem(
+                key: const Key('sidebar_read_later_button'),
+                mode: mode,
+                selected: currentScope == ArticleScope.readLater,
+                icon: FleurIcons.readLater,
+                selectedIcon: FleurIcons.readLaterActive,
+                title: l10n.readLater,
+                onTap: onSelectReadLater,
+              ),
+              if (showAddSubscription)
+                _SidebarFixedItem(
+                  key: const Key('sidebar_add_subscription_button'),
+                  mode: mode,
+                  selected: false,
+                  icon: FleurIcons.add,
+                  title: l10n.addSubscription,
+                  onTap: onAddSubscription,
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SidebarFixedItem extends StatelessWidget {
+  const _SidebarFixedItem({
+    super.key,
+    required this.mode,
+    required this.selected,
+    required this.icon,
+    required this.title,
+    required this.onTap,
+    this.selectedIcon,
+    this.count,
+  });
+
+  final SidebarPresentationMode mode;
+  final bool selected;
+  final IconData icon;
+  final IconData? selectedIcon;
+  final String title;
+  final VoidCallback onTap;
+  final int? count;
+
+  bool get _collapsed => mode == SidebarPresentationMode.collapsed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final states = theme.fleurState;
+    final iconData = selected ? (selectedIcon ?? icon) : icon;
+
+    if (_collapsed) {
+      return Tooltip(
+        message: title,
+        child: Semantics(
+          button: true,
+          selected: selected,
+          label: title,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: InkResponse(
+              onTap: onTap,
+              hoverColor: states.hoverTint,
+              radius: 24,
+              child: SizedBox.square(
+                dimension: 48,
+                child: Icon(
+                  iconData,
+                  color: selected
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return ListTile(
+      selected: selected,
+      minLeadingWidth: 0,
+      leading: Icon(iconData),
+      title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+      trailing: count == null ? null : _SidebarFixedCount(count!),
+      onTap: onTap,
+    );
+  }
+}
+
+class _SidebarFixedCount extends StatelessWidget {
+  const _SidebarFixedCount(this.count);
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    if (count <= 0) return const SizedBox.shrink();
+    return Text(
+      count > 99 ? '99+' : '$count',
+      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+        fontWeight: FontWeight.w700,
+      ),
+    );
+  }
+}
+
 class _AccountFooter extends StatelessWidget {
   const _AccountFooter({
     required this.account,
     required this.sync,
+    required this.mode,
     required this.onTap,
+    super.key,
   });
 
   final Account account;
   final SyncStatusState sync;
+  final SidebarPresentationMode mode;
   final VoidCallback onTap;
 
   String _syncText(AppLocalizations l10n) {
@@ -341,10 +556,39 @@ class _AccountFooter extends StatelessWidget {
 
     final showSync = sync.visible;
     final syncText = _syncText(l10n);
+    final collapsed = mode == SidebarPresentationMode.collapsed;
+
+    if (collapsed) {
+      return SafeArea(
+        top: false,
+        child: Material(
+          color: surfaces.card,
+          child: Tooltip(
+            message: account.name,
+            child: InkWell(
+              key: const Key('sidebar_account_button'),
+              onTap: onTap,
+              hoverColor: states.hoverTint,
+              child: SizedBox(
+                height: 64,
+                child: Center(
+                  child: AccountAvatar(
+                    account: account,
+                    radius: 18,
+                    showTypeBadge: true,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return Material(
       color: surfaces.card,
       child: InkWell(
+        key: const Key('sidebar_account_button'),
         onTap: onTap,
         hoverColor: states.hoverTint,
         child: Padding(

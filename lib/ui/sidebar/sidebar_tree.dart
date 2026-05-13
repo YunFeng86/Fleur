@@ -6,77 +6,31 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/category.dart';
 import '../../models/feed.dart';
-import '../../models/tag.dart';
 import '../../services/sync/backend_capabilities.dart';
 import '../../services/sync/backend_sync_semantics.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/fleur_icons.dart';
+import '../../theme/fleur_theme_extensions.dart';
+import '../global_nav.dart';
 import '../app_menu.dart';
 import '../../ui/sidebar/sidebar_management_actions.dart';
 import '../../ui/sidebar/sidebar_selection_actions.dart';
 import '../actions/subscription_object_menus.dart';
 import '../../utils/platform.dart';
-import '../../utils/tag_colors.dart';
 import '../../widgets/app_scrollbar.dart';
 import '../../widgets/favicon_circle.dart';
 import '../../widgets/tree_disclosure_button.dart';
 
-class SidebarSearchField extends StatelessWidget {
-  const SidebarSearchField({
-    super.key,
-    required this.controller,
-    required this.showDrawerClose,
-    required this.onCloseDrawer,
-  });
-
-  final TextEditingController controller;
-  final bool showDrawerClose;
-  final VoidCallback onCloseDrawer;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Row(
-        children: [
-          if (showDrawerClose) ...[
-            IconButton(
-              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-              onPressed: onCloseDrawer,
-              icon: const Icon(Icons.arrow_back),
-            ),
-            const SizedBox(width: 8),
-          ],
-          Expanded(
-            child: TextField(
-              controller: controller,
-              decoration: InputDecoration(
-                hintText: l10n.search,
-                prefixIcon: const Icon(FleurIcons.search, size: 20),
-              ),
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-    );
-  }
-}
-
 class SidebarNavigationTree extends StatefulWidget {
   const SidebarNavigationTree({
     super.key,
+    required this.presentationMode,
     required this.scrollController,
-    required this.searchText,
     required this.feeds,
     required this.categories,
-    required this.tags,
     required this.allUnreadCounts,
     required this.selectedFeedId,
     required this.selectedCategoryId,
-    required this.selectedTagId,
     required this.starredOnly,
     required this.readLaterOnly,
     required this.expandedCategoryId,
@@ -91,15 +45,13 @@ class SidebarNavigationTree extends StatefulWidget {
     required this.onShowFeedMenu,
   });
 
+  final SidebarPresentationMode presentationMode;
   final ScrollController scrollController;
-  final String searchText;
   final AsyncValue<List<Feed>> feeds;
   final AsyncValue<List<Category>> categories;
-  final AsyncValue<List<Tag>> tags;
   final AsyncValue<Map<int?, int>> allUnreadCounts;
   final int? selectedFeedId;
   final int? selectedCategoryId;
-  final int? selectedTagId;
   final bool starredOnly;
   final bool readLaterOnly;
   final int? expandedCategoryId;
@@ -179,17 +131,14 @@ class _SidebarAnchorRegistryRowState extends State<_SidebarAnchorRegistryRow> {
 class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
   final GlobalKey _listViewKey = GlobalKey();
   final Map<String, BuildContext> _rowContexts = <String, BuildContext>{};
-  bool? _tagsExpanded;
 
+  SidebarPresentationMode get presentationMode => widget.presentationMode;
   ScrollController get scrollController => widget.scrollController;
-  String get searchText => widget.searchText;
   AsyncValue<List<Feed>> get feeds => widget.feeds;
   AsyncValue<List<Category>> get categories => widget.categories;
-  AsyncValue<List<Tag>> get tags => widget.tags;
   AsyncValue<Map<int?, int>> get allUnreadCounts => widget.allUnreadCounts;
   int? get selectedFeedId => widget.selectedFeedId;
   int? get selectedCategoryId => widget.selectedCategoryId;
-  int? get selectedTagId => widget.selectedTagId;
   bool get starredOnly => widget.starredOnly;
   bool get readLaterOnly => widget.readLaterOnly;
   int? get expandedCategoryId => widget.expandedCategoryId;
@@ -316,39 +265,22 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
   }
 
   @override
-  void didUpdateWidget(covariant SidebarNavigationTree oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.selectedTagId != null &&
-        widget.selectedTagId != oldWidget.selectedTagId) {
-      _tagsExpanded = true;
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final collapsed = presentationMode == SidebarPresentationMode.collapsed;
 
     return feeds.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, _) =>
           Center(child: Text(l10n.errorMessage(error.toString()))),
       data: (feedItems) {
-        final filteredFeeds = searchText.isEmpty
-            ? feedItems
-            : feedItems.where((feed) {
-                final title = (feed.userTitle ?? feed.title ?? '')
-                    .toLowerCase();
-                final url = feed.url.toLowerCase();
-                return title.contains(searchText) || url.contains(searchText);
-              }).toList();
-
         return categories.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, _) =>
               Center(child: Text(l10n.errorMessage(error.toString()))),
           data: (categoryItems) {
             final feedsByCategory = <int?, List<Feed>>{};
-            for (final feed in filteredFeeds) {
+            for (final feed in feedItems) {
               feedsByCategory.putIfAbsent(feed.categoryId, () => []).add(feed);
             }
 
@@ -364,27 +296,12 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
                     (unreadByCategoryId[categoryId] ?? 0) + count;
               }
             }
-            final tagsExpanded = _tagsExpanded ?? selectedTagId != null;
-            final allContextMenuItems = SubscriptionObjectMenus.sidebarAllItems(
-              l10n,
-              capabilities,
-              syncSemantics,
-            );
             final headerContextMenuItems =
                 SubscriptionObjectMenus.sidebarHeaderItems(
                   l10n,
                   capabilities,
                   syncSemantics,
                 );
-            final showAllContextMenu =
-                isDesktop && allContextMenuItems.isNotEmpty
-                ? (TapDownDetails details) => unawaited(
-                    _showRootContextMenu(
-                      details.globalPosition,
-                      allContextMenuItems,
-                    ),
-                  )
-                : null;
             final showHeaderContextMenu =
                 isDesktop && headerContextMenuItems.isNotEmpty
                 ? (TapDownDetails details) => unawaited(
@@ -395,157 +312,80 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
                   )
                 : null;
 
-            final rows = <_SidebarTreeRow>[
-              _SidebarTreeRow(
-                rowId: 'scope:all',
-                builder: (_) => allUnreadCounts.when(
-                  loading: () => _SidebarItem(
-                    selected:
-                        !starredOnly &&
-                        !readLaterOnly &&
-                        selectedFeedId == null &&
-                        selectedCategoryId == null &&
-                        selectedTagId == null,
-                    icon: FleurIcons.allArticles,
-                    title: l10n.all,
-                    onSecondaryTapDown: showAllContextMenu,
-                    onTap: selectionActions.selectAll,
-                  ),
-                  error: (_, _) => _SidebarItem(
-                    key: const ValueKey('all_inbox'),
-                    selected:
-                        !starredOnly &&
-                        !readLaterOnly &&
-                        selectedFeedId == null &&
-                        selectedCategoryId == null &&
-                        selectedTagId == null,
-                    icon: FleurIcons.allArticles,
-                    title: l10n.all,
-                    onSecondaryTapDown: showAllContextMenu,
-                    onTap: selectionActions.selectAll,
-                  ),
-                  data: (counts) => _SidebarItem(
-                    selected:
-                        !starredOnly &&
-                        !readLaterOnly &&
-                        selectedFeedId == null &&
-                        selectedCategoryId == null &&
-                        selectedTagId == null,
-                    icon: FleurIcons.allArticles,
-                    title: l10n.all,
-                    count: counts[null] ?? 0,
-                    onSecondaryTapDown: showAllContextMenu,
-                    onTap: selectionActions.selectAll,
-                  ),
-                ),
-              ),
-            ];
-            tags.when<void>(
-              data: (tagItems) {
-                if (tagItems.isEmpty) return;
-                rows.add(
-                  _SidebarTreeRow(
-                    rowId: 'section:tags',
-                    builder: (_) => _SidebarTagHeaderTile(
-                      expanded: tagsExpanded,
-                      onToggleExpanded: () {
-                        _runWithScrollAnchor(() {
-                          setState(() => _tagsExpanded = !tagsExpanded);
-                        });
-                      },
-                    ),
-                  ),
-                );
-                if (!tagsExpanded) return;
-                for (final tag in tagItems) {
-                  rows.add(
-                    _SidebarTreeRow(
-                      rowId: 'tag:${tag.id}',
-                      builder: (_) => _SidebarItem(
-                        selected: selectedTagId == tag.id,
-                        icon: FleurIcons.tag,
-                        title: tag.name,
-                        iconColor: resolveTagColor(tag.name, tag.color),
-                        onTap: () => _runWithScrollAnchor(
-                          () => selectionActions.selectTag(tag.id),
-                        ),
-                        indent: 16,
-                      ),
-                    ),
-                  );
-                }
-              },
-              loading: () {},
-              error: (_, _) {},
-            );
+            final rows = <_SidebarTreeRow>[];
             rows.add(
               _SidebarTreeRow(
                 rowId: 'section:subscriptions',
-                builder: (_) => Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 8, 4),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onSecondaryTapDown: showHeaderContextMenu,
-                          child: SizedBox(
-                            height: 48,
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                l10n.subscriptions,
-                                style: Theme.of(context).textTheme.titleSmall
-                                    ?.copyWith(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                      fontWeight: AppTypography.platformWeight(
-                                        FontWeight.w700,
-                                      ),
+                builder: (_) => collapsed
+                    ? _SidebarCollapsedSectionTile(title: l10n.subscriptions)
+                    : Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 8, 4),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onSecondaryTapDown: showHeaderContextMenu,
+                                child: SizedBox(
+                                  height: 48,
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      l10n.subscriptions,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleSmall
+                                          ?.copyWith(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                            fontWeight:
+                                                AppTypography.platformWeight(
+                                                  FontWeight.w700,
+                                                ),
+                                          ),
                                     ),
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
+                            if (capabilities.isVisible(
+                              BackendFeature.addCategory,
+                            )) ...[
+                              const SizedBox(width: 8),
+                              isDesktop
+                                  ? _SidebarActionIconButton(
+                                      tooltip: l10n.newCategory,
+                                      onPressed: onAddCategory,
+                                      icon: FleurIcons.addCategory,
+                                    )
+                                  : IconButton(
+                                      tooltip: l10n.newCategory,
+                                      iconSize: 20,
+                                      constraints: const BoxConstraints(
+                                        minWidth: 48,
+                                        minHeight: 48,
+                                      ),
+                                      onPressed: onAddCategory,
+                                      icon: const Icon(FleurIcons.addCategory),
+                                    ),
+                            ],
+                          ],
                         ),
                       ),
-                      if (capabilities.isVisible(
-                        BackendFeature.addCategory,
-                      )) ...[
-                        const SizedBox(width: 8),
-                        isDesktop
-                            ? _SidebarActionIconButton(
-                                tooltip: l10n.newCategory,
-                                onPressed: onAddCategory,
-                                icon: FleurIcons.addCategory,
-                              )
-                            : IconButton(
-                                tooltip: l10n.newCategory,
-                                iconSize: 20,
-                                constraints: const BoxConstraints(
-                                  minWidth: 48,
-                                  minHeight: 48,
-                                ),
-                                onPressed: onAddCategory,
-                                icon: const Icon(FleurIcons.addCategory),
-                              ),
-                      ],
-                    ],
-                  ),
-                ),
               ),
             );
 
             for (final category in categoryItems) {
               final categoryFeeds =
                   feedsByCategory[category.id] ?? const <Feed>[];
-              if (searchText.isNotEmpty && categoryFeeds.isEmpty) continue;
 
               final expanded = expandedCategoryId == category.id;
               rows.add(
                 _SidebarTreeRow(
                   rowId: 'category:${category.id}',
                   builder: (_) => _SidebarCategoryTile(
+                    presentationMode: presentationMode,
                     category: category,
                     selectedFeedId: selectedFeedId,
                     selectedCategoryId: selectedCategoryId,
@@ -571,6 +411,7 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
                   _SidebarTreeRow(
                     rowId: 'feed:${feed.id}',
                     builder: (_) => _SidebarFeedTile(
+                      presentationMode: presentationMode,
                       feed: feed,
                       selectedFeedId: selectedFeedId,
                       unreadCount: unreadCounts?[feed.id],
@@ -586,32 +427,20 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
             }
 
             final uncategorizedFeeds = feedsByCategory[null] ?? const <Feed>[];
-            if (searchText.isEmpty || uncategorizedFeeds.isNotEmpty) {
-              for (final feed in uncategorizedFeeds) {
-                rows.add(
-                  _SidebarTreeRow(
-                    rowId: 'feed:${feed.id}',
-                    builder: (_) => _SidebarFeedTile(
-                      feed: feed,
-                      selectedFeedId: selectedFeedId,
-                      unreadCount: unreadCounts?[feed.id],
-                      selectionActions: selectionActions,
-                      managementActions: managementActions,
-                      capabilities: capabilities,
-                      onShowFeedMenu: onShowFeedMenu,
-                    ),
-                  ),
-                );
-              }
-            }
-
-            if (!isDesktop &&
-                capabilities.isVisible(BackendFeature.addSubscription)) {
+            for (final feed in uncategorizedFeeds) {
               rows.add(
                 _SidebarTreeRow(
-                  rowId: 'action:add-subscription',
-                  builder: (_) =>
-                      _SidebarAddSubscriptionTile(onAddFeed: onAddFeed),
+                  rowId: 'feed:${feed.id}',
+                  builder: (_) => _SidebarFeedTile(
+                    presentationMode: presentationMode,
+                    feed: feed,
+                    selectedFeedId: selectedFeedId,
+                    unreadCount: unreadCounts?[feed.id],
+                    selectionActions: selectionActions,
+                    managementActions: managementActions,
+                    capabilities: capabilities,
+                    onShowFeedMenu: onShowFeedMenu,
+                  ),
                 ),
               );
             }
@@ -655,75 +484,92 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
   }
 }
 
-class _SidebarAddSubscriptionTile extends StatelessWidget {
-  const _SidebarAddSubscriptionTile({required this.onAddFeed});
+class _SidebarCollapsedSectionTile extends StatelessWidget {
+  const _SidebarCollapsedSectionTile({required this.title});
 
-  final Future<void> Function() onAddFeed;
+  final String title;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      child: SizedBox(
-        width: double.infinity,
-        height: 48,
-        child: FilledButton.icon(
-          key: const Key('sidebar_add_subscription_cta'),
-          onPressed: () => unawaited(onAddFeed()),
-          icon: const Icon(FleurIcons.add),
-          label: Text(l10n.addSubscription),
+    return Tooltip(
+      message: title,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(4, 10, 4, 4),
+        child: SizedBox.square(
+          dimension: 48,
+          child: Icon(
+            FleurIcons.feeds,
+            color: Theme.of(context).colorScheme.primary,
+            size: 20,
+          ),
         ),
       ),
     );
   }
 }
 
-class _SidebarTagHeaderTile extends StatelessWidget {
-  const _SidebarTagHeaderTile({
-    required this.expanded,
-    required this.onToggleExpanded,
+class _SidebarCollapsedTile extends StatelessWidget {
+  const _SidebarCollapsedTile({
+    required this.selected,
+    required this.title,
+    required this.icon,
+    required this.onTap,
+    this.onSecondaryTapDown,
+    this.child,
   });
 
-  final bool expanded;
-  final VoidCallback onToggleExpanded;
+  final bool selected;
+  final String title;
+  final IconData icon;
+  final VoidCallback onTap;
+  final GestureTapDownCallback? onSecondaryTapDown;
+  final Widget? child;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-
-    return Semantics(
-      container: true,
-      expanded: expanded,
-      child: Column(
-        children: [
-          ListTile(
-            contentPadding: const EdgeInsets.only(left: 4, right: 8),
-            minLeadingWidth: 0,
-            horizontalTitleGap: 4,
-            leading: TreeDisclosureButton(
-              expanded: expanded,
-              tooltip: expanded ? l10n.collapse : l10n.expand,
-              onPressed: onToggleExpanded,
+    final theme = Theme.of(context);
+    final states = theme.fleurState;
+    Widget tile = Tooltip(
+      message: title,
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label: title,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          child: InkResponse(
+            onTap: onTap,
+            hoverColor: states.hoverTint,
+            radius: 24,
+            child: SizedBox.square(
+              dimension: 48,
+              child:
+                  child ??
+                  Icon(
+                    icon,
+                    color: selected
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
             ),
-            title: Row(
-              children: [
-                const Icon(FleurIcons.tag, size: 20),
-                const SizedBox(width: 12),
-                Expanded(child: Text(l10n.tags)),
-              ],
-            ),
-            onTap: onToggleExpanded,
           ),
-        ],
+        ),
       ),
     );
+    if (onSecondaryTapDown != null) {
+      tile = GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onSecondaryTapDown: onSecondaryTapDown,
+        child: tile,
+      );
+    }
+    return tile;
   }
 }
 
 class _SidebarCategoryTile extends StatelessWidget {
   const _SidebarCategoryTile({
+    required this.presentationMode,
     required this.category,
     required this.selectedFeedId,
     required this.selectedCategoryId,
@@ -738,6 +584,7 @@ class _SidebarCategoryTile extends StatelessWidget {
     required this.onShowCategoryMenu,
   });
 
+  final SidebarPresentationMode presentationMode;
   final Category category;
   final int? selectedFeedId;
   final int? selectedCategoryId;
@@ -789,6 +636,20 @@ class _SidebarCategoryTile extends StatelessWidget {
     final canMarkRead =
         capabilities.isVisible(BackendFeature.articleReadState) &&
         unreadCount > 0;
+
+    if (presentationMode == SidebarPresentationMode.collapsed) {
+      return _SidebarCollapsedTile(
+        selected: selected,
+        title: category.name,
+        icon: expanded ? FleurIcons.categoryOpen : FleurIcons.category,
+        onTap: () => selectionActions.selectCategory(category.id),
+        onSecondaryTapDown: isDesktop && hasCategoryActions
+            ? (details) => unawaited(
+                _showContextMenu(context, details.globalPosition, menuItems),
+              )
+            : null,
+      );
+    }
 
     return _SidebarRevealActions(
       builder: (context, showActions) {
@@ -869,6 +730,7 @@ class _SidebarCategoryTile extends StatelessWidget {
 
 class _SidebarFeedTile extends StatelessWidget {
   const _SidebarFeedTile({
+    required this.presentationMode,
     required this.feed,
     required this.selectedFeedId,
     required this.unreadCount,
@@ -879,6 +741,7 @@ class _SidebarFeedTile extends StatelessWidget {
     this.indent = 0,
   });
 
+  final SidebarPresentationMode presentationMode;
   final Feed feed;
   final int? selectedFeedId;
   final int? unreadCount;
@@ -935,6 +798,31 @@ class _SidebarFeedTile extends StatelessWidget {
     final canMarkRead =
         capabilities.isVisible(BackendFeature.articleReadState) &&
         (unreadCount ?? 0) > 0;
+
+    if (presentationMode == SidebarPresentationMode.collapsed) {
+      return _SidebarCollapsedTile(
+        selected: selected,
+        title: displayTitle,
+        icon: FleurIcons.feed,
+        onTap: () => selectionActions.selectFeed(feed.id),
+        onSecondaryTapDown: isDesktop && hasFeedActions
+            ? (details) => unawaited(
+                _showContextMenu(context, details.globalPosition, menuItems),
+              )
+            : null,
+        child: Center(
+          child: FaviconCircle(
+            siteUri: siteUri,
+            diameter: 28,
+            avatarSize: 18,
+            fallbackIcon: FleurIcons.feed,
+            fallbackColor: selected
+                ? theme.colorScheme.primary
+                : theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      );
+    }
 
     return _SidebarRevealActions(
       builder: (context, showActions) {
@@ -1305,47 +1193,6 @@ class _UnreadCountText extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _SidebarItem extends StatelessWidget {
-  const _SidebarItem({
-    super.key,
-    required this.selected,
-    required this.icon,
-    required this.title,
-    required this.onTap,
-    this.count,
-    this.indent = 0,
-    this.iconColor,
-    this.onSecondaryTapDown,
-  });
-
-  final bool selected;
-  final IconData icon;
-  final String title;
-  final VoidCallback onTap;
-  final int? count;
-  final double indent;
-  final Color? iconColor;
-  final GestureTapDownCallback? onSecondaryTapDown;
-
-  @override
-  Widget build(BuildContext context) {
-    final tile = ListTile(
-      selected: selected,
-      contentPadding: EdgeInsets.only(left: 16 + indent, right: 8),
-      leading: Icon(icon, color: iconColor),
-      title: Text(title),
-      trailing: count == null ? null : _UnreadCountText(count!),
-      onTap: onTap,
-    );
-    if (onSecondaryTapDown == null) return tile;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onSecondaryTapDown: onSecondaryTapDown,
-      child: tile,
     );
   }
 }

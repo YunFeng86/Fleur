@@ -7,7 +7,7 @@ import 'layout.dart';
 /// A single source of truth for responsive/layout decisions.
 ///
 /// Important: [contentWidth] is the width available to page content after
-/// subtracting global navigation chrome (e.g. NavigationRail).
+/// subtracting inline app sidebar chrome.
 @immutable
 class LayoutSpec {
   const LayoutSpec._({
@@ -15,26 +15,31 @@ class LayoutSpec {
     required this.totalHeight,
     required this.contentWidth,
     required this.contentHeight,
-    required this.globalNavMode,
+    required this.sidebarLayoutMode,
   });
 
   factory LayoutSpec.fromTotalSize({
     required double totalWidth,
     required double totalHeight,
+    SidebarPresentationMode sidebarPresentationMode =
+        SidebarPresentationMode.expanded,
   }) {
     return LayoutSpec._(
       totalWidth: totalWidth,
       totalHeight: totalHeight,
-      contentWidth: effectiveContentWidth(totalWidth),
+      contentWidth: effectiveContentWidth(
+        totalWidth,
+        sidebarPresentationMode: sidebarPresentationMode,
+      ),
       contentHeight: totalHeight,
-      globalNavMode: globalNavModeForWidth(totalWidth),
+      sidebarLayoutMode: sidebarLayoutModeForWidth(totalWidth),
     );
   }
 
   /// Use this when you're already inside the content area (e.g. ShellRoute child
-  /// where NavigationRail has already consumed horizontal space).
+  /// where the app sidebar has already consumed horizontal space).
   ///
-  /// Note: [globalNavMode] is best-effort here and should not be relied on for
+  /// Note: [sidebarLayoutMode] is best-effort here and should not be relied on for
   /// outer-chrome decisions.
   factory LayoutSpec.fromContentSize({
     required double contentWidth,
@@ -45,7 +50,7 @@ class LayoutSpec {
       totalHeight: contentHeight,
       contentWidth: contentWidth,
       contentHeight: contentHeight,
-      globalNavMode: globalNavModeForWidth(contentWidth),
+      sidebarLayoutMode: sidebarLayoutModeForWidth(contentWidth),
     );
   }
 
@@ -61,9 +66,11 @@ class LayoutSpec {
   final double totalHeight;
   final double contentWidth;
   final double contentHeight;
-  final GlobalNavMode globalNavMode;
+  final SidebarLayoutMode sidebarLayoutMode;
 
   bool get isDesktopPlatform => isDesktop;
+
+  bool get hasInlineSidebar => sidebarLayoutMode == SidebarLayoutMode.inline;
 
   DesktopPaneMode get desktopPaneMode => desktopModeForWidth(contentWidth);
 

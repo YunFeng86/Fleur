@@ -17,6 +17,7 @@ import 'package:fleur/providers/account_providers.dart';
 import 'package:fleur/providers/article_list_controller.dart';
 import 'package:fleur/providers/app_settings_providers.dart';
 import 'package:fleur/providers/background_sync_providers.dart';
+import 'package:fleur/providers/core_providers.dart';
 import 'package:fleur/providers/outbox_status_providers.dart';
 import 'package:fleur/providers/query_providers.dart';
 import 'package:fleur/providers/refresh_all_providers.dart';
@@ -101,7 +102,16 @@ Widget _buildRuntimeHostHarness({
 
 Widget _buildShellHarness() {
   return ProviderScope(
-    overrides: [activeAccountProvider.overrideWithValue(buildTestAccount())],
+    overrides: [
+      activeAccountProvider.overrideWithValue(buildTestAccount()),
+      feedsProvider.overrideWith((ref) => Stream.value(<Feed>[])),
+      categoriesProvider.overrideWith((ref) => Stream.value(<Category>[])),
+      tagsProvider.overrideWith((ref) => Stream.value(<Tag>[])),
+      allUnreadCountsProvider.overrideWith(
+        (ref) => Stream.value(<int?, int>{}),
+      ),
+      outboxPendingCountProvider.overrideWith((ref) async => 0),
+    ],
     child: MaterialApp(
       theme: AppTheme.light(),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -579,7 +589,7 @@ void main() {
     },
   );
 
-  testWidgets('App shell switches between rail and bottom navigation', (
+  testWidgets('App shell switches between inline sidebar and drawer', (
     tester,
   ) async {
     debugFleurTargetPlatformOverride = TargetPlatform.windows;
@@ -592,46 +602,79 @@ void main() {
     await tester.pumpWidget(_buildShellHarness());
     await tester.pumpAndSettle();
 
-    expect(find.byType(GlobalNavRail), findsOneWidget);
+    expect(find.byType(Sidebar), findsOneWidget);
+    expect(tester.getSize(find.byType(Sidebar)).width, kSidebarExpandedWidth);
+    expect(find.byType(GlobalNavRail), findsNothing);
     expect(find.byType(GlobalNavBar), findsNothing);
-    expect(
-      tester.getSize(find.byType(GlobalNavRail)).width,
-      kGlobalNavRailWidth,
-    );
 
     tester.view.physicalSize = const Size(640, 900);
     await tester.pumpWidget(_buildShellHarness());
     await tester.pumpAndSettle();
 
-    expect(find.byType(GlobalNavBar), findsOneWidget);
     expect(find.byType(GlobalNavRail), findsNothing);
+    expect(find.byType(GlobalNavBar), findsNothing);
+    expect(find.byType(Sidebar), findsNothing);
+
+    tester.state<ScaffoldState>(find.byType(Scaffold)).openDrawer();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Sidebar), findsOneWidget);
   });
 
-  testWidgets('rail keeps add in top group and opens settings routes', (
+  testWidgets('sidebar fixed items and account menu navigate to shell routes', (
     tester,
   ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
     tester.view.devicePixelRatio = 1.0;
     tester.view.physicalSize = const Size(1200, 900);
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetPhysicalSize);
 
     final router = GoRouter(
+      initialLocation: '/all',
       routes: [
-        GoRoute(
-          path: '/',
-          builder: (context, state) => GlobalNavRail(currentUri: state.uri),
-        ),
-        GoRoute(
-          path: '/settings',
-          builder: (context, state) => GlobalNavRail(currentUri: state.uri),
+        ShellRoute(
+          builder: (context, state, child) =>
+              AppShell(currentUri: state.uri, child: child),
+          routes: [
+            GoRoute(
+              path: '/all',
+              builder: (context, state) => const Text('all page'),
+            ),
+            GoRoute(
+              path: '/starred',
+              builder: (context, state) => const Text('starred page'),
+            ),
+            GoRoute(
+              path: '/read-later',
+              builder: (context, state) => const Text('read later page'),
+            ),
+            GoRoute(
+              path: '/add-subscription',
+              builder: (context, state) => const Text('add page'),
+            ),
+            GoRoute(
+              path: '/settings',
+              builder: (context, state) => const Text('settings page'),
+            ),
+          ],
         ),
       ],
     );
+    addTearDown(router.dispose);
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           activeAccountProvider.overrideWithValue(buildTestAccount()),
+          feedsProvider.overrideWith((ref) => Stream.value(<Feed>[])),
+          categoriesProvider.overrideWith((ref) => Stream.value(<Category>[])),
+          tagsProvider.overrideWith((ref) => Stream.value(<Tag>[])),
+          allUnreadCountsProvider.overrideWith(
+            (ref) => Stream.value(<int?, int>{null: 0}),
+          ),
+          outboxPendingCountProvider.overrideWith((ref) async => 0),
         ],
         child: MaterialApp.router(
           theme: AppTheme.light(),
@@ -643,31 +686,53 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final viewportMidpoint =
-        tester.view.physicalSize.height / tester.view.devicePixelRatio / 2;
-    expect(
-      tester.getCenter(find.byKey(const Key('global_nav_add_button'))).dy,
-      lessThan(viewportMidpoint),
-    );
-
-    await tester.tap(find.byKey(const Key('global_nav_settings_button')));
+    await tester.tap(find.byKey(const Key('sidebar_starred_button')));
     await tester.pumpAndSettle();
-
     expect(
       router.routerDelegate.currentConfiguration.uri.toString(),
-      '/settings',
+      '/starred',
+    );
+    expect(find.text('starred page'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('sidebar_read_later_button')));
+    await tester.pumpAndSettle();
+    expect(
+      router.routerDelegate.currentConfiguration.uri.toString(),
+      '/read-later',
     );
 
-    await tester.tap(find.byKey(const Key('global_nav_account_button')));
+    await tester.tap(find.byKey(const Key('sidebar_all_button')));
+    await tester.pumpAndSettle();
+    expect(router.routerDelegate.currentConfiguration.uri.toString(), '/all');
+
+    await tester.tap(find.byKey(const Key('sidebar_add_subscription_button')));
+    await tester.pumpAndSettle();
+    expect(
+      router.routerDelegate.currentConfiguration.uri.toString(),
+      '/add-subscription',
+    );
+
+    await tester.tap(find.byKey(const Key('sidebar_account_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('sidebar_account_menu_account')));
     await tester.pumpAndSettle();
 
     expect(
       router.routerDelegate.currentConfiguration.uri.toString(),
       '/settings?tab=services',
     );
+
+    await tester.tap(find.byKey(const Key('sidebar_account_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('sidebar_account_menu_settings')));
+    await tester.pumpAndSettle();
+    expect(
+      router.routerDelegate.currentConfiguration.uri.toString(),
+      '/settings',
+    );
   });
 
-  testWidgets('sidebar account footer closes drawer before opening services', (
+  testWidgets('App shell drawer account menu closes before opening services', (
     tester,
   ) async {
     debugFleurTargetPlatformOverride = TargetPlatform.android;
@@ -677,27 +742,29 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetPhysicalSize);
 
-    final scaffoldKey = GlobalKey<ScaffoldState>();
     late final GoRouter router;
     router = GoRouter(
+      initialLocation: '/all',
       routes: [
-        GoRoute(
-          path: '/',
-          builder: (context, state) {
-            return Scaffold(
-              key: scaffoldKey,
-              drawer: const HomeSidebarDrawer(),
-              body: const SizedBox.shrink(),
-            );
-          },
-        ),
-        GoRoute(
-          path: '/settings',
-          builder: (context, state) =>
-              const Scaffold(body: Center(child: Text('Services settings'))),
+        ShellRoute(
+          builder: (context, state, child) =>
+              AppShell(currentUri: state.uri, child: child),
+          routes: [
+            GoRoute(
+              path: '/all',
+              builder: (context, state) => const SizedBox.shrink(),
+            ),
+            GoRoute(
+              path: '/settings',
+              builder: (context, state) => const Scaffold(
+                body: Center(child: Text('Services settings')),
+              ),
+            ),
+          ],
         ),
       ],
     );
+    addTearDown(router.dispose);
 
     await tester.pumpWidget(
       ProviderScope(
@@ -709,6 +776,7 @@ void main() {
           allUnreadCountsProvider.overrideWith(
             (ref) => Stream.value(<int?, int>{}),
           ),
+          outboxPendingCountProvider.overrideWith((ref) async => 0),
         ],
         child: MaterialApp.router(
           theme: AppTheme.light(),
@@ -720,12 +788,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    scaffoldKey.currentState!.openDrawer();
+    tester.state<ScaffoldState>(find.byType(Scaffold).first).openDrawer();
     await tester.pumpAndSettle();
 
     expect(find.text('Test Account'), findsOneWidget);
 
-    await tester.tap(find.text('Test Account'));
+    await tester.tap(find.byKey(const Key('sidebar_account_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('sidebar_account_menu_account')));
     await tester.pumpAndSettle();
 
     expect(
@@ -734,6 +804,106 @@ void main() {
     );
     expect(find.text('Services settings'), findsOneWidget);
     expect(find.text('Test Account'), findsNothing);
+  });
+
+  testWidgets('sidebar collapsed mode keeps fixed item order icon-only', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          activeAccountProvider.overrideWithValue(buildTestAccount()),
+          sidebarPresentationModeProvider.overrideWith(
+            (ref) => SidebarPresentationMode.collapsed,
+          ),
+          feedsProvider.overrideWith((ref) => Stream.value(<Feed>[])),
+          categoriesProvider.overrideWith((ref) => Stream.value(<Category>[])),
+          tagsProvider.overrideWith((ref) => Stream.value(<Tag>[])),
+          allUnreadCountsProvider.overrideWith(
+            (ref) => Stream.value(<int?, int>{null: 0}),
+          ),
+        ],
+        child: MaterialApp(
+          locale: const Locale('en'),
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const AppMenuHost(
+            child: SizedBox(
+              width: kSidebarCollapsedWidth,
+              child: Sidebar(onSelectScope: _noopSelectScope),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('All Articles'), findsNothing);
+    expect(find.text('Starred'), findsNothing);
+    expect(find.text('Read Later'), findsNothing);
+
+    final allY = tester
+        .getCenter(find.byKey(const Key('sidebar_all_button')))
+        .dy;
+    final starredY = tester
+        .getCenter(find.byKey(const Key('sidebar_starred_button')))
+        .dy;
+    final readLaterY = tester
+        .getCenter(find.byKey(const Key('sidebar_read_later_button')))
+        .dy;
+    final accountY = tester
+        .getCenter(find.byKey(const Key('sidebar_account_button')))
+        .dy;
+
+    expect(allY, lessThan(starredY));
+    expect(starredY, lessThan(readLaterY));
+    expect(readLaterY, lessThan(accountY));
+  });
+
+  testWidgets('Fever sidebar hides add subscription fixed item', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          activeAccountProvider.overrideWithValue(
+            buildTestAccount(type: AccountType.fever),
+          ),
+          feedsProvider.overrideWith((ref) => Stream.value(<Feed>[])),
+          categoriesProvider.overrideWith((ref) => Stream.value(<Category>[])),
+          tagsProvider.overrideWith((ref) => Stream.value(<Tag>[])),
+          allUnreadCountsProvider.overrideWith(
+            (ref) => Stream.value(<int?, int>{null: 0}),
+          ),
+        ],
+        child: MaterialApp(
+          locale: const Locale('en'),
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const AppMenuHost(
+            child: SizedBox(
+              width: kSidebarExpandedWidth,
+              child: Sidebar(onSelectScope: _noopSelectScope),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('sidebar_add_subscription_button')),
+      findsNothing,
+    );
+    expect(find.text('Add subscription'), findsNothing);
   });
 
   testWidgets(
@@ -1694,10 +1864,12 @@ void main() {
       final newCategoryButton = find.byWidgetPredicate(
         (widget) => widget is IconButton && widget.tooltip == 'New category',
       );
-      final addSubscriptionCta = find.byKey(
-        const Key('sidebar_add_subscription_cta'),
+      final addSubscriptionButton = find.byKey(
+        const Key('sidebar_add_subscription_button'),
       );
 
+      expect(addSubscriptionButton, findsOneWidget);
+      expect(find.text('Add subscription'), findsOneWidget);
       expect(tester.getSize(newCategoryButton).width, greaterThanOrEqualTo(48));
       expect(
         tester.getSize(newCategoryButton).height,
@@ -1711,18 +1883,6 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Fleur Feed'), findsOneWidget);
-      await tester.scrollUntilVisible(
-        addSubscriptionCta,
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.pumpAndSettle();
-      expect(addSubscriptionCta, findsOneWidget);
-      expect(find.text('Add subscription'), findsOneWidget);
-      expect(
-        tester.getSize(addSubscriptionCta).height,
-        greaterThanOrEqualTo(48),
-      );
     },
   );
 

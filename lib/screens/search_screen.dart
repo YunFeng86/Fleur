@@ -95,15 +95,19 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       );
       if (!useCompactTopBar) return loading;
       return Scaffold(
-        appBar: AppBar(title: Text(l10n.search)),
+        appBar: AppBar(
+          leading: GlobalNavScope.drawerLeading(context),
+          title: Text(l10n.search),
+        ),
         body: loading,
       );
     }
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final showSyncCapsule =
-            LayoutSpec.fromContext(context).globalNavMode == GlobalNavMode.rail;
+        final showSyncCapsule = LayoutSpec.fromContext(
+          context,
+        ).hasInlineSidebar;
         final width = constraints.maxWidth;
         final spec = LayoutSpec.fromContentSize(
           contentWidth: width,
@@ -280,7 +284,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         if (!useCompactTopBar) return content;
 
         return Scaffold(
-          appBar: AppBar(title: Text(l10n.search)),
+          appBar: AppBar(
+            leading: GlobalNavScope.drawerLeading(context),
+            title: Text(l10n.search),
+          ),
           body: content,
         );
       },

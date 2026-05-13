@@ -7,6 +7,7 @@ import '../l10n/app_localizations.dart';
 import '../models/article_scope.dart';
 import '../theme/fleur_icons.dart';
 import '../ui/actions/subscription_actions.dart';
+import '../ui/global_nav.dart';
 
 class AddSubscriptionScreen extends ConsumerWidget {
   const AddSubscriptionScreen({super.key});
@@ -15,7 +16,10 @@ class AddSubscriptionScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.addSubscription)),
+      appBar: AppBar(
+        leading: GlobalNavScope.drawerLeading(context),
+        title: Text(l10n.addSubscription),
+      ),
       body: Center(
         child: FilledButton.icon(
           onPressed: () async {

@@ -198,7 +198,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             return Scaffold(
               appBar: useCompactTopBar
                   ? AppBar(
-                      leading: hasGlobalNav ? null : const BackButton(),
+                      leading: hasGlobalNav
+                          ? GlobalNavScope.drawerLeading(context)
+                          : const BackButton(),
                       title: Text(l10n.settings),
                     )
                   : null,
@@ -236,7 +238,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             children: [
               if (useCompactTopBar)
                 AppBar(
-                  leading: hasGlobalNav ? null : const BackButton(),
+                  leading: hasGlobalNav
+                      ? GlobalNavScope.drawerLeading(context)
+                      : const BackButton(),
                   title: Text(l10n.settings),
                 ),
               Expanded(

@@ -102,15 +102,19 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
       );
       if (!useCompactTopBar) return loading;
       return Scaffold(
-        appBar: AppBar(title: Text(l10n.saved)),
+        appBar: AppBar(
+          leading: GlobalNavScope.drawerLeading(context),
+          title: Text(l10n.saved),
+        ),
         body: loading,
       );
     }
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final showSyncCapsule =
-            LayoutSpec.fromContext(context).globalNavMode == GlobalNavMode.rail;
+        final showSyncCapsule = LayoutSpec.fromContext(
+          context,
+        ).hasInlineSidebar;
         final width = constraints.maxWidth;
         final spec = LayoutSpec.fromContentSize(
           contentWidth: width,
@@ -271,7 +275,10 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
         if (!useCompactTopBar) return content;
 
         return Scaffold(
-          appBar: AppBar(title: Text(l10n.saved)),
+          appBar: AppBar(
+            leading: GlobalNavScope.drawerLeading(context),
+            title: Text(l10n.saved),
+          ),
           body: content,
         );
       },

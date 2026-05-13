@@ -4,7 +4,6 @@ import 'package:fleur/l10n/app_localizations.dart';
 
 import '../providers/backend_capabilities_provider.dart';
 import '../providers/backend_sync_semantics_provider.dart';
-import '../providers/core_providers.dart';
 import '../providers/query_providers.dart';
 import '../providers/unread_providers.dart';
 import '../theme/fleur_icons.dart';
@@ -30,8 +29,7 @@ class HomeScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     // Desktop has a top title bar provided by App chrome; avoid in-page AppBar.
     final useCompactTopBar = !isDesktop;
-    final showSyncCapsule =
-        LayoutSpec.fromContext(context).globalNavMode == GlobalNavMode.rail;
+    final showSyncCapsule = LayoutSpec.fromContext(context).hasInlineSidebar;
     final capabilities = ref.watch(backendCapabilitiesProvider);
     final showRootRefresh = SubscriptionObjectMenus.showsRootRefresh(
       capabilities,
@@ -108,6 +106,7 @@ class HomeScreen extends ConsumerWidget {
           final unreadOnly = ref.watch(unreadOnlyProvider);
           return Scaffold(
             appBar: AppBar(
+              leading: GlobalNavScope.drawerLeading(context),
               title: Text(l10n.feeds),
               actions: [
                 if (showRootRefresh)
@@ -130,7 +129,6 @@ class HomeScreen extends ConsumerWidget {
                 const OutboxStatusAction(),
               ],
             ),
-            drawer: const HomeSidebarDrawer(),
             floatingActionButton: useCompactTopBar ? markAllReadFab() : null,
             body: HomeArticleListPane(
               selectedArticleId: selectedArticleId,
@@ -145,6 +143,7 @@ class HomeScreen extends ConsumerWidget {
           child: Scaffold(
             appBar: useCompactTopBar
                 ? AppBar(
+                    leading: GlobalNavScope.drawerLeading(context),
                     title: Text(l10n.feeds),
                     actions: [
                       if (showRootRefresh)
@@ -174,21 +173,12 @@ class HomeScreen extends ConsumerWidget {
                   )
                 : null,
             floatingActionButton: useCompactTopBar ? markAllReadFab() : null,
-            drawer: columns == 2 ? const HomeSidebarDrawer() : null,
             body: Row(
               children: [
-                if (columns == 3) ...[
-                  HomeSidebarRouteAwarePane(
-                    width: kHomeSidebarWidth,
-                    showSyncCapsule: showSyncCapsule,
-                    selectedArticleId: selectedArticleId,
-                  ),
-                  const SizedBox(width: kPaneGap),
-                ],
                 HomeArticleListPane(
                   width: kHomeListWidth,
                   selectedArticleId: selectedArticleId,
-                  showSyncCapsule: showSyncCapsule && columns != 3,
+                  showSyncCapsule: showSyncCapsule,
                 ),
                 const SizedBox(width: kPaneGap),
                 Expanded(
@@ -218,9 +208,7 @@ class HomeScreen extends ConsumerWidget {
     String refreshActionLabel,
     Future<void> Function() markAllRead,
   ) {
-    final showSyncCapsule =
-        LayoutSpec.fromContext(context).globalNavMode == GlobalNavMode.rail;
-    final sidebarVisible = ref.watch(sidebarVisibleProvider);
+    final showSyncCapsule = LayoutSpec.fromContext(context).hasInlineSidebar;
     final topBar = _HomeArticleListToolbar(
       showRefresh: showRootRefresh,
       refreshTooltip: refreshActionLabel,
@@ -233,20 +221,11 @@ class HomeScreen extends ConsumerWidget {
       DesktopPaneMode.threePane => Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (sidebarVisible) ...[
-            HomeSidebarRouteAwarePane(
-              width: kDesktopSidebarWidth,
-              showSyncCapsule: showSyncCapsule,
-              selectedArticleId: selectedArticleId,
-              hero: true,
-            ),
-            const SizedBox(width: kPaneGap),
-          ],
           HomeArticleListPane(
             width: kDesktopListWidth,
             heroTag: kHeroArticleListPane,
             selectedArticleId: selectedArticleId,
-            showSyncCapsule: showSyncCapsule && !sidebarVisible,
+            showSyncCapsule: showSyncCapsule,
             topBar: topBar,
           ),
           const SizedBox(width: kPaneGap),
@@ -290,10 +269,9 @@ class HomeScreen extends ConsumerWidget {
 
     if (!useCompactTopBar) return content;
 
-    final drawerEnabled = sidebarVisible && desktopSidebarInDrawer(mode);
-
     return Scaffold(
       appBar: AppBar(
+        leading: GlobalNavScope.drawerLeading(context),
         title: Text(l10n.feeds),
         actions: [
           if (showRootRefresh)
@@ -322,7 +300,6 @@ class HomeScreen extends ConsumerWidget {
         tooltip: l10n.markAllRead,
         child: const Icon(FleurIcons.markAllRead),
       ),
-      drawer: drawerEnabled ? const HomeSidebarDrawer() : null,
       body: content,
     );
   }
