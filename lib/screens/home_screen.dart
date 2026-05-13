@@ -173,21 +173,12 @@ class HomeScreen extends ConsumerWidget {
                 : null,
             floatingActionButton: useCompactTopBar ? markAllReadFab() : null,
             body: Row(
-              children: [
-                HomeArticleListPane(
-                  width: kHomeListWidth,
-                  selectedArticleId: selectedArticleId,
-                  showSyncCapsule: showSyncCapsule,
-                ),
-                const SizedBox(width: kPaneGap),
-                Expanded(
-                  child: HomeReaderPane(
-                    selectedArticleId: selectedArticleId,
-                    placeholderText: l10n.selectAnArticle,
-                    placeholderSubtitle: l10n.readerEmptySubtitle,
-                  ),
-                ),
-              ],
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: _workspacePanes(
+                listWidth: kHomeListWidth,
+                selectedArticleId: selectedArticleId,
+                showSyncCapsule: showSyncCapsule,
+              ),
             ),
           ),
         );
@@ -217,45 +208,15 @@ class HomeScreen extends ConsumerWidget {
     );
 
     final body = switch (mode) {
-      DesktopPaneMode.threePane => Row(
+      DesktopPaneMode.threePane || DesktopPaneMode.splitListReader => Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          HomeArticleListPane(
-            width: kDesktopListWidth,
-            heroTag: kHeroArticleListPane,
-            selectedArticleId: selectedArticleId,
-            showSyncCapsule: showSyncCapsule,
-            topBar: topBar,
-          ),
-          const SizedBox(width: kPaneGap),
-          Expanded(
-            child: HomeReaderPane(
-              selectedArticleId: selectedArticleId,
-              placeholderText: l10n.selectAnArticle,
-              placeholderSubtitle: l10n.readerEmptySubtitle,
-            ),
-          ),
-        ],
-      ),
-      DesktopPaneMode.splitListReader => Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          HomeArticleListPane(
-            width: kDesktopListWidth,
-            heroTag: kHeroArticleListPane,
-            selectedArticleId: selectedArticleId,
-            showSyncCapsule: showSyncCapsule,
-            topBar: topBar,
-          ),
-          const SizedBox(width: kPaneGap),
-          Expanded(
-            child: HomeReaderPane(
-              selectedArticleId: selectedArticleId,
-              placeholderText: l10n.selectAnArticle,
-              placeholderSubtitle: l10n.readerEmptySubtitle,
-            ),
-          ),
-        ],
+        children: _workspacePanes(
+          listWidth: kDesktopListWidth,
+          heroTag: kHeroArticleListPane,
+          selectedArticleId: selectedArticleId,
+          showSyncCapsule: showSyncCapsule,
+          topBar: topBar,
+        ),
       ),
       DesktopPaneMode.listOnly => HomeArticleListPane(
         selectedArticleId: selectedArticleId,
@@ -301,6 +262,28 @@ class HomeScreen extends ConsumerWidget {
       ),
       body: content,
     );
+  }
+
+  List<Widget> _workspacePanes({
+    required double listWidth,
+    required int? selectedArticleId,
+    required bool showSyncCapsule,
+    Object? heroTag,
+    Widget? topBar,
+  }) {
+    return [
+      HomeArticleListPane(
+        width: listWidth,
+        heroTag: heroTag,
+        selectedArticleId: selectedArticleId,
+        showSyncCapsule: showSyncCapsule,
+        topBar: topBar,
+      ),
+      if (selectedArticleId == null)
+        const Expanded(child: SizedBox.shrink())
+      else
+        Expanded(child: HomeReaderPane(articleId: selectedArticleId)),
+    ];
   }
 }
 

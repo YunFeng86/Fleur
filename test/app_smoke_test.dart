@@ -20,9 +20,11 @@ import 'package:fleur/providers/background_sync_providers.dart';
 import 'package:fleur/providers/core_providers.dart';
 import 'package:fleur/providers/outbox_status_providers.dart';
 import 'package:fleur/providers/query_providers.dart';
+import 'package:fleur/providers/reader_providers.dart';
 import 'package:fleur/providers/refresh_all_providers.dart';
 import 'package:fleur/providers/repository_providers.dart';
 import 'package:fleur/providers/service_providers.dart';
+import 'package:fleur/providers/settings_providers.dart';
 import 'package:fleur/providers/sync_status_providers.dart';
 import 'package:fleur/providers/unread_providers.dart';
 import 'package:fleur/repositories/feed_repository.dart';
@@ -30,6 +32,7 @@ import 'package:fleur/screens/home_screen.dart';
 import 'package:fleur/screens/search_screen.dart';
 import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/services/settings/app_settings.dart';
+import 'package:fleur/services/settings/reader_settings.dart';
 import 'package:fleur/services/sync/sync_service.dart';
 import 'package:fleur/services/sync/sync_status_reporter.dart';
 import 'package:fleur/theme/app_theme.dart';
@@ -41,6 +44,7 @@ import 'package:fleur/ui/app_shell.dart';
 import 'package:fleur/ui/home/home_scene_commands.dart';
 import 'package:fleur/ui/home/home_scene_panes.dart';
 import 'package:fleur/ui/home/home_scene_shortcuts.dart';
+import 'package:fleur/ui/layout.dart';
 import 'package:fleur/ui/sidebar_layout.dart';
 import 'package:fleur/ui/sidebar/sidebar_selection_actions.dart';
 import 'package:fleur/utils/platform.dart';
@@ -48,6 +52,7 @@ import 'package:fleur/widgets/article_list.dart';
 import 'package:fleur/widgets/article_list_item.dart';
 import 'package:fleur/widgets/app_scrollbar.dart';
 import 'package:fleur/widgets/overflow_marquee.dart';
+import 'package:fleur/widgets/reader_view.dart';
 import 'package:fleur/widgets/sidebar.dart';
 import 'package:fleur/widgets/sync_status_capsule.dart';
 
@@ -604,6 +609,11 @@ void main() {
 
     expect(find.byType(Sidebar), findsOneWidget);
     expect(tester.getSize(find.byType(Sidebar)).width, kSidebarExpandedWidth);
+    expect(find.byKey(const Key('app_shell_sidebar_divider')), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const Key('app_shell_sidebar_divider'))).width,
+      kSidebarContentDividerWidth,
+    );
     expect(find.byType(NavigationRail), findsNothing);
     expect(find.byType(NavigationBar), findsNothing);
     expect(find.byType(AppBar), findsNothing);
@@ -619,6 +629,7 @@ void main() {
     expect(find.byType(NavigationRail), findsNothing);
     expect(find.byType(NavigationBar), findsNothing);
     expect(find.byType(Sidebar), findsNothing);
+    expect(find.byKey(const Key('app_shell_sidebar_divider')), findsNothing);
     expect(
       tester.getSize(find.byKey(const Key('app_shell_child'))).height,
       900,
@@ -2152,33 +2163,133 @@ void main() {
     },
   );
 
-  testWidgets('Home reader empty state uses quiet reader copy', (tester) async {
+  testWidgets('Home workspace omits reader pane until article is selected', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(1200, 800);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    final article = _buildArticle(id: 42);
+    _FixedArticleListController.items = <Article>[article];
+    addTearDown(() => _FixedArticleListController.items = <Article>[]);
+
     await tester.pumpWidget(
-      MaterialApp(
-        theme: AppTheme.light(),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: Builder(
-          builder: (context) {
-            final l10n = AppLocalizations.of(context)!;
-            return Scaffold(
-              body: HomeReaderPane(
-                selectedArticleId: null,
-                placeholderText: l10n.selectAnArticle,
-                placeholderSubtitle: l10n.readerEmptySubtitle,
-              ),
-            );
-          },
+      ProviderScope(
+        overrides: [
+          activeAccountProvider.overrideWithValue(buildTestAccount()),
+          articleListControllerProvider.overrideWith(
+            _FixedArticleListController.new,
+          ),
+          articleProvider(42).overrideWith((ref) => Stream.value(article)),
+          appSettingsStoreProvider.overrideWithValue(
+            FakeAppSettingsStore(AppSettings.defaults()),
+          ),
+          feedsProvider.overrideWith(
+            (ref) => Stream.value([_buildFeed(id: article.feedId)]),
+          ),
+          categoriesProvider.overrideWith((ref) => Stream.value(<Category>[])),
+          tagsProvider.overrideWith((ref) => Stream.value(<Tag>[])),
+          allUnreadCountsProvider.overrideWith(
+            (ref) => Stream.value(<int?, int>{null: 0}),
+          ),
+          outboxPendingCountProvider.overrideWith((ref) async => 0),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const HomeScreen(selectedArticleId: null),
         ),
       ),
     );
     await tester.pumpAndSettle();
 
-    final element = tester.element(find.byType(HomeReaderPane));
+    final element = tester.element(find.byType(HomeScreen));
     final l10n = AppLocalizations.of(element)!;
 
-    expect(find.text(l10n.selectAnArticle), findsOneWidget);
-    expect(find.text(l10n.readerEmptySubtitle), findsOneWidget);
+    expect(tester.getSize(find.byType(ArticleList)).width, kDesktopListWidth);
+    expect(find.byType(HomeReaderPane), findsNothing);
+    expect(find.byType(ReadingPaneSurface), findsNothing);
+    expect(find.byType(ReaderView), findsNothing);
+    expect(find.text(l10n.selectAnArticle), findsNothing);
+    expect(find.text(l10n.readerEmptySubtitle), findsNothing);
+  });
+
+  testWidgets('Home workspace keeps list width while showing reader surface', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(1200, 800);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    final article = _buildArticle(id: 42);
+    _FixedArticleListController.items = <Article>[article];
+    addTearDown(() => _FixedArticleListController.items = <Article>[]);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          activeAccountProvider.overrideWithValue(buildTestAccount()),
+          articleListControllerProvider.overrideWith(
+            _FixedArticleListController.new,
+          ),
+          articleProvider(42).overrideWith((ref) => Stream.value(article)),
+          appSettingsStoreProvider.overrideWithValue(
+            FakeAppSettingsStore(AppSettings.defaults()),
+          ),
+          readerSettingsStoreProvider.overrideWithValue(
+            FakeReaderSettingsStore(const ReaderSettings()),
+          ),
+          readerProgressStoreProvider.overrideWithValue(
+            InMemoryReaderProgressStore(),
+          ),
+          imageMetaStoreProvider.overrideWithValue(InMemoryImageMetaStore()),
+          articleActionServiceProvider.overrideWithValue(
+            RecordingArticleActionService(),
+          ),
+          feedsProvider.overrideWith(
+            (ref) => Stream.value([_buildFeed(id: article.feedId)]),
+          ),
+          categoriesProvider.overrideWith((ref) => Stream.value(<Category>[])),
+          tagsProvider.overrideWith((ref) => Stream.value(<Tag>[])),
+          allUnreadCountsProvider.overrideWith(
+            (ref) => Stream.value(<int?, int>{null: 0}),
+          ),
+          outboxPendingCountProvider.overrideWith((ref) async => 0),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const HomeScreen(selectedArticleId: 42),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final surface = tester.widget<DecoratedBox>(
+      find.byKey(const Key('reading_pane_surface')),
+    );
+    final decoration = surface.decoration as BoxDecoration;
+    final radius = decoration.borderRadius! as BorderRadius;
+    final shadows = decoration.boxShadow!;
+
+    expect(tester.getSize(find.byType(ArticleList)).width, kDesktopListWidth);
+    expect(find.byType(HomeReaderPane), findsOneWidget);
+    expect(find.byType(ReaderView), findsOneWidget);
+    expect(tester.getSize(find.byType(ReadingPaneSurface)).height, 800);
+    expect(radius.topLeft.x, greaterThan(0));
+    expect(radius.bottomLeft.x, greaterThan(0));
+    expect(radius.topRight.x, 0);
+    expect(shadows, isNotEmpty);
+    expect(shadows.first.blurRadius, greaterThan(0));
   });
 
   testWidgets('Search screen shows start and no-result empty states', (

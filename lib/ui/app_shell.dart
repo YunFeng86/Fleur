@@ -185,7 +185,11 @@ class AppShell extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _desktopSidebar(context: context, ref: ref, width: sidebarWidth),
-              const SizedBox(width: kPaneGap),
+              SizedBox(
+                key: const Key('app_shell_sidebar_divider'),
+                width: kSidebarContentDividerWidth,
+                child: ColoredBox(color: surfaces.subtleDivider),
+              ),
               Expanded(child: child),
             ],
           ),

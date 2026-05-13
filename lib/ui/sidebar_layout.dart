@@ -7,6 +7,7 @@ import 'layout.dart';
 const double kSidebarExpandedWidth = kDesktopSidebarWidth;
 const double kSidebarCollapsedWidth = 64;
 const double kSidebarBreakpoint = 900;
+const double kSidebarContentDividerWidth = 1;
 
 enum SidebarPresentationMode { expanded, collapsed }
 
@@ -35,5 +36,5 @@ double effectiveContentWidth(
   if (!showInlineSidebarForWidth(totalWidth)) return totalWidth;
   return totalWidth -
       sidebarWidthForPresentationMode(sidebarPresentationMode) -
-      kPaneGap;
+      kSidebarContentDividerWidth;
 }

@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/fleur_theme_extensions.dart';
-import '../../theme/fleur_icons.dart';
 import '../../widgets/article_list.dart';
-import '../../widgets/fleur_empty_state.dart';
 import '../../widgets/reader_view.dart';
 import '../../widgets/sync_status_capsule.dart';
 
@@ -46,34 +44,60 @@ class HomeArticleListPane extends StatelessWidget {
 class HomeReaderPane extends StatelessWidget {
   const HomeReaderPane({
     super.key,
-    required this.selectedArticleId,
-    required this.placeholderText,
-    required this.placeholderSubtitle,
+    required this.articleId,
     this.embedded = true,
   });
 
-  final int? selectedArticleId;
-  final String placeholderText;
-  final String placeholderSubtitle;
+  final int articleId;
   final bool embedded;
 
   @override
   Widget build(BuildContext context) {
-    final readerSurface = Theme.of(context).fleurSurface.reader;
-    if (selectedArticleId == null) {
-      return FleurEmptyState(
-        variant: FleurEmptyStateVariant.reader,
-        icon: FleurIcons.article,
-        title: placeholderText,
-        subtitle: placeholderSubtitle,
-      );
-    }
-    return Container(
-      color: readerSurface,
+    return ReadingPaneSurface(
       child: ReaderView(
-        key: ValueKey('home-reader-$selectedArticleId'),
-        articleId: selectedArticleId!,
+        key: ValueKey('home-reader-$articleId'),
+        articleId: articleId,
         embedded: embedded,
+      ),
+    );
+  }
+}
+
+class ReadingPaneSurface extends StatelessWidget {
+  const ReadingPaneSurface({super.key, required this.child});
+
+  final Widget child;
+
+  static const _radius = BorderRadius.only(
+    topLeft: Radius.circular(16),
+    bottomLeft: Radius.circular(16),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final surfaces = theme.fleurSurface;
+    final shadowColor = theme.shadowColor.withValues(
+      alpha: theme.brightness == Brightness.dark ? 0.22 : 0.12,
+    );
+
+    return DecoratedBox(
+      key: const Key('reading_pane_surface'),
+      decoration: BoxDecoration(
+        color: surfaces.reader,
+        borderRadius: _radius,
+        boxShadow: [
+          BoxShadow(
+            color: shadowColor,
+            blurRadius: 18,
+            spreadRadius: 1,
+            offset: const Offset(-4, 0),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: _radius,
+        child: ColoredBox(color: surfaces.reader, child: child),
       ),
     );
   }
