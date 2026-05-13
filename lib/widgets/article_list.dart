@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -56,10 +55,12 @@ class ArticleList extends ConsumerStatefulWidget {
 class _ArticleListState extends ConsumerState<ArticleList> {
   static const double _topBarHideOffset = 24;
   static const double _loadMoreThreshold = 600;
+  static const double _scrollDeltaTolerance = 0.5;
 
   late final ScrollController _controller;
   bool _loadMoreScheduled = false;
   bool _topBarVisible = true;
+  double? _lastScrollOffset;
 
   int? _lastContextKey;
   Set<int> _seenArticleIds = <int>{};
@@ -86,30 +87,32 @@ class _ArticleListState extends ConsumerState<ArticleList> {
 
   void _handleScroll() {
     final pos = _controller.position;
+    final previousOffset = _lastScrollOffset ?? 0;
+    final currentOffset = pos.pixels;
+    final scrollDelta = currentOffset - previousOffset;
+    _lastScrollOffset = currentOffset;
+
     if (pos.maxScrollExtent <= 0) {
       _setTopBarVisible(true);
       return;
     }
 
-    if (pos.pixels >= pos.maxScrollExtent - _loadMoreThreshold) {
+    if (currentOffset >= pos.maxScrollExtent - _loadMoreThreshold) {
       _scheduleLoadMore();
     }
 
     if (widget.topBar == null) return;
-    if (pos.pixels <= _topBarHideOffset) {
+    if (currentOffset <= _topBarHideOffset) {
       _setTopBarVisible(true);
       return;
     }
 
-    switch (pos.userScrollDirection) {
-      case ScrollDirection.reverse:
-        _setTopBarVisible(false);
-        return;
-      case ScrollDirection.forward:
-        _setTopBarVisible(true);
-        return;
-      case ScrollDirection.idle:
-        return;
+    if (scrollDelta > _scrollDeltaTolerance) {
+      _setTopBarVisible(false);
+      return;
+    }
+    if (scrollDelta < -_scrollDeltaTolerance) {
+      _setTopBarVisible(true);
     }
   }
 

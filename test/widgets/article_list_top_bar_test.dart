@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -98,4 +99,26 @@ void main() {
       expect(tester.getSize(_topBar()).height, greaterThan(0));
     },
   );
+
+  testWidgets('optional top bar responds to pointer scroll events', (
+    tester,
+  ) async {
+    await _pumpArticleList(tester);
+    final position = tester.getCenter(find.byType(ListView));
+
+    await tester.sendEventToBinding(
+      PointerScrollEvent(position: position, scrollDelta: const Offset(0, 500)),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.getSize(_topBar()).height, 0);
+
+    await tester.sendEventToBinding(
+      PointerScrollEvent(
+        position: position,
+        scrollDelta: const Offset(0, -200),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.getSize(_topBar()).height, greaterThan(0));
+  });
 }
