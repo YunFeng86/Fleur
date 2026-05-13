@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fleur/l10n/app_localizations.dart';
 
-import '../models/nav_destination.dart';
-import '../ui/global_nav.dart';
+import '../app/settings_routes.dart';
+import '../ui/app_drawer_scope.dart';
 import '../ui/settings/subscriptions/subscriptions_settings_tab.dart';
 import '../ui/settings/tabs/about_tab.dart';
 import '../ui/settings/tabs/app_preferences_tab.dart';
@@ -108,8 +108,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final hasGlobalNav = GlobalNavScope.maybeOf(context)?.hasGlobalNav ?? false;
-    // Desktop has a top title bar provided by App chrome; avoid in-page AppBar.
+    final hasAppDrawer = AppDrawerScope.maybeOf(context)?.hasAppDrawer ?? false;
+    // Desktop settings stays chrome-less until the dedicated settings page
+    // refresh takes over its own top controls.
     final useCompactTopBar = !isDesktop;
 
     return Scaffold(
@@ -198,8 +199,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             return Scaffold(
               appBar: useCompactTopBar
                   ? AppBar(
-                      leading: hasGlobalNav
-                          ? GlobalNavScope.drawerLeading(context)
+                      leading: hasAppDrawer
+                          ? AppDrawerScope.drawerLeading(context)
                           : const BackButton(),
                       title: Text(l10n.settings),
                     )
@@ -238,8 +239,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             children: [
               if (useCompactTopBar)
                 AppBar(
-                  leading: hasGlobalNav
-                      ? GlobalNavScope.drawerLeading(context)
+                  leading: hasAppDrawer
+                      ? AppDrawerScope.drawerLeading(context)
                       : const BackButton(),
                   title: Text(l10n.settings),
                 ),

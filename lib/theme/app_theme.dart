@@ -9,7 +9,6 @@ import 'seed_color_presets.dart';
 class AppTheme {
   static const double radiusCard = 8;
   static const double radiusField = 10;
-  static const double desktopTitleBarHeight = 40;
 
   static ThemeData light({
     ColorScheme? scheme,

@@ -38,17 +38,15 @@ import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
 import 'package:fleur/ui/app_menu.dart';
 import 'package:fleur/ui/app_shell.dart';
-import 'package:fleur/ui/global_nav.dart';
 import 'package:fleur/ui/home/home_scene_commands.dart';
 import 'package:fleur/ui/home/home_scene_panes.dart';
 import 'package:fleur/ui/home/home_scene_shortcuts.dart';
+import 'package:fleur/ui/sidebar_layout.dart';
 import 'package:fleur/ui/sidebar/sidebar_selection_actions.dart';
 import 'package:fleur/utils/platform.dart';
 import 'package:fleur/widgets/article_list.dart';
 import 'package:fleur/widgets/article_list_item.dart';
 import 'package:fleur/widgets/app_scrollbar.dart';
-import 'package:fleur/widgets/global_nav_bar.dart';
-import 'package:fleur/widgets/global_nav_rail.dart';
 import 'package:fleur/widgets/overflow_marquee.dart';
 import 'package:fleur/widgets/sidebar.dart';
 import 'package:fleur/widgets/sync_status_capsule.dart';
@@ -118,7 +116,10 @@ Widget _buildShellHarness() {
       supportedLocales: AppLocalizations.supportedLocales,
       home: AppShell(
         currentUri: Uri(path: '/'),
-        child: ColoredBox(color: Colors.transparent),
+        child: ColoredBox(
+          key: const Key('app_shell_child'),
+          color: Colors.transparent,
+        ),
       ),
     ),
   );
@@ -421,10 +422,9 @@ void main() {
       isFalse,
     );
     expect(mobileTheme.scrollbarTheme.thickness?.resolve(<WidgetState>{}), 8);
-    expect(
-      mobileTheme.navigationBarTheme.height,
-      greaterThan(desktopTheme.navigationBarTheme.height ?? 0),
-    );
+    expect(desktopTheme.navigationRailTheme.labelType, isNull);
+    expect(desktopTheme.navigationBarTheme.height, isNull);
+    expect(mobileTheme.navigationBarTheme.height, isNull);
   });
 
   test('Windows typography uses lighter emphasis than macOS', () {
@@ -604,21 +604,54 @@ void main() {
 
     expect(find.byType(Sidebar), findsOneWidget);
     expect(tester.getSize(find.byType(Sidebar)).width, kSidebarExpandedWidth);
-    expect(find.byType(GlobalNavRail), findsNothing);
-    expect(find.byType(GlobalNavBar), findsNothing);
+    expect(find.byType(NavigationRail), findsNothing);
+    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byType(AppBar), findsNothing);
+    expect(
+      tester.getSize(find.byKey(const Key('app_shell_child'))).height,
+      900,
+    );
 
     tester.view.physicalSize = const Size(640, 900);
     await tester.pumpWidget(_buildShellHarness());
     await tester.pumpAndSettle();
 
-    expect(find.byType(GlobalNavRail), findsNothing);
-    expect(find.byType(GlobalNavBar), findsNothing);
+    expect(find.byType(NavigationRail), findsNothing);
+    expect(find.byType(NavigationBar), findsNothing);
     expect(find.byType(Sidebar), findsNothing);
+    expect(
+      tester.getSize(find.byKey(const Key('app_shell_child'))).height,
+      900,
+    );
 
     tester.state<ScaffoldState>(find.byType(Scaffold)).openDrawer();
     await tester.pumpAndSettle();
 
     expect(find.byType(Sidebar), findsOneWidget);
+  });
+
+  testWidgets('App shell keeps macOS traffic lights clear of sidebar items', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(1200, 900);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(_buildShellHarness());
+    await tester.pumpAndSettle();
+
+    final allButtonTop = tester
+        .getTopLeft(find.byKey(const Key('sidebar_all_button')))
+        .dy;
+
+    expect(allButtonTop, greaterThanOrEqualTo(40));
+    expect(
+      tester.getSize(find.byKey(const Key('app_shell_child'))).height,
+      900,
+    );
   });
 
   testWidgets('sidebar fixed items and account menu navigate to shell routes', (

@@ -7,7 +7,7 @@ import '../l10n/app_localizations.dart';
 import '../models/article_scope.dart';
 import '../theme/fleur_icons.dart';
 import '../ui/actions/subscription_actions.dart';
-import '../ui/global_nav.dart';
+import '../ui/app_drawer_scope.dart';
 
 class AddSubscriptionScreen extends ConsumerWidget {
   const AddSubscriptionScreen({super.key});
@@ -17,7 +17,7 @@ class AddSubscriptionScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        leading: GlobalNavScope.drawerLeading(context),
+        leading: AppDrawerScope.drawerLeading(context),
         title: Text(l10n.addSubscription),
       ),
       body: Center(

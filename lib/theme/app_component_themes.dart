@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'app_theme_profile.dart';
-import 'app_typography.dart';
 import 'fleur_theme_extensions.dart';
 
 class AppComponentThemes {
@@ -49,46 +48,6 @@ class AppComponentThemes {
         surfaceTintColor: Colors.transparent,
         backgroundColor: surfaces.chrome,
         foregroundColor: scheme.onSurface,
-      ),
-      navigationRailTheme: NavigationRailThemeData(
-        backgroundColor: surfaces.nav,
-        useIndicator: true,
-        indicatorColor: states.selectionTint,
-        labelType: NavigationRailLabelType.all,
-        selectedIconTheme: IconThemeData(color: scheme.primary, size: 22),
-        unselectedIconTheme: IconThemeData(
-          color: scheme.onSurfaceVariant,
-          size: 22,
-        ),
-        selectedLabelTextStyle: base.textTheme.labelSmall?.copyWith(
-          color: scheme.onSurface,
-        ),
-        unselectedLabelTextStyle: base.textTheme.labelSmall?.copyWith(
-          color: scheme.onSurfaceVariant,
-        ),
-      ),
-      navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: surfaces.nav,
-        elevation: 0,
-        indicatorColor: states.selectionTint,
-        surfaceTintColor: Colors.transparent,
-        height: profile.isDesktop ? 70 : 76,
-        labelTextStyle: WidgetStateProperty.resolveWith((statesSet) {
-          final selected = statesSet.contains(WidgetState.selected);
-          return base.textTheme.labelMedium?.copyWith(
-            color: selected ? scheme.onSurface : scheme.onSurfaceVariant,
-            fontWeight: AppTypography.platformWeight(
-              selected ? FontWeight.w700 : FontWeight.w600,
-            ),
-          );
-        }),
-        iconTheme: WidgetStateProperty.resolveWith((statesSet) {
-          final selected = statesSet.contains(WidgetState.selected);
-          return IconThemeData(
-            color: selected ? scheme.primary : scheme.onSurfaceVariant,
-            size: 22,
-          );
-        }),
       ),
       cardTheme: CardThemeData(
         elevation: 0,

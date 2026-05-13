@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fleur/l10n/app_localizations.dart';
-import 'package:fleur/models/nav_destination.dart';
+import 'package:fleur/app/settings_routes.dart';
 import 'package:fleur/providers/account_providers.dart';
 import 'package:fleur/providers/app_settings_providers.dart';
 import 'package:fleur/screens/settings_screen.dart';

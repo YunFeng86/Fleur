@@ -4,7 +4,7 @@ import 'package:fleur/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
 import 'article_scope_routes.dart';
-import '../models/nav_destination.dart';
+import 'settings_routes.dart';
 import '../models/article_scope.dart';
 import '../screens/add_subscription_screen.dart';
 import '../screens/reading_workspace_screen.dart';

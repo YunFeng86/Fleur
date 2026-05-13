@@ -17,7 +17,7 @@ import '../widgets/reader_view.dart';
 import '../widgets/sidebar_pane_hero.dart';
 import '../widgets/staggered_reveal.dart';
 import '../widgets/sync_status_capsule.dart';
-import '../ui/global_nav.dart';
+import '../ui/app_drawer_scope.dart';
 
 enum _SavedMode { starred, readLater }
 
@@ -91,7 +91,8 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
     final starredCount = ref.watch(starredCountProvider).valueOrNull;
     final readLaterCount = ref.watch(readLaterCountProvider).valueOrNull;
     final searchQuery = ref.watch(articleSearchQueryProvider);
-    // Desktop has a top title bar provided by App chrome; avoid in-page AppBar.
+    // Desktop stays chrome-less here; future shell controls live outside the
+    // page instead of as an in-page AppBar.
     final useCompactTopBar = !isDesktop;
 
     if (!_initialized) {
@@ -103,7 +104,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
       if (!useCompactTopBar) return loading;
       return Scaffold(
         appBar: AppBar(
-          leading: GlobalNavScope.drawerLeading(context),
+          leading: AppDrawerScope.drawerLeading(context),
           title: Text(l10n.saved),
         ),
         body: loading,
@@ -276,7 +277,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
 
         return Scaffold(
           appBar: AppBar(
-            leading: GlobalNavScope.drawerLeading(context),
+            leading: AppDrawerScope.drawerLeading(context),
             title: Text(l10n.saved),
           ),
           body: content,

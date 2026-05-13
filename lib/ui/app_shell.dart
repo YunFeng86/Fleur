@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fleur/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../app/article_scope_routes.dart';
 import '../models/article_scope.dart';
@@ -11,14 +11,14 @@ import '../providers/backend_sync_semantics_provider.dart';
 import '../providers/core_providers.dart';
 import '../providers/outbox_status_providers.dart';
 import '../theme/fleur_theme_extensions.dart';
-import '../widgets/desktop_title_bar.dart';
 import '../widgets/outbox_status_action.dart';
 import '../widgets/sidebar.dart';
+import '../utils/platform.dart';
+import 'app_drawer_scope.dart';
 import 'app_menu.dart';
-import 'global_nav.dart';
 import 'layout.dart';
 import 'layout_spec.dart';
-import '../utils/platform.dart';
+import 'sidebar_layout.dart';
 
 class AppShell extends ConsumerWidget {
   const AppShell({super.key, required this.currentUri, required this.child});
@@ -44,18 +44,6 @@ class AppShell extends ConsumerWidget {
     return spec.canEmbedReader(listWidth: _listWidthForArticleUri(uri));
   }
 
-  String _sectionTitleForUri(AppLocalizations l10n, Uri uri) {
-    final seg = uri.pathSegments.isEmpty ? '' : uri.pathSegments.first;
-    return switch (seg) {
-      'starred' || 'read-later' => l10n.saved,
-      'search' => l10n.search,
-      'add-subscription' => l10n.addSubscription,
-      'settings' => l10n.settings,
-      '' || 'all' || 'feed' || 'category' || 'tag' => l10n.feeds,
-      _ => l10n.feeds,
-    };
-  }
-
   void _goToScope(BuildContext context, ArticleScope scope) {
     final router = GoRouter.maybeOf(context);
     final location = scopeLocation(scope);
@@ -75,6 +63,20 @@ class AppShell extends ConsumerWidget {
     unawaited(Navigator.of(context).maybePop());
   }
 
+  bool _canPop(BuildContext context) {
+    final router = GoRouter.maybeOf(context);
+    return router?.canPop() ?? Navigator.canPop(context);
+  }
+
+  bool _showOutboxAction(WidgetRef ref) {
+    final outboxPending =
+        ref.watch(outboxPendingCountProvider).valueOrNull ?? 0;
+    final syncSemantics = ref.watch(backendSyncSemanticsProvider);
+    return outboxPending > 0 &&
+        (syncSemantics.isAccountWideRefresh ||
+            syncSemantics.isFeedScopedRefresh);
+  }
+
   Widget _sidebarDrawer(BuildContext context) {
     return Drawer(
       child: SafeArea(
@@ -86,50 +88,59 @@ class AppShell extends ConsumerWidget {
     );
   }
 
-  Widget _withDesktopTitleBar({
+  Widget _desktopSidebar({
+    required BuildContext context,
+    required WidgetRef ref,
+    required double width,
+  }) {
+    final surfaces = Theme.of(context).fleurSurface;
+    return SizedBox(
+      width: width,
+      child: Material(
+        color: surfaces.sidebar,
+        child: Column(
+          children: [
+            if (isDesktop)
+              _ShellControlsHost(
+                canPop: _canPop(context),
+                onPop: () => _pop(context),
+                canOpenDrawer: false,
+                openDrawer: null,
+                showOutboxAction: _showOutboxAction(ref),
+              ),
+            Expanded(
+              child: Sidebar(
+                onSelectScope: (scope) => _goToScope(context, scope),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _withDesktopControlsOverlay({
     required BuildContext context,
     required WidgetRef ref,
     required Widget child,
-    required bool drawerAvailable,
     required VoidCallback? openDrawer,
   }) {
     if (!isDesktop) return child;
-
-    final l10n = AppLocalizations.of(context)!;
-    final router = GoRouter.maybeOf(context);
-    final canPop = router?.canPop() ?? Navigator.canPop(context);
-    final outboxPending =
-        ref.watch(outboxPendingCountProvider).valueOrNull ?? 0;
-    final syncSemantics = ref.watch(backendSyncSemanticsProvider);
-    final showOutboxAction =
-        outboxPending > 0 &&
-        (syncSemantics.isAccountWideRefresh ||
-            syncSemantics.isFeedScopedRefresh);
-
-    final leading = canPop
-        ? IconButton(
-            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-            onPressed: () => _pop(context),
-            icon: const Icon(Icons.arrow_back),
-          )
-        : (drawerAvailable && openDrawer != null
-              ? IconButton(
-                  tooltip: MaterialLocalizations.of(
-                    context,
-                  ).openAppDrawerTooltip,
-                  onPressed: openDrawer,
-                  icon: const Icon(Icons.menu),
-                )
-              : null);
-
-    return Column(
+    return Stack(
       children: [
-        DesktopTitleBar(
-          title: _sectionTitleForUri(l10n, currentUri),
-          leading: leading,
-          actions: [if (showOutboxAction) const OutboxStatusAction()],
+        Positioned.fill(child: child),
+        Positioned(
+          left: 0,
+          top: 0,
+          width: isMacOS ? 240 : 176,
+          child: _ShellControlsHost(
+            canPop: _canPop(context),
+            onPop: () => _pop(context),
+            canOpenDrawer: openDrawer != null,
+            openDrawer: openDrawer,
+            showOutboxAction: _showOutboxAction(ref),
+          ),
         ),
-        Expanded(child: child),
       ],
     );
   }
@@ -160,15 +171,7 @@ class AppShell extends ConsumerWidget {
     if (hideNavForReaderPage) {
       // Dedicated reader pages should maximize content; they have their own
       // back button (ReaderView/ReaderScreen).
-      return wrapShell(
-        _withDesktopTitleBar(
-          context: context,
-          ref: ref,
-          drawerAvailable: false,
-          openDrawer: null,
-          child: GlobalNavScope(hasGlobalNav: false, child: child),
-        ),
-      );
+      return wrapShell(AppDrawerScope(hasAppDrawer: false, child: child));
     }
 
     final showInlineSidebar = spec.hasInlineSidebar;
@@ -176,26 +179,15 @@ class AppShell extends ConsumerWidget {
 
     if (showInlineSidebar) {
       return wrapShell(
-        _withDesktopTitleBar(
-          context: context,
-          ref: ref,
-          drawerAvailable: false,
-          openDrawer: null,
-          child: GlobalNavScope(
-            hasGlobalNav: true,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SizedBox(
-                  width: sidebarWidth,
-                  child: Sidebar(
-                    onSelectScope: (scope) => _goToScope(context, scope),
-                  ),
-                ),
-                const SizedBox(width: kPaneGap),
-                Expanded(child: child),
-              ],
-            ),
+        AppDrawerScope(
+          hasAppDrawer: true,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _desktopSidebar(context: context, ref: ref, width: sidebarWidth),
+              const SizedBox(width: kPaneGap),
+              Expanded(child: child),
+            ],
           ),
         ),
       );
@@ -208,13 +200,12 @@ class AppShell extends ConsumerWidget {
           builder: (scaffoldContext) {
             void openDrawer() => Scaffold.of(scaffoldContext).openDrawer();
 
-            return GlobalNavScope(
-              hasGlobalNav: true,
+            return AppDrawerScope(
+              hasAppDrawer: true,
               openDrawer: openDrawer,
-              child: _withDesktopTitleBar(
+              child: _withDesktopControlsOverlay(
                 context: context,
                 ref: ref,
-                drawerAvailable: true,
                 openDrawer: openDrawer,
                 child: MediaQuery.removePadding(
                   context: context,
@@ -225,6 +216,66 @@ class AppShell extends ConsumerWidget {
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+const double _kShellControlsHeight = 40;
+
+class _ShellControlsHost extends StatelessWidget {
+  const _ShellControlsHost({
+    required this.canPop,
+    required this.onPop,
+    required this.canOpenDrawer,
+    required this.openDrawer,
+    required this.showOutboxAction,
+  });
+
+  final bool canPop;
+  final VoidCallback onPop;
+  final bool canOpenDrawer;
+  final VoidCallback? openDrawer;
+  final bool showOutboxAction;
+
+  bool get _hasLeading => canPop || (canOpenDrawer && openDrawer != null);
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isDesktop) return const SizedBox.shrink();
+
+    final leading = canPop
+        ? IconButton(
+            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+            onPressed: onPop,
+            icon: const Icon(Icons.arrow_back),
+          )
+        : (canOpenDrawer && openDrawer != null
+              ? IconButton(
+                  tooltip: MaterialLocalizations.of(
+                    context,
+                  ).openAppDrawerTooltip,
+                  onPressed: openDrawer,
+                  icon: const Icon(Icons.menu),
+                )
+              : null);
+
+    return SizedBox(
+      height: _kShellControlsHeight,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final macTrafficLightInset = constraints.maxWidth >= 120 ? 72.0 : 8.0;
+          final leftPadding = isMacOS ? macTrafficLightInset : 8.0;
+
+          return Row(
+            children: [
+              SizedBox(width: leftPadding),
+              if (_hasLeading) leading!,
+              if (showOutboxAction) const OutboxStatusAction(),
+              Expanded(child: DragToMoveArea(child: const SizedBox.expand())),
+            ],
+          );
+        },
       ),
     );
   }

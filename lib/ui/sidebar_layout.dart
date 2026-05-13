@@ -1,12 +1,9 @@
-import 'package:flutter/material.dart';
-
 import 'layout.dart';
 
 // App-wide sidebar sizing/breakpoints.
 //
 // Expanded mode intentionally reuses the existing desktop sidebar width so the
-// second-round navigation rewrite does not change the reading workspace's
-// visual rhythm yet.
+// sidebar migration does not change the reading workspace's visual rhythm yet.
 const double kSidebarExpandedWidth = kDesktopSidebarWidth;
 const double kSidebarCollapsedWidth = 64;
 const double kSidebarBreakpoint = 900;
@@ -39,41 +36,4 @@ double effectiveContentWidth(
   return totalWidth -
       sidebarWidthForPresentationMode(sidebarPresentationMode) -
       kPaneGap;
-}
-
-class GlobalNavScope extends InheritedWidget {
-  const GlobalNavScope({
-    super.key,
-    required this.hasGlobalNav,
-    this.openDrawer,
-    required super.child,
-  });
-
-  final bool hasGlobalNav;
-  final VoidCallback? openDrawer;
-
-  bool get canOpenDrawer => openDrawer != null;
-
-  static GlobalNavScope? maybeOf(BuildContext context) {
-    return context.dependOnInheritedWidgetOfExactType<GlobalNavScope>();
-  }
-
-  static VoidCallback? drawerOpenerOf(BuildContext context) {
-    return maybeOf(context)?.openDrawer;
-  }
-
-  static Widget? drawerLeading(BuildContext context) {
-    final openDrawer = drawerOpenerOf(context);
-    if (openDrawer == null) return null;
-    return IconButton(
-      tooltip: MaterialLocalizations.of(context).openAppDrawerTooltip,
-      onPressed: openDrawer,
-      icon: const Icon(Icons.menu),
-    );
-  }
-
-  @override
-  bool updateShouldNotify(GlobalNavScope oldWidget) =>
-      oldWidget.hasGlobalNav != hasGlobalNav ||
-      oldWidget.openDrawer != openDrawer;
 }

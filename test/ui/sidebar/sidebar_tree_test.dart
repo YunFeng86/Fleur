@@ -14,7 +14,7 @@ import 'package:fleur/services/sync/backend_sync_semantics.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/ui/app_menu.dart';
-import 'package:fleur/ui/global_nav.dart';
+import 'package:fleur/ui/sidebar_layout.dart';
 import 'package:fleur/ui/sidebar/sidebar_management_actions.dart';
 import 'package:fleur/ui/sidebar/sidebar_selection_actions.dart';
 import 'package:fleur/ui/sidebar/sidebar_tree.dart';

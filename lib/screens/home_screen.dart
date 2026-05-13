@@ -9,7 +9,7 @@ import '../providers/unread_providers.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/actions/subscription_object_menus.dart';
-import '../ui/global_nav.dart';
+import '../ui/app_drawer_scope.dart';
 import '../ui/hero_tags.dart';
 import '../ui/home/home_scene_commands.dart';
 import '../ui/home/home_scene_panes.dart';
@@ -27,7 +27,8 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    // Desktop has a top title bar provided by App chrome; avoid in-page AppBar.
+    // Desktop stays chrome-less here; future shell controls live outside the
+    // page instead of as an in-page AppBar.
     final useCompactTopBar = !isDesktop;
     final showSyncCapsule = LayoutSpec.fromContext(context).hasInlineSidebar;
     final capabilities = ref.watch(backendCapabilitiesProvider);
@@ -106,7 +107,7 @@ class HomeScreen extends ConsumerWidget {
           final unreadOnly = ref.watch(unreadOnlyProvider);
           return Scaffold(
             appBar: AppBar(
-              leading: GlobalNavScope.drawerLeading(context),
+              leading: AppDrawerScope.drawerLeading(context),
               title: Text(l10n.feeds),
               actions: [
                 if (showRootRefresh)
@@ -115,10 +116,8 @@ class HomeScreen extends ConsumerWidget {
                     onPressed: refreshAll,
                     icon: const Icon(FleurIcons.refresh),
                   ),
-                // On mobile we have dedicated Saved/Search tabs in the
-                // global bottom navigation. Avoid duplicating those
-                // shortcuts here to keep the AppBar focused on feed-only
-                // actions.
+                // The mobile AppBar stays focused on feed-only actions while
+                // shell-level navigation lives in the drawer/sidebar model.
                 IconButton(
                   tooltip: unreadOnly ? l10n.showAll : l10n.unreadOnly,
                   onPressed: commands.toggleUnreadOnly,
@@ -143,7 +142,7 @@ class HomeScreen extends ConsumerWidget {
           child: Scaffold(
             appBar: useCompactTopBar
                 ? AppBar(
-                    leading: GlobalNavScope.drawerLeading(context),
+                    leading: AppDrawerScope.drawerLeading(context),
                     title: Text(l10n.feeds),
                     actions: [
                       if (showRootRefresh)
@@ -271,7 +270,7 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        leading: GlobalNavScope.drawerLeading(context),
+        leading: AppDrawerScope.drawerLeading(context),
         title: Text(l10n.feeds),
         actions: [
           if (showRootRefresh)

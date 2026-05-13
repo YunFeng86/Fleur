@@ -11,7 +11,7 @@ import '../../services/sync/backend_sync_semantics.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/fleur_icons.dart';
 import '../../theme/fleur_theme_extensions.dart';
-import '../global_nav.dart';
+import '../sidebar_layout.dart';
 import '../app_menu.dart';
 import '../../ui/sidebar/sidebar_management_actions.dart';
 import '../../ui/sidebar/sidebar_selection_actions.dart';

@@ -17,7 +17,7 @@ import '../widgets/reader_view.dart';
 import '../widgets/sidebar_pane_hero.dart';
 import '../widgets/staggered_reveal.dart';
 import '../widgets/sync_status_capsule.dart';
-import '../ui/global_nav.dart';
+import '../ui/app_drawer_scope.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key, required this.selectedArticleId});
@@ -84,7 +84,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final surfaces = Theme.of(context).fleurSurface;
-    // Desktop has a top title bar provided by App chrome; avoid in-page AppBar.
+    // Desktop search is chrome-less for now; the dedicated search page will
+    // provide its own surface in a later visual refresh.
     final useCompactTopBar = !isDesktop;
 
     if (!_initialized) {
@@ -96,7 +97,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       if (!useCompactTopBar) return loading;
       return Scaffold(
         appBar: AppBar(
-          leading: GlobalNavScope.drawerLeading(context),
+          leading: AppDrawerScope.drawerLeading(context),
           title: Text(l10n.search),
         ),
         body: loading,
@@ -285,7 +286,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
         return Scaffold(
           appBar: AppBar(
-            leading: GlobalNavScope.drawerLeading(context),
+            leading: AppDrawerScope.drawerLeading(context),
             title: Text(l10n.search),
           ),
           body: content,

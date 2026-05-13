@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
 
-import '../ui/global_nav.dart';
+import '../ui/sidebar_layout.dart';
 
 // Overridden in `main.dart` after opening the database.
 final isarProvider = Provider<Isar>((ref) {

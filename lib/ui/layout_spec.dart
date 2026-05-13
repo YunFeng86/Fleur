@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../utils/platform.dart';
-import 'global_nav.dart';
+import 'sidebar_layout.dart';
 import 'layout.dart';
 
 /// A single source of truth for responsive/layout decisions.
