@@ -8,6 +8,7 @@ import '../providers/core_providers.dart';
 import '../providers/query_providers.dart';
 import '../providers/unread_providers.dart';
 import '../theme/fleur_icons.dart';
+import '../theme/fleur_theme_extensions.dart';
 import '../ui/actions/subscription_object_menus.dart';
 import '../ui/global_nav.dart';
 import '../ui/hero_tags.dart';
@@ -220,6 +221,13 @@ class HomeScreen extends ConsumerWidget {
     final showSyncCapsule =
         LayoutSpec.fromContext(context).globalNavMode == GlobalNavMode.rail;
     final sidebarVisible = ref.watch(sidebarVisibleProvider);
+    final topBar = _HomeArticleListToolbar(
+      showRefresh: showRootRefresh,
+      refreshTooltip: refreshActionLabel,
+      onRefresh: refreshAll,
+      onToggleUnreadOnly: commands.toggleUnreadOnly,
+      onMarkAllRead: markAllRead,
+    );
 
     final body = switch (mode) {
       DesktopPaneMode.threePane => Row(
@@ -239,6 +247,7 @@ class HomeScreen extends ConsumerWidget {
             heroTag: kHeroArticleListPane,
             selectedArticleId: selectedArticleId,
             showSyncCapsule: showSyncCapsule && !sidebarVisible,
+            topBar: topBar,
           ),
           const SizedBox(width: kPaneGap),
           Expanded(
@@ -258,6 +267,7 @@ class HomeScreen extends ConsumerWidget {
             heroTag: kHeroArticleListPane,
             selectedArticleId: selectedArticleId,
             showSyncCapsule: showSyncCapsule,
+            topBar: topBar,
           ),
           const SizedBox(width: kPaneGap),
           Expanded(
@@ -272,6 +282,7 @@ class HomeScreen extends ConsumerWidget {
       DesktopPaneMode.listOnly => HomeArticleListPane(
         selectedArticleId: selectedArticleId,
         showSyncCapsule: showSyncCapsule,
+        topBar: topBar,
       ),
     };
 
@@ -314,5 +325,121 @@ class HomeScreen extends ConsumerWidget {
       drawer: drawerEnabled ? const HomeSidebarDrawer() : null,
       body: content,
     );
+  }
+}
+
+class _HomeArticleListToolbar extends ConsumerWidget {
+  const _HomeArticleListToolbar({
+    required this.showRefresh,
+    required this.refreshTooltip,
+    required this.onRefresh,
+    required this.onToggleUnreadOnly,
+    required this.onMarkAllRead,
+  });
+
+  final bool showRefresh;
+  final String refreshTooltip;
+  final Future<void> Function() onRefresh;
+  final VoidCallback onToggleUnreadOnly;
+  final Future<void> Function() onMarkAllRead;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final surfaces = theme.fleurSurface;
+    final scheme = theme.colorScheme;
+    final unreadOnly = ref.watch(unreadOnlyProvider);
+    final title = _scopeTitle(ref, l10n);
+
+    return Material(
+      color: surfaces.list,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: surfaces.subtleDivider)),
+        ),
+        child: SizedBox(
+          height: 52,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 4, 6, 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: scheme.onSurface,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                if (showRefresh)
+                  IconButton(
+                    tooltip: refreshTooltip,
+                    onPressed: onRefresh,
+                    icon: const Icon(FleurIcons.refresh),
+                  ),
+                IconButton(
+                  tooltip: unreadOnly ? l10n.showAll : l10n.unreadOnly,
+                  onPressed: onToggleUnreadOnly,
+                  icon: Icon(
+                    unreadOnly ? FleurIcons.filterActive : FleurIcons.filter,
+                  ),
+                ),
+                IconButton(
+                  tooltip: l10n.markAllRead,
+                  onPressed: onMarkAllRead,
+                  icon: const Icon(FleurIcons.markAllRead),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _scopeTitle(WidgetRef ref, AppLocalizations l10n) {
+    final starredOnly = ref.watch(starredOnlyProvider);
+    if (starredOnly) return l10n.starred;
+
+    final readLaterOnly = ref.watch(readLaterOnlyProvider);
+    if (readLaterOnly) return l10n.readLater;
+
+    final tagId = ref.watch(selectedTagIdProvider);
+    if (tagId != null) {
+      final tags = ref.watch(tagsProvider).valueOrNull;
+      if (tags != null) {
+        for (final tag in tags) {
+          if (tag.id == tagId) return tag.name;
+        }
+      }
+      return l10n.feeds;
+    }
+
+    final feedId = ref.watch(selectedFeedIdProvider);
+    if (feedId != null) {
+      final feed = ref.watch(feedProvider(feedId)).valueOrNull;
+      if (feed != null) {
+        final userTitle = feed.userTitle?.trim();
+        if (userTitle != null && userTitle.isNotEmpty) return userTitle;
+
+        final title = feed.title?.trim();
+        if (title != null && title.isNotEmpty) return title;
+
+        return feed.url;
+      }
+      return l10n.feeds;
+    }
+
+    final categoryId = ref.watch(selectedCategoryIdProvider);
+    if (categoryId != null) {
+      final category = ref.watch(categoryProvider(categoryId)).valueOrNull;
+      return category?.name ?? l10n.feeds;
+    }
+
+    return l10n.all;
   }
 }

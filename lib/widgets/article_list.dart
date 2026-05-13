@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -37,12 +38,14 @@ class ArticleList extends ConsumerStatefulWidget {
     required this.selectedArticleId,
     this.baseLocation = '/',
     this.articleRoutePrefix = '',
+    this.topBar,
     this.emptyBuilder,
   });
 
   final int? selectedArticleId;
   final String baseLocation;
   final String articleRoutePrefix;
+  final Widget? topBar;
   final Widget Function(BuildContext context, ArticleListEmptyState state)?
   emptyBuilder;
 
@@ -51,8 +54,12 @@ class ArticleList extends ConsumerStatefulWidget {
 }
 
 class _ArticleListState extends ConsumerState<ArticleList> {
+  static const double _topBarHideOffset = 24;
+  static const double _loadMoreThreshold = 600;
+
   late final ScrollController _controller;
   bool _loadMoreScheduled = false;
+  bool _topBarVisible = true;
 
   int? _lastContextKey;
   Set<int> _seenArticleIds = <int>{};
@@ -66,14 +73,50 @@ class _ArticleListState extends ConsumerState<ArticleList> {
   @override
   void initState() {
     super.initState();
-    _controller = ScrollController()
-      ..addListener(() {
-        final pos = _controller.position;
-        if (pos.maxScrollExtent <= 0) return;
-        if (pos.pixels >= pos.maxScrollExtent - 600) {
-          _scheduleLoadMore();
-        }
-      });
+    _controller = ScrollController()..addListener(_handleScroll);
+  }
+
+  @override
+  void didUpdateWidget(covariant ArticleList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.topBar == null && widget.topBar != null) {
+      _setTopBarVisible(true);
+    }
+  }
+
+  void _handleScroll() {
+    final pos = _controller.position;
+    if (pos.maxScrollExtent <= 0) {
+      _setTopBarVisible(true);
+      return;
+    }
+
+    if (pos.pixels >= pos.maxScrollExtent - _loadMoreThreshold) {
+      _scheduleLoadMore();
+    }
+
+    if (widget.topBar == null) return;
+    if (pos.pixels <= _topBarHideOffset) {
+      _setTopBarVisible(true);
+      return;
+    }
+
+    switch (pos.userScrollDirection) {
+      case ScrollDirection.reverse:
+        _setTopBarVisible(false);
+        return;
+      case ScrollDirection.forward:
+        _setTopBarVisible(true);
+        return;
+      case ScrollDirection.idle:
+        return;
+    }
+  }
+
+  void _setTopBarVisible(bool visible) {
+    if (_topBarVisible == visible) return;
+    if (!mounted) return;
+    setState(() => _topBarVisible = visible);
   }
 
   void _scheduleLoadMore() {
@@ -90,6 +133,18 @@ class _ArticleListState extends ConsumerState<ArticleList> {
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  Widget _withTopBar(Widget child) {
+    final topBar = widget.topBar;
+    if (topBar == null) return child;
+
+    return Column(
+      children: [
+        _ArticleListTopBar(visible: _topBarVisible, child: topBar),
+        Expanded(child: child),
+      ],
+    );
   }
 
   List<_ArticleListEntry> _getEntries(
@@ -248,8 +303,10 @@ class _ArticleListState extends ConsumerState<ArticleList> {
     );
 
     return state.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text(l10n.errorMessage(e.toString()))),
+      loading: () =>
+          _withTopBar(const Center(child: CircularProgressIndicator())),
+      error: (e, _) =>
+          _withTopBar(Center(child: Text(l10n.errorMessage(e.toString())))),
       data: (data) {
         final items = data.items;
         final surfaces = Theme.of(context).fleurSurface;
@@ -261,9 +318,11 @@ class _ArticleListState extends ConsumerState<ArticleList> {
             readLaterOnly: readLaterOnly,
           );
           if (widget.emptyBuilder != null) {
-            return widget.emptyBuilder!(context, emptyState);
+            return _withTopBar(widget.emptyBuilder!(context, emptyState));
           }
-          return _buildDefaultEmptyState(context, l10n, emptyState);
+          return _withTopBar(
+            _buildDefaultEmptyState(context, l10n, emptyState),
+          );
         }
 
         final spec = LayoutSpec.fromContext(context);
@@ -424,25 +483,27 @@ class _ArticleListState extends ConsumerState<ArticleList> {
           ),
         );
 
-        if (AppMotion.reduceMotion(context)) return list;
+        if (AppMotion.reduceMotion(context)) return _withTopBar(list);
 
         // Keyed "content switch": on context changes, fade/slide in the new list.
         // This keeps a single ScrollController attached (no AnimatedSwitcher).
-        return TweenAnimationBuilder<double>(
-          key: ValueKey(contextKey),
-          tween: Tween<double>(begin: 0, end: 1),
-          duration: AppMotion.short,
-          curve: AppMotion.standardCurve,
-          builder: (context, t, child) {
-            return Opacity(
-              opacity: t,
-              child: Transform.translate(
-                offset: Offset(0, (1 - t) * 8),
-                child: child,
-              ),
-            );
-          },
-          child: list,
+        return _withTopBar(
+          TweenAnimationBuilder<double>(
+            key: ValueKey(contextKey),
+            tween: Tween<double>(begin: 0, end: 1),
+            duration: AppMotion.short,
+            curve: AppMotion.standardCurve,
+            builder: (context, t, child) {
+              return Opacity(
+                opacity: t,
+                child: Transform.translate(
+                  offset: Offset(0, (1 - t) * 8),
+                  child: child,
+                ),
+              );
+            },
+            child: list,
+          ),
         );
       },
     );
@@ -519,6 +580,36 @@ class _ArticleListState extends ConsumerState<ArticleList> {
                 ? l10n.unreadEmptySubtitle
                 : l10n.articleListEmptySubtitle),
       actions: actions,
+    );
+  }
+}
+
+class _ArticleListTopBar extends StatelessWidget {
+  const _ArticleListTopBar({required this.visible, required this.child});
+
+  final bool visible;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final duration = AppMotion.reduceMotion(context)
+        ? Duration.zero
+        : AppMotion.short;
+
+    return ClipRect(
+      key: const ValueKey('article-list-top-bar'),
+      child: AnimatedAlign(
+        alignment: Alignment.topCenter,
+        heightFactor: visible ? 1 : 0,
+        duration: duration,
+        curve: AppMotion.standardCurve,
+        child: AnimatedOpacity(
+          opacity: visible ? 1 : 0,
+          duration: duration,
+          curve: AppMotion.standardCurve,
+          child: IgnorePointer(ignoring: !visible, child: child),
+        ),
+      ),
     );
   }
 }

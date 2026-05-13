@@ -11,24 +11,17 @@ import 'router.dart';
 import '../providers/app_settings_providers.dart';
 import '../providers/auto_refresh_providers.dart';
 import '../providers/background_sync_providers.dart';
-import '../providers/backend_capabilities_provider.dart';
-import '../providers/backend_sync_semantics_provider.dart';
 import '../providers/core_providers.dart';
 import '../providers/outbox_flush_providers.dart';
 import '../providers/outbox_status_providers.dart';
-import '../providers/query_providers.dart';
 import '../providers/service_providers.dart';
-import '../providers/unread_providers.dart';
 import '../services/logging/app_logger.dart';
 import '../services/notifications/notification_service.dart';
 import '../services/settings/app_settings.dart';
-import '../ui/actions/subscription_object_menus.dart';
 import '../ui/app_menu.dart';
 import '../ui/global_nav.dart';
-import '../ui/home/home_scene_commands.dart';
 import '../ui/layout.dart';
 import '../theme/app_theme.dart';
-import '../theme/fleur_icons.dart';
 import '../theme/seed_color_presets.dart';
 import '../utils/macos_locale_bridge.dart';
 import '../utils/platform.dart';
@@ -378,24 +371,6 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
         final outboxPending =
             ref.watch(outboxPendingCountProvider).valueOrNull ?? 0;
         final showOutboxAction = outboxPending > 0;
-        final commands = HomeSceneCommands(
-          context: context,
-          ref: ref,
-          selectedArticleId: null,
-        );
-        final capabilities = ref.watch(backendCapabilitiesProvider);
-        final showRootRefresh = SubscriptionObjectMenus.showsRootRefresh(
-          capabilities,
-        );
-        final syncSemantics = ref.watch(backendSyncSemanticsProvider);
-        final selectedFeedId = ref.watch(selectedFeedIdProvider);
-        final selectedCategoryId = ref.watch(selectedCategoryIdProvider);
-        final refreshActionLabel = resolveHomeRefreshIntent(
-          capabilities: capabilities,
-          syncSemantics: syncSemantics,
-          selectedFeedId: selectedFeedId,
-          selectedCategoryId: selectedCategoryId,
-        ).label(l10n);
         final leading = canPop
             ? IconButton(
                 tooltip: MaterialLocalizations.of(context).backButtonTooltip,
@@ -439,55 +414,7 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
               DesktopTitleBar(
                 title: title,
                 leading: leading,
-                actions: [
-                  if (isFeedsSection) ...[
-                    if (showRootRefresh)
-                      IconButton(
-                        tooltip: refreshActionLabel,
-                        onPressed: () async {
-                          final outcome = await commands.refreshAll();
-                          if (!context.mounted) return;
-                          final err = outcome.batch.firstError?.error;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                err == null
-                                    ? outcome.successLabel(l10n)
-                                    : l10n.errorMessage(err.toString()),
-                              ),
-                            ),
-                          );
-                        },
-                        icon: const Icon(FleurIcons.refresh),
-                      ),
-                    Consumer(
-                      builder: (context, ref, _) {
-                        final unreadOnly = ref.watch(unreadOnlyProvider);
-                        return IconButton(
-                          tooltip: unreadOnly ? l10n.showAll : l10n.unreadOnly,
-                          onPressed: commands.toggleUnreadOnly,
-                          icon: Icon(
-                            unreadOnly
-                                ? FleurIcons.filterActive
-                                : FleurIcons.filter,
-                          ),
-                        );
-                      },
-                    ),
-                    IconButton(
-                      tooltip: l10n.markAllRead,
-                      onPressed: () async {
-                        await commands.markAllRead();
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(
-                          context,
-                        ).showSnackBar(SnackBar(content: Text(l10n.done)));
-                      },
-                      icon: const Icon(FleurIcons.markAllRead),
-                    ),
-                  ],
-                  if (showOutboxAction) const OutboxStatusAction(),
-                ],
+                actions: [if (showOutboxAction) const OutboxStatusAction()],
               ),
               Expanded(child: widget.content),
             ],

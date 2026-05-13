@@ -49,18 +49,20 @@ class HomeArticleListPane extends StatelessWidget {
     required this.showSyncCapsule,
     this.width,
     this.heroTag,
+    this.topBar,
   });
 
   final int? selectedArticleId;
   final bool showSyncCapsule;
   final double? width;
   final Object? heroTag;
+  final Widget? topBar;
 
   @override
   Widget build(BuildContext context) {
     Widget child = SyncStatusCapsuleHost(
       enabled: showSyncCapsule,
-      child: ArticleList(selectedArticleId: selectedArticleId),
+      child: ArticleList(selectedArticleId: selectedArticleId, topBar: topBar),
     );
 
     if (width != null) {
