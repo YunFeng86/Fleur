@@ -55,14 +55,10 @@ class ArticleList extends ConsumerStatefulWidget {
 }
 
 class _ArticleListState extends ConsumerState<ArticleList> {
-  static const double _topBarHideOffset = 24;
   static const double _loadMoreThreshold = 600;
-  static const double _scrollDeltaTolerance = 0.5;
 
   late final ScrollController _controller;
   bool _loadMoreScheduled = false;
-  bool _topBarVisible = true;
-  double? _lastScrollOffset;
 
   int? _lastContextKey;
   Set<int> _seenArticleIds = <int>{};
@@ -79,49 +75,17 @@ class _ArticleListState extends ConsumerState<ArticleList> {
     _controller = ScrollController()..addListener(_handleScroll);
   }
 
-  @override
-  void didUpdateWidget(covariant ArticleList oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.topBar == null && widget.topBar != null) {
-      _setTopBarVisible(true);
-    }
-  }
-
   void _handleScroll() {
     final pos = _controller.position;
-    final previousOffset = _lastScrollOffset ?? 0;
     final currentOffset = pos.pixels;
-    final scrollDelta = currentOffset - previousOffset;
-    _lastScrollOffset = currentOffset;
 
     if (pos.maxScrollExtent <= 0) {
-      _setTopBarVisible(true);
       return;
     }
 
     if (currentOffset >= pos.maxScrollExtent - _loadMoreThreshold) {
       _scheduleLoadMore();
     }
-
-    if (widget.topBar == null) return;
-    if (currentOffset <= _topBarHideOffset) {
-      _setTopBarVisible(true);
-      return;
-    }
-
-    if (scrollDelta > _scrollDeltaTolerance) {
-      _setTopBarVisible(false);
-      return;
-    }
-    if (scrollDelta < -_scrollDeltaTolerance) {
-      _setTopBarVisible(true);
-    }
-  }
-
-  void _setTopBarVisible(bool visible) {
-    if (_topBarVisible == visible) return;
-    if (!mounted) return;
-    setState(() => _topBarVisible = visible);
   }
 
   void _scheduleLoadMore() {
@@ -146,8 +110,15 @@ class _ArticleListState extends ConsumerState<ArticleList> {
 
     return Column(
       children: [
-        _ArticleListTopBar(visible: _topBarVisible, child: topBar),
-        Expanded(child: child),
+        _ArticleListTopBar(child: topBar),
+        Expanded(
+          child: Stack(
+            children: [
+              Positioned.fill(child: child),
+              const _ArticleListTopFade(),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -604,29 +575,40 @@ class _ArticleListState extends ConsumerState<ArticleList> {
 }
 
 class _ArticleListTopBar extends StatelessWidget {
-  const _ArticleListTopBar({required this.visible, required this.child});
+  const _ArticleListTopBar({required this.child});
 
-  final bool visible;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    final duration = AppMotion.reduceMotion(context)
-        ? Duration.zero
-        : AppMotion.short;
-
-    return ClipRect(
+    return KeyedSubtree(
       key: const ValueKey('article-list-top-bar'),
-      child: AnimatedAlign(
-        alignment: Alignment.topCenter,
-        heightFactor: visible ? 1 : 0,
-        duration: duration,
-        curve: AppMotion.standardCurve,
-        child: AnimatedOpacity(
-          opacity: visible ? 1 : 0,
-          duration: duration,
-          curve: AppMotion.standardCurve,
-          child: IgnorePointer(ignoring: !visible, child: child),
+      child: child,
+    );
+  }
+}
+
+class _ArticleListTopFade extends StatelessWidget {
+  const _ArticleListTopFade();
+
+  @override
+  Widget build(BuildContext context) {
+    final surface = Theme.of(context).fleurSurface.list;
+    return Positioned(
+      key: const ValueKey('article-list-top-fade'),
+      left: 0,
+      top: 0,
+      right: 0,
+      height: 24,
+      child: IgnorePointer(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [surface, surface.withValues(alpha: 0)],
+            ),
+          ),
         ),
       ),
     );

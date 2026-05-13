@@ -103,7 +103,7 @@ Widget _buildRuntimeHostHarness({
   );
 }
 
-Widget _buildShellHarness() {
+Widget _buildShellHarness({Uri? currentUri}) {
   return ProviderScope(
     overrides: [
       activeAccountProvider.overrideWithValue(buildTestAccount()),
@@ -120,7 +120,7 @@ Widget _buildShellHarness() {
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: AppShell(
-        currentUri: Uri(path: '/'),
+        currentUri: currentUri ?? Uri(path: '/'),
         child: ColoredBox(
           key: const Key('app_shell_child'),
           color: Colors.transparent,
@@ -609,6 +609,10 @@ void main() {
 
     expect(find.byType(Sidebar), findsOneWidget);
     expect(tester.getSize(find.byType(Sidebar)).width, kSidebarExpandedWidth);
+    expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
+    expect(find.byKey(const Key('shell_sidebar_button')), findsOneWidget);
+    expect(find.byKey(const Key('shell_back_button')), findsOneWidget);
+    expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
     expect(find.byKey(const Key('app_shell_sidebar_divider')), findsOneWidget);
     expect(
       tester.getSize(find.byKey(const Key('app_shell_sidebar_divider'))).width,
@@ -622,6 +626,14 @@ void main() {
       900,
     );
 
+    await tester.tap(find.byKey(const Key('shell_sidebar_button')));
+    await tester.pumpAndSettle();
+    expect(tester.getSize(find.byType(Sidebar)).width, kSidebarCollapsedWidth);
+
+    await tester.tap(find.byKey(const Key('shell_sidebar_button')));
+    await tester.pumpAndSettle();
+    expect(tester.getSize(find.byType(Sidebar)).width, kSidebarExpandedWidth);
+
     tester.view.physicalSize = const Size(640, 900);
     await tester.pumpWidget(_buildShellHarness());
     await tester.pumpAndSettle();
@@ -629,13 +641,14 @@ void main() {
     expect(find.byType(NavigationRail), findsNothing);
     expect(find.byType(NavigationBar), findsNothing);
     expect(find.byType(Sidebar), findsNothing);
+    expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
     expect(find.byKey(const Key('app_shell_sidebar_divider')), findsNothing);
     expect(
       tester.getSize(find.byKey(const Key('app_shell_child'))).height,
       900,
     );
 
-    tester.state<ScaffoldState>(find.byType(Scaffold)).openDrawer();
+    await tester.tap(find.byKey(const Key('shell_sidebar_button')));
     await tester.pumpAndSettle();
 
     expect(find.byType(Sidebar), findsOneWidget);
@@ -663,6 +676,26 @@ void main() {
       tester.getSize(find.byKey(const Key('app_shell_child'))).height,
       900,
     );
+  });
+
+  testWidgets('App shell hides capsule controls on dedicated reader pages', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(640, 900);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      _buildShellHarness(currentUri: Uri(path: '/all/article/42')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
+    expect(find.byType(Sidebar), findsNothing);
+    expect(find.byKey(const Key('app_shell_child')), findsOneWidget);
   });
 
   testWidgets('sidebar fixed items and account menu navigate to shell routes', (
@@ -699,6 +732,10 @@ void main() {
               builder: (context, state) => const Text('add page'),
             ),
             GoRoute(
+              path: '/search',
+              builder: (context, state) => const Text('search page'),
+            ),
+            GoRoute(
               path: '/settings',
               builder: (context, state) => const Text('settings page'),
             ),
@@ -729,6 +766,18 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('shell_search_button')));
+    await tester.pumpAndSettle();
+    expect(
+      router.routerDelegate.currentConfiguration.uri.toString(),
+      '/search',
+    );
+    expect(find.text('search page'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('sidebar_all_button')));
+    await tester.pumpAndSettle();
+    expect(router.routerDelegate.currentConfiguration.uri.toString(), '/all');
 
     await tester.tap(find.byKey(const Key('sidebar_starred_button')));
     await tester.pumpAndSettle();
@@ -2210,13 +2259,24 @@ void main() {
 
     final element = tester.element(find.byType(HomeScreen));
     final l10n = AppLocalizations.of(element)!;
+    final container = ProviderScope.containerOf(element);
 
     expect(tester.getSize(find.byType(ArticleList)).width, kDesktopListWidth);
+    expect(find.byKey(const Key('home_scope_header')), findsOneWidget);
+    expect(find.byKey(const Key('home_scope_actions')), findsOneWidget);
+    expect(find.byKey(const Key('scope_refresh_button')), findsOneWidget);
+    expect(find.byKey(const Key('scope_unread_filter_button')), findsOneWidget);
+    expect(find.byKey(const ValueKey('article-list-top-fade')), findsOneWidget);
     expect(find.byType(HomeReaderPane), findsNothing);
     expect(find.byType(ReadingPaneSurface), findsNothing);
     expect(find.byType(ReaderView), findsNothing);
     expect(find.text(l10n.selectAnArticle), findsNothing);
     expect(find.text(l10n.readerEmptySubtitle), findsNothing);
+    expect(container.read(unreadOnlyProvider), isFalse);
+
+    await tester.tap(find.byKey(const Key('scope_unread_filter_button')));
+    await tester.pumpAndSettle();
+    expect(container.read(unreadOnlyProvider), isTrue);
   });
 
   testWidgets('Home workspace keeps list width while showing reader surface', (

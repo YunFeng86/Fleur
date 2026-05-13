@@ -12,6 +12,9 @@ abstract final class FleurIcons {
   static const IconData searchSelected = LucideIcons.search500;
   static const IconData settings = LucideIcons.settings;
   static const IconData settingsSelected = LucideIcons.settings500;
+  static const IconData back = LucideIcons.arrowLeft;
+  static const IconData sidebarCollapse = LucideIcons.panelLeftClose;
+  static const IconData sidebarExpand = LucideIcons.panelLeftOpen;
 
   static const IconData translate = LucideIcons.languages;
   static const IconData fullText = LucideIcons.fileText;

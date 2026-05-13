@@ -17,6 +17,7 @@ import '../ui/home/home_scene_shortcuts.dart';
 import '../ui/layout.dart';
 import '../ui/layout_spec.dart';
 import '../utils/platform.dart';
+import '../widgets/fleur_capsule_button_group.dart';
 import '../widgets/outbox_status_action.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -312,48 +313,53 @@ class _HomeArticleListToolbar extends ConsumerWidget {
     final title = _scopeTitle(ref, l10n);
 
     return Material(
+      key: const Key('home_scope_header'),
       color: surfaces.list,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: surfaces.subtleDivider)),
-        ),
-        child: SizedBox(
-          height: 52,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 4, 6, 4),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      color: scheme.onSurface,
-                      fontWeight: FontWeight.w600,
+      child: SizedBox(
+        height: 56,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: scheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              FleurCapsuleButtonGroup(
+                key: const Key('home_scope_actions'),
+                children: [
+                  if (showRefresh)
+                    FleurCapsuleIconButton(
+                      key: const Key('scope_refresh_button'),
+                      tooltip: refreshTooltip,
+                      onPressed: onRefresh,
+                      icon: FleurIcons.refresh,
                     ),
+                  FleurCapsuleIconButton(
+                    key: const Key('scope_unread_filter_button'),
+                    tooltip: unreadOnly ? l10n.showAll : l10n.unreadOnly,
+                    onPressed: onToggleUnreadOnly,
+                    selected: unreadOnly,
+                    icon: unreadOnly
+                        ? FleurIcons.filterActive
+                        : FleurIcons.filter,
                   ),
-                ),
-                if (showRefresh)
-                  IconButton(
-                    tooltip: refreshTooltip,
-                    onPressed: onRefresh,
-                    icon: const Icon(FleurIcons.refresh),
+                  FleurCapsuleIconButton(
+                    key: const Key('scope_mark_all_read_button'),
+                    tooltip: l10n.markAllRead,
+                    onPressed: onMarkAllRead,
+                    icon: FleurIcons.markAllRead,
                   ),
-                IconButton(
-                  tooltip: unreadOnly ? l10n.showAll : l10n.unreadOnly,
-                  onPressed: onToggleUnreadOnly,
-                  icon: Icon(
-                    unreadOnly ? FleurIcons.filterActive : FleurIcons.filter,
-                  ),
-                ),
-                IconButton(
-                  tooltip: l10n.markAllRead,
-                  onPressed: onMarkAllRead,
-                  icon: const Icon(FleurIcons.markAllRead),
-                ),
-              ],
-            ),
+                ],
+              ),
+            ],
           ),
         ),
       ),

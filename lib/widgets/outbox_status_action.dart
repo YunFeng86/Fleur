@@ -11,9 +11,12 @@ import '../providers/service_providers.dart';
 import '../services/sync/backend_capabilities.dart';
 import '../services/sync/sync_service.dart';
 import '../theme/fleur_icons.dart';
+import 'fleur_capsule_button_group.dart';
 
 class OutboxStatusAction extends ConsumerWidget {
-  const OutboxStatusAction({super.key});
+  const OutboxStatusAction({super.key, this.compact = false});
+
+  final bool compact;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -64,6 +67,10 @@ class OutboxStatusAction extends ConsumerWidget {
           ? l10n.syncStatusFailed
           : l10n.syncStatusUploadingChanges,
       onPressed: () => unawaited(flushNow()),
+      iconSize: compact ? 18 : null,
+      style: compact
+          ? FleurCapsuleIconButton.styleFor(context, selected: isWarning)
+          : null,
       icon: Badge(
         backgroundColor: badgeColor,
         label: Text(label, style: const TextStyle(fontSize: 10)),

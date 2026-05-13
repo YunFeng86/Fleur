@@ -83,16 +83,25 @@ Future<void> _pumpArticleList(WidgetTester tester) async {
 
 void main() {
   testWidgets(
-    'optional top bar hides on downward scroll and reappears upward',
+    'optional top bar stays fixed while list scrolls under top fade',
     (tester) async {
       await _pumpArticleList(tester);
 
       expect(find.text('Scoped Toolbar'), findsOneWidget);
       expect(tester.getSize(_topBar()).height, greaterThan(0));
+      expect(
+        find.byKey(const ValueKey('article-list-top-fade')),
+        findsOneWidget,
+      );
 
       await tester.drag(find.byType(ListView), const Offset(0, -700));
       await tester.pumpAndSettle();
-      expect(tester.getSize(_topBar()).height, 0);
+      expect(find.text('Scoped Toolbar'), findsOneWidget);
+      expect(tester.getSize(_topBar()).height, greaterThan(0));
+      expect(
+        find.byKey(const ValueKey('article-list-top-fade')),
+        findsOneWidget,
+      );
 
       await tester.drag(find.byType(ListView), const Offset(0, 300));
       await tester.pumpAndSettle();
@@ -100,7 +109,7 @@ void main() {
     },
   );
 
-  testWidgets('optional top bar responds to pointer scroll events', (
+  testWidgets('optional top bar stays visible for pointer scroll events', (
     tester,
   ) async {
     await _pumpArticleList(tester);
@@ -110,7 +119,7 @@ void main() {
       PointerScrollEvent(position: position, scrollDelta: const Offset(0, 500)),
     );
     await tester.pumpAndSettle();
-    expect(tester.getSize(_topBar()).height, 0);
+    expect(tester.getSize(_topBar()).height, greaterThan(0));
 
     await tester.sendEventToBinding(
       PointerScrollEvent(
@@ -120,5 +129,6 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(tester.getSize(_topBar()).height, greaterThan(0));
+    expect(find.byKey(const ValueKey('article-list-top-fade')), findsOneWidget);
   });
 }
