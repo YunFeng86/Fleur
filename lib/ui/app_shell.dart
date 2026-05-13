@@ -8,13 +8,10 @@ import 'package:window_manager/window_manager.dart';
 
 import '../app/article_scope_routes.dart';
 import '../models/article_scope.dart';
-import '../providers/backend_sync_semantics_provider.dart';
 import '../providers/core_providers.dart';
-import '../providers/outbox_status_providers.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../widgets/fleur_capsule_button_group.dart';
-import '../widgets/outbox_status_action.dart';
 import '../widgets/sidebar.dart';
 import '../utils/platform.dart';
 import 'app_drawer_scope.dart';
@@ -87,15 +84,6 @@ class AppShell extends ConsumerWidget {
     return router?.canPop() ?? Navigator.canPop(context);
   }
 
-  bool _showOutboxAction(WidgetRef ref) {
-    final outboxPending =
-        ref.watch(outboxPendingCountProvider).valueOrNull ?? 0;
-    final syncSemantics = ref.watch(backendSyncSemanticsProvider);
-    return outboxPending > 0 &&
-        (syncSemantics.isAccountWideRefresh ||
-            syncSemantics.isFeedScopedRefresh);
-  }
-
   Widget _sidebarDrawer(BuildContext context) {
     return Drawer(
       child: SafeArea(
@@ -109,16 +97,40 @@ class AppShell extends ConsumerWidget {
 
   Widget _desktopSidebar({
     required BuildContext context,
+    required WidgetRef ref,
     required double width,
+    required SidebarPresentationMode presentationMode,
   }) {
     final surfaces = Theme.of(context).fleurSurface;
+    final collapsed = presentationMode == SidebarPresentationMode.collapsed;
     return SizedBox(
       width: width,
       child: Material(
         color: surfaces.sidebar,
         child: Column(
           children: [
-            if (isDesktop) const SizedBox(height: _kShellControlsHeight),
+            if (isDesktop)
+              _ShellSidebarHeader(
+                collapsed: collapsed,
+                child: _ShellControlsHost(
+                  canPop: _canPop(context),
+                  onPop: () => _pop(context),
+                  canOpenDrawer: false,
+                  openDrawer: null,
+                  onToggleSidebar: () => _toggleSidebar(ref),
+                  onSearch: () => _goToSearch(context),
+                  presentationMode: presentationMode,
+                  showSidebarButton: true,
+                  showBackButton: !collapsed,
+                  showForwardButton: !collapsed,
+                  showSearchButton: !collapsed,
+                  capsuleKey: collapsed
+                      ? const Key('shell_sidebar_toggle_capsule')
+                      : const Key('shell_controls_capsule'),
+                  leftPadding: collapsed ? 0 : null,
+                  includeTrailingDragArea: !collapsed,
+                ),
+              ),
             Expanded(
               child: Sidebar(
                 onSelectScope: (scope) => _goToScope(context, scope),
@@ -143,8 +155,7 @@ class AppShell extends ConsumerWidget {
         Positioned.fill(child: child),
         Positioned(
           left: 0,
-          top: 0,
-          width: isMacOS ? 240 : 176,
+          top: kShellCapsuleVerticalInset,
           child: _ShellControlsHost(
             canPop: _canPop(context),
             onPop: () => _pop(context),
@@ -155,7 +166,12 @@ class AppShell extends ConsumerWidget {
                 : null,
             onSearch: () => _goToSearch(context),
             presentationMode: presentationMode,
-            showOutboxAction: _showOutboxAction(ref),
+            showSidebarButton: true,
+            showBackButton: true,
+            showForwardButton: true,
+            showSearchButton: true,
+            capsuleKey: const Key('shell_controls_capsule'),
+            includeTrailingDragArea: false,
           ),
         ),
       ],
@@ -204,7 +220,12 @@ class AppShell extends ConsumerWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _desktopSidebar(context: context, width: sidebarWidth),
+                    _desktopSidebar(
+                      context: context,
+                      ref: ref,
+                      width: sidebarWidth,
+                      presentationMode: presentationMode,
+                    ),
                     SizedBox(
                       key: const Key('app_shell_sidebar_divider'),
                       width: kSidebarContentDividerWidth,
@@ -214,21 +235,28 @@ class AppShell extends ConsumerWidget {
                   ],
                 ),
               ),
-              Positioned(
-                left: 0,
-                top: 0,
-                width: isMacOS ? 240 : 176,
-                child: _ShellControlsHost(
-                  canPop: _canPop(context),
-                  onPop: () => _pop(context),
-                  canOpenDrawer: false,
-                  openDrawer: null,
-                  onToggleSidebar: () => _toggleSidebar(ref),
-                  onSearch: () => _goToSearch(context),
-                  presentationMode: presentationMode,
-                  showOutboxAction: _showOutboxAction(ref),
+              if (presentationMode == SidebarPresentationMode.collapsed)
+                Positioned(
+                  key: const Key('app_shell_collapsed_content_controls'),
+                  left: sidebarWidth + kSidebarContentDividerWidth + 14,
+                  top: kShellCapsuleVerticalInset,
+                  child: _ShellControlsHost(
+                    canPop: _canPop(context),
+                    onPop: () => _pop(context),
+                    canOpenDrawer: false,
+                    openDrawer: null,
+                    onToggleSidebar: null,
+                    onSearch: () => _goToSearch(context),
+                    presentationMode: presentationMode,
+                    showSidebarButton: false,
+                    showBackButton: true,
+                    showForwardButton: true,
+                    showSearchButton: true,
+                    capsuleKey: const Key('shell_content_controls_capsule'),
+                    leftPadding: 0,
+                    includeTrailingDragArea: false,
+                  ),
                 ),
-              ),
             ],
           ),
         ),
@@ -264,7 +292,26 @@ class AppShell extends ConsumerWidget {
   }
 }
 
-const double _kShellControlsHeight = 40;
+class _ShellSidebarHeader extends StatelessWidget {
+  const _ShellSidebarHeader({required this.collapsed, required this.child});
+
+  final bool collapsed;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      key: const Key('app_shell_sidebar_header'),
+      height: kWorkspaceHeaderHeight,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          vertical: kShellCapsuleVerticalInset,
+        ),
+        child: collapsed ? Center(child: child) : child,
+      ),
+    );
+  }
+}
 
 class _ShellControlsHost extends StatelessWidget {
   const _ShellControlsHost({
@@ -275,7 +322,13 @@ class _ShellControlsHost extends StatelessWidget {
     required this.onToggleSidebar,
     required this.onSearch,
     required this.presentationMode,
-    required this.showOutboxAction,
+    required this.showSidebarButton,
+    required this.showBackButton,
+    required this.showForwardButton,
+    required this.showSearchButton,
+    required this.capsuleKey,
+    this.leftPadding,
+    this.includeTrailingDragArea = true,
   });
 
   final bool canPop;
@@ -285,7 +338,13 @@ class _ShellControlsHost extends StatelessWidget {
   final VoidCallback? onToggleSidebar;
   final VoidCallback onSearch;
   final SidebarPresentationMode presentationMode;
-  final bool showOutboxAction;
+  final bool showSidebarButton;
+  final bool showBackButton;
+  final bool showForwardButton;
+  final bool showSearchButton;
+  final Key capsuleKey;
+  final double? leftPadding;
+  final bool includeTrailingDragArea;
 
   @override
   Widget build(BuildContext context) {
@@ -305,47 +364,58 @@ class _ShellControlsHost extends StatelessWidget {
               : FleurIcons.sidebarExpand);
     final sidebarAction = canUseDrawer ? openDrawer : onToggleSidebar;
 
+    final children = [
+      if (showSidebarButton)
+        FleurCapsuleIconButton(
+          key: const Key('shell_sidebar_button'),
+          tooltip: sidebarTooltip,
+          onPressed: sidebarAction,
+          icon: sidebarIcon,
+        ),
+      if (showBackButton)
+        FleurCapsuleIconButton(
+          key: const Key('shell_back_button'),
+          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+          onPressed: canPop ? onPop : null,
+          icon: FleurIcons.back,
+        ),
+      if (showForwardButton)
+        FleurCapsuleIconButton(
+          key: const Key('shell_forward_button'),
+          tooltip: MaterialLocalizations.of(context).nextPageTooltip,
+          onPressed: null,
+          icon: FleurIcons.forward,
+        ),
+      if (showSearchButton)
+        FleurCapsuleIconButton(
+          key: const Key('shell_search_button'),
+          tooltip: l10n.search,
+          onPressed: onSearch,
+          icon: FleurIcons.search,
+        ),
+    ];
+
     return SizedBox(
-      height: _kShellControlsHeight,
+      height: kShellCapsuleHeight,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final macTrafficLightInset = constraints.maxWidth >= 120 ? 72.0 : 8.0;
-          final leftPadding = isMacOS ? macTrafficLightInset : 8.0;
+          final resolvedLeftPadding =
+              leftPadding ?? (isMacOS ? macTrafficLightInset : 8.0);
 
           return Row(
+            mainAxisSize: includeTrailingDragArea
+                ? MainAxisSize.max
+                : MainAxisSize.min,
             children: [
-              SizedBox(width: leftPadding),
+              if (resolvedLeftPadding > 0) SizedBox(width: resolvedLeftPadding),
               FleurCapsuleButtonGroup(
-                key: const Key('shell_controls_capsule'),
-                children: [
-                  FleurCapsuleIconButton(
-                    key: const Key('shell_sidebar_button'),
-                    tooltip: sidebarTooltip,
-                    onPressed: sidebarAction,
-                    icon: sidebarIcon,
-                  ),
-                  FleurCapsuleIconButton(
-                    key: const Key('shell_back_button'),
-                    tooltip: MaterialLocalizations.of(
-                      context,
-                    ).backButtonTooltip,
-                    onPressed: canPop ? onPop : null,
-                    icon: FleurIcons.back,
-                  ),
-                  FleurCapsuleIconButton(
-                    key: const Key('shell_search_button'),
-                    tooltip: l10n.search,
-                    onPressed: onSearch,
-                    icon: FleurIcons.search,
-                  ),
-                  if (showOutboxAction)
-                    const OutboxStatusAction(
-                      key: Key('shell_outbox_button'),
-                      compact: true,
-                    ),
-                ],
+                key: capsuleKey,
+                height: kShellCapsuleHeight,
+                children: children,
               ),
-              Expanded(child: DragToMoveArea(child: const SizedBox.expand())),
+              if (includeTrailingDragArea)
+                Expanded(child: DragToMoveArea(child: const SizedBox.expand())),
             ],
           );
         },

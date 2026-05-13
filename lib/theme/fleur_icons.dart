@@ -13,6 +13,7 @@ abstract final class FleurIcons {
   static const IconData settings = LucideIcons.settings;
   static const IconData settingsSelected = LucideIcons.settings500;
   static const IconData back = LucideIcons.arrowLeft;
+  static const IconData forward = LucideIcons.arrowRight;
   static const IconData sidebarCollapse = LucideIcons.panelLeftClose;
   static const IconData sidebarExpand = LucideIcons.panelLeftOpen;
 

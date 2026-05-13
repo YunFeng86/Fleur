@@ -4,6 +4,7 @@ import 'package:fleur/l10n/app_localizations.dart';
 
 import '../providers/backend_capabilities_provider.dart';
 import '../providers/backend_sync_semantics_provider.dart';
+import '../providers/core_providers.dart';
 import '../providers/query_providers.dart';
 import '../providers/unread_providers.dart';
 import '../theme/fleur_icons.dart';
@@ -16,6 +17,7 @@ import '../ui/home/home_scene_panes.dart';
 import '../ui/home/home_scene_shortcuts.dart';
 import '../ui/layout.dart';
 import '../ui/layout_spec.dart';
+import '../ui/sidebar_layout.dart';
 import '../utils/platform.dart';
 import '../widgets/fleur_capsule_button_group.dart';
 import '../widgets/outbox_status_action.dart';
@@ -311,16 +313,25 @@ class _HomeArticleListToolbar extends ConsumerWidget {
     final scheme = theme.colorScheme;
     final unreadOnly = ref.watch(unreadOnlyProvider);
     final title = _scopeTitle(ref, l10n);
+    final reserveCollapsedShellControls =
+        isDesktop &&
+        LayoutSpec.fromContext(context).hasInlineSidebar &&
+        ref.watch(sidebarPresentationModeProvider) ==
+            SidebarPresentationMode.collapsed;
 
     return Material(
       key: const Key('home_scope_header'),
       color: surfaces.list,
       child: SizedBox(
-        height: 56,
+        height: kWorkspaceHeaderHeight,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
           child: Row(
             children: [
+              if (reserveCollapsedShellControls)
+                const SizedBox(
+                  width: kCollapsedContentShellControlsReserveWidth,
+                ),
               Expanded(
                 child: Text(
                   title,

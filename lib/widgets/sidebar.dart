@@ -186,6 +186,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
     final capabilities = ref.watch(backendCapabilitiesProvider);
     final syncSemantics = ref.watch(backendSyncSemanticsProvider);
     final presentationMode = ref.watch(sidebarPresentationModeProvider);
+    final collapsed = presentationMode == SidebarPresentationMode.collapsed;
     final syncStatus = ref.watch(syncStatusControllerProvider);
     final selectionActions = _selectionActions;
     final managementActions = _managementActions;
@@ -211,38 +212,42 @@ class _SidebarState extends ConsumerState<Sidebar> {
             onSelectReadLater: selectionActions.selectReadLater,
             onAddSubscription: _openAddSubscriptionPage,
           ),
-          Expanded(
-            child: SidebarNavigationTree(
-              presentationMode: presentationMode,
-              scrollController: _scrollController,
-              feeds: feeds,
-              categories: categories,
-              allUnreadCounts: allUnreadCounts,
-              selectedFeedId: selectedFeedId,
-              selectedCategoryId: selectedCategoryId,
-              starredOnly: starredOnly,
-              readLaterOnly: readLaterOnly,
-              expandedCategoryId: _expandedCategoryId,
-              onExpandedCategoryChanged: (categoryId) {
-                setState(() => _expandedCategoryId = categoryId);
-              },
-              selectionActions: selectionActions,
-              managementActions: managementActions,
-              capabilities: capabilities,
-              syncSemantics: syncSemantics,
-              onAddFeed: () async {
-                await managementActions.addFeed();
-              },
-              onAddCategory: () async {
-                final id = await managementActions.addCategory();
-                if (id == null) return;
-                setState(() => _expandedCategoryId = id);
-              },
-              onShowCategoryMenu: (category) =>
-                  _showCategoryMenu(category, managementActions),
-              onShowFeedMenu: (feed) => _showFeedMenu(feed, managementActions),
+          if (collapsed)
+            const Expanded(child: SizedBox.shrink())
+          else
+            Expanded(
+              child: SidebarNavigationTree(
+                presentationMode: presentationMode,
+                scrollController: _scrollController,
+                feeds: feeds,
+                categories: categories,
+                allUnreadCounts: allUnreadCounts,
+                selectedFeedId: selectedFeedId,
+                selectedCategoryId: selectedCategoryId,
+                starredOnly: starredOnly,
+                readLaterOnly: readLaterOnly,
+                expandedCategoryId: _expandedCategoryId,
+                onExpandedCategoryChanged: (categoryId) {
+                  setState(() => _expandedCategoryId = categoryId);
+                },
+                selectionActions: selectionActions,
+                managementActions: managementActions,
+                capabilities: capabilities,
+                syncSemantics: syncSemantics,
+                onAddFeed: () async {
+                  await managementActions.addFeed();
+                },
+                onAddCategory: () async {
+                  final id = await managementActions.addCategory();
+                  if (id == null) return;
+                  setState(() => _expandedCategoryId = id);
+                },
+                onShowCategoryMenu: (category) =>
+                    _showCategoryMenu(category, managementActions),
+                onShowFeedMenu: (feed) =>
+                    _showFeedMenu(feed, managementActions),
+              ),
             ),
-          ),
           _AccountFooter(
             key: _accountFooterKey,
             account: activeAccount,

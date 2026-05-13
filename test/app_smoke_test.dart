@@ -47,6 +47,7 @@ import 'package:fleur/ui/home/home_scene_shortcuts.dart';
 import 'package:fleur/ui/layout.dart';
 import 'package:fleur/ui/sidebar_layout.dart';
 import 'package:fleur/ui/sidebar/sidebar_selection_actions.dart';
+import 'package:fleur/ui/sidebar/sidebar_tree.dart';
 import 'package:fleur/utils/platform.dart';
 import 'package:fleur/widgets/article_list.dart';
 import 'package:fleur/widgets/article_list_item.dart';
@@ -103,7 +104,7 @@ Widget _buildRuntimeHostHarness({
   );
 }
 
-Widget _buildShellHarness({Uri? currentUri}) {
+Widget _buildShellHarness({Uri? currentUri, Widget? child}) {
   return ProviderScope(
     overrides: [
       activeAccountProvider.overrideWithValue(buildTestAccount()),
@@ -121,10 +122,12 @@ Widget _buildShellHarness({Uri? currentUri}) {
       supportedLocales: AppLocalizations.supportedLocales,
       home: AppShell(
         currentUri: currentUri ?? Uri(path: '/'),
-        child: ColoredBox(
-          key: const Key('app_shell_child'),
-          color: Colors.transparent,
-        ),
+        child:
+            child ??
+            const ColoredBox(
+              key: Key('app_shell_child'),
+              color: Colors.transparent,
+            ),
       ),
     ),
   );
@@ -612,7 +615,9 @@ void main() {
     expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
     expect(find.byKey(const Key('shell_sidebar_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_back_button')), findsOneWidget);
+    expect(find.byKey(const Key('shell_forward_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
+    expect(find.byKey(const Key('shell_outbox_button')), findsNothing);
     expect(find.byKey(const Key('app_shell_sidebar_divider')), findsOneWidget);
     expect(
       tester.getSize(find.byKey(const Key('app_shell_sidebar_divider'))).width,
@@ -629,6 +634,24 @@ void main() {
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
     await tester.pumpAndSettle();
     expect(tester.getSize(find.byType(Sidebar)).width, kSidebarCollapsedWidth);
+    expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
+    expect(
+      find.byKey(const Key('shell_sidebar_toggle_capsule')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('shell_content_controls_capsule')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('shell_back_button')), findsOneWidget);
+    expect(find.byKey(const Key('shell_forward_button')), findsOneWidget);
+    expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
+    expect(
+      tester
+          .getTopLeft(find.byKey(const Key('shell_content_controls_capsule')))
+          .dx,
+      kSidebarCollapsedWidth + kSidebarContentDividerWidth + 14,
+    );
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
     await tester.pumpAndSettle();
@@ -654,6 +677,46 @@ void main() {
     expect(find.byType(Sidebar), findsOneWidget);
   });
 
+  testWidgets('App shell aligns sidebar controls with the workspace header', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(1200, 900);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      _buildShellHarness(
+        child: const Column(
+          children: [
+            SizedBox(
+              key: Key('home_scope_header'),
+              height: kWorkspaceHeaderHeight,
+            ),
+            Expanded(
+              child: ColoredBox(
+                key: Key('app_shell_child'),
+                color: Colors.transparent,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final shellCenter = tester
+        .getCenter(find.byKey(const Key('shell_controls_capsule')))
+        .dy;
+    final headerCenter = tester
+        .getCenter(find.byKey(const Key('home_scope_header')))
+        .dy;
+
+    expect(shellCenter, headerCenter);
+  });
+
   testWidgets('App shell keeps macOS traffic lights clear of sidebar items', (
     tester,
   ) async {
@@ -671,7 +734,7 @@ void main() {
         .getTopLeft(find.byKey(const Key('sidebar_all_button')))
         .dy;
 
-    expect(allButtonTop, greaterThanOrEqualTo(40));
+    expect(allButtonTop, greaterThanOrEqualTo(kWorkspaceHeaderHeight));
     expect(
       tester.getSize(find.byKey(const Key('app_shell_child'))).height,
       900,
@@ -904,6 +967,10 @@ void main() {
   ) async {
     debugFleurTargetPlatformOverride = TargetPlatform.windows;
     addTearDown(() => debugFleurTargetPlatformOverride = null);
+    final category = Category()
+      ..id = 7
+      ..name = 'Design';
+    final feed = _buildFeed(title: 'Dense Pixels')..categoryId = 7;
 
     await tester.pumpWidget(
       ProviderScope(
@@ -912,11 +979,13 @@ void main() {
           sidebarPresentationModeProvider.overrideWith(
             (ref) => SidebarPresentationMode.collapsed,
           ),
-          feedsProvider.overrideWith((ref) => Stream.value(<Feed>[])),
-          categoriesProvider.overrideWith((ref) => Stream.value(<Category>[])),
+          feedsProvider.overrideWith((ref) => Stream.value(<Feed>[feed])),
+          categoriesProvider.overrideWith(
+            (ref) => Stream.value(<Category>[category]),
+          ),
           tagsProvider.overrideWith((ref) => Stream.value(<Tag>[])),
           allUnreadCountsProvider.overrideWith(
-            (ref) => Stream.value(<int?, int>{null: 0}),
+            (ref) => Stream.value(<int?, int>{null: 0, 7: 2, 10: 1}),
           ),
         ],
         child: MaterialApp(
@@ -938,6 +1007,10 @@ void main() {
     expect(find.text('All Articles'), findsNothing);
     expect(find.text('Starred'), findsNothing);
     expect(find.text('Read Later'), findsNothing);
+    expect(find.byType(SidebarNavigationTree), findsNothing);
+    expect(find.text('Subscriptions'), findsNothing);
+    expect(find.text('Design'), findsNothing);
+    expect(find.text('Dense Pixels'), findsNothing);
 
     final allY = tester
         .getCenter(find.byKey(const Key('sidebar_all_button')))
@@ -969,6 +1042,9 @@ void main() {
           activeAccountProvider.overrideWithValue(
             buildTestAccount(type: AccountType.fever),
           ),
+          sidebarPresentationModeProvider.overrideWith(
+            (ref) => SidebarPresentationMode.expanded,
+          ),
           feedsProvider.overrideWith((ref) => Stream.value(<Feed>[])),
           categoriesProvider.overrideWith((ref) => Stream.value(<Category>[])),
           tagsProvider.overrideWith((ref) => Stream.value(<Tag>[])),
@@ -997,6 +1073,43 @@ void main() {
       findsNothing,
     );
     expect(find.text('Add subscription'), findsNothing);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          activeAccountProvider.overrideWithValue(
+            buildTestAccount(type: AccountType.fever),
+          ),
+          sidebarPresentationModeProvider.overrideWith(
+            (ref) => SidebarPresentationMode.collapsed,
+          ),
+          feedsProvider.overrideWith((ref) => Stream.value(<Feed>[])),
+          categoriesProvider.overrideWith((ref) => Stream.value(<Category>[])),
+          tagsProvider.overrideWith((ref) => Stream.value(<Tag>[])),
+          allUnreadCountsProvider.overrideWith(
+            (ref) => Stream.value(<int?, int>{null: 0}),
+          ),
+        ],
+        child: MaterialApp(
+          locale: const Locale('en'),
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const AppMenuHost(
+            child: SizedBox(
+              width: kSidebarCollapsedWidth,
+              child: Sidebar(onSelectScope: _noopSelectScope),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('sidebar_add_subscription_button')),
+      findsNothing,
+    );
   });
 
   testWidgets(
