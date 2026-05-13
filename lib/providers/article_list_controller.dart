@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../models/article_scope.dart';
 import '../models/article.dart';
 import '../repositories/article_repository.dart';
 import '../services/logging/app_logger.dart';
@@ -50,24 +51,20 @@ class ArticleListController extends AutoDisposeAsyncNotifier<ArticleListState> {
   static const _maxItems = 500;
 
   StreamSubscription<void>? _sub;
-  int? _feedId;
-  int? _categoryId;
-  int? _tagId;
+  ArticleScope _scope = ArticleScope.all;
   bool _unreadOnly = false;
-  bool _starredOnly = false;
-  bool _readLaterOnly = false;
   String _searchQuery = '';
   bool _sortAscending = false;
   bool _searchInContent = true;
 
   ArticleQuery _currentQuery() {
     return ArticleQuery(
-      feedId: _feedId,
-      categoryId: _categoryId,
-      tagId: _tagId,
+      feedId: _scope.feedId,
+      categoryId: _scope.categoryId,
+      tagId: _scope.tagId,
       unreadOnly: _unreadOnly,
-      starredOnly: _starredOnly,
-      readLaterOnly: _readLaterOnly,
+      starredOnly: _scope.starredOnly,
+      readLaterOnly: _scope.readLaterOnly,
       searchQuery: _searchQuery,
       sortAscending: _sortAscending,
       searchInContent: _searchInContent,
@@ -76,12 +73,8 @@ class ArticleListController extends AutoDisposeAsyncNotifier<ArticleListState> {
 
   @override
   Future<ArticleListState> build() async {
-    _feedId = ref.watch(selectedFeedIdProvider);
-    _categoryId = ref.watch(selectedCategoryIdProvider);
-    _tagId = ref.watch(selectedTagIdProvider);
+    _scope = ref.watch(currentArticleScopeProvider);
     _unreadOnly = ref.watch(unreadOnlyProvider);
-    _starredOnly = ref.watch(starredOnlyProvider);
-    _readLaterOnly = ref.watch(readLaterOnlyProvider);
     _searchQuery = ref.watch(articleSearchQueryProvider);
     final settings = ref.watch(appSettingsProvider).valueOrNull;
     _sortAscending =
@@ -219,12 +212,8 @@ class ArticleListController extends AutoDisposeAsyncNotifier<ArticleListState> {
         stackTrace: st,
         context: <String, Object?>{
           'operation': 'loadMore',
-          'feedId': _feedId,
-          'categoryId': _categoryId,
-          'tagId': _tagId,
+          'scope': _scope.toString(),
           'unreadOnly': _unreadOnly,
-          'starredOnly': _starredOnly,
-          'readLaterOnly': _readLaterOnly,
           'sortAscending': _sortAscending,
           'searchInContent': _searchInContent,
           'offset': current.nextOffset,

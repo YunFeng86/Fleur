@@ -18,6 +18,8 @@ import '../providers/unread_providers.dart';
 import '../services/sync/backend_capabilities.dart';
 import '../services/settings/app_settings.dart';
 import '../theme/fleur_icons.dart';
+import '../app/article_scope_routes.dart';
+import '../models/article_scope.dart';
 import '../ui/app_menu.dart';
 import '../ui/actions/subscription_actions.dart';
 import '../theme/fleur_theme_extensions.dart';
@@ -35,15 +37,15 @@ class ArticleList extends ConsumerStatefulWidget {
   const ArticleList({
     super.key,
     required this.selectedArticleId,
-    this.baseLocation = '/',
-    this.articleRoutePrefix = '',
+    this.baseLocation,
+    this.articleRoutePrefix,
     this.topBar,
     this.emptyBuilder,
   });
 
   final int? selectedArticleId;
-  final String baseLocation;
-  final String articleRoutePrefix;
+  final String? baseLocation;
+  final String? articleRoutePrefix;
   final Widget? topBar;
   final Widget Function(BuildContext context, ArticleListEmptyState state)?
   emptyBuilder;
@@ -170,22 +172,25 @@ class _ArticleListState extends ConsumerState<ArticleList> {
     Article article,
     LayoutSpec spec, {
     required bool closeIfSelected,
+    required ArticleScope scope,
   }) async {
     if (article.id == widget.selectedArticleId) {
-      if (closeIfSelected) context.go(widget.baseLocation);
+      if (closeIfSelected) {
+        context.go(widget.baseLocation ?? scopeLocation(scope));
+      }
       return;
     }
 
     final openAsSecondaryPage = isDesktop
         ? !spec.desktopEmbedsReader
         : !spec.canEmbedReader(
-            listWidth: widget.baseLocation == '/'
+            listWidth: widget.articleRoutePrefix == null
                 ? kHomeListWidth
                 : kDesktopListWidth,
           );
 
-    final loc = widget.articleRoutePrefix.isEmpty
-        ? '/article/${article.id}'
+    final loc = widget.articleRoutePrefix == null
+        ? scopedArticleLocation(scope, article.id)
         : '${widget.articleRoutePrefix}/article/${article.id}';
 
     if (openAsSecondaryPage) {
@@ -201,6 +206,7 @@ class _ArticleListState extends ConsumerState<ArticleList> {
     Article article,
     Offset position,
     LayoutSpec spec,
+    ArticleScope scope,
   ) async {
     final l10n = AppLocalizations.of(context)!;
     final action = await AppMenuHost.showAt<_ArticleContextAction>(
@@ -246,7 +252,13 @@ class _ArticleListState extends ConsumerState<ArticleList> {
     final actions = ref.read(articleActionServiceProvider);
     switch (action) {
       case _ArticleContextAction.open:
-        await _openArticle(context, article, spec, closeIfSelected: false);
+        await _openArticle(
+          context,
+          article,
+          spec,
+          closeIfSelected: false,
+          scope: scope,
+        );
         return;
       case _ArticleContextAction.markRead:
         await actions.markRead(article.id, !article.isRead);
@@ -275,6 +287,7 @@ class _ArticleListState extends ConsumerState<ArticleList> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final scope = ref.watch(currentArticleScopeProvider);
     final feedId = ref.watch(selectedFeedIdProvider);
     final categoryId = ref.watch(selectedCategoryIdProvider);
     final tagId = ref.watch(selectedTagIdProvider);
@@ -293,6 +306,7 @@ class _ArticleListState extends ConsumerState<ArticleList> {
     final contextKey = Object.hash(
       widget.baseLocation,
       widget.articleRoutePrefix,
+      scope,
       feedId,
       categoryId,
       tagId,
@@ -418,6 +432,7 @@ class _ArticleListState extends ConsumerState<ArticleList> {
                         live,
                         spec,
                         closeIfSelected: true,
+                        scope: scope,
                       ),
                       onSecondaryTapDown: (details) => unawaited(
                         _showArticleContextMenu(
@@ -426,6 +441,7 @@ class _ArticleListState extends ConsumerState<ArticleList> {
                           live,
                           details.globalPosition,
                           spec,
+                          scope,
                         ),
                       ),
                     );

@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../models/article_scope.dart';
 import '../../providers/account_providers.dart';
 import '../../providers/app_settings_providers.dart';
 import '../../providers/backend_capabilities_provider.dart';
@@ -241,13 +242,7 @@ class SubscriptionActions {
     }
     ref
         .read(articleListFilterProvider.notifier)
-        .update(
-          (filter) => filter.copyWith(
-            selectedFeedId: feedId,
-            selectedCategoryId: null,
-            selectedTagId: null,
-          ),
-        );
+        .update((filter) => filter.copyWith(scope: ArticleScope.feed(feedId)));
   }
 
   static Future<int?> addFeed(

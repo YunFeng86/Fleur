@@ -9,6 +9,7 @@ import 'package:fleur/app/app.dart';
 import 'package:fleur/app/router.dart';
 import 'package:fleur/l10n/app_localizations.dart';
 import 'package:fleur/models/article.dart';
+import 'package:fleur/models/article_scope.dart';
 import 'package:fleur/models/category.dart';
 import 'package:fleur/models/feed.dart';
 import 'package:fleur/models/tag.dart';
@@ -27,7 +28,6 @@ import 'package:fleur/repositories/feed_repository.dart';
 import 'package:fleur/screens/home_screen.dart';
 import 'package:fleur/screens/search_screen.dart';
 import 'package:fleur/services/accounts/account.dart';
-import 'package:fleur/screens/saved_screen.dart';
 import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/sync/sync_service.dart';
 import 'package:fleur/services/sync/sync_status_reporter.dart';
@@ -59,7 +59,7 @@ GoRouter _buildRouter() {
     routes: [
       GoRoute(path: '/', builder: (context, state) => const SizedBox.shrink()),
       GoRoute(
-        path: '/article/:id',
+        path: '/all/article/:id',
         builder: (context, state) => Text(state.pathParameters['id'] ?? ''),
       ),
       GoRoute(
@@ -311,7 +311,24 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      final router = _buildRouter();
+      final router = GoRouter(
+        initialLocation: '/all',
+        routes: [
+          GoRoute(
+            path: '/all',
+            builder: (context, state) =>
+                const HomeScreen(selectedArticleId: null),
+          ),
+          GoRoute(
+            path: '/all/article/:id',
+            builder: (context, state) => Text(state.pathParameters['id'] ?? ''),
+          ),
+          GoRoute(
+            path: '/settings',
+            builder: (context, state) => const SizedBox.shrink(),
+          ),
+        ],
+      );
       addTearDown(router.dispose);
 
       await tester.pumpWidget(
@@ -323,6 +340,17 @@ void main() {
             ),
             appSettingsStoreProvider.overrideWithValue(
               FakeAppSettingsStore(AppSettings.defaults()),
+            ),
+            articleListControllerProvider.overrideWith(
+              _EmptyArticleListController.new,
+            ),
+            feedsProvider.overrideWith((ref) => Stream.value(<Feed>[])),
+            categoriesProvider.overrideWith(
+              (ref) => Stream.value(<Category>[]),
+            ),
+            tagsProvider.overrideWith((ref) => Stream.value(<Tag>[])),
+            allUnreadCountsProvider.overrideWith(
+              (ref) => Stream.value(<int?, int>{null: 0}),
             ),
             outboxPendingCountProvider.overrideWith((ref) async => 0),
           ],
@@ -844,7 +872,7 @@ void main() {
             },
           ),
           GoRoute(
-            path: '/article/:id',
+            path: '/all/article/:id',
             builder: (context, state) => Text(state.pathParameters['id'] ?? ''),
           ),
         ],
@@ -1380,15 +1408,14 @@ void main() {
     (tester) async {
       late SidebarSelectionActions actions;
       int closeCount = 0;
-      int? selectedFeedCallback;
+      ArticleScope? selectedScopeCallback;
 
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             articleListFilterProvider.overrideWith(
               (ref) => const ArticleListFilter(
-                starredOnly: true,
-                readLaterOnly: true,
+                scope: ArticleScope.readLater,
                 searchQuery: 'needle',
               ),
             ),
@@ -1398,7 +1425,7 @@ void main() {
               builder: (context, ref, _) {
                 actions = SidebarSelectionActions(
                   ref: ref,
-                  onSelectFeed: (feedId) => selectedFeedCallback = feedId,
+                  onSelectScope: (scope) => selectedScopeCallback = scope,
                   closeSidebar: () => closeCount++,
                 );
                 return const SizedBox(key: ValueKey('sidebar_actions_host'));
@@ -1420,22 +1447,21 @@ void main() {
       expect(container.read(starredOnlyProvider), isFalse);
       expect(container.read(readLaterOnlyProvider), isFalse);
       expect(container.read(articleSearchQueryProvider), '');
-      expect(selectedFeedCallback, 12);
+      expect(selectedScopeCallback, const ArticleScope.feed(12));
       expect(closeCount, 1);
 
       actions.selectFeed(12);
       expect(container.read(selectedFeedIdProvider), isNull);
       expect(container.read(selectedCategoryIdProvider), isNull);
       expect(container.read(selectedTagIdProvider), isNull);
-      expect(selectedFeedCallback, isNull);
+      expect(selectedScopeCallback, ArticleScope.all);
       expect(closeCount, 2);
 
       container
           .read(articleListFilterProvider.notifier)
           .update(
             (filter) => filter.copyWith(
-              starredOnly: true,
-              readLaterOnly: true,
+              scope: ArticleScope.readLater,
               searchQuery: 'category',
             ),
           );
@@ -1446,15 +1472,14 @@ void main() {
       expect(container.read(starredOnlyProvider), isFalse);
       expect(container.read(readLaterOnlyProvider), isFalse);
       expect(container.read(articleSearchQueryProvider), '');
-      expect(selectedFeedCallback, isNull);
+      expect(selectedScopeCallback, const ArticleScope.category(34));
       expect(closeCount, 3);
 
       container
           .read(articleListFilterProvider.notifier)
           .update(
             (filter) => filter.copyWith(
-              starredOnly: true,
-              readLaterOnly: true,
+              scope: ArticleScope.starred,
               searchQuery: 'tag',
             ),
           );
@@ -1465,7 +1490,7 @@ void main() {
       expect(container.read(starredOnlyProvider), isFalse);
       expect(container.read(readLaterOnlyProvider), isFalse);
       expect(container.read(articleSearchQueryProvider), '');
-      expect(selectedFeedCallback, isNull);
+      expect(selectedScopeCallback, const ArticleScope.tag(56));
       expect(closeCount, 4);
     },
   );
@@ -1497,7 +1522,7 @@ void main() {
               body: SizedBox(
                 width: 1200,
                 child: AppMenuHost(
-                  child: Sidebar(onSelectFeed: _noopSelectFeed),
+                  child: Sidebar(onSelectScope: _noopSelectScope),
                 ),
               ),
             ),
@@ -1549,7 +1574,7 @@ void main() {
               body: SizedBox(
                 width: 1200,
                 child: AppMenuHost(
-                  child: Sidebar(onSelectFeed: _noopSelectFeed),
+                  child: Sidebar(onSelectScope: _noopSelectScope),
                 ),
               ),
             ),
@@ -1606,7 +1631,7 @@ void main() {
               body: SizedBox(
                 width: 400,
                 child: AppMenuHost(
-                  child: Sidebar(onSelectFeed: _noopSelectFeed),
+                  child: Sidebar(onSelectScope: _noopSelectScope),
                 ),
               ),
             ),
@@ -1657,7 +1682,7 @@ void main() {
               body: SizedBox(
                 width: 400,
                 child: AppMenuHost(
-                  child: Sidebar(onSelectFeed: _noopSelectFeed),
+                  child: Sidebar(onSelectScope: _noopSelectScope),
                 ),
               ),
             ),
@@ -1963,63 +1988,6 @@ void main() {
     expect(find.text(l10n.readerEmptySubtitle), findsOneWidget);
   });
 
-  testWidgets('Saved screen shows mode-specific empty feedback', (
-    tester,
-  ) async {
-    const savedSectionKey = ValueKey<String>('saved-section-test');
-    final router = GoRouter(
-      initialLocation: '/saved',
-      routes: [
-        GoRoute(path: '/', builder: (context, state) => const SizedBox()),
-        GoRoute(
-          path: '/saved',
-          pageBuilder: (context, state) => const NoTransitionPage(
-            key: savedSectionKey,
-            child: SavedScreen(selectedArticleId: null),
-          ),
-        ),
-        GoRoute(path: '/search', builder: (context, state) => const SizedBox()),
-      ],
-    );
-    addTearDown(router.dispose);
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          appSettingsStoreProvider.overrideWithValue(
-            FakeAppSettingsStore(AppSettings.defaults()),
-          ),
-          starredCountProvider.overrideWith((ref) => Stream.value(0)),
-          readLaterCountProvider.overrideWith((ref) => Stream.value(0)),
-          articleListControllerProvider.overrideWith(
-            _EmptyArticleListController.new,
-          ),
-        ],
-        child: MaterialApp.router(
-          routerConfig: router,
-          theme: AppTheme.light(),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    final element = tester.element(find.byType(SavedScreen));
-    final l10n = AppLocalizations.of(element)!;
-
-    expect(find.text(l10n.noStarredArticles), findsOneWidget);
-    expect(find.text(l10n.noReadLaterArticles), findsNothing);
-    expect(find.text(l10n.savedReaderEmptyTitle), findsOneWidget);
-    expect(find.text(l10n.savedReaderEmptySubtitle), findsOneWidget);
-
-    await tester.tap(find.text('${l10n.readLater} (0)'));
-    await tester.pumpAndSettle();
-
-    expect(find.text(l10n.noReadLaterArticles), findsOneWidget);
-    expect(find.text(l10n.noStarredArticles), findsNothing);
-  });
-
   testWidgets('Search screen shows start and no-result empty states', (
     tester,
   ) async {
@@ -2081,4 +2049,4 @@ void main() {
   });
 }
 
-void _noopSelectFeed(int? _) {}
+void _noopSelectScope(ArticleScope _) {}

@@ -40,6 +40,13 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
     return '$label ($count)';
   }
 
+  String _locationForMode(_SavedMode mode) {
+    return switch (mode) {
+      _SavedMode.starred => '/starred',
+      _SavedMode.readLater => '/read-later',
+    };
+  }
+
   @override
   void initState() {
     super.initState();
@@ -167,7 +174,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
                         setState(() => _mode = next);
                         _applyMode(next);
                         // Deselect the current article when switching mode.
-                        if (context.mounted) context.go('/saved');
+                        if (context.mounted) context.go(_locationForMode(next));
                       },
                     );
 
@@ -197,6 +204,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
         );
 
         Widget listPane() {
+          final modeLocation = _locationForMode(_mode);
           return Column(
             children: [
               header,
@@ -206,8 +214,8 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
                   enabled: showSyncCapsule,
                   child: ArticleList(
                     selectedArticleId: widget.selectedArticleId,
-                    baseLocation: '/saved',
-                    articleRoutePrefix: '/saved',
+                    baseLocation: modeLocation,
+                    articleRoutePrefix: modeLocation,
                     emptyBuilder: (context, state) =>
                         _buildEmptyState(context, l10n, state),
                   ),
@@ -234,7 +242,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
               articleId: id,
               embedded: embedded,
               showBack: !embedded,
-              fallbackBackLocation: '/saved',
+              fallbackBackLocation: _locationForMode(_mode),
             ),
           );
         }
@@ -300,7 +308,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
           ]
         : <Widget>[
             FilledButton.tonalIcon(
-              onPressed: () => context.go('/'),
+              onPressed: () => context.go('/all'),
               icon: const Icon(FleurIcons.feed),
               label: Text(l10n.feeds),
             ),

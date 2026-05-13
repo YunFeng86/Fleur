@@ -7,10 +7,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fleur/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
+import 'article_scope_routes.dart';
 import 'router.dart';
+import '../models/article_scope.dart';
 import '../providers/app_settings_providers.dart';
 import '../providers/auto_refresh_providers.dart';
 import '../providers/background_sync_providers.dart';
+import '../providers/backend_sync_semantics_provider.dart';
 import '../providers/core_providers.dart';
 import '../providers/outbox_flush_providers.dart';
 import '../providers/outbox_status_providers.dart';
@@ -179,7 +182,7 @@ class _AppRuntimeHostState extends ConsumerState<AppRuntimeHost> {
             router.go('/');
             return;
           case NotificationTapArticle(articleId: final articleId):
-            router.go('/article/$articleId');
+            router.go(scopedArticleLocation(ArticleScope.all, articleId));
             return;
         }
       });
@@ -334,10 +337,10 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
   String _sectionTitleForUri(AppLocalizations l10n, Uri uri) {
     final seg = uri.pathSegments.isEmpty ? '' : uri.pathSegments.first;
     return switch (seg) {
-      'saved' => l10n.saved,
+      'starred' || 'read-later' => l10n.saved,
       'search' => l10n.search,
       'settings' => l10n.settings,
-      '' || 'article' => l10n.feeds,
+      '' || 'all' || 'feed' || 'category' || 'tag' => l10n.feeds,
       _ => l10n.feeds,
     };
   }
@@ -356,8 +359,20 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
         // a second in-page "compact" app bar even when the window is narrow.
         final title = sectionTitle;
         final isArticleRoute =
-            uri.pathSegments.isNotEmpty && uri.pathSegments.first == 'article';
-        final isFeedsSection = uri.pathSegments.isEmpty || isArticleRoute;
+            uri.pathSegments.isNotEmpty && uri.pathSegments.contains('article');
+        final firstSegment = uri.pathSegments.isEmpty
+            ? ''
+            : uri.pathSegments.first;
+        final isFeedsSection = switch (firstSegment) {
+          '' ||
+          'all' ||
+          'starred' ||
+          'read-later' ||
+          'feed' ||
+          'category' ||
+          'tag' => true,
+          _ => false,
+        };
         final mode = desktopModeForWidth(width);
         final isArticleSeparatePage =
             isArticleRoute && !desktopReaderEmbedded(mode);
@@ -370,7 +385,11 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
         final canPop = widget.router.canPop();
         final outboxPending =
             ref.watch(outboxPendingCountProvider).valueOrNull ?? 0;
-        final showOutboxAction = outboxPending > 0;
+        final syncSemantics = ref.watch(backendSyncSemanticsProvider);
+        final showOutboxAction =
+            outboxPending > 0 &&
+            (syncSemantics.isAccountWideRefresh ||
+                syncSemantics.isFeedScopedRefresh);
         final leading = canPop
             ? IconButton(
                 tooltip: MaterialLocalizations.of(context).backButtonTooltip,
@@ -402,7 +421,9 @@ class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
                         top: isMacOS ? AppTheme.desktopTitleBarHeight : 0,
                       ),
                       child: Sidebar(
-                        onSelectFeed: (_) {},
+                        onSelectScope: (scope) {
+                          widget.router.go(scopeLocation(scope));
+                        },
                         router: widget.router,
                       ),
                     ),

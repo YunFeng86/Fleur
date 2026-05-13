@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/article_scope_routes.dart';
+import '../../models/article_scope.dart';
 import '../../theme/fleur_theme_extensions.dart';
 import '../../theme/fleur_icons.dart';
 import '../../widgets/article_list.dart';
@@ -15,13 +17,13 @@ class HomeSidebarPane extends StatelessWidget {
     super.key,
     required this.width,
     required this.showSyncCapsule,
-    required this.onSelectFeed,
+    required this.onSelectScope,
     this.hero = false,
   });
 
   final double width;
   final bool showSyncCapsule;
-  final void Function(int? feedId) onSelectFeed;
+  final ValueChanged<ArticleScope> onSelectScope;
   final bool hero;
 
   @override
@@ -34,7 +36,7 @@ class HomeSidebarPane extends StatelessWidget {
           if (hero) const SidebarPaneHero(),
           SyncStatusCapsuleHost(
             enabled: showSyncCapsule,
-            child: Sidebar(onSelectFeed: onSelectFeed),
+            child: Sidebar(onSelectScope: onSelectScope),
           ),
         ],
       ),
@@ -122,8 +124,8 @@ class HomeSidebarDrawer extends StatelessWidget {
     return Drawer(
       child: SafeArea(
         child: Sidebar(
-          onSelectFeed: (_) async {
-            await Navigator.of(context).maybePop();
+          onSelectScope: (scope) {
+            context.go(scopeLocation(scope));
           },
         ),
       ),
@@ -151,10 +153,8 @@ class HomeSidebarRouteAwarePane extends StatelessWidget {
       width: width,
       showSyncCapsule: showSyncCapsule,
       hero: hero,
-      onSelectFeed: (_) {
-        if (selectedArticleId != null) {
-          context.go('/');
-        }
+      onSelectScope: (scope) {
+        context.go(scopeLocation(scope));
       },
     );
   }

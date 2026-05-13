@@ -31,11 +31,11 @@ SettingsTab? settingsTabFromQueryValue(String? value) {
 GlobalNavDestination destinationForUri(Uri uri) {
   final seg = uri.pathSegments.isEmpty ? '' : uri.pathSegments.first;
   return switch (seg) {
-    'saved' => GlobalNavDestination.saved,
+    'starred' || 'read-later' => GlobalNavDestination.saved,
     'search' => GlobalNavDestination.search,
     'settings' => GlobalNavDestination.settings,
-    // article + home live under the Feeds section.
-    '' || 'article' => GlobalNavDestination.feeds,
+    // Canonical reading workspace scopes live under the Feeds section.
+    '' || 'all' || 'feed' || 'category' || 'tag' => GlobalNavDestination.feeds,
     _ => GlobalNavDestination.feeds,
   };
 }
@@ -44,8 +44,8 @@ int globalDestinationIndex(GlobalNavDestination d) =>
     GlobalNavDestination.values.indexOf(d);
 
 String destinationLocation(GlobalNavDestination d) => switch (d) {
-  GlobalNavDestination.feeds => '/',
-  GlobalNavDestination.saved => '/saved',
+  GlobalNavDestination.feeds => '/all',
+  GlobalNavDestination.saved => '/starred',
   GlobalNavDestination.search => '/search',
   GlobalNavDestination.settings => settingsLocation(),
 };

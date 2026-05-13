@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../app/article_scope_routes.dart';
 import '../l10n/app_localizations.dart';
+import '../models/article_scope.dart';
 import '../models/nav_destination.dart';
 import '../providers/account_providers.dart';
 import '../theme/fleur_icons.dart';
@@ -86,7 +88,9 @@ class GlobalNavRail extends ConsumerWidget {
                       );
                       if (id == null) return;
                       SubscriptionActions.selectFeed(ref, id);
-                      if (context.mounted) context.go('/');
+                      if (context.mounted) {
+                        context.go(scopeLocation(ArticleScope.feed(id)));
+                      }
                     },
                   ),
                 ],

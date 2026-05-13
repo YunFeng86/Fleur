@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fleur/l10n/app_localizations.dart';
+import 'package:fleur/models/article_scope.dart';
 import 'package:fleur/models/category.dart';
 import 'package:fleur/models/feed.dart';
 import 'package:fleur/models/tag.dart';
@@ -59,7 +60,7 @@ class _SidebarHarnessState extends ConsumerState<_SidebarHarness> {
   Widget build(BuildContext context) {
     final selectionActions = SidebarSelectionActions(
       ref: ref,
-      onSelectFeed: (_) {},
+      onSelectScope: (ArticleScope _) {},
       closeSidebar: () {},
     );
     final managementActions = SidebarManagementActions(

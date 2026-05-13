@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:fleur/l10n/app_localizations.dart';
 
 import '../models/category.dart';
+import '../models/article_scope.dart';
 import '../models/feed.dart';
 import '../models/nav_destination.dart';
 import '../providers/account_providers.dart';
@@ -30,9 +31,9 @@ import 'account_avatar.dart';
 import 'overflow_marquee.dart';
 
 class Sidebar extends ConsumerStatefulWidget {
-  const Sidebar({super.key, required this.onSelectFeed, this.router});
+  const Sidebar({super.key, required this.onSelectScope, this.router});
 
-  final void Function(int? feedId) onSelectFeed;
+  final ValueChanged<ArticleScope> onSelectScope;
   final GoRouter? router;
 
   @override
@@ -95,7 +96,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
 
   SidebarSelectionActions get _selectionActions => SidebarSelectionActions(
     ref: ref,
-    onSelectFeed: widget.onSelectFeed,
+    onSelectScope: widget.onSelectScope,
     closeSidebar: _closeSidebarIfDrawerOpen,
   );
 

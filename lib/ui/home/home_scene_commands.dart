@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/article_scope_routes.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/feed.dart';
 import '../../providers/article_list_controller.dart';
@@ -362,7 +363,8 @@ class HomeSceneCommands {
         : (currentIndex + 1 >= items.length
               ? items.length - 1
               : currentIndex + 1);
-    _context.go('/article/${items[targetIndex].id}');
+    final scope = _ref.read(currentArticleScopeProvider);
+    _context.go(scopedArticleLocation(scope, items[targetIndex].id));
   }
 
   void goToPreviousArticle() {
@@ -373,6 +375,7 @@ class HomeSceneCommands {
         ? 0
         : items.indexWhere((article) => article.id == selectedArticleId);
     final targetIndex = currentIndex <= 0 ? 0 : currentIndex - 1;
-    _context.go('/article/${items[targetIndex].id}');
+    final scope = _ref.read(currentArticleScopeProvider);
+    _context.go(scopedArticleLocation(scope, items[targetIndex].id));
   }
 }
