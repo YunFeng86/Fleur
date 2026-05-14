@@ -619,6 +619,21 @@ void main() {
     expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_outbox_button')), findsNothing);
     expect(
+      tester.getSize(find.byKey(const Key('shell_sidebar_button'))),
+      const Size.square(kShellControlSize),
+    );
+    final expandedSidebarIcon = tester.widget<Icon>(
+      find.descendant(
+        of: find.byKey(const Key('shell_sidebar_button')),
+        matching: find.byType(Icon),
+      ),
+    );
+    expect(expandedSidebarIcon.size, kShellControlIconSize);
+    expect(
+      tester.getSize(find.byKey(const Key('sidebar_all_button'))),
+      const Size.square(36),
+    );
+    expect(
       find.byKey(const Key('sidebar_collapsed_rail_surface')),
       findsNothing,
     );
@@ -657,6 +672,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.getSize(find.byType(Sidebar)).width, kSidebarCollapsedWidth);
     expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const Key('shell_controls_capsule'))).height,
+      kShellControlCapsuleHeight,
+    );
     expect(find.byKey(const Key('shell_sidebar_toggle_capsule')), findsNothing);
     expect(
       find.byKey(const Key('shell_content_controls_capsule')),
@@ -793,8 +812,16 @@ void main() {
     final shellButtonLeft = tester
         .getTopLeft(find.byKey(const Key('shell_sidebar_button')))
         .dx;
+    final shellButtonTop = tester
+        .getTopLeft(find.byKey(const Key('shell_sidebar_button')))
+        .dy;
 
-    expect(shellButtonLeft, greaterThanOrEqualTo(72));
+    expect(shellButtonLeft, greaterThanOrEqualTo(kMacOSTrafficLightSafeInset));
+    expect(shellButtonTop, kMacOSShellControlTopInset);
+    expect(
+      tester.getSize(find.byKey(const Key('shell_sidebar_button'))),
+      const Size.square(kShellControlSize),
+    );
     expect(allButtonTop, greaterThanOrEqualTo(kWorkspaceHeaderHeight));
     expect(
       tester.getSize(find.byKey(const Key('app_shell_child'))).height,
@@ -2473,6 +2500,10 @@ void main() {
     expect(tester.getSize(find.byType(ArticleList)).width, kDesktopListWidth);
     expect(find.byKey(const Key('home_scope_header')), findsOneWidget);
     expect(find.byKey(const Key('home_scope_actions')), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const Key('home_scope_actions'))).height,
+      kShellControlSize,
+    );
     expect(find.byKey(const Key('scope_refresh_button')), findsOneWidget);
     expect(find.byKey(const Key('scope_unread_filter_button')), findsOneWidget);
     final scopeHeader = find.byKey(const Key('home_scope_header'));

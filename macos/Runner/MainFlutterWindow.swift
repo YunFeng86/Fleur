@@ -3,6 +3,8 @@ import FlutterMacOS
 
 class MainFlutterWindow: NSWindow {
   private var localeChannel: FlutterMethodChannel?
+  private var windowControlsChannel: FlutterMethodChannel?
+  private var originalWindowButtonOrigins: [NSWindow.ButtonType: CGPoint] = [:]
 
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
@@ -12,6 +14,7 @@ class MainFlutterWindow: NSWindow {
 
     RegisterGeneratedPlugins(registry: flutterViewController)
     setupLocaleChannel(controller: flutterViewController)
+    setupWindowControlsChannel(controller: flutterViewController)
 
     super.awakeFromNib()
   }
@@ -39,6 +42,86 @@ class MainFlutterWindow: NSWindow {
       }
     }
     localeChannel = channel
+  }
+
+  private func setupWindowControlsChannel(controller: FlutterViewController) {
+    let channel = FlutterMethodChannel(
+      name: "com.cloudwind.fleur/window_controls",
+      binaryMessenger: controller.engine.binaryMessenger
+    )
+    channel.setMethodCallHandler { [weak self] call, result in
+      switch call.method {
+      case "alignTrafficLights":
+        guard let self else {
+          result(
+            FlutterError(
+              code: "window_unavailable",
+              message: "The macOS window is no longer available.",
+              details: nil
+            )
+          )
+          return
+        }
+        let args = call.arguments as? [String: Any]
+        let offset = Self.cgFloatArgument(args?["verticalOffset"]) ?? 4
+        self.alignTrafficLights(verticalOffset: offset, result: result)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+    windowControlsChannel = channel
+  }
+
+  private func alignTrafficLights(verticalOffset: CGFloat, result: @escaping FlutterResult) {
+    DispatchQueue.main.async { [weak self] in
+      guard let self else {
+        result(
+          FlutterError(
+            code: "window_unavailable",
+            message: "The macOS window is no longer available.",
+            details: nil
+          )
+        )
+        return
+      }
+
+      let buttonTypes: [NSWindow.ButtonType] = [
+        .closeButton,
+        .miniaturizeButton,
+        .zoomButton,
+      ]
+      var alignedCount = 0
+
+      for buttonType in buttonTypes {
+        guard let button = self.standardWindowButton(buttonType) else {
+          continue
+        }
+        if self.originalWindowButtonOrigins[buttonType] == nil {
+          self.originalWindowButtonOrigins[buttonType] = button.frame.origin
+        }
+        guard let originalOrigin = self.originalWindowButtonOrigins[buttonType] else {
+          continue
+        }
+
+        var frame = button.frame
+        let direction: CGFloat = button.superview?.isFlipped == true ? 1 : -1
+        frame.origin = CGPoint(
+          x: originalOrigin.x,
+          y: originalOrigin.y + (verticalOffset * direction)
+        )
+        button.setFrameOrigin(frame.origin)
+        alignedCount += 1
+      }
+
+      result(alignedCount == buttonTypes.count)
+    }
+  }
+
+  private static func cgFloatArgument(_ value: Any?) -> CGFloat? {
+    if let number = value as? NSNumber {
+      return CGFloat(number.doubleValue)
+    }
+    return nil
   }
 
   private static func normalizeLocaleTag(_ tag: String?) -> String? {

@@ -333,7 +333,10 @@ class _HomeArticleListToolbar extends ConsumerWidget {
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.titleSmall?.copyWith(
                           color: scheme.onSurface,
+                          fontSize: 14,
                           fontWeight: FontWeight.w600,
+                          letterSpacing: 0,
+                          height: 1.2,
                         ),
                       ),
                     ),

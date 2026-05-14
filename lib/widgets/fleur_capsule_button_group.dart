@@ -6,9 +6,9 @@ class FleurCapsuleButtonGroup extends StatelessWidget {
   const FleurCapsuleButtonGroup({
     super.key,
     required this.children,
-    this.height = 40,
-    this.elevation = 2,
-    this.padding = const EdgeInsets.symmetric(horizontal: 2),
+    this.height = 32,
+    this.elevation = 1,
+    this.padding = const EdgeInsets.symmetric(horizontal: 1),
   });
 
   final List<Widget> children;
@@ -50,8 +50,8 @@ class FleurCapsuleIconButton extends StatelessWidget {
     required this.icon,
     required this.onPressed,
     this.selected = false,
-    this.size = 36,
-    this.iconSize = 18,
+    this.size = 32,
+    this.iconSize = 16,
   });
 
   final String tooltip;
@@ -64,7 +64,7 @@ class FleurCapsuleIconButton extends StatelessWidget {
   static ButtonStyle styleFor(
     BuildContext context, {
     bool selected = false,
-    double size = 36,
+    double size = 32,
   }) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;

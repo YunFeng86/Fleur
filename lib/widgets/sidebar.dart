@@ -19,6 +19,7 @@ import '../providers/sync_status_providers.dart';
 import '../services/accounts/account.dart';
 import '../services/sync/sync_status_reporter.dart';
 import '../services/sync/backend_capabilities.dart';
+import '../theme/app_typography.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/app_menu.dart';
@@ -358,10 +359,12 @@ class _SidebarState extends ConsumerState<Sidebar> {
 
 enum _SidebarAccountMenuAction { account, settings }
 
-const double _kSidebarFixedItemHeight = 48;
-const double _kSidebarRailButtonSize = 40;
-const double _kSidebarAccountHeight = 64;
-const double _kSidebarRailHorizontalInset = 8;
+const double _kSidebarFixedItemHeight = 44;
+const double _kSidebarRailButtonSize = 36;
+const double _kSidebarRailIconSize = 16;
+const double _kSidebarAccountHeight = 56;
+const double _kSidebarRailHorizontalInset = 10;
+const double _kSidebarAccountAvatarRadius = 16;
 
 List<_SidebarFixedItemData> _fixedScopeItems({
   required BuildContext context,
@@ -548,13 +551,13 @@ class _SidebarRailAccountButton extends StatelessWidget {
         child: InkResponse(
           onTap: onTap,
           hoverColor: states.hoverTint,
-          radius: 24,
+          radius: 20,
           child: SizedBox.square(
             dimension: _kSidebarRailButtonSize,
             child: Center(
               child: AccountAvatar(
                 account: account,
-                radius: 18,
+                radius: _kSidebarAccountAvatarRadius,
                 showTypeBadge: true,
               ),
             ),
@@ -588,7 +591,7 @@ class _SidebarRailIconButton extends StatelessWidget {
     return IconButton(
       tooltip: tooltip,
       onPressed: onPressed,
-      icon: Icon(icon, color: color, size: 20),
+      icon: Icon(icon, color: color, size: _kSidebarRailIconSize),
       style: IconButton.styleFrom(
         fixedSize: const Size.square(_kSidebarRailButtonSize),
         minimumSize: const Size.square(_kSidebarRailButtonSize),
@@ -690,6 +693,15 @@ class _SidebarPanelFixedItem extends StatelessWidget {
                       item.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface,
+                        fontSize: 13,
+                        fontWeight: AppTypography.platformWeight(
+                          FontWeight.w500,
+                        ),
+                        letterSpacing: 0,
+                        height: 1.2,
+                      ),
                     ),
                   ),
                   if (item.count != null) _SidebarFixedCount(item.count!),
@@ -715,7 +727,9 @@ class _SidebarFixedCount extends StatelessWidget {
       count > 99 ? '99+' : '$count',
       style: Theme.of(context).textTheme.labelSmall?.copyWith(
         color: Theme.of(context).colorScheme.onSurfaceVariant,
-        fontWeight: FontWeight.w700,
+        fontSize: 11,
+        fontWeight: AppTypography.platformWeight(FontWeight.w600),
+        letterSpacing: 0,
       ),
     );
   }
@@ -790,6 +804,15 @@ class _AccountPanelFooter extends StatelessWidget {
                           account.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurface,
+                            fontSize: 13,
+                            fontWeight: AppTypography.platformWeight(
+                              FontWeight.w500,
+                            ),
+                            letterSpacing: 0,
+                            height: 1.2,
+                          ),
                         ),
                         AnimatedSwitcher(
                           duration: duration,
@@ -838,6 +861,13 @@ class _AccountPanelFooter extends StatelessWidget {
                                           style: theme.textTheme.bodySmall
                                               ?.copyWith(
                                                 color: scheme.onSurfaceVariant,
+                                                fontSize: 11,
+                                                fontWeight:
+                                                    AppTypography.platformWeight(
+                                                      FontWeight.w500,
+                                                    ),
+                                                letterSpacing: 0,
+                                                height: 1.15,
                                               ),
                                         ),
                                       ),
@@ -852,7 +882,7 @@ class _AccountPanelFooter extends StatelessWidget {
                   const SizedBox(width: 8),
                   Icon(
                     FleurIcons.accountSwitcher,
-                    size: 18,
+                    size: 16,
                     color: scheme.onSurfaceVariant,
                   ),
                 ],

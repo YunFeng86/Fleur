@@ -9,7 +9,14 @@ const double kSidebarRailWidth = 64;
 const double kSidebarCollapsedWidth = kSidebarRailWidth;
 const double kSidebarBreakpoint = 900;
 const double kSidebarContentDividerWidth = 1;
-const double kWorkspaceHeaderHeight = 56;
+const double kWorkspaceHeaderHeight = 48;
+const double kShellControlSize = 32;
+const double kShellControlIconSize = 16;
+const double kShellControlCapsuleHeight = kShellControlSize;
+const double kShellControlTopInset =
+    (kWorkspaceHeaderHeight - kShellControlSize) / 2;
+const double kMacOSShellControlTopInset = 6;
+const double kMacOSTrafficLightSafeInset = 72;
 
 enum SidebarPresentationMode { expanded, collapsed }
 

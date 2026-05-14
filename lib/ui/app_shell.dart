@@ -119,8 +119,8 @@ class AppShell extends ConsumerWidget {
       children: [
         Positioned.fill(child: child),
         Positioned(
-          left: isMacOS ? 72 : 12,
-          top: 8,
+          left: isMacOS ? kMacOSTrafficLightSafeInset : 12,
+          top: isMacOS ? kMacOSShellControlTopInset : kShellControlTopInset,
           child: _InlineShellControlsHost(
             presentationMode: presentationMode,
             canPop: _canPop(context),
@@ -292,7 +292,7 @@ class _InlineShellControlsHost extends StatelessWidget {
     if (!sidebarExpanded) {
       return FleurCapsuleButtonGroup(
         key: const Key('shell_controls_capsule'),
-        height: 40,
+        height: kShellControlCapsuleHeight,
         padding: EdgeInsets.zero,
         children: [
           for (final control in controls)
@@ -301,8 +301,8 @@ class _InlineShellControlsHost extends StatelessWidget {
               tooltip: control.tooltip,
               onPressed: control.onPressed,
               icon: control.icon,
-              size: 40,
-              iconSize: 20,
+              size: kShellControlSize,
+              iconSize: kShellControlIconSize,
             ),
         ],
       );
@@ -359,7 +359,10 @@ class _DrawerControlsHost extends StatelessWidget {
       key: const Key('shell_drawer_controls'),
       height: kWorkspaceHeaderHeight,
       child: Padding(
-        padding: EdgeInsets.only(left: isMacOS ? 72 : 8, top: 8),
+        padding: EdgeInsets.only(
+          left: isMacOS ? kMacOSTrafficLightSafeInset : 8,
+          top: isMacOS ? kMacOSShellControlTopInset : kShellControlTopInset,
+        ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -411,10 +414,10 @@ class _DrawerControlButton extends StatelessWidget {
     return IconButton(
       tooltip: tooltip,
       onPressed: onPressed,
-      icon: Icon(icon, size: 20),
+      icon: Icon(icon, size: kShellControlIconSize),
       style: IconButton.styleFrom(
-        fixedSize: const Size.square(40),
-        minimumSize: const Size.square(40),
+        fixedSize: const Size.square(kShellControlSize),
+        minimumSize: const Size.square(kShellControlSize),
         padding: EdgeInsets.zero,
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
