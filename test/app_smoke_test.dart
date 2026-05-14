@@ -29,6 +29,7 @@ import 'package:fleur/providers/settings_providers.dart';
 import 'package:fleur/providers/sync_status_providers.dart';
 import 'package:fleur/providers/unread_providers.dart';
 import 'package:fleur/repositories/feed_repository.dart';
+import 'package:fleur/screens/add_subscription_screen.dart';
 import 'package:fleur/screens/home_screen.dart';
 import 'package:fleur/screens/search_screen.dart';
 import 'package:fleur/services/accounts/account.dart';
@@ -2999,6 +3000,54 @@ void main() {
     expect(radius.topRight.x, 0);
     expect(shadows, isNotEmpty);
     expect(shadows.first.blurRadius, greaterThan(0));
+  });
+
+  testWidgets('Add subscription screen starts as a task page', (tester) async {
+    final router = GoRouter(
+      initialLocation: '/add-subscription',
+      routes: [
+        GoRoute(path: '/', builder: (context, state) => const SizedBox()),
+        GoRoute(
+          path: '/add-subscription',
+          builder: (context, state) => const AddSubscriptionScreen(),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    final now = DateTime.fromMillisecondsSinceEpoch(0);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          activeAccountProvider.overrideWithValue(
+            Account(
+              id: 'local-test',
+              type: AccountType.local,
+              name: 'Local',
+              isPrimary: true,
+              createdAt: now,
+              updatedAt: now,
+            ),
+          ),
+          appSettingsStoreProvider.overrideWithValue(
+            FakeAppSettingsStore(AppSettings.defaults()),
+          ),
+        ],
+        child: MaterialApp.router(
+          routerConfig: router,
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('add_subscription_url_field')), findsOneWidget);
+    expect(
+      find.byKey(const Key('add_subscription_discover_button')),
+      findsOneWidget,
+    );
   });
 
   testWidgets(
