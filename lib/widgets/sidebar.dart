@@ -500,13 +500,18 @@ class _SidebarRail extends StatelessWidget {
                 const Expanded(child: SizedBox.shrink()),
                 SafeArea(
                   top: false,
-                  child: SizedBox.square(
-                    key: accountAnchorKey,
-                    dimension: _kSidebarRailButtonSize,
-                    child: _SidebarRailAccountButton(
-                      key: const Key('sidebar_account_button'),
-                      account: account,
-                      onTap: onAccountTap,
+                  child: SizedBox(
+                    height: _kSidebarAccountHeight,
+                    child: Center(
+                      child: SizedBox.square(
+                        key: accountAnchorKey,
+                        dimension: _kSidebarRailButtonSize,
+                        child: _SidebarRailAccountButton(
+                          key: const Key('sidebar_account_button'),
+                          account: account,
+                          onTap: onAccountTap,
+                        ),
+                      ),
                     ),
                   ),
                 ),
