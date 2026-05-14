@@ -674,6 +674,11 @@ void main() {
     final expandedAccountDx = tester
         .getCenter(find.byKey(const Key('sidebar_account_button')))
         .dx;
+    final fixedItemDx = kSidebarRailWidth / 2;
+    expect(expandedAllDx, fixedItemDx);
+    expect(expandedStarredDx, fixedItemDx);
+    expect(expandedReadLaterDx, fixedItemDx);
+    expect(expandedAddDx, fixedItemDx);
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
     await tester.pumpAndSettle();
@@ -714,21 +719,21 @@ void main() {
     );
     expect(
       tester.getCenter(find.byKey(const Key('sidebar_all_button'))).dx,
-      expandedAllDx,
+      fixedItemDx,
     );
     expect(
       tester.getCenter(find.byKey(const Key('sidebar_starred_button'))).dx,
-      expandedStarredDx,
+      fixedItemDx,
     );
     expect(
       tester.getCenter(find.byKey(const Key('sidebar_read_later_button'))).dx,
-      expandedReadLaterDx,
+      fixedItemDx,
     );
     expect(
       tester
           .getCenter(find.byKey(const Key('sidebar_add_subscription_button')))
           .dx,
-      expandedAddDx,
+      fixedItemDx,
     );
     expect(
       tester.getCenter(find.byKey(const Key('sidebar_account_button'))).dx,

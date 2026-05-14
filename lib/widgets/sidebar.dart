@@ -665,7 +665,7 @@ class _SidebarPanelFixedItems extends StatelessWidget {
     return Stack(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(0, 0, 8, 8),
+          padding: const EdgeInsets.only(bottom: 8),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -700,10 +700,18 @@ class _SidebarPanelFixedItems extends StatelessWidget {
   }
 }
 
-class _SidebarPanelFixedItem extends StatelessWidget {
+class _SidebarPanelFixedItem extends StatefulWidget {
   const _SidebarPanelFixedItem({required this.item});
 
   final _SidebarFixedItemData item;
+
+  @override
+  State<_SidebarPanelFixedItem> createState() => _SidebarPanelFixedItemState();
+}
+
+class _SidebarPanelFixedItemState extends State<_SidebarPanelFixedItem> {
+  bool _hovered = false;
+  bool _focused = false;
 
   @override
   Widget build(BuildContext context) {
@@ -712,60 +720,79 @@ class _SidebarPanelFixedItem extends StatelessWidget {
     final states = theme.fleurState;
     final scheme = theme.colorScheme;
     final borderRadius = BorderRadius.circular(8);
+    final item = widget.item;
     final iconColor = item.selected ? scheme.primary : scheme.onSurfaceVariant;
+    final backgroundColor = item.selected
+        ? surfaces.cardSelected
+        : (_hovered || _focused ? states.hoverTint : Colors.transparent);
 
-    return Padding(
-      padding: const EdgeInsets.only(right: 4),
-      child: SizedBox(
-        height: _kSidebarFixedItemHeight,
-        child: Semantics(
-          button: true,
-          selected: item.selected,
-          label: item.title,
-          child: Material(
-            color: item.selected ? surfaces.cardSelected : Colors.transparent,
-            borderRadius: borderRadius,
-            child: InkWell(
-              onTap: item.onTap,
-              borderRadius: borderRadius,
-              hoverColor: states.hoverTint,
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: kSidebarRailWidth,
-                    child: Center(
-                      child: SizedBox.square(
-                        key: item.key,
-                        dimension: _kSidebarRailButtonSize,
-                        child: Icon(
-                          item.effectiveIcon,
-                          color: iconColor,
-                          size: _kSidebarRailIconSize,
+    return SizedBox(
+      height: _kSidebarFixedItemHeight,
+      child: Semantics(
+        button: true,
+        selected: item.selected,
+        label: item.title,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: item.onTap,
+            onHover: (value) => setState(() => _hovered = value),
+            onFocusChange: (value) => setState(() => _focused = value),
+            hoverColor: Colors.transparent,
+            focusColor: Colors.transparent,
+            highlightColor: Colors.transparent,
+            splashColor: Colors.transparent,
+            mouseCursor: SystemMouseCursors.click,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  left: 8,
+                  right: 8,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: backgroundColor,
+                      borderRadius: borderRadius,
+                    ),
+                  ),
+                ),
+                Row(
+                  children: [
+                    SizedBox(
+                      width: kSidebarRailWidth,
+                      child: Center(
+                        child: SizedBox.square(
+                          key: item.key,
+                          dimension: _kSidebarRailButtonSize,
+                          child: Icon(
+                            item.effectiveIcon,
+                            color: iconColor,
+                            size: _kSidebarRailIconSize,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      item.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurface,
-                        fontSize: 13,
-                        fontWeight: AppTypography.platformWeight(
-                          FontWeight.w500,
+                    Expanded(
+                      child: Text(
+                        item.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurface,
+                          fontSize: 13,
+                          fontWeight: AppTypography.platformWeight(
+                            FontWeight.w500,
+                          ),
+                          letterSpacing: 0,
+                          height: 1.2,
                         ),
-                        letterSpacing: 0,
-                        height: 1.2,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  if (item.count != null) _SidebarFixedCount(item.count!),
-                  const SizedBox(width: 8),
-                ],
-              ),
+                    const SizedBox(width: 8),
+                    if (item.count != null) _SidebarFixedCount(item.count!),
+                    const SizedBox(width: 16),
+                  ],
+                ),
+              ],
             ),
           ),
         ),

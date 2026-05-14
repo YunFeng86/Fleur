@@ -479,7 +479,7 @@ class _SidebarSectionHeader extends StatelessWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(kSidebarRailWidth, 8, 8, 4),
+      padding: const EdgeInsets.fromLTRB(16, 8, 8, 4),
       child: SizedBox(
         height: 48,
         child: Row(
