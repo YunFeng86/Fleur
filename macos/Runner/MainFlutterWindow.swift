@@ -1,7 +1,10 @@
 import Cocoa
 import FlutterMacOS
 
-class MainFlutterWindow: NSWindow {
+class MainFlutterWindow: NSWindow, NSToolbarDelegate {
+  private static let titlebarToolbarIdentifier = NSToolbar.Identifier("FleurTitlebarToolbar")
+  private static let titlebarToolbarItemIdentifier = NSToolbarItem.Identifier("FleurTitlebarToolbarItem")
+
   private var localeChannel: FlutterMethodChannel?
   private var windowControlsChannel: FlutterMethodChannel?
   private var titlebarToolbar: NSToolbar?
@@ -80,9 +83,10 @@ class MainFlutterWindow: NSWindow {
       self.toolbarStyle = .unified
     }
 
-    let toolbar = titlebarToolbar ?? NSToolbar(identifier: "FleurTitlebarToolbar")
+    let toolbar = titlebarToolbar ?? NSToolbar(identifier: Self.titlebarToolbarIdentifier)
     toolbar.allowsUserCustomization = false
     toolbar.autosavesConfiguration = false
+    toolbar.delegate = self
     toolbar.displayMode = .iconOnly
     toolbar.sizeMode = .regular
     toolbar.showsBaselineSeparator = false
@@ -91,6 +95,39 @@ class MainFlutterWindow: NSWindow {
       self.toolbar = toolbar
       titlebarToolbar = toolbar
     }
+  }
+
+  func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
+    [Self.titlebarToolbarItemIdentifier]
+  }
+
+  func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
+    [Self.titlebarToolbarItemIdentifier]
+  }
+
+  func toolbarSelectableItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
+    []
+  }
+
+  func toolbar(
+    _ toolbar: NSToolbar,
+    itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier,
+    willBeInsertedIntoToolbar flag: Bool
+  ) -> NSToolbarItem? {
+    guard itemIdentifier == Self.titlebarToolbarItemIdentifier else {
+      return nil
+    }
+
+    let item = NSToolbarItem(itemIdentifier: itemIdentifier)
+    let view = NSView(frame: NSRect(x: 0, y: 0, width: 1, height: 1))
+    item.view = view
+    item.minSize = view.frame.size
+    item.maxSize = view.frame.size
+    item.label = ""
+    item.paletteLabel = ""
+    item.toolTip = ""
+    item.isEnabled = false
+    return item
   }
 
   private static func normalizeLocaleTag(_ tag: String?) -> String? {
