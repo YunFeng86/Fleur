@@ -4,6 +4,7 @@ import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 
 import '../ui/layout.dart';
+import '../services/settings/reader_settings.dart';
 import 'app_theme_profile.dart';
 import 'app_typography.dart';
 
@@ -262,6 +263,10 @@ class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
     required ColorScheme scheme,
     required AppThemeProfile profile,
   }) {
+    final bodyColor = scheme.onSurface.withValues(
+      alpha: scheme.brightness == Brightness.dark ? 0.92 : 0.88,
+    );
+
     return FleurReaderTheme(
       maxWidth: kMaxReadingWidth,
       contentPaddingHorizontal: profile.readerHorizontalPadding,
@@ -275,11 +280,15 @@ class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
       ),
       metaStyle: (textTheme.labelLarge ?? const TextStyle()).copyWith(
         color: scheme.onSurfaceVariant,
-        fontWeight: AppTypography.platformWeight(FontWeight.w600),
+        fontSize: 12,
+        fontWeight: AppTypography.platformWeight(FontWeight.w500),
+        letterSpacing: 0,
+        height: 1.2,
       ),
-      bodyStyle: (textTheme.bodyLarge ?? const TextStyle()).copyWith(
-        color: scheme.onSurface,
-        height: 1.72,
+      bodyStyle: (textTheme.bodyMedium ?? const TextStyle()).copyWith(
+        color: bodyColor,
+        fontWeight: FontWeight.w400,
+        height: ReaderSettings.defaultLineHeight,
         letterSpacing: 0,
       ),
       summaryStyle: (textTheme.bodyMedium ?? const TextStyle()).copyWith(

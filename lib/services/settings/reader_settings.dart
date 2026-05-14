@@ -2,10 +2,13 @@ import 'settings_json.dart';
 
 class ReaderSettings {
   const ReaderSettings({
-    this.fontSize = 16,
-    this.lineHeight = 1.5,
+    this.fontSize = defaultFontSize,
+    this.lineHeight = defaultLineHeight,
     this.horizontalPadding = 16,
   });
+
+  static const double defaultFontSize = 15;
+  static const double defaultLineHeight = 1.6;
 
   final double fontSize;
   final double lineHeight;
@@ -31,8 +34,8 @@ class ReaderSettings {
 
   static ReaderSettings fromJson(Map<String, Object?> json) {
     return ReaderSettings(
-      fontSize: readDoubleOr(json['fontSize'], 16),
-      lineHeight: readDoubleOr(json['lineHeight'], 1.5),
+      fontSize: readDoubleOr(json['fontSize'], defaultFontSize),
+      lineHeight: readDoubleOr(json['lineHeight'], defaultLineHeight),
       horizontalPadding: readDoubleOr(json['horizontalPadding'], 16),
     );
   }

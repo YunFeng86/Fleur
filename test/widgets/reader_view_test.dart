@@ -315,6 +315,60 @@ void main() {
     },
   );
 
+  testWidgets('reader body defaults to compact long-form typography', (
+    tester,
+  ) async {
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html: '<p>Long form body copy should stay quiet and readable.</p>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 12);
+
+    final bodyFinder = find.descendant(
+      of: find.byType(HtmlWidget),
+      matching: find.byType(ReaderSelectableRichText),
+    );
+    expect(bodyFinder, findsWidgets);
+
+    final bodyText = tester.widget<ReaderSelectableRichText>(bodyFinder.first);
+    final span = bodyText.text as TextSpan;
+    final style = span.style!;
+
+    expect(style.fontSize, ReaderSettings.defaultFontSize);
+    expect(style.height, ReaderSettings.defaultLineHeight);
+    expect(style.fontWeight, FontWeight.w400);
+
+    final readerElement = tester.element(find.byType(ReaderView));
+    final reader = AppTheme.readerScene(Theme.of(readerElement)).fleurReader;
+    expect(style.color, reader.bodyStyle.color);
+  });
+
+  testWidgets('reader timestamp stays small metadata', (tester) async {
+    await pumpReader(
+      tester,
+      article: buildArticle(title: 'A', html: '<p>B</p>'),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+    );
+
+    final dateText = find.textContaining('2026/01/02');
+    expect(dateText, findsOneWidget);
+
+    final timestamp = tester.widget<Text>(dateText);
+    final style = timestamp.style!;
+
+    expect(style.fontSize, 12);
+    expect(style.fontWeight, FontWeight.w500);
+    expect(style.letterSpacing, 0);
+    expect(style.height, 1.2);
+  });
+
   testWidgets('short reader content starts at the left edge of the measure', (
     tester,
   ) async {

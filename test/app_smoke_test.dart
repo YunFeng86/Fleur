@@ -455,7 +455,8 @@ void main() {
     expect(macTheme.textTheme.titleLarge?.fontWeight, FontWeight.w700);
     expect(macTheme.textTheme.titleMedium?.fontWeight, FontWeight.w600);
     expect(macTheme.fleurReader.titleStyle.fontWeight, FontWeight.w700);
-    expect(macTheme.fleurReader.metaStyle.fontWeight, FontWeight.w600);
+    expect(macTheme.fleurReader.metaStyle.fontWeight, FontWeight.w500);
+    expect(macTheme.fleurReader.metaStyle.fontSize, 12);
   });
 
   test('Reader title scale stays above body text and caps growth', () {

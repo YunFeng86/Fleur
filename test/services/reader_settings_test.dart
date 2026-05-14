@@ -21,8 +21,8 @@ void main() {
       'horizontalPadding': true,
     });
 
-    expect(settings.fontSize, 16);
-    expect(settings.lineHeight, 1.5);
+    expect(settings.fontSize, ReaderSettings.defaultFontSize);
+    expect(settings.lineHeight, ReaderSettings.defaultLineHeight);
     expect(settings.horizontalPadding, 16);
   });
 
@@ -33,8 +33,8 @@ void main() {
       'horizontalPadding': double.negativeInfinity,
     });
 
-    expect(settings.fontSize, 16);
-    expect(settings.lineHeight, 1.5);
+    expect(settings.fontSize, ReaderSettings.defaultFontSize);
+    expect(settings.lineHeight, ReaderSettings.defaultLineHeight);
     expect(settings.horizontalPadding, 16);
   });
 }
