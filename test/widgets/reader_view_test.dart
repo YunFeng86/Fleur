@@ -776,6 +776,10 @@ void main() {
     expect(sceneTheme.cardTheme.color, sceneTheme.fleurReader.summarySurface);
     expect(bottomBarDecoration?.color, sceneTheme.fleurReader.toolbarSurface);
     expect(searchBarMaterial.color, sceneTheme.fleurReader.searchBarSurface);
+    expect(
+      tester.getSize(find.byKey(const Key('reader_feed_icon'))),
+      const Size(32, 32),
+    );
     expect(find.text('Find in page'), findsOneWidget);
   });
 

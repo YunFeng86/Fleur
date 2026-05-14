@@ -269,8 +269,9 @@ class ReaderBottomBar extends ConsumerWidget {
                       ? Row(
                           children: [
                             Container(
-                              width: 24,
-                              height: 24,
+                              key: const Key('reader_feed_icon'),
+                              width: 32,
+                              height: 32,
                               decoration: BoxDecoration(
                                 color: surfaces.card,
                                 shape: BoxShape.circle,
@@ -278,7 +279,7 @@ class ReaderBottomBar extends ConsumerWidget {
                               alignment: Alignment.center,
                               child: FaviconAvatar(
                                 siteUri: siteUri,
-                                size: 16,
+                                size: 20,
                                 fallbackIcon: FleurIcons.feed,
                                 fallbackColor:
                                     theme.colorScheme.onSurfaceVariant,
