@@ -373,8 +373,8 @@ class _SidebarState extends ConsumerState<Sidebar> {
 enum _SidebarAccountMenuAction { account, settings }
 
 const double _kSidebarFixedItemHeight = 40;
-const double _kSidebarRailButtonSize = 36;
-const double _kSidebarRailIconSize = 16;
+const double _kSidebarRailButtonSize = kShellControlSize;
+const double _kSidebarRailIconSize = kShellControlIconSize;
 const double _kSidebarAccountHeight = 56;
 const double _kSidebarRailHorizontalInset = 10;
 const double _kSidebarAccountAvatarRadius = 16;
@@ -469,6 +469,11 @@ class _SidebarRail extends StatelessWidget {
   Widget build(BuildContext context) {
     final surfaces = Theme.of(context).fleurSurface;
     final collapsed = mode == SidebarPresentationMode.collapsed;
+    final railButtons = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [for (final item in items) _SidebarRailScopeButton(item: item)],
+    );
+
     return Column(
       children: [
         if (reserveShellHeader) const SizedBox(height: kWorkspaceHeaderHeight),
@@ -477,37 +482,35 @@ class _SidebarRail extends StatelessWidget {
             padding: const EdgeInsets.symmetric(
               horizontal: _kSidebarRailHorizontalInset,
             ),
-            child: DecoratedBox(
-              key: collapsed
-                  ? const Key('sidebar_collapsed_rail_surface')
-                  : null,
-              decoration: collapsed
-                  ? BoxDecoration(
-                      color: surfaces.floating,
-                      border: Border.all(color: surfaces.subtleDivider),
-                      borderRadius: BorderRadius.circular(999),
-                    )
-                  : const BoxDecoration(),
-              child: Column(
-                children: [
-                  for (final item in items) _SidebarRailScopeButton(item: item),
-                  const Expanded(child: SizedBox.shrink()),
-                  SafeArea(
-                    top: false,
-                    child: SizedBox(
-                      key: accountAnchorKey,
-                      height: _kSidebarAccountHeight,
-                      child: Center(
-                        child: _SidebarRailAccountButton(
-                          key: const Key('sidebar_account_button'),
-                          account: account,
-                          onTap: onAccountTap,
-                        ),
-                      ),
+            child: Column(
+              children: [
+                DecoratedBox(
+                  key: collapsed
+                      ? const Key('sidebar_collapsed_rail_surface')
+                      : null,
+                  decoration: collapsed
+                      ? BoxDecoration(
+                          color: surfaces.floating,
+                          border: Border.all(color: surfaces.subtleDivider),
+                          borderRadius: BorderRadius.circular(999),
+                        )
+                      : const BoxDecoration(),
+                  child: railButtons,
+                ),
+                const Expanded(child: SizedBox.shrink()),
+                SafeArea(
+                  top: false,
+                  child: SizedBox.square(
+                    key: accountAnchorKey,
+                    dimension: _kSidebarRailButtonSize,
+                    child: _SidebarRailAccountButton(
+                      key: const Key('sidebar_account_button'),
+                      account: account,
+                      onTap: onAccountTap,
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),

@@ -661,7 +661,7 @@ void main() {
     expect(expandedSidebarIcon.size, kShellControlIconSize);
     expect(
       tester.getSize(find.byKey(const Key('sidebar_all_button'))),
-      const Size.square(36),
+      const Size.square(kShellControlSize),
     );
     expect(
       find.byKey(const Key('sidebar_collapsed_rail_surface')),
@@ -711,12 +711,18 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(Sidebar), findsNWidgets(2));
     expect(find.byKey(const Key('app_shell_rail_overlay')), findsOneWidget);
+    final railOverlay = find.byKey(const Key('app_shell_rail_overlay'));
+    final collapsedRailSurface = find.descendant(
+      of: railOverlay,
+      matching: find.byKey(const Key('sidebar_collapsed_rail_surface')),
+    );
+    expect(collapsedRailSurface, findsOneWidget);
     expect(
       find.descendant(
-        of: find.byKey(const Key('app_shell_rail_overlay')),
-        matching: find.byKey(const Key('sidebar_collapsed_rail_surface')),
+        of: collapsedRailSurface,
+        matching: find.byKey(const Key('sidebar_account_button')),
       ),
-      findsOneWidget,
+      findsNothing,
     );
     expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
     expect(
@@ -762,8 +768,16 @@ void main() {
       fixedItemDx,
     );
     expect(
+      tester.getSize(railButton(const Key('sidebar_account_button'))),
+      const Size.square(kShellControlSize),
+    );
+    expect(
       tester.getCenter(railButton(const Key('sidebar_account_button'))).dx,
       expandedAccountDx,
+    );
+    expect(
+      tester.getCenter(railButton(const Key('sidebar_account_button'))).dx,
+      fixedItemDx,
     );
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
