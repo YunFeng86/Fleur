@@ -10,6 +10,7 @@ import '../models/article_scope.dart';
 import '../providers/core_providers.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
+import '../widgets/fleur_capsule_button_group.dart';
 import '../widgets/sidebar.dart';
 import '../utils/platform.dart';
 import 'app_drawer_scope.dart';
@@ -259,38 +260,81 @@ class _InlineShellControlsHost extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final sidebarExpanded =
         presentationMode == SidebarPresentationMode.expanded;
+    final controls = [
+      _ShellControlData(
+        key: const Key('shell_sidebar_button'),
+        tooltip: sidebarExpanded ? l10n.collapse : l10n.expand,
+        onPressed: onToggleSidebar,
+        icon: sidebarExpanded
+            ? FleurIcons.sidebarCollapse
+            : FleurIcons.sidebarExpand,
+      ),
+      _ShellControlData(
+        key: const Key('shell_back_button'),
+        tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+        onPressed: canPop ? onPop : null,
+        icon: FleurIcons.back,
+      ),
+      _ShellControlData(
+        key: const Key('shell_forward_button'),
+        tooltip: MaterialLocalizations.of(context).nextPageTooltip,
+        onPressed: null,
+        icon: FleurIcons.forward,
+      ),
+      _ShellControlData(
+        key: const Key('shell_search_button'),
+        tooltip: l10n.search,
+        onPressed: onSearch,
+        icon: FleurIcons.search,
+      ),
+    ];
+
+    if (!sidebarExpanded) {
+      return FleurCapsuleButtonGroup(
+        key: const Key('shell_controls_capsule'),
+        height: 40,
+        padding: EdgeInsets.zero,
+        children: [
+          for (final control in controls)
+            FleurCapsuleIconButton(
+              key: control.key,
+              tooltip: control.tooltip,
+              onPressed: control.onPressed,
+              icon: control.icon,
+              size: 40,
+              iconSize: 20,
+            ),
+        ],
+      );
+    }
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _DrawerControlButton(
-          key: const Key('shell_sidebar_button'),
-          tooltip: sidebarExpanded ? l10n.collapse : l10n.expand,
-          onPressed: onToggleSidebar,
-          icon: sidebarExpanded
-              ? FleurIcons.sidebarCollapse
-              : FleurIcons.sidebarExpand,
-        ),
-        _DrawerControlButton(
-          key: const Key('shell_back_button'),
-          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-          onPressed: canPop ? onPop : null,
-          icon: FleurIcons.back,
-        ),
-        _DrawerControlButton(
-          key: const Key('shell_forward_button'),
-          tooltip: MaterialLocalizations.of(context).nextPageTooltip,
-          onPressed: null,
-          icon: FleurIcons.forward,
-        ),
-        _DrawerControlButton(
-          key: const Key('shell_search_button'),
-          tooltip: l10n.search,
-          onPressed: onSearch,
-          icon: FleurIcons.search,
-        ),
+        for (final control in controls)
+          _DrawerControlButton(
+            key: control.key,
+            tooltip: control.tooltip,
+            onPressed: control.onPressed,
+            icon: control.icon,
+          ),
       ],
     );
   }
+}
+
+class _ShellControlData {
+  const _ShellControlData({
+    required this.key,
+    required this.tooltip,
+    required this.onPressed,
+    required this.icon,
+  });
+
+  final Key key;
+  final String tooltip;
+  final VoidCallback? onPressed;
+  final IconData icon;
 }
 
 class _DrawerControlsHost extends StatelessWidget {

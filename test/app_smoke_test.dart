@@ -656,7 +656,7 @@ void main() {
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
     await tester.pumpAndSettle();
     expect(tester.getSize(find.byType(Sidebar)).width, kSidebarCollapsedWidth);
-    expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
+    expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
     expect(find.byKey(const Key('shell_sidebar_toggle_capsule')), findsNothing);
     expect(
       find.byKey(const Key('shell_content_controls_capsule')),
