@@ -6,6 +6,8 @@ class MainFlutterWindow: NSWindow {
 
   private var localeChannel: FlutterMethodChannel?
   private var windowControlsChannel: FlutterMethodChannel?
+  private var trafficLightTargetCenterY = MainFlutterWindow.defaultTrafficLightTargetCenterY
+  private var trafficLightAlignmentScheduled = false
   private var originalWindowButtonXCoordinates: [NSWindow.ButtonType: CGFloat] = [:]
 
   override func awakeFromNib() {
@@ -17,8 +19,13 @@ class MainFlutterWindow: NSWindow {
     RegisterGeneratedPlugins(registry: flutterViewController)
     setupLocaleChannel(controller: flutterViewController)
     setupWindowControlsChannel(controller: flutterViewController)
+    setupTrafficLightAlignmentObservers()
 
     super.awakeFromNib()
+  }
+
+  deinit {
+    NotificationCenter.default.removeObserver(self)
   }
 
   private func setupLocaleChannel(controller: FlutterViewController) {
@@ -67,7 +74,8 @@ class MainFlutterWindow: NSWindow {
         let args = call.arguments as? [String: Any]
         let targetCenterY =
           Self.cgFloatArgument(args?["targetCenterY"]) ?? Self.defaultTrafficLightTargetCenterY
-        self.alignTrafficLights(targetCenterY: targetCenterY, result: result)
+        self.trafficLightTargetCenterY = targetCenterY
+        self.alignTrafficLights(result: result)
       default:
         result(FlutterMethodNotImplemented)
       }
@@ -75,7 +83,46 @@ class MainFlutterWindow: NSWindow {
     windowControlsChannel = channel
   }
 
-  private func alignTrafficLights(targetCenterY: CGFloat, result: @escaping FlutterResult) {
+  private func setupTrafficLightAlignmentObservers() {
+    let notifications: [NSNotification.Name] = [
+      NSWindow.willStartLiveResizeNotification,
+      NSWindow.didResizeNotification,
+      NSWindow.didEndLiveResizeNotification,
+      NSWindow.didEnterFullScreenNotification,
+      NSWindow.didExitFullScreenNotification,
+      NSWindow.didChangeScreenNotification,
+      NSWindow.didChangeBackingPropertiesNotification,
+    ]
+    for notification in notifications {
+      NotificationCenter.default.addObserver(
+        self,
+        selector: #selector(windowDidNeedTrafficLightAlignment(_:)),
+        name: notification,
+        object: self
+      )
+    }
+  }
+
+  @objc private func windowDidNeedTrafficLightAlignment(_ notification: Notification) {
+    scheduleTrafficLightAlignment()
+  }
+
+  private func scheduleTrafficLightAlignment() {
+    if trafficLightAlignmentScheduled {
+      return
+    }
+
+    trafficLightAlignmentScheduled = true
+    DispatchQueue.main.async { [weak self] in
+      guard let self else {
+        return
+      }
+      self.trafficLightAlignmentScheduled = false
+      _ = self.applyTrafficLightAlignment()
+    }
+  }
+
+  private func alignTrafficLights(result: @escaping FlutterResult) {
     DispatchQueue.main.async { [weak self] in
       guard let self else {
         result(
@@ -88,41 +135,49 @@ class MainFlutterWindow: NSWindow {
         return
       }
 
-      let buttonTypes: [NSWindow.ButtonType] = [
-        .closeButton,
-        .miniaturizeButton,
-        .zoomButton,
-      ]
-      var alignedCount = 0
+      result(self.applyTrafficLightAlignment())
+    }
+  }
 
-      for buttonType in buttonTypes {
-        guard let button = self.standardWindowButton(buttonType),
-              let buttonSuperview = button.superview else {
-          continue
-        }
-        if self.originalWindowButtonXCoordinates[buttonType] == nil {
-          self.originalWindowButtonXCoordinates[buttonType] = button.frame.origin.x
-        }
-        guard let originalX = self.originalWindowButtonXCoordinates[buttonType] else {
-          continue
-        }
+  private func applyTrafficLightAlignment() -> Bool {
+    let buttonTypes: [NSWindow.ButtonType] = [
+      .closeButton,
+      .miniaturizeButton,
+      .zoomButton,
+    ]
+    var alignedCount = 0
 
-        var frame = button.frame
-        frame.origin = CGPoint(
-          x: originalX,
-          y: Self.windowButtonOriginY(
-            targetCenterY: targetCenterY,
-            buttonHeight: frame.height,
-            buttonSuperview: buttonSuperview,
-            windowContentSuperview: self.contentView?.superview
-          )
-        )
-        button.setFrameOrigin(frame.origin)
-        alignedCount += 1
+    for buttonType in buttonTypes {
+      guard let button = self.standardWindowButton(buttonType),
+            let buttonSuperview = button.superview else {
+        continue
+      }
+      if self.originalWindowButtonXCoordinates[buttonType] == nil {
+        self.originalWindowButtonXCoordinates[buttonType] = button.frame.origin.x
+      }
+      guard let originalX = self.originalWindowButtonXCoordinates[buttonType] else {
+        continue
       }
 
-      result(alignedCount == buttonTypes.count)
+      var frame = button.frame
+      let nextOrigin = CGPoint(
+        x: originalX,
+        y: Self.windowButtonOriginY(
+          targetCenterY: trafficLightTargetCenterY,
+          buttonHeight: frame.height,
+          buttonSuperview: buttonSuperview,
+          windowContentSuperview: self.contentView?.superview
+        )
+      )
+      if abs(frame.origin.x - nextOrigin.x) > 0.5 ||
+        abs(frame.origin.y - nextOrigin.y) > 0.5 {
+        frame.origin = nextOrigin
+        button.setFrameOrigin(frame.origin)
+      }
+      alignedCount += 1
     }
+
+    return alignedCount == buttonTypes.count
   }
 
   private static func windowButtonOriginY(
