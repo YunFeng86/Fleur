@@ -672,10 +672,16 @@ void main() {
           .width,
       lessThan(kSidebarRailWidth),
     );
-    expect(find.byKey(const Key('shell_back_button')), findsNothing);
-    expect(find.byKey(const Key('shell_forward_button')), findsNothing);
-    expect(find.byKey(const Key('shell_search_button')), findsNothing);
+    expect(find.byKey(const Key('shell_back_button')), findsOneWidget);
+    expect(find.byKey(const Key('shell_forward_button')), findsOneWidget);
+    expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
     expect(find.byType(SidebarNavigationTree), findsNothing);
+    expect(
+      tester
+          .getTopLeft(find.byKey(const Key('sidebar_collapsed_rail_surface')))
+          .dy,
+      kWorkspaceHeaderHeight,
+    );
     expect(
       tester.getTopLeft(find.byKey(const Key('shell_sidebar_button'))),
       expandedToggleTopLeft,
@@ -784,7 +790,11 @@ void main() {
     final allButtonTop = tester
         .getTopLeft(find.byKey(const Key('sidebar_all_button')))
         .dy;
+    final shellButtonLeft = tester
+        .getTopLeft(find.byKey(const Key('shell_sidebar_button')))
+        .dx;
 
+    expect(shellButtonLeft, greaterThanOrEqualTo(72));
     expect(allButtonTop, greaterThanOrEqualTo(kWorkspaceHeaderHeight));
     expect(
       tester.getSize(find.byKey(const Key('app_shell_child'))).height,

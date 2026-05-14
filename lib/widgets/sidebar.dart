@@ -38,19 +38,13 @@ class Sidebar extends ConsumerStatefulWidget {
     required this.onSelectScope,
     this.router,
     this.presentationModeOverride,
-    this.onToggleSidebar,
-    this.canGoBack = false,
-    this.onBack,
-    this.onSearch,
+    this.reserveShellHeader = false,
   });
 
   final ValueChanged<ArticleScope> onSelectScope;
   final GoRouter? router;
   final SidebarPresentationMode? presentationModeOverride;
-  final VoidCallback? onToggleSidebar;
-  final bool canGoBack;
-  final VoidCallback? onBack;
-  final VoidCallback? onSearch;
+  final bool reserveShellHeader;
 
   @override
   ConsumerState<Sidebar> createState() => _SidebarState();
@@ -223,11 +217,6 @@ class _SidebarState extends ConsumerState<Sidebar> {
       onSelectReadLater: selectionActions.selectReadLater,
       onAddSubscription: _openAddSubscriptionPage,
     );
-    final showShellControls =
-        widget.onToggleSidebar != null ||
-        widget.onBack != null ||
-        widget.onSearch != null;
-
     return Material(
       color: surfaces.sidebar,
       child: Row(
@@ -239,8 +228,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
               mode: presentationMode,
               items: fixedItems,
               account: activeAccount,
-              showShellControls: showShellControls,
-              onToggleSidebar: widget.onToggleSidebar,
+              reserveShellHeader: widget.reserveShellHeader,
               onAccountTap: () => unawaited(_showAccountMenu()),
               accountAnchorKey: _accountFooterKey,
             ),
@@ -252,10 +240,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
                 account: activeAccount,
                 sync: syncStatus,
                 onAccountTap: () => unawaited(_showAccountMenu()),
-                showShellControls: showShellControls,
-                canGoBack: widget.canGoBack,
-                onBack: widget.onBack,
-                onSearch: widget.onSearch,
+                reserveShellHeader: widget.reserveShellHeader,
                 navigationTree: SidebarNavigationTree(
                   presentationMode: presentationMode,
                   scrollController: _scrollController,
@@ -452,8 +437,7 @@ class _SidebarRail extends StatelessWidget {
     required this.mode,
     required this.items,
     required this.account,
-    required this.showShellControls,
-    required this.onToggleSidebar,
+    required this.reserveShellHeader,
     required this.onAccountTap,
     required this.accountAnchorKey,
   });
@@ -461,8 +445,7 @@ class _SidebarRail extends StatelessWidget {
   final SidebarPresentationMode mode;
   final List<_SidebarFixedItemData> items;
   final Account account;
-  final bool showShellControls;
-  final VoidCallback? onToggleSidebar;
+  final bool reserveShellHeader;
   final VoidCallback onAccountTap;
   final Key accountAnchorKey;
 
@@ -470,71 +453,49 @@ class _SidebarRail extends StatelessWidget {
   Widget build(BuildContext context) {
     final surfaces = Theme.of(context).fleurSurface;
     final collapsed = mode == SidebarPresentationMode.collapsed;
-    final decoration = collapsed
-        ? BoxDecoration(
-            color: surfaces.floating,
-            border: Border.all(color: surfaces.subtleDivider),
-            borderRadius: BorderRadius.circular(999),
-          )
-        : const BoxDecoration();
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: _kSidebarRailHorizontalInset,
-      ),
-      child: DecoratedBox(
-        key: collapsed ? const Key('sidebar_collapsed_rail_surface') : null,
-        decoration: decoration,
-        child: Column(
-          children: [
-            if (showShellControls)
-              SizedBox(
-                height: kWorkspaceHeaderHeight,
-                child: Center(
-                  child: _SidebarRailToggleButton(
-                    mode: mode,
-                    onPressed: onToggleSidebar,
+    return Column(
+      children: [
+        if (reserveShellHeader) const SizedBox(height: kWorkspaceHeaderHeight),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: _kSidebarRailHorizontalInset,
+            ),
+            child: DecoratedBox(
+              key: collapsed
+                  ? const Key('sidebar_collapsed_rail_surface')
+                  : null,
+              decoration: collapsed
+                  ? BoxDecoration(
+                      color: surfaces.floating,
+                      border: Border.all(color: surfaces.subtleDivider),
+                      borderRadius: BorderRadius.circular(999),
+                    )
+                  : const BoxDecoration(),
+              child: Column(
+                children: [
+                  for (final item in items) _SidebarRailScopeButton(item: item),
+                  const Expanded(child: SizedBox.shrink()),
+                  SafeArea(
+                    top: false,
+                    child: SizedBox(
+                      key: accountAnchorKey,
+                      height: _kSidebarAccountHeight,
+                      child: Center(
+                        child: _SidebarRailAccountButton(
+                          key: const Key('sidebar_account_button'),
+                          account: account,
+                          onTap: onAccountTap,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            for (final item in items) _SidebarRailScopeButton(item: item),
-            const Expanded(child: SizedBox.shrink()),
-            SafeArea(
-              top: false,
-              child: SizedBox(
-                key: accountAnchorKey,
-                height: _kSidebarAccountHeight,
-                child: Center(
-                  child: _SidebarRailAccountButton(
-                    key: const Key('sidebar_account_button'),
-                    account: account,
-                    onTap: onAccountTap,
-                  ),
-                ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
-      ),
-    );
-  }
-}
-
-class _SidebarRailToggleButton extends StatelessWidget {
-  const _SidebarRailToggleButton({required this.mode, required this.onPressed});
-
-  final SidebarPresentationMode mode;
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final expanded = mode == SidebarPresentationMode.expanded;
-    return _SidebarRailIconButton(
-      key: const Key('shell_sidebar_button'),
-      tooltip: expanded ? l10n.collapse : l10n.expand,
-      icon: expanded ? FleurIcons.sidebarCollapse : FleurIcons.sidebarExpand,
-      onPressed: onPressed,
+      ],
     );
   }
 }
@@ -644,10 +605,7 @@ class _SidebarPanel extends StatelessWidget {
     required this.account,
     required this.sync,
     required this.onAccountTap,
-    required this.showShellControls,
-    required this.canGoBack,
-    required this.onBack,
-    required this.onSearch,
+    required this.reserveShellHeader,
     required this.navigationTree,
   });
 
@@ -655,98 +613,22 @@ class _SidebarPanel extends StatelessWidget {
   final Account account;
   final SyncStatusState sync;
   final VoidCallback onAccountTap;
-  final bool showShellControls;
-  final bool canGoBack;
-  final VoidCallback? onBack;
-  final VoidCallback? onSearch;
+  final bool reserveShellHeader;
   final Widget navigationTree;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        if (showShellControls)
-          _SidebarHeaderControls(
-            canGoBack: canGoBack,
-            onBack: onBack,
-            onSearch: onSearch,
+        if (reserveShellHeader)
+          const SizedBox(
+            key: Key('app_shell_sidebar_header'),
+            height: kWorkspaceHeaderHeight,
           ),
         _SidebarPanelFixedItems(items: fixedItems),
         Expanded(child: navigationTree),
         _AccountPanelFooter(account: account, sync: sync, onTap: onAccountTap),
       ],
-    );
-  }
-}
-
-class _SidebarHeaderControls extends StatelessWidget {
-  const _SidebarHeaderControls({
-    required this.canGoBack,
-    required this.onBack,
-    required this.onSearch,
-  });
-
-  final bool canGoBack;
-  final VoidCallback? onBack;
-  final VoidCallback? onSearch;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return SizedBox(
-      key: const Key('app_shell_sidebar_header'),
-      height: kWorkspaceHeaderHeight,
-      child: Row(
-        children: [
-          const SizedBox(width: 2),
-          _SidebarHeaderIconButton(
-            key: const Key('shell_back_button'),
-            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-            onPressed: canGoBack ? onBack : null,
-            icon: FleurIcons.back,
-          ),
-          _SidebarHeaderIconButton(
-            key: const Key('shell_forward_button'),
-            tooltip: MaterialLocalizations.of(context).nextPageTooltip,
-            onPressed: null,
-            icon: FleurIcons.forward,
-          ),
-          _SidebarHeaderIconButton(
-            key: const Key('shell_search_button'),
-            tooltip: l10n.search,
-            onPressed: onSearch,
-            icon: FleurIcons.search,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SidebarHeaderIconButton extends StatelessWidget {
-  const _SidebarHeaderIconButton({
-    super.key,
-    required this.tooltip,
-    required this.onPressed,
-    required this.icon,
-  });
-
-  final String tooltip;
-  final VoidCallback? onPressed;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      tooltip: tooltip,
-      onPressed: onPressed,
-      icon: Icon(icon, size: 20),
-      style: IconButton.styleFrom(
-        fixedSize: const Size.square(40),
-        minimumSize: const Size.square(40),
-        padding: EdgeInsets.zero,
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      ),
     );
   }
 }

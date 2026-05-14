@@ -96,18 +96,39 @@ class AppShell extends ConsumerWidget {
 
   Widget _desktopSidebar({
     required BuildContext context,
-    required WidgetRef ref,
     required double width,
   }) {
     return SizedBox(
       width: width,
       child: Sidebar(
         onSelectScope: (scope) => _goToScope(context, scope),
-        onToggleSidebar: isDesktop ? () => _toggleSidebar(ref) : null,
-        canGoBack: _canPop(context),
-        onBack: () => _pop(context),
-        onSearch: () => _goToSearch(context),
+        reserveShellHeader: isDesktop,
       ),
+    );
+  }
+
+  Widget _withInlineShellControlsOverlay({
+    required BuildContext context,
+    required WidgetRef ref,
+    required Widget child,
+    required SidebarPresentationMode presentationMode,
+  }) {
+    if (!isDesktop) return child;
+    return Stack(
+      children: [
+        Positioned.fill(child: child),
+        Positioned(
+          left: isMacOS ? 72 : 12,
+          top: 8,
+          child: _InlineShellControlsHost(
+            presentationMode: presentationMode,
+            canPop: _canPop(context),
+            onToggleSidebar: () => _toggleSidebar(ref),
+            onPop: () => _pop(context),
+            onSearch: () => _goToSearch(context),
+          ),
+        ),
+      ],
     );
   }
 
@@ -170,17 +191,22 @@ class AppShell extends ConsumerWidget {
       return wrapShell(
         AppDrawerScope(
           hasAppDrawer: true,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _desktopSidebar(context: context, ref: ref, width: sidebarWidth),
-              SizedBox(
-                key: const Key('app_shell_sidebar_divider'),
-                width: kSidebarContentDividerWidth,
-                child: ColoredBox(color: surfaces.subtleDivider),
-              ),
-              Expanded(child: child),
-            ],
+          child: _withInlineShellControlsOverlay(
+            context: context,
+            ref: ref,
+            presentationMode: presentationMode,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _desktopSidebar(context: context, width: sidebarWidth),
+                SizedBox(
+                  key: const Key('app_shell_sidebar_divider'),
+                  width: kSidebarContentDividerWidth,
+                  child: ColoredBox(color: surfaces.subtleDivider),
+                ),
+                Expanded(child: child),
+              ],
+            ),
           ),
         ),
       );
@@ -209,6 +235,60 @@ class AppShell extends ConsumerWidget {
           },
         ),
       ),
+    );
+  }
+}
+
+class _InlineShellControlsHost extends StatelessWidget {
+  const _InlineShellControlsHost({
+    required this.presentationMode,
+    required this.canPop,
+    required this.onToggleSidebar,
+    required this.onPop,
+    required this.onSearch,
+  });
+
+  final SidebarPresentationMode presentationMode;
+  final bool canPop;
+  final VoidCallback onToggleSidebar;
+  final VoidCallback onPop;
+  final VoidCallback onSearch;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final sidebarExpanded =
+        presentationMode == SidebarPresentationMode.expanded;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _DrawerControlButton(
+          key: const Key('shell_sidebar_button'),
+          tooltip: sidebarExpanded ? l10n.collapse : l10n.expand,
+          onPressed: onToggleSidebar,
+          icon: sidebarExpanded
+              ? FleurIcons.sidebarCollapse
+              : FleurIcons.sidebarExpand,
+        ),
+        _DrawerControlButton(
+          key: const Key('shell_back_button'),
+          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+          onPressed: canPop ? onPop : null,
+          icon: FleurIcons.back,
+        ),
+        _DrawerControlButton(
+          key: const Key('shell_forward_button'),
+          tooltip: MaterialLocalizations.of(context).nextPageTooltip,
+          onPressed: null,
+          icon: FleurIcons.forward,
+        ),
+        _DrawerControlButton(
+          key: const Key('shell_search_button'),
+          tooltip: l10n.search,
+          onPressed: onSearch,
+          icon: FleurIcons.search,
+        ),
+      ],
     );
   }
 }
