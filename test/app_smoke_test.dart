@@ -818,6 +818,7 @@ void main() {
         .getTopLeft(find.byKey(const Key('shell_sidebar_button')))
         .dy;
 
+    expect(kMacOSTrafficLightTargetCenterY, kWorkspaceHeaderHeight / 2);
     expect(shellButtonLeft, greaterThanOrEqualTo(kMacOSTrafficLightSafeInset));
     expect(shellButtonTop, kMacOSShellControlTopInset);
     expect(

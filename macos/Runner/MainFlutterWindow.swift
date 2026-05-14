@@ -2,9 +2,11 @@ import Cocoa
 import FlutterMacOS
 
 class MainFlutterWindow: NSWindow {
+  private static let defaultTrafficLightTargetCenterY: CGFloat = 24
+
   private var localeChannel: FlutterMethodChannel?
   private var windowControlsChannel: FlutterMethodChannel?
-  private var originalWindowButtonOrigins: [NSWindow.ButtonType: CGPoint] = [:]
+  private var originalWindowButtonXCoordinates: [NSWindow.ButtonType: CGFloat] = [:]
 
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
@@ -63,8 +65,9 @@ class MainFlutterWindow: NSWindow {
           return
         }
         let args = call.arguments as? [String: Any]
-        let offset = Self.cgFloatArgument(args?["verticalOffset"]) ?? 4
-        self.alignTrafficLights(verticalOffset: offset, result: result)
+        let targetCenterY =
+          Self.cgFloatArgument(args?["targetCenterY"]) ?? Self.defaultTrafficLightTargetCenterY
+        self.alignTrafficLights(targetCenterY: targetCenterY, result: result)
       default:
         result(FlutterMethodNotImplemented)
       }
@@ -72,7 +75,7 @@ class MainFlutterWindow: NSWindow {
     windowControlsChannel = channel
   }
 
-  private func alignTrafficLights(verticalOffset: CGFloat, result: @escaping FlutterResult) {
+  private func alignTrafficLights(targetCenterY: CGFloat, result: @escaping FlutterResult) {
     DispatchQueue.main.async { [weak self] in
       guard let self else {
         result(
@@ -93,21 +96,26 @@ class MainFlutterWindow: NSWindow {
       var alignedCount = 0
 
       for buttonType in buttonTypes {
-        guard let button = self.standardWindowButton(buttonType) else {
+        guard let button = self.standardWindowButton(buttonType),
+              let buttonSuperview = button.superview else {
           continue
         }
-        if self.originalWindowButtonOrigins[buttonType] == nil {
-          self.originalWindowButtonOrigins[buttonType] = button.frame.origin
+        if self.originalWindowButtonXCoordinates[buttonType] == nil {
+          self.originalWindowButtonXCoordinates[buttonType] = button.frame.origin.x
         }
-        guard let originalOrigin = self.originalWindowButtonOrigins[buttonType] else {
+        guard let originalX = self.originalWindowButtonXCoordinates[buttonType] else {
           continue
         }
 
         var frame = button.frame
-        let direction: CGFloat = button.superview?.isFlipped == true ? 1 : -1
         frame.origin = CGPoint(
-          x: originalOrigin.x,
-          y: originalOrigin.y + (verticalOffset * direction)
+          x: originalX,
+          y: Self.windowButtonOriginY(
+            targetCenterY: targetCenterY,
+            buttonHeight: frame.height,
+            buttonSuperview: buttonSuperview,
+            windowContentSuperview: self.contentView?.superview
+          )
         )
         button.setFrameOrigin(frame.origin)
         alignedCount += 1
@@ -115,6 +123,27 @@ class MainFlutterWindow: NSWindow {
 
       result(alignedCount == buttonTypes.count)
     }
+  }
+
+  private static func windowButtonOriginY(
+    targetCenterY: CGFloat,
+    buttonHeight: CGFloat,
+    buttonSuperview: NSView,
+    windowContentSuperview: NSView?
+  ) -> CGFloat {
+    let referenceView = windowContentSuperview ?? buttonSuperview
+    let centerYInReference: CGFloat
+    if referenceView.isFlipped {
+      centerYInReference = targetCenterY
+    } else {
+      centerYInReference = referenceView.bounds.height - targetCenterY
+    }
+    let centerInButtonSuperview = buttonSuperview.convert(
+      CGPoint(x: 0, y: centerYInReference),
+      from: referenceView
+    )
+
+    return centerInButtonSuperview.y - (buttonHeight / 2)
   }
 
   private static func cgFloatArgument(_ value: Any?) -> CGFloat? {

@@ -13,6 +13,7 @@ import 'app/app.dart';
 import 'services/background/background_sync_service.dart';
 import 'services/logging/app_logger.dart';
 import 'services/logging/app_provider_observer.dart';
+import 'ui/sidebar_layout.dart';
 import 'utils/platform.dart';
 
 const MethodChannel _macOSWindowControlsChannel = MethodChannel(
@@ -25,7 +26,7 @@ Future<void> _alignMacOSWindowControls() async {
   try {
     await _macOSWindowControlsChannel.invokeMethod<void>(
       'alignTrafficLights',
-      <String, Object?>{'verticalOffset': 4.0},
+      <String, Object?>{'targetCenterY': kMacOSTrafficLightTargetCenterY},
     );
   } catch (error, stackTrace) {
     AppLogger.w(

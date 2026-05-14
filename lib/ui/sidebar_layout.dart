@@ -16,6 +16,7 @@ const double kShellControlCapsuleHeight = kShellControlSize;
 const double kShellControlTopInset =
     (kWorkspaceHeaderHeight - kShellControlSize) / 2;
 const double kMacOSShellControlTopInset = 6;
+const double kMacOSTrafficLightTargetCenterY = kWorkspaceHeaderHeight / 2;
 const double kMacOSTrafficLightSafeInset = 72;
 
 enum SidebarPresentationMode { expanded, collapsed }
