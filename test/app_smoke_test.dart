@@ -2286,7 +2286,9 @@ void main() {
     'Article list item reflects selected, unread, and starred states',
     (tester) async {
       final feed = _buildFeed();
-      final article = _buildArticle(isRead: false, isStarred: true);
+      final article = _buildArticle(isRead: false, isStarred: true)
+        ..contentHtml =
+            '<p>Hello world</p><img src="https://example.com/thumb.jpg">';
 
       await tester.pumpWidget(
         ProviderScope(
@@ -2319,9 +2321,30 @@ void main() {
                   .decoration
               as BoxDecoration;
       final title = tester.widget<Text>(find.text('Selected Article'));
+      final feedLabel = tester.widget<Text>(
+        find.byKey(const Key('article_item_feed_label')),
+      );
+      final timestamp = tester.widget<Text>(
+        find.byKey(const Key('article_item_timestamp')),
+      );
+      final starIcon = tester.widget<Icon>(find.byIcon(FleurIcons.starActive));
 
       expect(rowDecoration.color, theme.fleurSurface.cardSelected);
-      expect(title.style?.fontWeight, FontWeight.w700);
+      expect(title.style?.fontWeight, FontWeight.w600);
+      expect(title.style?.letterSpacing, 0);
+      expect(title.style?.height, 1.2);
+      expect(feedLabel.style?.fontSize, 11);
+      expect(feedLabel.style?.fontWeight, FontWeight.w500);
+      expect(feedLabel.style?.letterSpacing, 0);
+      expect(timestamp.style?.fontSize, 10);
+      expect(timestamp.style?.fontWeight, FontWeight.w500);
+      expect(timestamp.style?.letterSpacing, 0);
+      expect(timestamp.style?.height, 1.1);
+      expect(
+        tester.getSize(find.byKey(const Key('article_item_thumbnail'))),
+        const Size(72, 54),
+      );
+      expect(starIcon.size, 13);
       expect(find.byIcon(FleurIcons.starActive), findsOneWidget);
     },
   );

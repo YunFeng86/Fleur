@@ -45,6 +45,7 @@ Article _buildArticle(int id) {
 }
 
 Finder _topBar() => find.byKey(const ValueKey('article-list-top-bar'));
+Finder _topFade() => find.byKey(const ValueKey('article-list-top-fade'));
 
 Future<void> _pumpArticleList(WidgetTester tester) async {
   final articles = [for (var i = 1; i <= 30; i++) _buildArticle(i)];
@@ -89,19 +90,35 @@ void main() {
 
       expect(find.text('Scoped Toolbar'), findsOneWidget);
       expect(tester.getSize(_topBar()).height, greaterThan(0));
+      expect(_topFade(), findsOneWidget);
+      expect(tester.getSize(_topFade()).height, 20);
       expect(
-        find.byKey(const ValueKey('article-list-top-fade')),
+        find.descendant(of: _topFade(), matching: find.byType(ClipRect)),
         findsOneWidget,
       );
+      expect(
+        find.descendant(of: _topFade(), matching: find.byType(BackdropFilter)),
+        findsOneWidget,
+      );
+      final fadeDecoration =
+          tester
+                  .widget<DecoratedBox>(
+                    find.descendant(
+                      of: _topFade(),
+                      matching: find.byType(DecoratedBox),
+                    ),
+                  )
+                  .decoration
+              as BoxDecoration;
+      final gradient = fadeDecoration.gradient as LinearGradient;
+      expect(gradient.colors.first.a, lessThan(1));
+      expect(gradient.colors.last.a, 0);
 
       await tester.drag(find.byType(ListView), const Offset(0, -700));
       await tester.pumpAndSettle();
       expect(find.text('Scoped Toolbar'), findsOneWidget);
       expect(tester.getSize(_topBar()).height, greaterThan(0));
-      expect(
-        find.byKey(const ValueKey('article-list-top-fade')),
-        findsOneWidget,
-      );
+      expect(_topFade(), findsOneWidget);
 
       await tester.drag(find.byType(ListView), const Offset(0, 300));
       await tester.pumpAndSettle();
@@ -129,6 +146,6 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(tester.getSize(_topBar()).height, greaterThan(0));
-    expect(find.byKey(const ValueKey('article-list-top-fade')), findsOneWidget);
+    expect(_topFade(), findsOneWidget);
   });
 }

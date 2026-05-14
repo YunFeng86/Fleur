@@ -25,7 +25,7 @@ class ArticleListItem extends ConsumerWidget {
   final VoidCallback? onTap;
   final GestureTapDownCallback? onSecondaryTapDown;
 
-  static const double _metaWidth = 96;
+  static const double _metaWidth = 88;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -49,6 +49,27 @@ class ArticleListItem extends ConsumerWidget {
 
     // Prefer description/contentHtml for the thumbnail
     final imageUrl = extractFirstImageSrc(article.contentHtml);
+    final metaColor = theme.colorScheme.onSurfaceVariant;
+    final metadataStyle = theme.textTheme.labelMedium?.copyWith(
+      color: metaColor,
+      fontSize: 11,
+      fontWeight: AppTypography.platformWeight(FontWeight.w500),
+      letterSpacing: 0,
+      height: 1.1,
+    );
+    final timestampStyle = theme.textTheme.labelSmall?.copyWith(
+      color: metaColor,
+      fontSize: 10,
+      fontWeight: AppTypography.platformWeight(FontWeight.w500),
+      letterSpacing: 0,
+      height: 1.1,
+    );
+    final titleStyle = theme.textTheme.titleSmall?.copyWith(
+      fontWeight: isUnread ? FontWeight.w600 : FontWeight.w500,
+      letterSpacing: 0,
+      height: 1.2,
+      color: theme.colorScheme.onSurface,
+    );
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -65,7 +86,7 @@ class ArticleListItem extends ConsumerWidget {
           onTap: onTap,
           onSecondaryTapDown: onSecondaryTapDown,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -74,8 +95,9 @@ class ArticleListItem extends ConsumerWidget {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(6),
                     child: Container(
-                      width: 80,
-                      height: 60,
+                      key: const Key('article_item_thumbnail'),
+                      width: 72,
+                      height: 54,
                       color: surfaces.floating,
                       child: Image.network(
                         imageUrl,
@@ -88,7 +110,7 @@ class ArticleListItem extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                 ],
 
                 // Content
@@ -110,29 +132,20 @@ class ArticleListItem extends ConsumerWidget {
                                   // Feed Icon + Name
                                   FaviconCircle(
                                     siteUri: siteUri,
-                                    diameter: 28,
-                                    avatarSize: 18,
+                                    diameter: 24,
+                                    avatarSize: 16,
                                     fallbackIcon: FleurIcons.feed,
-                                    fallbackColor:
-                                        theme.colorScheme.onSurfaceVariant,
+                                    fallbackColor: metaColor,
                                   ),
                                   const SizedBox(width: 6),
                                   Flexible(
                                     child: Text(
+                                      key: const Key('article_item_feed_label'),
                                       (feed.userTitle?.trim().isNotEmpty ==
                                               true)
                                           ? feed.userTitle!
                                           : (feed.title ?? ''),
-                                      style: theme.textTheme.labelMedium
-                                          ?.copyWith(
-                                            color: theme
-                                                .colorScheme
-                                                .onSurfaceVariant,
-                                            fontWeight:
-                                                AppTypography.platformWeight(
-                                                  FontWeight.w500,
-                                                ),
-                                          ),
+                                      style: metadataStyle,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -150,26 +163,25 @@ class ArticleListItem extends ConsumerWidget {
                                 // Status Light (Unread Dot)
                                 if (isUnread) ...[
                                   Container(
-                                    width: 8,
-                                    height: 8,
+                                    width: 6,
+                                    height: 6,
                                     decoration: BoxDecoration(
                                       color: theme.fleurState.unreadAccent,
                                       shape: BoxShape.circle,
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
+                                  const SizedBox(width: 6),
                                 ],
 
                                 // Time
                                 Flexible(
                                   child: Text(
+                                    key: const Key('article_item_timestamp'),
                                     timeStr,
                                     textAlign: TextAlign.right,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.labelSmall?.copyWith(
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                    ),
+                                    style: timestampStyle,
                                   ),
                                 ),
                               ],
@@ -183,23 +195,17 @@ class ArticleListItem extends ConsumerWidget {
                       // Title
                       Text(
                         title.isEmpty ? article.link : title,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: AppTypography.platformWeight(
-                            isUnread ? FontWeight.w700 : FontWeight.w600,
-                          ),
-                          height: 1.2,
-                          color: theme.colorScheme.onSurface,
-                        ),
+                        style: titleStyle,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
 
                       // Star Icon (if starred)
                       if (article.isStarred) ...[
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 4),
                         Icon(
                           FleurIcons.starActive,
-                          size: 14,
+                          size: 13,
                           color: states.savedAccent,
                         ),
                       ],
