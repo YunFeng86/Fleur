@@ -218,65 +218,63 @@ class _SidebarState extends ConsumerState<Sidebar> {
       onSelectReadLater: selectionActions.selectReadLater,
       onAddSubscription: _openAddSubscriptionPage,
     );
+    final navigationTree = SidebarNavigationTree(
+      presentationMode: presentationMode,
+      scrollController: _scrollController,
+      feeds: feeds,
+      categories: categories,
+      allUnreadCounts: allUnreadCounts,
+      selectedFeedId: selectedFeedId,
+      selectedCategoryId: selectedCategoryId,
+      starredOnly: starredOnly,
+      readLaterOnly: readLaterOnly,
+      expandedCategoryId: _expandedCategoryId,
+      onExpandedCategoryChanged: (categoryId) {
+        setState(() => _expandedCategoryId = categoryId);
+      },
+      selectionActions: selectionActions,
+      managementActions: managementActions,
+      capabilities: capabilities,
+      syncSemantics: syncSemantics,
+      onAddFeed: () async {
+        await managementActions.addFeed();
+      },
+      onAddCategory: () async {
+        final id = await managementActions.addCategory();
+        if (id == null) return;
+        setState(() => _expandedCategoryId = id);
+      },
+      onShowCategoryMenu: (category) =>
+          _showCategoryMenu(category, managementActions),
+      onShowFeedMenu: (feed) => _showFeedMenu(feed, managementActions),
+    );
+
     return Material(
       color: surfaces.sidebar,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(
-            width: kSidebarRailWidth,
-            child: _SidebarRail(
-              mode: presentationMode,
-              items: fixedItems,
-              account: activeAccount,
-              reserveShellHeader: widget.reserveShellHeader,
-              onAccountTap: () => unawaited(_showAccountMenu()),
-              accountAnchorKey: _accountFooterKey,
-            ),
-          ),
-          if (!collapsed)
-            Expanded(
-              child: _SidebarPanel(
-                fixedItems: fixedItems,
-                account: activeAccount,
-                sync: syncStatus,
-                onAccountTap: () => unawaited(_showAccountMenu()),
-                reserveShellHeader: widget.reserveShellHeader,
-                navigationTree: SidebarNavigationTree(
-                  presentationMode: presentationMode,
-                  scrollController: _scrollController,
-                  feeds: feeds,
-                  categories: categories,
-                  allUnreadCounts: allUnreadCounts,
-                  selectedFeedId: selectedFeedId,
-                  selectedCategoryId: selectedCategoryId,
-                  starredOnly: starredOnly,
-                  readLaterOnly: readLaterOnly,
-                  expandedCategoryId: _expandedCategoryId,
-                  onExpandedCategoryChanged: (categoryId) {
-                    setState(() => _expandedCategoryId = categoryId);
-                  },
-                  selectionActions: selectionActions,
-                  managementActions: managementActions,
-                  capabilities: capabilities,
-                  syncSemantics: syncSemantics,
-                  onAddFeed: () async {
-                    await managementActions.addFeed();
-                  },
-                  onAddCategory: () async {
-                    final id = await managementActions.addCategory();
-                    if (id == null) return;
-                    setState(() => _expandedCategoryId = id);
-                  },
-                  onShowCategoryMenu: (category) =>
-                      _showCategoryMenu(category, managementActions),
-                  onShowFeedMenu: (feed) =>
-                      _showFeedMenu(feed, managementActions),
+      child: collapsed
+          ? Align(
+              alignment: Alignment.topLeft,
+              child: SizedBox(
+                width: kSidebarRailWidth,
+                child: _SidebarRail(
+                  mode: presentationMode,
+                  items: fixedItems,
+                  account: activeAccount,
+                  reserveShellHeader: widget.reserveShellHeader,
+                  onAccountTap: () => unawaited(_showAccountMenu()),
+                  accountAnchorKey: _accountFooterKey,
                 ),
               ),
+            )
+          : _SidebarPanel(
+              fixedItems: fixedItems,
+              account: activeAccount,
+              sync: syncStatus,
+              onAccountTap: () => unawaited(_showAccountMenu()),
+              accountAnchorKey: _accountFooterKey,
+              reserveShellHeader: widget.reserveShellHeader,
+              navigationTree: navigationTree,
             ),
-        ],
-      ),
     );
   }
 
@@ -608,6 +606,7 @@ class _SidebarPanel extends StatelessWidget {
     required this.account,
     required this.sync,
     required this.onAccountTap,
+    required this.accountAnchorKey,
     required this.reserveShellHeader,
     required this.navigationTree,
   });
@@ -616,6 +615,7 @@ class _SidebarPanel extends StatelessWidget {
   final Account account;
   final SyncStatusState sync;
   final VoidCallback onAccountTap;
+  final Key accountAnchorKey;
   final bool reserveShellHeader;
   final Widget navigationTree;
 
@@ -630,7 +630,12 @@ class _SidebarPanel extends StatelessWidget {
           ),
         _SidebarPanelFixedItems(items: fixedItems),
         Expanded(child: navigationTree),
-        _AccountPanelFooter(account: account, sync: sync, onTap: onAccountTap),
+        _AccountPanelFooter(
+          account: account,
+          sync: sync,
+          onTap: onAccountTap,
+          accountAnchorKey: accountAnchorKey,
+        ),
       ],
     );
   }
@@ -671,30 +676,48 @@ class _SidebarPanelFixedItem extends StatelessWidget {
     final theme = Theme.of(context);
     final surfaces = theme.fleurSurface;
     final states = theme.fleurState;
+    final scheme = theme.colorScheme;
     final borderRadius = BorderRadius.circular(8);
+    final iconColor = item.selected ? scheme.primary : scheme.onSurfaceVariant;
 
     return Padding(
       padding: const EdgeInsets.only(right: 4),
       child: SizedBox(
         height: _kSidebarFixedItemHeight,
-        child: Material(
-          color: item.selected ? surfaces.cardSelected : Colors.transparent,
-          borderRadius: borderRadius,
-          child: InkWell(
-            onTap: item.onTap,
+        child: Semantics(
+          button: true,
+          selected: item.selected,
+          label: item.title,
+          child: Material(
+            color: item.selected ? surfaces.cardSelected : Colors.transparent,
             borderRadius: borderRadius,
-            hoverColor: states.hoverTint,
-            child: Padding(
-              padding: const EdgeInsets.only(left: 2, right: 8),
+            child: InkWell(
+              onTap: item.onTap,
+              borderRadius: borderRadius,
+              hoverColor: states.hoverTint,
               child: Row(
                 children: [
+                  SizedBox(
+                    width: kSidebarRailWidth,
+                    child: Center(
+                      child: SizedBox.square(
+                        key: item.key,
+                        dimension: _kSidebarRailButtonSize,
+                        child: Icon(
+                          item.effectiveIcon,
+                          color: iconColor,
+                          size: _kSidebarRailIconSize,
+                        ),
+                      ),
+                    ),
+                  ),
                   Expanded(
                     child: Text(
                       item.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface,
+                        color: scheme.onSurface,
                         fontSize: 13,
                         fontWeight: AppTypography.platformWeight(
                           FontWeight.w500,
@@ -704,7 +727,9 @@ class _SidebarPanelFixedItem extends StatelessWidget {
                       ),
                     ),
                   ),
+                  const SizedBox(width: 8),
                   if (item.count != null) _SidebarFixedCount(item.count!),
+                  const SizedBox(width: 8),
                 ],
               ),
             ),
@@ -740,11 +765,13 @@ class _AccountPanelFooter extends StatelessWidget {
     required this.account,
     required this.sync,
     required this.onTap,
+    required this.accountAnchorKey,
   });
 
   final Account account;
   final SyncStatusState sync;
   final VoidCallback onTap;
+  final Key accountAnchorKey;
 
   String _syncText(AppLocalizations l10n) {
     String labelFor(SyncStatusLabel label) => switch (label) {
@@ -791,11 +818,22 @@ class _AccountPanelFooter extends StatelessWidget {
           hoverColor: states.hoverTint,
           child: SizedBox(
             height: _kSidebarAccountHeight,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(2, 8, 12, 8),
-              child: Row(
-                children: [
-                  Expanded(
+            child: Row(
+              children: [
+                SizedBox(
+                  key: accountAnchorKey,
+                  width: kSidebarRailWidth,
+                  child: Center(
+                    child: _SidebarRailAccountButton(
+                      key: const Key('sidebar_account_button'),
+                      account: account,
+                      onTap: onTap,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
@@ -879,14 +917,15 @@ class _AccountPanelFooter extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    FleurIcons.accountSwitcher,
-                    size: 16,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  FleurIcons.accountSwitcher,
+                  size: 16,
+                  color: scheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 12),
+              ],
             ),
           ),
         ),

@@ -318,60 +318,13 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
                 rowId: 'section:subscriptions',
                 builder: (_) => collapsed
                     ? _SidebarCollapsedSectionTile(title: l10n.subscriptions)
-                    : Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 8, 4),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onSecondaryTapDown: showHeaderContextMenu,
-                                child: SizedBox(
-                                  height: 48,
-                                  child: Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: Text(
-                                      l10n.subscriptions,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleSmall
-                                          ?.copyWith(
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.primary,
-                                            fontWeight:
-                                                AppTypography.platformWeight(
-                                                  FontWeight.w700,
-                                                ),
-                                          ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            if (capabilities.isVisible(
-                              BackendFeature.addCategory,
-                            )) ...[
-                              const SizedBox(width: 8),
-                              isDesktop
-                                  ? _SidebarActionIconButton(
-                                      tooltip: l10n.newCategory,
-                                      onPressed: onAddCategory,
-                                      icon: FleurIcons.addCategory,
-                                    )
-                                  : IconButton(
-                                      tooltip: l10n.newCategory,
-                                      iconSize: 20,
-                                      constraints: const BoxConstraints(
-                                        minWidth: 48,
-                                        minHeight: 48,
-                                      ),
-                                      onPressed: onAddCategory,
-                                      icon: const Icon(FleurIcons.addCategory),
-                                    ),
-                            ],
-                          ],
+                    : _SidebarSectionHeader(
+                        title: l10n.subscriptions,
+                        onSecondaryTapDown: showHeaderContextMenu,
+                        showAddCategory: capabilities.isVisible(
+                          BackendFeature.addCategory,
                         ),
+                        onAddCategory: onAddCategory,
                       ),
               ),
             );
@@ -502,6 +455,84 @@ class _SidebarCollapsedSectionTile extends StatelessWidget {
             color: Theme.of(context).colorScheme.primary,
             size: 20,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SidebarSectionHeader extends StatelessWidget {
+  const _SidebarSectionHeader({
+    required this.title,
+    required this.showAddCategory,
+    required this.onAddCategory,
+    this.onSecondaryTapDown,
+  });
+
+  final String title;
+  final bool showAddCategory;
+  final Future<void> Function() onAddCategory;
+  final GestureTapDownCallback? onSecondaryTapDown;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 8, 8, 4),
+      child: SizedBox(
+        height: 48,
+        child: Row(
+          children: [
+            SizedBox(
+              width: kSidebarRailWidth,
+              child: Center(
+                child: Icon(
+                  FleurIcons.feeds,
+                  color: theme.colorScheme.primary,
+                  size: 16,
+                ),
+              ),
+            ),
+            Expanded(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onSecondaryTapDown: onSecondaryTapDown,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    title,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontSize: 13,
+                      fontWeight: AppTypography.platformWeight(FontWeight.w600),
+                      letterSpacing: 0,
+                      height: 1.2,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            if (showAddCategory) ...[
+              const SizedBox(width: 8),
+              isDesktop
+                  ? _SidebarActionIconButton(
+                      tooltip: l10n.newCategory,
+                      onPressed: onAddCategory,
+                      icon: FleurIcons.addCategory,
+                    )
+                  : IconButton(
+                      tooltip: l10n.newCategory,
+                      iconSize: 20,
+                      constraints: const BoxConstraints(
+                        minWidth: 48,
+                        minHeight: 48,
+                      ),
+                      onPressed: onAddCategory,
+                      icon: const Icon(FleurIcons.addCategory),
+                    ),
+            ],
+          ],
         ),
       ),
     );
@@ -661,14 +692,20 @@ class _SidebarCategoryTile extends StatelessWidget {
             children: [
               ListTile(
                 selected: selected,
-                contentPadding: const EdgeInsets.only(left: 4, right: 8),
-                minLeadingWidth: 0,
-                horizontalTitleGap: 4,
-                leading: TreeDisclosureButton(
-                  expanded: expanded,
-                  tooltip: expanded ? l10n.collapse : l10n.expand,
-                  onPressed: () =>
-                      onExpandedCategoryChanged(expanded ? null : category.id),
+                contentPadding: const EdgeInsets.only(right: 12),
+                minLeadingWidth: kSidebarRailWidth,
+                horizontalTitleGap: 0,
+                leading: SizedBox(
+                  width: kSidebarRailWidth,
+                  child: Center(
+                    child: TreeDisclosureButton(
+                      expanded: expanded,
+                      tooltip: expanded ? l10n.collapse : l10n.expand,
+                      onPressed: () => onExpandedCategoryChanged(
+                        expanded ? null : category.id,
+                      ),
+                    ),
+                  ),
                 ),
                 title: Text(
                   category.name,
@@ -835,13 +872,23 @@ class _SidebarFeedTile extends StatelessWidget {
               : null,
           child: ListTile(
             selected: selected,
-            contentPadding: EdgeInsets.only(left: 16 + indent, right: 16),
-            leading: FaviconCircle(
-              siteUri: siteUri,
-              diameter: 28,
-              avatarSize: 18,
-              fallbackIcon: FleurIcons.feed,
-              fallbackColor: theme.colorScheme.onSurfaceVariant,
+            contentPadding: const EdgeInsets.only(right: 16),
+            minLeadingWidth: kSidebarRailWidth + indent,
+            horizontalTitleGap: 0,
+            leading: SizedBox(
+              width: kSidebarRailWidth + indent,
+              child: Padding(
+                padding: EdgeInsets.only(left: indent),
+                child: Center(
+                  child: FaviconCircle(
+                    siteUri: siteUri,
+                    diameter: 28,
+                    avatarSize: 18,
+                    fallbackIcon: FleurIcons.feed,
+                    fallbackColor: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
             ),
             title: Text(
               displayTitle,

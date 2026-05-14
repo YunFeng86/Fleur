@@ -19,6 +19,7 @@ import 'package:fleur/ui/sidebar/sidebar_management_actions.dart';
 import 'package:fleur/ui/sidebar/sidebar_selection_actions.dart';
 import 'package:fleur/ui/sidebar/sidebar_tree.dart';
 import 'package:fleur/utils/platform.dart';
+import 'package:fleur/widgets/favicon_circle.dart';
 import 'package:fleur/widgets/tree_disclosure_button.dart';
 
 import '../../test_utils/critical_workflow_test_support.dart';
@@ -156,7 +157,10 @@ void main() {
         tester.getSize(find.byType(TreeDisclosureButton).first),
         const Size(40, 48),
       );
-      expect(tester.getCenter(find.byIcon(FleurIcons.expand)).dx, lessThan(32));
+      expect(
+        tester.getCenter(find.byIcon(FleurIcons.expand)).dx,
+        closeTo(kSidebarRailWidth / 2, 0.1),
+      );
       expect(
         tester.getCenter(find.byIcon(FleurIcons.expand)).dx,
         lessThan(tester.getCenter(find.text('Tech')).dx),
@@ -185,6 +189,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Tech News'), findsOneWidget);
+      expect(
+        tester.getCenter(find.byType(FaviconCircle).first).dx,
+        closeTo(kSidebarRailWidth / 2 + 16, 0.1),
+      );
       expect(container.read(selectedCategoryIdProvider), isNull);
       final expandedSemantics = tester.widget<Semantics>(semanticsFinder.first);
       expect(expandedSemantics.properties.expanded, isTrue);
