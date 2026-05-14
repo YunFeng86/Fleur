@@ -817,10 +817,14 @@ void main() {
     final shellButtonTop = tester
         .getTopLeft(find.byKey(const Key('shell_sidebar_button')))
         .dy;
+    final shellButtonCenter = tester
+        .getCenter(find.byKey(const Key('shell_sidebar_button')))
+        .dy;
 
     expect(kMacOSTrafficLightTargetCenterY, kWorkspaceHeaderHeight / 2);
     expect(shellButtonLeft, greaterThanOrEqualTo(kMacOSTrafficLightSafeInset));
     expect(shellButtonTop, kMacOSShellControlTopInset);
+    expect(shellButtonCenter, kMacOSTrafficLightTargetCenterY);
     expect(
       tester.getSize(find.byKey(const Key('shell_sidebar_button'))),
       const Size.square(kShellControlSize),
@@ -2506,6 +2510,10 @@ void main() {
     expect(
       tester.getSize(find.byKey(const Key('home_scope_actions'))).height,
       kShellControlSize,
+    );
+    expect(
+      tester.getCenter(find.byKey(const Key('home_scope_actions'))).dy,
+      kMacOSTrafficLightTargetCenterY,
     );
     expect(find.byKey(const Key('scope_refresh_button')), findsOneWidget);
     expect(find.byKey(const Key('scope_unread_filter_button')), findsOneWidget);
