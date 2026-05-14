@@ -6,7 +6,6 @@ class MainFlutterWindow: NSWindow, NSToolbarDelegate {
   private static let defaultTrafficLightSafeInset: CGFloat = 72
   private static let trafficLightSafeGap: CGFloat = 8
   private static let titlebarToolbarIdentifier = NSToolbar.Identifier("FleurTitlebarToolbar")
-  private static let titlebarToolbarItemIdentifier = NSToolbarItem.Identifier("FleurTitlebarToolbarItem")
 
   private var localeChannel: FlutterMethodChannel?
   private var windowControlsChannel: FlutterMethodChannel?
@@ -256,11 +255,11 @@ class MainFlutterWindow: NSWindow, NSToolbarDelegate {
   }
 
   func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-    [Self.titlebarToolbarItemIdentifier]
+    [.space]
   }
 
   func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-    [Self.titlebarToolbarItemIdentifier]
+    [.space]
   }
 
   func toolbarSelectableItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
@@ -272,22 +271,7 @@ class MainFlutterWindow: NSWindow, NSToolbarDelegate {
     itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier,
     willBeInsertedIntoToolbar flag: Bool
   ) -> NSToolbarItem? {
-    guard itemIdentifier == Self.titlebarToolbarItemIdentifier else {
-      return nil
-    }
-
-    let item = NSToolbarItem(itemIdentifier: itemIdentifier)
-    let view = NSView(frame: .zero)
-    view.isHidden = true
-    view.alphaValue = 0
-    item.view = view
-    item.minSize = view.frame.size
-    item.maxSize = view.frame.size
-    item.label = ""
-    item.paletteLabel = ""
-    item.toolTip = ""
-    item.isEnabled = false
-    return item
+    nil
   }
 
   private static func normalizeLocaleTag(_ tag: String?) -> String? {

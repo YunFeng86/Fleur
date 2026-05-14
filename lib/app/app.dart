@@ -20,6 +20,7 @@ import '../services/notifications/notification_service.dart';
 import '../services/settings/app_settings.dart';
 import '../theme/app_theme.dart';
 import '../theme/seed_color_presets.dart';
+import '../ui/sidebar_layout.dart';
 import '../utils/macos_locale_bridge.dart';
 import '../utils/macos_window_chrome_bridge.dart';
 import '../utils/platform.dart';
@@ -129,6 +130,8 @@ class _AppRuntimeHostState extends ConsumerState<AppRuntimeHost> {
 
   NotificationService? _notificationService;
   String? _lastPreferredLanguageTag;
+  MacOSWindowChromeMetrics? _pendingMacOSWindowChromeMetrics;
+  bool _macOSWindowChromeMetricsUpdateScheduled = false;
 
   @override
   void initState() {
@@ -157,10 +160,27 @@ class _AppRuntimeHostState extends ConsumerState<AppRuntimeHost> {
 
   void _bindMacOSWindowChromeMetrics() {
     if (!isMacOS) return;
-    ref.read(macOSWindowChromeMetricsProvider.notifier).state =
-        MacOSWindowChromeBridge.latestMetrics;
+    _scheduleMacOSWindowChromeMetricsUpdate(
+      MacOSWindowChromeBridge.latestMetrics,
+    );
     MacOSWindowChromeBridge.setMetricsChangedHandler((metrics) {
       if (!mounted) return;
+      _scheduleMacOSWindowChromeMetricsUpdate(metrics);
+    });
+  }
+
+  void _scheduleMacOSWindowChromeMetricsUpdate(
+    MacOSWindowChromeMetrics metrics,
+  ) {
+    _pendingMacOSWindowChromeMetrics = metrics;
+    if (_macOSWindowChromeMetricsUpdateScheduled) return;
+    _macOSWindowChromeMetricsUpdateScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _macOSWindowChromeMetricsUpdateScheduled = false;
+      if (!mounted) return;
+      final metrics = _pendingMacOSWindowChromeMetrics;
+      if (metrics == null) return;
+      _pendingMacOSWindowChromeMetrics = null;
       ref.read(macOSWindowChromeMetricsProvider.notifier).state = metrics;
     });
   }
@@ -226,7 +246,7 @@ class _AppRuntimeHostState extends ConsumerState<AppRuntimeHost> {
     try {
       final metrics = await MacOSWindowChromeBridge.getTitlebarChromeMetrics();
       if (!mounted) return;
-      ref.read(macOSWindowChromeMetricsProvider.notifier).state = metrics;
+      _scheduleMacOSWindowChromeMetricsUpdate(metrics);
     } on MissingPluginException {
       // Widget tests and non-macOS embedders may not register this channel.
     } catch (e) {
