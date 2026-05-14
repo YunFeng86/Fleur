@@ -2385,6 +2385,10 @@ void main() {
         tester.getSize(find.byKey(const Key('article_item_thumbnail'))),
         const Size(156, 108),
       );
+      expect(
+        tester.getSize(find.byKey(const Key('article_item_feed_icon'))),
+        const Size(32, 32),
+      );
       expect(find.byKey(const Key('article_item_hover_actions')), findsNothing);
     },
   );
@@ -2419,6 +2423,9 @@ void main() {
 
     expect(find.byKey(const Key('article_item_timestamp')), findsOneWidget);
     expect(find.byKey(const Key('article_item_hover_actions')), findsNothing);
+    final initialCardHeight = tester
+        .getSize(find.byKey(const Key('article_item_card')))
+        .height;
 
     final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
     addTearDown(gesture.removePointer);
@@ -2430,6 +2437,10 @@ void main() {
 
     expect(find.byKey(const Key('article_item_timestamp')), findsNothing);
     expect(find.byKey(const Key('article_item_hover_actions')), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const Key('article_item_card'))).height,
+      initialCardHeight,
+    );
     final hoverDecoration =
         tester
                 .widget<Container>(find.byKey(const Key('article_item_card')))

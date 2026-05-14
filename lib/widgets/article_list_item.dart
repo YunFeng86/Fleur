@@ -36,6 +36,7 @@ class ArticleListItem extends ConsumerStatefulWidget {
 
 class _ArticleListItemState extends ConsumerState<ArticleListItem> {
   static const _radius = BorderRadius.all(Radius.circular(8));
+  static const double _headerHeight = 32;
   static const double _trailingWidth = 104;
   static const double _minImageLayoutWidth = 280;
   static const double _compactImageWidth = 128;
@@ -138,48 +139,53 @@ class _ArticleListItemState extends ConsumerState<ArticleListItem> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          FaviconCircle(
-                            siteUri: siteUri,
-                            diameter: 26,
-                            avatarSize: 17,
-                            fallbackIcon: FleurIcons.feed,
-                            fallbackColor: metaColor,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              key: const Key('article_item_feed_label'),
-                              _feedLabel(feed, article),
-                              style: metadataStyle,
-                              maxLines: 1,
-                              softWrap: false,
-                              overflow: _hovered
-                                  ? TextOverflow.fade
-                                  : TextOverflow.ellipsis,
+                      SizedBox(
+                        height: _headerHeight,
+                        child: Row(
+                          children: [
+                            FaviconCircle(
+                              key: const Key('article_item_feed_icon'),
+                              siteUri: siteUri,
+                              diameter: _headerHeight,
+                              avatarSize: 20,
+                              fallbackIcon: FleurIcons.feed,
+                              fallbackColor: metaColor,
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          SizedBox(
-                            width: _trailingWidth,
-                            child: _hovered
-                                ? _ArticleItemActions(
-                                    article: article,
-                                    l10n: l10n,
-                                    states: states,
-                                    onToggleReadLater: _toggleReadLater,
-                                    onToggleStar: _toggleStar,
-                                    onToggleRead: _toggleRead,
-                                  )
-                                : _ArticleItemTimestamp(
-                                    isUnread: isUnread,
-                                    timeStr: timeStr,
-                                    style: timestampStyle,
-                                    unreadColor: states.unreadAccent,
-                                  ),
-                          ),
-                        ],
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                key: const Key('article_item_feed_label'),
+                                _feedLabel(feed, article),
+                                style: metadataStyle,
+                                maxLines: 1,
+                                softWrap: false,
+                                overflow: _hovered
+                                    ? TextOverflow.fade
+                                    : TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            SizedBox(
+                              width: _trailingWidth,
+                              height: _headerHeight,
+                              child: _hovered
+                                  ? _ArticleItemActions(
+                                      article: article,
+                                      l10n: l10n,
+                                      states: states,
+                                      onToggleReadLater: _toggleReadLater,
+                                      onToggleStar: _toggleStar,
+                                      onToggleRead: _toggleRead,
+                                    )
+                                  : _ArticleItemTimestamp(
+                                      isUnread: isUnread,
+                                      timeStr: timeStr,
+                                      style: timestampStyle,
+                                      unreadColor: states.unreadAccent,
+                                    ),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 6),
                       Text(
