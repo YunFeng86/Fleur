@@ -13,24 +13,22 @@ import 'app/app.dart';
 import 'services/background/background_sync_service.dart';
 import 'services/logging/app_logger.dart';
 import 'services/logging/app_provider_observer.dart';
-import 'ui/sidebar_layout.dart';
 import 'utils/platform.dart';
 
 const MethodChannel _macOSWindowControlsChannel = MethodChannel(
   'com.cloudwind.fleur/window_controls',
 );
 
-Future<void> _alignMacOSWindowControls() async {
+Future<void> _configureMacOSTitlebarChrome() async {
   if (!isMacOS) return;
 
   try {
     await _macOSWindowControlsChannel.invokeMethod<void>(
-      'alignTrafficLights',
-      <String, Object?>{'targetCenterY': kMacOSTrafficLightTargetCenterY},
+      'configureTitlebarChrome',
     );
   } catch (error, stackTrace) {
     AppLogger.w(
-      'Failed to align macOS window controls',
+      'Failed to configure macOS titlebar chrome',
       tag: 'platform',
       error: error,
       stackTrace: stackTrace,
@@ -84,7 +82,7 @@ Future<void> main() async {
           await windowManager.show();
           await windowManager.focus();
         });
-        await _alignMacOSWindowControls();
+        await _configureMacOSTitlebarChrome();
       }
 
       runApp(
