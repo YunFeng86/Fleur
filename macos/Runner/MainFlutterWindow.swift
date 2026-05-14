@@ -119,7 +119,9 @@ class MainFlutterWindow: NSWindow, NSToolbarDelegate {
     }
 
     let item = NSToolbarItem(itemIdentifier: itemIdentifier)
-    let view = NSView(frame: NSRect(x: 0, y: 0, width: 1, height: 1))
+    let view = NSView(frame: .zero)
+    view.isHidden = true
+    view.alphaValue = 0
     item.view = view
     item.minSize = view.frame.size
     item.maxSize = view.frame.size
