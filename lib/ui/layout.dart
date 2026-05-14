@@ -13,7 +13,7 @@ const double kMaxReadingWidth = 700;
 
 // Desktop fixed panes (in logical pixels).
 const double kDesktopSidebarWidth = 260;
-const double kDesktopListWidth = 320;
+const double kDesktopListWidth = 460;
 const double kPaneGap = 0;
 
 // Non-desktop (tablet / narrow window) pane widths used in HomeScreen.

@@ -125,6 +125,16 @@ class _ArticleListState extends ConsumerState<ArticleList> {
     );
   }
 
+  Widget _withReadableListWidth(Widget child) {
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: kMaxReadingWidth),
+        child: SizedBox(width: double.infinity, child: child),
+      ),
+    );
+  }
+
   List<_ArticleListEntry> _getEntries(
     List<Article> items,
     ArticleGroupMode groupMode,
@@ -365,12 +375,14 @@ class _ArticleListState extends ConsumerState<ArticleList> {
               itemCount: entries.length + (data.hasMore ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index >= entries.length) {
-                  return Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Center(
-                      child: data.isLoadingMore
-                          ? const CircularProgressIndicator()
-                          : Text(l10n.scrollToLoadMore),
+                  return _withReadableListWidth(
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Center(
+                        child: data.isLoadingMore
+                            ? const CircularProgressIndicator()
+                            : Text(l10n.scrollToLoadMore),
+                      ),
                     ),
                   );
                 }
@@ -382,15 +394,17 @@ class _ArticleListState extends ConsumerState<ArticleList> {
                       atTop &&
                       index < 12 &&
                       newHeaderTitles.contains(entry.title);
-                  return KeyedSubtree(
-                    key: ValueKey('h-${entry.title}'),
-                    child: Appear(
-                      enabled: animate,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 16, 12, 8),
-                        child: Text(
-                          entry.title,
-                          style: Theme.of(context).textTheme.titleSmall,
+                  return _withReadableListWidth(
+                    KeyedSubtree(
+                      key: ValueKey('h-${entry.title}'),
+                      child: Appear(
+                        enabled: animate,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 16, 12, 8),
+                          child: Text(
+                            entry.title,
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
                         ),
                       ),
                     ),
@@ -469,9 +483,11 @@ class _ArticleListState extends ConsumerState<ArticleList> {
                         atTop &&
                         index < 16 &&
                         newArticleIds.contains(seed.id);
-                    return KeyedSubtree(
-                      key: ValueKey('a-${seed.id}'),
-                      child: Appear(enabled: animate, child: child),
+                    return _withReadableListWidth(
+                      KeyedSubtree(
+                        key: ValueKey('a-${seed.id}'),
+                        child: Appear(enabled: animate, child: child),
+                      ),
                     );
                   },
                 );

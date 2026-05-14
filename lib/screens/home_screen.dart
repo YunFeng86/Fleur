@@ -275,6 +275,19 @@ class HomeScreen extends ConsumerWidget {
     Object? heroTag,
     Widget? topBar,
   }) {
+    if (selectedArticleId == null) {
+      return [
+        Expanded(
+          child: HomeArticleListPane(
+            heroTag: heroTag,
+            selectedArticleId: selectedArticleId,
+            showSyncCapsule: showSyncCapsule,
+            topBar: topBar,
+          ),
+        ),
+      ];
+    }
+
     return [
       HomeArticleListPane(
         width: listWidth,
@@ -283,10 +296,7 @@ class HomeScreen extends ConsumerWidget {
         showSyncCapsule: showSyncCapsule,
         topBar: topBar,
       ),
-      if (selectedArticleId == null)
-        const Expanded(child: SizedBox.shrink())
-      else
-        Expanded(child: HomeReaderPane(articleId: selectedArticleId)),
+      Expanded(child: HomeReaderPane(articleId: selectedArticleId)),
     ];
   }
 }

@@ -2334,7 +2334,10 @@ void main() {
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
-              body: ArticleListItem(article: article, selected: true),
+              body: SizedBox(
+                width: 700,
+                child: ArticleListItem(article: article, selected: true),
+              ),
             ),
           ),
         ),
@@ -2342,15 +2345,10 @@ void main() {
       await tester.pumpAndSettle();
 
       final theme = AppTheme.light();
-      final rowDecoration =
+      final cardDecoration =
           tester
                   .widget<DecoratedBox>(
-                    find
-                        .descendant(
-                          of: find.byType(ArticleListItem),
-                          matching: find.byType(DecoratedBox),
-                        )
-                        .first,
+                    find.byKey(const Key('article_item_card')),
                   )
                   .decoration
               as BoxDecoration;
@@ -2361,9 +2359,12 @@ void main() {
       final timestamp = tester.widget<Text>(
         find.byKey(const Key('article_item_timestamp')),
       );
-      final starIcon = tester.widget<Icon>(find.byIcon(FleurIcons.starActive));
 
-      expect(rowDecoration.color, theme.fleurSurface.cardSelected);
+      expect(cardDecoration.color, theme.fleurSurface.cardSelected);
+      expect(
+        cardDecoration.borderRadius,
+        const BorderRadius.all(Radius.circular(8)),
+      );
       expect(title.style?.fontWeight, FontWeight.w600);
       expect(title.style?.letterSpacing, 0);
       expect(title.style?.height, 1.2);
@@ -2374,14 +2375,72 @@ void main() {
       expect(timestamp.style?.fontWeight, FontWeight.w500);
       expect(timestamp.style?.letterSpacing, 0);
       expect(timestamp.style?.height, 1.1);
+      expect(find.text('Hello world'), findsOneWidget);
+      expect(
+        tester
+            .widget<Text>(find.byKey(const Key('article_item_preview_text')))
+            .maxLines,
+        4,
+      );
       expect(
         tester.getSize(find.byKey(const Key('article_item_thumbnail'))),
-        const Size(72, 54),
+        const Size(156, 108),
       );
-      expect(starIcon.size, 13);
-      expect(find.byIcon(FleurIcons.starActive), findsOneWidget);
+      expect(find.byKey(const Key('article_item_hover_actions')), findsNothing);
     },
   );
+
+  testWidgets('Article list item shows hover actions and calls services', (
+    tester,
+  ) async {
+    final feed = _buildFeed();
+    final article = _buildArticle(id: 42, isRead: false, isStarred: false);
+    final actions = RecordingArticleActionService();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          feedsProvider.overrideWith((ref) => Stream.value([feed])),
+          articleActionServiceProvider.overrideWithValue(actions),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: SizedBox(
+              width: 700,
+              child: ArticleListItem(article: article, selected: false),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('article_item_timestamp')), findsOneWidget);
+    expect(find.byKey(const Key('article_item_hover_actions')), findsNothing);
+
+    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(gesture.removePointer);
+    await gesture.addPointer();
+    await gesture.moveTo(
+      tester.getCenter(find.byKey(const Key('article_item_card'))),
+    );
+    await tester.pump();
+
+    expect(find.byKey(const Key('article_item_timestamp')), findsNothing);
+    expect(find.byKey(const Key('article_item_hover_actions')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('article_item_read_later_button')));
+    await tester.tap(find.byKey(const Key('article_item_star_button')));
+    await tester.tap(find.byKey(const Key('article_item_read_button')));
+    await tester.pump();
+
+    expect(actions.toggleReadLaterCalls, [42]);
+    expect(actions.toggleStarCalls, [42]);
+    expect(actions.markReadCalls, [(articleId: 42, isRead: true)]);
+  });
 
   testWidgets('Article list item softens title weight on Windows', (
     tester,
@@ -2411,6 +2470,39 @@ void main() {
 
     final title = tester.widget<Text>(find.text('Selected Article'));
     expect(title.style?.fontWeight, FontWeight.w600);
+  });
+
+  testWidgets('Article list item omits empty preview without overflow', (
+    tester,
+  ) async {
+    final feed = _buildFeed();
+    final article = _buildArticle(isRead: true, isStarred: false)
+      ..contentHtml =
+          '<img src="https://example.com/icon.png" width="32" height="32">';
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          feedsProvider.overrideWith((ref) => Stream.value([feed])),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: SizedBox(
+              width: 260,
+              child: ArticleListItem(article: article, selected: false),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('article_item_preview_text')), findsNothing);
+    expect(find.byKey(const Key('article_item_thumbnail')), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets(
@@ -2504,7 +2596,11 @@ void main() {
     final l10n = AppLocalizations.of(element)!;
     final container = ProviderScope.containerOf(element);
 
-    expect(tester.getSize(find.byType(ArticleList)).width, kDesktopListWidth);
+    expect(tester.getSize(find.byType(ArticleList)).width, 1200);
+    expect(
+      tester.getSize(find.byKey(const Key('article_item_card'))).width,
+      lessThanOrEqualTo(kMaxReadingWidth),
+    );
     expect(find.byKey(const Key('home_scope_header')), findsOneWidget);
     expect(find.byKey(const Key('home_scope_actions')), findsOneWidget);
     expect(
