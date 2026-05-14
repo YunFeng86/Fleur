@@ -274,6 +274,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
               accountAnchorKey: _accountFooterKey,
               reserveShellHeader: widget.reserveShellHeader,
               navigationTree: navigationTree,
+              navigationScrollController: _scrollController,
             ),
     );
   }
@@ -379,7 +380,7 @@ List<_SidebarFixedItemData> _fixedScopeItems({
     _SidebarFixedItemData(
       key: const Key('sidebar_all_button'),
       selected: currentScope == ArticleScope.all,
-      icon: FleurIcons.allArticles,
+      icon: FleurIcons.feed,
       title: l10n.all,
       count: allUnreadCount,
       onTap: onSelectAll,
@@ -609,6 +610,7 @@ class _SidebarPanel extends StatelessWidget {
     required this.accountAnchorKey,
     required this.reserveShellHeader,
     required this.navigationTree,
+    required this.navigationScrollController,
   });
 
   final List<_SidebarFixedItemData> fixedItems;
@@ -618,6 +620,7 @@ class _SidebarPanel extends StatelessWidget {
   final Key accountAnchorKey;
   final bool reserveShellHeader;
   final Widget navigationTree;
+  final ScrollController navigationScrollController;
 
   @override
   Widget build(BuildContext context) {
@@ -628,7 +631,10 @@ class _SidebarPanel extends StatelessWidget {
             key: Key('app_shell_sidebar_header'),
             height: kWorkspaceHeaderHeight,
           ),
-        _SidebarPanelFixedItems(items: fixedItems),
+        _SidebarPanelFixedItems(
+          items: fixedItems,
+          scrollController: navigationScrollController,
+        ),
         Expanded(child: navigationTree),
         _AccountPanelFooter(
           account: account,
@@ -642,26 +648,54 @@ class _SidebarPanel extends StatelessWidget {
 }
 
 class _SidebarPanelFixedItems extends StatelessWidget {
-  const _SidebarPanelFixedItems({required this.items});
+  const _SidebarPanelFixedItems({
+    required this.items,
+    required this.scrollController,
+  });
 
   final List<_SidebarFixedItemData> items;
+  final ScrollController scrollController;
 
   @override
   Widget build(BuildContext context) {
     final surfaces = Theme.of(context).fleurSurface;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: surfaces.subtleDivider)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(0, 0, 8, 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final item in items) _SidebarPanelFixedItem(item: item),
-          ],
+    final reduceMotion = AppMotion.reduceMotion(context);
+    final duration = reduceMotion ? Duration.zero : AppMotion.short;
+
+    return Stack(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(0, 0, 8, 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final item in items) _SidebarPanelFixedItem(item: item),
+            ],
+          ),
         ),
-      ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: AnimatedBuilder(
+            animation: scrollController,
+            builder: (context, _) {
+              final showDivider =
+                  scrollController.hasClients && scrollController.offset > 0.5;
+              return AnimatedOpacity(
+                opacity: showDivider ? 1 : 0,
+                duration: duration,
+                curve: AppMotion.standardCurve,
+                child: Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: surfaces.subtleDivider,
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
@@ -808,124 +842,152 @@ class _AccountPanelFooter extends StatelessWidget {
 
     final showSync = sync.visible;
     final syncText = _syncText(l10n);
+    final borderRadius = BorderRadius.circular(8);
 
     return SafeArea(
       top: false,
-      child: Material(
-        color: surfaces.card,
-        child: InkWell(
-          onTap: onTap,
-          hoverColor: states.hoverTint,
-          child: SizedBox(
-            height: _kSidebarAccountHeight,
-            child: Row(
-              children: [
-                SizedBox(
-                  key: accountAnchorKey,
-                  width: kSidebarRailWidth,
-                  child: Center(
-                    child: _SidebarRailAccountButton(
-                      key: const Key('sidebar_account_button'),
-                      account: account,
-                      onTap: onTap,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: surfaces.card,
+          border: Border(top: BorderSide(color: surfaces.subtleDivider)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: Tooltip(
+            message: account.name,
+            child: Semantics(
+              button: true,
+              label: account.name,
+              child: Material(
+                key: accountAnchorKey,
+                color: Colors.transparent,
+                borderRadius: borderRadius,
+                child: InkWell(
+                  onTap: onTap,
+                  borderRadius: borderRadius,
+                  hoverColor: states.hoverTint,
+                  child: SizedBox(
+                    height: _kSidebarAccountHeight - 12,
+                    child: Row(
                       children: [
-                        Text(
-                          account.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: scheme.onSurface,
-                            fontSize: 13,
-                            fontWeight: AppTypography.platformWeight(
-                              FontWeight.w500,
+                        SizedBox(
+                          width: kSidebarRailWidth - 12,
+                          child: Center(
+                            child: AccountAvatar(
+                              key: const Key('sidebar_account_button'),
+                              account: account,
+                              radius: _kSidebarAccountAvatarRadius,
+                              showTypeBadge: true,
                             ),
-                            letterSpacing: 0,
-                            height: 1.2,
                           ),
                         ),
-                        AnimatedSwitcher(
-                          duration: duration,
-                          switchInCurve: AppMotion.standardCurve,
-                          switchOutCurve: AppMotion.emphasizedAccelerate,
-                          transitionBuilder: (child, animation) {
-                            return SizeTransition(
-                              sizeFactor: animation,
-                              axisAlignment: -1,
-                              child: FadeTransition(
-                                opacity: animation,
-                                child: child,
-                              ),
-                            );
-                          },
-                          child: showSync
-                              ? Padding(
-                                  key: const ValueKey('sync'),
-                                  padding: const EdgeInsets.only(top: 2),
-                                  child: Row(
-                                    children: [
-                                      if (sync.running)
-                                        const SizedBox(
-                                          width: 10,
-                                          height: 10,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  account.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: scheme.onSurface,
+                                    fontSize: 13,
+                                    fontWeight: AppTypography.platformWeight(
+                                      FontWeight.w500,
+                                    ),
+                                    letterSpacing: 0,
+                                    height: 1.2,
+                                  ),
+                                ),
+                                AnimatedSwitcher(
+                                  duration: duration,
+                                  switchInCurve: AppMotion.standardCurve,
+                                  switchOutCurve:
+                                      AppMotion.emphasizedAccelerate,
+                                  transitionBuilder: (child, animation) {
+                                    return SizeTransition(
+                                      sizeFactor: animation,
+                                      axisAlignment: -1,
+                                      child: FadeTransition(
+                                        opacity: animation,
+                                        child: child,
+                                      ),
+                                    );
+                                  },
+                                  child: showSync
+                                      ? Padding(
+                                          key: const ValueKey('sync'),
+                                          padding: const EdgeInsets.only(
+                                            top: 2,
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              if (sync.running)
+                                                const SizedBox(
+                                                  width: 10,
+                                                  height: 10,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                      ),
+                                                )
+                                              else
+                                                Icon(
+                                                  sync.label ==
+                                                          SyncStatusLabel.failed
+                                                      ? FleurIcons.statusError
+                                                      : FleurIcons.statusOk,
+                                                  size: 12,
+                                                  color:
+                                                      sync.label ==
+                                                          SyncStatusLabel.failed
+                                                      ? states.errorAccent
+                                                      : states.syncAccent,
+                                                ),
+                                              const SizedBox(width: 6),
+                                              Expanded(
+                                                child: OverflowMarquee(
+                                                  text: syncText,
+                                                  style: theme
+                                                      .textTheme
+                                                      .bodySmall
+                                                      ?.copyWith(
+                                                        color: scheme
+                                                            .onSurfaceVariant,
+                                                        fontSize: 11,
+                                                        fontWeight:
+                                                            AppTypography.platformWeight(
+                                                              FontWeight.w500,
+                                                            ),
+                                                        letterSpacing: 0,
+                                                        height: 1.15,
+                                                      ),
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         )
-                                      else
-                                        Icon(
-                                          sync.label == SyncStatusLabel.failed
-                                              ? FleurIcons.statusError
-                                              : FleurIcons.statusOk,
-                                          size: 12,
-                                          color:
-                                              sync.label ==
-                                                  SyncStatusLabel.failed
-                                              ? states.errorAccent
-                                              : states.syncAccent,
-                                        ),
-                                      const SizedBox(width: 6),
-                                      Expanded(
-                                        child: OverflowMarquee(
-                                          text: syncText,
-                                          style: theme.textTheme.bodySmall
-                                              ?.copyWith(
-                                                color: scheme.onSurfaceVariant,
-                                                fontSize: 11,
-                                                fontWeight:
-                                                    AppTypography.platformWeight(
-                                                      FontWeight.w500,
-                                                    ),
-                                                letterSpacing: 0,
-                                                height: 1.15,
-                                              ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                )
-                              : const SizedBox(key: ValueKey('empty')),
+                                      : const SizedBox(key: ValueKey('empty')),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
+                        const SizedBox(width: 8),
+                        Icon(
+                          FleurIcons.accountSwitcher,
+                          size: 16,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 10),
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Icon(
-                  FleurIcons.accountSwitcher,
-                  size: 16,
-                  color: scheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 12),
-              ],
+              ),
             ),
           ),
         ),

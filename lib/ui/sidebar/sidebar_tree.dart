@@ -479,21 +479,11 @@ class _SidebarSectionHeader extends StatelessWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 8, 8, 4),
+      padding: const EdgeInsets.fromLTRB(kSidebarRailWidth, 8, 8, 4),
       child: SizedBox(
         height: 48,
         child: Row(
           children: [
-            SizedBox(
-              width: kSidebarRailWidth,
-              child: Center(
-                child: Icon(
-                  FleurIcons.feeds,
-                  color: theme.colorScheme.primary,
-                  size: 16,
-                ),
-              ),
-            ),
             Expanded(
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
@@ -503,8 +493,8 @@ class _SidebarSectionHeader extends StatelessWidget {
                   child: Text(
                     title,
                     style: theme.textTheme.titleSmall?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontSize: 13,
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontSize: 11,
                       fontWeight: AppTypography.platformWeight(FontWeight.w600),
                       letterSpacing: 0,
                       height: 1.2,
