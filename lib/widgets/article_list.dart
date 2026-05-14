@@ -26,6 +26,7 @@ import '../theme/fleur_theme_extensions.dart';
 import '../ui/layout.dart';
 import '../ui/layout_spec.dart';
 import '../ui/motion.dart';
+import '../ui/sidebar_layout.dart';
 import '../utils/platform.dart';
 import '../models/article.dart';
 import 'app_scrollbar.dart';
@@ -108,10 +109,16 @@ class _ArticleListState extends ConsumerState<ArticleList> {
     final topBar = widget.topBar;
     if (topBar == null) return child;
 
-    return Column(
+    return Stack(
       children: [
-        _ArticleListTopBar(child: topBar),
-        Expanded(child: child),
+        Positioned.fill(child: child),
+        Positioned(
+          left: 0,
+          top: 0,
+          right: 0,
+          height: kWorkspaceHeaderHeight,
+          child: _ArticleListTopBar(child: topBar),
+        ),
       ],
     );
   }
@@ -348,6 +355,9 @@ class _ArticleListState extends ConsumerState<ArticleList> {
             interactive: true,
             child: ListView.builder(
               controller: _controller,
+              padding: widget.topBar == null
+                  ? null
+                  : const EdgeInsets.only(top: kWorkspaceHeaderHeight),
               itemCount: entries.length + (data.hasMore ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index >= entries.length) {
