@@ -46,6 +46,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       totalWidth: size.width,
       totalHeight: size.height,
       sidebarPresentationMode: sidebarPresentationMode,
+      sidebarWidth: ref.read(workspaceSidebarWidthProvider),
+      listWidth: ref.read(workspaceListWidthProvider),
     );
   }
 
@@ -111,12 +113,29 @@ final routerProvider = Provider<GoRouter>((ref) {
       transitionDuration: AppMotion.pageTransitionDuration,
       reverseTransitionDuration: AppMotion.pageReverseTransitionDuration,
       child: AppMenuHost(
-        child: Builder(
-          builder: (context) {
+        child: Consumer(
+          builder: (context, ref, _) {
             final surfaces = Theme.of(context).fleurSurface;
+            final size = MediaQuery.sizeOf(context);
+            final metrics = ref.watch(macOSWindowChromeMetricsProvider);
             return ColoredBox(
               color: Colors.transparent,
-              child: WorkspaceLayerSurface(color: surfaces.list, child: child),
+              child: ShellLayerScope(
+                totalSize: size,
+                contentSize: size,
+                sidebarLayoutMode: sidebarLayoutModeForWidth(size.width),
+                contentLeft: 0,
+                contentLeadingInset: 0,
+                railOverlayVisible: false,
+                sidebarWidth: ref.watch(workspaceSidebarWidthProvider),
+                listWidth: ref.watch(workspaceListWidthProvider),
+                headerLeadingInset: 14,
+                macOSWindowChromeMetrics: metrics,
+                child: WorkspaceLayerSurface(
+                  color: surfaces.list,
+                  child: child,
+                ),
+              ),
             );
           },
         ),

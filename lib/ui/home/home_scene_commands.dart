@@ -11,6 +11,7 @@ import '../../providers/article_list_controller.dart';
 import '../../providers/app_settings_providers.dart';
 import '../../providers/backend_capabilities_provider.dart';
 import '../../providers/backend_sync_semantics_provider.dart';
+import '../../providers/core_providers.dart';
 import '../../providers/query_providers.dart';
 import '../../providers/refresh_all_providers.dart';
 import '../../providers/repository_providers.dart';
@@ -360,9 +361,12 @@ class HomeSceneCommands {
     final scope = _ref.read(currentArticleScopeProvider);
     final location = scopedArticleLocation(scope, articleId);
     final spec = LayoutSpec.fromContext(_context);
+    final listWidth = isDesktop
+        ? _ref.read(workspaceListWidthProvider)
+        : kHomeListWidth;
     final openAsSecondaryPage = isDesktop
         ? !spec.desktopEmbedsReader
-        : !spec.canEmbedReader(listWidth: kHomeListWidth);
+        : !spec.canEmbedReader(listWidth: listWidth);
 
     if (!openAsSecondaryPage) {
       _context.go(location);

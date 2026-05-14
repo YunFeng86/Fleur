@@ -31,7 +31,10 @@ const double kCompactWidth = 600;
 /// 3) listOnly: list only (sidebar in drawer; reader is a secondary page)
 enum DesktopPaneMode { threePane, splitListReader, listOnly }
 
-DesktopPaneMode desktopModeForWidth(double width) {
+DesktopPaneMode desktopModeForWidth(
+  double width, {
+  double listWidth = kDesktopListWidth,
+}) {
   // ELASTIC LOGIC:
   // We use MINIMUM widths to determine when to drop a pane.
   // This allows the reader view to be flexible (between kMinReadingWidth and infinity)
@@ -40,14 +43,11 @@ DesktopPaneMode desktopModeForWidth(double width) {
   // Stage 1 -> 2 boundary: Can we fit Sidebar + List + MinReader?
   // We check against kMinReadingWidth to allow the reader to start small and grow.
   final minFor3 =
-      kDesktopSidebarWidth +
-      kDesktopListWidth +
-      kMinReadingWidth +
-      kPaneGap * 2;
+      kDesktopSidebarWidth + listWidth + kMinReadingWidth + kPaneGap * 2;
 
   // Stage 2 -> 3 boundary: Can we fit List + MinReader?
   // We prioritizing keeping the Reader view visible over the Sidebar.
-  final minForListReader = kDesktopListWidth + kMinReadingWidth + kPaneGap;
+  final minForListReader = listWidth + kMinReadingWidth + kPaneGap;
 
   if (width >= minFor3) return DesktopPaneMode.threePane;
   if (width >= minForListReader) return DesktopPaneMode.splitListReader;

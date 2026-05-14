@@ -42,6 +42,7 @@ import '../utils/platform.dart';
 import '../utils/content_hash.dart';
 import '../utils/language_utils.dart';
 import '../ui/layout.dart';
+import '../ui/workspace_layers.dart';
 import '../ui/reader/reader_selectable_rich_text.dart';
 
 part '../ui/reader/reader_session_coordinator.dart';

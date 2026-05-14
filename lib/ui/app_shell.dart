@@ -171,6 +171,8 @@ class _AppShellState extends ConsumerState<AppShell> {
     required Size size,
     required FleurSurfaceTheme surfaces,
     required MacOSWindowChromeMetrics macOSWindowChromeMetrics,
+    required double sidebarWidth,
+    required double listWidth,
   }) {
     return AppMenuHost(
       child: ShellLayerScope(
@@ -178,6 +180,10 @@ class _AppShellState extends ConsumerState<AppShell> {
         contentSize: size,
         sidebarLayoutMode: sidebarLayoutModeForWidth(size.width),
         contentLeft: 0,
+        contentLeadingInset: 0,
+        railOverlayVisible: false,
+        sidebarWidth: sidebarWidth,
+        listWidth: listWidth,
         headerLeadingInset: 14,
         macOSWindowChromeMetrics: macOSWindowChromeMetrics,
         child: AppDrawerScope(
@@ -199,6 +205,8 @@ class _AppShellState extends ConsumerState<AppShell> {
     required SidebarPresentationMode presentationMode,
     required MacOSWindowChromeMetrics macOSWindowChromeMetrics,
     required FleurSurfaceTheme surfaces,
+    required double sidebarWidth,
+    required double listWidth,
   }) {
     final sidebarLayoutMode = sidebarLayoutModeForWidth(size.width);
     final hasInlineSidebar = sidebarLayoutMode == SidebarLayoutMode.inline;
@@ -207,11 +215,15 @@ class _AppShellState extends ConsumerState<AppShell> {
         presentationMode == SidebarPresentationMode.expanded;
     final temporarySidebarOpen = !hasInlineSidebar && _temporarySidebarOpen;
     final contentLeft = sidebarExpanded
-        ? kSidebarExpandedWidth + kSidebarContentDividerWidth
-        : (temporarySidebarOpen ? kSidebarExpandedWidth : 0.0);
+        ? sidebarWidth + kSidebarContentDividerWidth
+        : (temporarySidebarOpen ? sidebarWidth : 0.0);
     final contentWidth = sidebarExpanded
         ? (size.width - contentLeft).clamp(0.0, double.infinity).toDouble()
         : size.width;
+    final railOverlayVisible = !sidebarExpanded && !temporarySidebarOpen;
+    final contentLeadingInset = railOverlayVisible
+        ? kSidebarRailWidth + 16
+        : 0.0;
     final controlsPresentationMode = sidebarExpanded || temporarySidebarOpen
         ? SidebarPresentationMode.expanded
         : SidebarPresentationMode.collapsed;
@@ -230,15 +242,39 @@ class _AppShellState extends ConsumerState<AppShell> {
       contentSize: Size(contentWidth, size.height),
       sidebarLayoutMode: sidebarLayoutMode,
       contentLeft: contentLeft,
+      contentLeadingInset: contentLeadingInset,
+      railOverlayVisible: railOverlayVisible,
+      sidebarWidth: sidebarWidth,
+      listWidth: listWidth,
       headerLeadingInset: headerLeadingInset,
       macOSWindowChromeMetrics: macOSWindowChromeMetrics,
       child: WorkspaceLayerSurface(
         key: const Key('app_shell_content_layer'),
         color: surfaces.list,
-        child: MediaQuery.removePadding(
-          context: context,
-          removeBottom: true,
-          child: widget.child,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: MediaQuery.removePadding(
+                context: context,
+                removeBottom: true,
+                child: widget.child,
+              ),
+            ),
+            if (railOverlayVisible)
+              Positioned(
+                key: const Key('app_shell_rail_overlay'),
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: kSidebarRailWidth,
+                child: Sidebar(
+                  onSelectScope: (scope) => _goToScope(context, scope),
+                  reserveShellHeader: true,
+                  transparentBackground: true,
+                  presentationModeOverride: SidebarPresentationMode.collapsed,
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -261,22 +297,43 @@ class _AppShellState extends ConsumerState<AppShell> {
                   left: 0,
                   top: 0,
                   bottom: 0,
-                  width: kSidebarExpandedWidth,
+                  width: sidebarWidth,
                   child: _desktopSidebar(
                     context: context,
-                    width: kSidebarExpandedWidth,
+                    width: sidebarWidth,
                     presentationModeOverride: SidebarPresentationMode.expanded,
                   ),
                 ),
-                if (sidebarExpanded)
+                if (sidebarExpanded) ...[
                   Positioned(
                     key: const Key('app_shell_sidebar_divider'),
-                    left: kSidebarExpandedWidth,
+                    left: sidebarWidth,
                     top: 0,
                     bottom: 0,
                     width: kSidebarContentDividerWidth,
                     child: ColoredBox(color: surfaces.subtleDivider),
                   ),
+                  Positioned(
+                    key: const Key('app_shell_sidebar_split_handle'),
+                    left: sidebarWidth - kWorkspaceSplitHandleHitWidth / 2,
+                    top: 0,
+                    bottom: 0,
+                    width: kWorkspaceSplitHandleHitWidth,
+                    child: WorkspaceSplitHandle(
+                      onDragDelta: (delta) {
+                        final notifier = ref.read(
+                          workspaceSidebarWidthProvider.notifier,
+                        );
+                        notifier.state = (notifier.state + delta)
+                            .clamp(
+                              kMinWorkspaceSidebarWidth,
+                              kMaxWorkspaceSidebarWidth,
+                            )
+                            .toDouble();
+                      },
+                    ),
+                  ),
+                ],
                 AnimatedPositioned(
                   duration: const Duration(milliseconds: 180),
                   curve: Curves.easeOutCubic,
@@ -323,6 +380,12 @@ class _AppShellState extends ConsumerState<AppShell> {
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final presentationMode = ref.watch(sidebarPresentationModeProvider);
+    final sidebarWidth = ref
+        .watch(workspaceSidebarWidthProvider)
+        .clamp(kMinWorkspaceSidebarWidth, kMaxWorkspaceSidebarWidth);
+    final listWidth = ref
+        .watch(workspaceListWidthProvider)
+        .clamp(kMinWorkspaceListWidth, kMaxWorkspaceListWidth);
     final macOSWindowChromeMetrics = ref.watch(
       macOSWindowChromeMetricsProvider,
     );
@@ -333,6 +396,8 @@ class _AppShellState extends ConsumerState<AppShell> {
           sidebarLayoutModeForWidth(size.width) == SidebarLayoutMode.inline
           ? presentationMode
           : SidebarPresentationMode.collapsed,
+      sidebarWidth: sidebarWidth.toDouble(),
+      listWidth: listWidth.toDouble(),
     );
     final surfaces = Theme.of(context).fleurSurface;
     final hideNavForReaderPage =
@@ -355,6 +420,8 @@ class _AppShellState extends ConsumerState<AppShell> {
           size: size,
           surfaces: surfaces,
           macOSWindowChromeMetrics: macOSWindowChromeMetrics,
+          sidebarWidth: sidebarWidth.toDouble(),
+          listWidth: listWidth.toDouble(),
         );
       }
       return wrapShell(
@@ -370,6 +437,8 @@ class _AppShellState extends ConsumerState<AppShell> {
         presentationMode: presentationMode,
         macOSWindowChromeMetrics: macOSWindowChromeMetrics,
         surfaces: surfaces,
+        sidebarWidth: sidebarWidth.toDouble(),
+        listWidth: listWidth.toDouble(),
       );
     }
 

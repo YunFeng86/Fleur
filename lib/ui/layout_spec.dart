@@ -17,6 +17,8 @@ class LayoutSpec {
     required this.contentWidth,
     required this.contentHeight,
     required this.sidebarLayoutMode,
+    required this.sidebarWidth,
+    required this.listWidth,
   });
 
   factory LayoutSpec.fromTotalSize({
@@ -24,6 +26,8 @@ class LayoutSpec {
     required double totalHeight,
     SidebarPresentationMode sidebarPresentationMode =
         SidebarPresentationMode.expanded,
+    double sidebarWidth = kDefaultWorkspaceSidebarWidth,
+    double listWidth = kDefaultWorkspaceListWidth,
   }) {
     return LayoutSpec._(
       totalWidth: totalWidth,
@@ -31,9 +35,12 @@ class LayoutSpec {
       contentWidth: effectiveContentWidth(
         totalWidth,
         sidebarPresentationMode: sidebarPresentationMode,
+        sidebarWidth: sidebarWidth,
       ),
       contentHeight: totalHeight,
       sidebarLayoutMode: sidebarLayoutModeForWidth(totalWidth),
+      sidebarWidth: sidebarWidth,
+      listWidth: listWidth,
     );
   }
 
@@ -45,6 +52,7 @@ class LayoutSpec {
   factory LayoutSpec.fromContentSize({
     required double contentWidth,
     required double contentHeight,
+    double listWidth = kDefaultWorkspaceListWidth,
   }) {
     return LayoutSpec._(
       totalWidth: contentWidth,
@@ -52,6 +60,8 @@ class LayoutSpec {
       contentWidth: contentWidth,
       contentHeight: contentHeight,
       sidebarLayoutMode: sidebarLayoutModeForWidth(contentWidth),
+      sidebarWidth: kDefaultWorkspaceSidebarWidth,
+      listWidth: listWidth,
     );
   }
 
@@ -64,6 +74,8 @@ class LayoutSpec {
         contentWidth: shellLayer.contentSize.width,
         contentHeight: shellLayer.contentSize.height,
         sidebarLayoutMode: shellLayer.sidebarLayoutMode,
+        sidebarWidth: shellLayer.sidebarWidth,
+        listWidth: shellLayer.listWidth,
       );
     }
 
@@ -79,12 +91,15 @@ class LayoutSpec {
   final double contentWidth;
   final double contentHeight;
   final SidebarLayoutMode sidebarLayoutMode;
+  final double sidebarWidth;
+  final double listWidth;
 
   bool get isDesktopPlatform => isDesktop;
 
   bool get hasInlineSidebar => sidebarLayoutMode == SidebarLayoutMode.inline;
 
-  DesktopPaneMode get desktopPaneMode => desktopModeForWidth(contentWidth);
+  DesktopPaneMode get desktopPaneMode =>
+      desktopModeForWidth(contentWidth, listWidth: listWidth);
 
   bool get desktopEmbedsReader => desktopReaderEmbedded(desktopPaneMode);
 

@@ -4,11 +4,18 @@ import 'layout.dart';
 //
 // Expanded mode intentionally reuses the existing desktop sidebar width so the
 // sidebar migration does not change the reading workspace's visual rhythm yet.
-const double kSidebarExpandedWidth = kDesktopSidebarWidth;
+const double kDefaultWorkspaceSidebarWidth = kDesktopSidebarWidth;
+const double kMinWorkspaceSidebarWidth = 220;
+const double kMaxWorkspaceSidebarWidth = 360;
+const double kDefaultWorkspaceListWidth = kDesktopListWidth;
+const double kMinWorkspaceListWidth = 360;
+const double kMaxWorkspaceListWidth = 560;
+const double kSidebarExpandedWidth = kDefaultWorkspaceSidebarWidth;
 const double kSidebarRailWidth = 64;
 const double kSidebarCollapsedWidth = kSidebarRailWidth;
 const double kSidebarBreakpoint = 900;
 const double kSidebarContentDividerWidth = 1;
+const double kWorkspaceSplitHandleHitWidth = 8;
 const double kWorkspaceHeaderHeight = 48;
 const double kShellControlSize = 32;
 const double kShellControlIconSize = 16;
@@ -91,10 +98,12 @@ double effectiveContentWidth(
   double totalWidth, {
   SidebarPresentationMode sidebarPresentationMode =
       SidebarPresentationMode.expanded,
+  double sidebarWidth = kDefaultWorkspaceSidebarWidth,
 }) {
   // Only an inline sidebar consumes horizontal space. Drawer mode overlays it.
   if (!showInlineSidebarForWidth(totalWidth)) return totalWidth;
-  return totalWidth -
-      sidebarWidthForPresentationMode(sidebarPresentationMode) -
-      kSidebarContentDividerWidth;
+  if (sidebarPresentationMode != SidebarPresentationMode.expanded) {
+    return totalWidth;
+  }
+  return totalWidth - sidebarWidth - kSidebarContentDividerWidth;
 }

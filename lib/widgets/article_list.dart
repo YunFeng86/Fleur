@@ -27,6 +27,7 @@ import '../ui/layout.dart';
 import '../ui/layout_spec.dart';
 import '../ui/motion.dart';
 import '../ui/sidebar_layout.dart';
+import '../ui/workspace_layers.dart';
 import '../utils/platform.dart';
 import '../models/article.dart';
 import 'app_scrollbar.dart';
@@ -126,11 +127,16 @@ class _ArticleListState extends ConsumerState<ArticleList> {
   }
 
   Widget _withReadableListWidth(Widget child) {
-    return Align(
-      alignment: Alignment.topCenter,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: kMaxReadingWidth),
-        child: SizedBox(width: double.infinity, child: child),
+    final leadingInset =
+        ShellLayerScope.maybeOf(context)?.contentLeadingInset ?? 0;
+    return Padding(
+      padding: EdgeInsets.only(left: leadingInset),
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: kMaxReadingWidth),
+          child: SizedBox(width: double.infinity, child: child),
+        ),
       ),
     );
   }

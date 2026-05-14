@@ -4,13 +4,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/ui/sidebar_layout.dart';
 import 'package:fleur/ui/workspace_layers.dart';
+import 'package:fleur/utils/platform.dart';
 
 Future<void> _pumpHeader(
   WidgetTester tester, {
   required Size size,
   required String title,
   double leadingInset = 14,
+  double contentLeadingInset = 0,
   double trailingWidth = 98,
+  MacOSWindowChromeMetrics metrics = MacOSWindowChromeMetrics.fallback,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = size;
@@ -26,8 +29,12 @@ Future<void> _pumpHeader(
           contentSize: size,
           sidebarLayoutMode: SidebarLayoutMode.inline,
           contentLeft: 0,
+          contentLeadingInset: contentLeadingInset,
+          railOverlayVisible: false,
+          sidebarWidth: kDefaultWorkspaceSidebarWidth,
+          listWidth: kDefaultWorkspaceListWidth,
           headerLeadingInset: leadingInset,
-          macOSWindowChromeMetrics: MacOSWindowChromeMetrics.fallback,
+          macOSWindowChromeMetrics: metrics,
           child: Align(
             alignment: Alignment.topLeft,
             child: SizedBox(
@@ -122,4 +129,101 @@ void main() {
     expect(find.byKey(const Key('workspace_header_title')), findsNothing);
     expect(find.byKey(const Key('test_header_trailing')), findsOneWidget);
   });
+
+  testWidgets('keeps the title clear of the content rail overlay', (
+    tester,
+  ) async {
+    await _pumpHeader(
+      tester,
+      size: const Size(520, 120),
+      title: 'All',
+      contentLeadingInset: kSidebarRailWidth + 16,
+    );
+
+    expect(
+      tester.getTopLeft(find.byKey(const Key('workspace_header_title'))).dx,
+      greaterThanOrEqualTo(kSidebarRailWidth + 16),
+    );
+  });
+
+  testWidgets(
+    'page header follows macOS chrome metrics and fullscreen return',
+    (tester) async {
+      debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+      addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+      await _pumpHeader(
+        tester,
+        size: const Size(520, 120),
+        title: 'All',
+        metrics: const MacOSWindowChromeMetrics(
+          trafficLightsVisible: true,
+          centerY: 26,
+          safeInset: 96,
+          isFullScreen: false,
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light(),
+          home: ShellLayerScope(
+            totalSize: const Size(520, 120),
+            contentSize: const Size(520, 120),
+            sidebarLayoutMode: SidebarLayoutMode.inline,
+            contentLeft: 0,
+            contentLeadingInset: 0,
+            railOverlayVisible: false,
+            sidebarWidth: kDefaultWorkspaceSidebarWidth,
+            listWidth: kDefaultWorkspaceListWidth,
+            headerLeadingInset: 14,
+            macOSWindowChromeMetrics: const MacOSWindowChromeMetrics(
+              trafficLightsVisible: true,
+              centerY: 26,
+              safeInset: 96,
+              isFullScreen: false,
+            ),
+            child: WorkspacePageHeader(title: 'Settings', onBack: () {}),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .getTopLeft(find.byKey(const Key('workspace_page_back_button')))
+            .dx,
+        96,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light(),
+          home: ShellLayerScope(
+            totalSize: const Size(520, 120),
+            contentSize: const Size(520, 120),
+            sidebarLayoutMode: SidebarLayoutMode.inline,
+            contentLeft: 0,
+            contentLeadingInset: 0,
+            railOverlayVisible: false,
+            sidebarWidth: kDefaultWorkspaceSidebarWidth,
+            listWidth: kDefaultWorkspaceListWidth,
+            headerLeadingInset: 14,
+            macOSWindowChromeMetrics: const MacOSWindowChromeMetrics(
+              trafficLightsVisible: false,
+              centerY: kMacOSTrafficLightTargetCenterY,
+              safeInset: 0,
+              isFullScreen: true,
+            ),
+            child: WorkspacePageHeader(title: 'Settings', onBack: () {}),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .getTopLeft(find.byKey(const Key('workspace_page_back_button')))
+            .dx,
+        8,
+      );
+    },
+  );
 }

@@ -9,11 +9,14 @@ import '../app/search_routes.dart';
 import '../models/article_scope.dart';
 import '../models/category.dart';
 import '../models/feed.dart';
+import '../providers/core_providers.dart';
 import '../providers/query_providers.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/layout.dart';
 import '../ui/layout_spec.dart';
+import '../ui/sidebar_layout.dart';
+import '../ui/workspace_layers.dart';
 import '../utils/platform.dart';
 import '../widgets/article_list.dart';
 import '../widgets/fleur_empty_state.dart';
@@ -230,13 +233,18 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           context,
         ).hasInlineSidebar;
         final width = constraints.maxWidth;
+        final listWidth = ref
+            .watch(workspaceListWidthProvider)
+            .clamp(kMinWorkspaceListWidth, kMaxWorkspaceListWidth)
+            .toDouble();
         final spec = LayoutSpec.fromContentSize(
           contentWidth: width,
           contentHeight: MediaQuery.sizeOf(context).height,
+          listWidth: listWidth,
         );
         final isEmbedded = isDesktop
             ? spec.desktopEmbedsReader
-            : spec.canEmbedReader(listWidth: kDesktopListWidth);
+            : spec.canEmbedReader(listWidth: listWidth);
 
         final query = ref.watch(articleSearchQueryProvider);
         final filter = ref.watch(articleListFilterProvider);
@@ -371,9 +379,23 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               RepaintBoundary(
-                child: SizedBox(width: kDesktopListWidth, child: listPane()),
+                child: SizedBox(width: listWidth, child: listPane()),
               ),
-              const SizedBox(width: kPaneGap),
+              WorkspaceSplitHandle(
+                key: const Key('workspace_list_split_handle'),
+                onDragDelta: (delta) {
+                  final maxForWindow =
+                      (spec.contentWidth - kMinReadingWidth - kPaneGap)
+                          .clamp(kMinWorkspaceListWidth, kMaxWorkspaceListWidth)
+                          .toDouble();
+                  final notifier = ref.read(
+                    workspaceListWidthProvider.notifier,
+                  );
+                  notifier.state = (notifier.state + delta)
+                      .clamp(kMinWorkspaceListWidth, maxForWindow)
+                      .toDouble();
+                },
+              ),
               Expanded(child: readerPane(embedded: true)),
             ],
           );

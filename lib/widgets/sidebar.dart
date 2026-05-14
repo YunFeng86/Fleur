@@ -40,12 +40,14 @@ class Sidebar extends ConsumerStatefulWidget {
     this.router,
     this.presentationModeOverride,
     this.reserveShellHeader = false,
+    this.transparentBackground = false,
   });
 
   final ValueChanged<ArticleScope> onSelectScope;
   final GoRouter? router;
   final SidebarPresentationMode? presentationModeOverride;
   final bool reserveShellHeader;
+  final bool transparentBackground;
 
   @override
   ConsumerState<Sidebar> createState() => _SidebarState();
@@ -260,7 +262,9 @@ class _SidebarState extends ConsumerState<Sidebar> {
     );
 
     return Material(
-      color: surfaces.sidebar,
+      color: widget.transparentBackground
+          ? Colors.transparent
+          : surfaces.sidebar,
       child: collapsed
           ? Align(
               alignment: Alignment.topLeft,

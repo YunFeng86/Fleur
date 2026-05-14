@@ -12,7 +12,7 @@ import '../ui/settings/tabs/grouping_sorting_tab.dart';
 import '../ui/settings/tabs/services_tab.dart';
 import '../ui/settings/tabs/translation_ai_services_tab.dart';
 import '../ui/settings/widgets/section_header.dart';
-import '../ui/sidebar_layout.dart';
+import '../ui/workspace_layers.dart';
 import '../providers/subscription_settings_provider.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
@@ -353,31 +353,11 @@ class SettingsPageHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return WorkspacePageHeader(
       key: const Key('settings_page_header'),
-      height: kWorkspaceHeaderHeight,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: Row(
-          children: [
-            IconButton(
-              key: const Key('settings_back_button'),
-              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-              icon: const Icon(FleurIcons.back),
-              onPressed: onBack,
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-            ),
-          ],
-        ),
-      ),
+      title: title,
+      onBack: onBack,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
     );
   }
 }

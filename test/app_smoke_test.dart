@@ -49,6 +49,7 @@ import 'package:fleur/ui/layout.dart';
 import 'package:fleur/ui/sidebar_layout.dart';
 import 'package:fleur/ui/sidebar/sidebar_selection_actions.dart';
 import 'package:fleur/ui/sidebar/sidebar_tree.dart';
+import 'package:fleur/ui/workspace_layers.dart';
 import 'package:fleur/utils/platform.dart';
 import 'package:fleur/widgets/article_list.dart';
 import 'package:fleur/widgets/article_list_item.dart';
@@ -310,6 +311,24 @@ Future<HomeSceneCommands> _pumpHomeCommandsHarness(
 }
 
 void main() {
+  test('collapsed desktop sidebar does not consume content width', () {
+    expect(
+      effectiveContentWidth(
+        1200,
+        sidebarPresentationMode: SidebarPresentationMode.collapsed,
+      ),
+      1200,
+    );
+    expect(
+      effectiveContentWidth(
+        1200,
+        sidebarPresentationMode: SidebarPresentationMode.expanded,
+        sidebarWidth: kDefaultWorkspaceSidebarWidth,
+      ),
+      1200 - kDefaultWorkspaceSidebarWidth - kSidebarContentDividerWidth,
+    );
+  });
+
   testWidgets('App builds', (tester) async {
     TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -618,8 +637,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(Sidebar), findsOneWidget);
-    expect(tester.getSize(find.byType(Sidebar)).width, kSidebarExpandedWidth);
+    expect(
+      tester.getSize(find.byType(Sidebar)).width,
+      kDefaultWorkspaceSidebarWidth,
+    );
     expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
+    expect(find.byKey(const Key('app_shell_rail_overlay')), findsNothing);
     expect(find.byKey(const Key('shell_sidebar_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_back_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_forward_button')), findsOneWidget);
@@ -658,7 +681,7 @@ void main() {
     );
     expect(
       tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
-      kSidebarExpandedWidth + kSidebarContentDividerWidth,
+      kDefaultWorkspaceSidebarWidth + kSidebarContentDividerWidth,
     );
     final expandedToggleTopLeft = tester.getTopLeft(
       find.byKey(const Key('shell_sidebar_button')),
@@ -686,7 +709,15 @@ void main() {
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
     await tester.pumpAndSettle();
-    expect(tester.getSize(find.byType(Sidebar)).width, kSidebarExpandedWidth);
+    expect(find.byType(Sidebar), findsNWidgets(2));
+    expect(find.byKey(const Key('app_shell_rail_overlay')), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('app_shell_rail_overlay')),
+        matching: find.byKey(const Key('sidebar_collapsed_rail_surface')),
+      ),
+      findsOneWidget,
+    );
     expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
     expect(
       tester.getSize(find.byKey(const Key('shell_controls_capsule'))).height,
@@ -708,35 +739,43 @@ void main() {
       tester.getTopLeft(find.byKey(const Key('shell_sidebar_button'))),
       expandedToggleTopLeft,
     );
+    Finder railButton(Key key) => find.descendant(
+      of: find.byKey(const Key('app_shell_rail_overlay')),
+      matching: find.byKey(key),
+    );
     expect(
-      tester.getCenter(find.byKey(const Key('sidebar_all_button'))).dx,
+      tester.getCenter(railButton(const Key('sidebar_all_button'))).dx,
       fixedItemDx,
     );
     expect(
-      tester.getCenter(find.byKey(const Key('sidebar_starred_button'))).dx,
+      tester.getCenter(railButton(const Key('sidebar_starred_button'))).dx,
       fixedItemDx,
     );
     expect(
-      tester.getCenter(find.byKey(const Key('sidebar_read_later_button'))).dx,
+      tester.getCenter(railButton(const Key('sidebar_read_later_button'))).dx,
       fixedItemDx,
     );
     expect(
       tester
-          .getCenter(find.byKey(const Key('sidebar_add_subscription_button')))
+          .getCenter(railButton(const Key('sidebar_add_subscription_button')))
           .dx,
       fixedItemDx,
     );
     expect(
-      tester.getCenter(find.byKey(const Key('sidebar_account_button'))).dx,
+      tester.getCenter(railButton(const Key('sidebar_account_button'))).dx,
       expandedAccountDx,
     );
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
     await tester.pumpAndSettle();
-    expect(tester.getSize(find.byType(Sidebar)).width, kSidebarExpandedWidth);
+    expect(
+      tester.getSize(find.byType(Sidebar)).width,
+      kDefaultWorkspaceSidebarWidth,
+    );
+    expect(find.byKey(const Key('app_shell_rail_overlay')), findsNothing);
     expect(
       tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
-      kSidebarExpandedWidth + kSidebarContentDividerWidth,
+      kDefaultWorkspaceSidebarWidth + kSidebarContentDividerWidth,
     );
 
     tester.view.physicalSize = const Size(640, 900);
@@ -745,7 +784,8 @@ void main() {
 
     expect(find.byType(NavigationRail), findsNothing);
     expect(find.byType(NavigationBar), findsNothing);
-    expect(find.byType(Sidebar), findsOneWidget);
+    expect(find.byType(Sidebar), findsNWidgets(2));
+    expect(find.byKey(const Key('app_shell_rail_overlay')), findsOneWidget);
     expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
     expect(find.byKey(const Key('shell_drawer_controls')), findsNothing);
     expect(find.byKey(const Key('app_shell_sidebar_divider')), findsNothing);
@@ -762,10 +802,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(Sidebar), findsOneWidget);
+    expect(find.byKey(const Key('app_shell_rail_overlay')), findsNothing);
     expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
     expect(
       tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
-      kSidebarExpandedWidth,
+      kDefaultWorkspaceSidebarWidth,
     );
   });
 
@@ -807,6 +848,65 @@ void main() {
         .dy;
 
     expect(shellCenter, headerCenter);
+  });
+
+  testWidgets('App shell sidebar split handle resizes the content layer', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(1200, 900);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(_buildShellHarness());
+    await tester.pumpAndSettle();
+
+    await tester.drag(
+      find.byKey(const Key('app_shell_sidebar_split_handle')),
+      const Offset(40, 0),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
+      kDefaultWorkspaceSidebarWidth + 40 + kSidebarContentDividerWidth,
+    );
+  });
+
+  testWidgets('App shell rail overlay leaves header content clear', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(1200, 900);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      _buildShellHarness(
+        child: WorkspaceHeader(
+          title: 'All Articles',
+          trailingWidth: kShellControlSize,
+          trailing: const SizedBox.square(
+            dimension: kShellControlSize,
+            key: Key('rail_clear_trailing'),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('shell_sidebar_button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('app_shell_rail_overlay')), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.byKey(const Key('workspace_header_title'))).dx,
+      greaterThanOrEqualTo(kSidebarRailWidth + 16),
+    );
   });
 
   testWidgets('App shell keeps macOS traffic lights clear of sidebar items', (
@@ -2842,6 +2942,24 @@ void main() {
     final shadows = decoration.boxShadow!;
 
     expect(tester.getSize(find.byType(ArticleList)).width, kDesktopListWidth);
+    expect(
+      find.byKey(const Key('workspace_list_split_handle')),
+      findsOneWidget,
+    );
+    await tester.drag(
+      find.byKey(const Key('workspace_list_split_handle')),
+      const Offset(40, 0),
+    );
+    await tester.pump();
+    final maxListWidthForHarness =
+        1200 -
+        kDefaultWorkspaceSidebarWidth -
+        kSidebarContentDividerWidth -
+        kMinReadingWidth;
+    expect(
+      tester.getSize(find.byType(ArticleList)).width,
+      maxListWidthForHarness,
+    );
     expect(find.byType(HomeReaderPane), findsOneWidget);
     expect(find.byType(ReaderView), findsOneWidget);
     expect(tester.getSize(find.byType(ReadingPaneSurface)).height, 800);

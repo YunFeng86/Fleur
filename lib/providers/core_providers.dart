@@ -14,6 +14,14 @@ final sidebarPresentationModeProvider = StateProvider<SidebarPresentationMode>(
   (ref) => SidebarPresentationMode.expanded,
 );
 
+final workspaceSidebarWidthProvider = StateProvider<double>(
+  (ref) => kDefaultWorkspaceSidebarWidth,
+);
+
+final workspaceListWidthProvider = StateProvider<double>(
+  (ref) => kDefaultWorkspaceListWidth,
+);
+
 final macOSWindowChromeMetricsProvider =
     StateProvider<MacOSWindowChromeMetrics>(
       (ref) => MacOSWindowChromeMetrics.fallback,

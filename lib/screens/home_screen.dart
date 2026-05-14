@@ -4,6 +4,7 @@ import 'package:fleur/l10n/app_localizations.dart';
 
 import '../providers/backend_capabilities_provider.dart';
 import '../providers/backend_sync_semantics_provider.dart';
+import '../providers/core_providers.dart';
 import '../providers/query_providers.dart';
 import '../providers/unread_providers.dart';
 import '../theme/fleur_icons.dart';
@@ -86,10 +87,14 @@ class HomeScreen extends ConsumerWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
+        final listWidth = ref
+            .watch(workspaceListWidthProvider)
+            .clamp(kMinWorkspaceListWidth, kMaxWorkspaceListWidth)
+            .toDouble();
         final columns = homeColumnsForWidth(width);
 
         if (isDesktop) {
-          final mode = desktopModeForWidth(width);
+          final mode = desktopModeForWidth(width, listWidth: listWidth);
           return _buildDesktop(
             context,
             ref,
@@ -101,6 +106,7 @@ class HomeScreen extends ConsumerWidget {
             showRootRefresh,
             refreshActionLabel,
             markAllRead,
+            listWidth,
           );
         }
 
@@ -177,9 +183,12 @@ class HomeScreen extends ConsumerWidget {
             body: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: _workspacePanes(
+                context: context,
+                ref: ref,
                 listWidth: kHomeListWidth,
                 selectedArticleId: selectedArticleId,
                 showSyncCapsule: showSyncCapsule,
+                enableSplitHandle: false,
               ),
             ),
           ),
@@ -199,6 +208,7 @@ class HomeScreen extends ConsumerWidget {
     bool showRootRefresh,
     String refreshActionLabel,
     Future<void> Function() markAllRead,
+    double listWidth,
   ) {
     final showSyncCapsule = LayoutSpec.fromContext(context).hasInlineSidebar;
     final topBar = _HomeArticleListToolbar(
@@ -213,11 +223,14 @@ class HomeScreen extends ConsumerWidget {
       DesktopPaneMode.threePane || DesktopPaneMode.splitListReader => Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: _workspacePanes(
-          listWidth: kDesktopListWidth,
+          context: context,
+          ref: ref,
+          listWidth: listWidth,
           heroTag: kHeroArticleListPane,
           selectedArticleId: selectedArticleId,
           showSyncCapsule: showSyncCapsule,
           topBar: topBar,
+          enableSplitHandle: true,
         ),
       ),
       DesktopPaneMode.listOnly => HomeArticleListPane(
@@ -267,9 +280,12 @@ class HomeScreen extends ConsumerWidget {
   }
 
   List<Widget> _workspacePanes({
+    required BuildContext context,
+    required WidgetRef ref,
     required double listWidth,
     required int? selectedArticleId,
     required bool showSyncCapsule,
+    required bool enableSplitHandle,
     Object? heroTag,
     Widget? topBar,
   }) {
@@ -294,6 +310,21 @@ class HomeScreen extends ConsumerWidget {
         showSyncCapsule: showSyncCapsule,
         topBar: topBar,
       ),
+      if (enableSplitHandle)
+        WorkspaceSplitHandle(
+          key: const Key('workspace_list_split_handle'),
+          onDragDelta: (delta) {
+            final spec = LayoutSpec.fromContext(context);
+            final maxForWindow =
+                (spec.contentWidth - kMinReadingWidth - kPaneGap)
+                    .clamp(kMinWorkspaceListWidth, kMaxWorkspaceListWidth)
+                    .toDouble();
+            final notifier = ref.read(workspaceListWidthProvider.notifier);
+            notifier.state = (notifier.state + delta)
+                .clamp(kMinWorkspaceListWidth, maxForWindow)
+                .toDouble();
+          },
+        ),
       Expanded(child: HomeReaderPane(articleId: selectedArticleId)),
     ];
   }

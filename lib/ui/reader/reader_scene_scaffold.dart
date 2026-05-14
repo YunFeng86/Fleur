@@ -112,7 +112,31 @@ extension _ReaderSceneScaffold on _ReaderViewState {
       ),
     );
 
+    void handleBack() {
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go(widget.fallbackBackLocation);
+      }
+    }
+
     if (showAppBar) {
+      if (isDesktop && widget.showBack) {
+        return Theme(
+          data: sceneTheme,
+          child: Column(
+            children: [
+              WorkspacePageHeader(
+                title: '',
+                onBack: handleBack,
+                backgroundColor: sceneTheme.fleurSurface.reader,
+              ),
+              Expanded(child: body),
+            ],
+          ),
+        );
+      }
+
       return Theme(
         data: sceneTheme,
         child: Scaffold(
@@ -125,13 +149,7 @@ extension _ReaderSceneScaffold on _ReaderViewState {
                     tooltip: MaterialLocalizations.of(
                       context,
                     ).backButtonTooltip,
-                    onPressed: () {
-                      if (context.canPop()) {
-                        context.pop();
-                      } else {
-                        context.go(widget.fallbackBackLocation);
-                      }
-                    },
+                    onPressed: handleBack,
                   )
                 : null,
             actions: const [],

@@ -3,7 +3,9 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
+import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
+import '../utils/platform.dart';
 import 'sidebar_layout.dart';
 
 const BorderRadius kWorkspaceLayerRadius = BorderRadius.only(
@@ -18,6 +20,10 @@ class ShellLayerScope extends InheritedWidget {
     required this.contentSize,
     required this.sidebarLayoutMode,
     required this.contentLeft,
+    required this.contentLeadingInset,
+    required this.railOverlayVisible,
+    required this.sidebarWidth,
+    required this.listWidth,
     required this.headerLeadingInset,
     required this.macOSWindowChromeMetrics,
     required super.child,
@@ -27,6 +33,10 @@ class ShellLayerScope extends InheritedWidget {
   final Size contentSize;
   final SidebarLayoutMode sidebarLayoutMode;
   final double contentLeft;
+  final double contentLeadingInset;
+  final bool railOverlayVisible;
+  final double sidebarWidth;
+  final double listWidth;
   final double headerLeadingInset;
   final MacOSWindowChromeMetrics macOSWindowChromeMetrics;
 
@@ -40,6 +50,10 @@ class ShellLayerScope extends InheritedWidget {
         contentSize != oldWidget.contentSize ||
         sidebarLayoutMode != oldWidget.sidebarLayoutMode ||
         contentLeft != oldWidget.contentLeft ||
+        contentLeadingInset != oldWidget.contentLeadingInset ||
+        railOverlayVisible != oldWidget.railOverlayVisible ||
+        sidebarWidth != oldWidget.sidebarWidth ||
+        listWidth != oldWidget.listWidth ||
         headerLeadingInset != oldWidget.headerLeadingInset ||
         macOSWindowChromeMetrics != oldWidget.macOSWindowChromeMetrics;
   }
@@ -127,7 +141,7 @@ class WorkspaceHeader extends StatelessWidget {
                   final width = constraints.maxWidth;
                   final scope = ShellLayerScope.maybeOf(context);
                   final leadingInset = math.max(
-                    leadingPadding,
+                    leadingPadding + (scope?.contentLeadingInset ?? 0),
                     scope?.headerLeadingInset ?? leadingPadding,
                   );
                   final rightInset = trailingPadding + trailingWidth + 8;
@@ -232,6 +246,129 @@ class WorkspaceHeader extends StatelessWidget {
       textDirection: Directionality.of(context),
     )..layout();
     return painter.width;
+  }
+}
+
+class WorkspaceSplitHandle extends StatelessWidget {
+  const WorkspaceSplitHandle({
+    super.key,
+    required this.onDragDelta,
+    this.color,
+  });
+
+  final ValueChanged<double> onDragDelta;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final surfaces = Theme.of(context).fleurSurface;
+    return MouseRegion(
+      cursor: SystemMouseCursors.resizeLeftRight,
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onHorizontalDragUpdate: (details) => onDragDelta(details.delta.dx),
+        child: SizedBox(
+          width: kWorkspaceSplitHandleHitWidth,
+          child: Center(
+            child: SizedBox(
+              width: kSidebarContentDividerWidth,
+              height: double.infinity,
+              child: ColoredBox(color: color ?? surfaces.subtleDivider),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class WorkspacePageHeader extends StatelessWidget {
+  const WorkspacePageHeader({
+    super.key,
+    required this.title,
+    required this.onBack,
+    this.backgroundColor,
+  });
+
+  final String title;
+  final VoidCallback onBack;
+  final Color? backgroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final scope = ShellLayerScope.maybeOf(context);
+        final metrics =
+            scope?.macOSWindowChromeMetrics ??
+            MacOSWindowChromeMetrics.fallback;
+        final avoidTrafficLights = isMacOS && metrics.trafficLightsVisible;
+        final leadingLeft = avoidTrafficLights ? metrics.safeInset : 8.0;
+        final minTitleWidth = title.isEmpty ? 0.0 : 96.0;
+        final needsSecondRow =
+            avoidTrafficLights &&
+            constraints.maxWidth <
+                leadingLeft + kShellControlSize + 12 + minTitleWidth;
+        final rowTop = needsSecondRow
+            ? kWorkspaceHeaderHeight + kShellControlTopInset
+            : (avoidTrafficLights
+                  ? metrics.shellControlTopInset
+                  : kShellControlTopInset);
+        final rowLeft = needsSecondRow ? 8.0 : leadingLeft;
+        final height = needsSecondRow
+            ? kWorkspaceHeaderHeight * 2
+            : kWorkspaceHeaderHeight;
+        final theme = Theme.of(context);
+
+        return ColoredBox(
+          key: const Key('workspace_page_header'),
+          color: backgroundColor ?? theme.fleurSurface.list,
+          child: SizedBox(
+            height: height,
+            child: Stack(
+              children: [
+                Positioned(
+                  left: rowLeft,
+                  top: rowTop,
+                  width: kShellControlSize,
+                  height: kShellControlSize,
+                  child: IconButton(
+                    key: const Key('workspace_page_back_button'),
+                    tooltip: MaterialLocalizations.of(
+                      context,
+                    ).backButtonTooltip,
+                    icon: const Icon(FleurIcons.back),
+                    onPressed: onBack,
+                    style: IconButton.styleFrom(
+                      fixedSize: const Size.square(kShellControlSize),
+                      minimumSize: const Size.square(kShellControlSize),
+                      padding: EdgeInsets.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                ),
+                if (title.isNotEmpty)
+                  Positioned(
+                    left: rowLeft + kShellControlSize + 8,
+                    top: needsSecondRow ? kWorkspaceHeaderHeight : 0,
+                    right: 12,
+                    height: kWorkspaceHeaderHeight,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleLarge,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 
