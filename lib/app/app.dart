@@ -9,6 +9,7 @@ import 'package:fleur/l10n/app_localizations.dart';
 import 'article_scope_routes.dart';
 import 'router.dart';
 import '../models/article_scope.dart';
+import '../providers/core_providers.dart';
 import '../providers/app_settings_providers.dart';
 import '../providers/auto_refresh_providers.dart';
 import '../providers/background_sync_providers.dart';
@@ -20,6 +21,8 @@ import '../services/settings/app_settings.dart';
 import '../theme/app_theme.dart';
 import '../theme/seed_color_presets.dart';
 import '../utils/macos_locale_bridge.dart';
+import '../utils/macos_window_chrome_bridge.dart';
+import '../utils/platform.dart';
 import '../widgets/db_recovery_notice.dart';
 
 typedef PreferredLanguageApplier = Future<void> Function(String? localeTag);
@@ -131,7 +134,9 @@ class _AppRuntimeHostState extends ConsumerState<AppRuntimeHost> {
   void initState() {
     super.initState();
     _notificationService = ref.read(notificationServiceProvider);
+    _bindMacOSWindowChromeMetrics();
     _bindNotificationTapHandler();
+    unawaited(_syncMacOSWindowChromeMetrics());
     unawaited(_initializeNotifications());
     unawaited(_requestNotificationPermissions());
     _appSettingsSubscription = ref.listenManual<AsyncValue<AppSettings>>(
@@ -143,8 +148,21 @@ class _AppRuntimeHostState extends ConsumerState<AppRuntimeHost> {
 
   @override
   void dispose() {
+    if (isMacOS) {
+      MacOSWindowChromeBridge.setMetricsChangedHandler(null);
+    }
     _appSettingsSubscription?.close();
     super.dispose();
+  }
+
+  void _bindMacOSWindowChromeMetrics() {
+    if (!isMacOS) return;
+    ref.read(macOSWindowChromeMetricsProvider.notifier).state =
+        MacOSWindowChromeBridge.latestMetrics;
+    MacOSWindowChromeBridge.setMetricsChangedHandler((metrics) {
+      if (!mounted) return;
+      ref.read(macOSWindowChromeMetricsProvider.notifier).state = metrics;
+    });
   }
 
   void _bindNotificationTapHandler() {
@@ -198,6 +216,23 @@ class _AppRuntimeHostState extends ConsumerState<AppRuntimeHost> {
       AppLogger.w(
         'Notification permission request failed',
         tag: 'notify',
+        error: e,
+      );
+    }
+  }
+
+  Future<void> _syncMacOSWindowChromeMetrics() async {
+    if (!isMacOS) return;
+    try {
+      final metrics = await MacOSWindowChromeBridge.getTitlebarChromeMetrics();
+      if (!mounted) return;
+      ref.read(macOSWindowChromeMetricsProvider.notifier).state = metrics;
+    } on MissingPluginException {
+      // Widget tests and non-macOS embedders may not register this channel.
+    } catch (e) {
+      AppLogger.w(
+        'macOS window chrome metrics sync failed',
+        tag: 'runtime',
         error: e,
       );
     }

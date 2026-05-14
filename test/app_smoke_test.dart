@@ -105,7 +105,11 @@ Widget _buildRuntimeHostHarness({
   );
 }
 
-Widget _buildShellHarness({Uri? currentUri, Widget? child}) {
+Widget _buildShellHarness({
+  Uri? currentUri,
+  Widget? child,
+  List<Override> overrides = const [],
+}) {
   return ProviderScope(
     overrides: [
       activeAccountProvider.overrideWithValue(buildTestAccount()),
@@ -116,6 +120,7 @@ Widget _buildShellHarness({Uri? currentUri, Widget? child}) {
         (ref) => Stream.value(<int?, int>{}),
       ),
       outboxPendingCountProvider.overrideWith((ref) async => 0),
+      ...overrides,
     ],
     child: MaterialApp(
       theme: AppTheme.light(),
@@ -835,6 +840,119 @@ void main() {
       900,
     );
   });
+
+  testWidgets('App shell follows macOS traffic light metrics', (tester) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(1200, 900);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      _buildShellHarness(
+        overrides: [
+          macOSWindowChromeMetricsProvider.overrideWith(
+            (ref) => const MacOSWindowChromeMetrics(
+              trafficLightsVisible: true,
+              centerY: 26,
+              safeInset: 96,
+              isFullScreen: false,
+            ),
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final shellButtonLeft = tester
+        .getTopLeft(find.byKey(const Key('shell_sidebar_button')))
+        .dx;
+    final shellButtonTop = tester
+        .getTopLeft(find.byKey(const Key('shell_sidebar_button')))
+        .dy;
+    final shellButtonCenter = tester
+        .getCenter(find.byKey(const Key('shell_sidebar_button')))
+        .dy;
+
+    expect(shellButtonLeft, 96);
+    expect(shellButtonTop, 26 - (kShellControlSize / 2));
+    expect(shellButtonCenter, 26);
+  });
+
+  testWidgets(
+    'App shell returns inline controls to the leading edge fullscreen',
+    (tester) async {
+      debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+      addTearDown(() => debugFleurTargetPlatformOverride = null);
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = const Size(1200, 900);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(
+        _buildShellHarness(
+          overrides: [
+            macOSWindowChromeMetricsProvider.overrideWith(
+              (ref) => const MacOSWindowChromeMetrics(
+                trafficLightsVisible: false,
+                centerY: kMacOSTrafficLightTargetCenterY,
+                safeInset: 0,
+                isFullScreen: true,
+              ),
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final shellButtonLeft = tester
+          .getTopLeft(find.byKey(const Key('shell_sidebar_button')))
+          .dx;
+      final shellButtonCenter = tester
+          .getCenter(find.byKey(const Key('shell_sidebar_button')))
+          .dy;
+
+      expect(shellButtonLeft, 12);
+      expect(shellButtonCenter, kMacOSTrafficLightTargetCenterY);
+    },
+  );
+
+  testWidgets(
+    'App shell returns drawer controls to the leading edge fullscreen',
+    (tester) async {
+      debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+      addTearDown(() => debugFleurTargetPlatformOverride = null);
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = const Size(640, 900);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(
+        _buildShellHarness(
+          overrides: [
+            macOSWindowChromeMetricsProvider.overrideWith(
+              (ref) => const MacOSWindowChromeMetrics(
+                trafficLightsVisible: false,
+                centerY: kMacOSTrafficLightTargetCenterY,
+                safeInset: 0,
+                isFullScreen: true,
+              ),
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('shell_drawer_controls')), findsOneWidget);
+
+      final shellButtonLeft = tester
+          .getTopLeft(find.byKey(const Key('shell_sidebar_button')))
+          .dx;
+
+      expect(shellButtonLeft, 8);
+    },
+  );
 
   testWidgets('App shell hides capsule controls on dedicated reader pages', (
     tester,

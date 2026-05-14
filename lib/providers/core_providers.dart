@@ -13,3 +13,8 @@ final sidebarVisibleProvider = StateProvider<bool>((ref) => true);
 final sidebarPresentationModeProvider = StateProvider<SidebarPresentationMode>(
   (ref) => SidebarPresentationMode.expanded,
 );
+
+final macOSWindowChromeMetricsProvider =
+    StateProvider<MacOSWindowChromeMetrics>(
+      (ref) => MacOSWindowChromeMetrics.fallback,
+    );

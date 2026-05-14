@@ -113,14 +113,15 @@ class AppShell extends ConsumerWidget {
     required WidgetRef ref,
     required Widget child,
     required SidebarPresentationMode presentationMode,
+    required MacOSWindowChromeMetrics macOSWindowChromeMetrics,
   }) {
     if (!isDesktop) return child;
     return Stack(
       children: [
         Positioned.fill(child: child),
         Positioned(
-          left: isMacOS ? kMacOSTrafficLightSafeInset : 12,
-          top: isMacOS ? kMacOSShellControlTopInset : kShellControlTopInset,
+          left: _shellControlsLeftInset(macOSWindowChromeMetrics, fallback: 12),
+          top: _shellControlsTopInset(macOSWindowChromeMetrics),
           child: _InlineShellControlsHost(
             presentationMode: presentationMode,
             canPop: _canPop(context),
@@ -137,6 +138,7 @@ class AppShell extends ConsumerWidget {
     required BuildContext context,
     required Widget child,
     required VoidCallback? openDrawer,
+    required MacOSWindowChromeMetrics macOSWindowChromeMetrics,
   }) {
     if (!isDesktop || openDrawer == null) return child;
     return Stack(
@@ -146,6 +148,7 @@ class AppShell extends ConsumerWidget {
           left: 0,
           top: 0,
           child: _DrawerControlsHost(
+            macOSWindowChromeMetrics: macOSWindowChromeMetrics,
             canPop: _canPop(context),
             onPop: () => _pop(context),
             openDrawer: openDrawer,
@@ -160,6 +163,9 @@ class AppShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final size = MediaQuery.sizeOf(context);
     final presentationMode = ref.watch(sidebarPresentationModeProvider);
+    final macOSWindowChromeMetrics = ref.watch(
+      macOSWindowChromeMetricsProvider,
+    );
     final spec = LayoutSpec.fromTotalSize(
       totalWidth: size.width,
       totalHeight: size.height,
@@ -196,6 +202,7 @@ class AppShell extends ConsumerWidget {
             context: context,
             ref: ref,
             presentationMode: presentationMode,
+            macOSWindowChromeMetrics: macOSWindowChromeMetrics,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -226,6 +233,7 @@ class AppShell extends ConsumerWidget {
               child: _withDesktopDrawerControlsOverlay(
                 context: context,
                 openDrawer: openDrawer,
+                macOSWindowChromeMetrics: macOSWindowChromeMetrics,
                 child: MediaQuery.removePadding(
                   context: context,
                   removeBottom: true,
@@ -238,6 +246,19 @@ class AppShell extends ConsumerWidget {
       ),
     );
   }
+}
+
+double _shellControlsLeftInset(
+  MacOSWindowChromeMetrics metrics, {
+  required double fallback,
+}) {
+  if (!isMacOS) return fallback;
+  return metrics.trafficLightsVisible ? metrics.safeInset : fallback;
+}
+
+double _shellControlsTopInset(MacOSWindowChromeMetrics metrics) {
+  if (!isMacOS) return kShellControlTopInset;
+  return metrics.shellControlTopInset;
 }
 
 class _InlineShellControlsHost extends StatelessWidget {
@@ -339,12 +360,14 @@ class _ShellControlData {
 
 class _DrawerControlsHost extends StatelessWidget {
   const _DrawerControlsHost({
+    required this.macOSWindowChromeMetrics,
     required this.canPop,
     required this.onPop,
     required this.openDrawer,
     required this.onSearch,
   });
 
+  final MacOSWindowChromeMetrics macOSWindowChromeMetrics;
   final bool canPop;
   final VoidCallback onPop;
   final VoidCallback openDrawer;
@@ -360,8 +383,8 @@ class _DrawerControlsHost extends StatelessWidget {
       height: kWorkspaceHeaderHeight,
       child: Padding(
         padding: EdgeInsets.only(
-          left: isMacOS ? kMacOSTrafficLightSafeInset : 8,
-          top: isMacOS ? kMacOSShellControlTopInset : kShellControlTopInset,
+          left: _shellControlsLeftInset(macOSWindowChromeMetrics, fallback: 8),
+          top: _shellControlsTopInset(macOSWindowChromeMetrics),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

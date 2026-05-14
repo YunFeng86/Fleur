@@ -4,7 +4,6 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/services.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:window_manager/window_manager.dart';
 
@@ -13,19 +12,14 @@ import 'app/app.dart';
 import 'services/background/background_sync_service.dart';
 import 'services/logging/app_logger.dart';
 import 'services/logging/app_provider_observer.dart';
+import 'utils/macos_window_chrome_bridge.dart';
 import 'utils/platform.dart';
-
-const MethodChannel _macOSWindowControlsChannel = MethodChannel(
-  'com.cloudwind.fleur/window_controls',
-);
 
 Future<void> _configureMacOSTitlebarChrome() async {
   if (!isMacOS) return;
 
   try {
-    await _macOSWindowControlsChannel.invokeMethod<void>(
-      'configureTitlebarChrome',
-    );
+    await MacOSWindowChromeBridge.configureTitlebarChrome();
   } catch (error, stackTrace) {
     AppLogger.w(
       'Failed to configure macOS titlebar chrome',

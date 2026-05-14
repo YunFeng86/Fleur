@@ -2,12 +2,16 @@ import Cocoa
 import FlutterMacOS
 
 class MainFlutterWindow: NSWindow, NSToolbarDelegate {
+  private static let defaultTrafficLightCenterY: CGFloat = 24
+  private static let defaultTrafficLightSafeInset: CGFloat = 72
+  private static let trafficLightSafeGap: CGFloat = 8
   private static let titlebarToolbarIdentifier = NSToolbar.Identifier("FleurTitlebarToolbar")
   private static let titlebarToolbarItemIdentifier = NSToolbarItem.Identifier("FleurTitlebarToolbarItem")
 
   private var localeChannel: FlutterMethodChannel?
   private var windowControlsChannel: FlutterMethodChannel?
   private var titlebarToolbar: NSToolbar?
+  private var titlebarMetricsNotificationScheduled = false
 
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
@@ -70,8 +74,19 @@ class MainFlutterWindow: NSWindow, NSToolbarDelegate {
           )
           return
         }
-        self.configureTitlebarChrome()
-        result(true)
+        result(self.configureTitlebarChrome())
+      case "getTitlebarChromeMetrics":
+        guard let self else {
+          result(
+            FlutterError(
+              code: "window_unavailable",
+              message: "The macOS window is no longer available.",
+              details: nil
+            )
+          )
+          return
+        }
+        result(self.titlebarChromeMetrics())
       default:
         result(FlutterMethodNotImplemented)
       }
@@ -79,7 +94,7 @@ class MainFlutterWindow: NSWindow, NSToolbarDelegate {
     windowControlsChannel = channel
   }
 
-  private func configureTitlebarChrome() {
+  private func configureTitlebarChrome() -> [String: Any] {
     self.styleMask.insert(.fullSizeContentView)
     self.titleVisibility = .hidden
     self.titlebarAppearsTransparent = true
@@ -101,14 +116,19 @@ class MainFlutterWindow: NSWindow, NSToolbarDelegate {
       titlebarToolbar = toolbar
     }
     updateTitlebarToolbarVisibility(isFullScreen: self.styleMask.contains(.fullScreen))
+    return titlebarChromeMetrics()
   }
 
   private func setupTitlebarChromeObservers() {
     let notifications: [NSNotification.Name] = [
+      NSWindow.didResizeNotification,
+      NSWindow.didEndLiveResizeNotification,
       NSWindow.willEnterFullScreenNotification,
       NSWindow.didEnterFullScreenNotification,
       NSWindow.willExitFullScreenNotification,
       NSWindow.didExitFullScreenNotification,
+      NSWindow.didChangeScreenNotification,
+      NSWindow.didChangeBackingPropertiesNotification,
     ]
     for notification in notifications {
       NotificationCenter.default.addObserver(
@@ -125,16 +145,114 @@ class MainFlutterWindow: NSWindow, NSToolbarDelegate {
     case NSWindow.willEnterFullScreenNotification,
          NSWindow.didEnterFullScreenNotification:
       updateTitlebarToolbarVisibility(isFullScreen: true)
-    case NSWindow.willExitFullScreenNotification,
-         NSWindow.didExitFullScreenNotification:
+      notifyTitlebarChromeMetrics(isFullScreen: true)
+    case NSWindow.willExitFullScreenNotification:
+      updateTitlebarToolbarVisibility(isFullScreen: true)
+      notifyTitlebarChromeMetrics(isFullScreen: true)
+    case NSWindow.didExitFullScreenNotification:
       updateTitlebarToolbarVisibility(isFullScreen: false)
+      notifyTitlebarChromeMetrics(isFullScreen: false)
     default:
-      break
+      scheduleTitlebarChromeMetricsNotification()
     }
   }
 
   private func updateTitlebarToolbarVisibility(isFullScreen: Bool) {
     titlebarToolbar?.isVisible = !isFullScreen
+  }
+
+  private func scheduleTitlebarChromeMetricsNotification() {
+    if titlebarMetricsNotificationScheduled {
+      return
+    }
+    titlebarMetricsNotificationScheduled = true
+    DispatchQueue.main.async { [weak self] in
+      guard let self else {
+        return
+      }
+      self.titlebarMetricsNotificationScheduled = false
+      self.notifyTitlebarChromeMetrics()
+    }
+  }
+
+  private func notifyTitlebarChromeMetrics(isFullScreen: Bool? = nil) {
+    windowControlsChannel?.invokeMethod(
+      "titlebarChromeMetricsChanged",
+      arguments: titlebarChromeMetrics(isFullScreen: isFullScreen)
+    )
+  }
+
+  private func titlebarChromeMetrics(isFullScreen: Bool? = nil) -> [String: Any] {
+    let currentlyFullScreen = isFullScreen ?? self.styleMask.contains(.fullScreen)
+    if currentlyFullScreen {
+      return Self.chromeMetrics(
+        trafficLightsVisible: false,
+        centerY: Self.defaultTrafficLightCenterY,
+        safeInset: 0,
+        isFullScreen: true
+      )
+    }
+
+    guard let referenceView = self.contentView else {
+      return fallbackTitlebarChromeMetrics()
+    }
+
+    let buttonTypes: [NSWindow.ButtonType] = [
+      .closeButton,
+      .miniaturizeButton,
+      .zoomButton,
+    ]
+    var buttonRects: [NSRect] = []
+
+    for buttonType in buttonTypes {
+      guard let button = self.standardWindowButton(buttonType),
+            let buttonSuperview = button.superview,
+            !button.isHidden else {
+        return fallbackTitlebarChromeMetrics()
+      }
+      buttonRects.append(buttonSuperview.convert(button.frame, to: referenceView))
+    }
+
+    guard buttonRects.count == buttonTypes.count else {
+      return fallbackTitlebarChromeMetrics()
+    }
+
+    let centers = buttonRects.map { rect in
+      referenceView.isFlipped ? rect.midY : referenceView.bounds.height - rect.midY
+    }
+    let centerY = centers.reduce(0, +) / CGFloat(centers.count)
+    let safeInset = (buttonRects.map(\.maxX).max() ?? Self.defaultTrafficLightSafeInset) +
+      Self.trafficLightSafeGap
+
+    return Self.chromeMetrics(
+      trafficLightsVisible: true,
+      centerY: centerY,
+      safeInset: safeInset,
+      isFullScreen: false
+    )
+  }
+
+  private func fallbackTitlebarChromeMetrics() -> [String: Any] {
+    Self.chromeMetrics(
+      trafficLightsVisible: true,
+      centerY: Self.defaultTrafficLightCenterY,
+      safeInset: Self.defaultTrafficLightSafeInset,
+      isFullScreen: false
+    )
+  }
+
+  private static func chromeMetrics(
+    trafficLightsVisible: Bool,
+    centerY: CGFloat,
+    safeInset: CGFloat,
+    isFullScreen: Bool
+  ) -> [String: Any] {
+    [
+      "trafficLightsVisible": trafficLightsVisible,
+      "centerY": Double(centerY),
+      "safeInset": Double(safeInset),
+      "isFullScreen": isFullScreen,
+    ]
   }
 
   func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {

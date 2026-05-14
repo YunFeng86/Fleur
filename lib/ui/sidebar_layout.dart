@@ -20,6 +20,55 @@ const double kMacOSShellControlTopInset =
     kMacOSTrafficLightTargetCenterY - (kShellControlSize / 2);
 const double kMacOSTrafficLightSafeInset = 72;
 
+class MacOSWindowChromeMetrics {
+  const MacOSWindowChromeMetrics({
+    required this.trafficLightsVisible,
+    required this.centerY,
+    required this.safeInset,
+    required this.isFullScreen,
+  });
+
+  static const fallback = MacOSWindowChromeMetrics(
+    trafficLightsVisible: true,
+    centerY: kMacOSTrafficLightTargetCenterY,
+    safeInset: kMacOSTrafficLightSafeInset,
+    isFullScreen: false,
+  );
+
+  final bool trafficLightsVisible;
+  final double centerY;
+  final double safeInset;
+  final bool isFullScreen;
+
+  double get shellControlTopInset => centerY - (kShellControlSize / 2);
+
+  factory MacOSWindowChromeMetrics.fromMap(Object? value) {
+    if (value is! Map) return fallback;
+    return MacOSWindowChromeMetrics(
+      trafficLightsVisible: _boolValue(
+        value['trafficLightsVisible'],
+        fallback.trafficLightsVisible,
+      ),
+      centerY: _doubleValue(value['centerY'], fallback.centerY),
+      safeInset: _doubleValue(value['safeInset'], fallback.safeInset),
+      isFullScreen: _boolValue(value['isFullScreen'], fallback.isFullScreen),
+    );
+  }
+
+  static bool _boolValue(Object? value, bool fallback) {
+    if (value is bool) return value;
+    return fallback;
+  }
+
+  static double _doubleValue(Object? value, double fallback) {
+    if (value is num) {
+      final doubleValue = value.toDouble();
+      if (doubleValue.isFinite) return doubleValue;
+    }
+    return fallback;
+  }
+}
+
 enum SidebarPresentationMode { expanded, collapsed }
 
 enum SidebarLayoutMode { inline, drawer }
