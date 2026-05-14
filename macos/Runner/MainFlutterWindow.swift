@@ -18,8 +18,13 @@ class MainFlutterWindow: NSWindow, NSToolbarDelegate {
     RegisterGeneratedPlugins(registry: flutterViewController)
     setupLocaleChannel(controller: flutterViewController)
     setupWindowControlsChannel(controller: flutterViewController)
+    setupTitlebarChromeObservers()
 
     super.awakeFromNib()
+  }
+
+  deinit {
+    NotificationCenter.default.removeObserver(self)
   }
 
   private func setupLocaleChannel(controller: FlutterViewController) {
@@ -95,6 +100,41 @@ class MainFlutterWindow: NSWindow, NSToolbarDelegate {
       self.toolbar = toolbar
       titlebarToolbar = toolbar
     }
+    updateTitlebarToolbarVisibility(isFullScreen: self.styleMask.contains(.fullScreen))
+  }
+
+  private func setupTitlebarChromeObservers() {
+    let notifications: [NSNotification.Name] = [
+      NSWindow.willEnterFullScreenNotification,
+      NSWindow.didEnterFullScreenNotification,
+      NSWindow.willExitFullScreenNotification,
+      NSWindow.didExitFullScreenNotification,
+    ]
+    for notification in notifications {
+      NotificationCenter.default.addObserver(
+        self,
+        selector: #selector(windowDidNeedTitlebarToolbarUpdate(_:)),
+        name: notification,
+        object: self
+      )
+    }
+  }
+
+  @objc private func windowDidNeedTitlebarToolbarUpdate(_ notification: Notification) {
+    switch notification.name {
+    case NSWindow.willEnterFullScreenNotification,
+         NSWindow.didEnterFullScreenNotification:
+      updateTitlebarToolbarVisibility(isFullScreen: true)
+    case NSWindow.willExitFullScreenNotification,
+         NSWindow.didExitFullScreenNotification:
+      updateTitlebarToolbarVisibility(isFullScreen: false)
+    default:
+      break
+    }
+  }
+
+  private func updateTitlebarToolbarVisibility(isFullScreen: Bool) {
+    titlebarToolbar?.isVisible = !isFullScreen
   }
 
   func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
