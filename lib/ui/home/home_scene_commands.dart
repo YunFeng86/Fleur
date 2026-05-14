@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -17,6 +19,9 @@ import '../../services/sync/backend_capabilities.dart';
 import '../../services/sync/backend_sync_semantics.dart';
 import '../../services/sync/refresh_all_coordinator.dart';
 import '../../services/sync/sync_service.dart';
+import '../../utils/platform.dart';
+import '../layout.dart';
+import '../layout_spec.dart';
 
 enum HomeRefreshIntent {
   refreshFeed,
@@ -351,6 +356,26 @@ class HomeSceneCommands {
     _context.go('/search');
   }
 
+  void _goToArticle(int articleId) {
+    final scope = _ref.read(currentArticleScopeProvider);
+    final location = scopedArticleLocation(scope, articleId);
+    final spec = LayoutSpec.fromContext(_context);
+    final openAsSecondaryPage = isDesktop
+        ? !spec.desktopEmbedsReader
+        : !spec.canEmbedReader(listWidth: kHomeListWidth);
+
+    if (!openAsSecondaryPage) {
+      _context.go(location);
+      return;
+    }
+
+    if (selectedArticleId == null) {
+      unawaited(_context.push<void>(location));
+      return;
+    }
+    _context.replace(location);
+  }
+
   void goToNextArticle() {
     final items = _ref.read(articleListControllerProvider).valueOrNull?.items;
     if (items == null || items.isEmpty) return;
@@ -363,8 +388,7 @@ class HomeSceneCommands {
         : (currentIndex + 1 >= items.length
               ? items.length - 1
               : currentIndex + 1);
-    final scope = _ref.read(currentArticleScopeProvider);
-    _context.go(scopedArticleLocation(scope, items[targetIndex].id));
+    _goToArticle(items[targetIndex].id);
   }
 
   void goToPreviousArticle() {
@@ -375,7 +399,6 @@ class HomeSceneCommands {
         ? 0
         : items.indexWhere((article) => article.id == selectedArticleId);
     final targetIndex = currentIndex <= 0 ? 0 : currentIndex - 1;
-    final scope = _ref.read(currentArticleScopeProvider);
-    _context.go(scopedArticleLocation(scope, items[targetIndex].id));
+    _goToArticle(items[targetIndex].id);
   }
 }

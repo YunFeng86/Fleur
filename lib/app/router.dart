@@ -7,22 +7,48 @@ import 'article_scope_routes.dart';
 import 'search_routes.dart';
 import 'settings_routes.dart';
 import '../models/article_scope.dart';
+import '../providers/core_providers.dart';
 import '../screens/add_subscription_screen.dart';
 import '../screens/reading_workspace_screen.dart';
 import '../screens/reader_screen.dart';
 import '../screens/search_screen.dart';
 import '../screens/settings_screen.dart';
+import '../theme/fleur_theme_extensions.dart';
 import '../utils/platform.dart';
+import '../ui/app_menu.dart';
 import '../ui/app_shell.dart';
 import '../ui/layout.dart';
 import '../ui/layout_spec.dart';
 import '../ui/motion.dart';
+import '../ui/sidebar_layout.dart';
+import '../ui/workspace_layers.dart';
 
 const _workspaceSectionKey = ValueKey<String>('workspace-section');
 const _searchSectionKey = ValueKey<String>('search-section');
 const _addSubscriptionSectionKey = ValueKey<String>('add-subscription-section');
 
+final _rootNavigatorKey = GlobalKey<NavigatorState>(
+  debugLabel: 'root-navigator',
+);
+final _shellNavigatorKey = GlobalKey<NavigatorState>(
+  debugLabel: 'shell-navigator',
+);
+
 final routerProvider = Provider<GoRouter>((ref) {
+  LayoutSpec routeLayoutSpec(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final sidebarLayoutMode = sidebarLayoutModeForWidth(size.width);
+    final sidebarPresentationMode =
+        sidebarLayoutMode == SidebarLayoutMode.inline
+        ? ref.read(sidebarPresentationModeProvider)
+        : SidebarPresentationMode.collapsed;
+    return LayoutSpec.fromTotalSize(
+      totalWidth: size.width,
+      totalHeight: size.height,
+      sidebarPresentationMode: sidebarPresentationMode,
+    );
+  }
+
   Page<void> sectionPage({
     required GoRouterState state,
     required Widget child,
@@ -44,12 +70,84 @@ final routerProvider = Provider<GoRouter>((ref) {
     );
   }
 
+  Page<void> secondaryPage({
+    required GoRouterState state,
+    required Widget child,
+  }) {
+    return CustomTransitionPage<void>(
+      key: state.pageKey,
+      opaque: false,
+      transitionDuration: AppMotion.pageTransitionDuration,
+      reverseTransitionDuration: AppMotion.pageReverseTransitionDuration,
+      child: child,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        if (AppMotion.reduceMotion(context)) return child;
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: AppMotion.emphasizedDecelerate,
+          reverseCurve: AppMotion.emphasizedAccelerate,
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0.035, 0),
+              end: Offset.zero,
+            ).animate(curved),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+
+  Page<void> settingsLayerPage({
+    required GoRouterState state,
+    required Widget child,
+  }) {
+    return CustomTransitionPage<void>(
+      key: state.pageKey,
+      opaque: false,
+      transitionDuration: AppMotion.pageTransitionDuration,
+      reverseTransitionDuration: AppMotion.pageReverseTransitionDuration,
+      child: AppMenuHost(
+        child: Builder(
+          builder: (context) {
+            final surfaces = Theme.of(context).fleurSurface;
+            return ColoredBox(
+              color: Colors.transparent,
+              child: WorkspaceLayerSurface(color: surfaces.list, child: child),
+            );
+          },
+        ),
+      ),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        if (AppMotion.reduceMotion(context)) return child;
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: AppMotion.emphasizedDecelerate,
+          reverseCurve: AppMotion.emphasizedAccelerate,
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0.035, 0),
+              end: Offset.zero,
+            ).animate(curved),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+
   Page<void> workspaceArticlePage(BuildContext context, GoRouterState state) {
     final scope = scopeFromRoute(state);
     final id = scopedArticleIdFromRoute(state);
     if (id == null) return const NoTransitionPage(child: _NotFoundScreen());
 
-    final spec = LayoutSpec.fromContext(context);
+    final spec = routeLayoutSpec(context);
     final embedsReader = isDesktop
         ? spec.desktopEmbedsReader
         : spec.canEmbedReader(listWidth: kHomeListWidth);
@@ -62,7 +160,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       );
     }
 
-    return MaterialPage(
+    return secondaryPage(
+      state: state,
       child: ReaderScreen(
         articleId: id,
         fallbackBackLocation: scopeLocation(scope),
@@ -71,11 +170,13 @@ final routerProvider = Provider<GoRouter>((ref) {
   }
 
   return GoRouter(
+    navigatorKey: _rootNavigatorKey,
     errorPageBuilder: (context, state) {
       return const NoTransitionPage(child: _NotFoundScreen());
     },
     routes: [
       ShellRoute(
+        navigatorKey: _shellNavigatorKey,
         builder: (context, state, child) {
           return AppShell(currentUri: state.uri, child: child);
         },
@@ -257,7 +358,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
               final routeState = searchStateFromUri(state.uri);
               final fallbackBackLocation = searchLocation(routeState);
-              final spec = LayoutSpec.fromContext(context);
+              final spec = routeLayoutSpec(context);
 
               if (isDesktop) {
                 if (spec.desktopEmbedsReader) {
@@ -270,7 +371,8 @@ final routerProvider = Provider<GoRouter>((ref) {
                     ),
                   );
                 }
-                return MaterialPage(
+                return secondaryPage(
+                  state: state,
                   child: ReaderScreen(
                     articleId: id,
                     fallbackBackLocation: fallbackBackLocation,
@@ -289,7 +391,8 @@ final routerProvider = Provider<GoRouter>((ref) {
                 );
               }
 
-              return MaterialPage(
+              return secondaryPage(
+                state: state,
                 child: ReaderScreen(
                   articleId: id,
                   fallbackBackLocation: fallbackBackLocation,
@@ -308,20 +411,25 @@ final routerProvider = Provider<GoRouter>((ref) {
               );
             },
           ),
-          GoRoute(
-            path: '/settings',
-            name: 'settings',
-            pageBuilder: (context, state) {
-              final tab = settingsTabFromQueryValue(
-                state.uri.queryParameters['tab'],
-              );
-              return sectionPage(
-                state: state,
-                child: SettingsScreen(initialTab: tab),
-              );
-            },
-          ),
         ],
+      ),
+      GoRoute(
+        path: '/settings',
+        name: 'settings',
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final tab = settingsTabFromQueryValue(
+            state.uri.queryParameters['tab'],
+          );
+          return settingsLayerPage(
+            state: state,
+            child: SettingsScreen(
+              initialTab: tab,
+              showBack: true,
+              fallbackBackLocation: '/all',
+            ),
+          );
+        },
       ),
     ],
   );

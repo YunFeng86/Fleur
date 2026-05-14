@@ -18,12 +18,28 @@ import 'app_menu.dart';
 import 'layout.dart';
 import 'layout_spec.dart';
 import 'sidebar_layout.dart';
+import 'workspace_layers.dart';
 
-class AppShell extends ConsumerWidget {
+class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key, required this.currentUri, required this.child});
 
   final Uri currentUri;
   final Widget child;
+
+  @override
+  ConsumerState<AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends ConsumerState<AppShell> {
+  bool _temporarySidebarOpen = false;
+
+  @override
+  void didUpdateWidget(covariant AppShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentUri != widget.currentUri && _temporarySidebarOpen) {
+      _temporarySidebarOpen = false;
+    }
+  }
 
   bool _isArticleRoute(Uri uri) => uri.pathSegments.contains('article');
 
@@ -44,6 +60,7 @@ class AppShell extends ConsumerWidget {
   }
 
   void _goToScope(BuildContext context, ArticleScope scope) {
+    _closeTemporarySidebar();
     final router = GoRouter.maybeOf(context);
     final location = scopeLocation(scope);
     if (router != null) {
@@ -54,6 +71,7 @@ class AppShell extends ConsumerWidget {
   }
 
   void _goToSearch(BuildContext context) {
+    _closeTemporarySidebar();
     final router = GoRouter.maybeOf(context);
     if (router != null) {
       router.go('/search');
@@ -62,7 +80,17 @@ class AppShell extends ConsumerWidget {
     unawaited(Navigator.of(context).pushNamed('/search'));
   }
 
-  void _toggleSidebar(WidgetRef ref) {
+  void _closeTemporarySidebar() {
+    if (!_temporarySidebarOpen) return;
+    setState(() => _temporarySidebarOpen = false);
+  }
+
+  void _toggleSidebar(WidgetRef ref, {required bool usesTemporarySidebar}) {
+    if (usesTemporarySidebar) {
+      setState(() => _temporarySidebarOpen = !_temporarySidebarOpen);
+      return;
+    }
+
     final notifier = ref.read(sidebarPresentationModeProvider.notifier);
     notifier.state = notifier.state == SidebarPresentationMode.expanded
         ? SidebarPresentationMode.collapsed
@@ -98,22 +126,25 @@ class AppShell extends ConsumerWidget {
   Widget _desktopSidebar({
     required BuildContext context,
     required double width,
+    SidebarPresentationMode? presentationModeOverride,
   }) {
     return SizedBox(
       width: width,
       child: Sidebar(
         onSelectScope: (scope) => _goToScope(context, scope),
         reserveShellHeader: isDesktop,
+        presentationModeOverride: presentationModeOverride,
       ),
     );
   }
 
-  Widget _withInlineShellControlsOverlay({
+  Widget _withDesktopShellControlsOverlay({
     required BuildContext context,
     required WidgetRef ref,
     required Widget child,
     required SidebarPresentationMode presentationMode,
     required MacOSWindowChromeMetrics macOSWindowChromeMetrics,
+    required bool usesTemporarySidebar,
   }) {
     if (!isDesktop) return child;
     return Stack(
@@ -125,12 +156,141 @@ class AppShell extends ConsumerWidget {
           child: _InlineShellControlsHost(
             presentationMode: presentationMode,
             canPop: _canPop(context),
-            onToggleSidebar: () => _toggleSidebar(ref),
+            onToggleSidebar: () =>
+                _toggleSidebar(ref, usesTemporarySidebar: usesTemporarySidebar),
             onPop: () => _pop(context),
             onSearch: () => _goToSearch(context),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildDesktopSecondaryLayer({
+    required BuildContext context,
+    required Size size,
+    required FleurSurfaceTheme surfaces,
+    required MacOSWindowChromeMetrics macOSWindowChromeMetrics,
+  }) {
+    return AppMenuHost(
+      child: ShellLayerScope(
+        totalSize: size,
+        contentSize: size,
+        sidebarLayoutMode: sidebarLayoutModeForWidth(size.width),
+        contentLeft: 0,
+        headerLeadingInset: 14,
+        macOSWindowChromeMetrics: macOSWindowChromeMetrics,
+        child: AppDrawerScope(
+          hasAppDrawer: false,
+          child: WorkspaceLayerSurface(
+            key: const Key('app_shell_secondary_layer'),
+            color: surfaces.reader,
+            child: widget.child,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDesktopLayeredShell({
+    required BuildContext context,
+    required WidgetRef ref,
+    required Size size,
+    required SidebarPresentationMode presentationMode,
+    required MacOSWindowChromeMetrics macOSWindowChromeMetrics,
+    required FleurSurfaceTheme surfaces,
+  }) {
+    final sidebarLayoutMode = sidebarLayoutModeForWidth(size.width);
+    final hasInlineSidebar = sidebarLayoutMode == SidebarLayoutMode.inline;
+    final sidebarExpanded =
+        hasInlineSidebar &&
+        presentationMode == SidebarPresentationMode.expanded;
+    final temporarySidebarOpen = !hasInlineSidebar && _temporarySidebarOpen;
+    final contentLeft = sidebarExpanded
+        ? kSidebarExpandedWidth + kSidebarContentDividerWidth
+        : (temporarySidebarOpen ? kSidebarExpandedWidth : 0.0);
+    final contentWidth = sidebarExpanded
+        ? (size.width - contentLeft).clamp(0.0, double.infinity).toDouble()
+        : size.width;
+    final controlsPresentationMode = sidebarExpanded || temporarySidebarOpen
+        ? SidebarPresentationMode.expanded
+        : SidebarPresentationMode.collapsed;
+    final controlsLeft = _shellControlsLeftInset(
+      macOSWindowChromeMetrics,
+      fallback: 12,
+    );
+    final controlsRight = controlsLeft + _kShellControlsGroupWidth;
+    final overlapWithContent = controlsRight - contentLeft;
+    final headerLeadingInset = overlapWithContent > 0
+        ? overlapWithContent + 8
+        : 14.0;
+
+    final contentLayer = ShellLayerScope(
+      totalSize: size,
+      contentSize: Size(contentWidth, size.height),
+      sidebarLayoutMode: sidebarLayoutMode,
+      contentLeft: contentLeft,
+      headerLeadingInset: headerLeadingInset,
+      macOSWindowChromeMetrics: macOSWindowChromeMetrics,
+      child: WorkspaceLayerSurface(
+        key: const Key('app_shell_content_layer'),
+        color: surfaces.list,
+        child: MediaQuery.removePadding(
+          context: context,
+          removeBottom: true,
+          child: widget.child,
+        ),
+      ),
+    );
+
+    return AppMenuHost(
+      child: DecoratedBox(
+        decoration: BoxDecoration(color: surfaces.chrome),
+        child: AppDrawerScope(
+          hasAppDrawer: true,
+          child: _withDesktopShellControlsOverlay(
+            context: context,
+            ref: ref,
+            presentationMode: controlsPresentationMode,
+            macOSWindowChromeMetrics: macOSWindowChromeMetrics,
+            usesTemporarySidebar: !hasInlineSidebar,
+            child: Stack(
+              clipBehavior: Clip.hardEdge,
+              children: [
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: kSidebarExpandedWidth,
+                  child: _desktopSidebar(
+                    context: context,
+                    width: kSidebarExpandedWidth,
+                    presentationModeOverride: SidebarPresentationMode.expanded,
+                  ),
+                ),
+                if (sidebarExpanded)
+                  Positioned(
+                    key: const Key('app_shell_sidebar_divider'),
+                    left: kSidebarExpandedWidth,
+                    top: 0,
+                    bottom: 0,
+                    width: kSidebarContentDividerWidth,
+                    child: ColoredBox(color: surfaces.subtleDivider),
+                  ),
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOutCubic,
+                  left: contentLeft,
+                  top: 0,
+                  bottom: 0,
+                  width: contentWidth,
+                  child: contentLayer,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -160,7 +320,7 @@ class AppShell extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final presentationMode = ref.watch(sidebarPresentationModeProvider);
     final macOSWindowChromeMetrics = ref.watch(
@@ -169,12 +329,15 @@ class AppShell extends ConsumerWidget {
     final spec = LayoutSpec.fromTotalSize(
       totalWidth: size.width,
       totalHeight: size.height,
-      sidebarPresentationMode: presentationMode,
+      sidebarPresentationMode:
+          sidebarLayoutModeForWidth(size.width) == SidebarLayoutMode.inline
+          ? presentationMode
+          : SidebarPresentationMode.collapsed,
     );
     final surfaces = Theme.of(context).fleurSurface;
     final hideNavForReaderPage =
-        _isArticleRoute(currentUri) &&
-        !_isReaderEmbedded(spec: spec, uri: currentUri);
+        _isArticleRoute(widget.currentUri) &&
+        !_isReaderEmbedded(spec: spec, uri: widget.currentUri);
 
     Widget wrapShell(Widget shell) {
       return AppMenuHost(
@@ -186,37 +349,27 @@ class AppShell extends ConsumerWidget {
     }
 
     if (hideNavForReaderPage) {
-      // Dedicated reader pages should maximize content; they have their own
-      // back button (ReaderView/ReaderScreen).
-      return wrapShell(AppDrawerScope(hasAppDrawer: false, child: child));
+      if (isDesktop) {
+        return _buildDesktopSecondaryLayer(
+          context: context,
+          size: size,
+          surfaces: surfaces,
+          macOSWindowChromeMetrics: macOSWindowChromeMetrics,
+        );
+      }
+      return wrapShell(
+        AppDrawerScope(hasAppDrawer: false, child: widget.child),
+      );
     }
 
-    final showInlineSidebar = spec.hasInlineSidebar;
-    final sidebarWidth = sidebarWidthForPresentationMode(presentationMode);
-
-    if (showInlineSidebar) {
-      return wrapShell(
-        AppDrawerScope(
-          hasAppDrawer: true,
-          child: _withInlineShellControlsOverlay(
-            context: context,
-            ref: ref,
-            presentationMode: presentationMode,
-            macOSWindowChromeMetrics: macOSWindowChromeMetrics,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _desktopSidebar(context: context, width: sidebarWidth),
-                SizedBox(
-                  key: const Key('app_shell_sidebar_divider'),
-                  width: kSidebarContentDividerWidth,
-                  child: ColoredBox(color: surfaces.subtleDivider),
-                ),
-                Expanded(child: child),
-              ],
-            ),
-          ),
-        ),
+    if (isDesktop) {
+      return _buildDesktopLayeredShell(
+        context: context,
+        ref: ref,
+        size: size,
+        presentationMode: presentationMode,
+        macOSWindowChromeMetrics: macOSWindowChromeMetrics,
+        surfaces: surfaces,
       );
     }
 
@@ -237,7 +390,7 @@ class AppShell extends ConsumerWidget {
                 child: MediaQuery.removePadding(
                   context: context,
                   removeBottom: true,
-                  child: child,
+                  child: widget.child,
                 ),
               ),
             );
@@ -247,6 +400,8 @@ class AppShell extends ConsumerWidget {
     );
   }
 }
+
+const double _kShellControlsGroupWidth = kShellControlSize * 4;
 
 double _shellControlsLeftInset(
   MacOSWindowChromeMetrics metrics, {

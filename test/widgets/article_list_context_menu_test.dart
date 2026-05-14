@@ -133,8 +133,13 @@ Future<GoRouter> _pumpArticleList(
       ),
       GoRoute(
         path: '/search/article/:id',
-        builder: (context, state) =>
-            Scaffold(body: Text('search:${state.pathParameters['id']}')),
+        builder: (context, state) {
+          final query = state.uri.query;
+          final id = state.pathParameters['id'];
+          return Scaffold(
+            body: Text(query.isEmpty ? 'search:$id' : 'search:$id?$query'),
+          );
+        },
       ),
     ],
   );
@@ -280,10 +285,8 @@ void main() {
     await tester.tap(find.text('Open article'));
     await tester.pumpAndSettle();
 
-    expect(
-      router.routerDelegate.currentConfiguration.uri.toString(),
-      '/all/article/${article.id}',
-    );
+    expect(find.text('all:${article.id}'), findsOneWidget);
+    expect(router.canPop(), isTrue);
   });
 
   testWidgets('open article context action respects scoped routes', (
@@ -293,18 +296,10 @@ void main() {
       (
         start: '/feed/10',
         scope: const ArticleScope.feed(10),
-        expected: '/feed/10/article/42',
+        expected: 'feed:42',
       ),
-      (
-        start: '/starred',
-        scope: ArticleScope.starred,
-        expected: '/starred/article/42',
-      ),
-      (
-        start: '/search',
-        scope: ArticleScope.all,
-        expected: '/search/article/42',
-      ),
+      (start: '/starred', scope: ArticleScope.starred, expected: 'starred:42'),
+      (start: '/search', scope: ArticleScope.all, expected: 'search:42'),
     ]) {
       final article = _buildArticle();
       final router = await _pumpArticleList(
@@ -318,10 +313,8 @@ void main() {
       await tester.tap(find.text('Open article'));
       await tester.pumpAndSettle();
 
-      expect(
-        router.routerDelegate.currentConfiguration.uri.toString(),
-        scenario.expected,
-      );
+      expect(find.text(scenario.expected), findsOneWidget);
+      expect(router.canPop(), isTrue);
     }
   });
 
@@ -346,10 +339,8 @@ void main() {
     await tester.tap(find.text('Open article'));
     await tester.pumpAndSettle();
 
-    expect(
-      router.routerDelegate.currentConfiguration.uri.toString(),
-      '/search/article/42?q=claude&scope=starred',
-    );
+    expect(find.text('search:42?q=claude&scope=starred'), findsOneWidget);
+    expect(router.canPop(), isTrue);
   });
 
   testWidgets('open article context action does not close selected article', (

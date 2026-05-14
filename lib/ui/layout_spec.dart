@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import '../utils/platform.dart';
 import 'sidebar_layout.dart';
 import 'layout.dart';
+import 'workspace_layers.dart';
 
 /// A single source of truth for responsive/layout decisions.
 ///
@@ -55,6 +56,17 @@ class LayoutSpec {
   }
 
   factory LayoutSpec.fromContext(BuildContext context) {
+    final shellLayer = ShellLayerScope.maybeOf(context);
+    if (shellLayer != null) {
+      return LayoutSpec._(
+        totalWidth: shellLayer.totalSize.width,
+        totalHeight: shellLayer.totalSize.height,
+        contentWidth: shellLayer.contentSize.width,
+        contentHeight: shellLayer.contentSize.height,
+        sidebarLayoutMode: shellLayer.sidebarLayoutMode,
+      );
+    }
+
     final size = MediaQuery.sizeOf(context);
     return LayoutSpec.fromTotalSize(
       totalWidth: size.width,

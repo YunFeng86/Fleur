@@ -4,6 +4,7 @@ import '../../theme/fleur_theme_extensions.dart';
 import '../../widgets/article_list.dart';
 import '../../widgets/reader_view.dart';
 import '../../widgets/sync_status_capsule.dart';
+import '../workspace_layers.dart';
 
 class HomeArticleListPane extends StatelessWidget {
   const HomeArticleListPane({
@@ -68,37 +69,12 @@ class ReadingPaneSurface extends StatelessWidget {
 
   final Widget child;
 
-  static const _radius = BorderRadius.only(
-    topLeft: Radius.circular(16),
-    bottomLeft: Radius.circular(16),
-  );
-
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final surfaces = theme.fleurSurface;
-    final shadowColor = theme.shadowColor.withValues(
-      alpha: theme.brightness == Brightness.dark ? 0.22 : 0.12,
-    );
-
-    return DecoratedBox(
+    return WorkspaceLayerSurface(
       key: const Key('reading_pane_surface'),
-      decoration: BoxDecoration(
-        color: surfaces.reader,
-        borderRadius: _radius,
-        boxShadow: [
-          BoxShadow(
-            color: shadowColor,
-            blurRadius: 18,
-            spreadRadius: 1,
-            offset: const Offset(-4, 0),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: _radius,
-        child: ColoredBox(color: surfaces.reader, child: child),
-      ),
+      color: Theme.of(context).fleurSurface.reader,
+      child: child,
     );
   }
 }

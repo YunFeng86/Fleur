@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fleur/l10n/app_localizations.dart';
+import 'package:go_router/go_router.dart';
 
 import '../app/settings_routes.dart';
 import '../ui/app_drawer_scope.dart';
@@ -11,6 +12,7 @@ import '../ui/settings/tabs/grouping_sorting_tab.dart';
 import '../ui/settings/tabs/services_tab.dart';
 import '../ui/settings/tabs/translation_ai_services_tab.dart';
 import '../ui/settings/widgets/section_header.dart';
+import '../ui/sidebar_layout.dart';
 import '../providers/subscription_settings_provider.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
@@ -18,9 +20,16 @@ import '../utils/platform.dart';
 import '../widgets/app_scrollbar.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
-  const SettingsScreen({super.key, this.initialTab});
+  const SettingsScreen({
+    super.key,
+    this.initialTab,
+    this.showBack = false,
+    this.fallbackBackLocation = '/all',
+  });
 
   final SettingsTab? initialTab;
+  final bool showBack;
+  final String fallbackBackLocation;
 
   @override
   ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
@@ -104,6 +113,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return index < 0 ? null : index;
   }
 
+  void _closeSettings() {
+    if (context.canPop()) {
+      context.pop();
+      return;
+    }
+    context.go(widget.fallbackBackLocation);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -160,33 +177,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ? item.content
                       : Column(
                           children: [
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              child: Row(
-                                children: [
-                                  IconButton(
-                                    tooltip: MaterialLocalizations.of(
-                                      context,
-                                    ).backButtonTooltip,
-                                    icon: const Icon(Icons.arrow_back),
-                                    onPressed: handleDetailBack,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      item.label,
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.titleLarge,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                            SettingsPageHeader(
+                              title: item.label,
+                              onBack: handleDetailBack,
                             ),
                             const Divider(height: 1),
                             Expanded(child: item.content),
@@ -201,27 +194,47 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ? AppBar(
                       leading: hasAppDrawer
                           ? AppDrawerScope.drawerLeading(context)
-                          : const BackButton(),
+                          : BackButton(
+                              onPressed: widget.showBack
+                                  ? _closeSettings
+                                  : null,
+                            ),
                       title: Text(l10n.settings),
                     )
                   : null,
-              body: SettingsPageBody(
-                maxWidth: 720,
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              body: Column(
                 children: [
-                  SettingsCard(
-                    padding: EdgeInsets.zero,
-                    child: SettingsTileGroup(
+                  if (!useCompactTopBar && widget.showBack)
+                    SettingsPageHeader(
+                      title: l10n.settings,
+                      onBack: _closeSettings,
+                    ),
+                  Expanded(
+                    child: SettingsPageBody(
+                      maxWidth: 720,
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                       children: [
-                        for (var index = 0; index < items.length; index++)
-                          SettingsTile(
-                            leading: Icon(items[index].icon, size: 20),
-                            title: Text(items[index].label),
-                            trailing: const Icon(FleurIcons.expand, size: 20),
-                            onTap: () {
-                              setState(() => _selectedTab = items[index].tab);
-                            },
+                        SettingsCard(
+                          padding: EdgeInsets.zero,
+                          child: SettingsTileGroup(
+                            children: [
+                              for (var index = 0; index < items.length; index++)
+                                SettingsTile(
+                                  leading: Icon(items[index].icon, size: 20),
+                                  title: Text(items[index].label),
+                                  trailing: const Icon(
+                                    FleurIcons.expand,
+                                    size: 20,
+                                  ),
+                                  onTap: () {
+                                    setState(
+                                      () => _selectedTab = items[index].tab,
+                                    );
+                                  },
+                                ),
+                            ],
                           ),
+                        ),
                       ],
                     ),
                   ),
@@ -241,8 +254,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 AppBar(
                   leading: hasAppDrawer
                       ? AppDrawerScope.drawerLeading(context)
-                      : const BackButton(),
+                      : BackButton(
+                          onPressed: widget.showBack ? _closeSettings : null,
+                        ),
                   title: Text(l10n.settings),
+                ),
+              if (!useCompactTopBar && widget.showBack)
+                SettingsPageHeader(
+                  title: l10n.settings,
+                  onBack: _closeSettings,
                 ),
               Expanded(
                 child: Row(
@@ -316,6 +336,47 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class SettingsPageHeader extends StatelessWidget {
+  const SettingsPageHeader({
+    super.key,
+    required this.title,
+    required this.onBack,
+  });
+
+  final String title;
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      key: const Key('settings_page_header'),
+      height: kWorkspaceHeaderHeight,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Row(
+          children: [
+            IconButton(
+              key: const Key('settings_back_button'),
+              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+              icon: const Icon(FleurIcons.back),
+              onPressed: onBack,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

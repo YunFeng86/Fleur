@@ -604,7 +604,7 @@ void main() {
     },
   );
 
-  testWidgets('App shell switches between inline sidebar and drawer', (
+  testWidgets('App shell switches between layered sidebar states', (
     tester,
   ) async {
     debugFleurTargetPlatformOverride = TargetPlatform.windows;
@@ -656,6 +656,10 @@ void main() {
       tester.getSize(find.byKey(const Key('app_shell_child'))).height,
       900,
     );
+    expect(
+      tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
+      kSidebarExpandedWidth + kSidebarContentDividerWidth,
+    );
     final expandedToggleTopLeft = tester.getTopLeft(
       find.byKey(const Key('shell_sidebar_button')),
     );
@@ -682,7 +686,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
     await tester.pumpAndSettle();
-    expect(tester.getSize(find.byType(Sidebar)).width, kSidebarCollapsedWidth);
+    expect(tester.getSize(find.byType(Sidebar)).width, kSidebarExpandedWidth);
     expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
     expect(
       tester.getSize(find.byKey(const Key('shell_controls_capsule'))).height,
@@ -694,25 +698,12 @@ void main() {
       findsNothing,
     );
     expect(
-      find.byKey(const Key('sidebar_collapsed_rail_surface')),
-      findsOneWidget,
-    );
-    expect(
-      tester
-          .getSize(find.byKey(const Key('sidebar_collapsed_rail_surface')))
-          .width,
-      lessThan(kSidebarRailWidth),
+      tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
+      0,
     );
     expect(find.byKey(const Key('shell_back_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_forward_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
-    expect(find.byType(SidebarNavigationTree), findsNothing);
-    expect(
-      tester
-          .getTopLeft(find.byKey(const Key('sidebar_collapsed_rail_surface')))
-          .dy,
-      kWorkspaceHeaderHeight,
-    );
     expect(
       tester.getTopLeft(find.byKey(const Key('shell_sidebar_button'))),
       expandedToggleTopLeft,
@@ -743,6 +734,10 @@ void main() {
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
     await tester.pumpAndSettle();
     expect(tester.getSize(find.byType(Sidebar)).width, kSidebarExpandedWidth);
+    expect(
+      tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
+      kSidebarExpandedWidth + kSidebarContentDividerWidth,
+    );
 
     tester.view.physicalSize = const Size(640, 900);
     await tester.pumpWidget(_buildShellHarness());
@@ -750,10 +745,14 @@ void main() {
 
     expect(find.byType(NavigationRail), findsNothing);
     expect(find.byType(NavigationBar), findsNothing);
-    expect(find.byType(Sidebar), findsNothing);
-    expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
-    expect(find.byKey(const Key('shell_drawer_controls')), findsOneWidget);
+    expect(find.byType(Sidebar), findsOneWidget);
+    expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
+    expect(find.byKey(const Key('shell_drawer_controls')), findsNothing);
     expect(find.byKey(const Key('app_shell_sidebar_divider')), findsNothing);
+    expect(
+      tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
+      0,
+    );
     expect(
       tester.getSize(find.byKey(const Key('app_shell_child'))).height,
       900,
@@ -763,6 +762,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(Sidebar), findsOneWidget);
+    expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
+    expect(
+      tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
+      kSidebarExpandedWidth,
+    );
   });
 
   testWidgets('App shell aligns sidebar controls with the workspace header', (
@@ -924,7 +928,7 @@ void main() {
   );
 
   testWidgets(
-    'App shell returns drawer controls to the leading edge fullscreen',
+    'App shell returns narrow layered controls to the leading edge fullscreen',
     (tester) async {
       debugFleurTargetPlatformOverride = TargetPlatform.macOS;
       addTearDown(() => debugFleurTargetPlatformOverride = null);
@@ -949,13 +953,14 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('shell_drawer_controls')), findsOneWidget);
+      expect(find.byKey(const Key('shell_drawer_controls')), findsNothing);
+      expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
 
       final shellButtonLeft = tester
           .getTopLeft(find.byKey(const Key('shell_sidebar_button')))
           .dx;
 
-      expect(shellButtonLeft, 8);
+      expect(shellButtonLeft, 12);
     },
   );
 
@@ -1093,19 +1098,16 @@ void main() {
     await tester.tap(find.byKey(const Key('sidebar_account_menu_account')));
     await tester.pumpAndSettle();
 
-    expect(
-      router.routerDelegate.currentConfiguration.uri.toString(),
-      '/settings?tab=services',
-    );
+    expect(find.text('settings page'), findsOneWidget);
+    expect(router.canPop(), isTrue);
+    router.pop();
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('sidebar_account_button')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('sidebar_account_menu_settings')));
     await tester.pumpAndSettle();
-    expect(
-      router.routerDelegate.currentConfiguration.uri.toString(),
-      '/settings',
-    );
+    expect(find.text('settings page'), findsOneWidget);
   });
 
   testWidgets('App shell drawer account menu closes before opening services', (
@@ -1174,10 +1176,6 @@ void main() {
     await tester.tap(find.byKey(const Key('sidebar_account_menu_account')));
     await tester.pumpAndSettle();
 
-    expect(
-      router.routerDelegate.currentConfiguration.uri.toString(),
-      '/settings?tab=services',
-    );
     expect(find.text('Services settings'), findsOneWidget);
     expect(find.text('Test Account'), findsNothing);
   });
@@ -2832,7 +2830,12 @@ void main() {
     await tester.pump();
 
     final surface = tester.widget<DecoratedBox>(
-      find.byKey(const Key('reading_pane_surface')),
+      find
+          .descendant(
+            of: find.byKey(const Key('reading_pane_surface')),
+            matching: find.byType(DecoratedBox),
+          )
+          .first,
     );
     final decoration = surface.decoration as BoxDecoration;
     final radius = decoration.borderRadius! as BorderRadius;
