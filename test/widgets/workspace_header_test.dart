@@ -137,12 +137,12 @@ void main() {
       tester,
       size: const Size(520, 120),
       title: 'All',
-      contentLeadingInset: kSidebarRailWidth + 16,
+      contentLeadingInset: kSidebarRailWidth + kRailOverlayContentGap,
     );
 
     expect(
       tester.getTopLeft(find.byKey(const Key('workspace_header_title'))).dx,
-      greaterThanOrEqualTo(kSidebarRailWidth + 16),
+      greaterThanOrEqualTo(kSidebarRailWidth + kRailOverlayContentGap),
     );
   });
 

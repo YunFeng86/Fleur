@@ -6,13 +6,13 @@ import 'layout.dart';
 // sidebar migration does not change the reading workspace's visual rhythm yet.
 const double kDefaultWorkspaceSidebarWidth = kDesktopSidebarWidth;
 const double kMinWorkspaceSidebarWidth = 220;
-const double kMaxWorkspaceSidebarWidth = 360;
 const double kDefaultWorkspaceListWidth = kDesktopListWidth;
 const double kMinWorkspaceListWidth = 360;
-const double kMaxWorkspaceListWidth = 560;
+const double kMinWorkspaceContentWidth = kMinWorkspaceListWidth;
 const double kSidebarExpandedWidth = kDefaultWorkspaceSidebarWidth;
 const double kSidebarRailWidth = 64;
 const double kSidebarCollapsedWidth = kSidebarRailWidth;
+const double kRailOverlayContentGap = 8;
 const double kSidebarBreakpoint = 900;
 const double kSidebarContentDividerWidth = 1;
 const double kWorkspaceSplitHandleHitWidth = 8;
@@ -93,6 +93,38 @@ double sidebarWidthForPresentationMode(SidebarPresentationMode mode) =>
       SidebarPresentationMode.expanded => kSidebarExpandedWidth,
       SidebarPresentationMode.collapsed => kSidebarCollapsedWidth,
     };
+
+double maxWorkspaceSidebarWidthForWindow(double totalWidth) {
+  final maxWidth =
+      totalWidth - kMinWorkspaceContentWidth - kSidebarContentDividerWidth;
+  return maxWidth < kMinWorkspaceSidebarWidth
+      ? kMinWorkspaceSidebarWidth
+      : maxWidth;
+}
+
+double clampWorkspaceSidebarWidth(double width, double totalWidth) {
+  return width
+      .clamp(
+        kMinWorkspaceSidebarWidth,
+        maxWorkspaceSidebarWidthForWindow(totalWidth),
+      )
+      .toDouble();
+}
+
+double maxWorkspaceListWidthForContent(double contentWidth) {
+  final maxWidth =
+      contentWidth - kWorkspaceSplitHandleHitWidth - kMinReadingWidth;
+  return maxWidth < kMinWorkspaceListWidth ? kMinWorkspaceListWidth : maxWidth;
+}
+
+double clampWorkspaceListWidth(double width, double contentWidth) {
+  return width
+      .clamp(
+        kMinWorkspaceListWidth,
+        maxWorkspaceListWidthForContent(contentWidth),
+      )
+      .toDouble();
+}
 
 double effectiveContentWidth(
   double totalWidth, {

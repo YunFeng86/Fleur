@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -129,15 +130,25 @@ class _ArticleListState extends ConsumerState<ArticleList> {
   Widget _withReadableListWidth(Widget child) {
     final leadingInset =
         ShellLayerScope.maybeOf(context)?.contentLeadingInset ?? 0;
-    return Padding(
-      padding: EdgeInsets.only(left: leadingInset),
-      child: Align(
-        alignment: Alignment.topCenter,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: kMaxReadingWidth),
-          child: SizedBox(width: double.infinity, child: child),
-        ),
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final contentWidth = constraints.maxWidth;
+        final readableWidth = math.min(kMaxReadingWidth, contentWidth);
+        final centeredLeft = math.max(0.0, (contentWidth - readableWidth) / 2);
+        final left = math.max(centeredLeft, leadingInset);
+        final width = math.min(
+          readableWidth,
+          math.max(0.0, contentWidth - left),
+        );
+
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Padding(
+            padding: EdgeInsets.only(left: left),
+            child: SizedBox(width: width, child: child),
+          ),
+        );
+      },
     );
   }
 

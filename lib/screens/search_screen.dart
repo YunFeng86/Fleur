@@ -13,7 +13,6 @@ import '../providers/core_providers.dart';
 import '../providers/query_providers.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
-import '../ui/layout.dart';
 import '../ui/layout_spec.dart';
 import '../ui/sidebar_layout.dart';
 import '../ui/workspace_layers.dart';
@@ -233,10 +232,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           context,
         ).hasInlineSidebar;
         final width = constraints.maxWidth;
-        final listWidth = ref
-            .watch(workspaceListWidthProvider)
-            .clamp(kMinWorkspaceListWidth, kMaxWorkspaceListWidth)
-            .toDouble();
+        final listWidth = clampWorkspaceListWidth(
+          ref.watch(workspaceListWidthProvider),
+          width,
+        );
         final spec = LayoutSpec.fromContentSize(
           contentWidth: width,
           contentHeight: MediaQuery.sizeOf(context).height,
@@ -384,16 +383,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               WorkspaceSplitHandle(
                 key: const Key('workspace_list_split_handle'),
                 onDragDelta: (delta) {
-                  final maxForWindow =
-                      (spec.contentWidth - kMinReadingWidth - kPaneGap)
-                          .clamp(kMinWorkspaceListWidth, kMaxWorkspaceListWidth)
-                          .toDouble();
                   final notifier = ref.read(
                     workspaceListWidthProvider.notifier,
                   );
-                  notifier.state = (notifier.state + delta)
-                      .clamp(kMinWorkspaceListWidth, maxForWindow)
-                      .toDouble();
+                  notifier.state = clampWorkspaceListWidth(
+                    notifier.state + delta,
+                    spec.contentWidth,
+                  );
                 },
               ),
               Expanded(child: readerPane(embedded: true)),

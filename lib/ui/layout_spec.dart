@@ -29,18 +29,23 @@ class LayoutSpec {
     double sidebarWidth = kDefaultWorkspaceSidebarWidth,
     double listWidth = kDefaultWorkspaceListWidth,
   }) {
+    final effectiveSidebarWidth = clampWorkspaceSidebarWidth(
+      sidebarWidth,
+      totalWidth,
+    );
+    final contentWidth = effectiveContentWidth(
+      totalWidth,
+      sidebarPresentationMode: sidebarPresentationMode,
+      sidebarWidth: effectiveSidebarWidth,
+    );
     return LayoutSpec._(
       totalWidth: totalWidth,
       totalHeight: totalHeight,
-      contentWidth: effectiveContentWidth(
-        totalWidth,
-        sidebarPresentationMode: sidebarPresentationMode,
-        sidebarWidth: sidebarWidth,
-      ),
+      contentWidth: contentWidth,
       contentHeight: totalHeight,
       sidebarLayoutMode: sidebarLayoutModeForWidth(totalWidth),
-      sidebarWidth: sidebarWidth,
-      listWidth: listWidth,
+      sidebarWidth: effectiveSidebarWidth,
+      listWidth: clampWorkspaceListWidth(listWidth, contentWidth),
     );
   }
 
@@ -61,7 +66,7 @@ class LayoutSpec {
       contentHeight: contentHeight,
       sidebarLayoutMode: sidebarLayoutModeForWidth(contentWidth),
       sidebarWidth: kDefaultWorkspaceSidebarWidth,
-      listWidth: listWidth,
+      listWidth: clampWorkspaceListWidth(listWidth, contentWidth),
     );
   }
 
@@ -75,7 +80,10 @@ class LayoutSpec {
         contentHeight: shellLayer.contentSize.height,
         sidebarLayoutMode: shellLayer.sidebarLayoutMode,
         sidebarWidth: shellLayer.sidebarWidth,
-        listWidth: shellLayer.listWidth,
+        listWidth: clampWorkspaceListWidth(
+          shellLayer.listWidth,
+          shellLayer.contentSize.width,
+        ),
       );
     }
 
@@ -98,8 +106,10 @@ class LayoutSpec {
 
   bool get hasInlineSidebar => sidebarLayoutMode == SidebarLayoutMode.inline;
 
-  DesktopPaneMode get desktopPaneMode =>
-      desktopModeForWidth(contentWidth, listWidth: listWidth);
+  DesktopPaneMode get desktopPaneMode => desktopModeForWidth(
+    contentWidth - kWorkspaceSplitHandleHitWidth,
+    listWidth: listWidth,
+  );
 
   bool get desktopEmbedsReader => desktopReaderEmbedded(desktopPaneMode);
 
@@ -107,7 +117,8 @@ class LayoutSpec {
     required double listWidth,
     double minReaderWidth = kMinReadingWidth,
   }) {
-    return contentWidth >= (listWidth + minReaderWidth + kPaneGap);
+    return contentWidth >=
+        (listWidth + minReaderWidth + kPaneGap + kWorkspaceSplitHandleHitWidth);
   }
 
   bool get isCompact => contentWidth < kCompactWidth;

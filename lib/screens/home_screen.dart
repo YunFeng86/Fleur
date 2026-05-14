@@ -87,14 +87,17 @@ class HomeScreen extends ConsumerWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        final listWidth = ref
-            .watch(workspaceListWidthProvider)
-            .clamp(kMinWorkspaceListWidth, kMaxWorkspaceListWidth)
-            .toDouble();
+        final listWidth = clampWorkspaceListWidth(
+          ref.watch(workspaceListWidthProvider),
+          width,
+        );
         final columns = homeColumnsForWidth(width);
 
         if (isDesktop) {
-          final mode = desktopModeForWidth(width, listWidth: listWidth);
+          final mode = desktopModeForWidth(
+            width - kWorkspaceSplitHandleHitWidth,
+            listWidth: listWidth,
+          );
           return _buildDesktop(
             context,
             ref,
@@ -107,6 +110,7 @@ class HomeScreen extends ConsumerWidget {
             refreshActionLabel,
             markAllRead,
             listWidth,
+            width,
           );
         }
 
@@ -185,6 +189,7 @@ class HomeScreen extends ConsumerWidget {
               children: _workspacePanes(
                 context: context,
                 ref: ref,
+                contentWidth: width,
                 listWidth: kHomeListWidth,
                 selectedArticleId: selectedArticleId,
                 showSyncCapsule: showSyncCapsule,
@@ -209,6 +214,7 @@ class HomeScreen extends ConsumerWidget {
     String refreshActionLabel,
     Future<void> Function() markAllRead,
     double listWidth,
+    double contentWidth,
   ) {
     final showSyncCapsule = LayoutSpec.fromContext(context).hasInlineSidebar;
     final topBar = _HomeArticleListToolbar(
@@ -225,6 +231,7 @@ class HomeScreen extends ConsumerWidget {
         children: _workspacePanes(
           context: context,
           ref: ref,
+          contentWidth: contentWidth,
           listWidth: listWidth,
           heroTag: kHeroArticleListPane,
           selectedArticleId: selectedArticleId,
@@ -282,6 +289,7 @@ class HomeScreen extends ConsumerWidget {
   List<Widget> _workspacePanes({
     required BuildContext context,
     required WidgetRef ref,
+    required double contentWidth,
     required double listWidth,
     required int? selectedArticleId,
     required bool showSyncCapsule,
@@ -314,15 +322,11 @@ class HomeScreen extends ConsumerWidget {
         WorkspaceSplitHandle(
           key: const Key('workspace_list_split_handle'),
           onDragDelta: (delta) {
-            final spec = LayoutSpec.fromContext(context);
-            final maxForWindow =
-                (spec.contentWidth - kMinReadingWidth - kPaneGap)
-                    .clamp(kMinWorkspaceListWidth, kMaxWorkspaceListWidth)
-                    .toDouble();
             final notifier = ref.read(workspaceListWidthProvider.notifier);
-            notifier.state = (notifier.state + delta)
-                .clamp(kMinWorkspaceListWidth, maxForWindow)
-                .toDouble();
+            notifier.state = clampWorkspaceListWidth(
+              notifier.state + delta,
+              contentWidth,
+            );
           },
         ),
       Expanded(child: HomeReaderPane(articleId: selectedArticleId)),

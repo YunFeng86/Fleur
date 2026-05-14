@@ -222,7 +222,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         : size.width;
     final railOverlayVisible = !sidebarExpanded && !temporarySidebarOpen;
     final contentLeadingInset = railOverlayVisible
-        ? kSidebarRailWidth + 16
+        ? kSidebarRailWidth + kRailOverlayContentGap
         : 0.0;
     final controlsPresentationMode = sidebarExpanded || temporarySidebarOpen
         ? SidebarPresentationMode.expanded
@@ -260,20 +260,6 @@ class _AppShellState extends ConsumerState<AppShell> {
                 child: widget.child,
               ),
             ),
-            if (railOverlayVisible)
-              Positioned(
-                key: const Key('app_shell_rail_overlay'),
-                left: 0,
-                top: 0,
-                bottom: 0,
-                width: kSidebarRailWidth,
-                child: Sidebar(
-                  onSelectScope: (scope) => _goToScope(context, scope),
-                  reserveShellHeader: true,
-                  transparentBackground: true,
-                  presentationModeOverride: SidebarPresentationMode.collapsed,
-                ),
-              ),
           ],
         ),
       ),
@@ -324,24 +310,39 @@ class _AppShellState extends ConsumerState<AppShell> {
                         final notifier = ref.read(
                           workspaceSidebarWidthProvider.notifier,
                         );
-                        notifier.state = (notifier.state + delta)
-                            .clamp(
-                              kMinWorkspaceSidebarWidth,
-                              kMaxWorkspaceSidebarWidth,
-                            )
-                            .toDouble();
+                        notifier.state = clampWorkspaceSidebarWidth(
+                          notifier.state + delta,
+                          size.width,
+                        );
                       },
                     ),
                   ),
                 ],
                 AnimatedPositioned(
-                  duration: const Duration(milliseconds: 180),
+                  duration: _kContentLayerAnimationDuration,
                   curve: Curves.easeOutCubic,
                   left: contentLeft,
                   top: 0,
                   bottom: 0,
                   width: contentWidth,
                   child: contentLayer,
+                ),
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: kSidebarRailWidth,
+                  child: _RailOverlayHost(
+                    visible: railOverlayVisible,
+                    delay: _kContentLayerAnimationDuration,
+                    child: Sidebar(
+                      onSelectScope: (scope) => _goToScope(context, scope),
+                      reserveShellHeader: true,
+                      transparentBackground: true,
+                      presentationModeOverride:
+                          SidebarPresentationMode.collapsed,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -380,24 +381,33 @@ class _AppShellState extends ConsumerState<AppShell> {
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final presentationMode = ref.watch(sidebarPresentationModeProvider);
-    final sidebarWidth = ref
-        .watch(workspaceSidebarWidthProvider)
-        .clamp(kMinWorkspaceSidebarWidth, kMaxWorkspaceSidebarWidth);
-    final listWidth = ref
-        .watch(workspaceListWidthProvider)
-        .clamp(kMinWorkspaceListWidth, kMaxWorkspaceListWidth);
+    final sidebarWidth = clampWorkspaceSidebarWidth(
+      ref.watch(workspaceSidebarWidthProvider),
+      size.width,
+    );
+    final sidebarLayoutMode = sidebarLayoutModeForWidth(size.width);
+    final effectiveSidebarPresentationMode =
+        sidebarLayoutMode == SidebarLayoutMode.inline
+        ? presentationMode
+        : SidebarPresentationMode.collapsed;
+    final contentWidthForList = effectiveContentWidth(
+      size.width,
+      sidebarPresentationMode: effectiveSidebarPresentationMode,
+      sidebarWidth: sidebarWidth,
+    );
+    final listWidth = clampWorkspaceListWidth(
+      ref.watch(workspaceListWidthProvider),
+      contentWidthForList,
+    );
     final macOSWindowChromeMetrics = ref.watch(
       macOSWindowChromeMetricsProvider,
     );
     final spec = LayoutSpec.fromTotalSize(
       totalWidth: size.width,
       totalHeight: size.height,
-      sidebarPresentationMode:
-          sidebarLayoutModeForWidth(size.width) == SidebarLayoutMode.inline
-          ? presentationMode
-          : SidebarPresentationMode.collapsed,
-      sidebarWidth: sidebarWidth.toDouble(),
-      listWidth: listWidth.toDouble(),
+      sidebarPresentationMode: effectiveSidebarPresentationMode,
+      sidebarWidth: sidebarWidth,
+      listWidth: listWidth,
     );
     final surfaces = Theme.of(context).fleurSurface;
     final hideNavForReaderPage =
@@ -420,8 +430,8 @@ class _AppShellState extends ConsumerState<AppShell> {
           size: size,
           surfaces: surfaces,
           macOSWindowChromeMetrics: macOSWindowChromeMetrics,
-          sidebarWidth: sidebarWidth.toDouble(),
-          listWidth: listWidth.toDouble(),
+          sidebarWidth: sidebarWidth,
+          listWidth: listWidth,
         );
       }
       return wrapShell(
@@ -437,8 +447,8 @@ class _AppShellState extends ConsumerState<AppShell> {
         presentationMode: presentationMode,
         macOSWindowChromeMetrics: macOSWindowChromeMetrics,
         surfaces: surfaces,
-        sidebarWidth: sidebarWidth.toDouble(),
-        listWidth: listWidth.toDouble(),
+        sidebarWidth: sidebarWidth,
+        listWidth: listWidth,
       );
     }
 
@@ -470,6 +480,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 }
 
+const _kContentLayerAnimationDuration = Duration(milliseconds: 180);
 const double _kShellControlsGroupWidth = kShellControlSize * 4;
 
 double _shellControlsLeftInset(
@@ -483,6 +494,82 @@ double _shellControlsLeftInset(
 double _shellControlsTopInset(MacOSWindowChromeMetrics metrics) {
   if (!isMacOS) return kShellControlTopInset;
   return metrics.shellControlTopInset;
+}
+
+class _RailOverlayHost extends StatefulWidget {
+  const _RailOverlayHost({
+    required this.visible,
+    required this.delay,
+    required this.child,
+  });
+
+  final bool visible;
+  final Duration delay;
+  final Widget child;
+
+  @override
+  State<_RailOverlayHost> createState() => _RailOverlayHostState();
+}
+
+class _RailOverlayHostState extends State<_RailOverlayHost> {
+  Timer? _revealTimer;
+  bool _paint = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncVisibility();
+  }
+
+  @override
+  void didUpdateWidget(covariant _RailOverlayHost oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.visible != widget.visible ||
+        oldWidget.delay != widget.delay) {
+      _syncVisibility();
+    }
+  }
+
+  @override
+  void dispose() {
+    _revealTimer?.cancel();
+    super.dispose();
+  }
+
+  void _syncVisibility() {
+    _revealTimer?.cancel();
+    if (!widget.visible) {
+      if (_paint) setState(() => _paint = false);
+      return;
+    }
+
+    if (_paint) return;
+    _revealTimer = Timer(widget.delay, () {
+      if (!mounted || !widget.visible) return;
+      setState(() => _paint = true);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_paint || !widget.visible) return const SizedBox.shrink();
+
+    return IgnorePointer(
+      ignoring: !widget.visible,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 90),
+        curve: Curves.easeOutCubic,
+        builder: (context, opacity, child) {
+          return Opacity(opacity: opacity, child: child);
+        },
+        child: KeyedSubtree(
+          key: const Key('app_shell_rail_overlay'),
+          child: widget.child,
+        ),
+      ),
+    );
+  }
 }
 
 class _InlineShellControlsHost extends StatelessWidget {

@@ -310,6 +310,11 @@ Future<HomeSceneCommands> _pumpHomeCommandsHarness(
   return commands;
 }
 
+Future<void> _settleRailOverlayReveal(WidgetTester tester) async {
+  await tester.pump(const Duration(milliseconds: 180));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   test('collapsed desktop sidebar does not consume content width', () {
     expect(
@@ -709,7 +714,9 @@ void main() {
     expect(expandedAddDx, fixedItemDx);
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    expect(find.byKey(const Key('app_shell_rail_overlay')), findsNothing);
+    await _settleRailOverlayReveal(tester);
     expect(find.byType(Sidebar), findsNWidgets(2));
     expect(find.byKey(const Key('app_shell_rail_overlay')), findsOneWidget);
     final railOverlay = find.byKey(const Key('app_shell_rail_overlay'));
@@ -786,6 +793,8 @@ void main() {
     );
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
+    await tester.pump();
+    expect(find.byKey(const Key('app_shell_rail_overlay')), findsNothing);
     await tester.pumpAndSettle();
     expect(
       tester.getSize(find.byType(Sidebar)).width,
@@ -799,10 +808,13 @@ void main() {
 
     tester.view.physicalSize = const Size(640, 900);
     await tester.pumpWidget(_buildShellHarness());
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     expect(find.byType(NavigationRail), findsNothing);
     expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byType(Sidebar), findsOneWidget);
+    expect(find.byKey(const Key('app_shell_rail_overlay')), findsNothing);
+    await _settleRailOverlayReveal(tester);
     expect(find.byType(Sidebar), findsNWidgets(2));
     expect(find.byKey(const Key('app_shell_rail_overlay')), findsOneWidget);
     expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
@@ -818,11 +830,12 @@ void main() {
     );
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     expect(find.byType(Sidebar), findsOneWidget);
     expect(find.byKey(const Key('app_shell_rail_overlay')), findsNothing);
     expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
+    await tester.pumpAndSettle();
     expect(
       tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
       kDefaultWorkspaceSidebarWidth,
@@ -884,13 +897,13 @@ void main() {
 
     await tester.drag(
       find.byKey(const Key('app_shell_sidebar_split_handle')),
-      const Offset(40, 0),
+      const Offset(200, 0),
     );
     await tester.pumpAndSettle();
 
     expect(
       tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
-      kDefaultWorkspaceSidebarWidth + 40 + kSidebarContentDividerWidth,
+      kDefaultWorkspaceSidebarWidth + 200 + kSidebarContentDividerWidth,
     );
   });
 
@@ -919,12 +932,13 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await _settleRailOverlayReveal(tester);
 
     expect(find.byKey(const Key('app_shell_rail_overlay')), findsOneWidget);
     expect(
       tester.getTopLeft(find.byKey(const Key('workspace_header_title'))).dx,
-      greaterThanOrEqualTo(kSidebarRailWidth + 16),
+      greaterThanOrEqualTo(kSidebarRailWidth + kRailOverlayContentGap),
     );
   });
 
@@ -2967,18 +2981,16 @@ void main() {
     );
     await tester.drag(
       find.byKey(const Key('workspace_list_split_handle')),
-      const Offset(40, 0),
+      const Offset(400, 0),
     );
     await tester.pump();
     final maxListWidthForHarness =
-        1200 -
-        kDefaultWorkspaceSidebarWidth -
-        kSidebarContentDividerWidth -
-        kMinReadingWidth;
+        1200 - kWorkspaceSplitHandleHitWidth - kMinReadingWidth;
     expect(
       tester.getSize(find.byType(ArticleList)).width,
       maxListWidthForHarness,
     );
+    expect(tester.getSize(find.byType(HomeReaderPane)).width, kMinReadingWidth);
     expect(find.byType(HomeReaderPane), findsOneWidget);
     expect(find.byType(ReaderView), findsOneWidget);
     expect(tester.getSize(find.byType(ReadingPaneSurface)).height, 800);
