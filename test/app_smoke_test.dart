@@ -630,6 +630,10 @@ void main() {
       tester.getSize(find.byKey(const Key('app_shell_child'))).height,
       900,
     );
+    final expandedControlsLeft = tester
+        .getTopLeft(find.byKey(const Key('shell_controls_capsule')))
+        .dx;
+    expect(expandedControlsLeft, kShellControlsInlineLeft);
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
     await tester.pumpAndSettle();
@@ -650,7 +654,7 @@ void main() {
       tester
           .getTopLeft(find.byKey(const Key('shell_content_controls_capsule')))
           .dx,
-      kSidebarCollapsedWidth + kSidebarContentDividerWidth + 14,
+      expandedControlsLeft,
     );
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));

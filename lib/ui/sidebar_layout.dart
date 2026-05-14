@@ -12,6 +12,8 @@ const double kWorkspaceHeaderHeight = 56;
 const double kShellCapsuleHeight = 40;
 const double kShellCapsuleVerticalInset =
     (kWorkspaceHeaderHeight - kShellCapsuleHeight) / 2;
+const double kShellControlsInlineLeft =
+    kSidebarCollapsedWidth + kSidebarContentDividerWidth + 8;
 const double kCollapsedContentShellControlsReserveWidth = 128;
 
 enum SidebarPresentationMode { expanded, collapsed }

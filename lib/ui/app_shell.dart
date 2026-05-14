@@ -101,16 +101,13 @@ class AppShell extends ConsumerWidget {
     required double width,
     required SidebarPresentationMode presentationMode,
   }) {
-    final surfaces = Theme.of(context).fleurSurface;
     final collapsed = presentationMode == SidebarPresentationMode.collapsed;
     return SizedBox(
       width: width,
-      child: Material(
-        color: surfaces.sidebar,
-        child: Column(
-          children: [
-            if (isDesktop)
-              _ShellSidebarHeader(
+      child: Sidebar(
+        onSelectScope: (scope) => _goToScope(context, scope),
+        topHeader: isDesktop
+            ? _ShellSidebarHeader(
                 collapsed: collapsed,
                 child: _ShellControlsHost(
                   canPop: _canPop(context),
@@ -127,17 +124,11 @@ class AppShell extends ConsumerWidget {
                   capsuleKey: collapsed
                       ? const Key('shell_sidebar_toggle_capsule')
                       : const Key('shell_controls_capsule'),
-                  leftPadding: collapsed ? 0 : null,
-                  includeTrailingDragArea: !collapsed,
+                  leftPadding: collapsed ? 0 : kShellControlsInlineLeft,
+                  includeTrailingDragArea: false,
                 ),
-              ),
-            Expanded(
-              child: Sidebar(
-                onSelectScope: (scope) => _goToScope(context, scope),
-              ),
-            ),
-          ],
-        ),
+              )
+            : null,
       ),
     );
   }
@@ -171,6 +162,7 @@ class AppShell extends ConsumerWidget {
             showForwardButton: true,
             showSearchButton: true,
             capsuleKey: const Key('shell_controls_capsule'),
+            leftPadding: kShellControlsInlineLeft,
             includeTrailingDragArea: false,
           ),
         ),
@@ -238,7 +230,7 @@ class AppShell extends ConsumerWidget {
               if (presentationMode == SidebarPresentationMode.collapsed)
                 Positioned(
                   key: const Key('app_shell_collapsed_content_controls'),
-                  left: sidebarWidth + kSidebarContentDividerWidth + 14,
+                  left: kShellControlsInlineLeft,
                   top: kShellCapsuleVerticalInset,
                   child: _ShellControlsHost(
                     canPop: _canPop(context),
@@ -302,6 +294,7 @@ class _ShellSidebarHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       key: const Key('app_shell_sidebar_header'),
+      width: double.infinity,
       height: kWorkspaceHeaderHeight,
       child: Padding(
         padding: const EdgeInsets.symmetric(

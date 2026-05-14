@@ -33,10 +33,16 @@ import 'account_avatar.dart';
 import 'overflow_marquee.dart';
 
 class Sidebar extends ConsumerStatefulWidget {
-  const Sidebar({super.key, required this.onSelectScope, this.router});
+  const Sidebar({
+    super.key,
+    required this.onSelectScope,
+    this.router,
+    this.topHeader,
+  });
 
   final ValueChanged<ArticleScope> onSelectScope;
   final GoRouter? router;
+  final Widget? topHeader;
 
   @override
   ConsumerState<Sidebar> createState() => _SidebarState();
@@ -200,6 +206,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
       color: surfaces.sidebar,
       child: Column(
         children: [
+          if (widget.topHeader != null) widget.topHeader!,
           _SidebarFixedItems(
             mode: presentationMode,
             currentScope: currentScope,
