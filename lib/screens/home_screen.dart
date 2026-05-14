@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fleur/l10n/app_localizations.dart';
@@ -308,59 +310,65 @@ class _HomeArticleListToolbar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final surfaces = theme.fleurSurface;
     final scheme = theme.colorScheme;
     final unreadOnly = ref.watch(unreadOnlyProvider);
     final title = _scopeTitle(ref, l10n);
     return Material(
       key: const Key('home_scope_header'),
-      color: surfaces.list,
-      child: SizedBox(
-        height: kWorkspaceHeaderHeight,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: scheme.onSurface,
-                    fontWeight: FontWeight.w600,
-                  ),
+      type: MaterialType.transparency,
+      child: ClipRect(
+        child: Stack(
+          children: [
+            const Positioned.fill(child: _HomeScopeHeaderSurface()),
+            SizedBox(
+              height: kWorkspaceHeaderHeight,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: scheme.onSurface,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    FleurCapsuleButtonGroup(
+                      key: const Key('home_scope_actions'),
+                      children: [
+                        if (showRefresh)
+                          FleurCapsuleIconButton(
+                            key: const Key('scope_refresh_button'),
+                            tooltip: refreshTooltip,
+                            onPressed: onRefresh,
+                            icon: FleurIcons.refresh,
+                          ),
+                        FleurCapsuleIconButton(
+                          key: const Key('scope_unread_filter_button'),
+                          tooltip: unreadOnly ? l10n.showAll : l10n.unreadOnly,
+                          onPressed: onToggleUnreadOnly,
+                          selected: unreadOnly,
+                          icon: unreadOnly
+                              ? FleurIcons.filterActive
+                              : FleurIcons.filter,
+                        ),
+                        FleurCapsuleIconButton(
+                          key: const Key('scope_mark_all_read_button'),
+                          tooltip: l10n.markAllRead,
+                          onPressed: onMarkAllRead,
+                          icon: FleurIcons.markAllRead,
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              FleurCapsuleButtonGroup(
-                key: const Key('home_scope_actions'),
-                children: [
-                  if (showRefresh)
-                    FleurCapsuleIconButton(
-                      key: const Key('scope_refresh_button'),
-                      tooltip: refreshTooltip,
-                      onPressed: onRefresh,
-                      icon: FleurIcons.refresh,
-                    ),
-                  FleurCapsuleIconButton(
-                    key: const Key('scope_unread_filter_button'),
-                    tooltip: unreadOnly ? l10n.showAll : l10n.unreadOnly,
-                    onPressed: onToggleUnreadOnly,
-                    selected: unreadOnly,
-                    icon: unreadOnly
-                        ? FleurIcons.filterActive
-                        : FleurIcons.filter,
-                  ),
-                  FleurCapsuleIconButton(
-                    key: const Key('scope_mark_all_read_button'),
-                    tooltip: l10n.markAllRead,
-                    onPressed: onMarkAllRead,
-                    icon: FleurIcons.markAllRead,
-                  ),
-                ],
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -406,5 +414,36 @@ class _HomeArticleListToolbar extends ConsumerWidget {
     }
 
     return l10n.all;
+  }
+}
+
+class _HomeScopeHeaderSurface extends StatelessWidget {
+  const _HomeScopeHeaderSurface();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final surface = theme.fleurSurface.list;
+    final topAlpha = theme.brightness == Brightness.dark ? 0.52 : 0.62;
+
+    return IgnorePointer(
+      key: const ValueKey('article-list-top-fade'),
+      child: ShaderMask(
+        blendMode: BlendMode.dstIn,
+        shaderCallback: (bounds) => const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.white, Colors.transparent],
+        ).createShader(bounds),
+        child: BackdropFilter(
+          filter: ui.ImageFilter.blur(sigmaX: 0, sigmaY: 6),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: surface.withValues(alpha: topAlpha),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

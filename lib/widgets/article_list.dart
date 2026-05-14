@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -112,14 +111,7 @@ class _ArticleListState extends ConsumerState<ArticleList> {
     return Column(
       children: [
         _ArticleListTopBar(child: topBar),
-        Expanded(
-          child: Stack(
-            children: [
-              Positioned.fill(child: child),
-              const _ArticleListTopFade(),
-            ],
-          ),
-        ),
+        Expanded(child: child),
       ],
     );
   }
@@ -585,43 +577,6 @@ class _ArticleListTopBar extends StatelessWidget {
     return KeyedSubtree(
       key: const ValueKey('article-list-top-bar'),
       child: child,
-    );
-  }
-}
-
-class _ArticleListTopFade extends StatelessWidget {
-  const _ArticleListTopFade();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final surface = theme.fleurSurface.list;
-    final topAlpha = theme.brightness == Brightness.dark ? 0.52 : 0.62;
-    return Positioned(
-      key: const ValueKey('article-list-top-fade'),
-      left: 0,
-      top: 0,
-      right: 0,
-      height: 20,
-      child: IgnorePointer(
-        child: ClipRect(
-          child: BackdropFilter(
-            filter: ui.ImageFilter.blur(sigmaX: 0, sigmaY: 6),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    surface.withValues(alpha: topAlpha),
-                    surface.withValues(alpha: 0),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

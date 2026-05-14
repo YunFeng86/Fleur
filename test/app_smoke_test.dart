@@ -2475,7 +2475,17 @@ void main() {
     expect(find.byKey(const Key('home_scope_actions')), findsOneWidget);
     expect(find.byKey(const Key('scope_refresh_button')), findsOneWidget);
     expect(find.byKey(const Key('scope_unread_filter_button')), findsOneWidget);
-    expect(find.byKey(const ValueKey('article-list-top-fade')), findsOneWidget);
+    final scopeHeader = find.byKey(const Key('home_scope_header'));
+    final headerFade = find.descendant(
+      of: scopeHeader,
+      matching: find.byKey(const ValueKey('article-list-top-fade')),
+    );
+    expect(headerFade, findsOneWidget);
+    expect(tester.getSize(headerFade).height, kWorkspaceHeaderHeight);
+    expect(
+      find.descendant(of: headerFade, matching: find.byType(BackdropFilter)),
+      findsOneWidget,
+    );
     expect(find.byType(HomeReaderPane), findsNothing);
     expect(find.byType(ReadingPaneSurface), findsNothing);
     expect(find.byType(ReaderView), findsNothing);
