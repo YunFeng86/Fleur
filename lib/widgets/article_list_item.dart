@@ -105,23 +105,23 @@ class _ArticleListItemState extends ConsumerState<ArticleListItem> {
       letterSpacing: 0,
       height: 1.32,
     );
-    final cardColor = widget.selected ? surfaces.cardSelected : surfaces.card;
-
+    final cardColor = widget.selected
+        ? surfaces.cardSelected
+        : Colors.transparent;
+    final borderColor = widget.selected
+        ? states.focusRing.withAlpha(78)
+        : Colors.transparent;
     return MouseRegion(
       onEnter: (_) => _setHovered(true),
       onExit: (_) => _setHovered(false),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(10, 5, 10, 7),
-        child: DecoratedBox(
+        padding: const EdgeInsets.fromLTRB(8, 2, 8, 4),
+        child: Container(
           key: const Key('article_item_card'),
           decoration: BoxDecoration(
             color: cardColor,
             borderRadius: _radius,
-            border: Border.all(
-              color: widget.selected
-                  ? states.focusRing.withAlpha(86)
-                  : surfaces.subtleDivider.withAlpha(70),
-            ),
+            border: Border.all(color: borderColor),
           ),
           child: ClipRRect(
             borderRadius: _radius,
@@ -134,7 +134,7 @@ class _ArticleListItemState extends ConsumerState<ArticleListItem> {
                 onTap: widget.onTap,
                 onSecondaryTapDown: widget.onSecondaryTapDown,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -181,7 +181,7 @@ class _ArticleListItemState extends ConsumerState<ArticleListItem> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       Text(
                         title.isEmpty ? article.link : title,
                         style: titleStyle,
@@ -189,7 +189,7 @@ class _ArticleListItemState extends ConsumerState<ArticleListItem> {
                         overflow: TextOverflow.ellipsis,
                       ),
                       if (previewText.isNotEmpty || imageUrl != null) ...[
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         LayoutBuilder(
                           builder: (context, constraints) {
                             final canShowImage =

@@ -2347,9 +2347,7 @@ void main() {
       final theme = AppTheme.light();
       final cardDecoration =
           tester
-                  .widget<DecoratedBox>(
-                    find.byKey(const Key('article_item_card')),
-                  )
+                  .widget<Container>(find.byKey(const Key('article_item_card')))
                   .decoration
               as BoxDecoration;
       final title = tester.widget<Text>(find.text('Selected Article'));
@@ -2365,6 +2363,7 @@ void main() {
         cardDecoration.borderRadius,
         const BorderRadius.all(Radius.circular(8)),
       );
+      expect(cardDecoration.boxShadow, isNull);
       expect(title.style?.fontWeight, FontWeight.w600);
       expect(title.style?.letterSpacing, 0);
       expect(title.style?.height, 1.2);
@@ -2431,6 +2430,13 @@ void main() {
 
     expect(find.byKey(const Key('article_item_timestamp')), findsNothing);
     expect(find.byKey(const Key('article_item_hover_actions')), findsOneWidget);
+    final hoverDecoration =
+        tester
+                .widget<Container>(find.byKey(const Key('article_item_card')))
+                .decoration
+            as BoxDecoration;
+    expect(hoverDecoration.color, Colors.transparent);
+    expect(hoverDecoration.boxShadow, isNull);
 
     await tester.tap(find.byKey(const Key('article_item_read_later_button')));
     await tester.tap(find.byKey(const Key('article_item_star_button')));
