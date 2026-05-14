@@ -358,7 +358,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
 
 enum _SidebarAccountMenuAction { account, settings }
 
-const double _kSidebarFixedItemHeight = 44;
+const double _kSidebarFixedItemHeight = 40;
 const double _kSidebarRailButtonSize = 36;
 const double _kSidebarRailIconSize = 16;
 const double _kSidebarAccountHeight = 56;
@@ -700,18 +700,10 @@ class _SidebarPanelFixedItems extends StatelessWidget {
   }
 }
 
-class _SidebarPanelFixedItem extends StatefulWidget {
+class _SidebarPanelFixedItem extends StatelessWidget {
   const _SidebarPanelFixedItem({required this.item});
 
   final _SidebarFixedItemData item;
-
-  @override
-  State<_SidebarPanelFixedItem> createState() => _SidebarPanelFixedItemState();
-}
-
-class _SidebarPanelFixedItemState extends State<_SidebarPanelFixedItem> {
-  bool _hovered = false;
-  bool _focused = false;
 
   @override
   Widget build(BuildContext context) {
@@ -720,80 +712,55 @@ class _SidebarPanelFixedItemState extends State<_SidebarPanelFixedItem> {
     final states = theme.fleurState;
     final scheme = theme.colorScheme;
     final borderRadius = BorderRadius.circular(8);
-    final item = widget.item;
     final iconColor = item.selected ? scheme.primary : scheme.onSurfaceVariant;
-    final backgroundColor = item.selected
-        ? surfaces.cardSelected
-        : (_hovered || _focused ? states.hoverTint : Colors.transparent);
 
-    return SizedBox(
-      height: _kSidebarFixedItemHeight,
-      child: Semantics(
-        button: true,
-        selected: item.selected,
-        label: item.title,
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: item.onTap,
-            onHover: (value) => setState(() => _hovered = value),
-            onFocusChange: (value) => setState(() => _focused = value),
-            hoverColor: Colors.transparent,
-            focusColor: Colors.transparent,
-            highlightColor: Colors.transparent,
-            splashColor: Colors.transparent,
-            mouseCursor: SystemMouseCursors.click,
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  left: 8,
-                  right: 8,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: backgroundColor,
-                      borderRadius: borderRadius,
-                    ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: SizedBox(
+        height: _kSidebarFixedItemHeight,
+        child: Semantics(
+          button: true,
+          selected: item.selected,
+          label: item.title,
+          child: ListTile(
+            selected: item.selected,
+            selectedTileColor: surfaces.cardSelected,
+            hoverColor: states.hoverTint,
+            shape: RoundedRectangleBorder(borderRadius: borderRadius),
+            minTileHeight: _kSidebarFixedItemHeight,
+            minLeadingWidth: kSidebarRailWidth - 16,
+            horizontalTitleGap: 8,
+            contentPadding: const EdgeInsets.only(right: 8),
+            leading: SizedBox(
+              width: kSidebarRailWidth - 16,
+              child: Center(
+                child: SizedBox.square(
+                  key: item.key,
+                  dimension: _kSidebarRailButtonSize,
+                  child: Icon(
+                    item.effectiveIcon,
+                    color: iconColor,
+                    size: _kSidebarRailIconSize,
                   ),
                 ),
-                Row(
-                  children: [
-                    SizedBox(
-                      width: kSidebarRailWidth,
-                      child: Center(
-                        child: SizedBox.square(
-                          key: item.key,
-                          dimension: _kSidebarRailButtonSize,
-                          child: Icon(
-                            item.effectiveIcon,
-                            color: iconColor,
-                            size: _kSidebarRailIconSize,
-                          ),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Text(
-                        item.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: scheme.onSurface,
-                          fontSize: 13,
-                          fontWeight: AppTypography.platformWeight(
-                            FontWeight.w500,
-                          ),
-                          letterSpacing: 0,
-                          height: 1.2,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    if (item.count != null) _SidebarFixedCount(item.count!),
-                    const SizedBox(width: 16),
-                  ],
-                ),
-              ],
+              ),
             ),
+            title: Text(
+              item.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurface,
+                fontSize: 13,
+                fontWeight: AppTypography.platformWeight(FontWeight.w500),
+                letterSpacing: 0,
+                height: 1.2,
+              ),
+            ),
+            trailing: item.count == null
+                ? null
+                : _SidebarFixedCount(item.count!),
+            onTap: item.onTap,
           ),
         ),
       ),
