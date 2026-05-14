@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:fleur/app/app.dart';
 import 'package:fleur/app/router.dart';
+import 'package:fleur/app/search_routes.dart';
 import 'package:fleur/l10n/app_localizations.dart';
 import 'package:fleur/models/article.dart';
 import 'package:fleur/models/article_scope.dart';
@@ -2602,20 +2603,143 @@ void main() {
     expect(shadows.first.blurRadius, greaterThan(0));
   });
 
-  testWidgets('Search screen shows start and no-result empty states', (
-    tester,
-  ) async {
-    const searchSectionKey = ValueKey<String>('search-section-test');
+  testWidgets(
+    'Search screen starts as a task page and shows results after input',
+    (tester) async {
+      const searchSectionKey = ValueKey<String>('search-section-test');
+      final router = GoRouter(
+        initialLocation: '/search',
+        routes: [
+          GoRoute(path: '/', builder: (context, state) => const SizedBox()),
+          GoRoute(
+            path: '/search',
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: searchSectionKey,
+              child: SearchScreen(
+                selectedArticleId: null,
+                routeState: searchStateFromUri(state.uri),
+              ),
+            ),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appSettingsStoreProvider.overrideWithValue(
+              FakeAppSettingsStore(AppSettings.defaults()),
+            ),
+            articleListControllerProvider.overrideWith(
+              _EmptyArticleListController.new,
+            ),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+            theme: AppTheme.light(),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final element = tester.element(find.byType(SearchScreen));
+      final l10n = AppLocalizations.of(element)!;
+
+      expect(find.byKey(const Key('search_task_field_large')), findsOneWidget);
+      expect(find.byType(ArticleList), findsNothing);
+      expect(find.byType(ReaderView), findsNothing);
+      expect(find.text(l10n.searchStartTitle), findsNothing);
+      expect(find.text(l10n.searchReaderEmptyTitle), findsNothing);
+      expect(find.text(l10n.searchReaderEmptySubtitle), findsNothing);
+
+      final stageRect = tester.getRect(
+        find.byKey(const Key('search_task_empty_stage')),
+      );
+      final largeFieldRect = tester.getRect(
+        find.byKey(const Key('search_task_field_large')),
+      );
+      final searchBar = tester.widget<SearchBar>(
+        find.byKey(const Key('search_task_field')),
+      );
+      final defaultStates = <WidgetState>{};
+      final fieldSide = searchBar.side!.resolve(defaultStates)!;
+
+      expect(
+        (largeFieldRect.center.dx - stageRect.center.dx).abs(),
+        lessThan(1),
+      );
+      expect(
+        (largeFieldRect.center.dy - stageRect.center.dy).abs(),
+        lessThan(1),
+      );
+      expect(largeFieldRect.height, 46);
+      expect(searchBar.shape!.resolve(defaultStates), isA<StadiumBorder>());
+      expect(searchBar.elevation!.resolve(defaultStates), 0);
+      expect(fieldSide.width, 1);
+
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(const Key('search_task_field')),
+          matching: find.byType(EditableText),
+        ),
+        'claude',
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+
+      expect(
+        router.routerDelegate.currentConfiguration.uri.toString(),
+        '/search?q=claude',
+      );
+      expect(find.byKey(const Key('search_task_field_top')), findsOneWidget);
+      expect(find.byKey(const Key('search_advanced_filters')), findsOneWidget);
+      expect(find.byType(ArticleList), findsOneWidget);
+      expect(find.byType(ReaderView), findsNothing);
+      expect(find.text(l10n.notFound), findsOneWidget);
+      expect(find.text(l10n.searchNoResultsSubtitle('claude')), findsOneWidget);
+      expect(find.text(l10n.clearSearch), findsOneWidget);
+
+      await tester.tap(find.text(l10n.clearSearch));
+      await tester.pumpAndSettle();
+
+      expect(
+        router.routerDelegate.currentConfiguration.uri.toString(),
+        '/search',
+      );
+      expect(find.byKey(const Key('search_task_field_large')), findsOneWidget);
+      expect(find.byType(ArticleList), findsNothing);
+      expect(find.text(l10n.searchStartTitle), findsNothing);
+    },
+  );
+
+  testWidgets('Search task field centers within shell content', (tester) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(2048, 1008);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
     final router = GoRouter(
       initialLocation: '/search',
       routes: [
-        GoRoute(path: '/', builder: (context, state) => const SizedBox()),
-        GoRoute(
-          path: '/search',
-          pageBuilder: (context, state) => const NoTransitionPage(
-            key: searchSectionKey,
-            child: SearchScreen(selectedArticleId: null),
-          ),
+        ShellRoute(
+          builder: (context, state, child) =>
+              AppShell(currentUri: state.uri, child: child),
+          routes: [
+            GoRoute(
+              path: '/search',
+              pageBuilder: (context, state) => NoTransitionPage(
+                child: SearchScreen(
+                  selectedArticleId: null,
+                  routeState: searchStateFromUri(state.uri),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -2624,43 +2748,121 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          activeAccountProvider.overrideWithValue(buildTestAccount()),
+          sidebarPresentationModeProvider.overrideWith(
+            (ref) => SidebarPresentationMode.collapsed,
+          ),
           appSettingsStoreProvider.overrideWithValue(
             FakeAppSettingsStore(AppSettings.defaults()),
           ),
           articleListControllerProvider.overrideWith(
             _EmptyArticleListController.new,
           ),
+          feedsProvider.overrideWith((ref) => Stream.value(<Feed>[])),
+          categoriesProvider.overrideWith((ref) => Stream.value(<Category>[])),
+          tagsProvider.overrideWith((ref) => Stream.value(<Tag>[])),
+          allUnreadCountsProvider.overrideWith(
+            (ref) => Stream.value(<int?, int>{null: 0}),
+          ),
+          outboxPendingCountProvider.overrideWith((ref) async => 0),
         ],
         child: MaterialApp.router(
-          routerConfig: router,
           theme: AppTheme.light(),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
+          routerConfig: router,
         ),
       ),
     );
     await tester.pumpAndSettle();
 
-    final element = tester.element(find.byType(SearchScreen));
-    final l10n = AppLocalizations.of(element)!;
+    final screenRect = tester.getRect(find.byType(SearchScreen));
+    final fieldRect = tester.getRect(
+      find.byKey(const Key('search_task_field_large')),
+    );
 
-    expect(find.text(l10n.searchStartTitle), findsOneWidget);
-    expect(find.text(l10n.searchStartSubtitle), findsOneWidget);
-    expect(find.text(l10n.searchReaderEmptyTitle), findsOneWidget);
-    expect(find.text(l10n.searchReaderEmptySubtitle), findsOneWidget);
-
-    await tester.enterText(find.byType(TextField).first, 'claude');
-    await tester.pumpAndSettle();
-
-    expect(find.text(l10n.notFound), findsOneWidget);
-    expect(find.text(l10n.searchNoResultsSubtitle('claude')), findsOneWidget);
-    expect(find.text(l10n.clearSearch), findsOneWidget);
-
-    await tester.tap(find.text(l10n.clearSearch));
-    await tester.pumpAndSettle();
-
-    expect(find.text(l10n.searchStartTitle), findsOneWidget);
+    expect((fieldRect.center.dx - screenRect.center.dx).abs(), lessThan(1));
+    expect((fieldRect.center.dy - screenRect.center.dy).abs(), lessThan(1));
+    expect(fieldRect.width, 720);
+    expect(fieldRect.height, 46);
+    expect(fieldRect.left, greaterThan(screenRect.left));
+    expect(fieldRect.right, lessThan(screenRect.right));
   });
+
+  testWidgets(
+    'Search result click preserves query when opening article route',
+    (tester) async {
+      debugFleurTargetPlatformOverride = TargetPlatform.windows;
+      addTearDown(() => debugFleurTargetPlatformOverride = null);
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = const Size(1200, 800);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+
+      final article = _buildArticle(id: 42, title: 'Claude Result');
+      final feed = _buildFeed(id: article.feedId);
+      _FixedArticleListController.items = <Article>[article];
+      addTearDown(() => _FixedArticleListController.items = <Article>[]);
+
+      final router = GoRouter(
+        initialLocation: '/search?q=claude&scope=starred',
+        routes: [
+          GoRoute(
+            path: '/search',
+            pageBuilder: (context, state) => NoTransitionPage(
+              child: SearchScreen(
+                selectedArticleId: null,
+                routeState: searchStateFromUri(state.uri),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/search/article/:id',
+            builder: (context, state) =>
+                Text('search article ${state.pathParameters['id']}'),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            articleListControllerProvider.overrideWith(
+              _FixedArticleListController.new,
+            ),
+            appSettingsStoreProvider.overrideWithValue(
+              FakeAppSettingsStore(AppSettings.defaults()),
+            ),
+            feedsProvider.overrideWith((ref) => Stream.value([feed])),
+            categoriesProvider.overrideWith(
+              (ref) => Stream.value(<Category>[]),
+            ),
+            tagsProvider.overrideWith((ref) => Stream.value(<Tag>[])),
+          ],
+          child: MaterialApp.router(
+            theme: AppTheme.light(),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            routerConfig: router,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ArticleList), findsOneWidget);
+      expect(find.byType(ReaderView), findsNothing);
+
+      await tester.tap(find.text('Claude Result'));
+      await tester.pumpAndSettle();
+
+      expect(
+        router.routerDelegate.currentConfiguration.uri.toString(),
+        '/search/article/42?q=claude&scope=starred',
+      );
+      expect(find.text('search article 42'), findsOneWidget);
+    },
+  );
 }
 
 void _noopSelectScope(ArticleScope _) {}

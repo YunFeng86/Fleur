@@ -11,6 +11,7 @@ import 'package:fleur/models/tag.dart';
 import 'package:fleur/providers/app_settings_providers.dart';
 import 'package:fleur/providers/article_list_controller.dart';
 import 'package:fleur/providers/core_providers.dart';
+import 'package:fleur/providers/query_providers.dart';
 import 'package:fleur/providers/unread_providers.dart';
 import 'package:fleur/repositories/article_repository.dart';
 import 'package:fleur/services/settings/app_settings.dart';
@@ -47,13 +48,18 @@ void main() {
     }
   });
 
-  ProviderContainer buildContainer({bool unreadOnly = false}) {
+  ProviderContainer buildContainer({
+    bool unreadOnly = false,
+    AppSettings? settings,
+    ArticleListFilter filter = const ArticleListFilter(),
+  }) {
     final container = ProviderContainer(
       overrides: [
         isarProvider.overrideWithValue(isar!),
         appSettingsStoreProvider.overrideWithValue(
-          FakeAppSettingsStore(AppSettings.defaults()),
+          FakeAppSettingsStore(settings ?? AppSettings.defaults()),
         ),
+        articleListFilterProvider.overrideWith((ref) => filter),
         unreadOnlyProvider.overrideWith((ref) => unreadOnly),
       ],
     );
@@ -84,6 +90,29 @@ void main() {
           ..isRead = false;
       });
       await isar!.articles.putAll(articles);
+    });
+  }
+
+  Future<void> seedSearchArticle() async {
+    final now = DateTime.utc(2026, 5, 1, 12);
+    await isar!.writeTxn(() async {
+      final feed = Feed()
+        ..id = 1
+        ..url = 'https://example.com/feed.xml'
+        ..title = 'Example';
+      await isar!.feeds.put(feed);
+
+      final article = Article()
+        ..id = 1
+        ..feedId = feed.id
+        ..link = 'https://example.com/articles/1'
+        ..title = 'Title only'
+        ..contentHtml = '<p>needle only in content</p>'
+        ..publishedAt = now
+        ..fetchedAt = now
+        ..updatedAt = now
+        ..isRead = false;
+      await isar!.articles.put(article);
     });
   }
 
@@ -170,5 +199,39 @@ void main() {
     expect(state.startOffset, 0);
     expect(state.nextOffset, 30);
     expect(state.hasMore, isFalse);
+  });
+
+  test('search content override takes precedence over app settings', () async {
+    await seedSearchArticle();
+
+    final titleOnlyContainer = buildContainer(
+      settings: AppSettings.defaults().copyWith(searchInContent: true),
+      filter: const ArticleListFilter(
+        searchQuery: 'needle',
+        searchInContentOverride: false,
+      ),
+    );
+    keepArticleListAlive(titleOnlyContainer);
+    await titleOnlyContainer.read(appSettingsProvider.future);
+
+    final titleOnlyState = await titleOnlyContainer.read(
+      articleListControllerProvider.future,
+    );
+    expect(articleIds(titleOnlyState), isEmpty);
+
+    final contentContainer = buildContainer(
+      settings: AppSettings.defaults().copyWith(searchInContent: false),
+      filter: const ArticleListFilter(
+        searchQuery: 'needle',
+        searchInContentOverride: true,
+      ),
+    );
+    keepArticleListAlive(contentContainer);
+    await contentContainer.read(appSettingsProvider.future);
+
+    final contentState = await contentContainer.read(
+      articleListControllerProvider.future,
+    );
+    expect(articleIds(contentState), [1]);
   });
 }

@@ -54,6 +54,7 @@ class ArticleListController extends AutoDisposeAsyncNotifier<ArticleListState> {
   ArticleScope _scope = ArticleScope.all;
   bool _unreadOnly = false;
   String _searchQuery = '';
+  bool? _searchInContentOverride;
   bool _sortAscending = false;
   bool _searchInContent = true;
 
@@ -76,11 +77,17 @@ class ArticleListController extends AutoDisposeAsyncNotifier<ArticleListState> {
     _scope = ref.watch(currentArticleScopeProvider);
     _unreadOnly = ref.watch(unreadOnlyProvider);
     _searchQuery = ref.watch(articleSearchQueryProvider);
+    _searchInContentOverride = ref.watch(
+      articleListFilterProvider.select(
+        (filter) => filter.searchInContentOverride,
+      ),
+    );
     final settings = ref.watch(appSettingsProvider).valueOrNull;
     _sortAscending =
         (settings?.articleSortOrder ?? ArticleSortOrder.newestFirst) ==
         ArticleSortOrder.oldestFirst;
-    _searchInContent = settings?.searchInContent ?? true;
+    _searchInContent =
+        _searchInContentOverride ?? settings?.searchInContent ?? true;
 
     // 查询结果变化时刷新列表（新增/过滤）。
     // 读/星标通过单条流更新，避免全量刷新。

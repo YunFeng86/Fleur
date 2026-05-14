@@ -86,4 +86,53 @@ void main() {
     expect(feed.unreadOnly, isTrue);
     expect(feed.searchQuery, '');
   });
+
+  test('section selection clears search content override', () {
+    const filter = ArticleListFilter(
+      scope: ArticleScope.starred,
+      unreadOnly: true,
+      searchQuery: 'needle',
+      searchInContentOverride: false,
+    );
+
+    final next = filter.selectFeed(7);
+
+    expect(next.scope, const ArticleScope.feed(7));
+    expect(next.searchQuery, '');
+    expect(next.searchInContentOverride, isNull);
+
+    final saved = filter.selectReadLater();
+
+    expect(saved.scope, ArticleScope.readLater);
+    expect(saved.unreadOnly, isFalse);
+    expect(saved.searchQuery, '');
+    expect(saved.searchInContentOverride, isNull);
+  });
+
+  test(
+    'search section preserves query and sets a page-local content override',
+    () {
+      const filter = ArticleListFilter(
+        scope: ArticleScope.feed(7),
+        unreadOnly: true,
+        searchQuery: 'needle',
+        searchInContentOverride: false,
+      );
+
+      final next = filter.enterSearchSection();
+
+      expect(next.scope, ArticleScope.all);
+      expect(next.unreadOnly, isFalse);
+      expect(next.searchQuery, 'needle');
+      expect(next.searchInContentOverride, isTrue);
+    },
+  );
+
+  test('copyWith can clear search content override explicitly', () {
+    const filter = ArticleListFilter(searchInContentOverride: false);
+
+    final next = filter.copyWith(searchInContentOverride: null);
+
+    expect(next.searchInContentOverride, isNull);
+  });
 }

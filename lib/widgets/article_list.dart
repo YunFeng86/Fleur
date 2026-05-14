@@ -40,6 +40,7 @@ class ArticleList extends ConsumerStatefulWidget {
     required this.selectedArticleId,
     this.baseLocation,
     this.articleRoutePrefix,
+    this.articleLocationBuilder,
     this.topBar,
     this.emptyBuilder,
   });
@@ -47,6 +48,7 @@ class ArticleList extends ConsumerStatefulWidget {
   final int? selectedArticleId;
   final String? baseLocation;
   final String? articleRoutePrefix;
+  final String Function(Article article)? articleLocationBuilder;
   final Widget? topBar;
   final Widget Function(BuildContext context, ArticleListEmptyState state)?
   emptyBuilder;
@@ -160,9 +162,11 @@ class _ArticleListState extends ConsumerState<ArticleList> {
                 : kDesktopListWidth,
           );
 
-    final loc = widget.articleRoutePrefix == null
-        ? scopedArticleLocation(scope, article.id)
-        : '${widget.articleRoutePrefix}/article/${article.id}';
+    final loc =
+        widget.articleLocationBuilder?.call(article) ??
+        (widget.articleRoutePrefix == null
+            ? scopedArticleLocation(scope, article.id)
+            : '${widget.articleRoutePrefix}/article/${article.id}');
 
     if (openAsSecondaryPage) {
       await context.push(loc);

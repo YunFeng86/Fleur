@@ -4,6 +4,7 @@ import 'package:fleur/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
 import 'article_scope_routes.dart';
+import 'search_routes.dart';
 import 'settings_routes.dart';
 import '../models/article_scope.dart';
 import '../screens/add_subscription_screen.dart';
@@ -221,23 +222,41 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/search',
             name: 'search',
+            redirect: (context, state) {
+              final routeState = searchStateFromUri(state.uri);
+              if (!routeState.hasQuery && state.uri.query.isNotEmpty) {
+                return '/search';
+              }
+              return null;
+            },
             pageBuilder: (context, state) {
+              final routeState = searchStateFromUri(state.uri);
               return sectionPage(
                 state: state,
                 pageKey: _searchSectionKey,
-                child: const SearchScreen(selectedArticleId: null),
+                child: SearchScreen(
+                  selectedArticleId: null,
+                  routeState: routeState,
+                ),
               );
             },
           ),
           GoRoute(
             path: '/search/article/:id',
             name: 'searchArticle',
+            redirect: (context, state) {
+              final routeState = searchStateFromUri(state.uri);
+              if (!routeState.hasQuery) return '/search';
+              return null;
+            },
             pageBuilder: (context, state) {
               final id = int.tryParse(state.pathParameters['id'] ?? '');
               if (id == null) {
                 return const NoTransitionPage(child: _NotFoundScreen());
               }
 
+              final routeState = searchStateFromUri(state.uri);
+              final fallbackBackLocation = searchLocation(routeState);
               final spec = LayoutSpec.fromContext(context);
 
               if (isDesktop) {
@@ -245,13 +264,16 @@ final routerProvider = Provider<GoRouter>((ref) {
                   return sectionPage(
                     state: state,
                     pageKey: _searchSectionKey,
-                    child: SearchScreen(selectedArticleId: id),
+                    child: SearchScreen(
+                      selectedArticleId: id,
+                      routeState: routeState,
+                    ),
                   );
                 }
                 return MaterialPage(
                   child: ReaderScreen(
                     articleId: id,
-                    fallbackBackLocation: '/search',
+                    fallbackBackLocation: fallbackBackLocation,
                   ),
                 );
               }
@@ -260,14 +282,17 @@ final routerProvider = Provider<GoRouter>((ref) {
                 return sectionPage(
                   state: state,
                   pageKey: _searchSectionKey,
-                  child: SearchScreen(selectedArticleId: id),
+                  child: SearchScreen(
+                    selectedArticleId: id,
+                    routeState: routeState,
+                  ),
                 );
               }
 
               return MaterialPage(
                 child: ReaderScreen(
                   articleId: id,
-                  fallbackBackLocation: '/search',
+                  fallbackBackLocation: fallbackBackLocation,
                 ),
               );
             },

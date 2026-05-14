@@ -34,11 +34,13 @@ class ArticleListFilter {
     this.scope = ArticleScope.all,
     this.unreadOnly = false,
     this.searchQuery = '',
+    this.searchInContentOverride,
   });
 
   final ArticleScope scope;
   final bool unreadOnly;
   final String searchQuery;
+  final bool? searchInContentOverride;
 
   int? get selectedFeedId => scope.feedId;
   int? get selectedCategoryId => scope.categoryId;
@@ -50,21 +52,25 @@ class ArticleListFilter {
     Object? scope = _unchanged,
     bool? unreadOnly,
     String? searchQuery,
+    Object? searchInContentOverride = _unchanged,
   }) {
     return ArticleListFilter(
       scope: identical(scope, _unchanged) ? this.scope : scope as ArticleScope,
       unreadOnly: unreadOnly ?? this.unreadOnly,
       searchQuery: searchQuery ?? this.searchQuery,
+      searchInContentOverride: identical(searchInContentOverride, _unchanged)
+          ? this.searchInContentOverride
+          : searchInContentOverride as bool?,
     );
   }
 
   ArticleListFilter clearBrowseFilters() {
-    return copyWith(searchQuery: '');
+    return copyWith(searchQuery: '', searchInContentOverride: null);
   }
 
   ArticleListFilter selectScope(ArticleScope scope) {
     if (scope.isSavedScope) {
-      return copyWith(scope: scope, unreadOnly: false, searchQuery: '');
+      return clearBrowseFilters().copyWith(scope: scope, unreadOnly: false);
     }
     return clearBrowseFilters().copyWith(scope: scope);
   }
@@ -98,7 +104,11 @@ class ArticleListFilter {
   }
 
   ArticleListFilter enterSearchSection() {
-    return copyWith(scope: ArticleScope.all, unreadOnly: false);
+    return copyWith(
+      scope: ArticleScope.all,
+      unreadOnly: false,
+      searchInContentOverride: true,
+    );
   }
 
   ArticleListFilter savedOnly({required bool starred}) {

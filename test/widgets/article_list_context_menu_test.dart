@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:fleur/app/search_routes.dart';
 import 'package:fleur/l10n/app_localizations.dart';
 import 'package:fleur/models/article.dart';
 import 'package:fleur/models/article_scope.dart';
@@ -68,6 +69,7 @@ Future<GoRouter> _pumpArticleList(
   int? selectedArticleId,
   String initialLocation = '/all',
   ArticleScope initialScope = ArticleScope.all,
+  String Function(Article article)? articleLocationBuilder,
 }) async {
   debugFleurTargetPlatformOverride = TargetPlatform.macOS;
   addTearDown(() => debugFleurTargetPlatformOverride = null);
@@ -85,6 +87,7 @@ Future<GoRouter> _pumpArticleList(
           selectedArticleId: selectedArticleId,
           baseLocation: baseLocation,
           articleRoutePrefix: articleRoutePrefix,
+          articleLocationBuilder: articleLocationBuilder,
         ),
       ),
     );
@@ -320,6 +323,33 @@ void main() {
         scenario.expected,
       );
     }
+  });
+
+  testWidgets('open article context action can preserve search query routes', (
+    tester,
+  ) async {
+    final article = _buildArticle();
+    const routeState = SearchRouteState(
+      query: 'claude',
+      scope: ArticleScope.starred,
+    );
+    final router = await _pumpArticleList(
+      tester,
+      article: article,
+      initialLocation: searchLocation(routeState),
+      initialScope: ArticleScope.starred,
+      articleLocationBuilder: (article) =>
+          searchArticleLocation(routeState, article.id),
+    );
+
+    await _openContextMenu(tester, article);
+    await tester.tap(find.text('Open article'));
+    await tester.pumpAndSettle();
+
+    expect(
+      router.routerDelegate.currentConfiguration.uri.toString(),
+      '/search/article/42?q=claude&scope=starred',
+    );
   });
 
   testWidgets('open article context action does not close selected article', (
