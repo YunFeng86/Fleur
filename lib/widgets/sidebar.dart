@@ -37,12 +37,20 @@ class Sidebar extends ConsumerStatefulWidget {
     super.key,
     required this.onSelectScope,
     this.router,
-    this.topHeader,
+    this.presentationModeOverride,
+    this.onToggleSidebar,
+    this.canGoBack = false,
+    this.onBack,
+    this.onSearch,
   });
 
   final ValueChanged<ArticleScope> onSelectScope;
   final GoRouter? router;
-  final Widget? topHeader;
+  final SidebarPresentationMode? presentationModeOverride;
+  final VoidCallback? onToggleSidebar;
+  final bool canGoBack;
+  final VoidCallback? onBack;
+  final VoidCallback? onSearch;
 
   @override
   ConsumerState<Sidebar> createState() => _SidebarState();
@@ -191,7 +199,9 @@ class _SidebarState extends ConsumerState<Sidebar> {
     final activeAccount = ref.watch(activeAccountProvider);
     final capabilities = ref.watch(backendCapabilitiesProvider);
     final syncSemantics = ref.watch(backendSyncSemanticsProvider);
-    final presentationMode = ref.watch(sidebarPresentationModeProvider);
+    final SidebarPresentationMode presentationMode =
+        widget.presentationModeOverride ??
+        ref.watch(sidebarPresentationModeProvider);
     final collapsed = presentationMode == SidebarPresentationMode.collapsed;
     final syncStatus = ref.watch(syncStatusControllerProvider);
     final selectionActions = _selectionActions;
@@ -201,67 +211,84 @@ class _SidebarState extends ConsumerState<Sidebar> {
     final readLaterOnly = ref.watch(readLaterOnlyProvider);
     final allUnreadCounts = ref.watch(allUnreadCountsProvider);
     final currentScope = ref.watch(currentArticleScopeProvider);
+    final fixedItems = _fixedScopeItems(
+      context: context,
+      currentScope: currentScope,
+      allUnreadCount: allUnreadCounts.valueOrNull?[null] ?? 0,
+      showAddSubscription: capabilities.isVisible(
+        BackendFeature.addSubscription,
+      ),
+      onSelectAll: selectionActions.selectAll,
+      onSelectStarred: selectionActions.selectStarred,
+      onSelectReadLater: selectionActions.selectReadLater,
+      onAddSubscription: _openAddSubscriptionPage,
+    );
+    final showShellControls =
+        widget.onToggleSidebar != null ||
+        widget.onBack != null ||
+        widget.onSearch != null;
 
     return Material(
       color: surfaces.sidebar,
-      child: Column(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (widget.topHeader != null) widget.topHeader!,
-          _SidebarFixedItems(
-            mode: presentationMode,
-            currentScope: currentScope,
-            allUnreadCount: allUnreadCounts.valueOrNull?[null] ?? 0,
-            showAddSubscription: capabilities.isVisible(
-              BackendFeature.addSubscription,
+          SizedBox(
+            width: kSidebarRailWidth,
+            child: _SidebarRail(
+              mode: presentationMode,
+              items: fixedItems,
+              account: activeAccount,
+              showShellControls: showShellControls,
+              onToggleSidebar: widget.onToggleSidebar,
+              onAccountTap: () => unawaited(_showAccountMenu()),
+              accountAnchorKey: _accountFooterKey,
             ),
-            onSelectAll: selectionActions.selectAll,
-            onSelectStarred: selectionActions.selectStarred,
-            onSelectReadLater: selectionActions.selectReadLater,
-            onAddSubscription: _openAddSubscriptionPage,
           ),
-          if (collapsed)
-            const Expanded(child: SizedBox.shrink())
-          else
+          if (!collapsed)
             Expanded(
-              child: SidebarNavigationTree(
-                presentationMode: presentationMode,
-                scrollController: _scrollController,
-                feeds: feeds,
-                categories: categories,
-                allUnreadCounts: allUnreadCounts,
-                selectedFeedId: selectedFeedId,
-                selectedCategoryId: selectedCategoryId,
-                starredOnly: starredOnly,
-                readLaterOnly: readLaterOnly,
-                expandedCategoryId: _expandedCategoryId,
-                onExpandedCategoryChanged: (categoryId) {
-                  setState(() => _expandedCategoryId = categoryId);
-                },
-                selectionActions: selectionActions,
-                managementActions: managementActions,
-                capabilities: capabilities,
-                syncSemantics: syncSemantics,
-                onAddFeed: () async {
-                  await managementActions.addFeed();
-                },
-                onAddCategory: () async {
-                  final id = await managementActions.addCategory();
-                  if (id == null) return;
-                  setState(() => _expandedCategoryId = id);
-                },
-                onShowCategoryMenu: (category) =>
-                    _showCategoryMenu(category, managementActions),
-                onShowFeedMenu: (feed) =>
-                    _showFeedMenu(feed, managementActions),
+              child: _SidebarPanel(
+                fixedItems: fixedItems,
+                account: activeAccount,
+                sync: syncStatus,
+                onAccountTap: () => unawaited(_showAccountMenu()),
+                showShellControls: showShellControls,
+                canGoBack: widget.canGoBack,
+                onBack: widget.onBack,
+                onSearch: widget.onSearch,
+                navigationTree: SidebarNavigationTree(
+                  presentationMode: presentationMode,
+                  scrollController: _scrollController,
+                  feeds: feeds,
+                  categories: categories,
+                  allUnreadCounts: allUnreadCounts,
+                  selectedFeedId: selectedFeedId,
+                  selectedCategoryId: selectedCategoryId,
+                  starredOnly: starredOnly,
+                  readLaterOnly: readLaterOnly,
+                  expandedCategoryId: _expandedCategoryId,
+                  onExpandedCategoryChanged: (categoryId) {
+                    setState(() => _expandedCategoryId = categoryId);
+                  },
+                  selectionActions: selectionActions,
+                  managementActions: managementActions,
+                  capabilities: capabilities,
+                  syncSemantics: syncSemantics,
+                  onAddFeed: () async {
+                    await managementActions.addFeed();
+                  },
+                  onAddCategory: () async {
+                    final id = await managementActions.addCategory();
+                    if (id == null) return;
+                    setState(() => _expandedCategoryId = id);
+                  },
+                  onShowCategoryMenu: (category) =>
+                      _showCategoryMenu(category, managementActions),
+                  onShowFeedMenu: (feed) =>
+                      _showFeedMenu(feed, managementActions),
+                ),
               ),
             ),
-          _AccountFooter(
-            key: _accountFooterKey,
-            account: activeAccount,
-            sync: syncStatus,
-            mode: presentationMode,
-            onTap: () => unawaited(_showAccountMenu()),
-          ),
         ],
       ),
     );
@@ -346,98 +373,61 @@ class _SidebarState extends ConsumerState<Sidebar> {
 
 enum _SidebarAccountMenuAction { account, settings }
 
-class _SidebarFixedItems extends StatelessWidget {
-  const _SidebarFixedItems({
-    required this.mode,
-    required this.currentScope,
-    required this.allUnreadCount,
-    required this.showAddSubscription,
-    required this.onSelectAll,
-    required this.onSelectStarred,
-    required this.onSelectReadLater,
-    required this.onAddSubscription,
-  });
+const double _kSidebarFixedItemHeight = 48;
+const double _kSidebarRailButtonSize = 40;
+const double _kSidebarAccountHeight = 64;
+const double _kSidebarRailHorizontalInset = 8;
 
-  final SidebarPresentationMode mode;
-  final ArticleScope currentScope;
-  final int allUnreadCount;
-  final bool showAddSubscription;
-  final VoidCallback onSelectAll;
-  final VoidCallback onSelectStarred;
-  final VoidCallback onSelectReadLater;
-  final VoidCallback onAddSubscription;
-
-  bool get _collapsed => mode == SidebarPresentationMode.collapsed;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final surfaces = Theme.of(context).fleurSurface;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: surfaces.subtleDivider)),
+List<_SidebarFixedItemData> _fixedScopeItems({
+  required BuildContext context,
+  required ArticleScope currentScope,
+  required int allUnreadCount,
+  required bool showAddSubscription,
+  required VoidCallback onSelectAll,
+  required VoidCallback onSelectStarred,
+  required VoidCallback onSelectReadLater,
+  required VoidCallback onAddSubscription,
+}) {
+  final l10n = AppLocalizations.of(context)!;
+  return [
+    _SidebarFixedItemData(
+      key: const Key('sidebar_all_button'),
+      selected: currentScope == ArticleScope.all,
+      icon: FleurIcons.allArticles,
+      title: l10n.all,
+      count: allUnreadCount,
+      onTap: onSelectAll,
+    ),
+    _SidebarFixedItemData(
+      key: const Key('sidebar_starred_button'),
+      selected: currentScope == ArticleScope.starred,
+      icon: FleurIcons.star,
+      selectedIcon: FleurIcons.starActive,
+      title: l10n.starred,
+      onTap: onSelectStarred,
+    ),
+    _SidebarFixedItemData(
+      key: const Key('sidebar_read_later_button'),
+      selected: currentScope == ArticleScope.readLater,
+      icon: FleurIcons.readLater,
+      selectedIcon: FleurIcons.readLaterActive,
+      title: l10n.readLater,
+      onTap: onSelectReadLater,
+    ),
+    if (showAddSubscription)
+      _SidebarFixedItemData(
+        key: const Key('sidebar_add_subscription_button'),
+        selected: false,
+        icon: FleurIcons.add,
+        title: l10n.addSubscription,
+        onTap: onAddSubscription,
       ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            _collapsed ? 4 : 8,
-            8,
-            _collapsed ? 4 : 8,
-            8,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _SidebarFixedItem(
-                key: const Key('sidebar_all_button'),
-                mode: mode,
-                selected: currentScope == ArticleScope.all,
-                icon: FleurIcons.allArticles,
-                title: l10n.all,
-                count: allUnreadCount,
-                onTap: onSelectAll,
-              ),
-              _SidebarFixedItem(
-                key: const Key('sidebar_starred_button'),
-                mode: mode,
-                selected: currentScope == ArticleScope.starred,
-                icon: FleurIcons.star,
-                selectedIcon: FleurIcons.starActive,
-                title: l10n.starred,
-                onTap: onSelectStarred,
-              ),
-              _SidebarFixedItem(
-                key: const Key('sidebar_read_later_button'),
-                mode: mode,
-                selected: currentScope == ArticleScope.readLater,
-                icon: FleurIcons.readLater,
-                selectedIcon: FleurIcons.readLaterActive,
-                title: l10n.readLater,
-                onTap: onSelectReadLater,
-              ),
-              if (showAddSubscription)
-                _SidebarFixedItem(
-                  key: const Key('sidebar_add_subscription_button'),
-                  mode: mode,
-                  selected: false,
-                  icon: FleurIcons.add,
-                  title: l10n.addSubscription,
-                  onTap: onAddSubscription,
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  ];
 }
 
-class _SidebarFixedItem extends StatelessWidget {
-  const _SidebarFixedItem({
-    super.key,
-    required this.mode,
+class _SidebarFixedItemData {
+  const _SidebarFixedItemData({
+    required this.key,
     required this.selected,
     required this.icon,
     required this.title,
@@ -446,7 +436,7 @@ class _SidebarFixedItem extends StatelessWidget {
     this.count,
   });
 
-  final SidebarPresentationMode mode;
+  final Key key;
   final bool selected;
   final IconData icon;
   final IconData? selectedIcon;
@@ -454,49 +444,379 @@ class _SidebarFixedItem extends StatelessWidget {
   final VoidCallback onTap;
   final int? count;
 
-  bool get _collapsed => mode == SidebarPresentationMode.collapsed;
+  IconData get effectiveIcon => selected ? (selectedIcon ?? icon) : icon;
+}
+
+class _SidebarRail extends StatelessWidget {
+  const _SidebarRail({
+    required this.mode,
+    required this.items,
+    required this.account,
+    required this.showShellControls,
+    required this.onToggleSidebar,
+    required this.onAccountTap,
+    required this.accountAnchorKey,
+  });
+
+  final SidebarPresentationMode mode;
+  final List<_SidebarFixedItemData> items;
+  final Account account;
+  final bool showShellControls;
+  final VoidCallback? onToggleSidebar;
+  final VoidCallback onAccountTap;
+  final Key accountAnchorKey;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final states = theme.fleurState;
-    final iconData = selected ? (selectedIcon ?? icon) : icon;
+    final surfaces = Theme.of(context).fleurSurface;
+    final collapsed = mode == SidebarPresentationMode.collapsed;
+    final decoration = collapsed
+        ? BoxDecoration(
+            color: surfaces.floating,
+            border: Border.all(color: surfaces.subtleDivider),
+            borderRadius: BorderRadius.circular(999),
+          )
+        : const BoxDecoration();
 
-    if (_collapsed) {
-      return Tooltip(
-        message: title,
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: _kSidebarRailHorizontalInset,
+      ),
+      child: DecoratedBox(
+        key: collapsed ? const Key('sidebar_collapsed_rail_surface') : null,
+        decoration: decoration,
+        child: Column(
+          children: [
+            if (showShellControls)
+              SizedBox(
+                height: kWorkspaceHeaderHeight,
+                child: Center(
+                  child: _SidebarRailToggleButton(
+                    mode: mode,
+                    onPressed: onToggleSidebar,
+                  ),
+                ),
+              ),
+            for (final item in items) _SidebarRailScopeButton(item: item),
+            const Expanded(child: SizedBox.shrink()),
+            SafeArea(
+              top: false,
+              child: SizedBox(
+                key: accountAnchorKey,
+                height: _kSidebarAccountHeight,
+                child: Center(
+                  child: _SidebarRailAccountButton(
+                    key: const Key('sidebar_account_button'),
+                    account: account,
+                    onTap: onAccountTap,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SidebarRailToggleButton extends StatelessWidget {
+  const _SidebarRailToggleButton({required this.mode, required this.onPressed});
+
+  final SidebarPresentationMode mode;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final expanded = mode == SidebarPresentationMode.expanded;
+    return _SidebarRailIconButton(
+      key: const Key('shell_sidebar_button'),
+      tooltip: expanded ? l10n.collapse : l10n.expand,
+      icon: expanded ? FleurIcons.sidebarCollapse : FleurIcons.sidebarExpand,
+      onPressed: onPressed,
+    );
+  }
+}
+
+class _SidebarRailScopeButton extends StatelessWidget {
+  const _SidebarRailScopeButton({required this.item});
+
+  final _SidebarFixedItemData item;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: _kSidebarFixedItemHeight,
+      child: Center(
         child: Semantics(
           button: true,
-          selected: selected,
-          label: title,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2),
-            child: InkResponse(
-              onTap: onTap,
-              hoverColor: states.hoverTint,
-              radius: 24,
-              child: SizedBox.square(
-                dimension: 48,
-                child: Icon(
-                  iconData,
-                  color: selected
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurfaceVariant,
-                ),
+          selected: item.selected,
+          label: item.title,
+          child: _SidebarRailIconButton(
+            key: item.key,
+            tooltip: item.title,
+            icon: item.effectiveIcon,
+            selected: item.selected,
+            onPressed: item.onTap,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SidebarRailAccountButton extends StatelessWidget {
+  const _SidebarRailAccountButton({
+    super.key,
+    required this.account,
+    required this.onTap,
+  });
+
+  final Account account;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final states = Theme.of(context).fleurState;
+    return Tooltip(
+      message: account.name,
+      child: Semantics(
+        button: true,
+        label: account.name,
+        child: InkResponse(
+          onTap: onTap,
+          hoverColor: states.hoverTint,
+          radius: 24,
+          child: SizedBox.square(
+            dimension: _kSidebarRailButtonSize,
+            child: Center(
+              child: AccountAvatar(
+                account: account,
+                radius: 18,
+                showTypeBadge: true,
               ),
             ),
           ),
         ),
-      );
-    }
+      ),
+    );
+  }
+}
 
-    return ListTile(
-      selected: selected,
-      minLeadingWidth: 0,
-      leading: Icon(iconData),
-      title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
-      trailing: count == null ? null : _SidebarFixedCount(count!),
-      onTap: onTap,
+class _SidebarRailIconButton extends StatelessWidget {
+  const _SidebarRailIconButton({
+    super.key,
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+    this.selected = false,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback? onPressed;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = selected
+        ? theme.colorScheme.primary
+        : theme.colorScheme.onSurfaceVariant;
+    return IconButton(
+      tooltip: tooltip,
+      onPressed: onPressed,
+      icon: Icon(icon, color: color, size: 20),
+      style: IconButton.styleFrom(
+        fixedSize: const Size.square(_kSidebarRailButtonSize),
+        minimumSize: const Size.square(_kSidebarRailButtonSize),
+        padding: EdgeInsets.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+    );
+  }
+}
+
+class _SidebarPanel extends StatelessWidget {
+  const _SidebarPanel({
+    required this.fixedItems,
+    required this.account,
+    required this.sync,
+    required this.onAccountTap,
+    required this.showShellControls,
+    required this.canGoBack,
+    required this.onBack,
+    required this.onSearch,
+    required this.navigationTree,
+  });
+
+  final List<_SidebarFixedItemData> fixedItems;
+  final Account account;
+  final SyncStatusState sync;
+  final VoidCallback onAccountTap;
+  final bool showShellControls;
+  final bool canGoBack;
+  final VoidCallback? onBack;
+  final VoidCallback? onSearch;
+  final Widget navigationTree;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        if (showShellControls)
+          _SidebarHeaderControls(
+            canGoBack: canGoBack,
+            onBack: onBack,
+            onSearch: onSearch,
+          ),
+        _SidebarPanelFixedItems(items: fixedItems),
+        Expanded(child: navigationTree),
+        _AccountPanelFooter(account: account, sync: sync, onTap: onAccountTap),
+      ],
+    );
+  }
+}
+
+class _SidebarHeaderControls extends StatelessWidget {
+  const _SidebarHeaderControls({
+    required this.canGoBack,
+    required this.onBack,
+    required this.onSearch,
+  });
+
+  final bool canGoBack;
+  final VoidCallback? onBack;
+  final VoidCallback? onSearch;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return SizedBox(
+      key: const Key('app_shell_sidebar_header'),
+      height: kWorkspaceHeaderHeight,
+      child: Row(
+        children: [
+          const SizedBox(width: 2),
+          _SidebarHeaderIconButton(
+            key: const Key('shell_back_button'),
+            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+            onPressed: canGoBack ? onBack : null,
+            icon: FleurIcons.back,
+          ),
+          _SidebarHeaderIconButton(
+            key: const Key('shell_forward_button'),
+            tooltip: MaterialLocalizations.of(context).nextPageTooltip,
+            onPressed: null,
+            icon: FleurIcons.forward,
+          ),
+          _SidebarHeaderIconButton(
+            key: const Key('shell_search_button'),
+            tooltip: l10n.search,
+            onPressed: onSearch,
+            icon: FleurIcons.search,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SidebarHeaderIconButton extends StatelessWidget {
+  const _SidebarHeaderIconButton({
+    super.key,
+    required this.tooltip,
+    required this.onPressed,
+    required this.icon,
+  });
+
+  final String tooltip;
+  final VoidCallback? onPressed;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: tooltip,
+      onPressed: onPressed,
+      icon: Icon(icon, size: 20),
+      style: IconButton.styleFrom(
+        fixedSize: const Size.square(40),
+        minimumSize: const Size.square(40),
+        padding: EdgeInsets.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+    );
+  }
+}
+
+class _SidebarPanelFixedItems extends StatelessWidget {
+  const _SidebarPanelFixedItems({required this.items});
+
+  final List<_SidebarFixedItemData> items;
+
+  @override
+  Widget build(BuildContext context) {
+    final surfaces = Theme.of(context).fleurSurface;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: surfaces.subtleDivider)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(0, 0, 8, 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final item in items) _SidebarPanelFixedItem(item: item),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SidebarPanelFixedItem extends StatelessWidget {
+  const _SidebarPanelFixedItem({required this.item});
+
+  final _SidebarFixedItemData item;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final surfaces = theme.fleurSurface;
+    final states = theme.fleurState;
+    final borderRadius = BorderRadius.circular(8);
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 4),
+      child: SizedBox(
+        height: _kSidebarFixedItemHeight,
+        child: Material(
+          color: item.selected ? surfaces.cardSelected : Colors.transparent,
+          borderRadius: borderRadius,
+          child: InkWell(
+            onTap: item.onTap,
+            borderRadius: borderRadius,
+            hoverColor: states.hoverTint,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 2, right: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      item.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (item.count != null) _SidebarFixedCount(item.count!),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -519,18 +839,15 @@ class _SidebarFixedCount extends StatelessWidget {
   }
 }
 
-class _AccountFooter extends StatelessWidget {
-  const _AccountFooter({
+class _AccountPanelFooter extends StatelessWidget {
+  const _AccountPanelFooter({
     required this.account,
     required this.sync,
-    required this.mode,
     required this.onTap,
-    super.key,
   });
 
   final Account account;
   final SyncStatusState sync;
-  final SidebarPresentationMode mode;
   final VoidCallback onTap;
 
   String _syncText(AppLocalizations l10n) {
@@ -568,121 +885,97 @@ class _AccountFooter extends StatelessWidget {
 
     final showSync = sync.visible;
     final syncText = _syncText(l10n);
-    final collapsed = mode == SidebarPresentationMode.collapsed;
 
-    if (collapsed) {
-      return SafeArea(
-        top: false,
-        child: Material(
-          color: surfaces.card,
-          child: Tooltip(
-            message: account.name,
-            child: InkWell(
-              key: const Key('sidebar_account_button'),
-              onTap: onTap,
-              hoverColor: states.hoverTint,
-              child: SizedBox(
-                height: 64,
-                child: Center(
-                  child: AccountAvatar(
-                    account: account,
-                    radius: 18,
-                    showTypeBadge: true,
+    return SafeArea(
+      top: false,
+      child: Material(
+        color: surfaces.card,
+        child: InkWell(
+          onTap: onTap,
+          hoverColor: states.hoverTint,
+          child: SizedBox(
+            height: _kSidebarAccountHeight,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(2, 8, 12, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          account.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        AnimatedSwitcher(
+                          duration: duration,
+                          switchInCurve: AppMotion.standardCurve,
+                          switchOutCurve: AppMotion.emphasizedAccelerate,
+                          transitionBuilder: (child, animation) {
+                            return SizeTransition(
+                              sizeFactor: animation,
+                              axisAlignment: -1,
+                              child: FadeTransition(
+                                opacity: animation,
+                                child: child,
+                              ),
+                            );
+                          },
+                          child: showSync
+                              ? Padding(
+                                  key: const ValueKey('sync'),
+                                  padding: const EdgeInsets.only(top: 2),
+                                  child: Row(
+                                    children: [
+                                      if (sync.running)
+                                        const SizedBox(
+                                          width: 10,
+                                          height: 10,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      else
+                                        Icon(
+                                          sync.label == SyncStatusLabel.failed
+                                              ? FleurIcons.statusError
+                                              : FleurIcons.statusOk,
+                                          size: 12,
+                                          color:
+                                              sync.label ==
+                                                  SyncStatusLabel.failed
+                                              ? states.errorAccent
+                                              : states.syncAccent,
+                                        ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: OverflowMarquee(
+                                          text: syncText,
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                color: scheme.onSurfaceVariant,
+                                              ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : const SizedBox(key: ValueKey('empty')),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    FleurIcons.accountSwitcher,
+                    size: 18,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ],
               ),
             ),
-          ),
-        ),
-      );
-    }
-
-    return Material(
-      color: surfaces.card,
-      child: InkWell(
-        key: const Key('sidebar_account_button'),
-        onTap: onTap,
-        hoverColor: states.hoverTint,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-          child: Row(
-            children: [
-              AccountAvatar(account: account, radius: 18, showTypeBadge: true),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      account.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    AnimatedSwitcher(
-                      duration: duration,
-                      switchInCurve: AppMotion.standardCurve,
-                      switchOutCurve: AppMotion.emphasizedAccelerate,
-                      transitionBuilder: (child, animation) {
-                        return SizeTransition(
-                          sizeFactor: animation,
-                          axisAlignment: -1,
-                          child: FadeTransition(
-                            opacity: animation,
-                            child: child,
-                          ),
-                        );
-                      },
-                      child: showSync
-                          ? Padding(
-                              key: const ValueKey('sync'),
-                              padding: const EdgeInsets.only(top: 2),
-                              child: Row(
-                                children: [
-                                  if (sync.running)
-                                    const SizedBox(
-                                      width: 10,
-                                      height: 10,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  else
-                                    Icon(
-                                      sync.label == SyncStatusLabel.failed
-                                          ? FleurIcons.statusError
-                                          : FleurIcons.statusOk,
-                                      size: 12,
-                                      color:
-                                          sync.label == SyncStatusLabel.failed
-                                          ? states.errorAccent
-                                          : states.syncAccent,
-                                    ),
-                                  const SizedBox(width: 6),
-                                  Expanded(
-                                    child: OverflowMarquee(
-                                      text: syncText,
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                            color: scheme.onSurfaceVariant,
-                                          ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : const SizedBox(key: ValueKey('empty')),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Icon(
-                FleurIcons.accountSwitcher,
-                size: 18,
-                color: scheme.onSurfaceVariant,
-              ),
-            ],
           ),
         ),
       ),

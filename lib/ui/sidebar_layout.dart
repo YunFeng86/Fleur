@@ -5,16 +5,11 @@ import 'layout.dart';
 // Expanded mode intentionally reuses the existing desktop sidebar width so the
 // sidebar migration does not change the reading workspace's visual rhythm yet.
 const double kSidebarExpandedWidth = kDesktopSidebarWidth;
-const double kSidebarCollapsedWidth = 64;
+const double kSidebarRailWidth = 64;
+const double kSidebarCollapsedWidth = kSidebarRailWidth;
 const double kSidebarBreakpoint = 900;
 const double kSidebarContentDividerWidth = 1;
 const double kWorkspaceHeaderHeight = 56;
-const double kShellCapsuleHeight = 40;
-const double kShellCapsuleVerticalInset =
-    (kWorkspaceHeaderHeight - kShellCapsuleHeight) / 2;
-const double kShellControlsInlineLeft =
-    kSidebarCollapsedWidth + kSidebarContentDividerWidth + 8;
-const double kCollapsedContentShellControlsReserveWidth = 128;
 
 enum SidebarPresentationMode { expanded, collapsed }
 

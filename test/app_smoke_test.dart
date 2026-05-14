@@ -612,12 +612,16 @@ void main() {
 
     expect(find.byType(Sidebar), findsOneWidget);
     expect(tester.getSize(find.byType(Sidebar)).width, kSidebarExpandedWidth);
-    expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
+    expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
     expect(find.byKey(const Key('shell_sidebar_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_back_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_forward_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_outbox_button')), findsNothing);
+    expect(
+      find.byKey(const Key('sidebar_collapsed_rail_surface')),
+      findsNothing,
+    );
     expect(find.byKey(const Key('app_shell_sidebar_divider')), findsOneWidget);
     expect(
       tester.getSize(find.byKey(const Key('app_shell_sidebar_divider'))).width,
@@ -630,31 +634,73 @@ void main() {
       tester.getSize(find.byKey(const Key('app_shell_child'))).height,
       900,
     );
-    final expandedControlsLeft = tester
-        .getTopLeft(find.byKey(const Key('shell_controls_capsule')))
+    final expandedToggleTopLeft = tester.getTopLeft(
+      find.byKey(const Key('shell_sidebar_button')),
+    );
+    final expandedAllDx = tester
+        .getCenter(find.byKey(const Key('sidebar_all_button')))
         .dx;
-    expect(expandedControlsLeft, kShellControlsInlineLeft);
+    final expandedStarredDx = tester
+        .getCenter(find.byKey(const Key('sidebar_starred_button')))
+        .dx;
+    final expandedReadLaterDx = tester
+        .getCenter(find.byKey(const Key('sidebar_read_later_button')))
+        .dx;
+    final expandedAddDx = tester
+        .getCenter(find.byKey(const Key('sidebar_add_subscription_button')))
+        .dx;
+    final expandedAccountDx = tester
+        .getCenter(find.byKey(const Key('sidebar_account_button')))
+        .dx;
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
     await tester.pumpAndSettle();
     expect(tester.getSize(find.byType(Sidebar)).width, kSidebarCollapsedWidth);
     expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
-    expect(
-      find.byKey(const Key('shell_sidebar_toggle_capsule')),
-      findsOneWidget,
-    );
+    expect(find.byKey(const Key('shell_sidebar_toggle_capsule')), findsNothing);
     expect(
       find.byKey(const Key('shell_content_controls_capsule')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('sidebar_collapsed_rail_surface')),
       findsOneWidget,
     );
-    expect(find.byKey(const Key('shell_back_button')), findsOneWidget);
-    expect(find.byKey(const Key('shell_forward_button')), findsOneWidget);
-    expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
     expect(
       tester
-          .getTopLeft(find.byKey(const Key('shell_content_controls_capsule')))
+          .getSize(find.byKey(const Key('sidebar_collapsed_rail_surface')))
+          .width,
+      lessThan(kSidebarRailWidth),
+    );
+    expect(find.byKey(const Key('shell_back_button')), findsNothing);
+    expect(find.byKey(const Key('shell_forward_button')), findsNothing);
+    expect(find.byKey(const Key('shell_search_button')), findsNothing);
+    expect(find.byType(SidebarNavigationTree), findsNothing);
+    expect(
+      tester.getTopLeft(find.byKey(const Key('shell_sidebar_button'))),
+      expandedToggleTopLeft,
+    );
+    expect(
+      tester.getCenter(find.byKey(const Key('sidebar_all_button'))).dx,
+      expandedAllDx,
+    );
+    expect(
+      tester.getCenter(find.byKey(const Key('sidebar_starred_button'))).dx,
+      expandedStarredDx,
+    );
+    expect(
+      tester.getCenter(find.byKey(const Key('sidebar_read_later_button'))).dx,
+      expandedReadLaterDx,
+    );
+    expect(
+      tester
+          .getCenter(find.byKey(const Key('sidebar_add_subscription_button')))
           .dx,
-      expandedControlsLeft,
+      expandedAddDx,
+    );
+    expect(
+      tester.getCenter(find.byKey(const Key('sidebar_account_button'))).dx,
+      expandedAccountDx,
     );
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
@@ -668,7 +714,8 @@ void main() {
     expect(find.byType(NavigationRail), findsNothing);
     expect(find.byType(NavigationBar), findsNothing);
     expect(find.byType(Sidebar), findsNothing);
-    expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
+    expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
+    expect(find.byKey(const Key('shell_drawer_controls')), findsOneWidget);
     expect(find.byKey(const Key('app_shell_sidebar_divider')), findsNothing);
     expect(
       tester.getSize(find.byKey(const Key('app_shell_child'))).height,
@@ -712,7 +759,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final shellCenter = tester
-        .getCenter(find.byKey(const Key('shell_controls_capsule')))
+        .getCenter(find.byKey(const Key('shell_sidebar_button')))
         .dy;
     final headerCenter = tester
         .getCenter(find.byKey(const Key('home_scope_header')))
@@ -761,6 +808,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
+    expect(find.byKey(const Key('shell_drawer_controls')), findsNothing);
+    expect(find.byKey(const Key('shell_sidebar_button')), findsNothing);
     expect(find.byType(Sidebar), findsNothing);
     expect(find.byKey(const Key('app_shell_child')), findsOneWidget);
   });
@@ -1015,6 +1064,16 @@ void main() {
     expect(find.text('Subscriptions'), findsNothing);
     expect(find.text('Design'), findsNothing);
     expect(find.text('Dense Pixels'), findsNothing);
+    expect(
+      find.byKey(const Key('sidebar_collapsed_rail_surface')),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .getSize(find.byKey(const Key('sidebar_collapsed_rail_surface')))
+          .width,
+      lessThan(kSidebarRailWidth),
+    );
 
     final allY = tester
         .getCenter(find.byKey(const Key('sidebar_all_button')))
