@@ -13,6 +13,7 @@ import '../providers/core_providers.dart';
 import '../providers/query_providers.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
+import '../ui/layout.dart';
 import '../ui/layout_spec.dart';
 import '../ui/sidebar_layout.dart';
 import '../ui/workspace_layers.dart';
@@ -241,9 +242,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           contentHeight: MediaQuery.sizeOf(context).height,
           listWidth: listWidth,
         );
-        final isEmbedded = isDesktop
-            ? spec.desktopEmbedsReader
-            : spec.canEmbedReader(listWidth: listWidth);
+        final isEmbedded = shouldEmbedReaderForLayout(
+          spec,
+          listWidth: kDesktopListWidth,
+        );
 
         final query = ref.watch(articleSearchQueryProvider);
         final filter = ref.watch(articleListFilterProvider);
@@ -326,6 +328,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   child: ArticleList(
                     selectedArticleId: widget.selectedArticleId,
                     baseLocation: searchLocation(routeState),
+                    readerListWidth: kDesktopListWidth,
                     articleLocationBuilder: (article) =>
                         searchArticleLocation(routeState, article.id),
                     emptyBuilder: (context, state) => FleurEmptyState(

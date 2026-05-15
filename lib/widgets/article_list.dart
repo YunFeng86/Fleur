@@ -43,6 +43,7 @@ class ArticleList extends ConsumerStatefulWidget {
     this.baseLocation,
     this.articleRoutePrefix,
     this.articleLocationBuilder,
+    this.readerListWidth,
     this.topBar,
     this.emptyBuilder,
   });
@@ -51,6 +52,7 @@ class ArticleList extends ConsumerStatefulWidget {
   final String? baseLocation;
   final String? articleRoutePrefix;
   final String Function(Article article)? articleLocationBuilder;
+  final double? readerListWidth;
   final Widget? topBar;
   final Widget Function(BuildContext context, ArticleListEmptyState state)?
   emptyBuilder;
@@ -181,13 +183,15 @@ class _ArticleListState extends ConsumerState<ArticleList> {
       return;
     }
 
-    final openAsSecondaryPage = isDesktop
-        ? !spec.desktopEmbedsReader
-        : !spec.canEmbedReader(
-            listWidth: widget.articleRoutePrefix == null
-                ? kHomeListWidth
-                : kDesktopListWidth,
-          );
+    final listWidthForReader =
+        widget.readerListWidth ??
+        (widget.articleRoutePrefix == null
+            ? kHomeListWidth
+            : kDesktopListWidth);
+    final openAsSecondaryPage = !shouldEmbedReaderForLayout(
+      spec,
+      listWidth: listWidthForReader,
+    );
 
     final loc =
         widget.articleLocationBuilder?.call(article) ??
@@ -308,6 +312,7 @@ class _ArticleListState extends ConsumerState<ArticleList> {
     final contextKey = Object.hash(
       widget.baseLocation,
       widget.articleRoutePrefix,
+      widget.readerListWidth,
       scope,
       feedId,
       categoryId,

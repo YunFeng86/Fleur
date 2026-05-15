@@ -70,9 +70,16 @@ Future<GoRouter> _pumpArticleList(
   String initialLocation = '/all',
   ArticleScope initialScope = ArticleScope.all,
   String Function(Article article)? articleLocationBuilder,
+  Size? surfaceSize,
 }) async {
   debugFleurTargetPlatformOverride = TargetPlatform.macOS;
   addTearDown(() => debugFleurTargetPlatformOverride = null);
+  if (surfaceSize != null) {
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = surfaceSize;
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+  }
   _FixedArticleListController.items = [article];
   addTearDown(() => _FixedArticleListController.items = <Article>[]);
 
@@ -143,6 +150,7 @@ Future<GoRouter> _pumpArticleList(
       ),
     ],
   );
+  addTearDown(router.dispose);
 
   await tester.pumpWidget(
     ProviderScope(
@@ -273,6 +281,40 @@ void main() {
 
     expect(clipboardText, article.link);
     expect(find.text('Copied to clipboard'), findsOneWidget);
+  });
+
+  testWidgets('tap article replaces route when reader can be embedded', (
+    tester,
+  ) async {
+    final article = _buildArticle();
+    final router = await _pumpArticleList(
+      tester,
+      article: article,
+      surfaceSize: const Size(1200, 800),
+    );
+
+    await tester.tap(find.text(article.title!));
+    await tester.pumpAndSettle();
+
+    expect(find.text('all:${article.id}'), findsOneWidget);
+    expect(router.canPop(), isFalse);
+  });
+
+  testWidgets('tap article pushes secondary route when too narrow', (
+    tester,
+  ) async {
+    final article = _buildArticle();
+    final router = await _pumpArticleList(
+      tester,
+      article: article,
+      surfaceSize: const Size(800, 600),
+    );
+
+    await tester.tap(find.text(article.title!));
+    await tester.pumpAndSettle();
+
+    expect(find.text('all:${article.id}'), findsOneWidget);
+    expect(router.canPop(), isTrue);
   });
 
   testWidgets('open article context action navigates to default route', (

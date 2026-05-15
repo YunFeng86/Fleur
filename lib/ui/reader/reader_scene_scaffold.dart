@@ -98,11 +98,15 @@ extension _ReaderSceneScaffold on _ReaderViewState {
         ? (!widget.embedded || widget.showBack)
         : widget.showBack;
 
+    final paddedContentWidget = widget.embedded
+        ? Padding(padding: const EdgeInsets.only(top: 10), child: contentWidget)
+        : contentWidget;
+
     final body = _viewportCoordinator._wrapSearchShortcuts(
       child: Stack(
         fit: StackFit.expand,
         children: [
-          contentWidget,
+          paddedContentWidget,
           ReaderSearchBar(
             key: _viewportCoordinator.searchBarKey,
             articleId: widget.articleId,

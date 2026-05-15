@@ -121,9 +121,10 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
           contentWidth: width,
           contentHeight: MediaQuery.sizeOf(context).height,
         );
-        final isEmbedded = isDesktop
-            ? spec.desktopEmbedsReader
-            : spec.canEmbedReader(listWidth: kDesktopListWidth);
+        final isEmbedded = shouldEmbedReaderForLayout(
+          spec,
+          listWidth: kDesktopListWidth,
+        );
 
         final searchField = TextField(
           controller: _searchController,

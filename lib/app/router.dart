@@ -78,10 +78,10 @@ final routerProvider = Provider<GoRouter>((ref) {
   }) {
     return CustomTransitionPage<void>(
       key: state.pageKey,
-      opaque: false,
+      opaque: true,
       transitionDuration: AppMotion.pageTransitionDuration,
       reverseTransitionDuration: AppMotion.pageReverseTransitionDuration,
-      child: child,
+      child: _ReaderPageSurface(child: child),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         if (AppMotion.reduceMotion(context)) return child;
         final curved = CurvedAnimation(
@@ -167,9 +167,10 @@ final routerProvider = Provider<GoRouter>((ref) {
     if (id == null) return const NoTransitionPage(child: _NotFoundScreen());
 
     final spec = routeLayoutSpec(context);
-    final embedsReader = isDesktop
-        ? spec.desktopEmbedsReader
-        : spec.canEmbedReader(listWidth: kHomeListWidth);
+    final embedsReader = shouldEmbedReaderForLayout(
+      spec,
+      listWidth: kHomeListWidth,
+    );
 
     if (embedsReader) {
       return sectionPage(
@@ -380,7 +381,10 @@ final routerProvider = Provider<GoRouter>((ref) {
               final spec = routeLayoutSpec(context);
 
               if (isDesktop) {
-                if (spec.desktopEmbedsReader) {
+                if (shouldEmbedReaderForLayout(
+                  spec,
+                  listWidth: kDesktopListWidth,
+                )) {
                   return sectionPage(
                     state: state,
                     pageKey: _searchSectionKey,
@@ -399,7 +403,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                 );
               }
 
-              if (spec.canEmbedReader(listWidth: kDesktopListWidth)) {
+              if (shouldEmbedReaderForLayout(
+                spec,
+                listWidth: kDesktopListWidth,
+              )) {
                 return sectionPage(
                   state: state,
                   pageKey: _searchSectionKey,
@@ -461,5 +468,19 @@ class _NotFoundScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(body: Center(child: Text(l10n.notFound)));
+  }
+}
+
+class _ReaderPageSurface extends StatelessWidget {
+  const _ReaderPageSurface({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: Theme.of(context).fleurSurface.reader,
+      child: child,
+    );
   }
 }

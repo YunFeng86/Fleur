@@ -4,6 +4,7 @@ import '../../theme/fleur_theme_extensions.dart';
 import '../../widgets/article_list.dart';
 import '../../widgets/reader_view.dart';
 import '../../widgets/sync_status_capsule.dart';
+import '../motion.dart';
 import '../workspace_layers.dart';
 
 class HomeArticleListPane extends StatelessWidget {
@@ -54,12 +55,30 @@ class HomeReaderPane extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ReadingPaneSurface(
+    final child = ReadingPaneSurface(
       child: ReaderView(
         key: ValueKey('home-reader-$articleId'),
         articleId: articleId,
         embedded: embedded,
       ),
+    );
+    if (AppMotion.reduceMotion(context)) return child;
+
+    return TweenAnimationBuilder<double>(
+      key: ValueKey('home-reader-pane-motion-$articleId'),
+      tween: Tween(begin: 0, end: 1),
+      duration: AppMotion.medium,
+      curve: AppMotion.emphasizedDecelerate,
+      builder: (context, t, child) {
+        return Opacity(
+          opacity: t,
+          child: Transform.translate(
+            offset: Offset((1 - t) * 14, 0),
+            child: child,
+          ),
+        );
+      },
+      child: child,
     );
   }
 }

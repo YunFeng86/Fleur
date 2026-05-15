@@ -53,10 +53,10 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   bool _isReaderEmbedded({required LayoutSpec spec, required Uri uri}) {
     if (!_isArticleRoute(uri)) return true;
-    if (isDesktop) {
-      return spec.desktopEmbedsReader;
-    }
-    return spec.canEmbedReader(listWidth: _listWidthForArticleUri(uri));
+    return shouldEmbedReaderForLayout(
+      spec,
+      listWidth: _listWidthForArticleUri(uri),
+    );
   }
 
   void _goToScope(BuildContext context, ArticleScope scope) {

@@ -125,3 +125,9 @@ class LayoutSpec {
 
   bool get canSwipeToDelete => !isDesktopPlatform;
 }
+
+bool shouldEmbedReaderForLayout(LayoutSpec spec, {required double listWidth}) {
+  return spec.isDesktopPlatform
+      ? spec.desktopEmbedsReader
+      : spec.canEmbedReader(listWidth: listWidth);
+}
