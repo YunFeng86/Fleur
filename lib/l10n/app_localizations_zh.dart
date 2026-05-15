@@ -29,6 +29,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settings => '设置';
 
   @override
+  String get settingsSearchHint => '搜索设置';
+
+  @override
   String get feeds => '订阅';
 
   @override
@@ -1222,6 +1225,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get settings => '設定';
+
+  @override
+  String get settingsSearchHint => '搜尋設定';
 
   @override
   String get feeds => '訂閱';

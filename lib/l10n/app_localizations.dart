@@ -135,6 +135,12 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get settings;
 
+  /// Placeholder for the settings page search field
+  ///
+  /// In en, this message translates to:
+  /// **'Search settings'**
+  String get settingsSearchHint;
+
   /// Global navigation label: feeds
   ///
   /// In en, this message translates to:

@@ -84,8 +84,17 @@ void main() {
 
     // Should see "Settings" title
     expect(find.text('Settings'), findsOneWidget);
+    expect(find.byKey(const Key('settings_paper_surface')), findsOneWidget);
+    expect(
+      find.byKey(const Key('settings_search_placeholder')),
+      findsOneWidget,
+    );
     // Should find App Preferences in the list
     expect(find.text('App Preferences'), findsOneWidget);
+    expect(
+      find.byKey(const Key('settings_nav_app-preferences')),
+      findsOneWidget,
+    );
     // Should NOT see detail content (e.g. "System Language" dropdown from App Preferences)
     // Note: App Preferences tab has "Language" header.
     expect(find.text('System Language'), findsNothing);
@@ -170,6 +179,15 @@ void main() {
     await pumpSettingsScreen(tester, 1000); // Wide
 
     // Uses default selection (index 0 -> App Preferences)
+    expect(find.byKey(const Key('settings_paper_surface')), findsOneWidget);
+    expect(
+      find.byKey(const Key('settings_search_placeholder')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('settings_nav_app-preferences')),
+      findsOneWidget,
+    );
     expect(find.text('System language'), findsOneWidget);
     expect(find.text('App Preferences'), findsAtLeastNWidgets(2));
   });

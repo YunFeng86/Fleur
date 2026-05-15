@@ -27,6 +27,10 @@
   "@settings": {
     "description": "settings"
   },
+  "settingsSearchHint": "搜索设置",
+  "@settingsSearchHint": {
+    "description": "Placeholder for the settings page search field"
+  },
   "feeds": "订阅",
   "@feeds": {
     "description": "Global navigation label: feeds"
