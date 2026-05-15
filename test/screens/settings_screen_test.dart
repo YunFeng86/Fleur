@@ -82,22 +82,28 @@ void main() {
   ) async {
     await pumpSettingsScreen(tester, 400); // Narrow
 
-    // Should see "Settings" title
     expect(find.text('Settings'), findsOneWidget);
     expect(find.byKey(const Key('settings_paper_surface')), findsOneWidget);
     expect(
       find.byKey(const Key('settings_search_placeholder')),
       findsOneWidget,
     );
-    // Should find App Preferences in the list
-    expect(find.text('App Preferences'), findsOneWidget);
     expect(
-      find.byKey(const Key('settings_nav_app-preferences')),
+      find.byKey(const Key('settings_search_inside_paper')),
       findsOneWidget,
     );
-    // Should NOT see detail content (e.g. "System Language" dropdown from App Preferences)
-    // Note: App Preferences tab has "Language" header.
-    expect(find.text('System Language'), findsNothing);
+    expect(
+      find.byKey(const Key('settings_search_outside_paper')),
+      findsNothing,
+    );
+    expect(find.byKey(const Key('settings_sidebar_button')), findsOneWidget);
+    expect(find.byKey(const Key('settings_sidebar')), findsNothing);
+    expect(find.text('App Preferences'), findsOneWidget);
+    expect(
+      find.byKey(const Key('settings_list_nav_app-preferences')),
+      findsOneWidget,
+    );
+    expect(find.text('System language'), findsNothing);
   });
 
   testWidgets('Settings Screen navigates to Detail in Narrow Mode', (
@@ -105,19 +111,16 @@ void main() {
   ) async {
     await pumpSettingsScreen(tester, 400);
 
-    // Tap App Preferences
     await tester.tap(find.text('App Preferences'));
     await tester.pumpAndSettle();
 
-    // Should now see Detail Content
     expect(find.text('System language'), findsOneWidget);
+    expect(find.byKey(const Key('settings_back_button')), findsOneWidget);
 
-    // Verify Back Button works
-    await tester.tap(find.byType(BackButton));
+    await tester.tap(find.byKey(const Key('settings_back_button')));
     await tester.pumpAndSettle();
 
-    // Back to list
-    expect(find.text('System Language'), findsNothing);
+    expect(find.text('System language'), findsNothing);
     expect(find.text('App Preferences'), findsOneWidget);
   });
 
@@ -130,7 +133,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('App Preferences'), findsOneWidget);
-    expect(find.byType(BackButton), findsOneWidget);
+    expect(find.byKey(const Key('settings_back_button')), findsOneWidget);
   });
 
   testWidgets('Subscriptions detail shows a single title in narrow mode', (
@@ -142,7 +145,44 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Subscriptions'), findsOneWidget);
-    expect(find.byType(BackButton), findsOneWidget);
+    expect(find.byKey(const Key('settings_back_button')), findsOneWidget);
+  });
+
+  testWidgets('Settings Screen expands temporary sidebar in narrow mode', (
+    tester,
+  ) async {
+    await pumpSettingsScreen(tester, 900, overrides: servicesOverrides());
+
+    final paperBefore = tester.getTopLeft(
+      find.byKey(const Key('settings_paper_surface')),
+    );
+    expect(
+      tester.getCenter(find.byKey(const Key('settings_search_placeholder'))).dx,
+      closeTo(
+        tester.getCenter(find.byKey(const Key('settings_paper_surface'))).dx,
+        1,
+      ),
+    );
+    expect(find.byKey(const Key('settings_sidebar')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('settings_sidebar_button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('settings_sidebar')), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.byKey(const Key('settings_paper_surface'))).dx,
+      greaterThan(paperBefore.dx),
+    );
+
+    await tester.tap(find.byKey(const Key('settings_nav_services')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('settings_sidebar')), findsNothing);
+    expect(find.text('Services'), findsOneWidget);
+    expect(
+      find.byKey(const Key('services_account_tile_settings-account')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('Settings Screen restores state when resizing Narrow -> Wide', (
@@ -160,36 +200,56 @@ void main() {
     tester.view.physicalSize = const Size(1000, 800);
     await tester.pumpAndSettle();
 
-    // Should see Split View
-    // Sidebar item should be selected (visual check hard in test, but we check content presence)
-    // Content should be visible
     expect(find.text('System language'), findsOneWidget);
-
-    // Check if Sidebar is also visible (Wide mode has both)
-    // Sidebar list item "App Preferences" should exist
+    expect(find.byKey(const Key('settings_sidebar')), findsOneWidget);
+    expect(find.byKey(const Key('settings_sidebar_button')), findsNothing);
     expect(
-      find.text('App Preferences'),
-      findsAny,
-    ); // Might find 2 (sidebar + header?) or just 1
+      find.byKey(const Key('settings_search_outside_paper')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('settings_search_inside_paper')), findsNothing);
+    expect(find.text('App Preferences'), findsNWidgets(2));
   });
 
   testWidgets('Settings Screen defaults to first item in Wide Mode', (
     tester,
   ) async {
-    await pumpSettingsScreen(tester, 1000); // Wide
+    await pumpSettingsScreen(tester, 1500); // Wide
 
-    // Uses default selection (index 0 -> App Preferences)
+    expect(find.byKey(const Key('settings_sidebar')), findsOneWidget);
+    expect(find.byKey(const Key('settings_sidebar_button')), findsNothing);
     expect(find.byKey(const Key('settings_paper_surface')), findsOneWidget);
     expect(
       find.byKey(const Key('settings_search_placeholder')),
       findsOneWidget,
     );
     expect(
+      find.byKey(const Key('settings_search_outside_paper')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('settings_search_inside_paper')), findsNothing);
+    expect(
       find.byKey(const Key('settings_nav_app-preferences')),
       findsOneWidget,
     );
     expect(find.text('System language'), findsOneWidget);
-    expect(find.text('App Preferences'), findsAtLeastNWidgets(2));
+    expect(find.text('App Preferences'), findsNWidgets(2));
+
+    final paperSize = tester.getSize(
+      find.byKey(const Key('settings_paper_surface')),
+    );
+    final searchSize = tester.getSize(
+      find.byKey(const Key('settings_search_placeholder')),
+    );
+    expect(paperSize.width, closeTo(960, 1));
+    expect(searchSize.width, greaterThan(900));
+    expect(
+      tester.getCenter(find.byKey(const Key('settings_search_placeholder'))).dx,
+      closeTo(
+        tester.getCenter(find.byKey(const Key('settings_paper_surface'))).dx,
+        1,
+      ),
+    );
   });
 
   testWidgets(
