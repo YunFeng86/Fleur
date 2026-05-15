@@ -115,7 +115,10 @@ void main() {
     await tester.tap(find.text('App Preferences'));
     await tester.pumpAndSettle();
 
-    expect(find.text('System language'), findsOneWidget);
+    expect(
+      find.byKey(const Key('app_preferences_language_select')),
+      findsOneWidget,
+    );
     expect(find.byKey(const Key('settings_back_button')), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('settings_back_button')));
@@ -195,13 +198,19 @@ void main() {
     // Select App Preferences
     await tester.tap(find.text('App Preferences'));
     await tester.pumpAndSettle();
-    expect(find.text('System language'), findsOneWidget);
+    expect(
+      find.byKey(const Key('app_preferences_language_select')),
+      findsOneWidget,
+    );
 
     // Resize to Wide
     tester.view.physicalSize = const Size(1000, 800);
     await tester.pumpAndSettle();
 
-    expect(find.text('System language'), findsOneWidget);
+    expect(
+      find.byKey(const Key('app_preferences_language_select')),
+      findsOneWidget,
+    );
     expect(find.byKey(const Key('settings_sidebar')), findsOneWidget);
     expect(find.byKey(const Key('settings_sidebar_button')), findsNothing);
     expect(find.byKey(const Key('settings_back_button')), findsNothing);
@@ -235,7 +244,10 @@ void main() {
       find.byKey(const Key('settings_nav_app-preferences')),
       findsOneWidget,
     );
-    expect(find.text('System language'), findsOneWidget);
+    expect(
+      find.byKey(const Key('app_preferences_language_select')),
+      findsOneWidget,
+    );
     expect(find.text('App Preferences'), findsNWidgets(2));
 
     final paperSize = tester.getSize(

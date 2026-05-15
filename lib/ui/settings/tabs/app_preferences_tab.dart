@@ -53,27 +53,28 @@ class AppPreferencesTab extends ConsumerWidget {
         SettingsSection(
           title: l10n.language,
           child: SettingsCard(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String?>(
+            padding: EdgeInsets.zero,
+            child: SettingsControlRow(
+              title: Text(l10n.systemLanguage),
+              control: SettingsSelectField<String?>(
+                key: const Key('app_preferences_language_select'),
                 value: appSettings.localeTag,
-                isExpanded: true,
-                items: [
-                  DropdownMenuItem<String?>(
+                options: [
+                  SettingsSelectOption<String?>(
                     value: null,
-                    child: Text(l10n.systemLanguage),
+                    label: Text(l10n.systemLanguage),
                   ),
-                  DropdownMenuItem<String?>(
+                  SettingsSelectOption<String?>(
                     value: 'en',
-                    child: Text(l10n.english),
+                    label: Text(l10n.english),
                   ),
-                  DropdownMenuItem<String?>(
+                  SettingsSelectOption<String?>(
                     value: 'zh',
-                    child: Text(l10n.chineseSimplified),
+                    label: Text(l10n.chineseSimplified),
                   ),
-                  DropdownMenuItem<String?>(
+                  SettingsSelectOption<String?>(
                     value: 'zh-Hant',
-                    child: Text(l10n.chineseTraditional),
+                    label: Text(l10n.chineseTraditional),
                   ),
                 ],
                 onChanged: (v) {
@@ -148,7 +149,7 @@ class AppPreferencesTab extends ConsumerWidget {
                             style: theme.textTheme.titleSmall,
                           ),
                         ),
-                        IconButton(
+                        SettingsIconActionButton(
                           tooltip: l10n.resetToDefault,
                           onPressed: () {
                             unawaited(
@@ -163,7 +164,7 @@ class AppPreferencesTab extends ConsumerWidget {
                                   ),
                             );
                           },
-                          icon: const Icon(FleurIcons.reset),
+                          icon: FleurIcons.reset,
                         ),
                       ],
                     ),
@@ -286,63 +287,58 @@ class AppPreferencesTab extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SettingsCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.clearImageCacheSubtitle,
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 12),
-                    OutlinedButton(
+                padding: EdgeInsets.zero,
+                child: SettingsControlRow(
+                  title: Text(l10n.clearImageCache),
+                  subtitle: Text(l10n.clearImageCacheSubtitle),
+                  control: Align(
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: SettingsActionButton(
+                      key: const Key(
+                        'app_preferences_clear_image_cache_button',
+                      ),
                       onPressed: () async {
                         await ref.read(cacheManagerProvider).emptyCache();
                         await ref.read(imageMetaStoreProvider).clear();
                         if (!context.mounted) return;
                         context.showSnack(l10n.cacheCleared);
                       },
-                      child: Text(l10n.clearImageCache),
+                      label: Text(l10n.clearImageCache),
                     ),
-                  ],
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
               SettingsCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.cleanupReadArticles,
-                      style: theme.textTheme.titleSmall,
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(minWidth: 240),
-                          child: DropdownButton<int?>(
-                            value: appSettings.cleanupReadOlderThanDays,
-                            isExpanded: true,
-                            items: [
-                              DropdownMenuItem<int?>(
-                                value: null,
-                                child: Text(l10n.off),
-                              ),
-                              for (final d in const [7, 30, 90, 180])
-                                DropdownMenuItem<int?>(
-                                  value: d,
-                                  child: Text(l10n.days(d)),
-                                ),
-                            ],
-                            onChanged: (v) => ref
-                                .read(appSettingsProvider.notifier)
-                                .setCleanupReadOlderThanDays(v),
+                padding: EdgeInsets.zero,
+                child: SettingsControlRow(
+                  title: Text(l10n.cleanupReadArticles),
+                  control: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SettingsSelectField<int?>(
+                        key: const Key('app_preferences_cleanup_read_select'),
+                        value: appSettings.cleanupReadOlderThanDays,
+                        options: [
+                          SettingsSelectOption<int?>(
+                            value: null,
+                            label: Text(l10n.off),
                           ),
-                        ),
-                        OutlinedButton(
+                          for (final d in const [7, 30, 90, 180])
+                            SettingsSelectOption<int?>(
+                              value: d,
+                              label: Text(l10n.days(d)),
+                            ),
+                        ],
+                        onChanged: (v) => ref
+                            .read(appSettingsProvider.notifier)
+                            .setCleanupReadOlderThanDays(v),
+                      ),
+                      const SizedBox(height: 10),
+                      Align(
+                        alignment: AlignmentDirectional.centerEnd,
+                        child: SettingsActionButton(
+                          key: const Key('app_preferences_cleanup_now_button'),
                           onPressed:
                               appSettings.cleanupReadOlderThanDays == null
                               ? null
@@ -358,11 +354,11 @@ class AppPreferencesTab extends ConsumerWidget {
                                   if (!context.mounted) return;
                                   context.showSnack(l10n.cleanedArticles(n));
                                 },
-                          child: Text(l10n.cleanupNow),
+                          label: Text(l10n.cleanupNow),
                         ),
-                      ],
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],

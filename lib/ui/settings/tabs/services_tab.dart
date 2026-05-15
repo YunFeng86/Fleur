@@ -37,7 +37,6 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
     final appSettings =
         ref.watch(appSettingsProvider).valueOrNull ?? AppSettings.defaults();
     final accountsAsync = ref.watch(accountsControllerProvider);
@@ -263,22 +262,23 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
             title: refreshSectionTitle,
             description: refreshSectionDescription,
             child: SettingsCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              padding: EdgeInsets.zero,
+              child: SettingsTileGroup(
                 children: [
-                  DropdownButtonHideUnderline(
-                    child: DropdownButton<int?>(
+                  SettingsControlRow(
+                    title: Text(refreshSectionTitle),
+                    control: SettingsSelectField<int?>(
+                      key: const Key('services_source_refresh_interval_select'),
                       value: interval,
-                      isExpanded: true,
-                      items: [
-                        DropdownMenuItem<int?>(
+                      options: [
+                        SettingsSelectOption<int?>(
                           value: null,
-                          child: Text(l10n.off),
+                          label: Text(l10n.off),
                         ),
                         for (final m in const [15, 30, 60])
-                          DropdownMenuItem<int?>(
+                          SettingsSelectOption<int?>(
                             value: m,
-                            child: Text(l10n.everyMinutes(m)),
+                            label: Text(l10n.everyMinutes(m)),
                           ),
                       ],
                       onChanged: (v) => ref
@@ -286,26 +286,20 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
                           .setSourceRefreshMinutes(v),
                     ),
                   ),
-                  if (showRefreshConcurrency) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      l10n.refreshConcurrency,
-                      style: theme.textTheme.titleSmall,
-                    ),
-                    const SizedBox(height: 8),
-                    DropdownButtonHideUnderline(
-                      child: DropdownButton<int>(
+                  if (showRefreshConcurrency)
+                    SettingsControlRow(
+                      title: Text(l10n.refreshConcurrency),
+                      control: SettingsSelectField<int>(
+                        key: const Key('services_refresh_concurrency_select'),
                         value: appSettings.autoRefreshConcurrency,
-                        isExpanded: true,
-                        items: [
+                        options: [
                           for (final c in [1, 2, 4, 6])
-                            DropdownMenuItem(
+                            SettingsSelectOption(
                               value: c,
-                              child: Text(c.toString()),
+                              label: Text(c.toString()),
                             ),
                         ],
                         onChanged: (v) {
-                          if (v == null) return;
                           unawaited(
                             ref
                                 .read(appSettingsProvider.notifier)
@@ -314,20 +308,27 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
                         },
                       ),
                     ),
-                  ],
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: _isRefreshing
-                        ? null
-                        : () => unawaited(refreshNow()),
-                    icon: _isRefreshing
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(FleurIcons.refresh),
-                    label: Text(refreshActionLabel),
+                  SettingsControlRow(
+                    title: Text(refreshActionLabel),
+                    control: Align(
+                      alignment: AlignmentDirectional.centerEnd,
+                      child: SettingsActionButton(
+                        key: const Key('services_refresh_sources_button'),
+                        onPressed: _isRefreshing
+                            ? null
+                            : () => unawaited(refreshNow()),
+                        icon: _isRefreshing
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(FleurIcons.refresh),
+                        label: Text(refreshActionLabel),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -339,29 +340,24 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
             description: remoteStrategySubtitle,
             bottomSpacing: 0,
             child: SettingsCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              padding: EdgeInsets.zero,
+              child: SettingsTileGroup(
                 children: [
-                  if (syncSemantics.supportsEntrySyncLimit) ...[
-                    Text(
-                      l10n.remoteEntriesLimit,
-                      style: theme.textTheme.titleSmall,
-                    ),
-                    const SizedBox(height: 8),
-                    DropdownButtonHideUnderline(
-                      child: DropdownButton<int>(
+                  if (syncSemantics.supportsEntrySyncLimit)
+                    SettingsControlRow(
+                      title: Text(l10n.remoteEntriesLimit),
+                      control: SettingsSelectField<int>(
+                        key: const Key('services_remote_entries_limit_select'),
                         value: appSettings.remoteEntriesLimit,
-                        isExpanded: true,
-                        items: [
+                        options: [
                           for (final v in const [100, 200, 400, 800, 1200])
-                            DropdownMenuItem(value: v, child: Text('$v')),
-                          DropdownMenuItem(
+                            SettingsSelectOption(value: v, label: Text('$v')),
+                          SettingsSelectOption(
                             value: 0,
-                            child: Text(l10n.unlimited),
+                            label: Text(l10n.unlimited),
                           ),
                         ],
                         onChanged: (v) {
-                          if (v == null) return;
                           unawaited(
                             ref
                                 .read(appSettingsProvider.notifier)
@@ -370,34 +366,23 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
                         },
                       ),
                     ),
-                  ],
-                  if (syncSemantics.supportsRemoteFetchConcurrency) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      l10n.remoteFetchConcurrency,
-                      style: theme.textTheme.titleSmall,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      l10n.remoteFetchConcurrencySubtitle,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    DropdownButtonHideUnderline(
-                      child: DropdownButton<int>(
+                  if (syncSemantics.supportsRemoteFetchConcurrency)
+                    SettingsControlRow(
+                      title: Text(l10n.remoteFetchConcurrency),
+                      subtitle: Text(l10n.remoteFetchConcurrencySubtitle),
+                      control: SettingsSelectField<int>(
+                        key: const Key(
+                          'services_remote_fetch_concurrency_select',
+                        ),
                         value: appSettings.remoteFetchConcurrency,
-                        isExpanded: true,
-                        items: [
+                        options: [
                           for (final c in const [1, 2, 3, 4])
-                            DropdownMenuItem(
+                            SettingsSelectOption(
                               value: c,
-                              child: Text(c.toString()),
+                              label: Text(c.toString()),
                             ),
                         ],
                         onChanged: (v) {
-                          if (v == null) return;
                           unawaited(
                             ref
                                 .read(appSettingsProvider.notifier)
@@ -406,38 +391,27 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
                         },
                       ),
                     ),
-                  ],
                   if (contentCapabilities
-                      .canChooseServerArticleContentFetchMode) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      l10n.minifluxWebFetchMode,
-                      style: theme.textTheme.titleSmall,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      l10n.minifluxWebFetchModeSubtitle,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    DropdownButtonHideUnderline(
-                      child: DropdownButton<MinifluxWebFetchMode>(
+                      .canChooseServerArticleContentFetchMode)
+                    SettingsControlRow(
+                      title: Text(l10n.minifluxWebFetchMode),
+                      subtitle: Text(l10n.minifluxWebFetchModeSubtitle),
+                      control: SettingsSelectField<MinifluxWebFetchMode>(
+                        key: const Key(
+                          'services_miniflux_web_fetch_mode_select',
+                        ),
                         value: appSettings.minifluxWebFetchMode,
-                        isExpanded: true,
-                        items: [
-                          DropdownMenuItem(
+                        options: [
+                          SettingsSelectOption(
                             value: MinifluxWebFetchMode.clientReadability,
-                            child: Text(l10n.minifluxWebFetchModeClient),
+                            label: Text(l10n.minifluxWebFetchModeClient),
                           ),
-                          DropdownMenuItem(
+                          SettingsSelectOption(
                             value: MinifluxWebFetchMode.serverFetchContent,
-                            child: Text(l10n.minifluxWebFetchModeServer),
+                            label: Text(l10n.minifluxWebFetchModeServer),
                           ),
                         ],
                         onChanged: (v) {
-                          if (v == null) return;
                           unawaited(
                             ref
                                 .read(appSettingsProvider.notifier)
@@ -446,7 +420,6 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
                         },
                       ),
                     ),
-                  ],
                 ],
               ),
             ),

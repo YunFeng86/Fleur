@@ -16,6 +16,7 @@ import 'package:fleur/services/sync/backend_capabilities.dart';
 import 'package:fleur/services/sync/refresh_all_coordinator.dart';
 import 'package:fleur/services/sync/sync_service.dart';
 import 'package:fleur/ui/settings/tabs/services_tab.dart';
+import 'package:fleur/ui/settings/widgets/section_header.dart';
 
 import '../../test_utils/critical_workflow_test_support.dart';
 
@@ -192,9 +193,14 @@ void main() {
       ],
     );
 
-    final buttonFinder = find.widgetWithText(OutlinedButton, 'Refresh sources');
+    final buttonFinder = find.byKey(
+      const Key('services_refresh_sources_button'),
+    );
     expect(buttonFinder, findsOneWidget);
-    expect(tester.widget<OutlinedButton>(buttonFinder).onPressed, isNotNull);
+    expect(
+      tester.widget<SettingsActionButton>(buttonFinder).onPressed,
+      isNotNull,
+    );
 
     await tester.tap(buttonFinder);
     await tester.pump();
@@ -202,7 +208,7 @@ void main() {
     expect(syncService.refreshCalls, [
       [1],
     ]);
-    expect(tester.widget<OutlinedButton>(buttonFinder).onPressed, isNull);
+    expect(tester.widget<SettingsActionButton>(buttonFinder).onPressed, isNull);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
     expect(find.byType(AlertDialog), findsNothing);
     expect(find.text('Refreshing 0/0...'), findsNothing);
@@ -217,7 +223,10 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    expect(tester.widget<OutlinedButton>(buttonFinder).onPressed, isNotNull);
+    expect(
+      tester.widget<SettingsActionButton>(buttonFinder).onPressed,
+      isNotNull,
+    );
   });
 
   testWidgets(
@@ -242,10 +251,6 @@ void main() {
         activeAccountId: miniflux.id,
       );
 
-      expect(
-        find.byWidgetPredicate((widget) => widget is DropdownButton<String>),
-        findsNothing,
-      );
       expect(
         find.byKey(const Key('services_account_tile_miniflux')),
         findsOneWidget,
@@ -351,9 +356,7 @@ void main() {
       expect(find.textContaining('Mobile background refresh'), findsOneWidget);
 
       await tester.tap(
-        find.byWidgetPredicate(
-          (widget) => widget is DropdownButton<int?> && widget.value == null,
-        ),
+        find.byKey(const Key('services_source_refresh_interval_select')),
       );
       await tester.pumpAndSettle();
 
@@ -376,9 +379,7 @@ void main() {
     );
 
     await tester.tap(
-      find.byWidgetPredicate(
-        (widget) => widget is DropdownButton<int> && widget.value == 400,
-      ),
+      find.byKey(const Key('services_remote_entries_limit_select')),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('800').last);
@@ -397,9 +398,7 @@ void main() {
     );
 
     await tester.tap(
-      find.byWidgetPredicate(
-        (widget) => widget is DropdownButton<int> && widget.value == 2,
-      ),
+      find.byKey(const Key('services_remote_fetch_concurrency_select')),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('4').last);

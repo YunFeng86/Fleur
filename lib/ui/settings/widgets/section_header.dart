@@ -1,7 +1,16 @@
 import 'package:flutter/material.dart';
 
+import '../../../theme/fleur_icons.dart';
 import '../../../theme/fleur_theme_extensions.dart';
 import '../../../widgets/app_scrollbar.dart';
+
+const double _kSettingsControlBreakpoint = 680;
+const double _kSettingsControlMinWidth = 320;
+const double _kSettingsControlMaxWidth = 400;
+const double _kSettingsControlGap = 24;
+const double _kSettingsControlRowMinHeight = 68;
+const double _kSettingsControlRowWithSubtitleMinHeight = 84;
+const double _kSettingsSelectFieldHeight = 48;
 
 class SectionHeader extends StatelessWidget {
   const SectionHeader({
@@ -263,26 +272,539 @@ class SettingsTile extends StatelessWidget {
     final theme = Theme.of(context);
     final states = theme.fleurState;
     final titleColor = destructive ? states.errorAccent : null;
+    final minHeight = subtitle == null
+        ? _kSettingsControlRowMinHeight
+        : _kSettingsControlRowWithSubtitleMinHeight;
+    final titleStyle =
+        theme.textTheme.bodyLarge?.copyWith(
+          color: titleColor,
+          fontWeight: FontWeight.w500,
+        ) ??
+        TextStyle(color: titleColor);
+    final subtitleStyle = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+    final row = ConstrainedBox(
+      constraints: BoxConstraints(minHeight: minHeight),
+      child: Padding(
+        padding: contentPadding,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            if (leading != null) ...[leading!, const SizedBox(width: 14)],
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DefaultTextStyle.merge(style: titleStyle, child: title),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 3),
+                    DefaultTextStyle.merge(
+                      style: subtitleStyle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      child: subtitle!,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (trailing != null) ...[const SizedBox(width: 16), trailing!],
+          ],
+        ),
+      ),
+    );
 
     return IconTheme.merge(
       data: IconThemeData(color: destructive ? states.errorAccent : null),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onSecondaryTapDown: onSecondaryTapDown,
-        child: ListTile(
-          contentPadding: contentPadding,
-          selected: selected,
-          leading: leading,
-          title: DefaultTextStyle.merge(
-            style: titleColor == null
-                ? const TextStyle()
-                : TextStyle(color: titleColor),
-            child: title,
+        child: Material(
+          color: selected ? states.selectionTint : Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            hoverColor: states.hoverTint,
+            splashColor: states.pressedTint,
+            child: row,
           ),
-          subtitle: subtitle,
-          trailing: trailing,
-          onTap: onTap,
         ),
+      ),
+    );
+  }
+}
+
+class SettingsControlRow extends StatelessWidget {
+  const SettingsControlRow({
+    super.key,
+    required this.title,
+    required this.control,
+    this.subtitle,
+    this.leading,
+    this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+    this.controlWidth,
+  });
+
+  final Widget title;
+  final Widget? subtitle;
+  final Widget? leading;
+  final Widget control;
+  final EdgeInsetsGeometry padding;
+  final double? controlWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final boundedWidth = LayoutBuilder(
+      builder: (context, constraints) {
+        final maxWidth = constraints.maxWidth;
+        final wide =
+            maxWidth.isFinite && maxWidth >= _kSettingsControlBreakpoint;
+        final titleBlock = _SettingsControlTitle(
+          title: title,
+          subtitle: subtitle,
+          leading: leading,
+        );
+        final minHeight = subtitle == null
+            ? _kSettingsControlRowMinHeight
+            : _kSettingsControlRowWithSubtitleMinHeight;
+
+        if (!wide) {
+          return Padding(
+            padding: padding,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [titleBlock, const SizedBox(height: 12), control],
+            ),
+          );
+        }
+
+        final resolvedControlWidth =
+            controlWidth ??
+            (maxWidth * 0.42)
+                .clamp(_kSettingsControlMinWidth, _kSettingsControlMaxWidth)
+                .toDouble();
+
+        return ConstrainedBox(
+          constraints: BoxConstraints(minHeight: minHeight),
+          child: Padding(
+            padding: padding,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(child: titleBlock),
+                const SizedBox(width: _kSettingsControlGap),
+                SizedBox(width: resolvedControlWidth, child: control),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    return DefaultTextStyle.merge(
+      style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+      child: boundedWidth,
+    );
+  }
+}
+
+class _SettingsControlTitle extends StatelessWidget {
+  const _SettingsControlTitle({
+    required this.title,
+    required this.subtitle,
+    required this.leading,
+  });
+
+  final Widget title;
+  final Widget? subtitle;
+  final Widget? leading;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final subtitleStyle = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        if (leading != null) ...[leading!, const SizedBox(width: 14)],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              DefaultTextStyle.merge(
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
+                child: title,
+              ),
+              if (subtitle != null) ...[
+                const SizedBox(height: 3),
+                DefaultTextStyle.merge(
+                  style: subtitleStyle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  child: subtitle!,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class SettingsSelectOption<T> {
+  const SettingsSelectOption({required this.value, required this.label});
+
+  final T value;
+  final Widget label;
+}
+
+class SettingsSelectField<T> extends StatefulWidget {
+  const SettingsSelectField({
+    super.key,
+    required this.value,
+    required this.options,
+    required this.onChanged,
+    this.hint,
+  });
+
+  final T value;
+  final List<SettingsSelectOption<T>> options;
+  final ValueChanged<T>? onChanged;
+  final Widget? hint;
+
+  @override
+  State<SettingsSelectField<T>> createState() => _SettingsSelectFieldState<T>();
+}
+
+class _SettingsSelectFieldState<T> extends State<SettingsSelectField<T>> {
+  bool _hovered = false;
+  bool _focused = false;
+
+  SettingsSelectOption<T>? get _selectedOption {
+    for (final option in widget.options) {
+      if (option.value == widget.value) return option;
+    }
+    return null;
+  }
+
+  Future<void> _openMenu() async {
+    final onChanged = widget.onChanged;
+    if (onChanged == null) return;
+
+    final box = context.findRenderObject() as RenderBox;
+    final overlay =
+        Navigator.of(context).overlay!.context.findRenderObject() as RenderBox;
+    final topLeft = box.localToGlobal(Offset.zero, ancestor: overlay);
+    final bottomRight = box.localToGlobal(
+      box.size.bottomRight(Offset.zero),
+      ancestor: overlay,
+    );
+    final selected = await showMenu<SettingsSelectOption<T>>(
+      context: context,
+      position: RelativeRect.fromRect(
+        Rect.fromPoints(topLeft, bottomRight),
+        Offset.zero & overlay.size,
+      ),
+      constraints: BoxConstraints.tightFor(width: box.size.width),
+      color: Theme.of(context).colorScheme.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      items: [
+        for (final option in widget.options)
+          PopupMenuItem<SettingsSelectOption<T>>(
+            value: option,
+            child: DefaultTextStyle.merge(
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontWeight: option.value == widget.value
+                    ? FontWeight.w600
+                    : FontWeight.w400,
+              ),
+              child: option.label,
+            ),
+          ),
+      ],
+    );
+    if (selected == null || !mounted) return;
+    onChanged(selected.value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final enabled = widget.onChanged != null;
+    final borderColor = !enabled
+        ? scheme.outlineVariant.withValues(alpha: 0.42)
+        : _focused
+        ? scheme.primary
+        : _hovered
+        ? scheme.outline
+        : scheme.outlineVariant;
+    final foregroundColor = enabled
+        ? scheme.onSurface
+        : scheme.onSurface.withValues(alpha: 0.38);
+    final selectedOption = _selectedOption;
+
+    return FocusableActionDetector(
+      enabled: enabled,
+      mouseCursor: enabled ? SystemMouseCursors.click : MouseCursor.defer,
+      onShowHoverHighlight: (value) => setState(() => _hovered = value),
+      onShowFocusHighlight: (value) => setState(() => _focused = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOutCubic,
+        height: _kSettingsSelectFieldHeight,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: borderColor, width: _focused ? 2 : 1),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: enabled ? _openMenu : null,
+            child: Padding(
+              padding: const EdgeInsetsDirectional.only(start: 16, end: 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: DefaultTextStyle.merge(
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: foregroundColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      child:
+                          selectedOption?.label ??
+                          widget.hint ??
+                          const SizedBox.shrink(),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Icon(
+                    FleurIcons.dropdown,
+                    size: 18,
+                    color: enabled
+                        ? scheme.onSurfaceVariant
+                        : scheme.onSurface.withValues(alpha: 0.38),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class SettingsSliderControl extends StatelessWidget {
+  const SettingsSliderControl({
+    super.key,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.onChanged,
+    required this.format,
+    this.minLabel,
+    this.maxLabel,
+    this.valueLabel,
+  });
+
+  final double value;
+  final double min;
+  final double max;
+  final ValueChanged<double>? onChanged;
+  final String Function(double value) format;
+  final String? minLabel;
+  final String? maxLabel;
+  final String? valueLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final sliderTheme = SliderTheme.of(context).copyWith(
+      trackHeight: 3,
+      activeTrackColor: scheme.primary,
+      inactiveTrackColor: scheme.primary.withValues(alpha: 0.18),
+      thumbColor: scheme.primary,
+      overlayColor: scheme.primary.withValues(alpha: 0.14),
+      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+      overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+    );
+    final labelStyle = theme.textTheme.bodySmall?.copyWith(
+      color: scheme.onSurfaceVariant,
+      fontWeight: FontWeight.w500,
+    );
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (valueLabel != null) ...[
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: Text(valueLabel!, style: labelStyle),
+          ),
+          const SizedBox(height: 2),
+        ],
+        SliderTheme(
+          data: sliderTheme,
+          child: Slider(
+            value: value.clamp(min, max).toDouble(),
+            min: min,
+            max: max,
+            onChanged: onChanged,
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Row(
+            children: [
+              Text(minLabel ?? format(min), style: labelStyle),
+              const Spacer(),
+              Text(maxLabel ?? format(max), style: labelStyle),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+enum SettingsActionButtonVariant { outline, filled, text }
+
+class SettingsActionButton extends StatelessWidget {
+  const SettingsActionButton({
+    super.key,
+    required this.onPressed,
+    required this.label,
+    this.icon,
+    this.variant = SettingsActionButtonVariant.outline,
+  });
+
+  final VoidCallback? onPressed;
+  final Widget label;
+  final Widget? icon;
+  final SettingsActionButtonVariant variant;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final states = theme.fleurState;
+    final enabled = onPressed != null;
+    final foreground = switch (variant) {
+      SettingsActionButtonVariant.filled => scheme.onPrimary,
+      SettingsActionButtonVariant.outline ||
+      SettingsActionButtonVariant.text => scheme.primary,
+    };
+    final background = switch (variant) {
+      SettingsActionButtonVariant.filled => scheme.primary,
+      SettingsActionButtonVariant.outline ||
+      SettingsActionButtonVariant.text => Colors.transparent,
+    };
+    final border = variant == SettingsActionButtonVariant.outline
+        ? Border.all(color: scheme.outlineVariant)
+        : null;
+    final content = IconTheme.merge(
+      data: IconThemeData(
+        size: 18,
+        color: enabled ? foreground : scheme.onSurface.withValues(alpha: 0.38),
+      ),
+      child: DefaultTextStyle.merge(
+        style: theme.textTheme.labelLarge?.copyWith(
+          color: enabled
+              ? foreground
+              : scheme.onSurface.withValues(alpha: 0.38),
+          fontWeight: FontWeight.w600,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[icon!, const SizedBox(width: 8)],
+            Flexible(child: label),
+          ],
+        ),
+      ),
+    );
+
+    return Material(
+      color: enabled
+          ? background
+          : Color.alphaBlend(
+              scheme.onSurface.withValues(alpha: 0.06),
+              background,
+            ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: border?.top ?? BorderSide.none,
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onPressed,
+        mouseCursor: enabled ? SystemMouseCursors.click : MouseCursor.defer,
+        hoverColor: states.hoverTint,
+        splashColor: states.pressedTint,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 36),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Center(widthFactor: 1, child: content),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class SettingsIconActionButton extends StatelessWidget {
+  const SettingsIconActionButton({
+    super.key,
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final states = theme.fleurState;
+    return IconButton(
+      tooltip: tooltip,
+      onPressed: onPressed,
+      icon: Icon(icon, size: 18),
+      style: ButtonStyle(
+        fixedSize: const WidgetStatePropertyAll(Size.square(40)),
+        minimumSize: const WidgetStatePropertyAll(Size.square(40)),
+        padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        ),
+        overlayColor: WidgetStateProperty.resolveWith((stateSet) {
+          if (stateSet.contains(WidgetState.pressed)) return states.pressedTint;
+          if (stateSet.contains(WidgetState.hovered) ||
+              stateSet.contains(WidgetState.focused)) {
+            return states.hoverTint;
+          }
+          return null;
+        }),
       ),
     );
   }

@@ -287,7 +287,10 @@ class _AboutTabState extends State<AboutTab> {
                                 spacing: 12,
                                 runSpacing: 12,
                                 children: [
-                                  OutlinedButton(
+                                  SettingsActionButton(
+                                    key: const Key(
+                                      'about_data_directory_copy_button',
+                                    ),
                                     onPressed: path == null
                                         ? null
                                         : () async {
@@ -297,15 +300,18 @@ class _AboutTabState extends State<AboutTab> {
                                             if (!context.mounted) return;
                                             context.showSnack(l10n.done);
                                           },
-                                    child: Text(l10n.copyPath),
+                                    label: Text(l10n.copyPath),
                                   ),
-                                  OutlinedButton(
+                                  SettingsActionButton(
+                                    key: const Key(
+                                      'about_data_directory_open_button',
+                                    ),
                                     onPressed: path == null
                                         ? null
                                         : () {
                                             unawaited(_openFolder(path));
                                           },
-                                    child: Text(l10n.openFolder),
+                                    label: Text(l10n.openFolder),
                                   ),
                                 ],
                               ),
@@ -332,7 +338,10 @@ class _AboutTabState extends State<AboutTab> {
                                 spacing: 12,
                                 runSpacing: 12,
                                 children: [
-                                  OutlinedButton(
+                                  SettingsActionButton(
+                                    key: const Key(
+                                      'about_log_directory_copy_button',
+                                    ),
                                     onPressed: path == null
                                         ? null
                                         : () async {
@@ -342,15 +351,18 @@ class _AboutTabState extends State<AboutTab> {
                                             if (!context.mounted) return;
                                             context.showSnack(l10n.done);
                                           },
-                                    child: Text(l10n.copyPath),
+                                    label: Text(l10n.copyPath),
                                   ),
-                                  OutlinedButton(
+                                  SettingsActionButton(
+                                    key: const Key(
+                                      'about_log_directory_open_button',
+                                    ),
                                     onPressed: path == null
                                         ? null
                                         : () {
                                             unawaited(_openFolder(path));
                                           },
-                                    child: Text(l10n.openLogFolder),
+                                    label: Text(l10n.openLogFolder),
                                   ),
                                 ],
                               ),
@@ -361,18 +373,13 @@ class _AboutTabState extends State<AboutTab> {
                     ],
                     if (!isDesktopPlatform) ...[
                       const SizedBox(height: 8),
-                      FilledButton(
+                      SettingsActionButton(
+                        key: const Key('about_export_logs_button'),
                         onPressed: () {
                           unawaited(_exportLogs());
                         },
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(FleurIcons.download, size: 18),
-                            const SizedBox(width: 8),
-                            Flexible(child: Text(l10n.exportLogs)),
-                          ],
-                        ),
+                        icon: const Icon(FleurIcons.download),
+                        label: Text(l10n.exportLogs),
                       ),
                     ],
                   ],
@@ -390,16 +397,11 @@ class _AboutTabState extends State<AboutTab> {
                       style: theme.textTheme.titleSmall,
                     ),
                     const SizedBox(height: 12),
-                    OutlinedButton(
+                    SettingsActionButton(
+                      key: const Key('about_view_license_button'),
                       onPressed: _showLicenseDialog,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(FleurIcons.document, size: 18),
-                          const SizedBox(width: 8),
-                          Flexible(child: Text(l10n.viewLicense)),
-                        ],
-                      ),
+                      icon: const Icon(FleurIcons.document),
+                      label: Text(l10n.viewLicense),
                     ),
                   ],
                 ),
@@ -416,7 +418,8 @@ class _AboutTabState extends State<AboutTab> {
                       style: theme.textTheme.bodyMedium,
                     ),
                     const SizedBox(height: 12),
-                    OutlinedButton(
+                    SettingsActionButton(
+                      key: const Key('about_third_party_licenses_button'),
                       onPressed: () {
                         showLicensePage(
                           context: context,
@@ -424,14 +427,8 @@ class _AboutTabState extends State<AboutTab> {
                           applicationVersion: packageInfo?.version,
                         );
                       },
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(FleurIcons.article, size: 18),
-                          const SizedBox(width: 8),
-                          Flexible(child: Text(l10n.viewThirdPartyLicenses)),
-                        ],
-                      ),
+                      icon: const Icon(FleurIcons.article),
+                      label: Text(l10n.viewThirdPartyLicenses),
                     ),
                   ],
                 ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'section_header.dart';
+
 class SliderTile extends StatelessWidget {
   const SliderTile({
     super.key,
@@ -22,33 +24,17 @@ class SliderTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Padding(
+    return SettingsControlRow(
       padding: padding,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(child: Text(title, style: theme.textTheme.titleSmall)),
-              const SizedBox(width: 12),
-              Text(
-                format(value),
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Slider(
-            value: value.clamp(min, max),
-            min: min,
-            max: max,
-            onChanged: onChanged,
-          ),
-        ],
+      title: Text(title),
+      controlWidth: 360,
+      control: SettingsSliderControl(
+        value: value,
+        min: min,
+        max: max,
+        onChanged: onChanged,
+        format: format,
+        valueLabel: format(value),
       ),
     );
   }

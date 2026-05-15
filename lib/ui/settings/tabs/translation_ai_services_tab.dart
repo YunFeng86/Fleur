@@ -981,9 +981,11 @@ class TranslationAiServicesTab extends ConsumerWidget {
                 children: [
                   Align(
                     alignment: Alignment.centerRight,
-                    child: FilledButton.icon(
+                    child: SettingsActionButton(
+                      key: const Key('translation_ai_add_service_button'),
                       onPressed: addAiService,
                       icon: const Icon(FleurIcons.add),
+                      variant: SettingsActionButtonVariant.filled,
                       label: Text(l10n.addAiService),
                     ),
                   ),

@@ -28,23 +28,23 @@ class GroupingSortingTab extends ConsumerWidget {
         SettingsSection(
           title: l10n.groupBy,
           child: SettingsCard(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<ArticleGroupMode>(
+            padding: EdgeInsets.zero,
+            child: SettingsControlRow(
+              title: Text(l10n.groupBy),
+              control: SettingsSelectField<ArticleGroupMode>(
+                key: const Key('grouping_sorting_group_mode_select'),
                 value: appSettings.articleGroupMode,
-                isExpanded: true,
-                items: [
-                  DropdownMenuItem(
+                options: [
+                  SettingsSelectOption(
                     value: ArticleGroupMode.none,
-                    child: Text(l10n.groupNone),
+                    label: Text(l10n.groupNone),
                   ),
-                  DropdownMenuItem(
+                  SettingsSelectOption(
                     value: ArticleGroupMode.day,
-                    child: Text(l10n.groupByDay),
+                    label: Text(l10n.groupByDay),
                   ),
                 ],
                 onChanged: (v) {
-                  if (v == null) return;
                   unawaited(
                     ref
                         .read(appSettingsProvider.notifier)
@@ -59,23 +59,23 @@ class GroupingSortingTab extends ConsumerWidget {
           title: l10n.sortOrder,
           bottomSpacing: 0,
           child: SettingsCard(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<ArticleSortOrder>(
+            padding: EdgeInsets.zero,
+            child: SettingsControlRow(
+              title: Text(l10n.sortOrder),
+              control: SettingsSelectField<ArticleSortOrder>(
+                key: const Key('grouping_sorting_sort_order_select'),
                 value: appSettings.articleSortOrder,
-                isExpanded: true,
-                items: [
-                  DropdownMenuItem(
+                options: [
+                  SettingsSelectOption(
                     value: ArticleSortOrder.newestFirst,
-                    child: Text(l10n.sortNewestFirst),
+                    label: Text(l10n.sortNewestFirst),
                   ),
-                  DropdownMenuItem(
+                  SettingsSelectOption(
                     value: ArticleSortOrder.oldestFirst,
-                    child: Text(l10n.sortOldestFirst),
+                    label: Text(l10n.sortOldestFirst),
                   ),
                 ],
                 onChanged: (v) {
-                  if (v == null) return;
                   unawaited(
                     ref
                         .read(appSettingsProvider.notifier)
