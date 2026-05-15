@@ -11,7 +11,7 @@ class SliderTile extends StatelessWidget {
     required this.max,
     required this.onChanged,
     required this.format,
-    this.padding = const EdgeInsets.fromLTRB(16, 12, 16, 12),
+    this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
   });
 
   final String title;
@@ -27,14 +27,13 @@ class SliderTile extends StatelessWidget {
     return SettingsControlRow(
       padding: padding,
       title: Text(title),
-      controlWidth: 360,
+      controlWidth: 280,
       control: SettingsSliderControl(
         value: value,
         min: min,
         max: max,
         onChanged: onChanged,
         format: format,
-        valueLabel: format(value),
       ),
     );
   }

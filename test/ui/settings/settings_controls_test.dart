@@ -47,8 +47,10 @@ void main() {
     final controlLeft = tester
         .getTopLeft(find.byKey(const Key('control_box')))
         .dx;
+    final controlSize = tester.getSize(find.byKey(const Key('control_box')));
 
     expect(controlLeft, greaterThan(titleRight));
+    expect(controlSize.width, lessThanOrEqualTo(320));
   });
 
   testWidgets(
@@ -60,6 +62,7 @@ void main() {
         child: const SizedBox(
           width: 320,
           child: SettingsControlRow(
+            key: Key('control_row'),
             title: Text('Control title', key: Key('control_title')),
             control: SizedBox(
               key: Key('control_box'),
@@ -76,8 +79,11 @@ void main() {
       final controlTop = tester
           .getTopLeft(find.byKey(const Key('control_box')))
           .dy;
+      final controlSize = tester.getSize(find.byKey(const Key('control_box')));
+      final rowSize = tester.getSize(find.byKey(const Key('control_row')));
 
       expect(controlTop, greaterThan(titleBottom));
+      expect(controlSize.width, rowSize.width - 32);
     },
   );
 
@@ -112,6 +118,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(selected, 2);
+    expect(tester.getSize(find.byKey(const Key('settings_select'))).height, 36);
     expect(find.text('Two'), findsOneWidget);
   });
 

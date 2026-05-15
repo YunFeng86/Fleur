@@ -5,12 +5,12 @@ import '../../../theme/fleur_theme_extensions.dart';
 import '../../../widgets/app_scrollbar.dart';
 
 const double _kSettingsControlBreakpoint = 680;
-const double _kSettingsControlMinWidth = 320;
-const double _kSettingsControlMaxWidth = 400;
-const double _kSettingsControlGap = 24;
-const double _kSettingsControlRowMinHeight = 68;
-const double _kSettingsControlRowWithSubtitleMinHeight = 84;
-const double _kSettingsSelectFieldHeight = 48;
+const double _kSettingsControlMinWidth = 220;
+const double _kSettingsControlMaxWidth = 320;
+const double _kSettingsControlGap = 16;
+const double _kSettingsControlRowMinHeight = 52;
+const double _kSettingsControlRowWithSubtitleMinHeight = 64;
+const double _kSettingsSelectFieldHeight = 36;
 
 class SectionHeader extends StatelessWidget {
   const SectionHeader({
@@ -276,7 +276,7 @@ class SettingsTile extends StatelessWidget {
         ? _kSettingsControlRowMinHeight
         : _kSettingsControlRowWithSubtitleMinHeight;
     final titleStyle =
-        theme.textTheme.bodyLarge?.copyWith(
+        theme.textTheme.bodyMedium?.copyWith(
           color: titleColor,
           fontWeight: FontWeight.w500,
         ) ??
@@ -342,7 +342,7 @@ class SettingsControlRow extends StatelessWidget {
     required this.control,
     this.subtitle,
     this.leading,
-    this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+    this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
     this.controlWidth,
   });
 
@@ -404,7 +404,7 @@ class SettingsControlRow extends StatelessWidget {
     );
 
     return DefaultTextStyle.merge(
-      style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+      style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
       child: boundedWidth,
     );
   }
@@ -438,7 +438,7 @@ class _SettingsControlTitle extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               DefaultTextStyle.merge(
-                style: theme.textTheme.bodyLarge?.copyWith(
+                style: theme.textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w500,
                 ),
                 child: title,
@@ -516,11 +516,12 @@ class _SettingsSelectFieldState<T> extends State<SettingsSelectField<T>> {
       ),
       constraints: BoxConstraints.tightFor(width: box.size.width),
       color: Theme.of(context).colorScheme.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       items: [
         for (final option in widget.options)
           PopupMenuItem<SettingsSelectOption<T>>(
             value: option,
+            height: 36,
             child: DefaultTextStyle.merge(
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 fontWeight: option.value == widget.value
@@ -564,16 +565,16 @@ class _SettingsSelectFieldState<T> extends State<SettingsSelectField<T>> {
         height: _kSettingsSelectFieldHeight,
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(color: borderColor, width: _focused ? 2 : 1),
         ),
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(10),
             onTap: enabled ? _openMenu : null,
             child: Padding(
-              padding: const EdgeInsetsDirectional.only(start: 16, end: 12),
+              padding: const EdgeInsetsDirectional.only(start: 12, end: 10),
               child: Row(
                 children: [
                   Expanded(
@@ -593,7 +594,7 @@ class _SettingsSelectFieldState<T> extends State<SettingsSelectField<T>> {
                   const SizedBox(width: 12),
                   Icon(
                     FleurIcons.dropdown,
-                    size: 18,
+                    size: 16,
                     color: enabled
                         ? scheme.onSurfaceVariant
                         : scheme.onSurface.withValues(alpha: 0.38),
@@ -635,13 +636,13 @@ class SettingsSliderControl extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final sliderTheme = SliderTheme.of(context).copyWith(
-      trackHeight: 3,
+      trackHeight: 2.5,
       activeTrackColor: scheme.primary,
       inactiveTrackColor: scheme.primary.withValues(alpha: 0.18),
       thumbColor: scheme.primary,
       overlayColor: scheme.primary.withValues(alpha: 0.14),
-      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
-      overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
+      overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
     );
     final labelStyle = theme.textTheme.bodySmall?.copyWith(
       color: scheme.onSurfaceVariant,
@@ -659,17 +660,20 @@ class SettingsSliderControl extends StatelessWidget {
           ),
           const SizedBox(height: 2),
         ],
-        SliderTheme(
-          data: sliderTheme,
-          child: Slider(
-            value: value.clamp(min, max).toDouble(),
-            min: min,
-            max: max,
-            onChanged: onChanged,
+        SizedBox(
+          height: 28,
+          child: SliderTheme(
+            data: sliderTheme,
+            child: Slider(
+              value: value.clamp(min, max).toDouble(),
+              min: min,
+              max: max,
+              onChanged: onChanged,
+            ),
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 6),
           child: Row(
             children: [
               Text(minLabel ?? format(min), style: labelStyle),
@@ -720,11 +724,11 @@ class SettingsActionButton extends StatelessWidget {
         : null;
     final content = IconTheme.merge(
       data: IconThemeData(
-        size: 18,
+        size: 16,
         color: enabled ? foreground : scheme.onSurface.withValues(alpha: 0.38),
       ),
       child: DefaultTextStyle.merge(
-        style: theme.textTheme.labelLarge?.copyWith(
+        style: theme.textTheme.labelMedium?.copyWith(
           color: enabled
               ? foreground
               : scheme.onSurface.withValues(alpha: 0.38),
@@ -733,7 +737,7 @@ class SettingsActionButton extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (icon != null) ...[icon!, const SizedBox(width: 8)],
+            if (icon != null) ...[icon!, const SizedBox(width: 6)],
             Flexible(child: label),
           ],
         ),
@@ -748,19 +752,19 @@ class SettingsActionButton extends StatelessWidget {
               background,
             ),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         side: border?.top ?? BorderSide.none,
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         onTap: onPressed,
         mouseCursor: enabled ? SystemMouseCursors.click : MouseCursor.defer,
         hoverColor: states.hoverTint,
         splashColor: states.pressedTint,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 36),
+          constraints: const BoxConstraints(minHeight: 32),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Center(widthFactor: 1, child: content),
           ),
         ),
@@ -788,14 +792,14 @@ class SettingsIconActionButton extends StatelessWidget {
     return IconButton(
       tooltip: tooltip,
       onPressed: onPressed,
-      icon: Icon(icon, size: 18),
+      icon: Icon(icon, size: 16),
       style: ButtonStyle(
-        fixedSize: const WidgetStatePropertyAll(Size.square(40)),
-        minimumSize: const WidgetStatePropertyAll(Size.square(40)),
+        fixedSize: const WidgetStatePropertyAll(Size.square(32)),
+        minimumSize: const WidgetStatePropertyAll(Size.square(32)),
         padding: const WidgetStatePropertyAll(EdgeInsets.zero),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         shape: WidgetStatePropertyAll(
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
         overlayColor: WidgetStateProperty.resolveWith((stateSet) {
           if (stateSet.contains(WidgetState.pressed)) return states.pressedTint;
