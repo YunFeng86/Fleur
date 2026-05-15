@@ -273,49 +273,31 @@ class _AboutTabState extends State<AboutTab> {
                         future: _appDataPathFuture,
                         builder: (context, snapshot) {
                           final path = snapshot.data;
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                l10n.dataDirectory,
-                                style: theme.textTheme.labelLarge,
-                              ),
-                              const SizedBox(height: 4),
-                              SelectableText(path ?? '...'),
-                              const SizedBox(height: 8),
-                              Wrap(
-                                spacing: 12,
-                                runSpacing: 12,
-                                children: [
-                                  SettingsActionButton(
-                                    key: const Key(
-                                      'about_data_directory_copy_button',
-                                    ),
-                                    onPressed: path == null
-                                        ? null
-                                        : () async {
-                                            await Clipboard.setData(
-                                              ClipboardData(text: path),
-                                            );
-                                            if (!context.mounted) return;
-                                            context.showSnack(l10n.done);
-                                          },
-                                    label: Text(l10n.copyPath),
-                                  ),
-                                  SettingsActionButton(
-                                    key: const Key(
-                                      'about_data_directory_open_button',
-                                    ),
-                                    onPressed: path == null
-                                        ? null
-                                        : () {
-                                            unawaited(_openFolder(path));
-                                          },
-                                    label: Text(l10n.openFolder),
-                                  ),
-                                ],
-                              ),
-                            ],
+                          return _AboutPathActionRow(
+                            title: l10n.dataDirectory,
+                            path: path,
+                            copyButtonKey: const Key(
+                              'about_data_directory_copy_button',
+                            ),
+                            openButtonKey: const Key(
+                              'about_data_directory_open_button',
+                            ),
+                            copyLabel: l10n.copyPath,
+                            openLabel: l10n.openFolder,
+                            onCopy: path == null
+                                ? null
+                                : () async {
+                                    await Clipboard.setData(
+                                      ClipboardData(text: path),
+                                    );
+                                    if (!context.mounted) return;
+                                    context.showSnack(l10n.done);
+                                  },
+                            onOpen: path == null
+                                ? null
+                                : () {
+                                    unawaited(_openFolder(path));
+                                  },
                           );
                         },
                       ),
@@ -324,49 +306,31 @@ class _AboutTabState extends State<AboutTab> {
                         future: _logsPathFuture,
                         builder: (context, snapshot) {
                           final path = snapshot.data;
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                l10n.logDirectory,
-                                style: theme.textTheme.labelLarge,
-                              ),
-                              const SizedBox(height: 4),
-                              SelectableText(path ?? '...'),
-                              const SizedBox(height: 8),
-                              Wrap(
-                                spacing: 12,
-                                runSpacing: 12,
-                                children: [
-                                  SettingsActionButton(
-                                    key: const Key(
-                                      'about_log_directory_copy_button',
-                                    ),
-                                    onPressed: path == null
-                                        ? null
-                                        : () async {
-                                            await Clipboard.setData(
-                                              ClipboardData(text: path),
-                                            );
-                                            if (!context.mounted) return;
-                                            context.showSnack(l10n.done);
-                                          },
-                                    label: Text(l10n.copyPath),
-                                  ),
-                                  SettingsActionButton(
-                                    key: const Key(
-                                      'about_log_directory_open_button',
-                                    ),
-                                    onPressed: path == null
-                                        ? null
-                                        : () {
-                                            unawaited(_openFolder(path));
-                                          },
-                                    label: Text(l10n.openLogFolder),
-                                  ),
-                                ],
-                              ),
-                            ],
+                          return _AboutPathActionRow(
+                            title: l10n.logDirectory,
+                            path: path,
+                            copyButtonKey: const Key(
+                              'about_log_directory_copy_button',
+                            ),
+                            openButtonKey: const Key(
+                              'about_log_directory_open_button',
+                            ),
+                            copyLabel: l10n.copyPath,
+                            openLabel: l10n.openLogFolder,
+                            onCopy: path == null
+                                ? null
+                                : () async {
+                                    await Clipboard.setData(
+                                      ClipboardData(text: path),
+                                    );
+                                    if (!context.mounted) return;
+                                    context.showSnack(l10n.done);
+                                  },
+                            onOpen: path == null
+                                ? null
+                                : () {
+                                    unawaited(_openFolder(path));
+                                  },
                           );
                         },
                       ),
@@ -389,48 +353,44 @@ class _AboutTabState extends State<AboutTab> {
             SettingsSection(
               title: l10n.openSourceLicense,
               child: SettingsCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.mitLicenseName,
-                      style: theme.textTheme.titleSmall,
-                    ),
-                    const SizedBox(height: 12),
-                    SettingsActionButton(
-                      key: const Key('about_view_license_button'),
-                      onPressed: _showLicenseDialog,
-                      icon: const Icon(FleurIcons.document),
-                      label: Text(l10n.viewLicense),
-                    ),
-                  ],
+                padding: EdgeInsets.zero,
+                child: SettingsControlRow(
+                  title: Text(l10n.mitLicenseName),
+                  control: _AboutActionButtons(
+                    children: [
+                      SettingsActionButton(
+                        key: const Key('about_view_license_button'),
+                        onPressed: _showLicenseDialog,
+                        icon: const Icon(FleurIcons.document),
+                        label: Text(l10n.viewLicense),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
             SettingsSection(
               title: l10n.thirdPartyLicenses,
               child: SettingsCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.viewThirdPartyLicenses,
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 12),
-                    SettingsActionButton(
-                      key: const Key('about_third_party_licenses_button'),
-                      onPressed: () {
-                        showLicensePage(
-                          context: context,
-                          applicationName: l10n.appTitle,
-                          applicationVersion: packageInfo?.version,
-                        );
-                      },
-                      icon: const Icon(FleurIcons.article),
-                      label: Text(l10n.viewThirdPartyLicenses),
-                    ),
-                  ],
+                padding: EdgeInsets.zero,
+                child: SettingsControlRow(
+                  title: Text(l10n.viewThirdPartyLicenses),
+                  control: _AboutActionButtons(
+                    children: [
+                      SettingsActionButton(
+                        key: const Key('about_third_party_licenses_button'),
+                        onPressed: () {
+                          showLicensePage(
+                            context: context,
+                            applicationName: l10n.appTitle,
+                            applicationVersion: packageInfo?.version,
+                          );
+                        },
+                        icon: const Icon(FleurIcons.article),
+                        label: Text(l10n.viewThirdPartyLicenses),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -457,6 +417,78 @@ class _AboutTabState extends State<AboutTab> {
           ],
         );
       },
+    );
+  }
+}
+
+class _AboutPathActionRow extends StatelessWidget {
+  const _AboutPathActionRow({
+    required this.title,
+    required this.path,
+    required this.copyButtonKey,
+    required this.openButtonKey,
+    required this.copyLabel,
+    required this.openLabel,
+    required this.onCopy,
+    required this.onOpen,
+  });
+
+  final String title;
+  final String? path;
+  final Key copyButtonKey;
+  final Key openButtonKey;
+  final String copyLabel;
+  final String openLabel;
+  final VoidCallback? onCopy;
+  final VoidCallback? onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return SettingsControlRow(
+      padding: EdgeInsets.zero,
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: theme.textTheme.labelLarge),
+          const SizedBox(height: 4),
+          SelectableText(path ?? '...', style: theme.textTheme.bodyMedium),
+        ],
+      ),
+      control: _AboutActionButtons(
+        children: [
+          SettingsActionButton(
+            key: copyButtonKey,
+            onPressed: onCopy,
+            label: Text(copyLabel),
+          ),
+          SettingsActionButton(
+            key: openButtonKey,
+            onPressed: onOpen,
+            label: Text(openLabel),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AboutActionButtons extends StatelessWidget {
+  const _AboutActionButtons({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: AlignmentDirectional.centerEnd,
+      child: Wrap(
+        alignment: WrapAlignment.end,
+        spacing: 8,
+        runSpacing: 8,
+        children: children,
+      ),
     );
   }
 }

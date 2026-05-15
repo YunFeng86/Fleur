@@ -335,6 +335,31 @@ void main() {
       expect(errors, isEmpty);
     });
 
+    testWidgets('About actions align to the right on wide screens', (
+      tester,
+    ) async {
+      await _pumpTestApp(
+        tester,
+        size: const Size(900, 760),
+        textScale: 1.0,
+        home: const Scaffold(body: AboutTab()),
+      );
+
+      final licenseTitle = find.text('MIT License');
+      final viewLicenseButton = find.byKey(
+        const Key('about_view_license_button'),
+      );
+      await tester.scrollUntilVisible(
+        viewLicenseButton,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+
+      final titleRight = tester.getTopRight(licenseTitle).dx;
+      final buttonLeft = tester.getTopLeft(viewLicenseButton).dx;
+      expect(buttonLeft, greaterThan(titleRight));
+    });
+
     testWidgets('localizes AboutTab license and shortcuts in zh', (
       tester,
     ) async {
