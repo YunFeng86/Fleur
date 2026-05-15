@@ -39,6 +39,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   static const _kSettingsSidebarWidth = kDefaultWorkspaceSidebarWidth;
   static const _kSettingsMinContentWidth = 720.0;
   static const _kSettingsPaperMaxWidth = 960.0;
+  static const _kSettingsSearchPaperGap = 8.0;
   static const _kSidebarPinnedWidth =
       _kSettingsSidebarWidth + _kSettingsMinContentWidth;
   static const _kLayerAnimationDuration = Duration(milliseconds: 180);
@@ -178,7 +179,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               onToggleSidebar: () {
                 setState(() => _sidebarOpen = !_sidebarOpen);
               },
-              onBack: showingList
+              onBack: sidebarPinned
+                  ? (widget.showBack ? _closeSettings : null)
+                  : showingList
                   ? (widget.showBack ? _closeSettings : null)
                   : handleDetailBack,
               items: items,
@@ -499,6 +502,9 @@ class _SettingsContentLayer extends StatelessWidget {
               child: Column(
                 children: [
                   const _SettingsSearchDock(insidePaper: false),
+                  const SizedBox(
+                    height: _SettingsScreenState._kSettingsSearchPaperGap,
+                  ),
                   Expanded(child: paper),
                 ],
               ),

@@ -58,6 +58,7 @@ void main() {
     WidgetTester tester,
     double width, {
     SettingsTab? initialTab,
+    bool showBack = false,
     List<Override> overrides = const [],
   }) async {
     tester.view.physicalSize = Size(width, 800);
@@ -70,7 +71,7 @@ void main() {
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: SettingsScreen(initialTab: initialTab),
+          home: SettingsScreen(initialTab: initialTab, showBack: showBack),
         ),
       ),
     );
@@ -203,6 +204,7 @@ void main() {
     expect(find.text('System language'), findsOneWidget);
     expect(find.byKey(const Key('settings_sidebar')), findsOneWidget);
     expect(find.byKey(const Key('settings_sidebar_button')), findsNothing);
+    expect(find.byKey(const Key('settings_back_button')), findsNothing);
     expect(
       find.byKey(const Key('settings_search_outside_paper')),
       findsOneWidget,
@@ -218,6 +220,7 @@ void main() {
 
     expect(find.byKey(const Key('settings_sidebar')), findsOneWidget);
     expect(find.byKey(const Key('settings_sidebar_button')), findsNothing);
+    expect(find.byKey(const Key('settings_back_button')), findsNothing);
     expect(find.byKey(const Key('settings_paper_surface')), findsOneWidget);
     expect(
       find.byKey(const Key('settings_search_placeholder')),
@@ -243,6 +246,13 @@ void main() {
     );
     expect(paperSize.width, closeTo(960, 1));
     expect(searchSize.width, greaterThan(900));
+    final searchDockBottom = tester
+        .getBottomLeft(find.byKey(const Key('settings_search_outside_paper')))
+        .dy;
+    final paperTop = tester
+        .getTopLeft(find.byKey(const Key('settings_paper_surface')))
+        .dy;
+    expect(paperTop - searchDockBottom, closeTo(8, 1));
     expect(
       tester.getCenter(find.byKey(const Key('settings_search_placeholder'))).dx,
       closeTo(
@@ -250,6 +260,16 @@ void main() {
         1,
       ),
     );
+  });
+
+  testWidgets('Settings Screen shows close back button in wide route mode', (
+    tester,
+  ) async {
+    await pumpSettingsScreen(tester, 1000, showBack: true);
+
+    expect(find.byKey(const Key('settings_sidebar')), findsOneWidget);
+    expect(find.byKey(const Key('settings_sidebar_button')), findsNothing);
+    expect(find.byKey(const Key('settings_back_button')), findsOneWidget);
   });
 
   testWidgets(
