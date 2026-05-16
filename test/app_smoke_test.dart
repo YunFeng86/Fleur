@@ -2141,6 +2141,196 @@ void main() {
     );
   });
 
+  testWidgets('Home hides list sync status capsule in compact list layouts', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.android;
+    tester.view.physicalSize = const Size(390, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          activeAccountProvider.overrideWithValue(buildTestAccount()),
+          articleListControllerProvider.overrideWith(
+            _EmptyArticleListController.new,
+          ),
+          appSettingsStoreProvider.overrideWithValue(
+            FakeAppSettingsStore(AppSettings.defaults()),
+          ),
+          outboxPendingCountProvider.overrideWith((ref) async => 0),
+        ],
+        child: MaterialApp(
+          locale: const Locale('en'),
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const HomeScreen(selectedArticleId: null),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(HomeScreen)),
+    );
+    container
+        .read(syncStatusReporterProvider)
+        .startTask(label: SyncStatusLabel.syncingFeeds, current: 1, total: 3);
+    await tester.pump();
+
+    expect(find.byKey(const Key('sync_status_capsule')), findsNothing);
+  });
+
+  testWidgets('Home shows list sync status capsule on roomy list layouts', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.android;
+    tester.view.physicalSize = const Size(700, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          activeAccountProvider.overrideWithValue(buildTestAccount()),
+          articleListControllerProvider.overrideWith(
+            _EmptyArticleListController.new,
+          ),
+          appSettingsStoreProvider.overrideWithValue(
+            FakeAppSettingsStore(AppSettings.defaults()),
+          ),
+          outboxPendingCountProvider.overrideWith((ref) async => 0),
+        ],
+        child: MaterialApp(
+          locale: const Locale('en'),
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const HomeScreen(selectedArticleId: null),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(HomeScreen)),
+    );
+    container
+        .read(syncStatusReporterProvider)
+        .startTask(label: SyncStatusLabel.syncingFeeds, current: 1, total: 3);
+    await tester.pump();
+
+    expect(find.byKey(const Key('sync_status_capsule')), findsOneWidget);
+    expect(find.text('Syncing feeds（1/3）'), findsOneWidget);
+  });
+
+  testWidgets('Sidebar account footer can suppress duplicate sync status', (
+    tester,
+  ) async {
+    Future<void> pumpSidebar({required bool showAccountSyncStatus}) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            activeAccountProvider.overrideWithValue(buildTestAccount()),
+            feedsProvider.overrideWith((ref) => Stream.value(<Feed>[])),
+            categoriesProvider.overrideWith(
+              (ref) => Stream.value(<Category>[]),
+            ),
+            tagsProvider.overrideWith((ref) => Stream.value(<Tag>[])),
+            allUnreadCountsProvider.overrideWith(
+              (ref) => Stream.value(<int?, int>{}),
+            ),
+          ],
+          child: MaterialApp(
+            locale: const Locale('en'),
+            theme: AppTheme.light(),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: MediaQuery(
+              data: const MediaQueryData(disableAnimations: true),
+              child: Scaffold(
+                body: SizedBox(
+                  width: kDefaultWorkspaceSidebarWidth,
+                  child: Sidebar(
+                    onSelectScope: (_) {},
+                    presentationModeOverride: SidebarPresentationMode.expanded,
+                    showAccountSyncStatus: showAccountSyncStatus,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(Sidebar)),
+      );
+      container
+          .read(syncStatusReporterProvider)
+          .startTask(label: SyncStatusLabel.syncingFeeds, current: 1, total: 3);
+      await tester.pump();
+    }
+
+    await pumpSidebar(showAccountSyncStatus: true);
+    expect(find.text('Syncing feeds（1/3）'), findsOneWidget);
+
+    await pumpSidebar(showAccountSyncStatus: false);
+    expect(find.text('Syncing feeds（1/3）'), findsNothing);
+  });
+
+  testWidgets('Sync status capsule is left aligned and width constrained', (
+    tester,
+  ) async {
+    Future<Size> pumpCapsule(double width) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            theme: AppTheme.light(),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: Align(
+                alignment: Alignment.topLeft,
+                child: SizedBox(
+                  width: width,
+                  height: 240,
+                  child: const SyncStatusCapsuleHost(child: SizedBox.expand()),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(SyncStatusCapsuleHost)),
+      );
+      container
+          .read(syncStatusReporterProvider)
+          .startTask(label: SyncStatusLabel.syncingFeeds, current: 1, total: 3);
+      await tester.pump();
+
+      final capsule = find.byKey(const Key('sync_status_capsule'));
+      expect(tester.getTopLeft(capsule).dx, 16);
+      return tester.getSize(capsule);
+    }
+
+    final wideSize = await pumpCapsule(900);
+    expect(wideSize.width, kSyncStatusCapsuleMaxWidth);
+
+    final narrowSize = await pumpCapsule(440);
+    expect(narrowSize.width, 408);
+  });
+
   testWidgets(
     'Sidebar selection actions share feed, category, tag, and clear-selection flows',
     (tester) async {

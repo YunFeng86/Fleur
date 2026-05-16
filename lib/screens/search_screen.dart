@@ -231,7 +231,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       builder: (context, constraints) {
         final showSyncCapsule = LayoutSpec.fromContext(
           context,
-        ).hasInlineSidebar;
+        ).showsListSyncStatusCapsule;
         final width = constraints.maxWidth;
         final listWidth = clampWorkspaceListWidth(
           ref.watch(workspaceListWidthProvider),

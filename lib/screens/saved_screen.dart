@@ -115,7 +115,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
       builder: (context, constraints) {
         final showSyncCapsule = LayoutSpec.fromContext(
           context,
-        ).hasInlineSidebar;
+        ).showsListSyncStatusCapsule;
         final width = constraints.maxWidth;
         final spec = LayoutSpec.fromContentSize(
           contentWidth: width,

@@ -33,7 +33,9 @@ class HomeScreen extends ConsumerWidget {
     // Desktop stays chrome-less here; future shell controls live outside the
     // page instead of as an in-page AppBar.
     final useCompactTopBar = !isDesktop;
-    final showSyncCapsule = LayoutSpec.fromContext(context).hasInlineSidebar;
+    final showSyncCapsule = LayoutSpec.fromContext(
+      context,
+    ).showsListSyncStatusCapsule;
     final capabilities = ref.watch(backendCapabilitiesProvider);
     final showRootRefresh = SubscriptionObjectMenus.showsRootRefresh(
       capabilities,
@@ -216,7 +218,9 @@ class HomeScreen extends ConsumerWidget {
     double listWidth,
     double contentWidth,
   ) {
-    final showSyncCapsule = LayoutSpec.fromContext(context).hasInlineSidebar;
+    final showSyncCapsule = LayoutSpec.fromContext(
+      context,
+    ).showsListSyncStatusCapsule;
     final topBar = _HomeArticleListToolbar(
       showRefresh: showRootRefresh,
       refreshTooltip: refreshActionLabel,

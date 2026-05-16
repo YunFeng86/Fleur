@@ -41,6 +41,7 @@ class Sidebar extends ConsumerStatefulWidget {
     this.presentationModeOverride,
     this.reserveShellHeader = false,
     this.transparentBackground = false,
+    this.showAccountSyncStatus = true,
   });
 
   final ValueChanged<ArticleScope> onSelectScope;
@@ -48,6 +49,7 @@ class Sidebar extends ConsumerStatefulWidget {
   final SidebarPresentationMode? presentationModeOverride;
   final bool reserveShellHeader;
   final bool transparentBackground;
+  final bool showAccountSyncStatus;
 
   @override
   ConsumerState<Sidebar> createState() => _SidebarState();
@@ -284,6 +286,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
               fixedItems: fixedItems,
               account: activeAccount,
               sync: syncStatus,
+              showSyncStatus: widget.showAccountSyncStatus,
               onAccountTap: () => unawaited(_showAccountMenu()),
               accountAnchorKey: _accountFooterKey,
               reserveShellHeader: widget.reserveShellHeader,
@@ -628,6 +631,7 @@ class _SidebarPanel extends StatelessWidget {
     required this.fixedItems,
     required this.account,
     required this.sync,
+    required this.showSyncStatus,
     required this.onAccountTap,
     required this.accountAnchorKey,
     required this.reserveShellHeader,
@@ -638,6 +642,7 @@ class _SidebarPanel extends StatelessWidget {
   final List<_SidebarFixedItemData> fixedItems;
   final Account account;
   final SyncStatusState sync;
+  final bool showSyncStatus;
   final VoidCallback onAccountTap;
   final Key accountAnchorKey;
   final bool reserveShellHeader;
@@ -661,6 +666,7 @@ class _SidebarPanel extends StatelessWidget {
         _AccountPanelFooter(
           account: account,
           sync: sync,
+          showSyncStatus: showSyncStatus,
           onTap: onAccountTap,
           accountAnchorKey: accountAnchorKey,
         ),
@@ -814,12 +820,14 @@ class _AccountPanelFooter extends StatelessWidget {
   const _AccountPanelFooter({
     required this.account,
     required this.sync,
+    required this.showSyncStatus,
     required this.onTap,
     required this.accountAnchorKey,
   });
 
   final Account account;
   final SyncStatusState sync;
+  final bool showSyncStatus;
   final VoidCallback onTap;
   final Key accountAnchorKey;
 
@@ -856,7 +864,7 @@ class _AccountPanelFooter extends StatelessWidget {
     final reduceMotion = AppMotion.reduceMotion(context);
     final duration = reduceMotion ? Duration.zero : AppMotion.short;
 
-    final showSync = sync.visible;
+    final showSync = showSyncStatus && sync.visible;
     final syncText = _syncText(l10n);
     final borderRadius = BorderRadius.circular(8);
 

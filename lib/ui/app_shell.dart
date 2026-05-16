@@ -111,13 +111,17 @@ class _AppShellState extends ConsumerState<AppShell> {
     return router?.canPop() ?? Navigator.canPop(context);
   }
 
-  Widget _sidebarDrawer(BuildContext context) {
+  Widget _sidebarDrawer(
+    BuildContext context, {
+    required bool showAccountSyncStatus,
+  }) {
     return Drawer(
       child: SafeArea(
         child: Sidebar(
           onSelectScope: (scope) => _goToScope(context, scope),
           router: GoRouter.maybeOf(context),
           presentationModeOverride: SidebarPresentationMode.expanded,
+          showAccountSyncStatus: showAccountSyncStatus,
         ),
       ),
     );
@@ -126,6 +130,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   Widget _desktopSidebar({
     required BuildContext context,
     required double width,
+    required bool showAccountSyncStatus,
     SidebarPresentationMode? presentationModeOverride,
   }) {
     return SizedBox(
@@ -134,6 +139,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         onSelectScope: (scope) => _goToScope(context, scope),
         reserveShellHeader: isDesktop,
         presentationModeOverride: presentationModeOverride,
+        showAccountSyncStatus: showAccountSyncStatus,
       ),
     );
   }
@@ -236,6 +242,12 @@ class _AppShellState extends ConsumerState<AppShell> {
     final headerLeadingInset = overlapWithContent > 0
         ? overlapWithContent + 8
         : 14.0;
+    final contentLayoutSpec = LayoutSpec.fromContentSize(
+      contentWidth: contentWidth,
+      contentHeight: size.height,
+      listWidth: listWidth,
+    );
+    final showAccountSyncStatus = !contentLayoutSpec.showsListSyncStatusCapsule;
 
     final contentLayer = ShellLayerScope(
       totalSize: size,
@@ -287,6 +299,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                   child: _desktopSidebar(
                     context: context,
                     width: sidebarWidth,
+                    showAccountSyncStatus: showAccountSyncStatus,
                     presentationModeOverride: SidebarPresentationMode.expanded,
                   ),
                 ),
@@ -341,6 +354,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                       transparentBackground: true,
                       presentationModeOverride:
                           SidebarPresentationMode.collapsed,
+                      showAccountSyncStatus: showAccountSyncStatus,
                     ),
                   ),
                 ),
@@ -454,7 +468,10 @@ class _AppShellState extends ConsumerState<AppShell> {
 
     return wrapShell(
       Scaffold(
-        drawer: _sidebarDrawer(context),
+        drawer: _sidebarDrawer(
+          context,
+          showAccountSyncStatus: !spec.showsListSyncStatusCapsule,
+        ),
         body: Builder(
           builder: (scaffoldContext) {
             void openDrawer() => Scaffold.of(scaffoldContext).openDrawer();

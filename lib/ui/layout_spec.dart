@@ -106,6 +106,10 @@ class LayoutSpec {
 
   bool get hasInlineSidebar => sidebarLayoutMode == SidebarLayoutMode.inline;
 
+  bool get usesCompactListActions => contentWidth < kCompactWidth;
+
+  bool get showsListSyncStatusCapsule => !usesCompactListActions;
+
   DesktopPaneMode get desktopPaneMode => desktopModeForWidth(
     contentWidth - kWorkspaceSplitHandleHitWidth,
     listWidth: listWidth,

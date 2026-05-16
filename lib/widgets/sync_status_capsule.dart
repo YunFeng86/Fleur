@@ -9,17 +9,21 @@ import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/motion.dart';
 
+const double kSyncStatusCapsuleMaxWidth = 420;
+
 class SyncStatusCapsuleHost extends ConsumerWidget {
   const SyncStatusCapsuleHost({
     super.key,
     required this.child,
     this.enabled = true,
-    this.padding = const EdgeInsets.fromLTRB(12, 0, 12, 12),
+    this.padding = const EdgeInsets.fromLTRB(16, 0, 16, 12),
+    this.maxWidth = kSyncStatusCapsuleMaxWidth,
   });
 
   final Widget child;
   final bool enabled;
   final EdgeInsets padding;
+  final double maxWidth;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -40,17 +44,23 @@ class SyncStatusCapsuleHost extends ConsumerWidget {
           bottom: 0,
           child: Padding(
             padding: padding,
-            child: AnimatedSlide(
-              offset: visible ? Offset.zero : const Offset(0, 1),
-              duration: duration,
-              curve: AppMotion.standardCurve,
-              child: AnimatedOpacity(
-                opacity: visible ? 1 : 0,
-                duration: duration,
-                curve: AppMotion.standardCurve,
-                child: IgnorePointer(
-                  ignoring: !visible,
-                  child: _SyncStatusCapsule(state: state),
+            child: Align(
+              alignment: Alignment.bottomLeft,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxWidth),
+                child: AnimatedSlide(
+                  offset: visible ? Offset.zero : const Offset(0, 1),
+                  duration: duration,
+                  curve: AppMotion.standardCurve,
+                  child: AnimatedOpacity(
+                    opacity: visible ? 1 : 0,
+                    duration: duration,
+                    curve: AppMotion.standardCurve,
+                    child: IgnorePointer(
+                      ignoring: !visible,
+                      child: _SyncStatusCapsule(state: state),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -127,6 +137,7 @@ class _SyncStatusCapsule extends StatelessWidget {
           );
 
     return Material(
+      key: const Key('sync_status_capsule'),
       elevation: 6,
       color: surfaces.floating,
       shape: const StadiumBorder(),
