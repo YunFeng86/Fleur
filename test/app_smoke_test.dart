@@ -2327,8 +2327,8 @@ void main() {
     final wideSize = await pumpCapsule(900);
     expect(wideSize.width, kSyncStatusCapsuleMaxWidth);
 
-    final narrowSize = await pumpCapsule(440);
-    expect(narrowSize.width, 408);
+    final narrowSize = await pumpCapsule(380);
+    expect(narrowSize.width, 348);
   });
 
   testWidgets(

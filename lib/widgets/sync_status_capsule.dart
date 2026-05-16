@@ -9,7 +9,7 @@ import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/motion.dart';
 
-const double kSyncStatusCapsuleMaxWidth = 420;
+const double kSyncStatusCapsuleMaxWidth = 360;
 
 class SyncStatusCapsuleHost extends ConsumerWidget {
   const SyncStatusCapsuleHost({
