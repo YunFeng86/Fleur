@@ -366,6 +366,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get feedOrWebsiteUrl => 'Feed / website URL';
 
   @override
+  String get findFeeds => 'Find feeds';
+
+  @override
   String get discoveringFeeds => 'Discovering feeds...';
 
   @override
@@ -382,6 +385,26 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get addedAndSynced => 'Added & synced';
+
+  @override
+  String get subscriptionAddedTitle => 'Subscription added';
+
+  @override
+  String get subscriptionAddedMessage =>
+      'The subscription was added. You can open it now or keep adding more.';
+
+  @override
+  String get subscriptionAlreadyExistsTitle => 'Already subscribed';
+
+  @override
+  String get subscriptionAlreadyExistsMessage =>
+      'This feed is already in your subscriptions. No category changes were made.';
+
+  @override
+  String get viewSubscription => 'View subscription';
+
+  @override
+  String get continueAddingSubscription => 'Continue adding';
 
   @override
   String get deleteSubscription => 'Delete subscription';

@@ -5,6 +5,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -24,8 +25,8 @@ import '../../services/sync/backend_capabilities.dart';
 import '../../services/sync/refresh_all_coordinator.dart';
 import '../../services/sync/remote_subscription_structure_executor.dart';
 import '../../services/sync/subscription_mirror_service.dart';
+import '../../screens/add_subscription_screen.dart';
 import '../../ui/actions/remote_structure_feedback.dart' as remote_feedback;
-import '../../ui/dialogs/add_subscription_dialog.dart';
 import '../../utils/context_extensions.dart';
 import '../../utils/platform.dart';
 import 'root_sync_action.dart';
@@ -250,22 +251,40 @@ class SubscriptionActions {
     WidgetRef ref, {
     NavigatorState? navigator,
     int? initialCategoryId,
-  }) {
-    return showAddSubscriptionDialog(
-      context,
-      ref,
-      navigator: navigator,
+  }) async {
+    final capabilities = _capabilities(ref);
+    if (!capabilities.isVisible(BackendFeature.addSubscription)) {
+      final l10n = AppLocalizations.of(context)!;
+      remote_feedback.showUnsupportedRemoteCommand(context, l10n);
+      return null;
+    }
+
+    final location = _addSubscriptionLocation(
       initialCategoryId: initialCategoryId,
     );
+    final router = GoRouter.maybeOf(context);
+    if (router != null) {
+      router.go(location);
+      return null;
+    }
+
+    await (navigator ?? Navigator.of(context)).push<void>(
+      MaterialPageRoute<void>(
+        builder: (context) =>
+            AddSubscriptionScreen(initialCategoryId: initialCategoryId),
+      ),
+    );
+    return null;
   }
 
-  // Back-compat alias for old call sites.
-  static Future<void> showAddFeedDialog(
-    BuildContext context,
-    WidgetRef ref, {
-    NavigatorState? navigator,
-  }) async {
-    await addFeed(context, ref, navigator: navigator);
+  static String _addSubscriptionLocation({int? initialCategoryId}) {
+    if (initialCategoryId == null) return '/add-subscription';
+    return Uri(
+      path: '/add-subscription',
+      queryParameters: <String, String>{
+        'categoryId': initialCategoryId.toString(),
+      },
+    ).toString();
   }
 
   static Future<int?> addCategory(

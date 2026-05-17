@@ -460,6 +460,10 @@
   "@feedOrWebsiteUrl": {
     "description": "feedOrWebsiteUrl"
   },
+  "findFeeds": "尋找訂閱源",
+  "@findFeeds": {
+    "description": "Button label for discovering RSS/Atom feeds from a URL"
+  },
   "discoveringFeeds": "正在發現訂閱源…",
   "@discoveringFeeds": {
     "description": "discoveringFeeds"
@@ -483,6 +487,30 @@
   "addedAndSynced": "已新增並同步",
   "@addedAndSynced": {
     "description": "addedAndSynced"
+  },
+  "subscriptionAddedTitle": "訂閱已新增",
+  "@subscriptionAddedTitle": {
+    "description": "Success panel title after adding a subscription"
+  },
+  "subscriptionAddedMessage": "訂閱已新增。你可以現在查看，也可以繼續新增更多訂閱。",
+  "@subscriptionAddedMessage": {
+    "description": "Success panel message after adding a subscription"
+  },
+  "subscriptionAlreadyExistsTitle": "已經訂閱",
+  "@subscriptionAlreadyExistsTitle": {
+    "description": "Panel title when the feed already exists"
+  },
+  "subscriptionAlreadyExistsMessage": "這個訂閱源已經在你的訂閱列表中，沒有改動它的分類。",
+  "@subscriptionAlreadyExistsMessage": {
+    "description": "Panel message when the feed already exists"
+  },
+  "viewSubscription": "查看訂閱",
+  "@viewSubscription": {
+    "description": "Button label for opening a newly added or existing subscription"
+  },
+  "continueAddingSubscription": "繼續新增",
+  "@continueAddingSubscription": {
+    "description": "Button label for resetting the add subscription form"
   },
   "deleteSubscription": "刪除訂閱",
   "@deleteSubscription": {

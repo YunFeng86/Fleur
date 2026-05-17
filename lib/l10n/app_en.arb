@@ -460,6 +460,10 @@
   "@feedOrWebsiteUrl": {
     "description": "feedOrWebsiteUrl"
   },
+  "findFeeds": "Find feeds",
+  "@findFeeds": {
+    "description": "Button label for discovering RSS/Atom feeds from a URL"
+  },
   "discoveringFeeds": "Discovering feeds...",
   "@discoveringFeeds": {
     "description": "discoveringFeeds"
@@ -483,6 +487,30 @@
   "addedAndSynced": "Added & synced",
   "@addedAndSynced": {
     "description": "addedAndSynced"
+  },
+  "subscriptionAddedTitle": "Subscription added",
+  "@subscriptionAddedTitle": {
+    "description": "Success panel title after adding a subscription"
+  },
+  "subscriptionAddedMessage": "The subscription was added. You can open it now or keep adding more.",
+  "@subscriptionAddedMessage": {
+    "description": "Success panel message after adding a subscription"
+  },
+  "subscriptionAlreadyExistsTitle": "Already subscribed",
+  "@subscriptionAlreadyExistsTitle": {
+    "description": "Panel title when the feed already exists"
+  },
+  "subscriptionAlreadyExistsMessage": "This feed is already in your subscriptions. No category changes were made.",
+  "@subscriptionAlreadyExistsMessage": {
+    "description": "Panel message when the feed already exists"
+  },
+  "viewSubscription": "View subscription",
+  "@viewSubscription": {
+    "description": "Button label for opening a newly added or existing subscription"
+  },
+  "continueAddingSubscription": "Continue adding",
+  "@continueAddingSubscription": {
+    "description": "Button label for resetting the add subscription form"
   },
   "deleteSubscription": "Delete subscription",
   "@deleteSubscription": {

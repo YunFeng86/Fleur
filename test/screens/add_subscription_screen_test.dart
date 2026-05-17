@@ -17,6 +17,7 @@ import 'package:fleur/providers/add_subscription_controller.dart';
 import 'package:fleur/providers/app_settings_providers.dart';
 import 'package:fleur/providers/core_providers.dart';
 import 'package:fleur/providers/service_providers.dart';
+import 'package:fleur/repositories/category_repository.dart';
 import 'package:fleur/repositories/feed_repository.dart';
 import 'package:fleur/screens/add_subscription_screen.dart';
 import 'package:fleur/services/accounts/account.dart';
@@ -153,6 +154,7 @@ Future<void> _pumpScreen(
   SyncServiceBase? sync,
   Dio? dio,
   bool withRouter = false,
+  int? initialCategoryId,
 }) async {
   final overrides = <Override>[
     isarProvider.overrideWithValue(isar),
@@ -174,7 +176,7 @@ Future<void> _pumpScreen(
           theme: AppTheme.light(),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: const AddSubscriptionScreen(),
+          home: AddSubscriptionScreen(initialCategoryId: initialCategoryId),
         ),
       ),
     );
@@ -182,11 +184,17 @@ Future<void> _pumpScreen(
   }
 
   final router = GoRouter(
-    initialLocation: '/add-subscription',
+    initialLocation: initialCategoryId == null
+        ? '/add-subscription'
+        : '/add-subscription?categoryId=$initialCategoryId',
     routes: [
       GoRoute(
         path: '/add-subscription',
-        builder: (context, state) => const AddSubscriptionScreen(),
+        builder: (context, state) => AddSubscriptionScreen(
+          initialCategoryId: int.tryParse(
+            state.uri.queryParameters['categoryId'] ?? '',
+          ),
+        ),
       ),
       GoRoute(
         path: '/feed/:id',
@@ -297,6 +305,7 @@ void main() {
       find.byKey(const Key('add_subscription_discover_button')),
       findsOneWidget,
     );
+    expect(find.text('Find feeds'), findsOneWidget);
   });
 
   testWidgets('shows feed candidates in-page and then local categories', (
@@ -376,6 +385,41 @@ void main() {
     );
   });
 
+  testWidgets('query category id preselects a local category', (tester) async {
+    late final int categoryId;
+    await tester.runAsync(() async {
+      categoryId = await CategoryRepository(isar!).upsertByName('Blogs');
+    });
+
+    await _pumpScreen(
+      tester,
+      isar: isar!,
+      discovery: _FakeFeedDiscoveryService(const [
+        DiscoveredFeed(url: 'https://example.com/feed.xml', title: 'Feed'),
+      ]),
+      withRouter: true,
+      initialCategoryId: categoryId,
+    );
+    await _pumpFrames(tester);
+
+    await _enterAndDiscover(tester, 'https://example.com/feed.xml');
+    await _pumpUntilFound(tester, find.text('Blogs'));
+    await tester.tap(find.byKey(const Key('add_subscription_submit_button')));
+    await _pumpUntilFound(
+      tester,
+      find.byKey(const Key('add_subscription_success')),
+    );
+
+    late final Feed? feed;
+    await tester.runAsync(() async {
+      feed = await FeedRepository(
+        isar!,
+      ).getByUrl('https://example.com/feed.xml');
+    });
+    expect(feed, isNotNull);
+    expect(feed!.categoryId, categoryId);
+  });
+
   testWidgets('Miniflux category picker does not offer uncategorized', (
     tester,
   ) async {
@@ -411,6 +455,51 @@ void main() {
     expect(find.text('Uncategorized'), findsNothing);
   });
 
+  testWidgets('Miniflux preselects a remote category from local remoteId', (
+    tester,
+  ) async {
+    late final int categoryId;
+    await tester.runAsync(() async {
+      categoryId = await CategoryRepository(
+        isar!,
+      ).upsertRemote(remoteId: '42', name: 'News');
+    });
+    final dio = _buildDio({
+      'GET /v1/categories': (options, handler) {
+        handler.resolve(
+          Response<List<Map<String, Object?>>>(
+            requestOptions: options,
+            statusCode: 200,
+            data: const [
+              {'id': 42, 'title': 'Remote News'},
+            ],
+          ),
+        );
+      },
+    });
+
+    await _pumpScreen(
+      tester,
+      isar: isar!,
+      account: _minifluxAccount(),
+      dio: dio,
+      discovery: _FakeFeedDiscoveryService(const [
+        DiscoveredFeed(url: 'https://example.com/feed.xml', title: 'Feed'),
+      ]),
+      withRouter: true,
+      initialCategoryId: categoryId,
+    );
+    await _pumpFrames(tester);
+
+    await _enterAndDiscover(tester, 'https://example.com/feed.xml');
+    await _pumpUntilFound(tester, find.text('Remote News'));
+
+    final submit = tester.widget<FilledButton>(
+      find.byKey(const Key('add_subscription_submit_button')),
+    );
+    expect(submit.onPressed, isNotNull);
+  });
+
   testWidgets('shows no feeds found as an inline error', (tester) async {
     await _pumpScreen(
       tester,
@@ -427,6 +516,126 @@ void main() {
 
     expect(find.byKey(const Key('add_subscription_error')), findsOneWidget);
     expect(find.text('No feeds found'), findsWidgets);
+  });
+
+  testWidgets('success stays on add page and continue resets the form', (
+    tester,
+  ) async {
+    await _pumpScreen(
+      tester,
+      isar: isar!,
+      discovery: _FakeFeedDiscoveryService(const [
+        DiscoveredFeed(url: 'https://example.com/feed.xml', title: 'Feed'),
+      ]),
+      withRouter: true,
+    );
+    await _pumpFrames(tester);
+
+    await _enterAndDiscover(tester, 'https://example.com/feed.xml');
+    await _pumpUntilFound(tester, find.text('Uncategorized'));
+    await tester.tap(find.byKey(const Key('add_subscription_submit_button')));
+    await _pumpUntilFound(
+      tester,
+      find.byKey(const Key('add_subscription_success')),
+    );
+
+    expect(find.text('Subscription added'), findsOneWidget);
+    expect(find.text('feed:'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('add_subscription_continue_button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('add_subscription_success')), findsNothing);
+    expect(
+      tester
+          .widget<TextFormField>(
+            find.byKey(const Key('add_subscription_url_field')),
+          )
+          .controller
+          ?.text,
+      isEmpty,
+    );
+  });
+
+  testWidgets('view subscription opens the feed route after success', (
+    tester,
+  ) async {
+    await _pumpScreen(
+      tester,
+      isar: isar!,
+      discovery: _FakeFeedDiscoveryService(const [
+        DiscoveredFeed(url: 'https://example.com/feed.xml', title: 'Feed'),
+      ]),
+      withRouter: true,
+    );
+    await _pumpFrames(tester);
+
+    await _enterAndDiscover(tester, 'https://example.com/feed.xml');
+    await _pumpUntilFound(tester, find.text('Uncategorized'));
+    await tester.tap(find.byKey(const Key('add_subscription_submit_button')));
+    await _pumpUntilFound(
+      tester,
+      find.byKey(const Key('add_subscription_success')),
+    );
+    late final Feed? feed;
+    await tester.runAsync(() async {
+      feed = await FeedRepository(
+        isar!,
+      ).getByUrl('https://example.com/feed.xml');
+    });
+    expect(feed, isNotNull);
+
+    await tester.tap(find.byKey(const Key('add_subscription_view_button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('feed:${feed!.id}'), findsOneWidget);
+  });
+
+  testWidgets('existing subscriptions show a duplicate state without moving', (
+    tester,
+  ) async {
+    late final int originalCategoryId;
+    late final int targetCategoryId;
+    await tester.runAsync(() async {
+      final categories = CategoryRepository(isar!);
+      final feeds = FeedRepository(isar!);
+      originalCategoryId = await categories.upsertByName('Original');
+      targetCategoryId = await categories.upsertByName('Target');
+      final existingFeedId = await feeds.upsertUrl(
+        'https://example.com/feed.xml',
+      );
+      await feeds.setCategory(
+        feedId: existingFeedId,
+        categoryId: originalCategoryId,
+      );
+    });
+
+    await _pumpScreen(
+      tester,
+      isar: isar!,
+      discovery: _FakeFeedDiscoveryService(const [
+        DiscoveredFeed(url: 'https://example.com/feed.xml/', title: 'Feed'),
+      ]),
+      withRouter: true,
+      initialCategoryId: targetCategoryId,
+    );
+    await _pumpFrames(tester);
+
+    await _enterAndDiscover(tester, 'https://example.com/feed.xml/');
+    await _pumpUntilFound(
+      tester,
+      find.byKey(const Key('add_subscription_existing')),
+    );
+
+    expect(find.text('Already subscribed'), findsOneWidget);
+    late final Feed? feed;
+    await tester.runAsync(() async {
+      feed = await FeedRepository(
+        isar!,
+      ).getByUrl('https://example.com/feed.xml');
+    });
+    expect(feed, isNotNull);
+    expect(feed!.categoryId, originalCategoryId);
   });
 
   test(

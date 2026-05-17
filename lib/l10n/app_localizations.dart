@@ -759,6 +759,12 @@ abstract class AppLocalizations {
   /// **'Feed / website URL'**
   String get feedOrWebsiteUrl;
 
+  /// Button label for discovering RSS/Atom feeds from a URL
+  ///
+  /// In en, this message translates to:
+  /// **'Find feeds'**
+  String get findFeeds;
+
   /// discoveringFeeds
   ///
   /// In en, this message translates to:
@@ -794,6 +800,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Added & synced'**
   String get addedAndSynced;
+
+  /// Success panel title after adding a subscription
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription added'**
+  String get subscriptionAddedTitle;
+
+  /// Success panel message after adding a subscription
+  ///
+  /// In en, this message translates to:
+  /// **'The subscription was added. You can open it now or keep adding more.'**
+  String get subscriptionAddedMessage;
+
+  /// Panel title when the feed already exists
+  ///
+  /// In en, this message translates to:
+  /// **'Already subscribed'**
+  String get subscriptionAlreadyExistsTitle;
+
+  /// Panel message when the feed already exists
+  ///
+  /// In en, this message translates to:
+  /// **'This feed is already in your subscriptions. No category changes were made.'**
+  String get subscriptionAlreadyExistsMessage;
+
+  /// Button label for opening a newly added or existing subscription
+  ///
+  /// In en, this message translates to:
+  /// **'View subscription'**
+  String get viewSubscription;
+
+  /// Button label for resetting the add subscription form
+  ///
+  /// In en, this message translates to:
+  /// **'Continue adding'**
+  String get continueAddingSubscription;
 
   /// deleteSubscription
   ///

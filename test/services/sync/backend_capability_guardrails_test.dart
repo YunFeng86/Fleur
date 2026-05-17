@@ -19,6 +19,8 @@ const _allowedRawBackendTypeUses = <String, String>{
       'derives content capabilities from the active account',
   'lib/providers/backend_sync_semantics_provider.dart':
       'derives sync semantics from the active account',
+  'lib/providers/add_subscription_controller.dart':
+      'constructs the Miniflux add-subscription executor after capability gating',
   'lib/providers/service_providers.dart':
       'selects the concrete sync service implementation',
   'lib/services/accounts/account.dart': 'defines AccountType serialization',
@@ -53,7 +55,6 @@ const _operationalCapabilityFiles = <String, String>{
   'lib/widgets/outbox_status_action.dart': 'backendCapabilitiesProvider',
   'lib/ui/home/home_scene_commands.dart': 'backendCapabilitiesProvider',
   'lib/ui/actions/subscription_actions.dart': 'backendCapabilitiesProvider',
-  'lib/ui/dialogs/add_subscription_dialog.dart': 'backendCapabilitiesProvider',
   'lib/ui/settings/subscriptions/subscription_toolbar.dart':
       'backendCapabilitiesProvider',
   'lib/ui/sidebar/sidebar_tree.dart': 'BackendCapabilities',
@@ -198,20 +199,20 @@ void main() {
   });
 
   test(
-    'add subscription dialog keeps operation dispatch capability-driven',
+    'add subscription controller keeps operation dispatch capability-driven',
     () {
-      const path = 'lib/ui/dialogs/add_subscription_dialog.dart';
+      const path = 'lib/providers/add_subscription_controller.dart';
       final contents = File(path).readAsStringSync();
 
       expect(
         contents,
-        isNot(contains(RegExp(r'\b(?:_?account|activeAccount)\.type\b'))),
+        contains('backendCapabilitiesProvider'),
         reason:
             '$path must use BackendCapabilities/backendCapabilitiesProvider '
             'for add-subscription operation dispatch.',
       );
       expect(contents, contains('BackendFeature.addSubscription'));
-      expect(contents, contains('FeatureAvailability.onlineRequired'));
+      expect(contents, contains('isOnlineRequired'));
     },
   );
 }

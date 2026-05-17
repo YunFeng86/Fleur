@@ -24,6 +24,7 @@ enum AddSubscriptionPhase {
   selectingCategory,
   creatingCategory,
   submitting,
+  alreadySubscribed,
   success,
   error,
 }
@@ -73,7 +74,9 @@ class AddSubscriptionState {
     this.categories = const <AddSubscriptionCategoryOption>[],
     this.selectedCategoryId,
     this.categorySelected = false,
+    this.initialCategoryId,
     this.completedFeedId,
+    this.existingFeedId,
     this.failure,
   });
 
@@ -84,7 +87,9 @@ class AddSubscriptionState {
   final List<AddSubscriptionCategoryOption> categories;
   final int? selectedCategoryId;
   final bool categorySelected;
+  final int? initialCategoryId;
   final int? completedFeedId;
+  final int? existingFeedId;
   final AddSubscriptionFailure? failure;
 
   bool get isBusy {
@@ -96,6 +101,7 @@ class AddSubscriptionState {
       AddSubscriptionPhase.idle ||
       AddSubscriptionPhase.selectingFeed ||
       AddSubscriptionPhase.selectingCategory ||
+      AddSubscriptionPhase.alreadySubscribed ||
       AddSubscriptionPhase.success ||
       AddSubscriptionPhase.error => false,
     };
@@ -109,7 +115,9 @@ class AddSubscriptionState {
     List<AddSubscriptionCategoryOption>? categories,
     Object? selectedCategoryId = _unset,
     bool? categorySelected,
+    Object? initialCategoryId = _unset,
     Object? completedFeedId = _unset,
+    Object? existingFeedId = _unset,
     Object? failure = _unset,
   }) {
     return AddSubscriptionState(
@@ -124,9 +132,15 @@ class AddSubscriptionState {
           ? this.selectedCategoryId
           : selectedCategoryId as int?,
       categorySelected: categorySelected ?? this.categorySelected,
+      initialCategoryId: identical(initialCategoryId, _unset)
+          ? this.initialCategoryId
+          : initialCategoryId as int?,
       completedFeedId: identical(completedFeedId, _unset)
           ? this.completedFeedId
           : completedFeedId as int?,
+      existingFeedId: identical(existingFeedId, _unset)
+          ? this.existingFeedId
+          : existingFeedId as int?,
       failure: identical(failure, _unset)
           ? this.failure
           : failure as AddSubscriptionFailure?,
@@ -147,7 +161,7 @@ class AddSubscriptionController
     state = const AddSubscriptionState();
   }
 
-  Future<void> discover(String input) async {
+  Future<void> discover(String input, {int? initialCategoryId}) async {
     final trimmed = input.trim();
     if (trimmed.isEmpty) {
       _setFailure(
@@ -169,6 +183,7 @@ class AddSubscriptionController
     state = AddSubscriptionState(
       phase: AddSubscriptionPhase.discovering,
       input: trimmed,
+      initialCategoryId: initialCategoryId,
     );
 
     try {
@@ -187,7 +202,11 @@ class AddSubscriptionController
       }
 
       if (candidates.length == 1) {
-        await selectFeed(candidates.first, candidates: candidates);
+        await selectFeed(
+          candidates.first,
+          candidates: candidates,
+          initialCategoryId: initialCategoryId,
+        );
         return;
       }
 
@@ -195,6 +214,7 @@ class AddSubscriptionController
         phase: AddSubscriptionPhase.selectingFeed,
         input: trimmed,
         candidates: candidates,
+        initialCategoryId: initialCategoryId,
       );
     } catch (error, stackTrace) {
       _logFailure('discoverFeed', error, stackTrace);
@@ -208,6 +228,7 @@ class AddSubscriptionController
   Future<void> selectFeed(
     DiscoveredFeed feed, {
     List<DiscoveredFeed>? candidates,
+    int? initialCategoryId,
   }) async {
     final uri = Uri.tryParse(feed.url);
     if (uri == null) {
@@ -220,6 +241,8 @@ class AddSubscriptionController
       return;
     }
 
+    final effectiveInitialCategoryId =
+        initialCategoryId ?? state.initialCategoryId;
     state = state.copyWith(
       phase: AddSubscriptionPhase.loadingCategories,
       candidates: candidates ?? state.candidates,
@@ -227,9 +250,21 @@ class AddSubscriptionController
       categories: const <AddSubscriptionCategoryOption>[],
       selectedCategoryId: null,
       categorySelected: false,
+      initialCategoryId: effectiveInitialCategoryId,
       completedFeedId: null,
+      existingFeedId: null,
       failure: null,
     );
+    final existingFeedId = await _resolveLocalFeedIdByUrl(uri.toString());
+    if (existingFeedId != null) {
+      state = state.copyWith(
+        phase: AddSubscriptionPhase.alreadySubscribed,
+        selectedFeedUri: uri,
+        existingFeedId: existingFeedId,
+        failure: null,
+      );
+      return;
+    }
     await _loadCategories();
   }
 
@@ -362,23 +397,25 @@ class AddSubscriptionController
                 .toList(growable: false)
               ..sort((a, b) => a.title.compareTo(b.title));
 
+        final selectedCategoryId = await _initialRemoteCategoryId(categories);
         state = state.copyWith(
           phase: AddSubscriptionPhase.selectingCategory,
           selectedFeedUri: selectedFeedUri,
           categories: categories,
-          selectedCategoryId: null,
-          categorySelected: false,
+          selectedCategoryId: selectedCategoryId,
+          categorySelected: selectedCategoryId != null,
           failure: null,
         );
         return;
       }
 
       final categories = await _localCategoryOptions();
+      final selectedCategoryId = _initialLocalCategoryId(categories);
       state = state.copyWith(
         phase: AddSubscriptionPhase.selectingCategory,
         selectedFeedUri: selectedFeedUri,
         categories: categories,
-        selectedCategoryId: null,
+        selectedCategoryId: selectedCategoryId,
         categorySelected: true,
         failure: null,
       );
@@ -399,6 +436,15 @@ class AddSubscriptionController
       failure: null,
     );
     try {
+      final existingFeedId = await _resolveLocalFeedIdByUrl(feedUri.toString());
+      if (existingFeedId != null) {
+        state = previous.copyWith(
+          phase: AddSubscriptionPhase.alreadySubscribed,
+          existingFeedId: existingFeedId,
+          failure: null,
+        );
+        return existingFeedId;
+      }
       final feedId = await ref
           .read(feedRepositoryProvider)
           .upsertUrl(feedUri.toString());
@@ -439,6 +485,15 @@ class AddSubscriptionController
 
   Future<int?> _submitMiniflux(Uri feedUri) async {
     final previous = state;
+    final existingFeedId = await _resolveLocalFeedIdByUrl(feedUri.toString());
+    if (existingFeedId != null) {
+      state = previous.copyWith(
+        phase: AddSubscriptionPhase.alreadySubscribed,
+        existingFeedId: existingFeedId,
+        failure: null,
+      );
+      return existingFeedId;
+    }
     final categoryId = previous.selectedCategoryId;
     if (!previous.categorySelected || categoryId == null || categoryId <= 0) {
       state = previous.copyWith(
@@ -520,6 +575,31 @@ class AddSubscriptionController
     return AddSubscriptionCategoryOption(id: category.id, title: category.name);
   }
 
+  int? _initialLocalCategoryId(List<AddSubscriptionCategoryOption> categories) {
+    final id = state.initialCategoryId;
+    if (id == null) return null;
+    for (final option in categories) {
+      if (!option.isUncategorized && option.id == id) return id;
+    }
+    return null;
+  }
+
+  Future<int?> _initialRemoteCategoryId(
+    List<AddSubscriptionCategoryOption> categories,
+  ) async {
+    final localCategoryId = state.initialCategoryId;
+    if (localCategoryId == null) return null;
+    final category = await ref
+        .read(categoryRepositoryProvider)
+        .getById(localCategoryId);
+    final remoteId = int.tryParse((category?.remoteId ?? '').trim());
+    if (remoteId == null || remoteId <= 0) return null;
+    for (final option in categories) {
+      if (option.id == remoteId) return remoteId;
+    }
+    return null;
+  }
+
   List<AddSubscriptionCategoryOption> _mergeCategoryOption(
     List<AddSubscriptionCategoryOption> options,
     AddSubscriptionCategoryOption created,
@@ -576,6 +656,7 @@ class AddSubscriptionController
       input: input,
       failure: failure,
       completedFeedId: null,
+      existingFeedId: null,
     );
   }
 

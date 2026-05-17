@@ -347,6 +347,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get feedOrWebsiteUrl => '订阅源或网站 URL';
 
   @override
+  String get findFeeds => '查找订阅源';
+
+  @override
   String get discoveringFeeds => '正在发现订阅源…';
 
   @override
@@ -363,6 +366,24 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get addedAndSynced => '已添加并同步';
+
+  @override
+  String get subscriptionAddedTitle => '订阅已添加';
+
+  @override
+  String get subscriptionAddedMessage => '订阅已添加。你可以现在查看，也可以继续添加更多订阅。';
+
+  @override
+  String get subscriptionAlreadyExistsTitle => '已经订阅';
+
+  @override
+  String get subscriptionAlreadyExistsMessage => '这个订阅源已经在你的订阅列表中，没有改动它的分类。';
+
+  @override
+  String get viewSubscription => '查看订阅';
+
+  @override
+  String get continueAddingSubscription => '继续添加';
 
   @override
   String get deleteSubscription => '删除订阅';
@@ -1545,6 +1566,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get feedOrWebsiteUrl => '訂閱源或網站 URL';
 
   @override
+  String get findFeeds => '尋找訂閱源';
+
+  @override
   String get discoveringFeeds => '正在發現訂閱源…';
 
   @override
@@ -1561,6 +1585,24 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get addedAndSynced => '已新增並同步';
+
+  @override
+  String get subscriptionAddedTitle => '訂閱已新增';
+
+  @override
+  String get subscriptionAddedMessage => '訂閱已新增。你可以現在查看，也可以繼續新增更多訂閱。';
+
+  @override
+  String get subscriptionAlreadyExistsTitle => '已經訂閱';
+
+  @override
+  String get subscriptionAlreadyExistsMessage => '這個訂閱源已經在你的訂閱列表中，沒有改動它的分類。';
+
+  @override
+  String get viewSubscription => '查看訂閱';
+
+  @override
+  String get continueAddingSubscription => '繼續新增';
 
   @override
   String get deleteSubscription => '刪除訂閱';

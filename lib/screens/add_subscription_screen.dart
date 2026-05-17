@@ -20,7 +20,9 @@ import '../widgets/app_scrollbar.dart';
 import '../widgets/staggered_reveal.dart';
 
 class AddSubscriptionScreen extends ConsumerStatefulWidget {
-  const AddSubscriptionScreen({super.key});
+  const AddSubscriptionScreen({super.key, this.initialCategoryId});
+
+  final int? initialCategoryId;
 
   @override
   ConsumerState<AddSubscriptionScreen> createState() =>
@@ -49,7 +51,10 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
     unawaited(
       ref
           .read(addSubscriptionControllerProvider.notifier)
-          .discover(_urlController.text),
+          .discover(
+            _urlController.text,
+            initialCategoryId: widget.initialCategoryId,
+          ),
     );
   }
 
@@ -63,6 +68,23 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
 
   void _submit() {
     unawaited(ref.read(addSubscriptionControllerProvider.notifier).submit());
+  }
+
+  void _viewSubscription(int feedId) {
+    SubscriptionActions.selectFeed(ref, feedId);
+    context.go(scopeLocation(ArticleScope.feed(feedId)));
+  }
+
+  void _continueAdding() {
+    ref.read(addSubscriptionControllerProvider.notifier).reset();
+    _urlController.clear();
+    _newCategoryController.clear();
+    setState(() => _showNewCategoryField = false);
+    _urlFocusNode.requestFocus();
+  }
+
+  void _finish() {
+    context.go('/');
   }
 
   @override
@@ -91,8 +113,6 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
         } else {
           context.showErrorMessage(_failureMessage(l10n, failure));
         }
-        SubscriptionActions.selectFeed(ref, completedFeedId);
-        context.go(scopeLocation(ArticleScope.feed(completedFeedId)));
         return;
       }
 
@@ -132,6 +152,9 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
                       onDiscover: _discover,
                       onSubmit: _submit,
                       onCreateCategory: _createCategory,
+                      onViewSubscription: _viewSubscription,
+                      onContinueAdding: _continueAdding,
+                      onDone: _finish,
                       onShowNewCategoryField: () {
                         setState(() => _showNewCategoryField = true);
                       },
@@ -206,6 +229,9 @@ class _AddSubscriptionTask extends ConsumerWidget {
     required this.onDiscover,
     required this.onSubmit,
     required this.onCreateCategory,
+    required this.onViewSubscription,
+    required this.onContinueAdding,
+    required this.onDone,
     required this.onShowNewCategoryField,
     required this.onCancelNewCategory,
     required this.onInputChanged,
@@ -220,6 +246,9 @@ class _AddSubscriptionTask extends ConsumerWidget {
   final VoidCallback onDiscover;
   final VoidCallback onSubmit;
   final VoidCallback onCreateCategory;
+  final ValueChanged<int> onViewSubscription;
+  final VoidCallback onContinueAdding;
+  final VoidCallback onDone;
   final VoidCallback onShowNewCategoryField;
   final VoidCallback onCancelNewCategory;
   final ValueChanged<String> onInputChanged;
@@ -233,6 +262,7 @@ class _AddSubscriptionTask extends ConsumerWidget {
         !state.isBusy &&
         state.selectedFeedUri != null &&
         state.categorySelected;
+    final resultFeedId = state.completedFeedId ?? state.existingFeedId;
 
     return Form(
       key: formKey,
@@ -277,8 +307,8 @@ class _AddSubscriptionTask extends ConsumerWidget {
               FilledButton.icon(
                 key: const Key('add_subscription_discover_button'),
                 onPressed: state.isBusy ? null : onDiscover,
-                icon: const Icon(FleurIcons.add),
-                label: Text(l10n.add),
+                icon: const Icon(FleurIcons.search),
+                label: Text(l10n.findFeeds),
               ),
             ],
           ),
@@ -292,7 +322,10 @@ class _AddSubscriptionTask extends ConsumerWidget {
           ],
           if (state.phase == AddSubscriptionPhase.selectingFeed) ...[
             const SizedBox(height: 22),
-            _FeedCandidateList(candidates: state.candidates),
+            _FeedCandidateList(
+              candidates: state.candidates,
+              initialCategoryId: state.initialCategoryId,
+            ),
           ],
           if (state.selectedFeedUri != null) ...[
             const SizedBox(height: 22),
@@ -319,6 +352,19 @@ class _AddSubscriptionTask extends ConsumerWidget {
               ),
             ),
           ],
+          if (resultFeedId != null &&
+              (state.phase == AddSubscriptionPhase.success ||
+                  state.phase == AddSubscriptionPhase.alreadySubscribed)) ...[
+            const SizedBox(height: 22),
+            _CompletionPanel(
+              feedId: resultFeedId,
+              alreadySubscribed:
+                  state.phase == AddSubscriptionPhase.alreadySubscribed,
+              onViewSubscription: onViewSubscription,
+              onContinueAdding: onContinueAdding,
+              onDone: onDone,
+            ),
+          ],
         ],
       ),
     );
@@ -335,6 +381,7 @@ class _AddSubscriptionTask extends ConsumerWidget {
           AddSubscriptionPhase.discovering ||
           AddSubscriptionPhase.selectingFeed ||
           AddSubscriptionPhase.loadingCategories ||
+          AddSubscriptionPhase.alreadySubscribed ||
           AddSubscriptionPhase.success => false,
         };
   }
@@ -348,6 +395,7 @@ class _AddSubscriptionTask extends ConsumerWidget {
       AddSubscriptionPhase.idle ||
       AddSubscriptionPhase.selectingFeed ||
       AddSubscriptionPhase.selectingCategory ||
+      AddSubscriptionPhase.alreadySubscribed ||
       AddSubscriptionPhase.success ||
       AddSubscriptionPhase.error => l10n.addingSubscription,
     };
@@ -423,9 +471,13 @@ class _InlineFailure extends StatelessWidget {
 }
 
 class _FeedCandidateList extends ConsumerWidget {
-  const _FeedCandidateList({required this.candidates});
+  const _FeedCandidateList({
+    required this.candidates,
+    required this.initialCategoryId,
+  });
 
   final List<DiscoveredFeed> candidates;
+  final int? initialCategoryId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -455,7 +507,10 @@ class _FeedCandidateList extends ConsumerWidget {
                 unawaited(
                   ref
                       .read(addSubscriptionControllerProvider.notifier)
-                      .selectFeed(candidate),
+                      .selectFeed(
+                        candidate,
+                        initialCategoryId: initialCategoryId,
+                      ),
                 );
               },
             ),
@@ -492,6 +547,90 @@ class _SelectedFeed extends StatelessWidget {
           uri.toString(),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    );
+  }
+}
+
+class _CompletionPanel extends StatelessWidget {
+  const _CompletionPanel({
+    required this.feedId,
+    required this.alreadySubscribed,
+    required this.onViewSubscription,
+    required this.onContinueAdding,
+    required this.onDone,
+  });
+
+  final int feedId;
+  final bool alreadySubscribed;
+  final ValueChanged<int> onViewSubscription;
+  final VoidCallback onContinueAdding;
+  final VoidCallback onDone;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return _SectionSurface(
+      key: Key(
+        alreadySubscribed
+            ? 'add_subscription_existing'
+            : 'add_subscription_success',
+      ),
+      title: alreadySubscribed
+          ? l10n.subscriptionAlreadyExistsTitle
+          : l10n.subscriptionAddedTitle,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  alreadySubscribed ? FleurIcons.statusOk : FleurIcons.check,
+                  color: scheme.primary,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    alreadySubscribed
+                        ? l10n.subscriptionAlreadyExistsMessage
+                        : l10n.subscriptionAddedMessage,
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                TextButton(
+                  key: const Key('add_subscription_done_button'),
+                  onPressed: onDone,
+                  child: Text(l10n.done),
+                ),
+                OutlinedButton.icon(
+                  key: const Key('add_subscription_continue_button'),
+                  onPressed: onContinueAdding,
+                  icon: const Icon(FleurIcons.add),
+                  label: Text(l10n.continueAddingSubscription),
+                ),
+                FilledButton.icon(
+                  key: const Key('add_subscription_view_button'),
+                  onPressed: () => onViewSubscription(feedId),
+                  icon: const Icon(FleurIcons.feed),
+                  label: Text(l10n.viewSubscription),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

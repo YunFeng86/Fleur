@@ -369,7 +369,7 @@ class SubscriptionObjectMenus {
   ) async {
     switch (action) {
       case SubscriptionRootMenuAction.addSubscription:
-        await SubscriptionActions.showAddFeedDialog(context, ref);
+        await SubscriptionActions.addFeed(context, ref);
         return;
       case SubscriptionRootMenuAction.addCategory:
         await SubscriptionActions.showAddCategoryDialog(context, ref);

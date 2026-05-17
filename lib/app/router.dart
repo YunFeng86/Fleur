@@ -430,10 +430,15 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/add-subscription',
             name: 'addSubscription',
             pageBuilder: (context, state) {
+              final initialCategoryId = int.tryParse(
+                state.uri.queryParameters['categoryId'] ?? '',
+              );
               return sectionPage(
                 state: state,
                 pageKey: _addSubscriptionSectionKey,
-                child: const AddSubscriptionScreen(),
+                child: AddSubscriptionScreen(
+                  initialCategoryId: initialCategoryId,
+                ),
               );
             },
           ),
