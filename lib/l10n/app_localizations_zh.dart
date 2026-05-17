@@ -347,6 +347,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get feedOrWebsiteUrl => '订阅源或网站 URL';
 
   @override
+  String get feedOrWebsiteUrlHint => '粘贴网站地址或 RSS URL';
+
+  @override
   String get findFeeds => '查找订阅源';
 
   @override
@@ -362,6 +365,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noFeedsFound => '未找到可用的订阅源';
 
   @override
+  String get noFeedsFoundHint => '可以直接粘贴 RSS/Atom 地址，或试试这个网站的其他页面。';
+
+  @override
+  String get subscriptionPreview => '来源预览';
+
+  @override
+  String get feedSourceDirect => 'RSS/Atom 地址';
+
+  @override
+  String get feedSourceAlternate => '页面声明';
+
+  @override
+  String get feedSourceCommonPath => '常见订阅路径';
+
+  @override
   String get name => '名称';
 
   @override
@@ -374,6 +392,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get subscriptionAddedMessage => '订阅已添加。你可以现在查看，也可以继续添加更多订阅。';
 
   @override
+  String get subscriptionRefreshWarning => '订阅已添加，但首次刷新失败。你可以稍后重新刷新。';
+
+  @override
   String get subscriptionAlreadyExistsTitle => '已经订阅';
 
   @override
@@ -384,6 +405,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get continueAddingSubscription => '继续添加';
+
+  @override
+  String get moveToCurrentCategory => '移到当前分类';
 
   @override
   String get deleteSubscription => '删除订阅';
@@ -1566,6 +1590,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get feedOrWebsiteUrl => '訂閱源或網站 URL';
 
   @override
+  String get feedOrWebsiteUrlHint => '貼上網站地址或 RSS URL';
+
+  @override
   String get findFeeds => '尋找訂閱源';
 
   @override
@@ -1581,6 +1608,21 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get noFeedsFound => '未找到可用的訂閱源';
 
   @override
+  String get noFeedsFoundHint => '可以直接貼上 RSS/Atom 地址，或試試這個網站的其他頁面。';
+
+  @override
+  String get subscriptionPreview => '來源預覽';
+
+  @override
+  String get feedSourceDirect => 'RSS/Atom 地址';
+
+  @override
+  String get feedSourceAlternate => '頁面宣告';
+
+  @override
+  String get feedSourceCommonPath => '常見訂閱路徑';
+
+  @override
   String get name => '名稱';
 
   @override
@@ -1593,6 +1635,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get subscriptionAddedMessage => '訂閱已新增。你可以現在查看，也可以繼續新增更多訂閱。';
 
   @override
+  String get subscriptionRefreshWarning => '訂閱已新增，但首次重新整理失敗。你可以稍後重新整理。';
+
+  @override
   String get subscriptionAlreadyExistsTitle => '已經訂閱';
 
   @override
@@ -1603,6 +1648,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get continueAddingSubscription => '繼續新增';
+
+  @override
+  String get moveToCurrentCategory => '移到目前分類';
 
   @override
   String get deleteSubscription => '刪除訂閱';

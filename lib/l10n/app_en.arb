@@ -460,6 +460,10 @@
   "@feedOrWebsiteUrl": {
     "description": "feedOrWebsiteUrl"
   },
+  "feedOrWebsiteUrlHint": "Paste a website or RSS URL",
+  "@feedOrWebsiteUrlHint": {
+    "description": "Helper text for the add subscription URL field"
+  },
   "findFeeds": "Find feeds",
   "@findFeeds": {
     "description": "Button label for discovering RSS/Atom feeds from a URL"
@@ -480,6 +484,26 @@
   "@noFeedsFound": {
     "description": "noFeedsFound"
   },
+  "noFeedsFoundHint": "Paste the RSS/Atom URL directly or try another page from the site.",
+  "@noFeedsFoundHint": {
+    "description": "Inline hint shown when feed discovery finds no candidates"
+  },
+  "subscriptionPreview": "Source preview",
+  "@subscriptionPreview": {
+    "description": "Section title for the selected subscription source preview"
+  },
+  "feedSourceDirect": "RSS/Atom URL",
+  "@feedSourceDirect": {
+    "description": "Label for a feed discovered because the input URL is itself a feed"
+  },
+  "feedSourceAlternate": "Discovered on page",
+  "@feedSourceAlternate": {
+    "description": "Label for a feed discovered from HTML alternate/feed links"
+  },
+  "feedSourceCommonPath": "Common feed path",
+  "@feedSourceCommonPath": {
+    "description": "Label for a feed discovered by probing common RSS paths"
+  },
   "name": "Name",
   "@name": {
     "description": "name"
@@ -496,6 +520,10 @@
   "@subscriptionAddedMessage": {
     "description": "Success panel message after adding a subscription"
   },
+  "subscriptionRefreshWarning": "The subscription was added, but the first refresh failed. You can retry refresh later.",
+  "@subscriptionRefreshWarning": {
+    "description": "Warning shown when adding a subscription succeeds but the initial refresh fails"
+  },
   "subscriptionAlreadyExistsTitle": "Already subscribed",
   "@subscriptionAlreadyExistsTitle": {
     "description": "Panel title when the feed already exists"
@@ -511,6 +539,10 @@
   "continueAddingSubscription": "Continue adding",
   "@continueAddingSubscription": {
     "description": "Button label for resetting the add subscription form"
+  },
+  "moveToCurrentCategory": "Move to current category",
+  "@moveToCurrentCategory": {
+    "description": "Button label for moving an existing subscription into the category from which add subscription was opened"
   },
   "deleteSubscription": "Delete subscription",
   "@deleteSubscription": {

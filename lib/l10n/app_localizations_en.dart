@@ -366,6 +366,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get feedOrWebsiteUrl => 'Feed / website URL';
 
   @override
+  String get feedOrWebsiteUrlHint => 'Paste a website or RSS URL';
+
+  @override
   String get findFeeds => 'Find feeds';
 
   @override
@@ -381,6 +384,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noFeedsFound => 'No feeds found';
 
   @override
+  String get noFeedsFoundHint =>
+      'Paste the RSS/Atom URL directly or try another page from the site.';
+
+  @override
+  String get subscriptionPreview => 'Source preview';
+
+  @override
+  String get feedSourceDirect => 'RSS/Atom URL';
+
+  @override
+  String get feedSourceAlternate => 'Discovered on page';
+
+  @override
+  String get feedSourceCommonPath => 'Common feed path';
+
+  @override
   String get name => 'Name';
 
   @override
@@ -394,6 +413,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'The subscription was added. You can open it now or keep adding more.';
 
   @override
+  String get subscriptionRefreshWarning =>
+      'The subscription was added, but the first refresh failed. You can retry refresh later.';
+
+  @override
   String get subscriptionAlreadyExistsTitle => 'Already subscribed';
 
   @override
@@ -405,6 +428,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get continueAddingSubscription => 'Continue adding';
+
+  @override
+  String get moveToCurrentCategory => 'Move to current category';
 
   @override
   String get deleteSubscription => 'Delete subscription';

@@ -460,6 +460,10 @@
   "@feedOrWebsiteUrl": {
     "description": "feedOrWebsiteUrl"
   },
+  "feedOrWebsiteUrlHint": "粘贴网站地址或 RSS URL",
+  "@feedOrWebsiteUrlHint": {
+    "description": "Helper text for the add subscription URL field"
+  },
   "findFeeds": "查找订阅源",
   "@findFeeds": {
     "description": "Button label for discovering RSS/Atom feeds from a URL"
@@ -480,6 +484,26 @@
   "@noFeedsFound": {
     "description": "noFeedsFound"
   },
+  "noFeedsFoundHint": "可以直接粘贴 RSS/Atom 地址，或试试这个网站的其他页面。",
+  "@noFeedsFoundHint": {
+    "description": "Inline hint shown when feed discovery finds no candidates"
+  },
+  "subscriptionPreview": "来源预览",
+  "@subscriptionPreview": {
+    "description": "Section title for the selected subscription source preview"
+  },
+  "feedSourceDirect": "RSS/Atom 地址",
+  "@feedSourceDirect": {
+    "description": "Label for a feed discovered because the input URL is itself a feed"
+  },
+  "feedSourceAlternate": "页面声明",
+  "@feedSourceAlternate": {
+    "description": "Label for a feed discovered from HTML alternate/feed links"
+  },
+  "feedSourceCommonPath": "常见订阅路径",
+  "@feedSourceCommonPath": {
+    "description": "Label for a feed discovered by probing common RSS paths"
+  },
   "name": "名称",
   "@name": {
     "description": "name"
@@ -496,6 +520,10 @@
   "@subscriptionAddedMessage": {
     "description": "Success panel message after adding a subscription"
   },
+  "subscriptionRefreshWarning": "订阅已添加，但首次刷新失败。你可以稍后重新刷新。",
+  "@subscriptionRefreshWarning": {
+    "description": "Warning shown when adding a subscription succeeds but the initial refresh fails"
+  },
   "subscriptionAlreadyExistsTitle": "已经订阅",
   "@subscriptionAlreadyExistsTitle": {
     "description": "Panel title when the feed already exists"
@@ -511,6 +539,10 @@
   "continueAddingSubscription": "继续添加",
   "@continueAddingSubscription": {
     "description": "Button label for resetting the add subscription form"
+  },
+  "moveToCurrentCategory": "移到当前分类",
+  "@moveToCurrentCategory": {
+    "description": "Button label for moving an existing subscription into the category from which add subscription was opened"
   },
   "deleteSubscription": "删除订阅",
   "@deleteSubscription": {

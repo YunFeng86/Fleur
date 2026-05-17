@@ -70,6 +70,14 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
     unawaited(ref.read(addSubscriptionControllerProvider.notifier).submit());
   }
 
+  void _moveExistingToInitialCategory() {
+    unawaited(
+      ref
+          .read(addSubscriptionControllerProvider.notifier)
+          .moveExistingToInitialCategory(),
+    );
+  }
+
   void _viewSubscription(int feedId) {
     SubscriptionActions.selectFeed(ref, feedId);
     context.go(scopeLocation(ArticleScope.feed(feedId)));
@@ -109,7 +117,7 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
           completedFeedId != previous?.completedFeedId) {
         final failure = next.failure;
         if (failure == null) {
-          context.showSnack(l10n.addedAndSynced);
+          context.showSnack(l10n.subscriptionAddedTitle);
         } else {
           context.showErrorMessage(_failureMessage(l10n, failure));
         }
@@ -151,6 +159,8 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
                       state: state,
                       onDiscover: _discover,
                       onSubmit: _submit,
+                      onMoveExistingToInitialCategory:
+                          _moveExistingToInitialCategory,
                       onCreateCategory: _createCategory,
                       onViewSubscription: _viewSubscription,
                       onContinueAdding: _continueAdding,
@@ -202,7 +212,8 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
     return switch (failure.kind) {
       AddSubscriptionFailureKind.unsupported => l10n.remoteCommandNotSupported,
       AddSubscriptionFailureKind.validation => l10n.selectCategory,
-      AddSubscriptionFailureKind.noFeedsFound => l10n.noFeedsFound,
+      AddSubscriptionFailureKind.noFeedsFound =>
+        '${l10n.noFeedsFound}\n${l10n.noFeedsFoundHint}',
       AddSubscriptionFailureKind.remoteStructure =>
         failure.error == null
             ? l10n.remoteCommandUnavailable
@@ -228,6 +239,7 @@ class _AddSubscriptionTask extends ConsumerWidget {
     required this.state,
     required this.onDiscover,
     required this.onSubmit,
+    required this.onMoveExistingToInitialCategory,
     required this.onCreateCategory,
     required this.onViewSubscription,
     required this.onContinueAdding,
@@ -245,6 +257,7 @@ class _AddSubscriptionTask extends ConsumerWidget {
   final AddSubscriptionState state;
   final VoidCallback onDiscover;
   final VoidCallback onSubmit;
+  final VoidCallback onMoveExistingToInitialCategory;
   final VoidCallback onCreateCategory;
   final ValueChanged<int> onViewSubscription;
   final VoidCallback onContinueAdding;
@@ -258,6 +271,7 @@ class _AddSubscriptionTask extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final failure = state.failure;
+    final selectedCandidate = state.selectedCandidate;
     final canSubmit =
         !state.isBusy &&
         state.selectedFeedUri != null &&
@@ -276,41 +290,12 @@ class _AddSubscriptionTask extends ConsumerWidget {
             style: theme.textTheme.headlineSmall,
           ),
           const SizedBox(height: 18),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: TextFormField(
-                  key: const Key('add_subscription_url_field'),
-                  controller: urlController,
-                  focusNode: urlFocusNode,
-                  autofocus: true,
-                  enabled: !state.isBusy,
-                  keyboardType: TextInputType.url,
-                  textInputAction: TextInputAction.search,
-                  decoration: InputDecoration(
-                    labelText: l10n.feedOrWebsiteUrl,
-                    hintText: 'https://example.com',
-                    prefixIcon: const Icon(FleurIcons.feed),
-                  ),
-                  validator: (value) {
-                    if ((value ?? '').trim().isEmpty) {
-                      return l10n.feedOrWebsiteUrl;
-                    }
-                    return null;
-                  },
-                  onChanged: onInputChanged,
-                  onFieldSubmitted: (_) => onDiscover(),
-                ),
-              ),
-              const SizedBox(width: 12),
-              FilledButton.icon(
-                key: const Key('add_subscription_discover_button'),
-                onPressed: state.isBusy ? null : onDiscover,
-                icon: const Icon(FleurIcons.search),
-                label: Text(l10n.findFeeds),
-              ),
-            ],
+          _DiscoveryInput(
+            urlController: urlController,
+            urlFocusNode: urlFocusNode,
+            enabled: !state.isBusy,
+            onChanged: onInputChanged,
+            onDiscover: onDiscover,
           ),
           if (state.isBusy) ...[
             const SizedBox(height: 18),
@@ -320,6 +305,10 @@ class _AddSubscriptionTask extends ConsumerWidget {
             const SizedBox(height: 16),
             _InlineFailure(message: _failureMessage(l10n, failure)),
           ],
+          if (state.refreshWarning != null) ...[
+            const SizedBox(height: 16),
+            _InlineWarning(message: l10n.subscriptionRefreshWarning),
+          ],
           if (state.phase == AddSubscriptionPhase.selectingFeed) ...[
             const SizedBox(height: 22),
             _FeedCandidateList(
@@ -327,9 +316,9 @@ class _AddSubscriptionTask extends ConsumerWidget {
               initialCategoryId: state.initialCategoryId,
             ),
           ],
-          if (state.selectedFeedUri != null) ...[
+          if (selectedCandidate != null) ...[
             const SizedBox(height: 22),
-            _SelectedFeed(uri: state.selectedFeedUri!),
+            _SelectedFeed(candidate: selectedCandidate),
           ],
           if (_showsCategorySection(state)) ...[
             const SizedBox(height: 22),
@@ -360,7 +349,9 @@ class _AddSubscriptionTask extends ConsumerWidget {
               feedId: resultFeedId,
               alreadySubscribed:
                   state.phase == AddSubscriptionPhase.alreadySubscribed,
+              canMoveToInitialCategory: state.canMoveExistingToInitialCategory,
               onViewSubscription: onViewSubscription,
+              onMoveToInitialCategory: onMoveExistingToInitialCategory,
               onContinueAdding: onContinueAdding,
               onDone: onDone,
             ),
@@ -408,7 +399,8 @@ class _AddSubscriptionTask extends ConsumerWidget {
     return switch (failure.kind) {
       AddSubscriptionFailureKind.unsupported => l10n.remoteCommandNotSupported,
       AddSubscriptionFailureKind.validation => l10n.selectCategory,
-      AddSubscriptionFailureKind.noFeedsFound => l10n.noFeedsFound,
+      AddSubscriptionFailureKind.noFeedsFound =>
+        '${l10n.noFeedsFound}\n${l10n.noFeedsFoundHint}',
       AddSubscriptionFailureKind.remoteStructure =>
         failure.error == null
             ? l10n.remoteCommandUnavailable
@@ -421,6 +413,77 @@ class _AddSubscriptionTask extends ConsumerWidget {
       AddSubscriptionFailureKind.submit =>
         failure.error?.toString() ?? l10n.remoteCommandUnavailable,
     };
+  }
+}
+
+class _DiscoveryInput extends StatelessWidget {
+  const _DiscoveryInput({
+    required this.urlController,
+    required this.urlFocusNode,
+    required this.enabled,
+    required this.onChanged,
+    required this.onDiscover,
+  });
+
+  final TextEditingController urlController;
+  final FocusNode urlFocusNode;
+  final bool enabled;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onDiscover;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 560;
+        final field = TextFormField(
+          key: const Key('add_subscription_url_field'),
+          controller: urlController,
+          focusNode: urlFocusNode,
+          autofocus: true,
+          enabled: enabled,
+          keyboardType: TextInputType.url,
+          textInputAction: TextInputAction.search,
+          decoration: InputDecoration(
+            labelText: l10n.feedOrWebsiteUrl,
+            hintText: 'https://example.com',
+            helperText: l10n.feedOrWebsiteUrlHint,
+            prefixIcon: const Icon(FleurIcons.feed),
+          ),
+          validator: (value) {
+            if ((value ?? '').trim().isEmpty) {
+              return l10n.feedOrWebsiteUrl;
+            }
+            return null;
+          },
+          onChanged: onChanged,
+          onFieldSubmitted: (_) => onDiscover(),
+        );
+        final button = FilledButton.icon(
+          key: const Key('add_subscription_discover_button'),
+          onPressed: enabled ? onDiscover : null,
+          icon: const Icon(FleurIcons.search),
+          label: Text(l10n.findFeeds),
+        );
+
+        if (compact) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [field, const SizedBox(height: 12), button],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: field),
+            const SizedBox(width: 12),
+            Padding(padding: const EdgeInsets.only(top: 4), child: button),
+          ],
+        );
+      },
+    );
   }
 }
 
@@ -470,13 +533,52 @@ class _InlineFailure extends StatelessWidget {
   }
 }
 
+class _InlineWarning extends StatelessWidget {
+  const _InlineWarning({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      key: const Key('add_subscription_warning'),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.tertiaryContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              FleurIcons.syncWarning,
+              color: theme.colorScheme.onTertiaryContainer,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onTertiaryContainer,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _FeedCandidateList extends ConsumerWidget {
   const _FeedCandidateList({
     required this.candidates,
     required this.initialCategoryId,
   });
 
-  final List<DiscoveredFeed> candidates;
+  final List<AddSubscriptionCandidate> candidates;
   final int? initialCategoryId;
 
   @override
@@ -489,25 +591,28 @@ class _FeedCandidateList extends ConsumerWidget {
         children: [
           for (final candidate in candidates)
             ListTile(
-              key: Key('add_subscription_candidate_${candidate.url}'),
+              key: Key('add_subscription_candidate_${candidate.feed.url}'),
               leading: const Icon(FleurIcons.feed),
               title: Text(
                 _candidateTitle(candidate),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              subtitle: _candidateTitle(candidate) == candidate.url
-                  ? null
-                  : Text(
-                      candidate.url,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+              subtitle: _FeedCandidateSubtitle(candidate: candidate),
+              trailing: candidate.isAlreadySubscribed
+                  ? Tooltip(
+                      message: l10n.subscriptionAlreadyExistsTitle,
+                      child: Icon(
+                        FleurIcons.statusOk,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    )
+                  : null,
               onTap: () {
                 unawaited(
                   ref
                       .read(addSubscriptionControllerProvider.notifier)
-                      .selectFeed(
+                      .selectCandidate(
                         candidate,
                         initialCategoryId: initialCategoryId,
                       ),
@@ -519,37 +624,146 @@ class _FeedCandidateList extends ConsumerWidget {
     );
   }
 
-  String _candidateTitle(DiscoveredFeed candidate) {
-    final title = candidate.title?.trim();
+  String _candidateTitle(AddSubscriptionCandidate candidate) {
+    final title = candidate.feed.title?.trim();
     if (title != null && title.isNotEmpty) return title;
-    return candidate.url;
+    final siteTitle = candidate.feed.siteTitle?.trim();
+    if (siteTitle != null && siteTitle.isNotEmpty) return siteTitle;
+    return candidate.feed.url;
   }
 }
 
-class _SelectedFeed extends StatelessWidget {
-  const _SelectedFeed({required this.uri});
+class _FeedCandidateSubtitle extends StatelessWidget {
+  const _FeedCandidateSubtitle({required this.candidate});
 
-  final Uri uri;
+  final AddSubscriptionCandidate candidate;
+
+  @override
+  Widget build(BuildContext context) {
+    final feed = candidate.feed;
+    final source = _sourceLabel(context, feed.source);
+    final siteTitle = feed.siteTitle?.trim();
+    final url = feed.url;
+    final parts = <String>[
+      source,
+      if (siteTitle != null && siteTitle.isNotEmpty) siteTitle,
+      url,
+    ];
+    return Text(
+      parts.join(' · '),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+}
+
+class _SourceChip extends StatelessWidget {
+  const _SourceChip({required this.label});
+
+  final String label;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return DecoratedBox(
-      key: const Key('add_subscription_selected_feed'),
       decoration: BoxDecoration(
-        color: theme.fleurSurface.floating,
-        border: Border.all(color: theme.fleurSurface.subtleDivider),
+        color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: ListTile(
-        leading: const Icon(FleurIcons.feed),
-        title: Text(
-          uri.toString(),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Text(
+          label,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
         ),
       ),
     );
+  }
+}
+
+class _SelectedFeed extends StatelessWidget {
+  const _SelectedFeed({required this.candidate});
+
+  final AddSubscriptionCandidate candidate;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final feed = candidate.feed;
+    final title = _feedDisplayTitle(feed);
+    final siteUrl = feed.siteUrl?.trim();
+    return _SectionSurface(
+      key: const Key('add_subscription_selected_feed'),
+      title: AppLocalizations.of(context)!.subscriptionPreview,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.only(top: 2),
+              child: Icon(FleurIcons.feed),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    feed.url,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall,
+                  ),
+                  if (siteUrl != null && siteUrl.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      siteUrl,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _SourceChip(label: _sourceLabel(context, feed.source)),
+                      if (candidate.isAlreadySubscribed)
+                        _SourceChip(
+                          label: AppLocalizations.of(
+                            context,
+                          )!.subscriptionAlreadyExistsTitle,
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _feedDisplayTitle(DiscoveredFeed feed) {
+    final title = feed.title?.trim();
+    if (title != null && title.isNotEmpty) return title;
+    final siteTitle = feed.siteTitle?.trim();
+    if (siteTitle != null && siteTitle.isNotEmpty) return siteTitle;
+    return feed.url;
   }
 }
 
@@ -557,14 +771,18 @@ class _CompletionPanel extends StatelessWidget {
   const _CompletionPanel({
     required this.feedId,
     required this.alreadySubscribed,
+    required this.canMoveToInitialCategory,
     required this.onViewSubscription,
+    required this.onMoveToInitialCategory,
     required this.onContinueAdding,
     required this.onDone,
   });
 
   final int feedId;
   final bool alreadySubscribed;
+  final bool canMoveToInitialCategory;
   final ValueChanged<int> onViewSubscription;
+  final VoidCallback onMoveToInitialCategory;
   final VoidCallback onContinueAdding;
   final VoidCallback onDone;
 
@@ -622,6 +840,15 @@ class _CompletionPanel extends StatelessWidget {
                   icon: const Icon(FleurIcons.add),
                   label: Text(l10n.continueAddingSubscription),
                 ),
+                if (canMoveToInitialCategory)
+                  OutlinedButton.icon(
+                    key: const Key(
+                      'add_subscription_move_to_initial_category_button',
+                    ),
+                    onPressed: onMoveToInitialCategory,
+                    icon: const Icon(FleurIcons.moveToCategory),
+                    label: Text(l10n.moveToCurrentCategory),
+                  ),
                 FilledButton.icon(
                   key: const Key('add_subscription_view_button'),
                   onPressed: () => onViewSubscription(feedId),
@@ -666,61 +893,53 @@ class _CategorySection extends ConsumerWidget {
     return _SectionSurface(
       key: const Key('add_subscription_categories'),
       title: l10n.selectCategory,
-      child: RadioGroup<Object>(
-        groupValue: selectedValue,
-        onChanged: (value) {
-          final option = optionsByValue[value];
-          if (option == null || state.isBusy) return;
-          ref
-              .read(addSubscriptionControllerProvider.notifier)
-              .selectCategory(option);
-        },
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            for (final option in state.categories)
-              RadioListTile<Object>(
-                key: Key(
-                  option.isUncategorized
-                      ? 'add_subscription_category_uncategorized'
-                      : 'add_subscription_category_${option.id}',
-                ),
-                value: _categoryValue(option),
-                enabled: !state.isBusy,
-                title: Text(
-                  option.isUncategorized ? l10n.uncategorized : option.title,
-                ),
+            DropdownButtonFormField<Object>(
+              key: const Key('add_subscription_category_dropdown'),
+              initialValue: selectedValue,
+              decoration: InputDecoration(
+                labelText: l10n.selectCategory,
+                prefixIcon: const Icon(FleurIcons.category),
               ),
+              hint: Text(l10n.selectCategory),
+              items: [
+                for (final option in state.categories)
+                  DropdownMenuItem<Object>(
+                    key: Key(
+                      option.isUncategorized
+                          ? 'add_subscription_category_uncategorized'
+                          : 'add_subscription_category_${option.id}',
+                    ),
+                    value: _categoryValue(option),
+                    child: Text(
+                      option.isUncategorized
+                          ? l10n.uncategorized
+                          : option.title,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+              ],
+              onChanged: state.isBusy
+                  ? null
+                  : (value) {
+                      final option = optionsByValue[value];
+                      if (option == null) return;
+                      ref
+                          .read(addSubscriptionControllerProvider.notifier)
+                          .selectCategory(option);
+                    },
+            ),
+            const SizedBox(height: 12),
             if (showNewCategoryField)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        key: const Key('add_subscription_new_category_field'),
-                        controller: newCategoryController,
-                        enabled: !state.isBusy,
-                        decoration: InputDecoration(labelText: l10n.name),
-                        textInputAction: TextInputAction.done,
-                        onSubmitted: (_) => onCreateCategory(),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    FilledButton(
-                      key: const Key('add_subscription_create_category_button'),
-                      onPressed: state.isBusy ? null : onCreateCategory,
-                      child: Text(l10n.create),
-                    ),
-                    const SizedBox(width: 4),
-                    IconButton(
-                      tooltip: l10n.cancel,
-                      onPressed: state.isBusy ? null : onCancelNewCategory,
-                      icon: const Icon(FleurIcons.clear),
-                    ),
-                  ],
-                ),
+              _NewCategoryInput(
+                controller: newCategoryController,
+                enabled: !state.isBusy,
+                onCreateCategory: onCreateCategory,
+                onCancelNewCategory: onCancelNewCategory,
               )
             else
               Align(
@@ -740,6 +959,73 @@ class _CategorySection extends ConsumerWidget {
 
   Object _categoryValue(AddSubscriptionCategoryOption option) {
     return option.isUncategorized ? 'uncategorized' : option.id!;
+  }
+}
+
+class _NewCategoryInput extends StatelessWidget {
+  const _NewCategoryInput({
+    required this.controller,
+    required this.enabled,
+    required this.onCreateCategory,
+    required this.onCancelNewCategory,
+  });
+
+  final TextEditingController controller;
+  final bool enabled;
+  final VoidCallback onCreateCategory;
+  final VoidCallback onCancelNewCategory;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final field = TextField(
+      key: const Key('add_subscription_new_category_field'),
+      controller: controller,
+      enabled: enabled,
+      decoration: InputDecoration(labelText: l10n.name),
+      textInputAction: TextInputAction.done,
+      onSubmitted: (_) => onCreateCategory(),
+    );
+    final actions = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        FilledButton(
+          key: const Key('add_subscription_create_category_button'),
+          onPressed: enabled ? onCreateCategory : null,
+          child: Text(l10n.create),
+        ),
+        const SizedBox(width: 4),
+        IconButton(
+          tooltip: l10n.cancel,
+          onPressed: enabled ? onCancelNewCategory : null,
+          icon: const Icon(FleurIcons.clear),
+        ),
+      ],
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 520) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              field,
+              const SizedBox(height: 8),
+              Align(alignment: Alignment.centerRight, child: actions),
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: field),
+            const SizedBox(width: 8),
+            Padding(padding: const EdgeInsets.only(top: 4), child: actions),
+          ],
+        );
+      },
+    );
   }
 }
 
@@ -770,4 +1056,13 @@ class _SectionSurface extends StatelessWidget {
       ),
     );
   }
+}
+
+String _sourceLabel(BuildContext context, DiscoveredFeedSource source) {
+  final l10n = AppLocalizations.of(context)!;
+  return switch (source) {
+    DiscoveredFeedSource.direct => l10n.feedSourceDirect,
+    DiscoveredFeedSource.alternateLink => l10n.feedSourceAlternate,
+    DiscoveredFeedSource.commonPath => l10n.feedSourceCommonPath,
+  };
 }

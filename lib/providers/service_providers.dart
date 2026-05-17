@@ -166,8 +166,11 @@ final rssClientProvider = Provider<RssClient>((ref) {
 final feedParserProvider = Provider<FeedParser>((ref) => createFeedParser());
 
 final feedDiscoveryServiceProvider = Provider<FeedDiscoveryService>((ref) {
-  return FeedDiscoveryService(ref.watch(dioProvider));
-}, dependencies: [dioProvider]);
+  return FeedDiscoveryService(
+    ref.watch(dioProvider),
+    parser: ref.watch(feedParserProvider),
+  );
+}, dependencies: [dioProvider, feedParserProvider]);
 
 final notificationServiceProvider = Provider<NotificationService>((ref) {
   return createNotificationService();

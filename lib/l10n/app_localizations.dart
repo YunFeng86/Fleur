@@ -759,6 +759,12 @@ abstract class AppLocalizations {
   /// **'Feed / website URL'**
   String get feedOrWebsiteUrl;
 
+  /// Helper text for the add subscription URL field
+  ///
+  /// In en, this message translates to:
+  /// **'Paste a website or RSS URL'**
+  String get feedOrWebsiteUrlHint;
+
   /// Button label for discovering RSS/Atom feeds from a URL
   ///
   /// In en, this message translates to:
@@ -789,6 +795,36 @@ abstract class AppLocalizations {
   /// **'No feeds found'**
   String get noFeedsFound;
 
+  /// Inline hint shown when feed discovery finds no candidates
+  ///
+  /// In en, this message translates to:
+  /// **'Paste the RSS/Atom URL directly or try another page from the site.'**
+  String get noFeedsFoundHint;
+
+  /// Section title for the selected subscription source preview
+  ///
+  /// In en, this message translates to:
+  /// **'Source preview'**
+  String get subscriptionPreview;
+
+  /// Label for a feed discovered because the input URL is itself a feed
+  ///
+  /// In en, this message translates to:
+  /// **'RSS/Atom URL'**
+  String get feedSourceDirect;
+
+  /// Label for a feed discovered from HTML alternate/feed links
+  ///
+  /// In en, this message translates to:
+  /// **'Discovered on page'**
+  String get feedSourceAlternate;
+
+  /// Label for a feed discovered by probing common RSS paths
+  ///
+  /// In en, this message translates to:
+  /// **'Common feed path'**
+  String get feedSourceCommonPath;
+
   /// name
   ///
   /// In en, this message translates to:
@@ -813,6 +849,12 @@ abstract class AppLocalizations {
   /// **'The subscription was added. You can open it now or keep adding more.'**
   String get subscriptionAddedMessage;
 
+  /// Warning shown when adding a subscription succeeds but the initial refresh fails
+  ///
+  /// In en, this message translates to:
+  /// **'The subscription was added, but the first refresh failed. You can retry refresh later.'**
+  String get subscriptionRefreshWarning;
+
   /// Panel title when the feed already exists
   ///
   /// In en, this message translates to:
@@ -836,6 +878,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Continue adding'**
   String get continueAddingSubscription;
+
+  /// Button label for moving an existing subscription into the category from which add subscription was opened
+  ///
+  /// In en, this message translates to:
+  /// **'Move to current category'**
+  String get moveToCurrentCategory;
 
   /// deleteSubscription
   ///
