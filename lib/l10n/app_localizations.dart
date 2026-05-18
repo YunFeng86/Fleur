@@ -807,6 +807,18 @@ abstract class AppLocalizations {
   /// **'Source preview'**
   String get subscriptionPreview;
 
+  /// Section title for discovered subscription result rows
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Found 1 subscription source} other{Found {count} subscription sources}}'**
+  String subscriptionResultsFound(int count);
+
+  /// Placeholder text when a discovered feed has no preview items
+  ///
+  /// In en, this message translates to:
+  /// **'No recent preview items available'**
+  String get subscriptionPreviewUnavailable;
+
   /// Label for a feed discovered because the input URL is itself a feed
   ///
   /// In en, this message translates to:

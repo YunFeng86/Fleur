@@ -492,6 +492,20 @@
   "@subscriptionPreview": {
     "description": "Section title for the selected subscription source preview"
   },
+  "subscriptionResultsFound": "{count, plural, =1{Found 1 subscription source} other{Found {count} subscription sources}}",
+  "@subscriptionResultsFound": {
+    "description": "Section title for discovered subscription result rows",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "subscriptionPreviewUnavailable": "No recent preview items available",
+  "@subscriptionPreviewUnavailable": {
+    "description": "Placeholder text when a discovered feed has no preview items"
+  },
   "feedSourceDirect": "RSS/Atom URL",
   "@feedSourceDirect": {
     "description": "Label for a feed discovered because the input URL is itself a feed"

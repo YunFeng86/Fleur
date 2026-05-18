@@ -80,6 +80,22 @@ class AddSubscriptionCandidate {
   final int? existingCategoryId;
 
   bool get isAlreadySubscribed => existingFeedId != null;
+
+  AddSubscriptionCandidate copyWith({
+    DiscoveredFeed? feed,
+    Object? existingFeedId = _unset,
+    Object? existingCategoryId = _unset,
+  }) {
+    return AddSubscriptionCandidate(
+      feed: feed ?? this.feed,
+      existingFeedId: identical(existingFeedId, _unset)
+          ? this.existingFeedId
+          : existingFeedId as int?,
+      existingCategoryId: identical(existingCategoryId, _unset)
+          ? this.existingCategoryId
+          : existingCategoryId as int?,
+    );
+  }
 }
 
 @immutable
@@ -97,6 +113,7 @@ class AddSubscriptionState {
     this.completedFeedId,
     this.existingFeedId,
     this.existingFeedCategoryId,
+    this.activeCandidateUrl,
     this.failure,
     this.refreshWarning,
   });
@@ -113,6 +130,7 @@ class AddSubscriptionState {
   final int? completedFeedId;
   final int? existingFeedId;
   final int? existingFeedCategoryId;
+  final String? activeCandidateUrl;
   final AddSubscriptionFailure? failure;
   final Object? refreshWarning;
 
@@ -151,6 +169,7 @@ class AddSubscriptionState {
     Object? completedFeedId = _unset,
     Object? existingFeedId = _unset,
     Object? existingFeedCategoryId = _unset,
+    Object? activeCandidateUrl = _unset,
     Object? failure = _unset,
     Object? refreshWarning = _unset,
   }) {
@@ -181,6 +200,9 @@ class AddSubscriptionState {
       existingFeedCategoryId: identical(existingFeedCategoryId, _unset)
           ? this.existingFeedCategoryId
           : existingFeedCategoryId as int?,
+      activeCandidateUrl: identical(activeCandidateUrl, _unset)
+          ? this.activeCandidateUrl
+          : activeCandidateUrl as String?,
       failure: identical(failure, _unset)
           ? this.failure
           : failure as AddSubscriptionFailure?,
@@ -245,22 +267,13 @@ class AddSubscriptionController
       }
 
       final decoratedCandidates = await _decorateCandidates(candidates);
-
-      if (decoratedCandidates.length == 1) {
-        await selectCandidate(
-          decoratedCandidates.first,
-          candidates: decoratedCandidates,
-          initialCategoryId: initialCategoryId,
-        );
-        return;
-      }
-
       state = AddSubscriptionState(
-        phase: AddSubscriptionPhase.selectingFeed,
+        phase: AddSubscriptionPhase.loadingCategories,
         input: trimmed,
         candidates: decoratedCandidates,
         initialCategoryId: initialCategoryId,
       );
+      await _loadCategoriesForResults();
     } catch (error, stackTrace) {
       _logFailure('discoverFeed', error, stackTrace);
       _setFailure(
@@ -353,8 +366,9 @@ class AddSubscriptionController
       return;
     }
 
-    final selectedFeedUri = state.selectedFeedUri;
-    if (selectedFeedUri == null) {
+    final previous = state;
+    final selectedFeedUri = previous.selectedFeedUri;
+    if (selectedFeedUri == null && previous.candidates.isEmpty) {
       state = state.copyWith(
         phase: AddSubscriptionPhase.error,
         failure: const AddSubscriptionFailure(
@@ -364,7 +378,6 @@ class AddSubscriptionController
       return;
     }
 
-    final previous = state;
     state = state.copyWith(
       phase: AddSubscriptionPhase.creatingCategory,
       failure: null,
@@ -497,8 +510,121 @@ class AddSubscriptionController
     }
   }
 
+  bool canMoveCandidateToSelectedCategory(AddSubscriptionCandidate candidate) {
+    if (!candidate.isAlreadySubscribed || !state.categorySelected) {
+      return false;
+    }
+    return candidate.existingCategoryId != state.selectedCategoryId;
+  }
+
+  Future<int?> submitCandidate(AddSubscriptionCandidate candidate) async {
+    final uri = Uri.tryParse(candidate.feed.url);
+    if (uri == null) {
+      _setFailure(
+        AddSubscriptionFailure(
+          AddSubscriptionFailureKind.discovery,
+          ArgumentError('Invalid feed URL: ${candidate.feed.url}'),
+        ),
+      );
+      return null;
+    }
+
+    final capabilities = ref.read(backendCapabilitiesProvider);
+    if (!capabilities.isVisible(BackendFeature.addSubscription)) {
+      _setFailure(
+        const AddSubscriptionFailure(AddSubscriptionFailureKind.unsupported),
+      );
+      return null;
+    }
+
+    if (candidate.existingFeedId != null) return candidate.existingFeedId;
+
+    if (capabilities.isOnlineRequired(BackendFeature.addSubscription)) {
+      return _submitCandidateMiniflux(candidate, uri);
+    }
+
+    return _submitCandidateLocal(candidate, uri);
+  }
+
+  Future<void> moveCandidateToSelectedCategory(
+    AddSubscriptionCandidate candidate,
+  ) async {
+    final feedId = candidate.existingFeedId;
+    if (feedId == null || !state.categorySelected) {
+      _setFailure(
+        const AddSubscriptionFailure(AddSubscriptionFailureKind.validation),
+      );
+      return;
+    }
+
+    final capabilities = ref.read(backendCapabilitiesProvider);
+    if (!capabilities.isVisible(BackendFeature.moveSubscriptionToCategory)) {
+      _setFailure(
+        const AddSubscriptionFailure(AddSubscriptionFailureKind.unsupported),
+      );
+      return;
+    }
+
+    final targetCategoryId = state.selectedCategoryId;
+    final previous = state;
+    state = state.copyWith(
+      phase: AddSubscriptionPhase.submitting,
+      activeCandidateUrl: candidate.feed.url,
+      failure: null,
+      refreshWarning: null,
+    );
+
+    try {
+      if (capabilities.isOnlineRequired(
+        BackendFeature.moveSubscriptionToCategory,
+      )) {
+        if (targetCategoryId == null || targetCategoryId <= 0) {
+          throw StateError('Remote category id is missing');
+        }
+        final feed = await ref.read(feedRepositoryProvider).getById(feedId);
+        final remoteFeedId = int.tryParse((feed?.remoteId ?? '').trim());
+        if (remoteFeedId == null || remoteFeedId <= 0) {
+          throw StateError('Remote feed id is missing');
+        }
+        final executor = await _buildMinifluxStructureExecutor();
+        await executor.moveFeedToCategoryByIds(
+          feedId: remoteFeedId,
+          categoryId: targetCategoryId,
+        );
+        await ref.read(syncServiceProvider).refreshFeedsSafe(const []);
+      } else {
+        await ref
+            .read(feedRepositoryProvider)
+            .setCategory(feedId: feedId, categoryId: targetCategoryId);
+      }
+
+      final updated = candidate.copyWith(existingCategoryId: targetCategoryId);
+      state = previous.copyWith(
+        phase: AddSubscriptionPhase.selectingCategory,
+        candidates: _replaceCandidate(updated),
+        activeCandidateUrl: null,
+        failure: null,
+        refreshWarning: null,
+      );
+    } catch (error, stackTrace) {
+      _logFailure(
+        'moveSubscriptionCandidateToSelectedCategory',
+        error,
+        stackTrace,
+      );
+      state = previous.copyWith(
+        phase: AddSubscriptionPhase.selectingCategory,
+        activeCandidateUrl: null,
+        failure: AddSubscriptionFailure(_remoteOrCategoryFailureKind, error),
+      );
+    }
+  }
+
   Future<int?> submit() async {
     final selectedFeedUri = state.selectedFeedUri;
+    if (selectedFeedUri == null && state.candidates.length == 1) {
+      return submitCandidate(state.candidates.single);
+    }
     if (selectedFeedUri == null) {
       _setFailure(
         const AddSubscriptionFailure(AddSubscriptionFailureKind.validation),
@@ -572,6 +698,206 @@ class AddSubscriptionController
         selectedFeedUri: selectedFeedUri,
         failure: AddSubscriptionFailure(_remoteOrCategoryFailureKind, error),
       );
+    }
+  }
+
+  Future<void> _loadCategoriesForResults() async {
+    final capabilities = ref.read(backendCapabilitiesProvider);
+    try {
+      if (capabilities.isOnlineRequired(BackendFeature.addSubscription)) {
+        final executor = await _buildMinifluxStructureExecutor();
+        final rawCategories = await executor.listCategories();
+        final categories =
+            rawCategories
+                .where((c) => c['id'] is int && c['title'] is String)
+                .map(
+                  (c) => AddSubscriptionCategoryOption(
+                    id: c['id'] as int,
+                    title: (c['title'] as String).trim(),
+                  ),
+                )
+                .where((c) => c.id != null && c.id! > 0 && c.title.isNotEmpty)
+                .toList(growable: false)
+              ..sort((a, b) => a.title.compareTo(b.title));
+
+        final selectedCategoryId = await _initialRemoteCategoryId(categories);
+        state = state.copyWith(
+          phase: AddSubscriptionPhase.selectingCategory,
+          categories: categories,
+          selectedCategoryId: selectedCategoryId,
+          categorySelected: selectedCategoryId != null,
+          selectedCandidate: null,
+          selectedFeedUri: null,
+          failure: null,
+        );
+        return;
+      }
+
+      final categories = await _localCategoryOptions();
+      final selectedCategoryId = _initialLocalCategoryId(categories);
+      state = state.copyWith(
+        phase: AddSubscriptionPhase.selectingCategory,
+        categories: categories,
+        selectedCategoryId: selectedCategoryId,
+        categorySelected: true,
+        selectedCandidate: null,
+        selectedFeedUri: null,
+        failure: null,
+      );
+    } catch (error, stackTrace) {
+      _logFailure('loadCategoriesForSubscriptionResults', error, stackTrace);
+      state = state.copyWith(
+        phase: AddSubscriptionPhase.error,
+        failure: AddSubscriptionFailure(_remoteOrCategoryFailureKind, error),
+      );
+    }
+  }
+
+  Future<int?> _submitCandidateLocal(
+    AddSubscriptionCandidate candidate,
+    Uri feedUri,
+  ) async {
+    final previous = state;
+    state = state.copyWith(
+      phase: AddSubscriptionPhase.submitting,
+      activeCandidateUrl: candidate.feed.url,
+      failure: null,
+      refreshWarning: null,
+    );
+    try {
+      final existingFeed = await _resolveLocalFeedByUrl(feedUri.toString());
+      if (existingFeed != null) {
+        final updated = candidate.copyWith(
+          existingFeedId: existingFeed.id,
+          existingCategoryId: existingFeed.categoryId,
+        );
+        state = previous.copyWith(
+          phase: AddSubscriptionPhase.selectingCategory,
+          candidates: _replaceCandidate(updated),
+          activeCandidateUrl: null,
+          failure: null,
+        );
+        return existingFeed.id;
+      }
+
+      final feedId = await ref
+          .read(feedRepositoryProvider)
+          .upsertUrl(feedUri.toString());
+      final categoryId = previous.categorySelected
+          ? previous.selectedCategoryId
+          : null;
+      await ref
+          .read(feedRepositoryProvider)
+          .setCategory(feedId: feedId, categoryId: categoryId);
+      final updated = candidate.copyWith(
+        existingFeedId: feedId,
+        existingCategoryId: categoryId,
+      );
+      state = previous.copyWith(
+        phase: AddSubscriptionPhase.selectingCategory,
+        candidates: _replaceCandidate(updated),
+        completedFeedId: feedId,
+        activeCandidateUrl: null,
+        failure: null,
+        refreshWarning: null,
+      );
+      unawaited(_refreshAddedLocalFeed(feedId));
+      return feedId;
+    } catch (error, stackTrace) {
+      _logFailure('addLocalSubscriptionCandidate', error, stackTrace);
+      state = previous.copyWith(
+        phase: AddSubscriptionPhase.selectingCategory,
+        activeCandidateUrl: null,
+        failure: AddSubscriptionFailure(
+          AddSubscriptionFailureKind.submit,
+          error,
+        ),
+      );
+      return null;
+    }
+  }
+
+  Future<int?> _submitCandidateMiniflux(
+    AddSubscriptionCandidate candidate,
+    Uri feedUri,
+  ) async {
+    final previous = state;
+    final categoryId = previous.selectedCategoryId;
+    if (!previous.categorySelected || categoryId == null || categoryId <= 0) {
+      state = previous.copyWith(
+        failure: const AddSubscriptionFailure(
+          AddSubscriptionFailureKind.validation,
+        ),
+      );
+      return null;
+    }
+
+    state = state.copyWith(
+      phase: AddSubscriptionPhase.submitting,
+      activeCandidateUrl: candidate.feed.url,
+      failure: null,
+      refreshWarning: null,
+    );
+    try {
+      final existingFeed = await _resolveLocalFeedByUrl(feedUri.toString());
+      if (existingFeed != null) {
+        final existingCategoryId = await _candidateExistingCategoryId(
+          existingFeed,
+        );
+        final updated = candidate.copyWith(
+          existingFeedId: existingFeed.id,
+          existingCategoryId: existingCategoryId,
+        );
+        state = previous.copyWith(
+          phase: AddSubscriptionPhase.selectingCategory,
+          candidates: _replaceCandidate(updated),
+          activeCandidateUrl: null,
+          failure: null,
+        );
+        return existingFeed.id;
+      }
+
+      final executor = await _buildMinifluxStructureExecutor();
+      final batch = await SyncMutex.instance.run('sync', () async {
+        await executor.createFeed(
+          feedUrl: feedUri.toString(),
+          categoryId: categoryId,
+        );
+        return ref.read(syncServiceProvider).refreshFeedsSafe(const []);
+      });
+
+      final feedId = await _resolveLocalFeedIdByUrl(feedUri.toString());
+      if (feedId == null) {
+        final error =
+            batch.firstError?.error ??
+            StateError('Remote feed not found for url: ${feedUri.toString()}');
+        throw error;
+      }
+
+      final updated = candidate.copyWith(
+        existingFeedId: feedId,
+        existingCategoryId: categoryId,
+      );
+      state = previous.copyWith(
+        phase: AddSubscriptionPhase.selectingCategory,
+        candidates: _replaceCandidate(updated),
+        completedFeedId: feedId,
+        activeCandidateUrl: null,
+        failure: null,
+        refreshWarning: batch.firstError?.error,
+      );
+      return feedId;
+    } catch (error, stackTrace) {
+      _logFailure('addRemoteSubscriptionCandidate', error, stackTrace);
+      state = previous.copyWith(
+        phase: AddSubscriptionPhase.selectingCategory,
+        activeCandidateUrl: null,
+        failure: AddSubscriptionFailure(
+          AddSubscriptionFailureKind.remoteStructure,
+          error,
+        ),
+      );
+      return null;
     }
   }
 
@@ -718,11 +1044,36 @@ class AddSubscriptionController
     DiscoveredFeed feed,
   ) async {
     final existingFeed = await _resolveLocalFeedByUrl(feed.url);
+    final existingCategoryId = await _candidateExistingCategoryId(existingFeed);
     return AddSubscriptionCandidate(
       feed: feed,
       existingFeedId: existingFeed?.id,
-      existingCategoryId: existingFeed?.categoryId,
+      existingCategoryId: existingCategoryId,
     );
+  }
+
+  Future<int?> _candidateExistingCategoryId(Feed? feed) async {
+    if (feed == null) return null;
+    final capabilities = ref.read(backendCapabilitiesProvider);
+    if (!capabilities.isOnlineRequired(BackendFeature.addSubscription)) {
+      return feed.categoryId;
+    }
+    final localCategoryId = feed.categoryId;
+    if (localCategoryId == null) return null;
+    final category = await ref
+        .read(categoryRepositoryProvider)
+        .getById(localCategoryId);
+    final remoteId = int.tryParse((category?.remoteId ?? '').trim());
+    return remoteId == null || remoteId <= 0 ? null : remoteId;
+  }
+
+  List<AddSubscriptionCandidate> _replaceCandidate(
+    AddSubscriptionCandidate updated,
+  ) {
+    return [
+      for (final candidate in state.candidates)
+        if (candidate.feed.url == updated.feed.url) updated else candidate,
+    ];
   }
 
   Future<void> _refreshAddedLocalFeed(int feedId) async {
@@ -731,15 +1082,13 @@ class AddSubscriptionController
           .read(syncServiceProvider)
           .refreshFeedSafe(feedId);
       if (result.ok) return;
-      if (state.phase != AddSubscriptionPhase.success ||
-          state.completedFeedId != feedId) {
+      if (state.completedFeedId != feedId) {
         return;
       }
       state = state.copyWith(refreshWarning: result.error);
     } catch (error, stackTrace) {
       _logFailure('refreshAddedLocalSubscription', error, stackTrace);
-      if (state.phase != AddSubscriptionPhase.success ||
-          state.completedFeedId != feedId) {
+      if (state.completedFeedId != feedId) {
         return;
       }
       state = state.copyWith(refreshWarning: error);
@@ -846,6 +1195,7 @@ class AddSubscriptionController
       completedFeedId: null,
       existingFeedId: null,
       existingFeedCategoryId: null,
+      activeCandidateUrl: null,
       refreshWarning: null,
     );
   }
@@ -870,4 +1220,16 @@ final addSubscriptionControllerProvider =
     AutoDisposeNotifierProvider<
       AddSubscriptionController,
       AddSubscriptionState
-    >(AddSubscriptionController.new);
+    >(
+      AddSubscriptionController.new,
+      dependencies: [
+        activeAccountProvider,
+        backendCapabilitiesProvider,
+        appSettingsProvider,
+        feedDiscoveryServiceProvider,
+        feedRepositoryProvider,
+        categoryRepositoryProvider,
+        syncServiceProvider,
+        remoteClientFactoryProvider,
+      ],
+    );

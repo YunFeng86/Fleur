@@ -371,6 +371,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get subscriptionPreview => '来源预览';
 
   @override
+  String subscriptionResultsFound(int count) {
+    return '已找到 $count 个订阅源';
+  }
+
+  @override
+  String get subscriptionPreviewUnavailable => '暂无可预览的最近文章';
+
+  @override
   String get feedSourceDirect => 'RSS/Atom 地址';
 
   @override
@@ -1612,6 +1620,14 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get subscriptionPreview => '來源預覽';
+
+  @override
+  String subscriptionResultsFound(int count) {
+    return '已找到 $count 個訂閱源';
+  }
+
+  @override
+  String get subscriptionPreviewUnavailable => '暫無可預覽的最近文章';
 
   @override
   String get feedSourceDirect => 'RSS/Atom 地址';

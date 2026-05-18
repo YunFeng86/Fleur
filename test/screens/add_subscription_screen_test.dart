@@ -249,11 +249,15 @@ Future<void> _tapVisible(WidgetTester tester, Finder finder) async {
   await tester.tap(finder);
 }
 
-Future<void> _tapSubmit(WidgetTester tester) {
+Future<void> _tapAddResult(WidgetTester tester, String url) {
   return _tapVisible(
     tester,
-    find.byKey(const Key('add_subscription_submit_button')),
+    find.byKey(Key('add_subscription_result_add_$url')),
   );
+}
+
+Finder _viewResultButton(String url) {
+  return find.byKey(Key('add_subscription_result_view_$url'));
 }
 
 Future<void> _pumpFrames(WidgetTester tester) async {
@@ -338,7 +342,7 @@ void main() {
     expect(find.text('Find feeds'), findsOneWidget);
   });
 
-  testWidgets('shows feed candidates in-page and then local categories', (
+  testWidgets('shows discovered subscription results with row previews', (
     tester,
   ) async {
     await _pumpScreen(
@@ -350,6 +354,12 @@ void main() {
           title: 'Feed A',
           siteTitle: 'Example Site',
           source: DiscoveredFeedSource.alternateLink,
+          previewItems: [
+            DiscoveredFeedPreviewItem(title: 'Article 1'),
+            DiscoveredFeedPreviewItem(title: 'Article 2'),
+            DiscoveredFeedPreviewItem(title: 'Article 3'),
+            DiscoveredFeedPreviewItem(title: 'Article 4'),
+          ],
         ),
         DiscoveredFeed(
           url: 'https://example.com/atom.xml',
@@ -364,26 +374,35 @@ void main() {
     await _enterAndDiscover(tester, 'https://example.com');
     await _pumpUntilFound(
       tester,
-      find.byKey(const Key('add_subscription_feed_candidates')),
+      find.byKey(const Key('add_subscription_results')),
     );
+    await _pumpUntilFound(tester, find.text('Uncategorized'));
 
+    expect(find.byKey(const Key('add_subscription_results')), findsOneWidget);
+    expect(find.text('Found 2 subscription sources'), findsOneWidget);
     expect(
-      find.byKey(const Key('add_subscription_feed_candidates')),
+      find.byKey(
+        const Key('add_subscription_result_https://example.com/feed.xml'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const Key('add_subscription_result_https://example.com/atom.xml'),
+      ),
       findsOneWidget,
     );
     expect(find.text('Feed A'), findsOneWidget);
     expect(find.text('Feed B'), findsOneWidget);
-    expect(find.textContaining('Discovered on page'), findsOneWidget);
-    expect(find.textContaining('Common feed path'), findsOneWidget);
-
-    await tester.tap(find.text('Feed B'));
-    await _pumpUntilFound(tester, find.text('Uncategorized'));
-
-    expect(
-      find.byKey(const Key('add_subscription_selected_feed')),
-      findsOneWidget,
-    );
-    expect(find.text('Source preview'), findsOneWidget);
+    expect(find.text('https://example.com/feed.xml'), findsOneWidget);
+    expect(find.text('https://example.com/atom.xml'), findsOneWidget);
+    expect(find.text('Discovered on page'), findsOneWidget);
+    expect(find.text('Common feed path'), findsOneWidget);
+    expect(find.text('Article 1'), findsOneWidget);
+    expect(find.text('Article 2'), findsOneWidget);
+    expect(find.text('Article 3'), findsOneWidget);
+    expect(find.text('Article 4'), findsNothing);
+    expect(find.text('No recent preview items available'), findsOneWidget);
     expect(find.text('Uncategorized'), findsOneWidget);
   });
 
@@ -457,10 +476,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Blogs').last);
     await tester.pumpAndSettle();
-    await _tapSubmit(tester);
+    await _tapAddResult(tester, 'https://example.com/feed.xml');
     await _pumpUntilFound(
       tester,
-      find.byKey(const Key('add_subscription_success')),
+      _viewResultButton('https://example.com/feed.xml'),
     );
 
     late final Feed? feed;
@@ -492,10 +511,10 @@ void main() {
 
     await _enterAndDiscover(tester, 'https://example.com/feed.xml');
     await _pumpUntilFound(tester, find.text('Blogs'));
-    await _tapSubmit(tester);
+    await _tapAddResult(tester, 'https://example.com/feed.xml');
     await _pumpUntilFound(
       tester,
-      find.byKey(const Key('add_subscription_success')),
+      _viewResultButton('https://example.com/feed.xml'),
     );
 
     late final Feed? feed;
@@ -590,7 +609,9 @@ void main() {
     await _pumpUntilFound(tester, find.text('Remote News'));
 
     final submit = tester.widget<FilledButton>(
-      find.byKey(const Key('add_subscription_submit_button')),
+      find.byKey(
+        const Key('add_subscription_result_add_https://example.com/feed.xml'),
+      ),
     );
     expect(submit.onPressed, isNotNull);
   });
@@ -632,19 +653,22 @@ void main() {
 
     await _enterAndDiscover(tester, 'https://example.com/feed.xml');
     await _pumpUntilFound(tester, find.text('Uncategorized'));
-    await _tapSubmit(tester);
+    await _tapAddResult(tester, 'https://example.com/feed.xml');
     await _pumpUntilFound(
       tester,
-      find.byKey(const Key('add_subscription_success')),
+      _viewResultButton('https://example.com/feed.xml'),
     );
 
     expect(find.text('Subscription added'), findsWidgets);
     expect(find.text('feed:'), findsNothing);
 
-    await tester.tap(find.byKey(const Key('add_subscription_continue_button')));
+    await _tapVisible(
+      tester,
+      find.byKey(const Key('add_subscription_continue_button')),
+    );
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('add_subscription_success')), findsNothing);
+    expect(find.byKey(const Key('add_subscription_results')), findsNothing);
     expect(
       tester
           .widget<TextFormField>(
@@ -672,17 +696,16 @@ void main() {
 
     await _enterAndDiscover(tester, 'https://example.com/feed.xml');
     await _pumpUntilFound(tester, find.text('Uncategorized'));
-    await _tapSubmit(tester);
+    await _tapAddResult(tester, 'https://example.com/feed.xml');
     await _pumpUntilFound(
       tester,
-      find.byKey(const Key('add_subscription_success')),
+      _viewResultButton('https://example.com/feed.xml'),
     );
     await _pumpUntilFound(
       tester,
       find.byKey(const Key('add_subscription_warning')),
     );
 
-    expect(find.text('Subscription added'), findsWidgets);
     expect(find.byKey(const Key('add_subscription_warning')), findsOneWidget);
     expect(find.byKey(const Key('add_subscription_error')), findsNothing);
   });
@@ -702,10 +725,10 @@ void main() {
 
     await _enterAndDiscover(tester, 'https://example.com/feed.xml');
     await _pumpUntilFound(tester, find.text('Uncategorized'));
-    await _tapSubmit(tester);
+    await _tapAddResult(tester, 'https://example.com/feed.xml');
     await _pumpUntilFound(
       tester,
-      find.byKey(const Key('add_subscription_success')),
+      _viewResultButton('https://example.com/feed.xml'),
     );
     late final Feed? feed;
     await tester.runAsync(() async {
@@ -715,7 +738,7 @@ void main() {
     });
     expect(feed, isNotNull);
 
-    await tester.tap(find.byKey(const Key('add_subscription_view_button')));
+    await tester.tap(_viewResultButton('https://example.com/feed.xml'));
     await tester.pumpAndSettle();
 
     expect(find.text('feed:${feed!.id}'), findsOneWidget);
@@ -754,12 +777,16 @@ void main() {
     await _enterAndDiscover(tester, 'https://example.com/feed.xml/');
     await _pumpUntilFound(
       tester,
-      find.byKey(const Key('add_subscription_existing')),
+      find.byKey(
+        const Key('add_subscription_result_move_https://example.com/feed.xml/'),
+      ),
     );
 
     expect(find.text('Already subscribed'), findsWidgets);
     expect(
-      find.byKey(const Key('add_subscription_move_to_initial_category_button')),
+      find.byKey(
+        const Key('add_subscription_result_move_https://example.com/feed.xml/'),
+      ),
       findsOneWidget,
     );
     late final Feed? feed;
@@ -773,11 +800,13 @@ void main() {
 
     await _tapVisible(
       tester,
-      find.byKey(const Key('add_subscription_move_to_initial_category_button')),
+      find.byKey(
+        const Key('add_subscription_result_move_https://example.com/feed.xml/'),
+      ),
     );
     await _pumpUntilFound(
       tester,
-      find.byKey(const Key('add_subscription_existing')),
+      _viewResultButton('https://example.com/feed.xml/'),
     );
     late final Feed? movedFeed;
     await tester.runAsync(() async {
@@ -788,6 +817,51 @@ void main() {
     expect(movedFeed, isNotNull);
     expect(movedFeed!.categoryId, targetCategoryId);
   });
+
+  test(
+    'controller uses scoped Isar override when discovering in account scope',
+    () async {
+      final root = ProviderContainer(
+        overrides: [
+          activeAccountProvider.overrideWithValue(_localAccount()),
+          feedDiscoveryServiceProvider.overrideWithValue(
+            _FakeFeedDiscoveryService(const [
+              DiscoveredFeed(
+                url: 'https://example.com/feed.xml',
+                title: 'Scoped Feed',
+              ),
+            ]),
+          ),
+          appSettingsStoreProvider.overrideWithValue(
+            _FakeAppSettingsStore(AppSettings.defaults()),
+          ),
+        ],
+      );
+      addTearDown(root.dispose);
+
+      final scoped = ProviderContainer(
+        parent: root,
+        overrides: [isarProvider.overrideWithValue(isar!)],
+      );
+      addTearDown(scoped.dispose);
+      final subscription = scoped.listen(
+        addSubscriptionControllerProvider,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      addTearDown(subscription.close);
+
+      final controller = scoped.read(
+        addSubscriptionControllerProvider.notifier,
+      );
+      await controller.discover('https://example.com/feed.xml');
+
+      final state = scoped.read(addSubscriptionControllerProvider);
+      expect(state.failure, isNull);
+      expect(state.candidates, hasLength(1));
+      expect(state.candidates.single.feed.title, 'Scoped Feed');
+    },
+  );
 
   test(
     'controller submits a local subscription and returns the feed id',

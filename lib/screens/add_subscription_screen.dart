@@ -66,15 +66,19 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
     );
   }
 
-  void _submit() {
-    unawaited(ref.read(addSubscriptionControllerProvider.notifier).submit());
-  }
-
-  void _moveExistingToInitialCategory() {
+  void _submitCandidate(AddSubscriptionCandidate candidate) {
     unawaited(
       ref
           .read(addSubscriptionControllerProvider.notifier)
-          .moveExistingToInitialCategory(),
+          .submitCandidate(candidate),
+    );
+  }
+
+  void _moveCandidateToSelectedCategory(AddSubscriptionCandidate candidate) {
+    unawaited(
+      ref
+          .read(addSubscriptionControllerProvider.notifier)
+          .moveCandidateToSelectedCategory(candidate),
     );
   }
 
@@ -158,9 +162,9 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
                       showNewCategoryField: _showNewCategoryField,
                       state: state,
                       onDiscover: _discover,
-                      onSubmit: _submit,
-                      onMoveExistingToInitialCategory:
-                          _moveExistingToInitialCategory,
+                      onSubmitCandidate: _submitCandidate,
+                      onMoveCandidateToSelectedCategory:
+                          _moveCandidateToSelectedCategory,
                       onCreateCategory: _createCategory,
                       onViewSubscription: _viewSubscription,
                       onContinueAdding: _continueAdding,
@@ -238,8 +242,8 @@ class _AddSubscriptionTask extends ConsumerWidget {
     required this.showNewCategoryField,
     required this.state,
     required this.onDiscover,
-    required this.onSubmit,
-    required this.onMoveExistingToInitialCategory,
+    required this.onSubmitCandidate,
+    required this.onMoveCandidateToSelectedCategory,
     required this.onCreateCategory,
     required this.onViewSubscription,
     required this.onContinueAdding,
@@ -256,8 +260,9 @@ class _AddSubscriptionTask extends ConsumerWidget {
   final bool showNewCategoryField;
   final AddSubscriptionState state;
   final VoidCallback onDiscover;
-  final VoidCallback onSubmit;
-  final VoidCallback onMoveExistingToInitialCategory;
+  final ValueChanged<AddSubscriptionCandidate> onSubmitCandidate;
+  final ValueChanged<AddSubscriptionCandidate>
+  onMoveCandidateToSelectedCategory;
   final VoidCallback onCreateCategory;
   final ValueChanged<int> onViewSubscription;
   final VoidCallback onContinueAdding;
@@ -271,12 +276,7 @@ class _AddSubscriptionTask extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final failure = state.failure;
-    final selectedCandidate = state.selectedCandidate;
-    final canSubmit =
-        !state.isBusy &&
-        state.selectedFeedUri != null &&
-        state.categorySelected;
-    final resultFeedId = state.completedFeedId ?? state.existingFeedId;
+    final hasResults = state.candidates.isNotEmpty;
 
     return Form(
       key: formKey,
@@ -297,7 +297,7 @@ class _AddSubscriptionTask extends ConsumerWidget {
             onChanged: onInputChanged,
             onDiscover: onDiscover,
           ),
-          if (state.isBusy) ...[
+          if (_showsProgress(state.phase)) ...[
             const SizedBox(height: 18),
             _ProgressStatus(text: _progressText(l10n, state.phase)),
           ],
@@ -309,51 +309,55 @@ class _AddSubscriptionTask extends ConsumerWidget {
             const SizedBox(height: 16),
             _InlineWarning(message: l10n.subscriptionRefreshWarning),
           ],
-          if (state.phase == AddSubscriptionPhase.selectingFeed) ...[
+          if (hasResults) ...[
             const SizedBox(height: 22),
-            _FeedCandidateList(
-              candidates: state.candidates,
-              initialCategoryId: state.initialCategoryId,
-            ),
-          ],
-          if (selectedCandidate != null) ...[
-            const SizedBox(height: 22),
-            _SelectedFeed(candidate: selectedCandidate),
-          ],
-          if (_showsCategorySection(state)) ...[
-            const SizedBox(height: 22),
-            _CategorySection(
-              state: state,
-              newCategoryController: newCategoryController,
-              showNewCategoryField: showNewCategoryField,
-              onCreateCategory: onCreateCategory,
-              onShowNewCategoryField: onShowNewCategoryField,
-              onCancelNewCategory: onCancelNewCategory,
-            ),
-            const SizedBox(height: 22),
-            Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton.icon(
-                key: const Key('add_subscription_submit_button'),
-                onPressed: canSubmit ? onSubmit : null,
-                icon: const Icon(FleurIcons.add),
-                label: Text(l10n.addSubscription),
+            _SectionSurface(
+              key: const Key('add_subscription_results'),
+              title: l10n.subscriptionResultsFound(state.candidates.length),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (_showsCategorySection(state)) ...[
+                    _CategorySection(
+                      state: state,
+                      newCategoryController: newCategoryController,
+                      showNewCategoryField: showNewCategoryField,
+                      onCreateCategory: onCreateCategory,
+                      onShowNewCategoryField: onShowNewCategoryField,
+                      onCancelNewCategory: onCancelNewCategory,
+                    ),
+                    Divider(height: 1, color: theme.fleurSurface.subtleDivider),
+                  ],
+                  _SubscriptionResultList(
+                    state: state,
+                    onSubmitCandidate: onSubmitCandidate,
+                    onMoveCandidateToSelectedCategory:
+                        onMoveCandidateToSelectedCategory,
+                    onViewSubscription: onViewSubscription,
+                  ),
+                ],
               ),
             ),
           ],
-          if (resultFeedId != null &&
-              (state.phase == AddSubscriptionPhase.success ||
-                  state.phase == AddSubscriptionPhase.alreadySubscribed)) ...[
-            const SizedBox(height: 22),
-            _CompletionPanel(
-              feedId: resultFeedId,
-              alreadySubscribed:
-                  state.phase == AddSubscriptionPhase.alreadySubscribed,
-              canMoveToInitialCategory: state.canMoveExistingToInitialCategory,
-              onViewSubscription: onViewSubscription,
-              onMoveToInitialCategory: onMoveExistingToInitialCategory,
-              onContinueAdding: onContinueAdding,
-              onDone: onDone,
+          if (hasResults) ...[
+            const SizedBox(height: 16),
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                TextButton(
+                  key: const Key('add_subscription_done_button'),
+                  onPressed: onDone,
+                  child: Text(l10n.done),
+                ),
+                OutlinedButton.icon(
+                  key: const Key('add_subscription_continue_button'),
+                  onPressed: state.isBusy ? null : onContinueAdding,
+                  icon: const Icon(FleurIcons.add),
+                  label: Text(l10n.continueAddingSubscription),
+                ),
+              ],
             ),
           ],
         ],
@@ -361,8 +365,23 @@ class _AddSubscriptionTask extends ConsumerWidget {
     );
   }
 
+  bool _showsProgress(AddSubscriptionPhase phase) {
+    return switch (phase) {
+      AddSubscriptionPhase.discovering ||
+      AddSubscriptionPhase.loadingCategories ||
+      AddSubscriptionPhase.creatingCategory => true,
+      AddSubscriptionPhase.idle ||
+      AddSubscriptionPhase.selectingFeed ||
+      AddSubscriptionPhase.selectingCategory ||
+      AddSubscriptionPhase.submitting ||
+      AddSubscriptionPhase.alreadySubscribed ||
+      AddSubscriptionPhase.success ||
+      AddSubscriptionPhase.error => false,
+    };
+  }
+
   bool _showsCategorySection(AddSubscriptionState state) {
-    return state.selectedFeedUri != null &&
+    return state.categories.isNotEmpty &&
         switch (state.phase) {
           AddSubscriptionPhase.selectingCategory ||
           AddSubscriptionPhase.creatingCategory ||
@@ -572,87 +591,312 @@ class _InlineWarning extends StatelessWidget {
   }
 }
 
-class _FeedCandidateList extends ConsumerWidget {
-  const _FeedCandidateList({
-    required this.candidates,
-    required this.initialCategoryId,
+class _SubscriptionResultList extends StatelessWidget {
+  const _SubscriptionResultList({
+    required this.state,
+    required this.onSubmitCandidate,
+    required this.onMoveCandidateToSelectedCategory,
+    required this.onViewSubscription,
   });
 
-  final List<AddSubscriptionCandidate> candidates;
-  final int? initialCategoryId;
+  final AddSubscriptionState state;
+  final ValueChanged<AddSubscriptionCandidate> onSubmitCandidate;
+  final ValueChanged<AddSubscriptionCandidate>
+  onMoveCandidateToSelectedCategory;
+  final ValueChanged<int> onViewSubscription;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    return _SectionSurface(
-      key: const Key('add_subscription_feed_candidates'),
-      title: l10n.selectFeed,
-      child: Column(
-        children: [
-          for (final candidate in candidates)
-            ListTile(
-              key: Key('add_subscription_candidate_${candidate.feed.url}'),
-              leading: const Icon(FleurIcons.feed),
-              title: Text(
-                _candidateTitle(candidate),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              subtitle: _FeedCandidateSubtitle(candidate: candidate),
-              trailing: candidate.isAlreadySubscribed
-                  ? Tooltip(
-                      message: l10n.subscriptionAlreadyExistsTitle,
-                      child: Icon(
-                        FleurIcons.statusOk,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    )
-                  : null,
-              onTap: () {
-                unawaited(
-                  ref
-                      .read(addSubscriptionControllerProvider.notifier)
-                      .selectCandidate(
-                        candidate,
-                        initialCategoryId: initialCategoryId,
-                      ),
-                );
-              },
-            ),
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        for (var i = 0; i < state.candidates.length; i++) ...[
+          if (i > 0) const Divider(height: 1),
+          _SubscriptionResultRow(
+            candidate: state.candidates[i],
+            state: state,
+            onSubmitCandidate: onSubmitCandidate,
+            onMoveCandidateToSelectedCategory:
+                onMoveCandidateToSelectedCategory,
+            onViewSubscription: onViewSubscription,
+          ),
         ],
-      ),
+      ],
     );
-  }
-
-  String _candidateTitle(AddSubscriptionCandidate candidate) {
-    final title = candidate.feed.title?.trim();
-    if (title != null && title.isNotEmpty) return title;
-    final siteTitle = candidate.feed.siteTitle?.trim();
-    if (siteTitle != null && siteTitle.isNotEmpty) return siteTitle;
-    return candidate.feed.url;
   }
 }
 
-class _FeedCandidateSubtitle extends StatelessWidget {
-  const _FeedCandidateSubtitle({required this.candidate});
+class _SubscriptionResultRow extends StatelessWidget {
+  const _SubscriptionResultRow({
+    required this.candidate,
+    required this.state,
+    required this.onSubmitCandidate,
+    required this.onMoveCandidateToSelectedCategory,
+    required this.onViewSubscription,
+  });
+
+  final AddSubscriptionCandidate candidate;
+  final AddSubscriptionState state;
+  final ValueChanged<AddSubscriptionCandidate> onSubmitCandidate;
+  final ValueChanged<AddSubscriptionCandidate>
+  onMoveCandidateToSelectedCategory;
+  final ValueChanged<int> onViewSubscription;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      key: Key('add_subscription_result_${candidate.feed.url}'),
+      padding: const EdgeInsets.all(16),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 620;
+          final details = _ResultDetails(candidate: candidate);
+          final action = _ResultAction(
+            candidate: candidate,
+            state: state,
+            onSubmitCandidate: onSubmitCandidate,
+            onMoveCandidateToSelectedCategory:
+                onMoveCandidateToSelectedCategory,
+            onViewSubscription: onViewSubscription,
+          );
+          final content = Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _ResultAvatar(candidate: candidate),
+              const SizedBox(width: 14),
+              Expanded(child: details),
+            ],
+          );
+
+          if (compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                content,
+                const SizedBox(height: 14),
+                Align(alignment: Alignment.centerRight, child: action),
+              ],
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: content),
+              const SizedBox(width: 16),
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minWidth: 132),
+                  child: action,
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ResultDetails extends StatelessWidget {
+  const _ResultDetails({required this.candidate});
 
   final AddSubscriptionCandidate candidate;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final feed = candidate.feed;
-    final source = _sourceLabel(context, feed.source);
-    final siteTitle = feed.siteTitle?.trim();
-    final url = feed.url;
-    final parts = <String>[
-      source,
-      if (siteTitle != null && siteTitle.isNotEmpty) siteTitle,
-      url,
-    ];
-    return Text(
-      parts.join(' · '),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
+    final title = _feedDisplayTitle(feed);
+    final domain = _domainLabel(feed);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.titleMedium,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          domain,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          feed.url,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.bodySmall,
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _SourceChip(label: _sourceLabel(context, feed.source)),
+            if (candidate.isAlreadySubscribed)
+              _SourceChip(
+                label: AppLocalizations.of(
+                  context,
+                )!.subscriptionAlreadyExistsTitle,
+              ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        _ResultPreview(feed: feed),
+      ],
+    );
+  }
+}
+
+class _ResultPreview extends StatelessWidget {
+  const _ResultPreview({required this.feed});
+
+  final DiscoveredFeed feed;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    if (feed.previewItems.isEmpty) {
+      return Text(
+        l10n.subscriptionPreviewUnavailable,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final item in feed.previewItems.take(3))
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const SizedBox(width: 4, height: 4),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    item.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _ResultAvatar extends StatelessWidget {
+  const _ResultAvatar({required this.candidate});
+
+  final AddSubscriptionCandidate candidate;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return CircleAvatar(
+      radius: 24,
+      backgroundColor: theme.colorScheme.primaryContainer,
+      foregroundColor: theme.colorScheme.onPrimaryContainer,
+      child: Text(
+        _avatarText(candidate.feed),
+        style: theme.textTheme.titleMedium?.copyWith(
+          color: theme.colorScheme.onPrimaryContainer,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _ResultAction extends ConsumerWidget {
+  const _ResultAction({
+    required this.candidate,
+    required this.state,
+    required this.onSubmitCandidate,
+    required this.onMoveCandidateToSelectedCategory,
+    required this.onViewSubscription,
+  });
+
+  final AddSubscriptionCandidate candidate;
+  final AddSubscriptionState state;
+  final ValueChanged<AddSubscriptionCandidate> onSubmitCandidate;
+  final ValueChanged<AddSubscriptionCandidate>
+  onMoveCandidateToSelectedCategory;
+  final ValueChanged<int> onViewSubscription;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final isActive = state.activeCandidateUrl == candidate.feed.url;
+    if (isActive) {
+      return FilledButton.icon(
+        key: Key('add_subscription_result_busy_${candidate.feed.url}'),
+        onPressed: null,
+        icon: const SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+        label: Text(l10n.addingSubscription),
+      );
+    }
+
+    final existingFeedId = candidate.existingFeedId;
+    if (existingFeedId != null) {
+      final controller = ref.read(addSubscriptionControllerProvider.notifier);
+      if (controller.canMoveCandidateToSelectedCategory(candidate)) {
+        return OutlinedButton.icon(
+          key: Key('add_subscription_result_move_${candidate.feed.url}'),
+          onPressed: state.isBusy
+              ? null
+              : () => onMoveCandidateToSelectedCategory(candidate),
+          icon: const Icon(FleurIcons.moveToCategory),
+          label: Text(l10n.moveToCurrentCategory),
+        );
+      }
+      return OutlinedButton.icon(
+        key: Key('add_subscription_result_view_${candidate.feed.url}'),
+        onPressed: state.isBusy
+            ? null
+            : () => onViewSubscription(existingFeedId),
+        icon: const Icon(FleurIcons.feed),
+        label: Text(l10n.viewSubscription),
+      );
+    }
+
+    return FilledButton.icon(
+      key: Key('add_subscription_result_add_${candidate.feed.url}'),
+      onPressed: state.isBusy || !state.categorySelected
+          ? null
+          : () => onSubmitCandidate(candidate),
+      icon: const Icon(FleurIcons.add),
+      label: Text(l10n.add),
     );
   }
 }
@@ -677,187 +921,6 @@ class _SourceChip extends StatelessWidget {
           style: theme.textTheme.labelSmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SelectedFeed extends StatelessWidget {
-  const _SelectedFeed({required this.candidate});
-
-  final AddSubscriptionCandidate candidate;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final feed = candidate.feed;
-    final title = _feedDisplayTitle(feed);
-    final siteUrl = feed.siteUrl?.trim();
-    return _SectionSurface(
-      key: const Key('add_subscription_selected_feed'),
-      title: AppLocalizations.of(context)!.subscriptionPreview,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Padding(
-              padding: EdgeInsets.only(top: 2),
-              child: Icon(FleurIcons.feed),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    feed.url,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall,
-                  ),
-                  if (siteUrl != null && siteUrl.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      siteUrl,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _SourceChip(label: _sourceLabel(context, feed.source)),
-                      if (candidate.isAlreadySubscribed)
-                        _SourceChip(
-                          label: AppLocalizations.of(
-                            context,
-                          )!.subscriptionAlreadyExistsTitle,
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _feedDisplayTitle(DiscoveredFeed feed) {
-    final title = feed.title?.trim();
-    if (title != null && title.isNotEmpty) return title;
-    final siteTitle = feed.siteTitle?.trim();
-    if (siteTitle != null && siteTitle.isNotEmpty) return siteTitle;
-    return feed.url;
-  }
-}
-
-class _CompletionPanel extends StatelessWidget {
-  const _CompletionPanel({
-    required this.feedId,
-    required this.alreadySubscribed,
-    required this.canMoveToInitialCategory,
-    required this.onViewSubscription,
-    required this.onMoveToInitialCategory,
-    required this.onContinueAdding,
-    required this.onDone,
-  });
-
-  final int feedId;
-  final bool alreadySubscribed;
-  final bool canMoveToInitialCategory;
-  final ValueChanged<int> onViewSubscription;
-  final VoidCallback onMoveToInitialCategory;
-  final VoidCallback onContinueAdding;
-  final VoidCallback onDone;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return _SectionSurface(
-      key: Key(
-        alreadySubscribed
-            ? 'add_subscription_existing'
-            : 'add_subscription_success',
-      ),
-      title: alreadySubscribed
-          ? l10n.subscriptionAlreadyExistsTitle
-          : l10n.subscriptionAddedTitle,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  alreadySubscribed ? FleurIcons.statusOk : FleurIcons.check,
-                  color: scheme.primary,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    alreadySubscribed
-                        ? l10n.subscriptionAlreadyExistsMessage
-                        : l10n.subscriptionAddedMessage,
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              alignment: WrapAlignment.end,
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                TextButton(
-                  key: const Key('add_subscription_done_button'),
-                  onPressed: onDone,
-                  child: Text(l10n.done),
-                ),
-                OutlinedButton.icon(
-                  key: const Key('add_subscription_continue_button'),
-                  onPressed: onContinueAdding,
-                  icon: const Icon(FleurIcons.add),
-                  label: Text(l10n.continueAddingSubscription),
-                ),
-                if (canMoveToInitialCategory)
-                  OutlinedButton.icon(
-                    key: const Key(
-                      'add_subscription_move_to_initial_category_button',
-                    ),
-                    onPressed: onMoveToInitialCategory,
-                    icon: const Icon(FleurIcons.moveToCategory),
-                    label: Text(l10n.moveToCurrentCategory),
-                  ),
-                FilledButton.icon(
-                  key: const Key('add_subscription_view_button'),
-                  onPressed: () => onViewSubscription(feedId),
-                  icon: const Icon(FleurIcons.feed),
-                  label: Text(l10n.viewSubscription),
-                ),
-              ],
-            ),
-          ],
         ),
       ),
     );
@@ -890,69 +953,64 @@ class _CategorySection extends ConsumerWidget {
     final optionsByValue = <Object, AddSubscriptionCategoryOption>{
       for (final option in state.categories) _categoryValue(option): option,
     };
-    return _SectionSurface(
+    return Padding(
       key: const Key('add_subscription_categories'),
-      title: l10n.selectCategory,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            DropdownButtonFormField<Object>(
-              key: const Key('add_subscription_category_dropdown'),
-              initialValue: selectedValue,
-              decoration: InputDecoration(
-                labelText: l10n.selectCategory,
-                prefixIcon: const Icon(FleurIcons.category),
-              ),
-              hint: Text(l10n.selectCategory),
-              items: [
-                for (final option in state.categories)
-                  DropdownMenuItem<Object>(
-                    key: Key(
-                      option.isUncategorized
-                          ? 'add_subscription_category_uncategorized'
-                          : 'add_subscription_category_${option.id}',
-                    ),
-                    value: _categoryValue(option),
-                    child: Text(
-                      option.isUncategorized
-                          ? l10n.uncategorized
-                          : option.title,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-              ],
-              onChanged: state.isBusy
-                  ? null
-                  : (value) {
-                      final option = optionsByValue[value];
-                      if (option == null) return;
-                      ref
-                          .read(addSubscriptionControllerProvider.notifier)
-                          .selectCategory(option);
-                    },
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          DropdownButtonFormField<Object>(
+            key: const Key('add_subscription_category_dropdown'),
+            initialValue: selectedValue,
+            decoration: InputDecoration(
+              labelText: l10n.selectCategory,
+              prefixIcon: const Icon(FleurIcons.category),
             ),
-            const SizedBox(height: 12),
-            if (showNewCategoryField)
-              _NewCategoryInput(
-                controller: newCategoryController,
-                enabled: !state.isBusy,
-                onCreateCategory: onCreateCategory,
-                onCancelNewCategory: onCancelNewCategory,
-              )
-            else
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  key: const Key('add_subscription_show_new_category_button'),
-                  onPressed: state.isBusy ? null : onShowNewCategoryField,
-                  icon: const Icon(FleurIcons.addCategory),
-                  label: Text(l10n.newCategory),
+            hint: Text(l10n.selectCategory),
+            items: [
+              for (final option in state.categories)
+                DropdownMenuItem<Object>(
+                  key: Key(
+                    option.isUncategorized
+                        ? 'add_subscription_category_uncategorized'
+                        : 'add_subscription_category_${option.id}',
+                  ),
+                  value: _categoryValue(option),
+                  child: Text(
+                    option.isUncategorized ? l10n.uncategorized : option.title,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
+            ],
+            onChanged: state.isBusy
+                ? null
+                : (value) {
+                    final option = optionsByValue[value];
+                    if (option == null) return;
+                    ref
+                        .read(addSubscriptionControllerProvider.notifier)
+                        .selectCategory(option);
+                  },
+          ),
+          const SizedBox(height: 12),
+          if (showNewCategoryField)
+            _NewCategoryInput(
+              controller: newCategoryController,
+              enabled: !state.isBusy,
+              onCreateCategory: onCreateCategory,
+              onCancelNewCategory: onCancelNewCategory,
+            )
+          else
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                key: const Key('add_subscription_show_new_category_button'),
+                onPressed: state.isBusy ? null : onShowNewCategoryField,
+                icon: const Icon(FleurIcons.addCategory),
+                label: Text(l10n.newCategory),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
@@ -1065,4 +1123,31 @@ String _sourceLabel(BuildContext context, DiscoveredFeedSource source) {
     DiscoveredFeedSource.alternateLink => l10n.feedSourceAlternate,
     DiscoveredFeedSource.commonPath => l10n.feedSourceCommonPath,
   };
+}
+
+String _feedDisplayTitle(DiscoveredFeed feed) {
+  final title = feed.title?.trim();
+  if (title != null && title.isNotEmpty) return title;
+  final siteTitle = feed.siteTitle?.trim();
+  if (siteTitle != null && siteTitle.isNotEmpty) return siteTitle;
+  final domain = _domainLabel(feed);
+  if (domain.isNotEmpty) return domain;
+  return feed.url;
+}
+
+String _domainLabel(DiscoveredFeed feed) {
+  for (final value in [feed.siteUrl, feed.url]) {
+    final uri = Uri.tryParse((value ?? '').trim());
+    if (uri == null || uri.host.isEmpty) continue;
+    return uri.host.replaceFirst(RegExp(r'^www\.'), '');
+  }
+  return '';
+}
+
+String _avatarText(DiscoveredFeed feed) {
+  final source = _feedDisplayTitle(feed).trim().isNotEmpty
+      ? _feedDisplayTitle(feed).trim()
+      : _domainLabel(feed);
+  if (source.isEmpty) return 'R';
+  return String.fromCharCode(source.runes.first).toUpperCase();
 }

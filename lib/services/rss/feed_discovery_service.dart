@@ -8,6 +8,13 @@ import 'feed_parser.dart';
 
 enum DiscoveredFeedSource { direct, alternateLink, commonPath }
 
+class DiscoveredFeedPreviewItem {
+  const DiscoveredFeedPreviewItem({required this.title, this.url});
+
+  final String title;
+  final String? url;
+}
+
 class DiscoveredFeed {
   const DiscoveredFeed({
     required this.url,
@@ -16,6 +23,7 @@ class DiscoveredFeed {
     this.siteUrl,
     this.siteTitle,
     this.source = DiscoveredFeedSource.alternateLink,
+    this.previewItems = const <DiscoveredFeedPreviewItem>[],
   });
 
   final String url;
@@ -24,6 +32,27 @@ class DiscoveredFeed {
   final String? siteUrl;
   final String? siteTitle;
   final DiscoveredFeedSource source;
+  final List<DiscoveredFeedPreviewItem> previewItems;
+
+  DiscoveredFeed copyWith({
+    String? url,
+    String? title,
+    String? type,
+    String? siteUrl,
+    String? siteTitle,
+    DiscoveredFeedSource? source,
+    List<DiscoveredFeedPreviewItem>? previewItems,
+  }) {
+    return DiscoveredFeed(
+      url: url ?? this.url,
+      title: title ?? this.title,
+      type: type ?? this.type,
+      siteUrl: siteUrl ?? this.siteUrl,
+      siteTitle: siteTitle ?? this.siteTitle,
+      source: source ?? this.source,
+      previewItems: previewItems ?? this.previewItems,
+    );
+  }
 }
 
 class FeedDiscoveryService {
@@ -106,12 +135,22 @@ class FeedDiscoveryService {
   }) {
     try {
       final parsed = _parser.parse(body);
+      final previewItems = parsed.items
+          .map((item) {
+            final title = _trimOrNull(item.title);
+            if (title == null) return null;
+            return DiscoveredFeedPreviewItem(title: title, url: item.link);
+          })
+          .whereType<DiscoveredFeedPreviewItem>()
+          .take(3)
+          .toList(growable: false);
       return DiscoveredFeed(
         url: url.toString(),
         title: _trimOrNull(parsed.title),
         type: _trimOrNull(contentType),
         siteUrl: _trimOrNull(parsed.siteUrl),
         source: DiscoveredFeedSource.direct,
+        previewItems: previewItems,
       );
     } catch (_) {
       return DiscoveredFeed(
@@ -222,7 +261,7 @@ class FeedDiscoveryService {
     }
 
     if (feeds.isNotEmpty || !_looksLikeHtml(contentType, body)) {
-      return feeds;
+      return _withAlternateFeedPreviews(feeds, userAgent: ua);
     }
 
     return _discoverCommonFeedPaths(
@@ -317,9 +356,66 @@ class FeedDiscoveryService {
         siteUrl: direct.siteUrl ?? siteUrl,
         siteTitle: siteTitle,
         source: DiscoveredFeedSource.commonPath,
+        previewItems: direct.previewItems,
       );
     } catch (_) {
       return null;
+    }
+  }
+
+  Future<List<DiscoveredFeed>> _withAlternateFeedPreviews(
+    List<DiscoveredFeed> feeds, {
+    required String userAgent,
+  }) async {
+    final result = <DiscoveredFeed>[];
+    for (var i = 0; i < feeds.length; i++) {
+      final feed = feeds[i];
+      if (i >= 5 || feed.source != DiscoveredFeedSource.alternateLink) {
+        result.add(feed);
+        continue;
+      }
+      result.add(await _withPreview(feed, userAgent: userAgent));
+    }
+    return result;
+  }
+
+  Future<DiscoveredFeed> _withPreview(
+    DiscoveredFeed feed, {
+    required String userAgent,
+  }) async {
+    if (feed.previewItems.isNotEmpty) return feed;
+    final uri = Uri.tryParse(feed.url);
+    if (uri == null) return feed;
+
+    try {
+      final resp = await _dio.getUri<String>(
+        uri,
+        options: Options(
+          responseType: ResponseType.plain,
+          validateStatus: (s) => s != null && s >= 200 && s < 400,
+          headers: <String, String>{
+            'Accept':
+                'application/rss+xml,application/atom+xml,application/xml,text/xml;q=0.9,*/*;q=0.8',
+            if (!kIsWeb) 'User-Agent': userAgent,
+          },
+        ),
+      );
+      final contentType = resp.headers.value('content-type') ?? '';
+      final body = (resp.data ?? '').trim();
+      if (!_looksLikeFeed(contentType, body)) return feed;
+      final direct = _directFeedCandidate(
+        url: resp.realUri,
+        contentType: contentType,
+        body: body,
+      );
+      return feed.copyWith(
+        title: feed.title ?? direct.title,
+        type: feed.type ?? direct.type,
+        siteUrl: feed.siteUrl ?? direct.siteUrl,
+        previewItems: direct.previewItems,
+      );
+    } catch (_) {
+      return feed;
     }
   }
 }

@@ -492,6 +492,20 @@
   "@subscriptionPreview": {
     "description": "Section title for the selected subscription source preview"
   },
+  "subscriptionResultsFound": "已找到 {count} 個訂閱源",
+  "@subscriptionResultsFound": {
+    "description": "Section title for discovered subscription result rows",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "subscriptionPreviewUnavailable": "暫無可預覽的最近文章",
+  "@subscriptionPreviewUnavailable": {
+    "description": "Placeholder text when a discovered feed has no preview items"
+  },
   "feedSourceDirect": "RSS/Atom 地址",
   "@feedSourceDirect": {
     "description": "Label for a feed discovered because the input URL is itself a feed"

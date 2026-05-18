@@ -391,6 +391,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get subscriptionPreview => 'Source preview';
 
   @override
+  String subscriptionResultsFound(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Found $count subscription sources',
+      one: 'Found 1 subscription source',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get subscriptionPreviewUnavailable =>
+      'No recent preview items available';
+
+  @override
   String get feedSourceDirect => 'RSS/Atom URL';
 
   @override
