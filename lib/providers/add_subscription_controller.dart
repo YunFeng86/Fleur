@@ -511,7 +511,9 @@ class AddSubscriptionController
   }
 
   bool canMoveCandidateToSelectedCategory(AddSubscriptionCandidate candidate) {
-    if (!candidate.isAlreadySubscribed || !state.categorySelected) {
+    if (!candidate.isAlreadySubscribed ||
+        state.initialCategoryId == null ||
+        !state.categorySelected) {
       return false;
     }
     return candidate.existingCategoryId != state.selectedCategoryId;

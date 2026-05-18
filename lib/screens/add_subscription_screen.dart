@@ -35,14 +35,11 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
   final _formKey = GlobalKey<FormState>();
   final _urlController = TextEditingController();
   final _urlFocusNode = FocusNode();
-  final _newCategoryController = TextEditingController();
-  bool _showNewCategoryField = false;
 
   @override
   void dispose() {
     _urlController.dispose();
     _urlFocusNode.dispose();
-    _newCategoryController.dispose();
     super.dispose();
   }
 
@@ -58,19 +55,14 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
     );
   }
 
-  void _createCategory() {
-    final name = _newCategoryController.text.trim();
-    if (name.isEmpty) return;
-    unawaited(
-      ref.read(addSubscriptionControllerProvider.notifier).createCategory(name),
-    );
-  }
-
   void _submitCandidate(AddSubscriptionCandidate candidate) {
     unawaited(
-      ref
-          .read(addSubscriptionControllerProvider.notifier)
-          .submitCandidate(candidate),
+      showDialog<void>(
+        context: context,
+        builder: (context) {
+          return _AddSubscriptionConfirmDialog(candidate: candidate);
+        },
+      ),
     );
   }
 
@@ -90,8 +82,6 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
   void _continueAdding() {
     ref.read(addSubscriptionControllerProvider.notifier).reset();
     _urlController.clear();
-    _newCategoryController.clear();
-    setState(() => _showNewCategoryField = false);
     _urlFocusNode.requestFocus();
   }
 
@@ -109,13 +99,6 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
       previous,
       next,
     ) {
-      if (previous?.phase == AddSubscriptionPhase.creatingCategory &&
-          next.phase == AddSubscriptionPhase.selectingCategory &&
-          next.failure == null) {
-        _newCategoryController.clear();
-        if (mounted) setState(() => _showNewCategoryField = false);
-      }
-
       final completedFeedId = next.completedFeedId;
       if (completedFeedId != null &&
           completedFeedId != previous?.completedFeedId) {
@@ -158,24 +141,14 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
                       formKey: _formKey,
                       urlController: _urlController,
                       urlFocusNode: _urlFocusNode,
-                      newCategoryController: _newCategoryController,
-                      showNewCategoryField: _showNewCategoryField,
                       state: state,
                       onDiscover: _discover,
                       onSubmitCandidate: _submitCandidate,
                       onMoveCandidateToSelectedCategory:
                           _moveCandidateToSelectedCategory,
-                      onCreateCategory: _createCategory,
                       onViewSubscription: _viewSubscription,
                       onContinueAdding: _continueAdding,
                       onDone: _finish,
-                      onShowNewCategoryField: () {
-                        setState(() => _showNewCategoryField = true);
-                      },
-                      onCancelNewCategory: () {
-                        _newCategoryController.clear();
-                        setState(() => _showNewCategoryField = false);
-                      },
                       onInputChanged: (value) {
                         final current = ref.read(
                           addSubscriptionControllerProvider,
@@ -238,37 +211,27 @@ class _AddSubscriptionTask extends ConsumerWidget {
     required this.formKey,
     required this.urlController,
     required this.urlFocusNode,
-    required this.newCategoryController,
-    required this.showNewCategoryField,
     required this.state,
     required this.onDiscover,
     required this.onSubmitCandidate,
     required this.onMoveCandidateToSelectedCategory,
-    required this.onCreateCategory,
     required this.onViewSubscription,
     required this.onContinueAdding,
     required this.onDone,
-    required this.onShowNewCategoryField,
-    required this.onCancelNewCategory,
     required this.onInputChanged,
   });
 
   final GlobalKey<FormState> formKey;
   final TextEditingController urlController;
   final FocusNode urlFocusNode;
-  final TextEditingController newCategoryController;
-  final bool showNewCategoryField;
   final AddSubscriptionState state;
   final VoidCallback onDiscover;
   final ValueChanged<AddSubscriptionCandidate> onSubmitCandidate;
   final ValueChanged<AddSubscriptionCandidate>
   onMoveCandidateToSelectedCategory;
-  final VoidCallback onCreateCategory;
   final ValueChanged<int> onViewSubscription;
   final VoidCallback onContinueAdding;
   final VoidCallback onDone;
-  final VoidCallback onShowNewCategoryField;
-  final VoidCallback onCancelNewCategory;
   final ValueChanged<String> onInputChanged;
 
   @override
@@ -317,17 +280,6 @@ class _AddSubscriptionTask extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (_showsCategorySection(state)) ...[
-                    _CategorySection(
-                      state: state,
-                      newCategoryController: newCategoryController,
-                      showNewCategoryField: showNewCategoryField,
-                      onCreateCategory: onCreateCategory,
-                      onShowNewCategoryField: onShowNewCategoryField,
-                      onCancelNewCategory: onCancelNewCategory,
-                    ),
-                    Divider(height: 1, color: theme.fleurSurface.subtleDivider),
-                  ],
                   _SubscriptionResultList(
                     state: state,
                     onSubmitCandidate: onSubmitCandidate,
@@ -378,22 +330,6 @@ class _AddSubscriptionTask extends ConsumerWidget {
       AddSubscriptionPhase.success ||
       AddSubscriptionPhase.error => false,
     };
-  }
-
-  bool _showsCategorySection(AddSubscriptionState state) {
-    return state.categories.isNotEmpty &&
-        switch (state.phase) {
-          AddSubscriptionPhase.selectingCategory ||
-          AddSubscriptionPhase.creatingCategory ||
-          AddSubscriptionPhase.submitting ||
-          AddSubscriptionPhase.error => true,
-          AddSubscriptionPhase.idle ||
-          AddSubscriptionPhase.discovering ||
-          AddSubscriptionPhase.selectingFeed ||
-          AddSubscriptionPhase.loadingCategories ||
-          AddSubscriptionPhase.alreadySubscribed ||
-          AddSubscriptionPhase.success => false,
-        };
   }
 
   String _progressText(AppLocalizations l10n, AddSubscriptionPhase phase) {
@@ -834,7 +770,7 @@ class _ResultAvatar extends StatelessWidget {
   }
 }
 
-class _ResultAction extends ConsumerWidget {
+class _ResultAction extends StatelessWidget {
   const _ResultAction({
     required this.candidate,
     required this.state,
@@ -851,7 +787,7 @@ class _ResultAction extends ConsumerWidget {
   final ValueChanged<int> onViewSubscription;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final isActive = state.activeCandidateUrl == candidate.feed.url;
     if (isActive) {
@@ -869,8 +805,7 @@ class _ResultAction extends ConsumerWidget {
 
     final existingFeedId = candidate.existingFeedId;
     if (existingFeedId != null) {
-      final controller = ref.read(addSubscriptionControllerProvider.notifier);
-      if (controller.canMoveCandidateToSelectedCategory(candidate)) {
+      if (_canMoveCandidateToSelectedCategory(state, candidate)) {
         return OutlinedButton.icon(
           key: Key('add_subscription_result_move_${candidate.feed.url}'),
           onPressed: state.isBusy
@@ -892,13 +827,21 @@ class _ResultAction extends ConsumerWidget {
 
     return FilledButton.icon(
       key: Key('add_subscription_result_add_${candidate.feed.url}'),
-      onPressed: state.isBusy || !state.categorySelected
-          ? null
-          : () => onSubmitCandidate(candidate),
+      onPressed: state.isBusy ? null : () => onSubmitCandidate(candidate),
       icon: const Icon(FleurIcons.add),
       label: Text(l10n.add),
     );
   }
+}
+
+bool _canMoveCandidateToSelectedCategory(
+  AddSubscriptionState state,
+  AddSubscriptionCandidate candidate,
+) {
+  return candidate.isAlreadySubscribed &&
+      state.initialCategoryId != null &&
+      state.categorySelected &&
+      candidate.existingCategoryId != state.selectedCategoryId;
 }
 
 class _SourceChip extends StatelessWidget {
@@ -927,11 +870,172 @@ class _SourceChip extends StatelessWidget {
   }
 }
 
+class _AddSubscriptionConfirmDialog extends ConsumerStatefulWidget {
+  const _AddSubscriptionConfirmDialog({required this.candidate});
+
+  final AddSubscriptionCandidate candidate;
+
+  @override
+  ConsumerState<_AddSubscriptionConfirmDialog> createState() =>
+      _AddSubscriptionConfirmDialogState();
+}
+
+class _AddSubscriptionConfirmDialogState
+    extends ConsumerState<_AddSubscriptionConfirmDialog> {
+  final _newCategoryController = TextEditingController();
+  bool _showNewCategoryField = false;
+
+  @override
+  void dispose() {
+    _newCategoryController.dispose();
+    super.dispose();
+  }
+
+  void _createCategory() {
+    final name = _newCategoryController.text.trim();
+    if (name.isEmpty) return;
+    unawaited(
+      ref.read(addSubscriptionControllerProvider.notifier).createCategory(name),
+    );
+  }
+
+  void _submit() {
+    Navigator.of(context).pop();
+    unawaited(
+      ref
+          .read(addSubscriptionControllerProvider.notifier)
+          .submitCandidate(widget.candidate),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen<AddSubscriptionState>(addSubscriptionControllerProvider, (
+      previous,
+      next,
+    ) {
+      if (previous?.phase == AddSubscriptionPhase.creatingCategory &&
+          next.phase == AddSubscriptionPhase.selectingCategory &&
+          next.failure == null) {
+        _newCategoryController.clear();
+        if (mounted) setState(() => _showNewCategoryField = false);
+      }
+    });
+
+    final l10n = AppLocalizations.of(context)!;
+    final state = ref.watch(addSubscriptionControllerProvider);
+    final canSubmit = !state.isBusy && state.categorySelected;
+    return Dialog(
+      key: const Key('add_subscription_confirm_dialog'),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: ConstrainedBox(
+        key: const Key('add_subscription_confirm_panel'),
+        constraints: const BoxConstraints(maxWidth: 460),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                l10n.addSubscription,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 14),
+              _ConfirmCandidateSummary(candidate: widget.candidate),
+              const SizedBox(height: 16),
+              if (state.categories.isNotEmpty)
+                _CategorySection(
+                  state: state,
+                  padding: EdgeInsets.zero,
+                  newCategoryController: _newCategoryController,
+                  showNewCategoryField: _showNewCategoryField,
+                  onCreateCategory: _createCategory,
+                  onShowNewCategoryField: () {
+                    setState(() => _showNewCategoryField = true);
+                  },
+                  onCancelNewCategory: () {
+                    _newCategoryController.clear();
+                    setState(() => _showNewCategoryField = false);
+                  },
+                )
+              else
+                _ProgressStatus(text: l10n.loadingCategories),
+              const SizedBox(height: 16),
+              Wrap(
+                alignment: WrapAlignment.end,
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  TextButton(
+                    onPressed: state.isBusy
+                        ? null
+                        : () => Navigator.of(context).pop(),
+                    child: Text(l10n.cancel),
+                  ),
+                  FilledButton.icon(
+                    key: const Key('add_subscription_confirm_add_button'),
+                    onPressed: canSubmit ? _submit : null,
+                    icon: const Icon(FleurIcons.add),
+                    label: Text(l10n.add),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ConfirmCandidateSummary extends StatelessWidget {
+  const _ConfirmCandidateSummary({required this.candidate});
+
+  final AddSubscriptionCandidate candidate;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final feed = candidate.feed;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _ResultAvatar(candidate: candidate),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _feedDisplayTitle(feed),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleMedium,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                feed.url,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _CategorySection extends ConsumerWidget {
   const _CategorySection({
     required this.state,
     required this.newCategoryController,
     required this.showNewCategoryField,
+    this.padding = const EdgeInsets.fromLTRB(16, 8, 16, 16),
     required this.onCreateCategory,
     required this.onShowNewCategoryField,
     required this.onCancelNewCategory,
@@ -940,6 +1044,7 @@ class _CategorySection extends ConsumerWidget {
   final AddSubscriptionState state;
   final TextEditingController newCategoryController;
   final bool showNewCategoryField;
+  final EdgeInsetsGeometry padding;
   final VoidCallback onCreateCategory;
   final VoidCallback onShowNewCategoryField;
   final VoidCallback onCancelNewCategory;
@@ -955,7 +1060,7 @@ class _CategorySection extends ConsumerWidget {
     };
     return Padding(
       key: const Key('add_subscription_categories'),
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      padding: padding,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

@@ -249,15 +249,25 @@ Future<void> _tapVisible(WidgetTester tester, Finder finder) async {
   await tester.tap(finder);
 }
 
-Future<void> _tapAddResult(WidgetTester tester, String url) {
-  return _tapVisible(
+Future<void> _tapAddResult(WidgetTester tester, String url) async {
+  final finder = find.byKey(Key('add_subscription_result_add_$url'));
+  await _pumpUntilFound(tester, finder);
+  await _pumpUntilAbsent(
     tester,
-    find.byKey(Key('add_subscription_result_add_$url')),
+    find.byKey(const Key('add_subscription_progress')),
   );
+  await _tapVisible(tester, finder);
 }
 
 Finder _viewResultButton(String url) {
   return find.byKey(Key('add_subscription_result_view_$url'));
+}
+
+Future<void> _tapConfirmAdd(WidgetTester tester) {
+  return _tapVisible(
+    tester,
+    find.byKey(const Key('add_subscription_confirm_add_button')),
+  );
 }
 
 Future<void> _pumpFrames(WidgetTester tester) async {
@@ -376,7 +386,10 @@ void main() {
       tester,
       find.byKey(const Key('add_subscription_results')),
     );
-    await _pumpUntilFound(tester, find.text('Uncategorized'));
+    await _pumpUntilAbsent(
+      tester,
+      find.byKey(const Key('add_subscription_progress')),
+    );
 
     expect(find.byKey(const Key('add_subscription_results')), findsOneWidget);
     expect(find.text('Found 2 subscription sources'), findsOneWidget);
@@ -403,10 +416,12 @@ void main() {
     expect(find.text('Article 3'), findsOneWidget);
     expect(find.text('Article 4'), findsNothing);
     expect(find.text('No recent preview items available'), findsOneWidget);
-    expect(find.text('Uncategorized'), findsOneWidget);
+    expect(find.text('Uncategorized'), findsNothing);
   });
 
-  testWidgets('creates and selects a local category in-page', (tester) async {
+  testWidgets('only the add button opens category confirmation', (
+    tester,
+  ) async {
     await _pumpScreen(
       tester,
       isar: isar!,
@@ -417,6 +432,53 @@ void main() {
     await _pumpFrames(tester);
 
     await _enterAndDiscover(tester, 'https://example.com/feed.xml');
+    await _pumpUntilFound(
+      tester,
+      find.byKey(
+        const Key('add_subscription_result_https://example.com/feed.xml'),
+      ),
+    );
+    await _pumpUntilAbsent(
+      tester,
+      find.byKey(const Key('add_subscription_progress')),
+    );
+    final rowFinder = find.byKey(
+      const Key('add_subscription_result_https://example.com/feed.xml'),
+    );
+    await tester.tapAt(tester.getTopLeft(rowFinder) + const Offset(80, 32));
+    await tester.pump();
+    expect(
+      find.byKey(const Key('add_subscription_confirm_dialog')),
+      findsNothing,
+    );
+
+    await _tapAddResult(tester, 'https://example.com/feed.xml');
+    await _pumpUntilFound(
+      tester,
+      find.byKey(const Key('add_subscription_confirm_dialog')),
+    );
+
+    final dialogSize = tester.getSize(
+      find.byKey(const Key('add_subscription_confirm_panel')),
+    );
+    expect(dialogSize.height, lessThan(420));
+    expect(find.text('Uncategorized'), findsOneWidget);
+  });
+
+  testWidgets('creates and selects a local category in confirmation dialog', (
+    tester,
+  ) async {
+    await _pumpScreen(
+      tester,
+      isar: isar!,
+      discovery: _FakeFeedDiscoveryService(const [
+        DiscoveredFeed(url: 'https://example.com/feed.xml', title: 'Feed'),
+      ]),
+    );
+    await _pumpFrames(tester);
+
+    await _enterAndDiscover(tester, 'https://example.com/feed.xml');
+    await _tapAddResult(tester, 'https://example.com/feed.xml');
     await _pumpUntilFound(
       tester,
       find.byKey(const Key('add_subscription_show_new_category_button')),
@@ -466,6 +528,7 @@ void main() {
     await _pumpFrames(tester);
 
     await _enterAndDiscover(tester, 'https://example.com/feed.xml');
+    await _tapAddResult(tester, 'https://example.com/feed.xml');
     await _pumpUntilFound(
       tester,
       find.byKey(const Key('add_subscription_category_dropdown')),
@@ -476,7 +539,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Blogs').last);
     await tester.pumpAndSettle();
-    await _tapAddResult(tester, 'https://example.com/feed.xml');
+    await _tapConfirmAdd(tester);
     await _pumpUntilFound(
       tester,
       _viewResultButton('https://example.com/feed.xml'),
@@ -510,8 +573,9 @@ void main() {
     await _pumpFrames(tester);
 
     await _enterAndDiscover(tester, 'https://example.com/feed.xml');
-    await _pumpUntilFound(tester, find.text('Blogs'));
     await _tapAddResult(tester, 'https://example.com/feed.xml');
+    await _pumpUntilFound(tester, find.text('Blogs'));
+    await _tapConfirmAdd(tester);
     await _pumpUntilFound(
       tester,
       _viewResultButton('https://example.com/feed.xml'),
@@ -556,6 +620,7 @@ void main() {
     await _pumpFrames(tester);
 
     await _enterAndDiscover(tester, 'https://example.com/feed.xml');
+    await _tapAddResult(tester, 'https://example.com/feed.xml');
     await _pumpUntilFound(
       tester,
       find.byKey(const Key('add_subscription_category_dropdown')),
@@ -606,12 +671,11 @@ void main() {
     await _pumpFrames(tester);
 
     await _enterAndDiscover(tester, 'https://example.com/feed.xml');
+    await _tapAddResult(tester, 'https://example.com/feed.xml');
     await _pumpUntilFound(tester, find.text('Remote News'));
 
     final submit = tester.widget<FilledButton>(
-      find.byKey(
-        const Key('add_subscription_result_add_https://example.com/feed.xml'),
-      ),
+      find.byKey(const Key('add_subscription_confirm_add_button')),
     );
     expect(submit.onPressed, isNotNull);
   });
@@ -652,8 +716,9 @@ void main() {
     await _pumpFrames(tester);
 
     await _enterAndDiscover(tester, 'https://example.com/feed.xml');
-    await _pumpUntilFound(tester, find.text('Uncategorized'));
     await _tapAddResult(tester, 'https://example.com/feed.xml');
+    await _pumpUntilFound(tester, find.text('Uncategorized'));
+    await _tapConfirmAdd(tester);
     await _pumpUntilFound(
       tester,
       _viewResultButton('https://example.com/feed.xml'),
@@ -695,8 +760,9 @@ void main() {
     await _pumpFrames(tester);
 
     await _enterAndDiscover(tester, 'https://example.com/feed.xml');
-    await _pumpUntilFound(tester, find.text('Uncategorized'));
     await _tapAddResult(tester, 'https://example.com/feed.xml');
+    await _pumpUntilFound(tester, find.text('Uncategorized'));
+    await _tapConfirmAdd(tester);
     await _pumpUntilFound(
       tester,
       _viewResultButton('https://example.com/feed.xml'),
@@ -724,8 +790,9 @@ void main() {
     await _pumpFrames(tester);
 
     await _enterAndDiscover(tester, 'https://example.com/feed.xml');
-    await _pumpUntilFound(tester, find.text('Uncategorized'));
     await _tapAddResult(tester, 'https://example.com/feed.xml');
+    await _pumpUntilFound(tester, find.text('Uncategorized'));
+    await _tapConfirmAdd(tester);
     await _pumpUntilFound(
       tester,
       _viewResultButton('https://example.com/feed.xml'),
