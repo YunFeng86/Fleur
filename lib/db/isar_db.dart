@@ -35,6 +35,273 @@ class DbOpenFailure implements Exception {
   }
 }
 
+class AccountDbTarget {
+  const AccountDbTarget({
+    required this.accountId,
+    required this.directory,
+    required this.name,
+    required this.isPrimary,
+  });
+
+  final String accountId;
+  final String directory;
+  final String name;
+  final bool isPrimary;
+}
+
+abstract interface class IsarLease {
+  Isar get isar;
+
+  Future<void> release();
+}
+
+typedef AccountDbTargetResolver =
+    Future<AccountDbTarget> Function({
+      required String accountId,
+      String? dbName,
+      required bool isPrimary,
+    });
+
+typedef AccountDbTargetOpener = Future<Isar> Function(AccountDbTarget target);
+typedef PendingMigrationsRunner = Future<void> Function(Isar isar);
+
+PendingMigrationsRunner _pendingMigrationsRunner = runPendingMigrations;
+
+void debugSetPendingMigrationsRunnerForTests(PendingMigrationsRunner runner) {
+  _pendingMigrationsRunner = runner;
+}
+
+void debugResetPendingMigrationsRunnerForTests() {
+  _pendingMigrationsRunner = runPendingMigrations;
+}
+
+Future<AccountDbTarget> resolveAccountDbTarget({
+  required String accountId,
+  String? dbName,
+  required bool isPrimary,
+}) async {
+  if (isPrimary) {
+    final loc = await PathManager.getIsarLocation();
+    return AccountDbTarget(
+      accountId: accountId,
+      directory: loc.directory.path,
+      name: loc.name,
+      isPrimary: true,
+    );
+  }
+
+  final dir = await PathManager.getDbDir();
+  final name = (dbName == null || dbName.trim().isEmpty)
+      ? _dbNameForAccount(accountId)
+      : dbName.trim();
+  return AccountDbTarget(
+    accountId: accountId,
+    directory: dir.path,
+    name: name,
+    isPrimary: false,
+  );
+}
+
+class AccountDbLease implements IsarLease {
+  AccountDbLease._({
+    required AccountDbSessionManager manager,
+    required String name,
+    required this.isar,
+  }) : _manager = manager,
+       _name = name;
+
+  final AccountDbSessionManager _manager;
+  final String _name;
+  bool _released = false;
+
+  @override
+  final Isar isar;
+
+  @override
+  Future<void> release() async {
+    if (_released) return;
+    _released = true;
+    await _manager._release(_name);
+  }
+}
+
+class AccountDbSessionManager {
+  AccountDbSessionManager({
+    AccountDbTargetResolver? resolveTarget,
+    AccountDbTargetOpener? openTarget,
+  }) : _resolveTarget = resolveTarget ?? resolveAccountDbTarget,
+       _openTarget = openTarget ?? _openIsarForTarget;
+
+  static final AccountDbSessionManager instance = AccountDbSessionManager();
+
+  final AccountDbTargetResolver _resolveTarget;
+  final AccountDbTargetOpener _openTarget;
+  final Map<String, _AccountDbSession> _sessions = {};
+
+  Future<AccountDbLease> acquireForAccount({
+    required String accountId,
+    String? dbName,
+    required bool isPrimary,
+  }) async {
+    final target = await _resolveTarget(
+      accountId: accountId,
+      dbName: dbName,
+      isPrimary: isPrimary,
+    );
+    return _acquire(target);
+  }
+
+  Future<void> deleteIdleForAccount({
+    required String accountId,
+    String? dbName,
+    required bool isPrimary,
+  }) async {
+    final target = await _resolveTarget(
+      accountId: accountId,
+      dbName: dbName,
+      isPrimary: isPrimary,
+    );
+    final existing = _sessions[target.name];
+    if (existing != null) {
+      _ensureSameTarget(existing.target, target);
+      if (existing.leases > 0 ||
+          existing.opening != null ||
+          existing.closing != null) {
+        throw DbOpenFailure(
+          kind: DbOpenFailureKind.transient,
+          directory: target.directory,
+          name: target.name,
+          error: StateError('Database is currently in use.'),
+        );
+      }
+      _sessions.remove(target.name);
+    }
+
+    final isar = await _openTarget(target);
+    await isar.close(deleteFromDisk: true);
+  }
+
+  Future<AccountDbLease> _acquire(AccountDbTarget target) async {
+    final key = target.name;
+    var session = _sessions[key];
+    if (session != null) {
+      _ensureSameTarget(session.target, target);
+      final closing = session.closing;
+      if (closing != null) {
+        await closing;
+        return _acquire(target);
+      }
+      final isar = session.isar;
+      if (isar != null && _isIsarOpen(isar)) {
+        session.leases++;
+        return AccountDbLease._(manager: this, name: key, isar: isar);
+      }
+      final opening = session.opening;
+      if (opening != null) {
+        session.leases++;
+        try {
+          final opened = await opening;
+          return AccountDbLease._(manager: this, name: key, isar: opened);
+        } catch (_) {
+          session.leases--;
+          if (session.leases <= 0 && identical(_sessions[key], session)) {
+            _sessions.remove(key);
+          }
+          rethrow;
+        }
+      }
+      _sessions.remove(key);
+    }
+
+    session = _AccountDbSession(target: target)..leases = 1;
+    _sessions[key] = session;
+    final opening = _openTarget(target);
+    session.opening = opening;
+
+    try {
+      final isar = await opening;
+      session.isar = isar;
+      return AccountDbLease._(manager: this, name: key, isar: isar);
+    } catch (_) {
+      session.leases--;
+      if (session.leases <= 0 && identical(_sessions[key], session)) {
+        _sessions.remove(key);
+      }
+      rethrow;
+    } finally {
+      if (identical(session.opening, opening)) {
+        session.opening = null;
+      }
+    }
+  }
+
+  Future<void> _release(String name) async {
+    final session = _sessions[name];
+    if (session == null) return;
+    if (session.leases > 0) {
+      session.leases--;
+    }
+    if (session.leases > 0) return;
+    if (session.opening != null) return;
+    final closing = session.closing;
+    if (closing != null) {
+      await closing;
+      return;
+    }
+
+    final isar = session.isar;
+    session.isar = null;
+    if (isar == null || !_isIsarOpen(isar)) {
+      if (identical(_sessions[name], session)) {
+        _sessions.remove(name);
+      }
+      return;
+    }
+
+    late final Future<void> closeFuture;
+    closeFuture = isar.close().whenComplete(() {
+      if (identical(_sessions[name], session) &&
+          identical(session.closing, closeFuture)) {
+        session.closing = null;
+        _sessions.remove(name);
+      }
+    });
+    session.closing = closeFuture;
+    await closeFuture;
+  }
+
+  void _ensureSameTarget(AccountDbTarget current, AccountDbTarget requested) {
+    if (p.equals(current.directory, requested.directory)) return;
+    throw DbOpenFailure(
+      kind: DbOpenFailureKind.environmental,
+      directory: requested.directory,
+      name: requested.name,
+      error: StateError(
+        'Isar instance name "${requested.name}" is already held for '
+        '"${current.directory}", not "${requested.directory}".',
+      ),
+    );
+  }
+
+  bool _isIsarOpen(Isar isar) {
+    try {
+      return isar.isOpen;
+    } catch (_) {
+      return true;
+    }
+  }
+}
+
+class _AccountDbSession {
+  _AccountDbSession({required this.target});
+
+  final AccountDbTarget target;
+  Isar? isar;
+  Future<Isar>? opening;
+  Future<void>? closing;
+  int leases = 0;
+}
+
 /// Open the Isar database for a given account.
 ///
 /// - Primary account uses [PathManager.getIsarLocation] to avoid silent data
@@ -46,34 +313,40 @@ Future<Isar> openIsarForAccount({
   String? dbName,
   required bool isPrimary,
 }) async {
+  final target = await resolveAccountDbTarget(
+    accountId: accountId,
+    dbName: dbName,
+    isPrimary: isPrimary,
+  );
+  return _openIsarForTarget(target);
+}
+
+Future<Isar> _openIsarForTarget(AccountDbTarget target) async {
   final schemas = [FeedSchema, ArticleSchema, CategorySchema, TagSchema];
 
-  if (isPrimary) {
-    final loc = await PathManager.getIsarLocation();
-    final isar = await _openWithBackupAndRecovery(
-      schemas: schemas,
-      directory: loc.directory.path,
-      name: loc.name,
-      accountId: accountId,
-      isPrimary: true,
-    );
-    await runPendingMigrations(isar);
-    return isar;
-  }
-
-  final dir = await PathManager.getDbDir();
-  final name = (dbName == null || dbName.trim().isEmpty)
-      ? _dbNameForAccount(accountId)
-      : dbName.trim();
   final isar = await _openWithBackupAndRecovery(
     schemas: schemas,
-    directory: dir.path,
-    name: name,
-    accountId: accountId,
-    isPrimary: false,
+    directory: target.directory,
+    name: target.name,
+    accountId: target.accountId,
+    isPrimary: target.isPrimary,
   );
-  await runPendingMigrations(isar);
-  return isar;
+  try {
+    await _pendingMigrationsRunner(isar);
+    return isar;
+  } catch (e, s) {
+    try {
+      await isar.close();
+    } catch (closeError, closeStack) {
+      AppLogger.e(
+        'Failed to close Isar after open finalization failure',
+        tag: 'db',
+        error: closeError,
+        stackTrace: closeStack,
+      );
+    }
+    Error.throwWithStackTrace(e, s);
+  }
 }
 
 String _dbNameForAccount(String accountId) {

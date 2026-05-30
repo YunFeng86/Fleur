@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:isar/isar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:fleur/db/isar_db.dart';
 import 'package:fleur/models/feed.dart';
 import 'package:fleur/providers/service_providers.dart';
 import 'package:fleur/repositories/article_repository.dart';
@@ -31,6 +32,20 @@ class _FakeIsar extends Fake implements Isar {
   Future<bool> close({bool deleteFromDisk = false}) async {
     closeCalls++;
     return true;
+  }
+}
+
+class _FakeIsarLease implements IsarLease {
+  _FakeIsarLease(this.isar);
+
+  var releaseCalls = 0;
+
+  @override
+  final Isar isar;
+
+  @override
+  Future<void> release() async {
+    releaseCalls++;
   }
 }
 
@@ -157,6 +172,64 @@ void main() {
     expect(syncService.refreshCalls, isEmpty);
     expect(isar.closeCalls, 1);
   });
+
+  testWidgets(
+    'default DB session path releases lease instead of closing Isar',
+    (tester) async {
+      debugFleurTargetPlatformOverride = TargetPlatform.iOS;
+      addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+      final outbox = FakeOutboxStore();
+      final accountId = buildAccountsState().activeAccountId;
+      await outbox.save(accountId, [
+        OutboxAction(
+          type: OutboxActionType.markRead,
+          remoteEntryId: 1,
+          value: true,
+          createdAt: DateTime.utc(2026, 1, 1),
+        ),
+      ]);
+      final syncService = FakeSyncService();
+      final isar = _FakeIsar();
+      final lease = _FakeIsarLease(isar);
+
+      final runner = BackgroundSyncRunner(
+        accounts: buildAccountsState(),
+        appSettingsStore: buildAppSettingsStore(
+          AppSettings.defaults().copyWith(
+            sourceRefreshMinutes: null,
+            syncEnabled: false,
+          ),
+        ),
+        outboxStore: outbox,
+        runWithMutex: _runWithoutMutex,
+        refreshAllRemoteFeeds: (_) async {},
+        acquireIsarLeaseForAccountFn:
+            ({required accountId, required dbName, required isPrimary}) async =>
+                lease,
+        syncServiceBuilder:
+            ({
+              required account,
+              required feeds,
+              required categories,
+              required articles,
+              required outbox,
+              required appSettingsStore,
+            }) {
+              return syncService;
+            },
+      );
+
+      await runner.run(
+        taskName: kBackgroundSyncTaskName,
+        inputData: const <String, dynamic>{},
+      );
+
+      expect(syncService.flushCalls, 1);
+      expect(lease.releaseCalls, 1);
+      expect(isar.closeCalls, 0);
+    },
+  );
 
   testWidgets(
     'local accounts ignore outbox-only background work and keep DB closed',

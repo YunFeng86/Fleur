@@ -69,12 +69,11 @@ class AccountCleanupService {
     const attempts = 5;
     for (var i = 0; i < attempts; i++) {
       try {
-        final isar = await openIsarForAccount(
+        await AccountDbSessionManager.instance.deleteIdleForAccount(
           accountId: account.id,
           dbName: account.dbName,
           isPrimary: account.isPrimary,
         );
-        await isar.close(deleteFromDisk: true);
         return;
       } catch (e, st) {
         if (i == attempts - 1) {

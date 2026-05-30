@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:isar/isar.dart';
 
 import '../db/isar_db.dart';
 import '../providers/account_providers.dart';
 import '../providers/core_providers.dart';
 import '../providers/service_providers.dart';
 import '../services/accounts/account.dart';
+import '../services/accounts/account_store.dart';
 import '../services/data_integrity_startup_service.dart';
 import '../services/logging/app_provider_observer.dart';
 import '../services/logging/app_logger.dart';
@@ -16,30 +16,96 @@ import '../widgets/app_scrollbar.dart';
 import 'app.dart';
 
 class AccountGate extends ConsumerStatefulWidget {
-  const AccountGate({super.key});
+  const AccountGate({super.key, this.dbSessionManager});
+
+  final AccountDbSessionManager? dbSessionManager;
 
   @override
   ConsumerState<AccountGate> createState() => _AccountGateState();
 }
 
 class _AccountGateState extends ConsumerState<AccountGate> {
-  Isar? _isar;
+  ProviderSubscription<AsyncValue<AccountsState>>? _accountsSubscription;
+  AccountDbLease? _lease;
   String? _openedForAccountId;
   Future<void>? _opening;
+  String? _openingForAccountId;
+  int _openGeneration = 0;
   Object? _openError;
   StackTrace? _openErrorStack;
   String? _openErrorForAccountId;
 
   @override
+  void initState() {
+    super.initState();
+    _accountsSubscription = ref.listenManual<AsyncValue<AccountsState>>(
+      accountsControllerProvider,
+      (_, next) => _handleAccountsChanged(next),
+      fireImmediately: true,
+    );
+  }
+
+  @override
   void dispose() {
-    unawaited(_isar?.close());
+    _openGeneration++;
+    _accountsSubscription?.close();
+    unawaited(_lease?.release());
     super.dispose();
+  }
+
+  void _handleAccountsChanged(AsyncValue<AccountsState> accountsAsync) {
+    final account = _activeAccountFromState(accountsAsync.valueOrNull);
+    if (account == null) return;
+    _ensureOpenFor(account);
+  }
+
+  Account? _activeAccountFromState(AccountsState? state) {
+    if (state == null || state.accounts.isEmpty) return null;
+    return state.findById(state.activeAccountId) ?? state.accounts.first;
+  }
+
+  void _ensureOpenFor(Account account) {
+    if (_openedForAccountId == account.id && _lease != null) return;
+    if (_opening != null && _openingForAccountId == account.id) return;
+    if (_openError != null && _openErrorForAccountId == account.id) return;
+
+    final generation = ++_openGeneration;
+    final openingForAccountId = account.id;
+    final opening = _openFor(account, generation)
+        .catchError((e, st) {
+          final stackTrace = st is StackTrace ? st : null;
+          _logOpenFailure(account, e, stackTrace);
+          if (!mounted || generation != _openGeneration) return;
+          setState(() {
+            final currentAccountId = _activeAccountFromState(
+              ref.read(accountsControllerProvider).valueOrNull,
+            )?.id;
+            // Only keep the error if we're still trying to open the same
+            // account (avoid stale errors after account switching).
+            if (openingForAccountId == currentAccountId) {
+              _openError = e;
+              _openErrorStack = stackTrace;
+              _openErrorForAccountId = openingForAccountId;
+            }
+          });
+        })
+        .whenComplete(() {
+          if (!mounted || generation != _openGeneration) return;
+          setState(() {
+            _opening = null;
+            _openingForAccountId = null;
+          });
+        });
+
+    setState(() {
+      _opening = opening;
+      _openingForAccountId = openingForAccountId;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final accountsAsync = ref.watch(accountsControllerProvider);
-    final activeAccount = ref.watch(activeAccountProvider);
     final notificationService = ref.watch(notificationServiceProvider);
 
     if (accountsAsync.isLoading) {
@@ -58,32 +124,16 @@ class _AccountGateState extends ConsumerState<AccountGate> {
       );
     }
 
-    // Ensure the correct Isar instance is opened for the active account.
-    final shouldOpen = _openedForAccountId != activeAccount.id;
+    final activeAccount = _activeAccountFromState(accountsAsync.valueOrNull);
+    if (activeAccount == null) {
+      return const MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(body: Center(child: CircularProgressIndicator())),
+      );
+    }
+
     final hasErrorForActive =
         _openError != null && _openErrorForAccountId == activeAccount.id;
-    if (shouldOpen && _opening == null && !hasErrorForActive) {
-      final openingForAccountId = activeAccount.id;
-      _opening = _openFor(activeAccount)
-          .catchError((e, st) {
-            final stackTrace = st is StackTrace ? st : null;
-            _logOpenFailure(activeAccount, e, stackTrace);
-            if (!mounted) return;
-            setState(() {
-              final currentAccountId = ref.read(activeAccountProvider).id;
-              // Only keep the error if we're still trying to open the same
-              // account (avoid stale errors after account switching).
-              if (openingForAccountId == currentAccountId) {
-                _openError = e;
-                _openErrorStack = st is StackTrace ? st : null;
-                _openErrorForAccountId = openingForAccountId;
-              }
-            });
-          })
-          .whenComplete(() {
-            if (mounted) setState(() => _opening = null);
-          });
-    }
 
     final opening = _opening;
     if (opening != null) {
@@ -147,6 +197,7 @@ class _AccountGateState extends ConsumerState<AccountGate> {
                             _openErrorStack = null;
                             _openErrorForAccountId = null;
                           });
+                          _ensureOpenFor(activeAccount);
                         },
                         child: const Text('重试'),
                       ),
@@ -160,7 +211,7 @@ class _AccountGateState extends ConsumerState<AccountGate> {
       );
     }
 
-    final isar = _isar;
+    final isar = _lease?.isar;
     if (isar == null) {
       return const MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -179,22 +230,29 @@ class _AccountGateState extends ConsumerState<AccountGate> {
     );
   }
 
-  Future<void> _openFor(Account account) async {
-    final next = await openIsarForAccount(
+  Future<void> _openFor(Account account, int generation) async {
+    final manager = widget.dbSessionManager ?? AccountDbSessionManager.instance;
+    final next = await manager.acquireForAccount(
       accountId: account.id,
       dbName: account.dbName,
       isPrimary: account.isPrimary,
     );
-    unawaited(const DataIntegrityStartupService().runIfNeeded(next));
-    final prev = _isar;
-    _isar = next;
-    _openedForAccountId = account.id;
-    _openError = null;
-    _openErrorStack = null;
-    _openErrorForAccountId = null;
+    if (!mounted || generation != _openGeneration) {
+      await next.release();
+      return;
+    }
+
+    unawaited(const DataIntegrityStartupService().runIfNeeded(next.isar));
+    final prev = _lease;
+    setState(() {
+      _lease = next;
+      _openedForAccountId = account.id;
+      _openError = null;
+      _openErrorStack = null;
+      _openErrorForAccountId = null;
+    });
     if (prev != null) {
-      // Close in background; Isar close can be slow on some platforms.
-      unawaited(prev.close());
+      unawaited(prev.release());
     }
   }
 
