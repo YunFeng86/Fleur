@@ -219,14 +219,55 @@ class _QuickAction {
 }
 
 class _ReaderWidgetFactory extends WidgetFactory {
-  _ReaderWidgetFactory(this._cacheManager, {required ReaderSettings settings})
-    : _settings = settings;
+  _ReaderWidgetFactory(
+    this._cacheManager, {
+    required ReaderSettings settings,
+    ValueNotifier<String?>? hoveredUrl,
+    Map<int, String>? recognizerUrlMap,
+  }) : _settings = settings,
+       _hoveredUrl = hoveredUrl,
+       _recognizerUrlMap = recognizerUrlMap;
 
   final BaseCacheManager _cacheManager;
   final ReaderSettings _settings;
+  final ValueNotifier<String?>? _hoveredUrl;
+  final Map<int, String>? _recognizerUrlMap;
 
   @override
   BaseCacheManager? get cacheManager => _cacheManager;
+
+  @override
+  GestureRecognizer? buildGestureRecognizer(
+    BuildTree tree, {
+    GestureTapCallback? onTap,
+  }) {
+    final recognizer = super.buildGestureRecognizer(tree, onTap: onTap);
+    final href = tree.element.attributes['href'];
+    if (href != null && href.isNotEmpty && recognizer != null) {
+      _recognizerUrlMap?[identityHashCode(recognizer)] = href;
+    }
+    return recognizer;
+  }
+
+  @override
+  Widget? buildGestureDetector(
+    BuildTree tree,
+    Widget child,
+    GestureRecognizer recognizer,
+  ) {
+    final built = super.buildGestureDetector(tree, child, recognizer);
+    if (built == null || _hoveredUrl == null) return built;
+    final url = tree.element.attributes['href'];
+    if (url == null || url.isEmpty) return built;
+    final notifier = _hoveredUrl;
+    return MouseRegion(
+      onEnter: (_) => notifier.value = url,
+      onExit: (_) {
+        if (notifier.value == url) notifier.value = null;
+      },
+      child: built,
+    );
+  }
 
   @override
   Widget? buildText(

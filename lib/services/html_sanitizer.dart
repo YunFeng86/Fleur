@@ -5,12 +5,15 @@ import 'package:html/dom.dart';
 ///
 /// Removes dangerous tags (script, iframe) and attributes (onclick, onerror)
 /// to prevent XSS attacks and layout breakage from malicious RSS feeds.
+///
+/// CSS inline styles are filtered by property: layout and structural properties
+/// are preserved while typography properties (font-size, color, etc.) are
+/// stripped so the reader theme stays in control.
 class HtmlSanitizer {
   HtmlSanitizer._();
 
   /// Allowed HTML tags (whitelist approach).
   static const _allowedTags = {
-    // Wrapper used by our full-text extractor.
     'article',
     'p',
     'h1',
@@ -61,11 +64,83 @@ class HtmlSanitizer {
 
   /// Allowed attributes per tag.
   static const _allowedAttributes = {
-    'a': ['href', 'title'],
-    'img': ['src', 'alt', 'title'],
+    'a': ['href', 'title', 'target', 'rel'],
+    'img': [
+      'src',
+      'alt',
+      'title',
+      'width',
+      'height',
+      'data-src',
+      'data-lazy-src',
+      'data-original',
+    ],
     'td': ['colspan', 'rowspan'],
     'th': ['colspan', 'rowspan'],
+    'table': ['cellpadding', 'cellspacing', 'border'],
   };
+
+  /// CSS properties allowed in inline styles.
+  ///
+  /// Layout and structural properties are preserved (reader-immersive),
+  /// typography properties are stripped (reader-controlled).
+  static const _allowedCssProperties = {
+    // Alignment & spacing
+    'text-align',
+    'margin',
+    'margin-top',
+    'margin-right',
+    'margin-bottom',
+    'margin-left',
+    'padding',
+    'padding-top',
+    'padding-right',
+    'padding-bottom',
+    'padding-left',
+    // Borders
+    'border',
+    'border-top',
+    'border-right',
+    'border-bottom',
+    'border-left',
+    'border-radius',
+    'border-color',
+    'border-style',
+    'border-width',
+    'border-top-color',
+    'border-right-color',
+    'border-bottom-color',
+    'border-left-color',
+    'border-top-style',
+    'border-right-style',
+    'border-bottom-style',
+    'border-left-style',
+    'border-top-width',
+    'border-right-width',
+    'border-bottom-width',
+    'border-left-width',
+    // Sizing (clamped)
+    'width',
+    'max-width',
+    'min-width',
+    'height',
+    'max-height',
+    'min-height',
+    // Layout
+    'display',
+    'white-space',
+    'vertical-align',
+    'overflow',
+    'list-style-type',
+    'table-layout',
+    // Background
+    'background-color',
+  };
+
+  /// Safe values for the `display` property.
+  static const _safeDisplayValues = {'inline', 'block', 'none'};
+
+  static const _dangerousCssValuePatterns = ['expression(', 'javascript:'];
 
   /// Allowed iframe domains (for embedded videos).
   static const _allowedIframeDomains = {
@@ -143,11 +218,24 @@ class HtmlSanitizer {
           continue;
         }
 
+        // Filter style attribute first
+        final rawStyle = child.attributes['style'];
+        String? filteredStyle;
+        if (rawStyle != null) {
+          filteredStyle = _filterStyleAttribute(rawStyle);
+          child.attributes.remove('style');
+        }
+
         // Clean attributes
         final allowed = _allowedAttributes[tag] ?? <String>[];
         child.attributes.removeWhere(
-          (k, v) => !allowed.contains(k) || (k is String && k.startsWith('on')),
+          (k, v) => (k is String && k.startsWith('on')) || !allowed.contains(k),
         );
+
+        // Re-add filtered style
+        if (filteredStyle != null) {
+          child.attributes['style'] = filteredStyle;
+        }
 
         // Recursively clean children
         _cleanNode(child);
@@ -170,5 +258,61 @@ class HtmlSanitizer {
     child.nodes.clear();
     parent.nodes.removeAt(index);
     parent.nodes.insertAll(index, replacement);
+  }
+
+  /// Parse inline `style` and keep only safe layout/structural CSS properties.
+  static String? _filterStyleAttribute(String style) {
+    if (style.trim().isEmpty) return null;
+
+    final buffer = StringBuffer();
+    for (final declaration in style.split(';')) {
+      final colonIndex = declaration.indexOf(':');
+      if (colonIndex < 0) continue;
+      final property = declaration
+          .substring(0, colonIndex)
+          .trim()
+          .toLowerCase();
+      if (property.isEmpty || !_allowedCssProperties.contains(property))
+        continue;
+      var value = declaration.substring(colonIndex + 1).trim();
+      if (value.isEmpty) continue;
+
+      // Block dangerous CSS values
+      if (_containsDangerousValue(value)) continue;
+
+      // Only allow safe display values
+      if (property == 'display') {
+        if (!_safeDisplayValues.contains(value.toLowerCase())) continue;
+      }
+
+      // Clamp oversized width/max-width
+      if (property == 'width' || property == 'max-width') {
+        value = _clampDimension(value, maxPx: 1200);
+      }
+
+      if (buffer.isNotEmpty) buffer.write('; ');
+      buffer.write('$property: $value');
+    }
+    return buffer.isEmpty ? null : buffer.toString();
+  }
+
+  static bool _containsDangerousValue(String value) {
+    final lower = value.toLowerCase();
+    for (final pattern in _dangerousCssValuePatterns) {
+      if (lower.contains(pattern)) return true;
+    }
+    if (lower.contains('url(')) return true;
+    return false;
+  }
+
+  /// Clamp a CSS dimension value (e.g. "800px") to [maxPx].
+  /// Passes through non-px values (%, em, auto, etc.) unchanged.
+  static String _clampDimension(String value, {required double maxPx}) {
+    final trimmed = value.trim();
+    if (trimmed.endsWith('px')) {
+      final numeric = double.tryParse(trimmed.replaceAll('px', ''));
+      if (numeric != null && numeric > maxPx) return '${maxPx.toInt()}px';
+    }
+    return trimmed;
   }
 }

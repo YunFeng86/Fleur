@@ -323,6 +323,32 @@ extension _ReaderSceneScaffold on _ReaderViewState {
                 child: translationOutdatedBanner,
               ),
             ),
+          // Link URL preview (like browser's bottom-left status bar)
+          if (isDesktop)
+            ValueListenableBuilder<String?>(
+              valueListenable: _interactionController.hoveredUrl,
+              builder: (context, url, _) {
+                if (url == null || url.isEmpty) return const SizedBox.shrink();
+                return Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: readerTokens.maxWidth,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        url,
+                        style: sceneTheme.textTheme.labelSmall?.copyWith(
+                          color: sceneTheme.colorScheme.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
           Center(
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: readerTokens.maxWidth),

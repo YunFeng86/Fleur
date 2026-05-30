@@ -452,23 +452,30 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
       return 'rgba($r,$g,$b,${a.toStringAsFixed(3)})';
     }
 
-    Map<String, String>? searchStyles(dom.Element element) {
-      if (element.localName != 'mark') return null;
-      if (element.attributes[ReaderSearchService.markerAttribute] !=
-          ReaderSearchService.markerAttributeValue) {
-        return null;
+    Map<String, String>? customStyles(dom.Element element) {
+      // Search highlight styles
+      if (element.localName == 'mark') {
+        if (element.attributes[ReaderSearchService.markerAttribute] ==
+            ReaderSearchService.markerAttributeValue) {
+          final isCurrent =
+              currentAnchorId != null && element.id == currentAnchorId;
+          final bg = isCurrent
+              ? rgba(states.selectionTint, alpha: 0.95)
+              : rgba(reader.bannerSurface, alpha: 0.8);
+          return <String, String>{
+            'background-color': bg,
+            'padding': '0 2px',
+            'border-radius': '2px',
+          };
+        }
       }
 
-      final isCurrent =
-          currentAnchorId != null && element.id == currentAnchorId;
-      final bg = isCurrent
-          ? rgba(states.selectionTint, alpha: 0.95)
-          : rgba(reader.bannerSurface, alpha: 0.8);
-      return <String, String>{
-        'background-color': bg,
-        'padding': '0 2px',
-        'border-radius': '2px',
-      };
+      // Link underline: dashed so adjacent links are visually distinct
+      if (element.localName == 'a') {
+        return const <String, String>{'text-decoration-style': 'dashed'};
+      }
+
+      return null;
     }
 
     if (!isChunked) {
@@ -509,11 +516,14 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
                             factoryBuilder: () => _ReaderWidgetFactory(
                               cacheManager,
                               settings: settings,
+                              hoveredUrl: _interactionController.hoveredUrl,
+                              recognizerUrlMap:
+                                  _interactionController.recognizerUrlMap,
                             ),
                             renderMode: RenderMode.column,
                             buildAsync: true,
                             onLoadingBuilder: _buildImageLoadingPlaceholder,
-                            customStylesBuilder: searchStyles,
+                            customStylesBuilder: customStyles,
                             textStyle: reader.bodyStyle.copyWith(
                               fontSize: settings.fontSize,
                               height: settings.lineHeight,
@@ -580,11 +590,14 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
                         factoryBuilder: () => _ReaderWidgetFactory(
                           cacheManager,
                           settings: settings,
+                          hoveredUrl: _interactionController.hoveredUrl,
+                          recognizerUrlMap:
+                              _interactionController.recognizerUrlMap,
                         ),
                         renderMode: RenderMode.column,
                         buildAsync: true,
                         onLoadingBuilder: _buildImageLoadingPlaceholder,
-                        customStylesBuilder: searchStyles,
+                        customStylesBuilder: customStyles,
                         textStyle: reader.bodyStyle.copyWith(
                           fontSize: settings.fontSize,
                           height: settings.lineHeight,

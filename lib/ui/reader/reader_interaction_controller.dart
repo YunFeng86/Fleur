@@ -15,6 +15,12 @@ final class _ReaderInteractionController {
   final ContextMenuController _contextMenuController = ContextMenuController();
   final ContextMenuController _quickMenuController = ContextMenuController();
 
+  /// Currently hovered link URL (null when not hovering a link).
+  final ValueNotifier<String?> hoveredUrl = ValueNotifier<String?>(null);
+
+  /// Map from recognizer identity to href, populated by the WidgetFactory.
+  final Map<int, String> recognizerUrlMap = {};
+
   _ReaderViewportCoordinator? _viewport;
   Timer? _quickMenuTimer;
   String _pendingQuickMenuText = '';
@@ -45,6 +51,7 @@ final class _ReaderInteractionController {
     _autoScrollTimer?.cancel();
     _autoScrollOverlay?.remove();
     _autoScrollOverlay = null;
+    hoveredUrl.dispose();
   }
 
   String? _resolveImageUrl(String? raw) {
@@ -78,9 +85,61 @@ final class _ReaderInteractionController {
   }
 
   void _handlePointerHover(PointerHoverEvent event) {
-    if (_autoScrollTimer == null) return;
     if (event.kind != PointerDeviceKind.mouse) return;
     _autoScrollPointer = event.position;
+    _detectInlineLinkHover(event.position);
+  }
+
+  void _detectInlineLinkHover(Offset globalPosition) {
+    if (!isDesktop) return;
+    final selectionAreaKey = _selectionAreaKey;
+    final selectionAreaContext = selectionAreaKey.currentContext;
+    if (selectionAreaContext == null) {
+      hoveredUrl.value = null;
+      return;
+    }
+    final selectionArea = selectionAreaContext.findRenderObject();
+    if (selectionArea is! RenderBox || !selectionArea.hasSize) {
+      hoveredUrl.value = null;
+      return;
+    }
+    final local = selectionArea.globalToLocal(globalPosition);
+    if (!selectionArea.size.contains(local)) {
+      hoveredUrl.value = null;
+      return;
+    }
+    final hitResult = BoxHitTestResult();
+    if (!selectionArea.hitTest(hitResult, position: local)) {
+      hoveredUrl.value = null;
+      return;
+    }
+    // Walk hit test results to find a RenderParagraph under the cursor.
+    for (final entry in hitResult.path) {
+      final target = entry.target;
+      if (target is RenderParagraph) {
+        final paragraphLocal = target.globalToLocal(globalPosition);
+        if (!target.size.contains(paragraphLocal)) continue;
+        final textPosition = target.getPositionForOffset(paragraphLocal);
+        final url = _findLinkUrlInSpan(target.text, textPosition);
+        if (url != null) {
+          hoveredUrl.value = url;
+          return;
+        }
+      }
+    }
+    // No link found under cursor — only clear if the current value wasn't set
+    // by buildGestureDetector (block-level links manage their own state).
+    hoveredUrl.value = null;
+  }
+
+  /// Walk the [InlineSpan] tree to find a link recognizer at [position].
+  String? _findLinkUrlInSpan(InlineSpan span, TextPosition position) {
+    final hitSpan = span.getSpanForPosition(position);
+    if (hitSpan is! TextSpan) return null;
+
+    final recognizer = hitSpan.recognizer;
+    if (recognizer == null) return null;
+    return recognizerUrlMap[identityHashCode(recognizer)];
   }
 
   void _handlePointerCancel(PointerCancelEvent event) {
