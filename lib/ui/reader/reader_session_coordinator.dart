@@ -16,7 +16,7 @@ String _selectSanitizedDisplayHtml({
   final rawHtml = translatedHtml.isNotEmpty
       ? translatedHtml
       : _selectActiveHtmlForArticle(article);
-  return HtmlSanitizer.sanitize(rawHtml).trim();
+  return HtmlSanitizer.sanitize(normalizeReaderHtmlForDisplay(rawHtml)).trim();
 }
 
 final class _ReaderSessionCoordinator {

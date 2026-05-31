@@ -103,6 +103,53 @@ void main() {
     expect(sanitized, contains('alt="Real image"'));
   });
 
+  test(
+    'keeps media tags with safe attributes and strips unsafe media URLs',
+    () {
+      const html = '''
+<article>
+  <video src="https://cdn.example.com/movie.mp4" poster="javascript:bad()" controls autoplay onplay="x()">
+    <source src="https://cdn.example.com/movie.webm" type="video/webm">
+    <track src="https://cdn.example.com/captions.vtt" kind="subtitles" srclang="en" label="English" default>
+  </video>
+  <audio src="javascript:alert(1)" controls preload="eager"></audio>
+</article>
+''';
+      final sanitized = HtmlSanitizer.sanitize(html);
+      expect(sanitized, contains('<video'));
+      expect(sanitized, contains('src="https://cdn.example.com/movie.mp4"'));
+      expect(sanitized, contains('<source'));
+      expect(sanitized, contains('type="video/webm"'));
+      expect(sanitized, contains('<track'));
+      expect(sanitized, contains('kind="subtitles"'));
+      expect(sanitized, contains('controls'));
+      expect(sanitized, isNot(contains('onplay')));
+      expect(sanitized, isNot(contains('autoplay')));
+      expect(sanitized, isNot(contains('poster=')));
+      expect(sanitized, isNot(contains('javascript:')));
+      expect(sanitized, isNot(contains('preload=')));
+    },
+  );
+
+  test('keeps code language markers and removes unsafe classes', () {
+    const html =
+        '<article><pre class="x"><code class="language-dart evil()" data-language="dart">final x = 1;</code></pre></article>';
+    final sanitized = HtmlSanitizer.sanitize(html);
+    expect(sanitized, contains('class="language-dart"'));
+    expect(sanitized, contains('data-language="dart"'));
+    expect(sanitized, isNot(contains('evil')));
+  });
+
+  test('keeps reader math marker attributes', () {
+    const html =
+        '<article><fleur-math data-fleur-math="x^2" data-fleur-math-display="inline" onclick="bad()">x^2</fleur-math></article>';
+    final sanitized = HtmlSanitizer.sanitize(html);
+    expect(sanitized, contains('<fleur-math'));
+    expect(sanitized, contains('data-fleur-math="x^2"'));
+    expect(sanitized, contains('data-fleur-math-display="inline"'));
+    expect(sanitized, isNot(contains('onclick')));
+  });
+
   group('CSS property filtering', () {
     test('preserves allowed layout CSS properties', () {
       const html = '''
@@ -233,6 +280,16 @@ void main() {
       expect(sanitized, contains('cellpadding="4"'));
       expect(sanitized, contains('cellspacing="2"'));
       expect(sanitized, contains('border="1"'));
+    });
+
+    test('preserves extended table structure tags', () {
+      const html =
+          '<article><table><caption>Cap</caption><colgroup><col span="2"></colgroup><tfoot><tr><td>Foot</td></tr></tfoot></table></article>';
+      final sanitized = HtmlSanitizer.sanitize(html);
+      expect(sanitized, contains('<caption>Cap</caption>'));
+      expect(sanitized, contains('<colgroup>'));
+      expect(sanitized, contains('<col span="2">'));
+      expect(sanitized, contains('<tfoot>'));
     });
   });
 }

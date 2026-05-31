@@ -36,7 +36,7 @@ class ReaderSearchService {
     final chunks = <String>[];
     int start = 0;
     final blockTagRe = RegExp(
-      r'</(p|div|section|article|h[1-6]|ul|ol|table|blockquote)>',
+      r'</(p|div|section|article|h[1-6]|ul|ol|table|blockquote|pre)>',
       caseSensitive: false,
     );
 

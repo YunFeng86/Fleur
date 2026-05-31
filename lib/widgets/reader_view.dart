@@ -10,7 +10,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:flutter_math_fork/flutter_math.dart' as flutter_math;
 import 'package:html/dom.dart' as dom;
+import 'package:html/parser.dart' as html_parser;
+import 'package:syntax_highlight/syntax_highlight.dart';
 
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
@@ -89,6 +92,25 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
   static const double _autoScrollDeadZone = 6;
   static const double _autoScrollSpeedFactor = 0.12;
   static const int _chunkThreshold = 50000;
+
+  static const List<String> _highlightLanguages = [
+    'css',
+    'dart',
+    'go',
+    'html',
+    'java',
+    'javascript',
+    'json',
+    'kotlin',
+    'python',
+    'rust',
+    'sql',
+    'swift',
+    'typescript',
+    'yaml',
+  ];
+
+  static Future<void>? _syntaxHighlightInit;
 
   @override
   void initState() {
@@ -566,9 +588,14 @@ class _ImageErrorPlaceholder extends StatelessWidget {
   }
 }
 
-class _IframeMediaCard extends StatelessWidget {
-  const _IframeMediaCard({required this.url, required this.onOpen});
+class _MediaEmbedCard extends StatelessWidget {
+  const _MediaEmbedCard({
+    required this.kind,
+    required this.url,
+    required this.onOpen,
+  });
 
+  final String kind;
   final String url;
   final VoidCallback onOpen;
 
@@ -576,9 +603,10 @@ class _IframeMediaCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final host = Uri.tryParse(url)?.host;
-    final label = (host == null || host.isEmpty) ? url : host;
+    final label = _mediaLabel(url, host);
+    final canOpen = url.trim().isNotEmpty;
     return Container(
-      key: const Key('reader_iframe_media_card'),
+      key: const Key('reader_media_embed_card'),
       margin: const EdgeInsets.symmetric(vertical: 14),
       decoration: BoxDecoration(
         color: theme.fleurReader.codeBlockSurface,
@@ -589,15 +617,17 @@ class _IframeMediaCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(8),
-          onTap: onOpen,
+          onTap: canOpen ? onOpen : null,
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Row(
               children: [
                 Icon(
-                  FleurIcons.openExternal,
+                  canOpen ? FleurIcons.openExternal : FleurIcons.brokenImage,
                   size: 22,
-                  color: theme.colorScheme.primary,
+                  color: canOpen
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -606,7 +636,7 @@ class _IframeMediaCard extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Embedded media',
+                        '$kind media',
                         style: theme.textTheme.labelLarge?.copyWith(
                           fontWeight: AppTypography.platformWeight(
                             FontWeight.w700,
@@ -615,7 +645,7 @@ class _IframeMediaCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        label,
+                        canOpen ? label : 'Media source unavailable',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodySmall?.copyWith(
@@ -629,12 +659,193 @@ class _IframeMediaCard extends StatelessWidget {
                 Icon(
                   FleurIcons.chevronRight,
                   size: 18,
-                  color: theme.colorScheme.onSurfaceVariant,
+                  color: canOpen
+                      ? theme.colorScheme.onSurfaceVariant
+                      : theme.colorScheme.onSurfaceVariant.withAlpha(120),
                 ),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  String _mediaLabel(String url, String? host) {
+    if (host != null && host.isNotEmpty) return host;
+    final path = Uri.tryParse(url)?.pathSegments.lastOrNull;
+    if (path != null && path.trim().isNotEmpty) return path;
+    return url;
+  }
+}
+
+class _ReaderCodeBlock extends StatelessWidget {
+  const _ReaderCodeBlock({
+    required this.code,
+    required this.language,
+    required this.fontSize,
+  });
+
+  final String code;
+  final String? language;
+  final double fontSize;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final reader = theme.fleurReader;
+    final codeStyle = TextStyle(
+      color: theme.colorScheme.onSurface,
+      decoration: TextDecoration.none,
+      fontFamily: 'monospace',
+      fontSize: math.max(12, fontSize - 1),
+      fontStyle: FontStyle.normal,
+      fontWeight: FontWeight.w400,
+      height: 1.45,
+    );
+
+    return Container(
+      key: const Key('reader_code_block'),
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(vertical: 18),
+      decoration: BoxDecoration(
+        color: reader.codeBlockSurface,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: theme.fleurSurface.subtleDivider),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: FutureBuilder<TextSpan>(
+            future: _highlightCode(context, code, language, codeStyle),
+            builder: (context, snapshot) {
+              final span =
+                  snapshot.data ?? TextSpan(text: code, style: codeStyle);
+              return SelectableText.rich(span);
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Future<TextSpan> _highlightCode(
+    BuildContext context,
+    String code,
+    String? language,
+    TextStyle fallbackStyle,
+  ) async {
+    final normalized = _normalizeCodeLanguage(language);
+    if (normalized == null) return TextSpan(text: code, style: fallbackStyle);
+    final brightness = Theme.of(context).brightness;
+    try {
+      _ReaderViewState._syntaxHighlightInit ??= Highlighter.initialize(
+        _ReaderViewState._highlightLanguages,
+      );
+      await _ReaderViewState._syntaxHighlightInit;
+      final highlighter = Highlighter(
+        language: normalized,
+        theme: await HighlighterTheme.loadForBrightness(brightness),
+      );
+      return _readerCodeHighlightSpan(
+        highlighter.highlight(code),
+        fallbackStyle,
+      );
+    } catch (_) {
+      return TextSpan(text: code, style: fallbackStyle);
+    }
+  }
+}
+
+TextSpan _readerCodeHighlightSpan(TextSpan span, TextStyle baseStyle) {
+  return TextSpan(
+    text: span.text,
+    style: baseStyle.merge(_highlightColorOnly(span.style)),
+    children: _readerCodeHighlightChildren(span.children),
+  );
+}
+
+List<InlineSpan>? _readerCodeHighlightChildren(List<InlineSpan>? children) {
+  if (children == null) return null;
+  return [
+    for (final child in children)
+      if (child is TextSpan)
+        TextSpan(
+          text: child.text,
+          style: _highlightColorOnly(child.style),
+          children: _readerCodeHighlightChildren(child.children),
+        )
+      else
+        child,
+  ];
+}
+
+TextStyle? _highlightColorOnly(TextStyle? style) {
+  final color = style?.color;
+  return color == null ? null : TextStyle(color: color);
+}
+
+String? _normalizeCodeLanguage(String? raw) {
+  final lang = (raw ?? '').trim().toLowerCase();
+  if (lang.isEmpty) return null;
+  final normalized = switch (lang) {
+    'js' => 'javascript',
+    'ts' => 'typescript',
+    'py' => 'python',
+    'kt' => 'kotlin',
+    'rs' => 'rust',
+    'yml' => 'yaml',
+    _ => lang,
+  };
+  return _ReaderViewState._highlightLanguages.contains(normalized)
+      ? normalized
+      : null;
+}
+
+class _ReaderMathNode extends StatelessWidget {
+  const _ReaderMathNode({required this.expression, required this.display});
+
+  final String expression;
+  final bool display;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textStyle = theme.fleurReader.bodyStyle.copyWith(
+      color: theme.colorScheme.onSurface,
+    );
+    final math = flutter_math.Math.tex(
+      expression,
+      key: const Key('reader_math_node'),
+      mathStyle: display
+          ? flutter_math.MathStyle.display
+          : flutter_math.MathStyle.text,
+      textStyle: textStyle,
+      onErrorFallback: (_) => Text(
+        expression,
+        key: const Key('reader_math_fallback'),
+        style: textStyle.copyWith(fontFamily: 'monospace'),
+      ),
+    );
+
+    if (!display) {
+      return math;
+    }
+
+    return Container(
+      key: const Key('reader_math_block'),
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(vertical: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.fleurReader.codeBlockSurface,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: theme.fleurSurface.subtleDivider),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: math,
       ),
     );
   }
@@ -698,4 +909,180 @@ class _CssLength {
 
   final double? px;
   final double? percent;
+}
+
+@visibleForTesting
+String normalizeReaderHtmlForDisplay(String html) {
+  if (html.trim().isEmpty) return '';
+  final fragment = html_parser.parseFragment(html);
+
+  void visit(dom.Node node) {
+    if (node is dom.Element && _skipMathNormalizationInside(node)) {
+      return;
+    }
+
+    final children = List<dom.Node>.from(node.nodes);
+    for (final child in children) {
+      if (child is dom.Text) {
+        _replaceMathTextNode(child);
+      } else {
+        visit(child);
+      }
+    }
+  }
+
+  visit(fragment);
+  return fragment.outerHtml;
+}
+
+bool _skipMathNormalizationInside(dom.Element element) {
+  final tag = element.localName?.toLowerCase();
+  return tag == 'pre' || tag == 'code' || tag == 'a' || tag == 'fleur-math';
+}
+
+void _replaceMathTextNode(dom.Text node) {
+  final text = node.text;
+  if (!_mayContainMathDelimiter(text)) return;
+  final parent = node.parent;
+  if (parent == null) return;
+  final index = parent.nodes.indexOf(node);
+  if (index < 0) return;
+
+  final replacements = _parseMathText(text);
+  if (replacements == null) return;
+  parent.nodes.removeAt(index);
+  parent.nodes.insertAll(index, replacements);
+}
+
+bool _mayContainMathDelimiter(String text) {
+  return text.contains(r'$') || text.contains(r'\(') || text.contains(r'\[');
+}
+
+List<dom.Node>? _parseMathText(String text) {
+  final nodes = <dom.Node>[];
+  var cursor = 0;
+  var found = false;
+
+  while (cursor < text.length) {
+    final match = _findNextMath(text, cursor);
+    if (match == null) break;
+    if (match.start > cursor) {
+      nodes.add(dom.Text(text.substring(cursor, match.start)));
+    }
+    nodes.add(_buildMathElement(match.expression, display: match.display));
+    found = true;
+    cursor = match.end;
+  }
+
+  if (!found) return null;
+  if (cursor < text.length) {
+    nodes.add(dom.Text(text.substring(cursor)));
+  }
+  return nodes;
+}
+
+_MathMatch? _findNextMath(String text, int start) {
+  _MathMatch? best;
+  for (final opener in const [r'$$', r'\[', r'\(', r'$']) {
+    final candidate = _findMathWithOpener(text, start, opener);
+    if (candidate == null) continue;
+    if (best == null || candidate.start < best.start) {
+      best = candidate;
+    }
+  }
+  return best;
+}
+
+_MathMatch? _findMathWithOpener(String text, int start, String opener) {
+  final openIndex = _indexOfUnescaped(text, opener, start);
+  if (openIndex < 0) return null;
+  if (opener == r'$' && _isDoubleDollarAt(text, openIndex)) {
+    return null;
+  }
+
+  final closer = switch (opener) {
+    r'$$' => r'$$',
+    r'\[' => r'\]',
+    r'\(' => r'\)',
+    _ => r'$',
+  };
+  final closeStart = openIndex + opener.length;
+  final closeIndex = _indexOfUnescaped(text, closer, closeStart);
+  if (closeIndex < 0) return null;
+  if (closer == r'$' && _isDoubleDollarAt(text, closeIndex)) {
+    return null;
+  }
+
+  final expression = text.substring(closeStart, closeIndex).trim();
+  if (expression.isEmpty) return null;
+  return _MathMatch(
+    start: openIndex,
+    end: closeIndex + closer.length,
+    expression: expression,
+    display: opener == r'$$' || opener == r'\[',
+  );
+}
+
+int _indexOfUnescaped(String text, String pattern, int start) {
+  var index = text.indexOf(pattern, start);
+  while (index >= 0) {
+    if (!_isEscaped(text, index)) return index;
+    index = text.indexOf(pattern, index + pattern.length);
+  }
+  return -1;
+}
+
+bool _isEscaped(String text, int index) {
+  var count = 0;
+  for (var i = index - 1; i >= 0 && text.codeUnitAt(i) == 92; i--) {
+    count++;
+  }
+  return count.isOdd;
+}
+
+bool _isDoubleDollarAt(String text, int index) {
+  return index + 1 < text.length &&
+      text.codeUnitAt(index) == 36 &&
+      text.codeUnitAt(index + 1) == 36;
+}
+
+dom.Element _buildMathElement(String expression, {required bool display}) {
+  return dom.Element.tag('fleur-math')
+    ..attributes['data-fleur-math'] = expression
+    ..attributes['data-fleur-math-display'] = display ? 'block' : 'inline'
+    ..text = expression;
+}
+
+class _MathMatch {
+  const _MathMatch({
+    required this.start,
+    required this.end,
+    required this.expression,
+    required this.display,
+  });
+
+  final int start;
+  final int end;
+  final String expression;
+  final bool display;
+}
+
+String? _codeLanguage(dom.Element element) {
+  final dataLanguage = element.attributes['data-language']?.trim();
+  if (dataLanguage != null && dataLanguage.isNotEmpty) return dataLanguage;
+  final rawClass = element.attributes['class'] ?? '';
+  for (final part in rawClass.split(RegExp(r'\s+'))) {
+    if (part.startsWith('language-')) {
+      return part.substring('language-'.length);
+    }
+  }
+  return null;
+}
+
+String? _mediaSourceForElement(dom.Element element) {
+  final direct = element.attributes['src']?.trim();
+  if (direct != null && direct.isNotEmpty) return direct;
+  final source = element.querySelector('source[src]');
+  final nested = source?.attributes['src']?.trim();
+  return nested == null || nested.isEmpty ? null : nested;
 }

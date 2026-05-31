@@ -36,11 +36,19 @@ class HtmlSanitizer {
     'br',
     'hr',
     'table',
+    'caption',
+    'colgroup',
+    'col',
     'thead',
     'tbody',
+    'tfoot',
     'tr',
     'th',
     'td',
+    'video',
+    'audio',
+    'source',
+    'track',
     'div',
     'span',
     'b',
@@ -50,6 +58,7 @@ class HtmlSanitizer {
     'del',
     'sup',
     'sub',
+    'fleur-math',
   };
 
   static const _dangerousTags = {
@@ -79,6 +88,34 @@ class HtmlSanitizer {
     'td': ['colspan', 'rowspan'],
     'th': ['colspan', 'rowspan'],
     'table': ['cellpadding', 'cellspacing', 'border'],
+    'col': ['span'],
+    'video': [
+      'src',
+      'title',
+      'width',
+      'height',
+      'poster',
+      'controls',
+      'preload',
+    ],
+    'audio': ['src', 'title', 'controls', 'preload'],
+    'source': ['src', 'type'],
+    'track': ['src', 'kind', 'srclang', 'label', 'default'],
+    'code': ['class', 'data-language'],
+    'pre': ['class', 'data-language'],
+    'fleur-math': ['data-fleur-math', 'data-fleur-math-display'],
+  };
+
+  static final _safeClassPattern = RegExp(r'^[a-zA-Z0-9_\- ]+$');
+
+  static const _safeMediaPreloadValues = {'none', 'metadata', 'auto'};
+
+  static const _safeTrackKinds = {
+    'subtitles',
+    'captions',
+    'descriptions',
+    'chapters',
+    'metadata',
   };
 
   /// CSS properties allowed in inline styles.
@@ -232,6 +269,7 @@ class HtmlSanitizer {
         child.attributes.removeWhere(
           (k, v) => (k is String && k.startsWith('on')) || !allowed.contains(k),
         );
+        _sanitizeTagAttributes(child, tag);
 
         // Re-add filtered style
         if (filteredStyle != null) {
@@ -250,6 +288,69 @@ class HtmlSanitizer {
     for (final node in toUnwrap) {
       _unwrapNode(element, node);
     }
+  }
+
+  static void _sanitizeTagAttributes(Element element, String tag) {
+    if (tag == 'code' || tag == 'pre') {
+      final rawClass = element.attributes['class'];
+      if (rawClass != null) {
+        final filtered = rawClass
+            .split(RegExp(r'\s+'))
+            .where((part) => part.startsWith('language-'))
+            .where((part) => _safeClassPattern.hasMatch(part))
+            .join(' ')
+            .trim();
+        if (filtered.isEmpty) {
+          element.attributes.remove('class');
+        } else {
+          element.attributes['class'] = filtered;
+        }
+      }
+      final dataLanguage = element.attributes['data-language'];
+      if (dataLanguage != null && !_safeClassPattern.hasMatch(dataLanguage)) {
+        element.attributes.remove('data-language');
+      }
+      return;
+    }
+
+    if (tag == 'video' || tag == 'audio') {
+      _sanitizeMediaSrc(element, 'src');
+      _sanitizeMediaSrc(element, 'poster');
+      final preload = element.attributes['preload'];
+      if (preload != null &&
+          !_safeMediaPreloadValues.contains(preload.toLowerCase())) {
+        element.attributes.remove('preload');
+      }
+      return;
+    }
+
+    if (tag == 'source') {
+      _sanitizeMediaSrc(element, 'src');
+      return;
+    }
+
+    if (tag == 'track') {
+      _sanitizeMediaSrc(element, 'src');
+      final kind = element.attributes['kind'];
+      if (kind != null && !_safeTrackKinds.contains(kind.toLowerCase())) {
+        element.attributes.remove('kind');
+      }
+      return;
+    }
+  }
+
+  static void _sanitizeMediaSrc(Element element, String attribute) {
+    final raw = element.attributes[attribute];
+    if (raw == null || raw.trim().isEmpty) return;
+    final uri = Uri.tryParse(raw.trim());
+    if (uri == null || uri.hasScheme && !_isSafeMediaScheme(uri.scheme)) {
+      element.attributes.remove(attribute);
+    }
+  }
+
+  static bool _isSafeMediaScheme(String scheme) {
+    final s = scheme.toLowerCase();
+    return s == 'http' || s == 'https';
   }
 
   static void _unwrapNode(Element parent, Element child) {

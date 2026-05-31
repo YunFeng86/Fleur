@@ -496,8 +496,11 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
           'border': '1px solid ${rgba(theme.fleurSurface.subtleDivider)}',
           'border-radius': '6px',
           'font-family': 'monospace',
+          'font-style': 'normal',
+          'font-weight': '400',
           'margin': '18px 0',
           'padding': '14px 16px',
+          'text-decoration': 'none',
           'white-space': 'pre-wrap',
         };
       }
@@ -507,7 +510,10 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
           'background-color': cssColor(reader.codeBlockSurface),
           'border-radius': '4px',
           'font-family': 'monospace',
+          'font-style': 'normal',
+          'font-weight': '400',
           'padding': '1px 4px',
+          'text-decoration': 'none',
         };
       }
 
@@ -535,6 +541,22 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
         };
       }
 
+      if (localName == 'caption') {
+        return <String, String>{
+          'caption-side': 'top',
+          'color': cssColor(theme.colorScheme.onSurfaceVariant),
+          'font-style': 'italic',
+          'padding': '8px 10px',
+          'text-align': 'left',
+        };
+      }
+
+      if (localName == 'tfoot') {
+        return <String, String>{
+          'background-color': rgba(reader.bannerSurface, alpha: 0.44),
+        };
+      }
+
       if (localName == 'ul' || localName == 'ol') {
         return const <String, String>{
           'margin': '10px 0 14px 0',
@@ -550,19 +572,52 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
     }
 
     Widget? customWidgets(dom.Element element) {
-      if (element.localName != 'iframe') {
-        return null;
+      final localName = element.localName;
+      if (localName == 'fleur-math') {
+        final expression = element.attributes['data-fleur-math']?.trim();
+        if (expression == null || expression.isEmpty) return null;
+        final display =
+            element.attributes['data-fleur-math-display'] == 'block';
+        final math = _ReaderMathNode(expression: expression, display: display);
+        return display ? math : InlineCustomWidget(child: math);
       }
-      final src = element.attributes['src']?.trim();
-      if (src == null || src.isEmpty) {
-        return null;
+
+      if (localName == 'pre') {
+        final codeElement = element.querySelector('code');
+        final source = codeElement ?? element;
+        final code = source.text;
+        if (code.trim().isEmpty) return null;
+        return _ReaderCodeBlock(
+          code: code,
+          language: _codeLanguage(source) ?? _codeLanguage(element),
+          fontSize: settings.fontSize,
+        );
       }
-      final resolved =
-          Uri.tryParse(article.link)?.resolve(src).toString() ?? src;
-      return _IframeMediaCard(
-        url: resolved,
-        onOpen: () => unawaited(_onTapUrl(resolved)),
-      );
+
+      if (localName == 'iframe' ||
+          localName == 'video' ||
+          localName == 'audio') {
+        final src = _mediaSourceForElement(element);
+        final resolved = src == null
+            ? ''
+            : Uri.tryParse(article.link)?.resolve(src).toString() ?? src;
+        return _MediaEmbedCard(
+          kind: switch (localName) {
+            'iframe' => 'Embedded',
+            'video' => 'Video',
+            'audio' => 'Audio',
+            _ => 'Embedded',
+          },
+          url: resolved,
+          onOpen: () {
+            if (resolved.isNotEmpty) {
+              unawaited(_onTapUrl(resolved));
+            }
+          },
+        );
+      }
+
+      return null;
     }
 
     if (!isChunked) {

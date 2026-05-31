@@ -247,7 +247,9 @@ void main() {
   }
 
   String displayedContentHash(String html) {
-    return ContentHash.compute(HtmlSanitizer.sanitize(html));
+    return ContentHash.compute(
+      HtmlSanitizer.sanitize(normalizeReaderHtmlForDisplay(html)),
+    );
   }
 
   String readerPlainText(WidgetTester tester) {
@@ -260,6 +262,14 @@ void main() {
         )
         .map((widget) => widget.text.toPlainText())
         .join('\n');
+  }
+
+  List<TextSpan> flattenTextSpans(TextSpan span) {
+    return [
+      span,
+      for (final child in span.children ?? const <InlineSpan>[])
+        if (child is TextSpan) ...flattenTextSpans(child),
+    ];
   }
 
   testWidgets('marks article as read when opening the reader', (tester) async {
@@ -529,6 +539,164 @@ void main() {
     expect(plainText, contains('Item one'));
   });
 
+  testWidgets('reader renders math nodes and skips code and links', (
+    tester,
+  ) async {
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html:
+            r'<p>Inline $a^2+b^2=c^2$ math.</p>'
+            r'<p>Block $$E = mc^2$$ math.</p>'
+            r'<pre><code>$not_math$</code></pre>'
+            r'<p><a href="https://example.com">$link_math$</a></p>'
+            r'<p>Broken $\notACommand{$ formula.</p>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 16);
+
+    expect(find.byKey(const Key('reader_math_node')), findsWidgets);
+    expect(find.byKey(const Key('reader_math_block')), findsOneWidget);
+    expect(find.byKey(const Key('reader_math_fallback')), findsOneWidget);
+    expect(
+      find.textContaining(r'$not_math$', findRichText: true),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining(r'$link_math$', findRichText: true),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+    'reader renders code block with language marker and fallback text',
+    (tester) async {
+      await pumpReader(
+        tester,
+        article: buildArticle(
+          title: 'A',
+          html:
+              '<pre>&lt;div class="box"&gt;\n'
+              '  &lt;p id="p"&gt;我的对齐是？&lt;/p&gt;\n'
+              '&lt;/div&gt;</pre>'
+              '<pre><code class="language-css">'
+              '@container excel-scroller scroll-state(scrolled: right) {\n'
+              '/* first sticky column right border */\n'
+              ':where(td, th):first-child {\n'
+              '  border-right: 1px solid var(--ui-border);\n'
+              '}\n'
+              '}'
+              '</code></pre>'
+              '<pre><code class="language-unknown">plain fallback</code></pre>',
+        ),
+        appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      );
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 500)),
+      );
+      await settleReader(tester, rounds: 20);
+
+      expect(find.byKey(const Key('reader_code_block')), findsNWidgets(3));
+      expect(
+        find.textContaining('@container excel-scroller', findRichText: true),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('<div class="box">', findRichText: true),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('plain fallback', findRichText: true),
+        findsOneWidget,
+      );
+
+      final codeTexts = tester.widgetList<SelectableText>(
+        find.descendant(
+          of: find.byKey(const Key('reader_code_block')),
+          matching: find.byType(SelectableText),
+        ),
+      );
+      final spans = <TextSpan>[
+        for (final widget in codeTexts)
+          if (widget.textSpan != null) ...flattenTextSpans(widget.textSpan!),
+      ];
+      expect(spans.any((span) => span.style?.color != null), isTrue);
+      expect(
+        spans
+            .map((span) => span.style)
+            .whereType<TextStyle>()
+            .where(
+              (style) =>
+                  style.decoration != null ||
+                  style.fontStyle != null ||
+                  style.fontWeight != null,
+            ),
+        everyElement(
+          predicate<TextStyle>(
+            (style) =>
+                style.decoration == TextDecoration.none &&
+                style.fontStyle == FontStyle.normal &&
+                style.fontWeight == FontWeight.w400,
+          ),
+        ),
+      );
+    },
+  );
+
+  testWidgets('reader renders media tags as cards', (tester) async {
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html:
+            '<iframe src="https://www.youtube.com/embed/abc"></iframe>'
+            '<video><source src="https://cdn.example.com/movie.mp4" type="video/mp4"></video>'
+            '<audio src="https://cdn.example.com/sound.mp3"></audio>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 12);
+
+    expect(find.byKey(const Key('reader_media_embed_card')), findsNWidgets(3));
+    expect(find.text('Embedded media'), findsOneWidget);
+    expect(find.text('Video media'), findsOneWidget);
+    expect(find.text('Audio media'), findsOneWidget);
+    expect(find.text('www.youtube.com'), findsOneWidget);
+    expect(find.text('cdn.example.com'), findsNWidgets(2));
+  });
+
+  testWidgets('reader renders table caption and footer with theme styling', (
+    tester,
+  ) async {
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html:
+            '<table><caption>Metrics</caption><thead><tr><th>Name</th></tr></thead>'
+            '<tbody><tr><td>Fleur</td></tr></tbody><tfoot><tr><td>Total</td></tr></tfoot></table>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 12);
+
+    final plainText = readerPlainText(tester);
+    expect(plainText, contains('Metrics'));
+    expect(plainText, contains('Total'));
+    expect(find.byType(HtmlWidget), findsOneWidget);
+  });
+
   testWidgets('reader shows image error placeholder when image fails', (
     tester,
   ) async {
@@ -573,7 +741,7 @@ void main() {
     );
     await settleReader(tester, rounds: 12);
 
-    expect(find.byKey(const Key('reader_iframe_media_card')), findsOneWidget);
+    expect(find.byKey(const Key('reader_media_embed_card')), findsOneWidget);
     expect(find.text('Embedded media'), findsOneWidget);
     expect(find.text('www.youtube.com'), findsOneWidget);
     expect(find.textContaining('evil.example'), findsNothing);
