@@ -679,7 +679,7 @@ class _MediaEmbedCard extends StatelessWidget {
   }
 }
 
-class _ReaderCodeBlock extends StatelessWidget {
+class _ReaderCodeBlock extends StatefulWidget {
   const _ReaderCodeBlock({
     required this.code,
     required this.language,
@@ -691,18 +691,71 @@ class _ReaderCodeBlock extends StatelessWidget {
   final double fontSize;
 
   @override
-  Widget build(BuildContext context) {
+  State<_ReaderCodeBlock> createState() => _ReaderCodeBlockState();
+}
+
+class _ReaderCodeBlockState extends State<_ReaderCodeBlock> {
+  Future<TextSpan>? _highlightFuture;
+  Brightness? _highlightBrightness;
+  String? _highlightLanguage;
+  String? _highlightCodeText;
+  double? _highlightFontSize;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _refreshHighlightFuture();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ReaderCodeBlock oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.code != widget.code ||
+        oldWidget.language != widget.language ||
+        oldWidget.fontSize != widget.fontSize) {
+      _refreshHighlightFuture();
+    }
+  }
+
+  void _refreshHighlightFuture() {
+    final brightness = Theme.of(context).brightness;
+    if (_highlightFuture != null &&
+        _highlightBrightness == brightness &&
+        _highlightLanguage == widget.language &&
+        _highlightCodeText == widget.code &&
+        _highlightFontSize == widget.fontSize) {
+      return;
+    }
+    _highlightBrightness = brightness;
+    _highlightLanguage = widget.language;
+    _highlightCodeText = widget.code;
+    _highlightFontSize = widget.fontSize;
+    _highlightFuture = _highlightCode(
+      context,
+      widget.code,
+      widget.language,
+      _codeStyle(context),
+    );
+  }
+
+  TextStyle _codeStyle(BuildContext context) {
     final theme = Theme.of(context);
-    final reader = theme.fleurReader;
-    final codeStyle = TextStyle(
+    return TextStyle(
       color: theme.colorScheme.onSurface,
       decoration: TextDecoration.none,
       fontFamily: 'monospace',
-      fontSize: math.max(12, fontSize - 1),
+      fontSize: math.max(12, widget.fontSize - 1),
       fontStyle: FontStyle.normal,
       fontWeight: FontWeight.w400,
       height: 1.45,
     );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final reader = theme.fleurReader;
+    final codeStyle = _codeStyle(context);
 
     return Container(
       key: const Key('reader_code_block'),
@@ -718,10 +771,11 @@ class _ReaderCodeBlock extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: FutureBuilder<TextSpan>(
-            future: _highlightCode(context, code, language, codeStyle),
+            future: _highlightFuture,
             builder: (context, snapshot) {
               final span =
-                  snapshot.data ?? TextSpan(text: code, style: codeStyle);
+                  snapshot.data ??
+                  TextSpan(text: widget.code, style: codeStyle);
               return SelectableText.rich(span);
             },
           ),
@@ -738,6 +792,9 @@ class _ReaderCodeBlock extends StatelessWidget {
   ) async {
     final normalized = _normalizeCodeLanguage(language);
     if (normalized == null) return TextSpan(text: code, style: fallbackStyle);
+    if (normalized == 'diff') {
+      return _highlightDiffCode(context, code, fallbackStyle);
+    }
     final brightness = Theme.of(context).brightness;
     try {
       _ReaderViewState._syntaxHighlightInit ??= Highlighter.initialize(
@@ -761,7 +818,7 @@ class _ReaderCodeBlock extends StatelessWidget {
 TextSpan _readerCodeHighlightSpan(TextSpan span, TextStyle baseStyle) {
   return TextSpan(
     text: span.text,
-    style: baseStyle.merge(_highlightColorOnly(span.style)),
+    style: baseStyle,
     children: _readerCodeHighlightChildren(span.children),
   );
 }
@@ -786,21 +843,59 @@ TextStyle? _highlightColorOnly(TextStyle? style) {
   return color == null ? null : TextStyle(color: color);
 }
 
+TextSpan _highlightDiffCode(
+  BuildContext context,
+  String code,
+  TextStyle fallbackStyle,
+) {
+  final theme = Theme.of(context);
+  final dark = theme.brightness == Brightness.dark;
+  final addedColor = dark ? const Color(0xFF7EE787) : const Color(0xFF116329);
+  final removedColor = dark ? const Color(0xFFFF7B72) : theme.colorScheme.error;
+  final addedBackground = addedColor.withAlpha(dark ? 44 : 30);
+  final removedBackground = removedColor.withAlpha(dark ? 42 : 28);
+  final spans = <TextSpan>[];
+
+  var start = 0;
+  while (start < code.length) {
+    final newline = code.indexOf('\n', start);
+    final end = newline < 0 ? code.length : newline + 1;
+    final line = code.substring(start, end);
+    final marker = line.codeUnitAt(0);
+    final style = switch (marker) {
+      43 => TextStyle(color: addedColor, backgroundColor: addedBackground),
+      45 => TextStyle(color: removedColor, backgroundColor: removedBackground),
+      _ => null,
+    };
+    spans.add(TextSpan(text: line, style: style));
+    start = end;
+  }
+
+  return TextSpan(style: fallbackStyle, children: spans);
+}
+
 String? _normalizeCodeLanguage(String? raw) {
-  final lang = (raw ?? '').trim().toLowerCase();
-  if (lang.isEmpty) return null;
-  final normalized = switch (lang) {
-    'js' => 'javascript',
-    'ts' => 'typescript',
-    'py' => 'python',
-    'kt' => 'kotlin',
-    'rs' => 'rust',
-    'yml' => 'yaml',
-    _ => lang,
-  };
-  return _ReaderViewState._highlightLanguages.contains(normalized)
-      ? normalized
-      : null;
+  final tokens = (raw ?? '').trim().toLowerCase().split(RegExp(r'\s+'));
+  for (var lang in tokens) {
+    if (lang.isEmpty) continue;
+    if (lang.startsWith('language-')) {
+      lang = lang.substring('language-'.length);
+    }
+    if (lang == 'diff' || lang.startsWith('diff-')) return 'diff';
+    final normalized = switch (lang) {
+      'js' || 'jsx' => 'javascript',
+      'ts' || 'tsx' => 'typescript',
+      'py' => 'python',
+      'kt' => 'kotlin',
+      'rs' => 'rust',
+      'yml' => 'yaml',
+      _ => lang,
+    };
+    if (_ReaderViewState._highlightLanguages.contains(normalized)) {
+      return normalized;
+    }
+  }
+  return null;
 }
 
 class _ReaderMathNode extends StatelessWidget {

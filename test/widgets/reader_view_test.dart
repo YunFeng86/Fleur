@@ -592,6 +592,15 @@ void main() {
               '}\n'
               '}'
               '</code></pre>'
+              '<pre><code class="language-typescript">'
+              "import { createLogger } from 'vite'\n"
+              'const logger = createLogger()'
+              '</code></pre>'
+              '<pre><code class="language-diff-plain language-diff diff-highlight">'
+              '+added line\n'
+              '-removed line\n'
+              ' unchanged'
+              '</code></pre>'
               '<pre><code class="language-unknown">plain fallback</code></pre>',
         ),
         appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
@@ -601,9 +610,17 @@ void main() {
       );
       await settleReader(tester, rounds: 20);
 
-      expect(find.byKey(const Key('reader_code_block')), findsNWidgets(3));
+      expect(find.byKey(const Key('reader_code_block')), findsNWidgets(5));
       expect(
         find.textContaining('@container excel-scroller', findRichText: true),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('createLogger', findRichText: true),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('+added line', findRichText: true),
         findsOneWidget,
       );
       expect(
@@ -625,7 +642,28 @@ void main() {
         for (final widget in codeTexts)
           if (widget.textSpan != null) ...flattenTextSpans(widget.textSpan!),
       ];
-      expect(spans.any((span) => span.style?.color != null), isTrue);
+      final baseCodeColor = Theme.of(
+        tester.element(find.byType(ReaderView)),
+      ).colorScheme.onSurface;
+      expect(
+        spans.any(
+          (span) =>
+              (span.text?.contains('import') ?? false) &&
+              span.style?.color != null &&
+              span.style?.color != baseCodeColor,
+        ),
+        isTrue,
+      );
+      final addedDiffSpan = spans.firstWhere(
+        (span) => span.text?.startsWith('+added line') ?? false,
+      );
+      final removedDiffSpan = spans.firstWhere(
+        (span) => span.text?.startsWith('-removed line') ?? false,
+      );
+      expect(addedDiffSpan.style?.backgroundColor, isNotNull);
+      expect(addedDiffSpan.style?.color, isNot(baseCodeColor));
+      expect(removedDiffSpan.style?.backgroundColor, isNotNull);
+      expect(removedDiffSpan.style?.color, isNot(baseCodeColor));
       expect(
         spans
             .map((span) => span.style)
