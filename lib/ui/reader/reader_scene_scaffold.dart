@@ -11,17 +11,14 @@ extension _ReaderSceneScaffold on _ReaderViewState {
     required FleurReaderTheme readerTokens,
   }) {
     final sceneStates = sceneTheme.fleurState;
-    final hasExtracted = (article.extractedContentHtml ?? '').trim().isNotEmpty;
-    final showExtracted =
-        hasExtracted &&
-        article.preferredContentView == ArticleContentView.extracted;
-    final originalHtml =
-        ((showExtracted ? article.extractedContentHtml : null) ??
-                article.contentHtml ??
-                '')
-            .trim();
     final translatedHtml = (aiState.translationHtml ?? '').trim();
-    final html = translatedHtml.isNotEmpty ? translatedHtml : originalHtml;
+    final html = _selectSanitizedDisplayHtml(
+      article: article,
+      translationHtml: translatedHtml,
+    );
+
+    _viewportCoordinator.requestContentHashUpdate(html: html);
+    _scheduleSearchDocumentHtmlSync(html);
 
     final isChunked = html.length >= _ReaderViewState._chunkThreshold;
     _viewportCoordinator._handleViewportSizeChange(

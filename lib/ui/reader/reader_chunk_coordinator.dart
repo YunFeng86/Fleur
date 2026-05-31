@@ -452,9 +452,12 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
       return 'rgba($r,$g,$b,${a.toStringAsFixed(3)})';
     }
 
+    String cssColor(Color color) => rgba(color);
+
     Map<String, String>? customStyles(dom.Element element) {
+      final localName = element.localName;
       // Search highlight styles
-      if (element.localName == 'mark') {
+      if (localName == 'mark') {
         if (element.attributes[ReaderSearchService.markerAttribute] ==
             ReaderSearchService.markerAttributeValue) {
           final isCurrent =
@@ -471,11 +474,95 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
       }
 
       // Link underline: dashed so adjacent links are visually distinct
-      if (element.localName == 'a') {
+      if (localName == 'a') {
         return const <String, String>{'text-decoration-style': 'dashed'};
       }
 
+      if (localName == 'blockquote') {
+        return <String, String>{
+          'background-color': rgba(reader.bannerSurface, alpha: 0.64),
+          'border-left': '4px solid ${cssColor(reader.blockquoteAccent)}',
+          'border-radius': '6px',
+          'color': cssColor(theme.colorScheme.onSurfaceVariant),
+          'font-style': 'italic',
+          'margin': '18px 0',
+          'padding': '12px 16px',
+        };
+      }
+
+      if (localName == 'pre') {
+        return <String, String>{
+          'background-color': cssColor(reader.codeBlockSurface),
+          'border': '1px solid ${rgba(theme.fleurSurface.subtleDivider)}',
+          'border-radius': '6px',
+          'font-family': 'monospace',
+          'margin': '18px 0',
+          'padding': '14px 16px',
+          'white-space': 'pre-wrap',
+        };
+      }
+
+      if (localName == 'code') {
+        return <String, String>{
+          'background-color': cssColor(reader.codeBlockSurface),
+          'border-radius': '4px',
+          'font-family': 'monospace',
+          'padding': '1px 4px',
+        };
+      }
+
+      if (localName == 'table') {
+        return <String, String>{
+          'border': '1px solid ${rgba(theme.fleurSurface.subtleDivider)}',
+          'border-collapse': 'collapse',
+          'margin': '18px 0',
+        };
+      }
+
+      if (localName == 'th') {
+        return <String, String>{
+          'background-color': rgba(reader.bannerSurface, alpha: 0.72),
+          'border': '1px solid ${rgba(theme.fleurSurface.subtleDivider)}',
+          'padding': '8px 10px',
+          'text-align': 'left',
+        };
+      }
+
+      if (localName == 'td') {
+        return <String, String>{
+          'border': '1px solid ${rgba(theme.fleurSurface.subtleDivider)}',
+          'padding': '8px 10px',
+        };
+      }
+
+      if (localName == 'ul' || localName == 'ol') {
+        return const <String, String>{
+          'margin': '10px 0 14px 0',
+          'padding-left': '24px',
+        };
+      }
+
+      if (localName == 'li') {
+        return const <String, String>{'margin': '4px 0'};
+      }
+
       return null;
+    }
+
+    Widget? customWidgets(dom.Element element) {
+      if (element.localName != 'iframe') {
+        return null;
+      }
+      final src = element.attributes['src']?.trim();
+      if (src == null || src.isEmpty) {
+        return null;
+      }
+      final resolved =
+          Uri.tryParse(article.link)?.resolve(src).toString() ?? src;
+      return _IframeMediaCard(
+        url: resolved,
+        onOpen: () => unawaited(_onTapUrl(resolved)),
+      );
     }
 
     if (!isChunked) {
@@ -523,7 +610,9 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
                             renderMode: RenderMode.column,
                             buildAsync: true,
                             onLoadingBuilder: _buildImageLoadingPlaceholder,
+                            onErrorBuilder: _buildImageErrorPlaceholder,
                             customStylesBuilder: customStyles,
+                            customWidgetBuilder: customWidgets,
                             textStyle: reader.bodyStyle.copyWith(
                               fontSize: settings.fontSize,
                               height: settings.lineHeight,
@@ -597,7 +686,9 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
                         renderMode: RenderMode.column,
                         buildAsync: true,
                         onLoadingBuilder: _buildImageLoadingPlaceholder,
+                        onErrorBuilder: _buildImageErrorPlaceholder,
                         customStylesBuilder: customStyles,
+                        customWidgetBuilder: customWidgets,
                         textStyle: reader.bodyStyle.copyWith(
                           fontSize: settings.fontSize,
                           height: settings.lineHeight,

@@ -3,8 +3,9 @@ import 'package:html/dom.dart';
 
 /// HTML sanitizer for cleaning untrusted RSS content.
 ///
-/// Removes dangerous tags (script, iframe) and attributes (onclick, onerror)
-/// to prevent XSS attacks and layout breakage from malicious RSS feeds.
+/// Removes dangerous tags (script, untrusted iframe) and attributes (onclick,
+/// onerror) to prevent XSS attacks and layout breakage from malicious RSS
+/// feeds. Trusted video iframe hosts are preserved with a reduced attribute set.
 ///
 /// CSS inline styles are filtered by property: layout and structural properties
 /// are preserved while typography properties (font-size, color, etc.) are
@@ -272,8 +273,9 @@ class HtmlSanitizer {
           .substring(0, colonIndex)
           .trim()
           .toLowerCase();
-      if (property.isEmpty || !_allowedCssProperties.contains(property))
+      if (property.isEmpty || !_allowedCssProperties.contains(property)) {
         continue;
+      }
       var value = declaration.substring(colonIndex + 1).trim();
       if (value.isEmpty) continue;
 

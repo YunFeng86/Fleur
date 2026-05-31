@@ -32,10 +32,12 @@ import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/settings/reader_progress_store.dart';
 import 'package:fleur/services/settings/reader_settings.dart';
 import 'package:fleur/services/settings/translation_ai_settings.dart';
+import 'package:fleur/services/html_sanitizer.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
 import 'package:fleur/ui/reader/reader_selectable_rich_text.dart';
+import 'package:fleur/utils/content_hash.dart';
 import 'package:fleur/utils/path_manager.dart';
 import 'package:fleur/utils/tag_colors.dart';
 import 'package:fleur/widgets/reader_bottom_bar.dart';
@@ -63,6 +65,16 @@ class _FakeFullTextController extends FullTextController {
       return handler(this, articleId);
     }
     return false;
+  }
+}
+
+class _TranslatedArticleAiController extends ArticleAiController {
+  @override
+  ArticleAiState build(int articleId) {
+    return ArticleAiState.initial(articleId).copyWith(
+      translationHtml: '<p>Translated body</p>',
+      translationStatus: ArticleAiTaskStatus.ready,
+    );
   }
 }
 
@@ -234,6 +246,22 @@ void main() {
     return (readerViewWidth - readingWidth) / 2 + horizontalPadding;
   }
 
+  String displayedContentHash(String html) {
+    return ContentHash.compute(HtmlSanitizer.sanitize(html));
+  }
+
+  String readerPlainText(WidgetTester tester) {
+    return tester
+        .widgetList<ReaderSelectableRichText>(
+          find.descendant(
+            of: find.byType(HtmlWidget),
+            matching: find.byType(ReaderSelectableRichText),
+          ),
+        )
+        .map((widget) => widget.text.toPlainText())
+        .join('\n');
+  }
+
   testWidgets('marks article as read when opening the reader', (tester) async {
     final actionService = RecordingArticleActionService();
 
@@ -348,6 +376,207 @@ void main() {
     final readerElement = tester.element(find.byType(ReaderView));
     final reader = AppTheme.readerScene(Theme.of(readerElement)).fleurReader;
     expect(style.color, reader.bodyStyle.color);
+  });
+
+  testWidgets('reader sanitizes feed html before rendering and search', (
+    tester,
+  ) async {
+    final rawHtml =
+        '<p onclick="evil()">Visible safe text</p>'
+        '<script>needleUnsafe()</script>'
+        '<p>Searchable clean text</p>';
+
+    await pumpReader(
+      tester,
+      article: buildArticle(title: 'A', html: rawHtml),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 12);
+
+    final plainText = readerPlainText(tester);
+    expect(plainText, contains('Visible safe text'));
+    expect(plainText, isNot(contains('needleUnsafe')));
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(ReaderView)),
+    );
+    container.read(readerSearchControllerProvider(articleId).notifier).open();
+    container
+        .read(readerSearchControllerProvider(articleId).notifier)
+        .setQuery('needleUnsafe');
+    await settleReader(tester, rounds: 5);
+
+    expect(
+      container.read(readerSearchControllerProvider(articleId)).totalMatches,
+      0,
+    );
+
+    container
+        .read(readerSearchControllerProvider(articleId).notifier)
+        .setQuery('Searchable clean text');
+    await settleReader(tester, rounds: 5);
+
+    expect(
+      container.read(readerSearchControllerProvider(articleId)).totalMatches,
+      1,
+    );
+  });
+
+  testWidgets('reader display html prefers extracted content over feed', (
+    tester,
+  ) async {
+    final article = buildArticle(title: 'A', html: '<p>Feed body</p>')
+      ..extractedContentHtml = '<p>Extracted body</p>'
+      ..preferredContentView = ArticleContentView.feed;
+
+    await pumpReader(
+      tester,
+      article: article,
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 12);
+
+    final plainText = readerPlainText(tester);
+    expect(plainText, contains('Extracted body'));
+    expect(plainText, isNot(contains('Feed body')));
+  });
+
+  testWidgets(
+    'reader display html prefers translation over extracted content',
+    (tester) async {
+      final article = buildArticle(title: 'A', html: '<p>Feed body</p>')
+        ..extractedContentHtml = '<p>Extracted body</p>';
+
+      await pumpReader(
+        tester,
+        article: article,
+        appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+        extraOverrides: [
+          articleAiControllerProvider.overrideWith(
+            _TranslatedArticleAiController.new,
+          ),
+        ],
+      );
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 500)),
+      );
+      await settleReader(tester, rounds: 12);
+
+      final plainText = readerPlainText(tester);
+      expect(plainText, contains('Translated body'));
+      expect(plainText, isNot(contains('Extracted body')));
+    },
+  );
+
+  testWidgets('reader applies theme styles to rich html elements', (
+    tester,
+  ) async {
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html:
+            '<blockquote><p>Quoted body</p></blockquote>'
+            '<pre><code>final answer = 42;</code></pre>'
+            '<table><tr><th>Name</th><td>Fleur</td></tr></table>'
+            '<ul><li>Item one</li></ul>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 12);
+
+    final readerElement = tester.element(find.byType(ReaderView));
+    final reader = AppTheme.readerScene(Theme.of(readerElement)).fleurReader;
+
+    final decoratedBoxes = tester
+        .widgetList<DecoratedBox>(find.byType(DecoratedBox))
+        .toList(growable: false);
+    final hasBlockquoteAccent = decoratedBoxes.any((widget) {
+      final decoration = widget.decoration;
+      if (decoration is! BoxDecoration) return false;
+      final border = decoration.border;
+      if (border is! Border) return false;
+      return border.left.color == reader.blockquoteAccent &&
+          border.left.width == 4;
+    });
+    final hasCodeSurface = decoratedBoxes.any((widget) {
+      final decoration = widget.decoration;
+      return decoration is BoxDecoration &&
+          decoration.color == reader.codeBlockSurface;
+    });
+
+    expect(hasBlockquoteAccent, isTrue);
+    expect(hasCodeSurface, isTrue);
+    expect(
+      find.textContaining('Quoted body', findRichText: true),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('final answer', findRichText: true),
+      findsOneWidget,
+    );
+    final plainText = readerPlainText(tester);
+    expect(plainText, contains('Name'));
+    expect(plainText, contains('Item one'));
+  });
+
+  testWidgets('reader shows image error placeholder when image fails', (
+    tester,
+  ) async {
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html:
+            '<p><img src="https://example.invalid/missing.png" '
+            'alt="Missing diagram" width="240" height="120"></p>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 12);
+
+    expect(
+      find.byKey(const Key('reader_image_error_placeholder')),
+      findsOneWidget,
+    );
+    expect(find.text('Missing diagram'), findsOneWidget);
+    expect(find.byIcon(FleurIcons.brokenImage), findsOneWidget);
+  });
+
+  testWidgets('reader renders trusted iframe as media card only', (
+    tester,
+  ) async {
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html:
+            '<iframe src="https://www.youtube.com/embed/abc"></iframe>'
+            '<iframe src="https://evil.example/embed/abc"></iframe>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 12);
+
+    expect(find.byKey(const Key('reader_iframe_media_card')), findsOneWidget);
+    expect(find.text('Embedded media'), findsOneWidget);
+    expect(find.text('www.youtube.com'), findsOneWidget);
+    expect(find.textContaining('evil.example'), findsNothing);
   });
 
   testWidgets('reader timestamp stays small metadata', (tester) async {
@@ -691,12 +920,11 @@ void main() {
     final firstScrollPosition = scrollableState.position.pixels;
     expect(firstScrollPosition, greaterThan(0));
     await settleReader(tester, rounds: 15);
-    final saved = await progressStore.getProgress(
-      articleId: articleId,
-      contentHash: 'reader-hash',
-    );
+    expect(progressStore.entries, hasLength(1));
+    final saved = progressStore.entries.single;
+    expect(saved.contentHash, displayedContentHash(longHtml));
     expect(saved, isNotNull);
-    expect(saved!.pixels, greaterThan(0));
+    expect(saved.pixels, greaterThan(0));
   });
 
   testWidgets('saves chunk anchor with reading progress', (tester) async {
@@ -724,12 +952,11 @@ void main() {
     );
     await settleReader(tester, rounds: 20);
 
-    final saved = await progressStore.getProgress(
-      articleId: articleId,
-      contentHash: 'reader-hash',
-    );
+    expect(progressStore.entries, hasLength(1));
+    final saved = progressStore.entries.single;
+    expect(saved.contentHash, displayedContentHash(chunkedHtml));
     expect(saved, isNotNull);
-    expect(saved!.pixels, greaterThan(0));
+    expect(saved.pixels, greaterThan(0));
     expect(saved.anchorIndex, isNotNull);
     expect(saved.anchorFraction, isNotNull);
   });
@@ -795,7 +1022,7 @@ void main() {
     await progressStore.saveProgress(
       ReaderProgress(
         articleId: articleId,
-        contentHash: 'reader-hash',
+        contentHash: displayedContentHash(longHtml),
         pixels: 900,
         progress: 0.45,
         updatedAt: DateTime.utc(2026, 1, 1),

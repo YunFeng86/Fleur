@@ -358,6 +358,8 @@ class RecordingArticleActionService implements ArticleActionService {
 class InMemoryReaderProgressStore extends ReaderProgressStore {
   final Map<String, ReaderProgress> _entries = <String, ReaderProgress>{};
 
+  List<ReaderProgress> get entries => _entries.values.toList(growable: false);
+
   String _key(int articleId, String contentHash) => '$articleId:$contentHash';
 
   @override

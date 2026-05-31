@@ -1,17 +1,22 @@
 part of '../../widgets/reader_view.dart';
 
-bool _shouldShowExtractedArticle(Article article) {
-  final hasExtracted = (article.extractedContentHtml ?? '').trim().isNotEmpty;
-  if (!hasExtracted) return false;
-  return article.preferredContentView == ArticleContentView.extracted;
+String _selectActiveHtmlForArticle(Article article) {
+  final extractedHtml = (article.extractedContentHtml ?? '').trim();
+  if (extractedHtml.isNotEmpty) {
+    return extractedHtml;
+  }
+  return (article.contentHtml ?? '').trim();
 }
 
-String _selectActiveHtmlForArticle(Article article) {
-  final showExtracted = _shouldShowExtractedArticle(article);
-  return ((showExtracted ? article.extractedContentHtml : null) ??
-          article.contentHtml ??
-          '')
-      .trim();
+String _selectSanitizedDisplayHtml({
+  required Article article,
+  String? translationHtml,
+}) {
+  final translatedHtml = (translationHtml ?? '').trim();
+  final rawHtml = translatedHtml.isNotEmpty
+      ? translatedHtml
+      : _selectActiveHtmlForArticle(article);
+  return HtmlSanitizer.sanitize(rawHtml).trim();
 }
 
 final class _ReaderSessionCoordinator {
@@ -48,8 +53,10 @@ final class _ReaderSessionCoordinator {
 
         final article = ref.read(articleProvider(articleId)).valueOrNull;
         if (article == null) return;
-        final originalHtml = _selectActiveHtmlForArticle(article);
-        final displayHtml = nextTrimmed.isNotEmpty ? nextTrimmed : originalHtml;
+        final displayHtml = _selectSanitizedDisplayHtml(
+          article: article,
+          translationHtml: nextTrimmed,
+        );
         ref
             .read(readerSearchControllerProvider(articleId).notifier)
             .setDocumentHtml(displayHtml);
@@ -79,9 +86,17 @@ final class _ReaderSessionCoordinator {
         }
 
         if (article != null) {
+          final translatedHtml =
+              (ref
+                          .read(articleAiControllerProvider(articleId))
+                          .translationHtml ??
+                      '')
+                  .trim();
           _viewportCoordinator.requestContentHashUpdate(
-            article: article,
-            showExtracted: _shouldShowExtractedArticle(article),
+            html: _selectSanitizedDisplayHtml(
+              article: article,
+              translationHtml: translatedHtml,
+            ),
           );
         }
 
@@ -103,20 +118,21 @@ final class _ReaderSessionCoordinator {
             (ref.read(articleAiControllerProvider(articleId)).translationHtml ??
                     '')
                 .trim();
-        final displayHtml = translatedHtml.isNotEmpty
-            ? translatedHtml
-            : originalHtml;
+        final displayHtml = _selectSanitizedDisplayHtml(
+          article: article,
+          translationHtml: translatedHtml,
+        );
 
         ref
             .read(readerSearchControllerProvider(articleId).notifier)
             .setDocumentHtml(displayHtml);
 
-        final maxPrefetch = originalHtml.length >= 50000 ? 6 : 24;
+        final maxPrefetch = displayHtml.length >= 50000 ? 6 : 24;
         unawaited(
           ref
               .read(articleCacheServiceProvider)
               .prefetchImagesFromHtml(
-                originalHtml,
+                displayHtml,
                 baseUrl: Uri.tryParse(article.link),
                 maxImages: maxPrefetch,
                 maxConcurrent: 3,

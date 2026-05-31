@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
-import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -30,6 +29,7 @@ import '../providers/query_providers.dart';
 import '../providers/service_providers.dart';
 import '../providers/settings_providers.dart';
 import '../services/cache/image_meta_store.dart';
+import '../services/html_sanitizer.dart';
 import '../services/reader_search_service.dart';
 import '../services/settings/app_settings.dart';
 import '../services/settings/reader_settings.dart';
@@ -84,6 +84,8 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
   late final _ReaderInteractionController _interactionController;
   late final _ReaderViewportCoordinator _viewportCoordinator;
   late final _ReaderSessionCoordinator _sessionCoordinator;
+  String? _lastScheduledSearchHtml;
+  bool _searchHtmlSyncScheduled = false;
   static const double _autoScrollDeadZone = 6;
   static const double _autoScrollSpeedFactor = 0.12;
   static const int _chunkThreshold = 50000;
@@ -162,6 +164,22 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
     _interactionController.dispose();
     _fullTextSub?.close();
     super.dispose();
+  }
+
+  void _scheduleSearchDocumentHtmlSync(String html) {
+    if (_lastScheduledSearchHtml == html) return;
+    _lastScheduledSearchHtml = html;
+    if (_searchHtmlSyncScheduled) return;
+    _searchHtmlSyncScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _searchHtmlSyncScheduled = false;
+      if (!mounted) return;
+      final nextHtml = _lastScheduledSearchHtml;
+      if (nextHtml == null) return;
+      ref
+          .read(readerSearchControllerProvider(widget.articleId).notifier)
+          .setDocumentHtml(nextHtml);
+    });
   }
 
   @override
@@ -435,6 +453,193 @@ class _ImagePlaceholder extends StatelessWidget {
   }
 }
 
+class _ImageErrorPlaceholder extends StatelessWidget {
+  const _ImageErrorPlaceholder({
+    required this.widthPx,
+    required this.heightPx,
+    required this.widthPercent,
+    required this.heightPercent,
+    required this.label,
+  });
+
+  factory _ImageErrorPlaceholder.fromElement({required dom.Element element}) {
+    final spec = _parseImageSizeSpec(element);
+    final label =
+        (element.attributes['alt'] ?? element.attributes['title'] ?? '').trim();
+    return _ImageErrorPlaceholder(
+      widthPx: spec.widthPx,
+      heightPx: spec.heightPx,
+      widthPercent: spec.widthPercent,
+      heightPercent: spec.heightPercent,
+      label: label.isEmpty ? 'Image failed to load' : label,
+    );
+  }
+
+  final double? widthPx;
+  final double? heightPx;
+  final double? widthPercent;
+  final double? heightPercent;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final reader = theme.fleurReader;
+    final content = DecoratedBox(
+      key: const Key('reader_image_error_placeholder'),
+      decoration: BoxDecoration(
+        color: reader.codeBlockSurface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: theme.fleurSurface.subtleDivider),
+      ),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                FleurIcons.brokenImage,
+                size: 22,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final resolvedWidth = _ImagePlaceholder._resolveLength(
+          widthPx,
+          widthPercent,
+          constraints.maxWidth,
+        );
+        final resolvedHeight = _ImagePlaceholder._resolveLength(
+          heightPx,
+          heightPercent,
+          constraints.maxHeight,
+        );
+
+        if (resolvedWidth != null && resolvedHeight != null) {
+          return SizedBox(
+            width: resolvedWidth,
+            height: resolvedHeight,
+            child: content,
+          );
+        }
+
+        if (resolvedWidth != null) {
+          return SizedBox(
+            width: resolvedWidth,
+            height: math.min(180, math.max(96, resolvedWidth * 0.36)),
+            child: content,
+          );
+        }
+
+        if (resolvedHeight != null) {
+          return SizedBox(height: resolvedHeight, child: content);
+        }
+
+        if (constraints.hasBoundedWidth && constraints.maxWidth.isFinite) {
+          return SizedBox(
+            width: constraints.maxWidth,
+            height: 140,
+            child: content,
+          );
+        }
+
+        return SizedBox(height: 140, child: content);
+      },
+    );
+  }
+}
+
+class _IframeMediaCard extends StatelessWidget {
+  const _IframeMediaCard({required this.url, required this.onOpen});
+
+  final String url;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final host = Uri.tryParse(url)?.host;
+    final label = (host == null || host.isEmpty) ? url : host;
+    return Container(
+      key: const Key('reader_iframe_media_card'),
+      margin: const EdgeInsets.symmetric(vertical: 14),
+      decoration: BoxDecoration(
+        color: theme.fleurReader.codeBlockSurface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: theme.fleurSurface.subtleDivider),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: onOpen,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Icon(
+                  FleurIcons.openExternal,
+                  size: 22,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Embedded media',
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          fontWeight: AppTypography.platformWeight(
+                            FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Icon(
+                  FleurIcons.chevronRight,
+                  size: 18,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ImageSizeSpec {
   const _ImageSizeSpec({
     this.widthPx,
@@ -493,8 +698,4 @@ class _CssLength {
 
   final double? px;
   final double? percent;
-}
-
-String _computeContentHashInIsolate(String html) {
-  return ContentHash.compute(html);
 }

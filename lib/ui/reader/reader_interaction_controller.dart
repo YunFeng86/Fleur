@@ -481,6 +481,17 @@ final class _ReaderInteractionController {
     );
   }
 
+  Widget? _buildImageErrorPlaceholder(
+    BuildContext context,
+    dom.Element element,
+    dynamic error,
+  ) {
+    if (element.localName != 'img') {
+      return null;
+    }
+    return _ImageErrorPlaceholder.fromElement(element: element);
+  }
+
   Future<bool> _onTapUrl(String url) async {
     final uri = Uri.tryParse(url);
     if (uri == null) return false;

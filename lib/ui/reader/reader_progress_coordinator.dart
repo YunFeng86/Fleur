@@ -27,8 +27,6 @@ final class _ReaderViewportCoordinator {
   String? _currentContentHash;
   String? _resolvedContentHash;
   String? _hashSourceHtml;
-  bool _hashSourceExtracted = false;
-  int _hashRequestId = 0;
   int _restoreAttempts = 0;
   bool _restoredScrollPosition = false;
   bool _isRestoring = false;
@@ -89,8 +87,6 @@ final class _ReaderViewportCoordinator {
     _currentContentHash = null;
     _resolvedContentHash = null;
     _hashSourceHtml = null;
-    _hashSourceExtracted = false;
-    _hashRequestId = 0;
     _restoredScrollPosition = false;
     _isRestoring = false;
     _isResizing = false;
@@ -127,17 +123,8 @@ final class _ReaderViewportCoordinator {
     unawaited(_saveProgressNow());
   }
 
-  void requestContentHashUpdate({
-    required Article article,
-    required bool showExtracted,
-  }) {
-    final html =
-        ((showExtracted ? article.extractedContentHtml : null) ??
-                article.contentHtml ??
-                '')
-            .trim();
-    final contentChanged =
-        _hashSourceHtml != html || _hashSourceExtracted != showExtracted;
+  void requestContentHashUpdate({required String html}) {
+    final contentChanged = _hashSourceHtml != html;
     if (contentChanged) {
       _currentContentHash = null;
       _pendingProgress = null;
@@ -146,31 +133,19 @@ final class _ReaderViewportCoordinator {
       _resolvedContentHash = null;
     }
 
-    if (!showExtracted) {
-      final storedHash = article.contentHash?.trim();
-      if (storedHash != null && storedHash.isNotEmpty) {
-        _hashSourceHtml = html;
-        _hashSourceExtracted = false;
-        _setResolvedContentHash(storedHash);
-        return;
-      }
-    }
-
     if (!contentChanged && _resolvedContentHash != null) {
       _setResolvedContentHash(_resolvedContentHash!);
       return;
     }
 
     _hashSourceHtml = html;
-    _hashSourceExtracted = showExtracted;
 
     if (html.isEmpty) {
       _setResolvedContentHash('');
       return;
     }
 
-    final requestId = ++_hashRequestId;
-    unawaited(_computeContentHashAsync(html, requestId));
+    _setResolvedContentHash(ContentHash.compute(html));
   }
 
   void _setResolvedContentHash(String hash) {
@@ -180,15 +155,6 @@ final class _ReaderViewportCoordinator {
     }
     _resolvedContentHash = hash;
     _syncProgressForContent(hash);
-  }
-
-  Future<void> _computeContentHashAsync(String html, int requestId) async {
-    final hash = html.length >= _ReaderViewState._chunkThreshold
-        ? await compute(_computeContentHashInIsolate, html)
-        : ContentHash.compute(html);
-    if (!mounted) return;
-    if (requestId != _hashRequestId) return;
-    _setResolvedContentHash(hash);
   }
 
   void _syncProgressForContent(String contentHash) {
@@ -375,13 +341,13 @@ final class _ReaderViewportCoordinator {
   void _syncSearchDocumentHtml(int articleId) {
     final article = ref.read(articleProvider(articleId)).valueOrNull;
     if (article == null) return;
-    final originalHtml = _selectActiveHtmlForArticle(article);
     final translatedHtml =
         (ref.read(articleAiControllerProvider(articleId)).translationHtml ?? '')
             .trim();
-    final displayHtml = translatedHtml.isNotEmpty
-        ? translatedHtml
-        : originalHtml;
+    final displayHtml = _selectSanitizedDisplayHtml(
+      article: article,
+      translationHtml: translatedHtml,
+    );
     ref
         .read(readerSearchControllerProvider(articleId).notifier)
         .setDocumentHtml(displayHtml);
@@ -410,6 +376,18 @@ final class _ReaderViewportCoordinator {
       context,
       element,
       loadingProgress,
+    );
+  }
+
+  Widget? _buildImageErrorPlaceholder(
+    BuildContext context,
+    dom.Element element,
+    dynamic error,
+  ) {
+    return _interactionController._buildImageErrorPlaceholder(
+      context,
+      element,
+      error,
     );
   }
 
