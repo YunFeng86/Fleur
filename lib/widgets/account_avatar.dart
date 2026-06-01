@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/accounts/account.dart';
 import '../theme/fleur_icons.dart';
+import '../theme/fleur_theme_extensions.dart';
 
 Color _colorForAccount(Account account) {
   // Stable-ish accent per account id; avoids importing more deps.
@@ -73,7 +74,7 @@ class AccountAvatar extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(2),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
+              color: Theme.of(context).fleurSurface.floating,
               shape: BoxShape.circle,
               boxShadow: const [
                 BoxShadow(

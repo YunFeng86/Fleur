@@ -94,6 +94,7 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
     final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(addSubscriptionControllerProvider);
     final useCompactTopBar = !isDesktop;
+    final surfaces = Theme.of(context).fleurSurface;
 
     ref.listen<AddSubscriptionState>(addSubscriptionControllerProvider, (
       previous,
@@ -120,7 +121,7 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
     });
 
     final content = Material(
-      color: Theme.of(context).colorScheme.surface,
+      color: surfaces.chrome,
       child: AppScrollbar(
         child: SingleChildScrollView(
           child: ConstrainedBox(
@@ -854,7 +855,7 @@ class _SourceChip extends StatelessWidget {
     final theme = Theme.of(context);
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
+        color: theme.fleurSurface.card,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Padding(

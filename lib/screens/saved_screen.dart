@@ -97,7 +97,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
 
     if (!_initialized) {
       final loading = Container(
-        color: Theme.of(context).colorScheme.surface,
+        color: surfaces.list,
         alignment: Alignment.center,
         child: const CircularProgressIndicator(),
       );

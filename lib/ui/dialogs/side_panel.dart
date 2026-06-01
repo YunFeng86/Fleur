@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/fleur_theme_extensions.dart';
 import '../layout.dart';
 
 Future<T?> showSidePanel<T>(
@@ -35,7 +36,7 @@ Future<T?> showSidePanel<T>(
       return Align(
         alignment: Alignment.centerRight,
         child: Material(
-          color: theme.colorScheme.surface,
+          color: theme.fleurSurface.floating,
           elevation: 16,
           shape: RoundedRectangleBorder(borderRadius: borderRadius),
           clipBehavior: Clip.antiAlias,

@@ -617,7 +617,6 @@ class _SettingsPaperSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     final surfaces = theme.fleurSurface;
     final dark = theme.brightness == Brightness.dark;
     final shadowColor = theme.shadowColor.withValues(alpha: dark ? 0.28 : 0.10);
@@ -627,9 +626,7 @@ class _SettingsPaperSurface extends StatelessWidget {
       decoration: BoxDecoration(
         color: surfaces.list,
         borderRadius: borderRadius,
-        border: Border.all(
-          color: scheme.outlineVariant.withValues(alpha: dark ? 0.18 : 0.38),
-        ),
+        border: Border.all(color: surfaces.subtleDivider),
         boxShadow: [
           BoxShadow(
             color: shadowColor,
@@ -711,7 +708,7 @@ class _SettingsSearchPlaceholder extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final dark = theme.brightness == Brightness.dark;
+    final surfaces = theme.fleurSurface;
 
     return Semantics(
       label: l10n.settingsSearchHint,
@@ -721,13 +718,9 @@ class _SettingsSearchPlaceholder extends StatelessWidget {
         height: 40,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: dark
-              ? scheme.surfaceContainerHigh
-              : scheme.surfaceContainerLow,
+          color: surfaces.card,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: scheme.outlineVariant.withValues(alpha: dark ? 0.12 : 0.22),
-          ),
+          border: Border.all(color: surfaces.subtleDivider),
         ),
         child: Row(
           children: [
@@ -769,11 +762,7 @@ class _SettingsNavigationTile extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final surfaces = theme.fleurSurface;
-    final dark = theme.brightness == Brightness.dark;
-    final selectedColor = Color.alphaBlend(
-      scheme.primary.withAlpha(dark ? 58 : 36),
-      surfaces.sidebar,
-    );
+    final selectedColor = surfaces.cardSelected;
     final iconColor = selected ? scheme.primary : scheme.onSurfaceVariant;
     final textColor = selected ? scheme.onSurface : scheme.onSurfaceVariant;
 

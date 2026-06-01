@@ -207,6 +207,25 @@ class FleurStateTheme extends ThemeExtension<FleurStateTheme> {
 }
 
 @immutable
+class FleurReaderColorTokens {
+  const FleurReaderColorTokens({
+    required this.summarySurface,
+    required this.toolbarSurface,
+    required this.searchBarSurface,
+    required this.bannerSurface,
+    required this.blockquoteAccent,
+    required this.codeBlockSurface,
+  });
+
+  final Color summarySurface;
+  final Color toolbarSurface;
+  final Color searchBarSurface;
+  final Color bannerSurface;
+  final Color blockquoteAccent;
+  final Color codeBlockSurface;
+}
+
+@immutable
 class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
   const FleurReaderTheme({
     required this.maxWidth,
@@ -262,10 +281,33 @@ class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
     required TextTheme textTheme,
     required ColorScheme scheme,
     required AppThemeProfile profile,
+    FleurReaderColorTokens? colors,
   }) {
     final bodyColor = scheme.onSurface.withValues(
       alpha: scheme.brightness == Brightness.dark ? 0.92 : 0.88,
     );
+    final readerColors =
+        colors ??
+        FleurReaderColorTokens(
+          summarySurface: _blend(
+            scheme.surfaceContainerLow,
+            scheme.secondary,
+            8,
+          ),
+          toolbarSurface: _blend(scheme.surfaceContainerLow, scheme.primary, 4),
+          searchBarSurface: _blend(
+            scheme.surfaceContainerHigh,
+            scheme.primary,
+            6,
+          ),
+          bannerSurface: _blend(
+            scheme.surfaceContainerHigh,
+            scheme.secondary,
+            6,
+          ),
+          blockquoteAccent: scheme.primary,
+          codeBlockSurface: scheme.surfaceContainerHigh,
+        );
 
     return FleurReaderTheme(
       maxWidth: kMaxReadingWidth,
@@ -295,12 +337,12 @@ class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
         color: scheme.onSurface,
         height: 1.56,
       ),
-      summarySurface: _blend(scheme.surfaceContainerLow, scheme.secondary, 8),
-      toolbarSurface: _blend(scheme.surfaceContainerLow, scheme.primary, 4),
-      searchBarSurface: _blend(scheme.surfaceContainerHigh, scheme.primary, 6),
-      bannerSurface: _blend(scheme.surfaceContainerHigh, scheme.secondary, 6),
-      blockquoteAccent: scheme.primary,
-      codeBlockSurface: scheme.surfaceContainerHigh,
+      summarySurface: readerColors.summarySurface,
+      toolbarSurface: readerColors.toolbarSurface,
+      searchBarSurface: readerColors.searchBarSurface,
+      bannerSurface: readerColors.bannerSurface,
+      blockquoteAccent: readerColors.blockquoteAccent,
+      codeBlockSurface: readerColors.codeBlockSurface,
     );
   }
 
