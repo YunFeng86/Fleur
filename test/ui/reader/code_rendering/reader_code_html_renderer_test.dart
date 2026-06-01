@@ -80,4 +80,32 @@ void main() {
       isTrue,
     );
   });
+
+  test('maps docusaurus prism token classes to richer roles', () {
+    final fragment = html_parser.parseFragment(
+      '<code>'
+      '<span class="token keyword module">import</span>'
+      '<span class="token imports maybe-class-name">Box</span>'
+      '<span class="token literal-property property">borderRadius</span>'
+      '<span class="token string-property property">\'&amp; .MuiSlider-thumb\'</span>'
+      '<span class="token operator">:</span>'
+      '<span class="token punctuation">,</span>'
+      '<span class="token plain-text">&lt;Slider</span>'
+      '</code>',
+    );
+
+    final extraction = renderer.extract(fragment.querySelector('code')!);
+
+    ReaderCodeTokenRole roleFor(String text) {
+      return extraction.tokens.firstWhere((token) => token.text == text).role;
+    }
+
+    expect(roleFor('import'), ReaderCodeTokenRole.keyword);
+    expect(roleFor('Box'), ReaderCodeTokenRole.type);
+    expect(roleFor('borderRadius'), ReaderCodeTokenRole.property);
+    expect(roleFor("'& .MuiSlider-thumb'"), ReaderCodeTokenRole.string);
+    expect(roleFor(':'), ReaderCodeTokenRole.operator);
+    expect(roleFor(','), ReaderCodeTokenRole.punctuation);
+    expect(roleFor('<Slider'), ReaderCodeTokenRole.plain);
+  });
 }

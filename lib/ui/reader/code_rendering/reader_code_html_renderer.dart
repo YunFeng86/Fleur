@@ -191,12 +191,20 @@ final class ReaderCodeHtmlRenderer {
           role: ReaderCodeTokenRole.comment,
         );
       }
-      if (classes.contains('keyword') || classes.contains('selector')) {
+      if (classes.contains('plain') || classes.contains('plain-text')) {
+        return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.plain);
+      }
+      if (classes.contains('keyword') ||
+          classes.contains('module') ||
+          classes.contains('selector') ||
+          classes.contains('important')) {
         return const _ReaderCodeImportedStyle(
           role: ReaderCodeTokenRole.keyword,
         );
       }
-      if (classes.contains('string') || classes.contains('attr-value')) {
+      if (classes.contains('string') ||
+          classes.contains('string-property') ||
+          classes.contains('attr-value')) {
         return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.string);
       }
       if (classes.contains('number') || classes.contains('boolean')) {
@@ -212,7 +220,8 @@ final class ReaderCodeHtmlRenderer {
           role: ReaderCodeTokenRole.attribute,
         );
       }
-      if (classes.contains('property')) {
+      if (classes.contains('property') ||
+          classes.contains('literal-property')) {
         return const _ReaderCodeImportedStyle(
           role: ReaderCodeTokenRole.property,
         );
@@ -234,7 +243,9 @@ final class ReaderCodeHtmlRenderer {
           role: ReaderCodeTokenRole.builtin,
         );
       }
-      if (classes.contains('variable') || classes.contains('parameter')) {
+      if (classes.contains('variable') ||
+          classes.contains('parameter') ||
+          classes.contains('imports')) {
         return const _ReaderCodeImportedStyle(
           role: ReaderCodeTokenRole.variable,
         );
@@ -257,10 +268,18 @@ final class ReaderCodeHtmlRenderer {
           role: ReaderCodeTokenRole.diffDeleted,
         );
       }
-      if (classes.contains('operator') || classes.contains('punctuation')) {
+      if (classes.contains('operator')) {
+        return const _ReaderCodeImportedStyle(
+          role: ReaderCodeTokenRole.operator,
+        );
+      }
+      if (classes.contains('punctuation')) {
         return const _ReaderCodeImportedStyle(
           role: ReaderCodeTokenRole.punctuation,
         );
+      }
+      if (classes.contains('entity')) {
+        return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.tag);
       }
     }
 
@@ -312,6 +331,14 @@ final class ReaderCodeHtmlRenderer {
     if (classes.contains('hljs-deletion')) {
       return const _ReaderCodeImportedStyle(
         role: ReaderCodeTokenRole.diffDeleted,
+      );
+    }
+    if (classes.contains('hljs-operator')) {
+      return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.operator);
+    }
+    if (classes.contains('hljs-punctuation')) {
+      return const _ReaderCodeImportedStyle(
+        role: ReaderCodeTokenRole.punctuation,
       );
     }
     return null;

@@ -40,7 +40,7 @@ void main() {
     expect(
       result.document.lines.single.tokens.any(
         (token) =>
-            token.text == '<Box' && token.role == ReaderCodeTokenRole.tag,
+            token.text == 'Box' && token.role == ReaderCodeTokenRole.type,
       ),
       isTrue,
     );
@@ -74,4 +74,35 @@ void main() {
     expect(exportToken.role, ReaderCodeTokenRole.keyword);
     expect(exportToken.backgroundRole, ReaderCodeTokenRole.searchCurrent);
   });
+
+  test(
+    'diff tokenizer emits semantic roles without fixed color overrides',
+    () async {
+      final fragment = html_parser.parseFragment(
+        '<pre><code class="language-diff">+added\n-removed</code></pre>',
+      );
+      final pre = fragment.querySelector('pre')!;
+      final code = fragment.querySelector('code')!;
+
+      final result = await renderer.render(
+        ReaderCodeRenderInput(
+          source: code,
+          pre: pre,
+          baseStyle: const TextStyle(fontFamily: 'monospace'),
+          activeSearchBackground: const Color(0xFFFFFF00),
+          searchBackground: const Color(0xFFEEEE00),
+          errorColor: const Color(0xFFD1242F),
+          brightness: Brightness.light,
+          currentAnchorId: null,
+        ),
+      );
+
+      final added = result.document.lines.first.tokens.single;
+      final removed = result.document.lines.last.tokens.single;
+      expect(added.role, ReaderCodeTokenRole.diffInserted);
+      expect(removed.role, ReaderCodeTokenRole.diffDeleted);
+      expect(added.colorOverride, isNull);
+      expect(removed.colorOverride, isNull);
+    },
+  );
 }

@@ -4,9 +4,9 @@ import 'package:flutter/services.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../theme/fleur_icons.dart';
-import '../../../theme/fleur_theme_extensions.dart';
 import '../reader_selectable_rich_text.dart';
 import 'reader_code_models.dart';
+import 'reader_code_theme.dart';
 import 'reader_code_token_theme.dart';
 
 final class ReaderCodeBlockPresentation {
@@ -110,15 +110,8 @@ class ReaderCodeBlockChrome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final reader = theme.fleurReader;
+    final codeTheme = ReaderCodeTheme.resolve(context);
     final presentation = ReaderCodeBlockPresentation.fromDocument(document);
-    final headerColor = Color.alphaBlend(
-      theme.colorScheme.onSurface.withAlpha(
-        theme.brightness == Brightness.dark ? 18 : 8,
-      ),
-      reader.codeBlockSurface,
-    );
 
     return Container(
       key: const Key('reader_code_block'),
@@ -126,9 +119,9 @@ class ReaderCodeBlockChrome extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 18),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: reader.codeBlockSurface,
+        color: codeTheme.surface,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: theme.fleurSurface.subtleDivider),
+        border: Border.all(color: codeTheme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -137,9 +130,13 @@ class ReaderCodeBlockChrome extends StatelessWidget {
           _ReaderCodeHeader(
             language: presentation.displayLanguage,
             copyText: presentation.copyText,
-            backgroundColor: headerColor,
+            codeTheme: codeTheme,
           ),
-          _ReaderCodeBody(document: document, codeStyle: codeStyle),
+          _ReaderCodeBody(
+            document: document,
+            codeStyle: codeStyle,
+            codeTheme: codeTheme,
+          ),
         ],
       ),
     );
@@ -150,12 +147,12 @@ class _ReaderCodeHeader extends StatelessWidget {
   const _ReaderCodeHeader({
     required this.language,
     required this.copyText,
-    required this.backgroundColor,
+    required this.codeTheme,
   });
 
   final String? language;
   final String copyText;
-  final Color backgroundColor;
+  final ReaderCodeTheme codeTheme;
 
   @override
   Widget build(BuildContext context) {
@@ -165,10 +162,8 @@ class _ReaderCodeHeader extends StatelessWidget {
       height: 38,
       padding: const EdgeInsetsDirectional.only(start: 12, end: 6),
       decoration: BoxDecoration(
-        color: backgroundColor,
-        border: Border(
-          bottom: BorderSide(color: theme.fleurSurface.subtleDivider),
-        ),
+        color: codeTheme.headerSurface,
+        border: Border(bottom: BorderSide(color: codeTheme.border)),
       ),
       child: Row(
         children: [
@@ -195,23 +190,20 @@ class _ReaderCodeHeader extends StatelessWidget {
 }
 
 class _ReaderCodeBody extends StatelessWidget {
-  const _ReaderCodeBody({required this.document, required this.codeStyle});
+  const _ReaderCodeBody({
+    required this.document,
+    required this.codeStyle,
+    required this.codeTheme,
+  });
 
   final ReaderCodeDocument document;
   final TextStyle codeStyle;
+  final ReaderCodeTheme codeTheme;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final direction = Directionality.of(context);
-    final tokenTheme = ReaderCodeTokenTheme(
-      brightness: theme.brightness,
-      errorColor: theme.colorScheme.error,
-      searchBackground: theme.fleurReader.bannerSurface.withValues(alpha: 0.8),
-      activeSearchBackground: theme.fleurState.selectionTint.withValues(
-        alpha: 0.95,
-      ),
-    );
+    final tokenTheme = ReaderCodeTokenTheme(theme: codeTheme);
     final metrics = ReaderCodeLayoutMetrics.resolve(
       codeStyle: codeStyle,
       lineCount: document.lines.length,
@@ -225,7 +217,7 @@ class _ReaderCodeBody extends StatelessWidget {
           lineCount: document.lines.length,
           codeStyle: codeStyle,
           metrics: metrics,
-          dividerColor: theme.fleurSurface.subtleDivider,
+          codeTheme: codeTheme,
         ),
         Expanded(
           child: SingleChildScrollView(
@@ -304,7 +296,7 @@ class _ReaderCodeLineGutter extends StatelessWidget {
     required this.lineCount,
     required this.codeStyle,
     required this.metrics,
-    required this.dividerColor,
+    required this.codeTheme,
   });
 
   static const double leadingPadding = 10;
@@ -314,11 +306,10 @@ class _ReaderCodeLineGutter extends StatelessWidget {
   final int lineCount;
   final TextStyle codeStyle;
   final ReaderCodeLayoutMetrics metrics;
-  final Color dividerColor;
+  final ReaderCodeTheme codeTheme;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return SelectionContainer.disabled(
       child: IgnorePointer(
         child: ExcludeSemantics(
@@ -332,7 +323,9 @@ class _ReaderCodeLineGutter extends StatelessWidget {
               14,
             ),
             decoration: BoxDecoration(
-              border: BorderDirectional(end: BorderSide(color: dividerColor)),
+              border: BorderDirectional(
+                end: BorderSide(color: codeTheme.gutterDivider),
+              ),
             ),
             child: Column(
               key: const Key('reader_code_line_numbers'),
@@ -349,11 +342,7 @@ class _ReaderCodeLineGutter extends StatelessWidget {
                       textAlign: TextAlign.end,
                       strutStyle: metrics.strutStyle,
                       textHeightBehavior: metrics.textHeightBehavior,
-                      style: codeStyle.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant.withAlpha(
-                          150,
-                        ),
-                      ),
+                      style: codeStyle.copyWith(color: codeTheme.gutterText),
                     ),
                   ),
               ],

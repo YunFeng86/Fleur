@@ -23,7 +23,7 @@ void main() {
     expect(
       tokens.any(
         (token) =>
-            token.text == '<Box' && token.role == ReaderCodeTokenRole.tag,
+            token.text == 'Box' && token.role == ReaderCodeTokenRole.type,
       ),
       isTrue,
     );
@@ -32,6 +32,113 @@ void main() {
         (token) =>
             token.text == 'count' &&
             token.role == ReaderCodeTokenRole.attribute,
+      ),
+      isTrue,
+    );
+    expect(
+      tokens.any(
+        (token) =>
+            token.text == 'color' && token.role == ReaderCodeTokenRole.property,
+      ),
+      isTrue,
+    );
+    expect(
+      tokens.any(
+        (token) =>
+            token.text == "'red'" && token.role == ReaderCodeTokenRole.string,
+      ),
+      isTrue,
+    );
+    expect(
+      tokens.any(
+        (token) =>
+            token.text == '1' && token.role == ReaderCodeTokenRole.number,
+      ),
+      isTrue,
+    );
+  });
+
+  test('tokenizes jsx tags attributes expressions and react functions', () {
+    final tokens = tokenizer.tokenize(
+      "const [score, setScore] = useState(45)\n"
+          "return <span>{score}</span>\n"
+          "<Slider onChange={(e, val) => setScore(val)} />",
+      'tsx',
+    )!;
+
+    expect(
+      tokens.any(
+        (token) =>
+            token.text == 'useState' &&
+            token.role == ReaderCodeTokenRole.function,
+      ),
+      isTrue,
+    );
+    expect(
+      tokens.any(
+        (token) =>
+            token.text == 'span' && token.role == ReaderCodeTokenRole.tag,
+      ),
+      isTrue,
+    );
+    expect(
+      tokens.any(
+        (token) =>
+            token.text == 'score' && token.role == ReaderCodeTokenRole.plain,
+      ),
+      isTrue,
+    );
+    expect(
+      tokens.any(
+        (token) =>
+            token.text == 'Slider' && token.role == ReaderCodeTokenRole.type,
+      ),
+      isTrue,
+    );
+    expect(
+      tokens.any(
+        (token) =>
+            token.text == 'onChange' &&
+            token.role == ReaderCodeTokenRole.attribute,
+      ),
+      isTrue,
+    );
+    expect(
+      tokens.any(
+        (token) =>
+            token.text == 'setScore' &&
+            token.role == ReaderCodeTokenRole.function,
+      ),
+      isTrue,
+    );
+  });
+
+  test('tokenizes jsx object and string property keys', () {
+    final tokens = tokenizer.tokenize(
+      "<Box sx={{ borderRadius: '5px', '& .MuiSlider-thumb': { width: 2 } }} />",
+      'jsx',
+    )!;
+
+    expect(
+      tokens.any(
+        (token) =>
+            token.text == 'borderRadius' &&
+            token.role == ReaderCodeTokenRole.property,
+      ),
+      isTrue,
+    );
+    expect(
+      tokens.any(
+        (token) =>
+            token.text == "'& .MuiSlider-thumb'" &&
+            token.role == ReaderCodeTokenRole.property,
+      ),
+      isTrue,
+    );
+    expect(
+      tokens.any(
+        (token) =>
+            token.text == 'width' && token.role == ReaderCodeTokenRole.property,
       ),
       isTrue,
     );

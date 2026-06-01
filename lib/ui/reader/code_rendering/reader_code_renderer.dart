@@ -41,11 +41,7 @@ final class ReaderCodeRenderer {
       sourceKind = ReaderCodeSourceKind.htmlTokens;
     } else if (language?.id == 'diff') {
       final diffTokens = _applySearchOverlay(
-        _highlightDiffTokens(
-          extraction.text,
-          brightness: input.brightness,
-          errorColor: input.errorColor,
-        ),
+        _highlightDiffTokens(extraction.text),
         searchRanges: extraction.searchRanges,
         currentAnchorId: input.currentAnchorId,
       );
@@ -132,14 +128,7 @@ final class ReaderCodeRenderer {
     }
   }
 
-  static List<ReaderCodeToken> _highlightDiffTokens(
-    String code, {
-    required Brightness brightness,
-    required Color errorColor,
-  }) {
-    final dark = brightness == Brightness.dark;
-    final addedColor = dark ? const Color(0xFF7EE787) : const Color(0xFF116329);
-    final removedColor = dark ? const Color(0xFFFF7B72) : errorColor;
+  static List<ReaderCodeToken> _highlightDiffTokens(String code) {
     final tokens = <ReaderCodeToken>[];
 
     var start = 0;
@@ -154,14 +143,12 @@ final class ReaderCodeRenderer {
           role: ReaderCodeTokenRole.diffInserted,
           start: start,
           end: end,
-          colorOverride: addedColor,
         ),
         45 => ReaderCodeToken(
           text: line,
           role: ReaderCodeTokenRole.diffDeleted,
           start: start,
           end: end,
-          colorOverride: removedColor,
         ),
         _ => ReaderCodeToken(
           text: line,

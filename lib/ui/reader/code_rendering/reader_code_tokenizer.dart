@@ -5,48 +5,114 @@ final class ReaderCodeTokenizer {
 
   List<ReaderCodeToken>? tokenize(String code, String? language) {
     return switch (language) {
-      'javascript' || 'typescript' || 'jsx' || 'tsx' => _tokenizeScript(code),
+      'javascript' || 'typescript' => _tokenizeScript(code, jsx: false),
+      'jsx' || 'tsx' => _tokenizeScript(code, jsx: true),
       'shell' => _tokenizeShell(code),
       'markdown' => _tokenizeMarkdown(code),
       _ => null,
     };
   }
 
-  List<ReaderCodeToken> _tokenizeScript(String code) {
+  List<ReaderCodeToken> _tokenizeScript(String code, {required bool jsx}) {
+    return _tokenizeScriptRange(code, 0, code.length, jsx: jsx);
+  }
+
+  List<ReaderCodeToken> _tokenizeScriptRange(
+    String code,
+    int start,
+    int end, {
+    required bool jsx,
+  }) {
     final tokens = <ReaderCodeToken>[];
-    final pattern = RegExp(
-      r'''//[^\n]*|/\*[\s\S]*?\*/|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|</?[A-Za-z][\w.:-]*|[A-Za-z_$][\w$]*|\d+(?:\.\d+)?|[{}()[\].,;:+\-*/%!=<>?&|]+''',
-    );
-    _scanMatches(code, pattern, tokens, (match) {
-      final value = match.group(0)!;
-      final start = match.start;
-      final role = _scriptRole(value, code, start);
-      return ReaderCodeToken(
-        text: value,
-        role: role,
-        start: start,
-        end: match.end,
-      );
-    });
+    var cursor = start;
+    while (cursor < end) {
+      final char = code[cursor];
+      if (char == '/' && cursor + 1 < end && code[cursor + 1] == '/') {
+        final tokenEnd = _readLineComment(code, cursor, end);
+        _addToken(tokens, code, cursor, tokenEnd, ReaderCodeTokenRole.comment);
+        cursor = tokenEnd;
+        continue;
+      }
+      if (char == '/' && cursor + 1 < end && code[cursor + 1] == '*') {
+        final tokenEnd = _readBlockComment(code, cursor, end);
+        _addToken(tokens, code, cursor, tokenEnd, ReaderCodeTokenRole.comment);
+        cursor = tokenEnd;
+        continue;
+      }
+      if (char == '"' || char == "'" || char == '`') {
+        final tokenEnd = _readString(code, cursor, end, char);
+        _addToken(
+          tokens,
+          code,
+          cursor,
+          tokenEnd,
+          _isLikelyStringObjectKey(code, cursor, tokenEnd)
+              ? ReaderCodeTokenRole.property
+              : ReaderCodeTokenRole.string,
+        );
+        cursor = tokenEnd;
+        continue;
+      }
+      if (jsx && char == '<' && _looksLikeJsxTag(code, cursor, end)) {
+        cursor = _scanJsxTag(code, cursor, end, tokens);
+        continue;
+      }
+      if (_isDigit(code.codeUnitAt(cursor))) {
+        final tokenEnd = _readNumber(code, cursor, end);
+        _addToken(tokens, code, cursor, tokenEnd, ReaderCodeTokenRole.number);
+        cursor = tokenEnd;
+        continue;
+      }
+      if (_isIdentifierStart(code.codeUnitAt(cursor))) {
+        final tokenEnd = _readIdentifier(code, cursor, end);
+        final value = code.substring(cursor, tokenEnd);
+        _addToken(
+          tokens,
+          code,
+          cursor,
+          tokenEnd,
+          _scriptIdentifierRole(code, cursor, tokenEnd, value),
+        );
+        cursor = tokenEnd;
+        continue;
+      }
+      if (_isOperatorStart(char)) {
+        final tokenEnd = _readOperator(code, cursor, end);
+        _addToken(
+          tokens,
+          code,
+          cursor,
+          tokenEnd,
+          _operatorRole(code.substring(cursor, tokenEnd)),
+        );
+        cursor = tokenEnd;
+        continue;
+      }
+      final tokenEnd = _readPlain(code, cursor, end, jsx: jsx);
+      _addToken(tokens, code, cursor, tokenEnd, ReaderCodeTokenRole.plain);
+      cursor = tokenEnd;
+    }
     return tokens;
   }
 
-  ReaderCodeTokenRole _scriptRole(String value, String code, int start) {
-    if (value.startsWith('//') || value.startsWith('/*')) {
-      return ReaderCodeTokenRole.comment;
-    }
-    if (value.startsWith('"') ||
-        value.startsWith("'") ||
-        value.startsWith('`')) {
-      return ReaderCodeTokenRole.string;
-    }
-    if (RegExp(r'^\d').hasMatch(value)) return ReaderCodeTokenRole.number;
-    if (value.startsWith('<')) return ReaderCodeTokenRole.tag;
+  ReaderCodeTokenRole _scriptIdentifierRole(
+    String code,
+    int start,
+    int end,
+    String value,
+  ) {
     if (_scriptKeywords.contains(value)) return ReaderCodeTokenRole.keyword;
     if (_scriptConstants.contains(value)) return ReaderCodeTokenRole.constant;
     if (_scriptBuiltins.contains(value)) return ReaderCodeTokenRole.builtin;
-    if (_isLikelyAttribute(code, start)) return ReaderCodeTokenRole.attribute;
-    if (_isLikelyFunction(code, start + value.length)) {
+    if (_isLikelyObjectKey(code, start, end)) {
+      return ReaderCodeTokenRole.property;
+    }
+    if (_isLikelyPropertyAccess(code, start)) {
+      return _isLikelyFunction(code, end)
+          ? ReaderCodeTokenRole.function
+          : ReaderCodeTokenRole.property;
+    }
+    if (_isReactFunctionName(value) || _isLikelyFunction(code, end)) {
       return ReaderCodeTokenRole.function;
     }
     if (value.isNotEmpty &&
@@ -54,29 +120,374 @@ final class ReaderCodeTokenizer {
         value.codeUnitAt(0) <= 90) {
       return ReaderCodeTokenRole.type;
     }
-    if (RegExp(r'^[{}()[\].,;:+\-*/%!=<>?&|]+$').hasMatch(value)) {
-      return ReaderCodeTokenRole.punctuation;
-    }
     return ReaderCodeTokenRole.plain;
   }
 
-  bool _isLikelyAttribute(String code, int start) {
-    var i = start - 1;
-    while (i >= 0 && code.codeUnitAt(i) != 10) {
-      final char = code[i];
-      if (char == '<') return true;
-      if (char == '>') return false;
-      i--;
+  int _scanJsxTag(
+    String code,
+    int start,
+    int end,
+    List<ReaderCodeToken> tokens,
+  ) {
+    var cursor = start;
+    if (cursor + 1 < end && code[cursor + 1] == '/') {
+      _addToken(
+        tokens,
+        code,
+        cursor,
+        cursor + 2,
+        ReaderCodeTokenRole.punctuation,
+      );
+      cursor += 2;
+    } else {
+      _addToken(
+        tokens,
+        code,
+        cursor,
+        cursor + 1,
+        ReaderCodeTokenRole.punctuation,
+      );
+      cursor++;
     }
-    return false;
+
+    if (cursor < end && code[cursor] == '>') {
+      _addToken(
+        tokens,
+        code,
+        cursor,
+        cursor + 1,
+        ReaderCodeTokenRole.punctuation,
+      );
+      return cursor + 1;
+    }
+
+    if (cursor < end && _isIdentifierStart(code.codeUnitAt(cursor))) {
+      final nameEnd = _readJsxName(code, cursor, end);
+      final name = code.substring(cursor, nameEnd);
+      _addToken(tokens, code, cursor, nameEnd, _jsxTagRole(name));
+      cursor = nameEnd;
+    }
+
+    while (cursor < end) {
+      final char = code[cursor];
+      if (char == '>') {
+        _addToken(
+          tokens,
+          code,
+          cursor,
+          cursor + 1,
+          ReaderCodeTokenRole.punctuation,
+        );
+        return cursor + 1;
+      }
+      if (char == '/' && cursor + 1 < end && code[cursor + 1] == '>') {
+        _addToken(
+          tokens,
+          code,
+          cursor,
+          cursor + 2,
+          ReaderCodeTokenRole.punctuation,
+        );
+        return cursor + 2;
+      }
+      if (char == '"' || char == "'") {
+        final tokenEnd = _readString(code, cursor, end, char);
+        _addToken(tokens, code, cursor, tokenEnd, ReaderCodeTokenRole.string);
+        cursor = tokenEnd;
+        continue;
+      }
+      if (char == '{') {
+        cursor = _scanJsxExpression(code, cursor, end, tokens);
+        continue;
+      }
+      if (_isIdentifierStart(code.codeUnitAt(cursor))) {
+        final tokenEnd = _readJsxName(code, cursor, end);
+        _addToken(
+          tokens,
+          code,
+          cursor,
+          tokenEnd,
+          ReaderCodeTokenRole.attribute,
+        );
+        cursor = tokenEnd;
+        continue;
+      }
+      if (_isOperatorStart(char)) {
+        final tokenEnd = _readOperator(code, cursor, end);
+        _addToken(
+          tokens,
+          code,
+          cursor,
+          tokenEnd,
+          _operatorRole(code.substring(cursor, tokenEnd)),
+        );
+        cursor = tokenEnd;
+        continue;
+      }
+      final tokenEnd = _readPlain(code, cursor, end, jsx: true);
+      _addToken(tokens, code, cursor, tokenEnd, ReaderCodeTokenRole.plain);
+      cursor = tokenEnd;
+    }
+    return cursor;
+  }
+
+  int _scanJsxExpression(
+    String code,
+    int start,
+    int end,
+    List<ReaderCodeToken> tokens,
+  ) {
+    final close = _findMatchingBrace(code, start, end);
+    if (close == null) {
+      _addToken(
+        tokens,
+        code,
+        start,
+        start + 1,
+        ReaderCodeTokenRole.punctuation,
+      );
+      return start + 1;
+    }
+    _addToken(tokens, code, start, start + 1, ReaderCodeTokenRole.punctuation);
+    tokens.addAll(_tokenizeScriptRange(code, start + 1, close, jsx: false));
+    _addToken(tokens, code, close, close + 1, ReaderCodeTokenRole.punctuation);
+    return close + 1;
+  }
+
+  bool _looksLikeJsxTag(String code, int start, int end) {
+    if (start + 1 >= end) return false;
+    final next = code[start + 1];
+    if (next == '>') return true;
+    if (next == '/') {
+      return start + 2 < end &&
+          (code[start + 2] == '>' ||
+              _isIdentifierStart(code.codeUnitAt(start + 2)));
+    }
+    return _isIdentifierStart(code.codeUnitAt(start + 1));
+  }
+
+  ReaderCodeTokenRole _jsxTagRole(String name) {
+    final first = name.isEmpty ? 0 : name.codeUnitAt(0);
+    return first >= 65 && first <= 90
+        ? ReaderCodeTokenRole.type
+        : ReaderCodeTokenRole.tag;
+  }
+
+  int? _findMatchingBrace(String code, int start, int end) {
+    var depth = 0;
+    var cursor = start;
+    while (cursor < end) {
+      final char = code[cursor];
+      if (char == '"' || char == "'" || char == '`') {
+        cursor = _readString(code, cursor, end, char);
+        continue;
+      }
+      if (char == '/' && cursor + 1 < end && code[cursor + 1] == '/') {
+        cursor = _readLineComment(code, cursor, end);
+        continue;
+      }
+      if (char == '/' && cursor + 1 < end && code[cursor + 1] == '*') {
+        cursor = _readBlockComment(code, cursor, end);
+        continue;
+      }
+      if (char == '{') {
+        depth++;
+      } else if (char == '}') {
+        depth--;
+        if (depth == 0) return cursor;
+      }
+      cursor++;
+    }
+    return null;
+  }
+
+  int _readLineComment(String code, int start, int end) {
+    final newline = code.indexOf('\n', start);
+    return newline < 0 || newline > end ? end : newline;
+  }
+
+  int _readBlockComment(String code, int start, int end) {
+    final close = code.indexOf('*/', start + 2);
+    return close < 0 || close + 2 > end ? end : close + 2;
+  }
+
+  int _readString(String code, int start, int end, String quote) {
+    var cursor = start + 1;
+    while (cursor < end) {
+      final char = code[cursor];
+      if (char == '\\') {
+        cursor += 2;
+        continue;
+      }
+      cursor++;
+      if (char == quote) return cursor;
+    }
+    return end;
+  }
+
+  int _readNumber(String code, int start, int end) {
+    var cursor = start;
+    while (cursor < end) {
+      final unit = code.codeUnitAt(cursor);
+      if (!_isDigit(unit) && code[cursor] != '.') break;
+      cursor++;
+    }
+    return cursor;
+  }
+
+  int _readIdentifier(String code, int start, int end) {
+    var cursor = start + 1;
+    while (cursor < end && _isIdentifierPart(code.codeUnitAt(cursor))) {
+      cursor++;
+    }
+    return cursor;
+  }
+
+  int _readJsxName(String code, int start, int end) {
+    var cursor = start + 1;
+    while (cursor < end) {
+      final unit = code.codeUnitAt(cursor);
+      final char = code[cursor];
+      if (!_isIdentifierPart(unit) &&
+          char != '-' &&
+          char != ':' &&
+          char != '.') {
+        break;
+      }
+      cursor++;
+    }
+    return cursor;
+  }
+
+  int _readOperator(String code, int start, int end) {
+    if (_isSinglePunctuation(code[start])) return start + 1;
+    var cursor = start + 1;
+    while (cursor < end && _isJoinableOperator(code[cursor])) {
+      cursor++;
+    }
+    return cursor;
+  }
+
+  int _readPlain(String code, int start, int end, {required bool jsx}) {
+    var cursor = start + 1;
+    while (cursor < end) {
+      final char = code[cursor];
+      final unit = code.codeUnitAt(cursor);
+      if (char == '"' ||
+          char == "'" ||
+          char == '`' ||
+          (char == '/' && cursor + 1 < end && code[cursor + 1] == '/') ||
+          (char == '/' && cursor + 1 < end && code[cursor + 1] == '*') ||
+          (jsx && char == '<' && _looksLikeJsxTag(code, cursor, end)) ||
+          _isDigit(unit) ||
+          _isIdentifierStart(unit) ||
+          _isOperatorStart(char)) {
+        break;
+      }
+      cursor++;
+    }
+    return cursor;
+  }
+
+  bool _isLikelyObjectKey(String code, int start, int end) {
+    final next = _nextNonSpace(code, end);
+    if (next == null || code[next] != ':') return false;
+    final previous = _previousNonSpace(code, start);
+    if (previous == null) return true;
+    return const {'{', ',', '('}.contains(code[previous]);
+  }
+
+  bool _isLikelyStringObjectKey(String code, int start, int end) {
+    final next = _nextNonSpace(code, end);
+    if (next == null || code[next] != ':') return false;
+    final previous = _previousNonSpace(code, start);
+    if (previous == null) return true;
+    return const {'{', ','}.contains(code[previous]);
+  }
+
+  bool _isLikelyPropertyAccess(String code, int start) {
+    final previous = _previousNonSpace(code, start);
+    return previous != null && code[previous] == '.';
   }
 
   bool _isLikelyFunction(String code, int end) {
-    var i = end;
-    while (i < code.length && code.codeUnitAt(i) == 32) {
-      i++;
+    final next = _nextNonSpace(code, end);
+    return next != null && code[next] == '(';
+  }
+
+  int? _nextNonSpace(String code, int start) {
+    var cursor = start;
+    while (cursor < code.length && _isWhitespace(code.codeUnitAt(cursor))) {
+      cursor++;
     }
-    return i < code.length && code[i] == '(';
+    return cursor < code.length ? cursor : null;
+  }
+
+  int? _previousNonSpace(String code, int start) {
+    var cursor = start - 1;
+    while (cursor >= 0 && _isWhitespace(code.codeUnitAt(cursor))) {
+      cursor--;
+    }
+    return cursor >= 0 ? cursor : null;
+  }
+
+  bool _isReactFunctionName(String value) {
+    return _reactFunctions.contains(value);
+  }
+
+  ReaderCodeTokenRole _operatorRole(String value) {
+    return value.contains(RegExp(r'[=:+\-*/%!?&|<>]'))
+        ? ReaderCodeTokenRole.operator
+        : ReaderCodeTokenRole.punctuation;
+  }
+
+  bool _isOperatorStart(String char) {
+    return '{}()[].,;:+-*/%!=<>?&|'.contains(char);
+  }
+
+  bool _isSinglePunctuation(String char) {
+    return '{}()[].,;'.contains(char);
+  }
+
+  bool _isJoinableOperator(String char) {
+    return ':+-*/%!=<>?&|'.contains(char);
+  }
+
+  bool _isIdentifierStart(int unit) {
+    return (unit >= 65 && unit <= 90) ||
+        (unit >= 97 && unit <= 122) ||
+        unit == 95 ||
+        unit == 36;
+  }
+
+  bool _isIdentifierPart(int unit) {
+    return _isIdentifierStart(unit) || _isDigit(unit);
+  }
+
+  bool _isDigit(int unit) {
+    return unit >= 48 && unit <= 57;
+  }
+
+  bool _isWhitespace(int unit) {
+    return unit == 32 || unit == 9 || unit == 10 || unit == 13;
+  }
+
+  void _addToken(
+    List<ReaderCodeToken> tokens,
+    String code,
+    int start,
+    int end,
+    ReaderCodeTokenRole role,
+  ) {
+    if (start >= end) return;
+    tokens.add(
+      ReaderCodeToken(
+        text: code.substring(start, end),
+        role: role,
+        start: start,
+        end: end,
+      ),
+    );
   }
 
   List<ReaderCodeToken> _tokenizeShell(String code) {
@@ -219,5 +630,20 @@ final class ReaderCodeTokenizer {
     'console',
     'document',
     'window',
+  };
+
+  static const Set<String> _reactFunctions = {
+    'createContext',
+    'forwardRef',
+    'memo',
+    'useCallback',
+    'useContext',
+    'useEffect',
+    'useId',
+    'useLayoutEffect',
+    'useMemo',
+    'useReducer',
+    'useRef',
+    'useState',
   };
 }
