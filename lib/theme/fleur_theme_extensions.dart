@@ -134,6 +134,10 @@ class FleurStateTheme extends ThemeExtension<FleurStateTheme> {
     required this.pressedTint,
     required this.selectionTint,
     required this.errorAccent,
+    required this.scrollbarIdle,
+    required this.scrollbarRegionHover,
+    required this.scrollbarHover,
+    required this.scrollbarDrag,
   });
 
   final Color unreadAccent;
@@ -144,6 +148,10 @@ class FleurStateTheme extends ThemeExtension<FleurStateTheme> {
   final Color pressedTint;
   final Color selectionTint;
   final Color errorAccent;
+  final Color scrollbarIdle;
+  final Color scrollbarRegionHover;
+  final Color scrollbarHover;
+  final Color scrollbarDrag;
 
   factory FleurStateTheme.fromScheme(
     ColorScheme scheme, {
@@ -159,6 +167,10 @@ class FleurStateTheme extends ThemeExtension<FleurStateTheme> {
       pressedTint: scheme.primary.withAlpha(dark ? 44 : 22),
       selectionTint: scheme.primary.withAlpha(dark ? 62 : 40),
       errorAccent: scheme.error,
+      scrollbarIdle: scheme.outlineVariant.withAlpha(dark ? 84 : 72),
+      scrollbarRegionHover: scheme.onSurfaceVariant.withAlpha(dark ? 120 : 88),
+      scrollbarHover: scheme.onSurfaceVariant.withAlpha(dark ? 144 : 112),
+      scrollbarDrag: scheme.primary.withAlpha(dark ? 176 : 148),
     );
   }
 
@@ -172,6 +184,10 @@ class FleurStateTheme extends ThemeExtension<FleurStateTheme> {
     Color? pressedTint,
     Color? selectionTint,
     Color? errorAccent,
+    Color? scrollbarIdle,
+    Color? scrollbarRegionHover,
+    Color? scrollbarHover,
+    Color? scrollbarDrag,
   }) {
     return FleurStateTheme(
       unreadAccent: unreadAccent ?? this.unreadAccent,
@@ -182,6 +198,10 @@ class FleurStateTheme extends ThemeExtension<FleurStateTheme> {
       pressedTint: pressedTint ?? this.pressedTint,
       selectionTint: selectionTint ?? this.selectionTint,
       errorAccent: errorAccent ?? this.errorAccent,
+      scrollbarIdle: scrollbarIdle ?? this.scrollbarIdle,
+      scrollbarRegionHover: scrollbarRegionHover ?? this.scrollbarRegionHover,
+      scrollbarHover: scrollbarHover ?? this.scrollbarHover,
+      scrollbarDrag: scrollbarDrag ?? this.scrollbarDrag,
     );
   }
 
@@ -202,8 +222,36 @@ class FleurStateTheme extends ThemeExtension<FleurStateTheme> {
       selectionTint:
           Color.lerp(selectionTint, other.selectionTint, t) ?? selectionTint,
       errorAccent: Color.lerp(errorAccent, other.errorAccent, t) ?? errorAccent,
+      scrollbarIdle:
+          Color.lerp(scrollbarIdle, other.scrollbarIdle, t) ?? scrollbarIdle,
+      scrollbarRegionHover:
+          Color.lerp(scrollbarRegionHover, other.scrollbarRegionHover, t) ??
+          scrollbarRegionHover,
+      scrollbarHover:
+          Color.lerp(scrollbarHover, other.scrollbarHover, t) ?? scrollbarHover,
+      scrollbarDrag:
+          Color.lerp(scrollbarDrag, other.scrollbarDrag, t) ?? scrollbarDrag,
     );
   }
+}
+
+@immutable
+class FleurReaderColorTokens {
+  const FleurReaderColorTokens({
+    required this.summarySurface,
+    required this.toolbarSurface,
+    required this.searchBarSurface,
+    required this.bannerSurface,
+    required this.blockquoteAccent,
+    required this.codeBlockSurface,
+  });
+
+  final Color summarySurface;
+  final Color toolbarSurface;
+  final Color searchBarSurface;
+  final Color bannerSurface;
+  final Color blockquoteAccent;
+  final Color codeBlockSurface;
 }
 
 @immutable
@@ -262,10 +310,33 @@ class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
     required TextTheme textTheme,
     required ColorScheme scheme,
     required AppThemeProfile profile,
+    FleurReaderColorTokens? colors,
   }) {
     final bodyColor = scheme.onSurface.withValues(
       alpha: scheme.brightness == Brightness.dark ? 0.92 : 0.88,
     );
+    final readerColors =
+        colors ??
+        FleurReaderColorTokens(
+          summarySurface: _blend(
+            scheme.surfaceContainerLow,
+            scheme.secondary,
+            8,
+          ),
+          toolbarSurface: _blend(scheme.surfaceContainerLow, scheme.primary, 4),
+          searchBarSurface: _blend(
+            scheme.surfaceContainerHigh,
+            scheme.primary,
+            6,
+          ),
+          bannerSurface: _blend(
+            scheme.surfaceContainerHigh,
+            scheme.secondary,
+            6,
+          ),
+          blockquoteAccent: scheme.primary,
+          codeBlockSurface: scheme.surfaceContainerHigh,
+        );
 
     return FleurReaderTheme(
       maxWidth: kMaxReadingWidth,
@@ -295,12 +366,12 @@ class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
         color: scheme.onSurface,
         height: 1.56,
       ),
-      summarySurface: _blend(scheme.surfaceContainerLow, scheme.secondary, 8),
-      toolbarSurface: _blend(scheme.surfaceContainerLow, scheme.primary, 4),
-      searchBarSurface: _blend(scheme.surfaceContainerHigh, scheme.primary, 6),
-      bannerSurface: _blend(scheme.surfaceContainerHigh, scheme.secondary, 6),
-      blockquoteAccent: scheme.primary,
-      codeBlockSurface: scheme.surfaceContainerHigh,
+      summarySurface: readerColors.summarySurface,
+      toolbarSurface: readerColors.toolbarSurface,
+      searchBarSurface: readerColors.searchBarSurface,
+      bannerSurface: readerColors.bannerSurface,
+      blockquoteAccent: readerColors.blockquoteAccent,
+      codeBlockSurface: readerColors.codeBlockSurface,
     );
   }
 

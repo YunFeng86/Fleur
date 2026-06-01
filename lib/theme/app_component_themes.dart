@@ -166,14 +166,12 @@ class AppComponentThemes {
         thickness: WidgetStatePropertyAll(profile.isDesktop ? 6 : 8),
         thumbColor: WidgetStateProperty.resolveWith((statesSet) {
           if (statesSet.contains(WidgetState.dragged)) {
-            return scheme.primary.withAlpha(profile.isDesktop ? 148 : 176);
+            return states.scrollbarDrag;
           }
           if (statesSet.contains(WidgetState.hovered)) {
-            return scheme.onSurfaceVariant.withAlpha(
-              profile.isDesktop ? 112 : 140,
-            );
+            return states.scrollbarHover;
           }
-          return scheme.outlineVariant.withAlpha(profile.isDesktop ? 72 : 84);
+          return states.scrollbarIdle;
         }),
       ),
       popupMenuTheme: PopupMenuThemeData(

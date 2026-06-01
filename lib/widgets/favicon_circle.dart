@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/fleur_theme_extensions.dart';
 import 'favicon_avatar.dart';
 
 /// A shared circular container for displaying a site's favicon.
@@ -38,7 +39,7 @@ class FaviconCircle extends StatelessWidget {
       width: diameter,
       height: diameter,
       decoration: BoxDecoration(
-        color: backgroundColor ?? theme.colorScheme.surfaceContainerHigh,
+        color: backgroundColor ?? theme.fleurSurface.card,
         shape: BoxShape.circle,
       ),
       alignment: Alignment.center,

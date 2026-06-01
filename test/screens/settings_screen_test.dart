@@ -9,6 +9,9 @@ import 'package:fleur/screens/settings_screen.dart';
 import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/services/accounts/account_store.dart';
 import 'package:fleur/services/settings/app_settings.dart';
+import 'package:fleur/theme/app_theme.dart';
+import 'package:fleur/theme/seed_color_presets.dart';
+import 'package:fleur/utils/platform.dart';
 
 import '../test_utils/critical_workflow_test_support.dart';
 
@@ -35,7 +38,13 @@ void main() {
     );
   }
 
-  List<Override> servicesOverrides() {
+  FakeAppSettingsStore appSettingsStore([
+    AppSettings settings = const AppSettings(),
+  ]) {
+    return FakeAppSettingsStore(settings);
+  }
+
+  List<Override> servicesOverrides({FakeAppSettingsStore? settingsStore}) {
     final account = settingsAccount();
     return [
       accountStoreProvider.overrideWithValue(
@@ -48,7 +57,7 @@ void main() {
         ),
       ),
       appSettingsStoreProvider.overrideWithValue(
-        FakeAppSettingsStore(AppSettings.defaults()),
+        settingsStore ?? appSettingsStore(AppSettings.defaults()),
       ),
     ];
   }
@@ -69,6 +78,7 @@ void main() {
       ProviderScope(
         overrides: overrides,
         child: MaterialApp(
+          theme: AppTheme.light(),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: SettingsScreen(initialTab: initialTab, showBack: showBack),
@@ -320,6 +330,52 @@ void main() {
       expect(find.text('System language'), findsNothing);
     },
   );
+
+  testWidgets('App Preferences theme controls persist mode and seed color', (
+    tester,
+  ) async {
+    final store = appSettingsStore(AppSettings.defaults());
+    await pumpSettingsScreen(
+      tester,
+      1000,
+      overrides: servicesOverrides(settingsStore: store),
+    );
+
+    await tester.tap(find.text('Dark'));
+    await tester.pumpAndSettle();
+    expect(store.settings.themeMode, ThemeMode.dark);
+
+    await tester.tap(
+      find.byKey(const Key('app_preferences_seed_color_pink_card')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(store.settings.useDynamicColor, isFalse);
+    expect(store.settings.seedColorPreset, SeedColorPreset.pink);
+  });
+
+  testWidgets('App Preferences shows dynamic color card only on Android', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.android;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    await pumpSettingsScreen(tester, 1000, overrides: servicesOverrides());
+
+    expect(
+      find.byKey(const Key('app_preferences_dynamic_color_card')),
+      findsOneWidget,
+    );
+
+    debugFleurTargetPlatformOverride = TargetPlatform.windows;
+    await tester.pumpWidget(const SizedBox.shrink());
+    await pumpSettingsScreen(tester, 1000, overrides: servicesOverrides());
+
+    expect(
+      find.byKey(const Key('app_preferences_dynamic_color_card')),
+      findsNothing,
+    );
+  });
 
   testWidgets('AppLocalizations uses strict pathNotFound message in English', (
     tester,

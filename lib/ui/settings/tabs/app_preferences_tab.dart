@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,6 +10,7 @@ import '../../../providers/service_providers.dart';
 import '../../../providers/settings_providers.dart';
 import '../../../services/settings/app_settings.dart';
 import '../../../services/settings/reader_settings.dart';
+import '../../../theme/fleur_color_engine.dart';
 import '../../../theme/fleur_icons.dart';
 import '../../../theme/seed_color_presets.dart';
 import '../../../utils/context_extensions.dart';
@@ -40,8 +40,6 @@ class AppPreferencesTab extends ConsumerWidget {
       SeedColorPreset.pink => l10n.seedColorPink,
     };
 
-    final isAndroid =
-        !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
     final currentBrightness = Theme.of(context).brightness;
 
     return SettingsPageBody(
@@ -177,6 +175,9 @@ class AppPreferencesTab extends ConsumerWidget {
                           Tooltip(
                             message: l10n.dynamicColorSubtitle,
                             child: _ThemeColorCard(
+                              key: const Key(
+                                'app_preferences_dynamic_color_card',
+                              ),
                               selected: appSettings.useDynamicColor,
                               scheme: Theme.of(context).colorScheme,
                               semanticLabel: l10n.dynamicColor,
@@ -197,13 +198,16 @@ class AppPreferencesTab extends ConsumerWidget {
                           Tooltip(
                             message: seedPresetLabel(p),
                             child: _ThemeColorCard(
+                              key: Key(
+                                'app_preferences_seed_color_${p.name}_card',
+                              ),
                               selected:
                                   !appSettings.useDynamicColor &&
                                   appSettings.seedColorPreset == p,
-                              scheme: ColorScheme.fromSeed(
-                                seedColor: p.seedColor,
+                              scheme: FleurColorEngine.resolve(
                                 brightness: currentBrightness,
-                              ),
+                                seedColorPreset: p,
+                              ).materialScheme,
                               semanticLabel: seedPresetLabel(p),
                               onTap: () {
                                 unawaited(
@@ -371,6 +375,7 @@ class AppPreferencesTab extends ConsumerWidget {
 
 class _ThemeColorCard extends StatelessWidget {
   const _ThemeColorCard({
+    super.key,
     required this.selected,
     required this.scheme,
     required this.onTap,

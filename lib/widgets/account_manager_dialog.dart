@@ -9,6 +9,7 @@ import 'package:fleur/l10n/app_localizations.dart';
 import '../providers/account_providers.dart';
 import '../services/accounts/account.dart';
 import '../theme/fleur_icons.dart';
+import '../theme/fleur_theme_extensions.dart';
 import '../ui/dialogs/add_account_dialogs.dart';
 import '../ui/dialogs/text_input_dialog.dart';
 import '../utils/context_extensions.dart';
@@ -141,7 +142,10 @@ class AccountManagerDialog extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final accountsAsync = ref.watch(accountsControllerProvider);
     final active = ref.watch(activeAccountProvider);
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final surfaces = theme.fleurSurface;
+    final states = theme.fleurState;
 
     return Dialog(
       insetPadding: const EdgeInsets.all(24),
@@ -202,6 +206,7 @@ class AccountManagerDialog extends ConsumerWidget {
                     runSpacing: 8,
                     children: [
                       FilledButton.icon(
+                        key: const Key('account_manager_add_button'),
                         onPressed: () => unawaited(_addAccount(context, ref)),
                         icon: const Icon(FleurIcons.add),
                         label: Text(l10n.add),
@@ -218,10 +223,11 @@ class AccountManagerDialog extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   DecoratedBox(
+                    key: const Key('account_manager_list_surface'),
                     decoration: BoxDecoration(
-                      color: scheme.surfaceContainerHigh,
+                      color: surfaces.card,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: scheme.outlineVariant),
+                      border: Border.all(color: surfaces.subtleDivider),
                     ),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
@@ -255,17 +261,18 @@ class AccountManagerDialog extends ConsumerWidget {
                               };
 
                               return AnimatedContainer(
+                                key: Key('account_manager_account_${a.id}'),
                                 duration: const Duration(milliseconds: 180),
                                 curve: Curves.easeOutCubic,
                                 decoration: BoxDecoration(
                                   color: isActive
-                                      ? scheme.primaryContainer
-                                      : scheme.surfaceContainerLowest,
+                                      ? surfaces.cardSelected
+                                      : surfaces.card,
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
                                     color: isActive
-                                        ? scheme.primary
-                                        : scheme.outlineVariant,
+                                        ? states.focusRing
+                                        : surfaces.subtleDivider,
                                   ),
                                 ),
                                 child: ListTile(
@@ -375,14 +382,16 @@ class _AccountTypeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final surfaces = theme.fleurSurface;
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 0,
-      color: scheme.surfaceContainerHigh,
+      color: surfaces.card,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: scheme.outlineVariant),
+        side: BorderSide(color: surfaces.subtleDivider),
       ),
       child: ListTile(
         leading: CircleAvatar(

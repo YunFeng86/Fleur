@@ -515,7 +515,7 @@ class _SettingsSelectFieldState<T> extends State<SettingsSelectField<T>> {
         Offset.zero & overlay.size,
       ),
       constraints: BoxConstraints.tightFor(width: box.size.width),
-      color: Theme.of(context).colorScheme.surface,
+      color: Theme.of(context).fleurSurface.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       items: [
         for (final option in widget.options)
@@ -541,14 +541,15 @@ class _SettingsSelectFieldState<T> extends State<SettingsSelectField<T>> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final surfaces = theme.fleurSurface;
     final enabled = widget.onChanged != null;
     final borderColor = !enabled
-        ? scheme.outlineVariant.withValues(alpha: 0.42)
+        ? surfaces.subtleDivider.withValues(alpha: 0.42)
         : _focused
         ? scheme.primary
         : _hovered
         ? scheme.outline
-        : scheme.outlineVariant;
+        : surfaces.subtleDivider;
     final foregroundColor = enabled
         ? scheme.onSurface
         : scheme.onSurface.withValues(alpha: 0.38);
@@ -564,7 +565,7 @@ class _SettingsSelectFieldState<T> extends State<SettingsSelectField<T>> {
         curve: Curves.easeOutCubic,
         height: _kSettingsSelectFieldHeight,
         decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
+          color: surfaces.card,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: borderColor, width: _focused ? 2 : 1),
         ),
@@ -708,6 +709,7 @@ class SettingsActionButton extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final states = theme.fleurState;
+    final surfaces = theme.fleurSurface;
     final enabled = onPressed != null;
     final foreground = switch (variant) {
       SettingsActionButtonVariant.filled => scheme.onPrimary,
@@ -720,7 +722,7 @@ class SettingsActionButton extends StatelessWidget {
       SettingsActionButtonVariant.text => Colors.transparent,
     };
     final border = variant == SettingsActionButtonVariant.outline
-        ? Border.all(color: scheme.outlineVariant)
+        ? Border.all(color: surfaces.subtleDivider)
         : null;
     final content = IconTheme.merge(
       data: IconThemeData(
@@ -745,12 +747,7 @@ class SettingsActionButton extends StatelessWidget {
     );
 
     return Material(
-      color: enabled
-          ? background
-          : Color.alphaBlend(
-              scheme.onSurface.withValues(alpha: 0.06),
-              background,
-            ),
+      color: enabled ? background : surfaces.card,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: border?.top ?? BorderSide.none,
@@ -822,15 +819,12 @@ class SettingsLeadingAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final surfaces = Theme.of(context).fleurSurface;
 
     return Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHigh,
-        shape: BoxShape.circle,
-      ),
+      decoration: BoxDecoration(color: surfaces.card, shape: BoxShape.circle),
       alignment: Alignment.center,
       child: child,
     );

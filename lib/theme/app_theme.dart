@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'app_component_themes.dart';
 import 'app_theme_profile.dart';
 import 'app_typography.dart';
+import 'fleur_color_engine.dart';
 import 'fleur_theme_extensions.dart';
 import 'seed_color_presets.dart';
 
@@ -16,7 +17,7 @@ class AppTheme {
   }) => _build(
     Brightness.light,
     dynamicScheme: scheme,
-    seedColor: (seedColorPreset ?? SeedColorPreset.blue).seedColor, // default
+    seedColorPreset: seedColorPreset ?? SeedColorPreset.blue,
   );
 
   static ThemeData dark({
@@ -25,7 +26,7 @@ class AppTheme {
   }) => _build(
     Brightness.dark,
     dynamicScheme: scheme,
-    seedColor: (seedColorPreset ?? SeedColorPreset.blue).seedColor, // default
+    seedColorPreset: seedColorPreset ?? SeedColorPreset.blue,
   );
 
   static ThemeData readerScene(ThemeData base) {
@@ -59,12 +60,15 @@ class AppTheme {
   static ThemeData _build(
     Brightness brightness, {
     ColorScheme? dynamicScheme,
-    required Color seedColor,
+    required SeedColorPreset seedColorPreset,
   }) {
     final profile = AppThemeProfile.resolve();
-    final cs =
-        dynamicScheme ??
-        ColorScheme.fromSeed(seedColor: seedColor, brightness: brightness);
+    final colorTokens = FleurColorEngine.resolve(
+      brightness: brightness,
+      dynamicScheme: dynamicScheme,
+      seedColorPreset: seedColorPreset,
+    );
+    final cs = colorTokens.materialScheme;
     final baseMaterialTheme = ThemeData(
       useMaterial3: true,
       brightness: brightness,
@@ -77,12 +81,13 @@ class AppTheme {
       visualDensity: profile.visualDensity,
       textTheme: AppTypography.buildTextTheme(baseMaterialTheme.textTheme, cs),
     );
-    final surfaces = FleurSurfaceTheme.fromScheme(cs, brightness: brightness);
-    final states = FleurStateTheme.fromScheme(cs, brightness: brightness);
+    final surfaces = colorTokens.surfaces;
+    final states = colorTokens.states;
     final reader = FleurReaderTheme.fromTheme(
       textTheme: baseTheme.textTheme,
       scheme: cs,
       profile: profile,
+      colors: colorTokens.readerColors,
     );
 
     return AppComponentThemes.apply(

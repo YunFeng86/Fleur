@@ -8,6 +8,7 @@ import 'package:path_provider_platform_interface/path_provider_platform_interfac
 
 import 'package:fleur/l10n/app_localizations.dart';
 import 'package:fleur/screens/settings_screen.dart';
+import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/ui/dialogs/add_account_dialogs.dart';
 import 'package:fleur/ui/settings/tabs/about_tab.dart';
 import 'package:fleur/utils/path_manager.dart';
@@ -50,6 +51,7 @@ Future<void> _pumpTestApp(
   await tester.pumpWidget(
     ProviderScope(
       child: MaterialApp(
+        theme: AppTheme.light(),
         locale: locale,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
