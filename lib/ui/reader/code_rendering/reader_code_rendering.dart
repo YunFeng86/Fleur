@@ -4,6 +4,7 @@ export 'reader_code_language.dart';
 export 'reader_code_models.dart';
 export 'reader_code_renderer.dart';
 export 'reader_code_search_overlay.dart';
+export 'reader_code_scope_mapper.dart';
 export 'reader_code_syntax_adapter.dart';
 export 'reader_code_theme.dart';
 export 'reader_code_token_overlay.dart';

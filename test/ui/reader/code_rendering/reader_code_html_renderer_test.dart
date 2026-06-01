@@ -135,4 +135,50 @@ void main() {
     expect(roleFor('section'), ReaderCodeTokenRole.tag);
     expect(roleFor('Widget'), ReaderCodeTokenRole.type);
   });
+
+  test('maps expanded prism highlightjs and github scopes', () {
+    final fragment = html_parser.parseFragment(
+      '<code>'
+      '<span class="token atrule">@media</span>'
+      '<span class="token attr-value">"hero"</span>'
+      '<span class="token selector">.card</span>'
+      '<span class="hljs-title function_">render</span>'
+      '<span class="hljs-title class_">Widget</span>'
+      '<span class="hljs-template-variable">\${name}</span>'
+      '<span class="hljs-variable language_">this</span>'
+      '<span class="hljs-addition">+added</span>'
+      '<span class="pl-sr">/regex/</span>'
+      '<span class="pl-corl">https://example.com</span>'
+      '</code>',
+    );
+
+    final extraction = renderer.extract(fragment.querySelector('code')!);
+
+    ReaderCodeTokenRole roleFor(String text) {
+      return extraction.tokens.firstWhere((token) => token.text == text).role;
+    }
+
+    expect(roleFor('@media'), ReaderCodeTokenRole.keyword);
+    expect(roleFor('"hero"'), ReaderCodeTokenRole.string);
+    expect(roleFor('.card'), ReaderCodeTokenRole.tag);
+    expect(roleFor('render'), ReaderCodeTokenRole.function);
+    expect(roleFor('Widget'), ReaderCodeTokenRole.type);
+    expect(roleFor(r'${name}'), ReaderCodeTokenRole.string);
+    expect(roleFor('this'), ReaderCodeTokenRole.variable);
+    expect(roleFor('+added'), ReaderCodeTokenRole.diffInserted);
+    expect(roleFor('/regex/'), ReaderCodeTokenRole.string);
+    expect(roleFor('https://example.com'), ReaderCodeTokenRole.string);
+  });
+
+  test('scope mapper preserves inline color without layout styles', () {
+    const mapper = ReaderCodeScopeMapper();
+
+    final style = mapper.styleFor(
+      classes: {'token', 'keyword'},
+      inlineStyle: 'font-weight: bold; color: #f00; display: block',
+    );
+
+    expect(style?.role, ReaderCodeTokenRole.keyword);
+    expect(style?.colorOverride, const Color(0xFFFF0000));
+  });
 }

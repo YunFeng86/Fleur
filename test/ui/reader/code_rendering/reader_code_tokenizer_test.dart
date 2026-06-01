@@ -343,6 +343,109 @@ void main() {
     );
   });
 
+  test('tokenizes xml and svg tags attributes strings and comments', () {
+    final tokens = tokenizer.tokenize(
+      '<?xml version="1.0"?><svg viewBox="0 0 10 10"><path d="M0 0"/></svg>',
+      'xml',
+    )!;
+
+    expect(
+      tokens.any(
+        (token) =>
+            token.text.startsWith('<?xml') &&
+            token.role == ReaderCodeTokenRole.keyword,
+      ),
+      isTrue,
+    );
+    expect(
+      tokens.any(
+        (token) =>
+            token.text == '<svg' && token.role == ReaderCodeTokenRole.tag,
+      ),
+      isTrue,
+    );
+    expect(
+      tokens.any(
+        (token) =>
+            token.text == 'viewBox' &&
+            token.role == ReaderCodeTokenRole.attribute,
+      ),
+      isTrue,
+    );
+  });
+
+  test('tokenizes toml ini properties dockerfile and makefile', () {
+    final toml = tokenizer.tokenize(
+      '[package]\nname = "fleur"\nenabled = true',
+      'toml',
+    )!;
+    final ini = tokenizer.tokenize('[reader]\nfont_size = 16\n# note', 'ini')!;
+    final dockerfile = tokenizer.tokenize(
+      'FROM dart:stable\nRUN flutter test --coverage',
+      'dockerfile',
+    )!;
+    final makefile = tokenizer.tokenize(
+      'build:\n\tflutter test \$(NAME)\nNAME = Fleur',
+      'makefile',
+    )!;
+
+    expect(
+      toml.any(
+        (token) =>
+            token.text.trim() == '[package]' &&
+            token.role == ReaderCodeTokenRole.tag,
+      ),
+      isTrue,
+    );
+    expect(
+      toml.any(
+        (token) =>
+            token.text.trim() == 'name' &&
+            token.role == ReaderCodeTokenRole.property,
+      ),
+      isTrue,
+    );
+    expect(
+      ini.any(
+        (token) =>
+            token.text.trim() == 'font_size' &&
+            token.role == ReaderCodeTokenRole.property,
+      ),
+      isTrue,
+    );
+    expect(
+      dockerfile.any(
+        (token) =>
+            token.text.trim() == 'FROM' &&
+            token.role == ReaderCodeTokenRole.keyword,
+      ),
+      isTrue,
+    );
+    expect(
+      dockerfile.any(
+        (token) =>
+            token.text == '--coverage' &&
+            token.role == ReaderCodeTokenRole.attribute,
+      ),
+      isTrue,
+    );
+    expect(
+      makefile.any(
+        (token) =>
+            token.text == 'build' && token.role == ReaderCodeTokenRole.function,
+      ),
+      isTrue,
+    );
+    expect(
+      makefile.any(
+        (token) =>
+            token.text == r'$(NAME)' &&
+            token.role == ReaderCodeTokenRole.variable,
+      ),
+      isTrue,
+    );
+  });
+
   test('tokenizes python dart and sql common roles', () {
     final python = tokenizer.tokenize(
       '@decorator\ndef greet(name):\n    print("hi", name) # note',
@@ -409,5 +512,43 @@ void main() {
       ),
       isTrue,
     );
+  });
+
+  test('tokenizes common c style language families', () {
+    final samples = <String, String>{
+      'go': 'package main\nfunc main() { println("hi") }',
+      'rust': 'pub fn main() { let value = Some(1); }',
+      'java': '@Override public String render() { return "ok"; }',
+      'kotlin': '@Composable fun App() { val title = "Fleur" }',
+      'swift': '@MainActor func render() -> String { return "ok" }',
+      'c': 'int main() { printf("hi"); return 0; }',
+      'cpp': 'std::vector<int> values; auto size = values.size();',
+      'csharp': '@Test public async Task Render() { return; }',
+    };
+
+    for (final entry in samples.entries) {
+      final tokens = tokenizer.tokenize(entry.value, entry.key)!;
+      expect(
+        tokens.any((token) => token.role == ReaderCodeTokenRole.keyword),
+        isTrue,
+        reason: entry.key,
+      );
+      expect(
+        tokens.any((token) => token.role == ReaderCodeTokenRole.function),
+        isTrue,
+        reason: entry.key,
+      );
+      expect(
+        tokens.any(
+          (token) =>
+              token.role == ReaderCodeTokenRole.string ||
+              token.role == ReaderCodeTokenRole.builtin ||
+              token.role == ReaderCodeTokenRole.type ||
+              token.role == ReaderCodeTokenRole.constant,
+        ),
+        isTrue,
+        reason: entry.key,
+      );
+    }
   });
 }
