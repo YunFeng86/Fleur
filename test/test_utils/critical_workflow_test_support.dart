@@ -26,6 +26,7 @@ import 'package:fleur/services/settings/translation_ai_settings_store.dart';
 import 'package:fleur/services/sync/outbox/outbox_store.dart';
 import 'package:fleur/services/sync/sync_service.dart';
 import 'package:fleur/services/translation/translation_service.dart';
+import 'package:fleur/theme/app_theme.dart';
 
 Account buildTestAccount({
   String id = 'account-test',
@@ -66,6 +67,7 @@ Future<void> pumpLocalizedTestApp(
     ProviderScope(
       overrides: overrides,
       child: MaterialApp(
+        theme: AppTheme.light(),
         locale: locale,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,

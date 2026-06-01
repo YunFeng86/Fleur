@@ -442,6 +442,7 @@ class _SearchTaskField extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final surfaces = theme.fleurSurface;
+    final states = theme.fleurState;
     return ValueListenableBuilder<TextEditingValue>(
       valueListenable: controller,
       builder: (context, value, _) {
@@ -487,12 +488,19 @@ class _SearchTaskField extends StatelessWidget {
             backgroundColor: WidgetStatePropertyAll(surfaces.floating),
             surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
             shadowColor: const WidgetStatePropertyAll(Colors.transparent),
-            overlayColor: WidgetStatePropertyAll(
-              colorScheme.onSurface.withValues(alpha: 0.08),
-            ),
-            side: WidgetStateProperty.resolveWith((states) {
-              final color = states.contains(WidgetState.focused)
-                  ? colorScheme.primary
+            overlayColor: WidgetStateProperty.resolveWith((widgetStates) {
+              if (widgetStates.contains(WidgetState.pressed)) {
+                return states.pressedTint;
+              }
+              if (widgetStates.contains(WidgetState.hovered) ||
+                  widgetStates.contains(WidgetState.focused)) {
+                return states.hoverTint;
+              }
+              return null;
+            }),
+            side: WidgetStateProperty.resolveWith((widgetStates) {
+              final color = widgetStates.contains(WidgetState.focused)
+                  ? states.focusRing
                   : surfaces.subtleDivider;
               return BorderSide(color: color, width: 1);
             }),

@@ -447,11 +447,19 @@ void main() {
     );
     expect(
       desktopTheme.scrollbarTheme.thumbColor?.resolve(<WidgetState>{}),
-      isNot(
-        desktopTheme.scrollbarTheme.thumbColor?.resolve(<WidgetState>{
-          WidgetState.hovered,
-        }),
-      ),
+      desktopTheme.fleurState.scrollbarIdle,
+    );
+    expect(
+      desktopTheme.scrollbarTheme.thumbColor?.resolve(<WidgetState>{
+        WidgetState.hovered,
+      }),
+      desktopTheme.fleurState.scrollbarHover,
+    );
+    expect(
+      desktopTheme.scrollbarTheme.thumbColor?.resolve(<WidgetState>{
+        WidgetState.dragged,
+      }),
+      desktopTheme.fleurState.scrollbarDrag,
     );
 
     debugFleurTargetPlatformOverride = TargetPlatform.android;
@@ -553,11 +561,17 @@ void main() {
     final hoveredThumbColor = scrollbarTheme().data.thumbColor?.resolve(
       <WidgetState>{},
     );
+    final draggedThumbColor = scrollbarTheme().data.thumbColor?.resolve(
+      <WidgetState>{WidgetState.dragged},
+    );
     final hoveredThickness = scrollbarTheme().data.thickness?.resolve(
       <WidgetState>{},
     );
+    final theme = Theme.of(tester.element(find.byType(AppScrollbar)));
 
+    expect(idleThumbColor, theme.fleurState.scrollbarIdle);
     expect(hoveredThumbColor, isNot(idleThumbColor));
+    expect(draggedThumbColor, theme.fleurState.scrollbarDrag);
     expect(hoveredThickness, idleThickness);
   });
 

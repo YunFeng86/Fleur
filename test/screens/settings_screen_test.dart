@@ -9,6 +9,7 @@ import 'package:fleur/screens/settings_screen.dart';
 import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/services/accounts/account_store.dart';
 import 'package:fleur/services/settings/app_settings.dart';
+import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/seed_color_presets.dart';
 import 'package:fleur/utils/platform.dart';
 
@@ -77,6 +78,7 @@ void main() {
       ProviderScope(
         overrides: overrides,
         child: MaterialApp(
+          theme: AppTheme.light(),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: SettingsScreen(initialTab: initialTab, showBack: showBack),

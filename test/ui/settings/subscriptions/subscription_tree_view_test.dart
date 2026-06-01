@@ -11,6 +11,7 @@ import 'package:fleur/providers/account_providers.dart';
 import 'package:fleur/providers/query_providers.dart';
 import 'package:fleur/providers/subscription_settings_provider.dart';
 import 'package:fleur/services/accounts/account.dart';
+import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/ui/app_menu.dart';
 import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/ui/settings/subscriptions/subscription_tree_view.dart';
@@ -99,6 +100,7 @@ void main() {
           feedsProvider.overrideWith((ref) => Stream.value([feed])),
         ],
         child: MaterialApp(
+          theme: AppTheme.light(),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: AppMenuHost(
@@ -151,6 +153,7 @@ void main() {
             feedsProvider.overrideWith((ref) => Stream.value([feed])),
           ],
           child: MaterialApp(
+            theme: AppTheme.light(),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
             home: const AppMenuHost(
@@ -194,6 +197,7 @@ void main() {
             feedsProvider.overrideWith((ref) => Stream.value([feed])),
           ],
           child: MaterialApp(
+            theme: AppTheme.light(),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
             home: const AppMenuHost(
@@ -267,6 +271,7 @@ void main() {
             feedsProvider.overrideWith((ref) => Stream.value([feed])),
           ],
           child: MaterialApp(
+            theme: AppTheme.light(),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
             home: const AppMenuHost(
@@ -349,6 +354,7 @@ void main() {
             feedsProvider.overrideWith((ref) => Stream.value(<Feed>[])),
           ],
           child: MaterialApp(
+            theme: AppTheme.light(),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
             home: const AppMenuHost(
@@ -388,6 +394,7 @@ void main() {
             feedsProvider.overrideWith((ref) => Stream.value(<Feed>[])),
           ],
           child: MaterialApp(
+            theme: AppTheme.light(),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
             home: const AppMenuHost(
@@ -423,6 +430,7 @@ void main() {
           feedsProvider.overrideWith((ref) => Stream.value(<Feed>[])),
         ],
         child: MaterialApp(
+          theme: AppTheme.light(),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: const AppMenuHost(
@@ -455,6 +463,7 @@ void main() {
             feedsProvider.overrideWith((ref) => Stream.value(<Feed>[])),
           ],
           child: MaterialApp(
+            theme: AppTheme.light(),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
             home: const AppMenuHost(
@@ -501,6 +510,7 @@ void main() {
             feedsProvider.overrideWith((ref) => Stream.value([feed])),
           ],
           child: MaterialApp(
+            theme: AppTheme.light(),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
             home: const AppMenuHost(
@@ -549,6 +559,7 @@ void main() {
           feedsProvider.overrideWith((ref) => Stream.value([feed])),
         ],
         child: MaterialApp(
+          theme: AppTheme.light(),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: AppMenuHost(
@@ -594,6 +605,7 @@ void main() {
           feedsProvider.overrideWith((ref) => Stream.value([feed])),
         ],
         child: MaterialApp(
+          theme: AppTheme.light(),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: const AppMenuHost(
@@ -628,6 +640,7 @@ void main() {
           feedsProvider.overrideWith((ref) => Stream.value([feed])),
         ],
         child: MaterialApp(
+          theme: AppTheme.light(),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: const AppMenuHost(
@@ -697,6 +710,7 @@ void main() {
             ),
           ],
           child: MaterialApp(
+            theme: AppTheme.light(),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
             home: const AppMenuHost(
@@ -751,6 +765,7 @@ void main() {
           feedsProvider.overrideWith((ref) => Stream.value([feed])),
         ],
         child: MaterialApp(
+          theme: AppTheme.light(),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: AppMenuHost(
@@ -794,6 +809,7 @@ void main() {
           feedsProvider.overrideWith((ref) => Stream.value(feeds)),
         ],
         child: MaterialApp(
+          theme: AppTheme.light(),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: const Scaffold(
@@ -852,6 +868,7 @@ void main() {
             feedsProvider.overrideWith((ref) => Stream.value(feeds)),
           ],
           child: MaterialApp(
+            theme: AppTheme.light(),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
             home: const Scaffold(
@@ -916,6 +933,7 @@ void main() {
           feedsProvider.overrideWith((ref) => Stream.value(feeds)),
         ],
         child: MaterialApp(
+          theme: AppTheme.light(),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: const Scaffold(
@@ -983,6 +1001,7 @@ void main() {
             feedsProvider.overrideWith((ref) => Stream.value(feeds)),
           ],
           child: MaterialApp(
+            theme: AppTheme.light(),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
             home: const Scaffold(
@@ -1065,6 +1084,7 @@ void main() {
             feedsProvider.overrideWith((ref) => Stream.value(feeds)),
           ],
           child: MaterialApp(
+            theme: AppTheme.light(),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
             home: const Scaffold(

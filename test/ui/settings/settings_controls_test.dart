@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:fleur/theme/app_theme.dart';
+import 'package:fleur/theme/fleur_theme_extensions.dart';
 import 'package:fleur/ui/settings/widgets/section_header.dart';
 import 'package:fleur/ui/settings/widgets/slider_tile.dart';
 
@@ -16,6 +18,7 @@ Future<void> _pumpControl(
 
   await tester.pumpWidget(
     MaterialApp(
+      theme: AppTheme.light(),
       home: Scaffold(body: Center(child: child)),
     ),
   );
@@ -144,5 +147,33 @@ void main() {
     await tester.pump();
 
     expect(latest, isNot(16.0));
+  });
+
+  testWidgets('SettingsActionButton outline border uses Fleur divider token', (
+    tester,
+  ) async {
+    await _pumpControl(
+      tester,
+      child: SettingsActionButton(
+        onPressed: () {},
+        label: const Text('Outline'),
+      ),
+    );
+
+    final theme = Theme.of(tester.element(find.byType(SettingsActionButton)));
+    final material = tester.widget<Material>(
+      find.descendant(
+        of: find.byType(SettingsActionButton),
+        matching: find.byType(Material),
+      ),
+    );
+    final shape = material.shape! as RoundedRectangleBorder;
+
+    expect(shape.side.color, theme.fleurSurface.subtleDivider);
+    expect(
+      theme.extension<FleurSurfaceTheme>(),
+      isNotNull,
+      reason: 'Settings control tests should use production AppTheme.',
+    );
   });
 }

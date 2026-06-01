@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/fleur_theme_extensions.dart';
 import '../utils/platform.dart';
 
 const Set<TargetPlatform> _kScrollbarAutoInheritPlatforms = <TargetPlatform>{
@@ -48,8 +49,8 @@ class _AppScrollbarState extends State<AppScrollbar> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     final baseScrollbarTheme = theme.scrollbarTheme;
+    final fleurStates = theme.fleurState;
     final directChildScrollView = _directChildScrollView;
     final directChildController = directChildScrollView?.controller;
     final canUseLocalPrimaryController =
@@ -95,19 +96,14 @@ class _AppScrollbarState extends State<AppScrollbar> {
 
     if (!isDesktop) return buildScrollbar();
 
-    final idleThumbColor = scheme.outlineVariant.withAlpha(72);
-    final regionThumbColor = scheme.onSurfaceVariant.withAlpha(88);
-    final thumbHoverColor = scheme.onSurfaceVariant.withAlpha(112);
-    final thumbDragColor = scheme.primary.withAlpha(148);
-
     return TweenAnimationBuilder<double>(
       tween: Tween<double>(begin: 0, end: _regionHovered ? 1 : 0),
       duration: const Duration(milliseconds: 120),
       curve: Curves.easeOutCubic,
       builder: (context, regionHoverT, child) {
         final animatedIdleColor = Color.lerp(
-          idleThumbColor,
-          regionThumbColor,
+          fleurStates.scrollbarIdle,
+          fleurStates.scrollbarRegionHover,
           regionHoverT,
         )!;
         final scrollbarTheme = baseScrollbarTheme.copyWith(
@@ -116,10 +112,14 @@ class _AppScrollbarState extends State<AppScrollbar> {
           ),
           thumbColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.dragged)) {
-              return thumbDragColor;
+              return fleurStates.scrollbarDrag;
             }
             if (states.contains(WidgetState.hovered)) {
-              return Color.lerp(animatedIdleColor, thumbHoverColor, 0.9)!;
+              return Color.lerp(
+                animatedIdleColor,
+                fleurStates.scrollbarHover,
+                0.9,
+              )!;
             }
             return animatedIdleColor;
           }),

@@ -722,7 +722,7 @@ class SettingsActionButton extends StatelessWidget {
       SettingsActionButtonVariant.text => Colors.transparent,
     };
     final border = variant == SettingsActionButtonVariant.outline
-        ? Border.all(color: scheme.outlineVariant)
+        ? Border.all(color: surfaces.subtleDivider)
         : null;
     final content = IconTheme.merge(
       data: IconThemeData(

@@ -78,4 +78,37 @@ void main() {
       );
     }
   });
+
+  test('AppTheme injects Fleur extensions on production themes', () {
+    for (final theme in [AppTheme.light(), AppTheme.dark()]) {
+      expect(theme.extension<FleurSurfaceTheme>(), isNotNull);
+      expect(theme.extension<FleurStateTheme>(), isNotNull);
+      expect(theme.extension<FleurReaderTheme>(), isNotNull);
+    }
+  });
+
+  test('scrollbar state tokens keep neutral idle and dynamic drag colors', () {
+    final dynamicScheme = ColorScheme.fromSeed(
+      seedColor: const Color(0xFFFF006E),
+      brightness: Brightness.light,
+    );
+    final resolved = FleurColorEngine.resolve(
+      brightness: Brightness.light,
+      dynamicScheme: dynamicScheme,
+      seedColorPreset: SeedColorPreset.blue,
+    );
+    final seedOnly = FleurColorEngine.resolve(
+      brightness: Brightness.light,
+      seedColorPreset: SeedColorPreset.blue,
+    );
+
+    expect(resolved.states.scrollbarIdle, seedOnly.states.scrollbarIdle);
+    expect(
+      resolved.states.scrollbarRegionHover,
+      seedOnly.states.scrollbarRegionHover,
+    );
+    expect(resolved.states.scrollbarHover, seedOnly.states.scrollbarHover);
+    expect(resolved.states.scrollbarDrag, isNot(seedOnly.states.scrollbarDrag));
+    expect(resolved.states.scrollbarDrag, dynamicScheme.primary.withAlpha(148));
+  });
 }
