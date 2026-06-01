@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import 'reader_code_html_renderer.dart';
 import 'reader_code_language.dart';
 import 'reader_code_models.dart';
-import 'reader_code_search_overlay.dart';
+import 'reader_code_token_overlay.dart';
 import 'reader_code_syntax_adapter.dart';
+import 'reader_code_tokenizer.dart';
 
 final class ReaderCodeRenderer {
   const ReaderCodeRenderer({
@@ -12,13 +13,16 @@ final class ReaderCodeRenderer {
     ReaderCodeLanguageResolver languageResolver =
         const ReaderCodeLanguageResolver(),
     ReaderCodeSyntaxAdapter syntaxAdapter = const ReaderCodeSyntaxAdapter(),
+    ReaderCodeTokenizer tokenizer = const ReaderCodeTokenizer(),
   }) : _htmlRenderer = htmlRenderer,
        _languageResolver = languageResolver,
-       _syntaxAdapter = syntaxAdapter;
+       _syntaxAdapter = syntaxAdapter,
+       _tokenizer = tokenizer;
 
   final ReaderCodeHtmlRenderer _htmlRenderer;
   final ReaderCodeLanguageResolver _languageResolver;
   final ReaderCodeSyntaxAdapter _syntaxAdapter;
+  final ReaderCodeTokenizer _tokenizer;
 
   Future<ReaderCodeRenderResult> render(ReaderCodeRenderInput input) async {
     final extraction = _htmlRenderer.extract(input.source);
@@ -26,47 +30,87 @@ final class ReaderCodeRenderer {
       input.source,
       input.pre,
     );
-    final plainSpan = TextSpan(text: extraction.text, style: input.baseStyle);
-    final TextSpan baseSpan;
+    final baseTokens = _applySearchOverlay(
+      extraction.tokens,
+      searchRanges: extraction.searchRanges,
+      currentAnchorId: input.currentAnchorId,
+    );
     final ReaderCodeSourceKind sourceKind;
 
     if (extraction.hasTokenStyles) {
-      baseSpan = _htmlRenderer.spanFromExtraction(extraction, input.baseStyle);
       sourceKind = ReaderCodeSourceKind.htmlTokens;
     } else if (language?.id == 'diff') {
-      baseSpan = _highlightDiffCode(
-        extraction.text,
-        input.baseStyle,
-        brightness: input.brightness,
-        errorColor: input.errorColor,
+      final diffTokens = _applySearchOverlay(
+        _highlightDiffTokens(
+          extraction.text,
+          brightness: input.brightness,
+          errorColor: input.errorColor,
+        ),
+        searchRanges: extraction.searchRanges,
+        currentAnchorId: input.currentAnchorId,
       );
-      sourceKind = ReaderCodeSourceKind.syntaxHighlight;
+      sourceKind = ReaderCodeSourceKind.internalTokenizer;
+      return ReaderCodeRenderResult(
+        document: ReaderCodeDocument.fromTokens(
+          text: extraction.text,
+          language: language,
+          sourceKind: sourceKind,
+          tokens: diffTokens,
+          searchRanges: extraction.searchRanges,
+        ),
+      );
     } else if (extraction.text.length <= input.maxHighlightedCodeLength) {
+      final tokenized = _tokenizer.tokenize(extraction.text, language?.id);
+      if (tokenized != null) {
+        final overlayTokens = _applySearchOverlay(
+          tokenized,
+          searchRanges: extraction.searchRanges,
+          currentAnchorId: input.currentAnchorId,
+        );
+        return ReaderCodeRenderResult(
+          document: ReaderCodeDocument.fromTokens(
+            text: extraction.text,
+            language: language,
+            sourceKind: ReaderCodeSourceKind.internalTokenizer,
+            tokens: overlayTokens,
+            searchRanges: extraction.searchRanges,
+          ),
+        );
+      }
       final highlighted = await _trySyntaxHighlight(
         extraction.text,
         language?.id,
         input,
       );
-      baseSpan = highlighted ?? plainSpan;
-      sourceKind = highlighted == null
-          ? ReaderCodeSourceKind.plainText
-          : ReaderCodeSourceKind.syntaxHighlight;
+      if (highlighted != null) {
+        final highlightedTokens = _tokensFromSpan(highlighted, extraction.text);
+        final overlayTokens = _applySearchOverlay(
+          highlightedTokens,
+          searchRanges: extraction.searchRanges,
+          currentAnchorId: input.currentAnchorId,
+        );
+        return ReaderCodeRenderResult(
+          document: ReaderCodeDocument.fromTokens(
+            text: extraction.text,
+            language: language,
+            sourceKind: ReaderCodeSourceKind.syntaxHighlightFallback,
+            tokens: overlayTokens,
+            searchRanges: extraction.searchRanges,
+          ),
+        );
+      }
+      sourceKind = ReaderCodeSourceKind.plainText;
     } else {
-      baseSpan = plainSpan;
       sourceKind = ReaderCodeSourceKind.plainText;
     }
 
     return ReaderCodeRenderResult(
-      text: extraction.text,
-      language: language?.id,
-      sourceKind: sourceKind,
-      searchRanges: extraction.searchRanges,
-      span: applyReaderCodeSearchRanges(
-        baseSpan,
+      document: ReaderCodeDocument.fromTokens(
+        text: extraction.text,
+        language: language,
+        sourceKind: sourceKind,
+        tokens: baseTokens,
         searchRanges: extraction.searchRanges,
-        currentAnchorId: input.currentAnchorId,
-        activeBackground: input.activeSearchBackground,
-        background: input.searchBackground,
       ),
     );
   }
@@ -88,18 +132,15 @@ final class ReaderCodeRenderer {
     }
   }
 
-  static TextSpan _highlightDiffCode(
-    String code,
-    TextStyle fallbackStyle, {
+  static List<ReaderCodeToken> _highlightDiffTokens(
+    String code, {
     required Brightness brightness,
     required Color errorColor,
   }) {
     final dark = brightness == Brightness.dark;
     final addedColor = dark ? const Color(0xFF7EE787) : const Color(0xFF116329);
     final removedColor = dark ? const Color(0xFFFF7B72) : errorColor;
-    final addedBackground = addedColor.withAlpha(dark ? 44 : 30);
-    final removedBackground = removedColor.withAlpha(dark ? 42 : 28);
-    final spans = <TextSpan>[];
+    final tokens = <ReaderCodeToken>[];
 
     var start = 0;
     while (start < code.length) {
@@ -107,18 +148,71 @@ final class ReaderCodeRenderer {
       final end = newline < 0 ? code.length : newline + 1;
       final line = code.substring(start, end);
       final marker = line.isEmpty ? 0 : line.codeUnitAt(0);
-      final style = switch (marker) {
-        43 => TextStyle(color: addedColor, backgroundColor: addedBackground),
-        45 => TextStyle(
-          color: removedColor,
-          backgroundColor: removedBackground,
+      final token = switch (marker) {
+        43 => ReaderCodeToken(
+          text: line,
+          role: ReaderCodeTokenRole.diffInserted,
+          start: start,
+          end: end,
+          colorOverride: addedColor,
         ),
-        _ => null,
+        45 => ReaderCodeToken(
+          text: line,
+          role: ReaderCodeTokenRole.diffDeleted,
+          start: start,
+          end: end,
+          colorOverride: removedColor,
+        ),
+        _ => ReaderCodeToken(
+          text: line,
+          role: ReaderCodeTokenRole.plain,
+          start: start,
+          end: end,
+        ),
       };
-      spans.add(TextSpan(text: line, style: style));
+      tokens.add(token);
       start = end;
     }
 
-    return TextSpan(style: fallbackStyle, children: spans);
+    return tokens;
+  }
+
+  static List<ReaderCodeToken> _applySearchOverlay(
+    List<ReaderCodeToken> tokens, {
+    required List<ReaderCodeSearchRange> searchRanges,
+    required String? currentAnchorId,
+  }) {
+    return applyReaderCodeSearchTokenOverlay(
+      tokens,
+      searchRanges: searchRanges,
+      currentAnchorId: currentAnchorId,
+    );
+  }
+
+  static List<ReaderCodeToken> _tokensFromSpan(TextSpan span, String text) {
+    final tokens = <ReaderCodeToken>[];
+    var offset = 0;
+
+    void visit(TextSpan node) {
+      final value = node.text;
+      if (value != null && value.isNotEmpty) {
+        tokens.add(
+          ReaderCodeToken(
+            text: value,
+            role: ReaderCodeTokenRole.plain,
+            start: offset,
+            end: offset + value.length,
+            colorOverride: node.style?.color,
+          ),
+        );
+        offset += value.length;
+      }
+      for (final child in node.children ?? const <InlineSpan>[]) {
+        if (child is TextSpan) visit(child);
+      }
+    }
+
+    visit(span);
+    return tokens;
   }
 }

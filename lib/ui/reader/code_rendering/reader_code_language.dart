@@ -3,7 +3,11 @@ import 'package:html/dom.dart' as dom;
 import 'reader_code_models.dart';
 
 final class ReaderCodeLanguageResolver {
-  const ReaderCodeLanguageResolver();
+  const ReaderCodeLanguageResolver({
+    ReaderCodeLanguageCatalog catalog = const ReaderCodeLanguageCatalog(),
+  }) : _catalog = catalog;
+
+  final ReaderCodeLanguageCatalog _catalog;
 
   ReaderCodeLanguage? resolveForElements(dom.Element source, dom.Element pre) {
     final candidates = <_LanguageCandidate>[
@@ -22,7 +26,7 @@ final class ReaderCodeLanguageResolver {
     ReaderCodeLanguage? plainText;
     for (final raw in rawCandidates) {
       for (final token in _splitCandidate(raw)) {
-        final resolved = _resolveToken(token);
+        final resolved = _catalog.resolve(token);
         if (resolved == null) continue;
         if (resolved.isPlainText) {
           plainText ??= resolved;
@@ -123,26 +127,34 @@ final class ReaderCodeLanguageResolver {
       if (token.isNotEmpty) yield token;
     }
   }
+}
 
-  static ReaderCodeLanguage? _resolveToken(String token) {
+final class ReaderCodeLanguageCatalog {
+  const ReaderCodeLanguageCatalog();
+
+  ReaderCodeLanguage? resolve(String token) {
     final clean = token.trim().toLowerCase();
     if (clean.isEmpty) return null;
     final diffInner = _diffInnerLanguage(clean);
     if (clean == 'diff' || diffInner != null) {
       return ReaderCodeLanguage(
         id: 'diff',
-        innerLanguage: diffInner == null ? null : _canonicalId(diffInner),
+        innerLanguage: diffInner == null ? null : canonicalId(diffInner),
       );
     }
     if (clean == 'shell-session' || clean == 'console') {
       return const ReaderCodeLanguage(id: 'shell');
     }
-    final canonical = _canonicalId(clean);
+    final canonical = canonicalId(clean);
     if (canonical == null) return null;
     return ReaderCodeLanguage(
       id: canonical,
       isPlainText: _plainTextIds.contains(canonical),
     );
+  }
+
+  String? canonicalId(String token) {
+    return _aliases[token] ?? (_supportedIds.contains(token) ? token : null);
   }
 
   static String? _diffInnerLanguage(String token) {
@@ -155,12 +167,9 @@ final class ReaderCodeLanguageResolver {
     return null;
   }
 
-  static String? _canonicalId(String token) {
-    return _aliases[token] ?? (_supportedIds.contains(token) ? token : null);
-  }
-
   static const Set<String> _plainTextIds = {
     'plain',
+    'plain-text',
     'text',
     'plaintext',
     'txt',
@@ -179,6 +188,7 @@ final class ReaderCodeLanguageResolver {
     'jsx',
     'kotlin',
     'markdown',
+    'mdx',
     'plain',
     'plaintext',
     'python',
@@ -202,15 +212,19 @@ final class ReaderCodeLanguageResolver {
     'kt': 'kotlin',
     'mjs': 'javascript',
     'md': 'markdown',
+    'mdx': 'markdown',
     'mts': 'typescript',
     'node': 'javascript',
     'none': 'plain',
+    'plain': 'plain',
     'plain-text': 'plain',
+    'plaintext': 'plain',
     'py': 'python',
     'rs': 'rust',
     'sh': 'shell',
     'shell-script': 'shell',
     'textile': 'plain',
+    'text': 'plain',
     'ts': 'typescript',
     'txt': 'plain',
     'xhtml': 'html',

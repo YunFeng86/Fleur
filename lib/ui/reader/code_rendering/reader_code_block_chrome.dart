@@ -7,6 +7,7 @@ import '../../../theme/fleur_icons.dart';
 import '../../../theme/fleur_theme_extensions.dart';
 import '../reader_selectable_rich_text.dart';
 import 'reader_code_models.dart';
+import 'reader_code_token_theme.dart';
 
 final class ReaderCodeBlockPresentation {
   const ReaderCodeBlockPresentation._({
@@ -15,13 +16,13 @@ final class ReaderCodeBlockPresentation {
     required this.lineCount,
   });
 
-  factory ReaderCodeBlockPresentation.fromResult(
-    ReaderCodeRenderResult result,
+  factory ReaderCodeBlockPresentation.fromDocument(
+    ReaderCodeDocument document,
   ) {
     return ReaderCodeBlockPresentation._(
-      copyText: result.text,
-      displayLanguage: _displayLanguage(result.language),
-      lineCount: _lineCount(result.text),
+      copyText: document.text,
+      displayLanguage: _displayLanguage(document.language?.id),
+      lineCount: document.lines.length,
     );
   }
 
@@ -40,11 +41,6 @@ final class ReaderCodeBlockPresentation {
       return null;
     }
     return value;
-  }
-
-  static int _lineCount(String text) {
-    if (text.isEmpty) return 1;
-    return '\n'.allMatches(text).length + 1;
   }
 }
 
@@ -100,29 +96,23 @@ final class ReaderCodeLayoutMetrics {
   final double lineHeight;
 }
 
-final class _ReaderCodeVisualLine {
-  const _ReaderCodeVisualLine({required this.span});
-
-  final TextSpan span;
-}
-
 class ReaderCodeBlockChrome extends StatelessWidget {
   const ReaderCodeBlockChrome({
     super.key,
-    required this.result,
+    required this.document,
     required this.codeStyle,
   });
 
   static const copyFeedbackDuration = Duration(milliseconds: 1200);
 
-  final ReaderCodeRenderResult result;
+  final ReaderCodeDocument document;
   final TextStyle codeStyle;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final reader = theme.fleurReader;
-    final presentation = ReaderCodeBlockPresentation.fromResult(result);
+    final presentation = ReaderCodeBlockPresentation.fromDocument(document);
     final headerColor = Color.alphaBlend(
       theme.colorScheme.onSurface.withAlpha(
         theme.brightness == Brightness.dark ? 18 : 8,
@@ -149,11 +139,7 @@ class ReaderCodeBlockChrome extends StatelessWidget {
             copyText: presentation.copyText,
             backgroundColor: headerColor,
           ),
-          _ReaderCodeBody(
-            result: result,
-            codeStyle: codeStyle,
-            lineCount: presentation.lineCount,
-          ),
+          _ReaderCodeBody(document: document, codeStyle: codeStyle),
         ],
       ),
     );
@@ -209,24 +195,26 @@ class _ReaderCodeHeader extends StatelessWidget {
 }
 
 class _ReaderCodeBody extends StatelessWidget {
-  const _ReaderCodeBody({
-    required this.result,
-    required this.codeStyle,
-    required this.lineCount,
-  });
+  const _ReaderCodeBody({required this.document, required this.codeStyle});
 
-  final ReaderCodeRenderResult result;
+  final ReaderCodeDocument document;
   final TextStyle codeStyle;
-  final int lineCount;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final direction = Directionality.of(context);
-    final lines = _splitReaderCodeLines(result.span);
+    final tokenTheme = ReaderCodeTokenTheme(
+      brightness: theme.brightness,
+      errorColor: theme.colorScheme.error,
+      searchBackground: theme.fleurReader.bannerSurface.withValues(alpha: 0.8),
+      activeSearchBackground: theme.fleurState.selectionTint.withValues(
+        alpha: 0.95,
+      ),
+    );
     final metrics = ReaderCodeLayoutMetrics.resolve(
       codeStyle: codeStyle,
-      lineCount: lines.length,
+      lineCount: document.lines.length,
       textDirection: direction,
     );
     return Row(
@@ -234,7 +222,7 @@ class _ReaderCodeBody extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _ReaderCodeLineGutter(
-          lineCount: lines.length,
+          lineCount: document.lines.length,
           codeStyle: codeStyle,
           metrics: metrics,
           dividerColor: theme.fleurSurface.subtleDivider,
@@ -249,8 +237,13 @@ class _ReaderCodeBody extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  for (var index = 0; index < lines.length; index++)
-                    _ReaderCodeLineText(line: lines[index], metrics: metrics),
+                  for (final line in document.lines)
+                    _ReaderCodeLineText(
+                      line: line,
+                      metrics: metrics,
+                      tokenTheme: tokenTheme,
+                      baseStyle: codeStyle,
+                    ),
                 ],
               ),
             ),
@@ -259,62 +252,20 @@ class _ReaderCodeBody extends StatelessWidget {
       ],
     );
   }
-
-  List<_ReaderCodeVisualLine> _splitReaderCodeLines(TextSpan span) {
-    final lineSegments = <List<TextSpan>>[<TextSpan>[]];
-
-    TextStyle? mergeStyle(TextStyle? base, TextStyle? overlay) {
-      if (base == null) return overlay;
-      if (overlay == null) return base;
-      return base.merge(overlay);
-    }
-
-    void writeText(String text, TextStyle? style) {
-      var start = 0;
-      while (true) {
-        final newline = text.indexOf('\n', start);
-        if (newline < 0) {
-          final value = text.substring(start);
-          if (value.isNotEmpty) {
-            lineSegments.last.add(TextSpan(text: value, style: style));
-          }
-          return;
-        }
-        final value = text.substring(start, newline);
-        if (value.isNotEmpty) {
-          lineSegments.last.add(TextSpan(text: value, style: style));
-        }
-        lineSegments.add(<TextSpan>[]);
-        start = newline + 1;
-      }
-    }
-
-    void visit(TextSpan node, TextStyle? inheritedStyle) {
-      final style = mergeStyle(inheritedStyle, node.style);
-      final text = node.text;
-      if (text != null && text.isNotEmpty) {
-        writeText(text, style);
-      }
-      for (final child in node.children ?? const <InlineSpan>[]) {
-        if (child is TextSpan) visit(child, style);
-      }
-    }
-
-    visit(span, null);
-    return [
-      for (final segments in lineSegments)
-        _ReaderCodeVisualLine(
-          span: TextSpan(children: segments.isEmpty ? null : segments),
-        ),
-    ];
-  }
 }
 
 class _ReaderCodeLineText extends StatelessWidget {
-  const _ReaderCodeLineText({required this.line, required this.metrics});
+  const _ReaderCodeLineText({
+    required this.line,
+    required this.metrics,
+    required this.tokenTheme,
+    required this.baseStyle,
+  });
 
-  final _ReaderCodeVisualLine line;
+  final ReaderCodeLine line;
   final ReaderCodeLayoutMetrics metrics;
+  final ReaderCodeTokenTheme tokenTheme;
+  final TextStyle baseStyle;
 
   @override
   Widget build(BuildContext context) {
@@ -330,7 +281,13 @@ class _ReaderCodeLineText extends StatelessWidget {
       selectionRegistrar: registrar,
       softWrap: false,
       strutStyle: metrics.strutStyle,
-      text: line.span,
+      text: TextSpan(
+        style: baseStyle,
+        children: [
+          for (final token in line.tokens)
+            TextSpan(text: token.text, style: tokenTheme.styleFor(token)),
+        ],
+      ),
       textHeightBehavior: metrics.textHeightBehavior,
       textWidthBasis: TextWidthBasis.longestLine,
     );

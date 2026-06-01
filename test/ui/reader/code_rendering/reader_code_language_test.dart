@@ -13,6 +13,8 @@ void main() {
     expect(resolver.resolveCandidates(['ts'])?.id, 'typescript');
     expect(resolver.resolveCandidates(['bash'])?.id, 'shell');
     expect(resolver.resolveCandidates(['md'])?.id, 'markdown');
+    expect(resolver.resolveCandidates(['mdx'])?.id, 'markdown');
+    expect(resolver.resolveCandidates(['plain'])?.id, 'plain');
   });
 
   test('skips plain text candidates when a stronger language follows', () {
@@ -27,6 +29,11 @@ void main() {
 
     expect(language?.id, 'diff');
     expect(language?.innerLanguage, 'javascript');
+    expect(
+      resolver.resolveCandidates(['patch-ts'])?.innerLanguage,
+      'typescript',
+    );
+    expect(resolver.resolveCandidates(['shell-session'])?.id, 'shell');
   });
 
   test('uses element candidate order from code before pre', () {

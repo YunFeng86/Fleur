@@ -55,39 +55,29 @@ void main() {
       '</code>',
     );
     final extraction = renderer.extract(fragment.querySelector('code')!);
-    final span = renderer.spanFromExtraction(
-      extraction,
-      const TextStyle(fontFamily: 'monospace'),
-    );
-    final leafSpans = _flatten(span).where((span) => span.text != null);
 
     expect(extraction.hasTokenStyles, isTrue);
     expect(
-      leafSpans.any(
-        (span) => span.text == 'import' && span.style?.color != null,
+      extraction.tokens.any(
+        (token) =>
+            token.text == 'import' && token.role == ReaderCodeTokenRole.keyword,
       ),
       isTrue,
     );
     expect(
-      leafSpans.any(
-        (span) => span.text == '"pkg"' && span.style?.color != null,
+      extraction.tokens.any(
+        (token) =>
+            token.text == '"pkg"' && token.role == ReaderCodeTokenRole.string,
       ),
       isTrue,
     );
     expect(
-      leafSpans.any(
-        (span) =>
-            span.text == 'red' && span.style?.color == const Color(0xFFFF0000),
+      extraction.tokens.any(
+        (token) =>
+            token.text == 'red' &&
+            token.colorOverride == const Color(0xFFFF0000),
       ),
       isTrue,
     );
   });
-}
-
-List<TextSpan> _flatten(TextSpan span) {
-  return [
-    span,
-    for (final child in span.children ?? const <InlineSpan>[])
-      if (child is TextSpan) ..._flatten(child),
-  ];
 }

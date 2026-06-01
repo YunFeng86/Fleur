@@ -12,22 +12,34 @@ final class ReaderCodeHtmlRenderer {
   ReaderCodeExtraction extract(dom.Element source) {
     final buffer = StringBuffer();
     final ranges = <ReaderCodeSearchRange>[];
-    final segments = <ReaderCodeSpanSegment>[];
+    final tokens = <ReaderCodeToken>[];
     var lastIsNewline = false;
     var hasTokenStyles = false;
 
-    void writeText(String text, TextStyle? style) {
+    void writeText(String text, _ReaderCodeImportedStyle? style) {
       final normalized = text.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
       if (normalized.isEmpty) return;
+      final start = buffer.length;
       buffer.write(normalized);
-      segments.add(ReaderCodeSpanSegment(text: normalized, style: style));
-      if (style?.color != null) hasTokenStyles = true;
+      tokens.add(
+        ReaderCodeToken(
+          text: normalized,
+          role: style?.role ?? ReaderCodeTokenRole.plain,
+          start: start,
+          end: start + normalized.length,
+          colorOverride: style?.colorOverride,
+        ),
+      );
+      if (style != null &&
+          (style.role != ReaderCodeTokenRole.plain ||
+              style.colorOverride != null)) {
+        hasTokenStyles = true;
+      }
       lastIsNewline = normalized.endsWith('\n');
     }
 
     void writeNewline() {
       buffer.write('\n');
-      segments.add(const ReaderCodeSpanSegment(text: '\n', style: null));
       lastIsNewline = true;
     }
 
@@ -53,7 +65,7 @@ final class ReaderCodeHtmlRenderer {
           tag == 'li';
     }
 
-    void visit(dom.Node node, TextStyle? inheritedStyle) {
+    void visit(dom.Node node, _ReaderCodeImportedStyle? inheritedStyle) {
       if (node is dom.Text) {
         writeText(node.text, inheritedStyle);
         return;
@@ -66,7 +78,10 @@ final class ReaderCodeHtmlRenderer {
       }
 
       final style = _styleForElement(node, inheritedStyle);
-      if (style?.color != null && style != inheritedStyle) {
+      if (style != null &&
+          style != inheritedStyle &&
+          (style.role != ReaderCodeTokenRole.plain ||
+              style.colorOverride != null)) {
         hasTokenStyles = true;
       }
 
@@ -104,15 +119,15 @@ final class ReaderCodeHtmlRenderer {
     }
 
     var text = buffer.toString();
-    var normalizedSegments = segments;
+    var normalizedTokens = tokens;
     if (text.endsWith('\n')) {
       text = text.substring(0, text.length - 1);
-      normalizedSegments = _trimTrailingNewline(normalizedSegments);
+      normalizedTokens = _trimTrailingNewline(normalizedTokens);
     }
     return ReaderCodeExtraction(
       text: text,
       searchRanges: ranges,
-      spans: normalizedSegments,
+      tokens: normalizedTokens,
       hasTokenStyles: hasTokenStyles,
     );
   }
@@ -124,99 +139,211 @@ final class ReaderCodeHtmlRenderer {
     return TextSpan(
       style: baseStyle,
       children: [
-        for (final segment in extraction.spans)
-          TextSpan(text: segment.text, style: segment.style),
+        for (final token in extraction.tokens)
+          TextSpan(text: token.text, style: _styleForToken(token, baseStyle)),
       ],
     );
   }
 
-  static List<ReaderCodeSpanSegment> _trimTrailingNewline(
-    List<ReaderCodeSpanSegment> segments,
+  static List<ReaderCodeToken> _trimTrailingNewline(
+    List<ReaderCodeToken> tokens,
   ) {
-    if (segments.isEmpty) return segments;
-    final last = segments.last;
-    if (!last.text.endsWith('\n')) return segments;
-    final next = [...segments]..removeLast();
+    if (tokens.isEmpty) return tokens;
+    final last = tokens.last;
+    if (!last.text.endsWith('\n')) return tokens;
+    final next = [...tokens]..removeLast();
     final text = last.text.substring(0, last.text.length - 1);
     if (text.isNotEmpty) {
-      next.add(ReaderCodeSpanSegment(text: text, style: last.style));
+      next.add(last.copyWith(text: text, end: last.end - 1));
     }
     return next;
   }
 
-  static TextStyle? _styleForElement(
+  static _ReaderCodeImportedStyle? _styleForElement(
     dom.Element element,
-    TextStyle? inheritedStyle,
+    _ReaderCodeImportedStyle? inheritedStyle,
   ) {
     final inlineColor = _inlineColor(element.attributes['style']);
-    final tokenStyle = _tokenStyle(element.classes);
+    final tokenStyle = _tokenRole(element.classes);
     final style = _mergeStyles(inheritedStyle, tokenStyle);
     if (inlineColor == null) return style;
-    return (style ?? const TextStyle()).copyWith(color: inlineColor);
+    return (style ?? const _ReaderCodeImportedStyle()).copyWith(
+      colorOverride: inlineColor,
+    );
   }
 
-  static TextStyle? _mergeStyles(TextStyle? base, TextStyle? overlay) {
+  static _ReaderCodeImportedStyle? _mergeStyles(
+    _ReaderCodeImportedStyle? base,
+    _ReaderCodeImportedStyle? overlay,
+  ) {
     if (base == null) return overlay;
     if (overlay == null) return base;
-    return base.merge(overlay);
+    return base.copyWith(
+      role: overlay.role,
+      colorOverride: overlay.colorOverride,
+    );
   }
 
-  static TextStyle? _tokenStyle(Set<String> classes) {
-    final color = _tokenColor(classes);
-    return color == null ? null : TextStyle(color: color);
-  }
-
-  static Color? _tokenColor(Set<String> classes) {
+  static _ReaderCodeImportedStyle? _tokenRole(Set<String> classes) {
     if (classes.contains('token')) {
       if (classes.contains('comment') || classes.contains('prolog')) {
-        return const Color(0xFF6A737D);
+        return const _ReaderCodeImportedStyle(
+          role: ReaderCodeTokenRole.comment,
+        );
       }
       if (classes.contains('keyword') || classes.contains('selector')) {
-        return const Color(0xFF00009F);
+        return const _ReaderCodeImportedStyle(
+          role: ReaderCodeTokenRole.keyword,
+        );
       }
       if (classes.contains('string') || classes.contains('attr-value')) {
-        return const Color(0xFFE3116C);
+        return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.string);
       }
-      if (classes.contains('number') ||
-          classes.contains('boolean') ||
-          classes.contains('constant') ||
-          classes.contains('property') ||
-          classes.contains('attr-name')) {
-        return const Color(0xFF36ACAA);
+      if (classes.contains('number') || classes.contains('boolean')) {
+        return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.number);
       }
-      if (classes.contains('function') || classes.contains('class-name')) {
-        return const Color(0xFFD73A49);
+      if (classes.contains('constant')) {
+        return const _ReaderCodeImportedStyle(
+          role: ReaderCodeTokenRole.constant,
+        );
       }
-      if (classes.contains('tag')) return const Color(0xFF00009F);
+      if (classes.contains('attr-name')) {
+        return const _ReaderCodeImportedStyle(
+          role: ReaderCodeTokenRole.attribute,
+        );
+      }
+      if (classes.contains('property')) {
+        return const _ReaderCodeImportedStyle(
+          role: ReaderCodeTokenRole.property,
+        );
+      }
+      if (classes.contains('function')) {
+        return const _ReaderCodeImportedStyle(
+          role: ReaderCodeTokenRole.function,
+        );
+      }
+      if (classes.contains('class-name') ||
+          classes.contains('maybe-class-name')) {
+        return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.type);
+      }
+      if (classes.contains('tag')) {
+        return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.tag);
+      }
+      if (classes.contains('builtin')) {
+        return const _ReaderCodeImportedStyle(
+          role: ReaderCodeTokenRole.builtin,
+        );
+      }
+      if (classes.contains('variable') || classes.contains('parameter')) {
+        return const _ReaderCodeImportedStyle(
+          role: ReaderCodeTokenRole.variable,
+        );
+      }
+      if (classes.contains('regex')) {
+        return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.regex);
+      }
+      if (classes.contains('namespace')) {
+        return const _ReaderCodeImportedStyle(
+          role: ReaderCodeTokenRole.namespace,
+        );
+      }
+      if (classes.contains('inserted')) {
+        return const _ReaderCodeImportedStyle(
+          role: ReaderCodeTokenRole.diffInserted,
+        );
+      }
+      if (classes.contains('deleted')) {
+        return const _ReaderCodeImportedStyle(
+          role: ReaderCodeTokenRole.diffDeleted,
+        );
+      }
       if (classes.contains('operator') || classes.contains('punctuation')) {
-        return const Color(0xFF393A34);
+        return const _ReaderCodeImportedStyle(
+          role: ReaderCodeTokenRole.punctuation,
+        );
       }
     }
 
     if (classes.contains('hljs-comment') || classes.contains('hljs-quote')) {
-      return const Color(0xFF6A737D);
+      return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.comment);
     }
     if (classes.contains('hljs-keyword') ||
+        classes.contains('hljs-meta') ||
         classes.contains('hljs-selector-tag')) {
-      return const Color(0xFF00009F);
+      return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.keyword);
     }
     if (classes.contains('hljs-string') ||
         classes.contains('hljs-template-variable')) {
-      return const Color(0xFFE3116C);
+      return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.string);
     }
-    if (classes.contains('hljs-number') ||
-        classes.contains('hljs-literal') ||
-        classes.contains('hljs-attr') ||
-        classes.contains('hljs-attribute')) {
-      return const Color(0xFF36ACAA);
+    if (classes.contains('hljs-number') || classes.contains('hljs-literal')) {
+      return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.number);
     }
-    if (classes.contains('hljs-title') ||
-        classes.contains('hljs-name') ||
-        classes.contains('hljs-section')) {
-      return const Color(0xFFD73A49);
+    if (classes.contains('hljs-attr') || classes.contains('hljs-attribute')) {
+      return const _ReaderCodeImportedStyle(
+        role: ReaderCodeTokenRole.attribute,
+      );
     }
-    if (classes.contains('hljs-tag')) return const Color(0xFF00009F);
+    if (classes.contains('hljs-title') || classes.contains('hljs-section')) {
+      return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.function);
+    }
+    if (classes.contains('hljs-name') ||
+        classes.contains('hljs-type') ||
+        classes.contains('hljs-built_in')) {
+      return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.type);
+    }
+    if (classes.contains('hljs-tag')) {
+      return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.tag);
+    }
+    if (classes.contains('hljs-variable') ||
+        classes.contains('hljs-params') ||
+        classes.contains('hljs-symbol') ||
+        classes.contains('hljs-bullet')) {
+      return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.variable);
+    }
+    if (classes.contains('hljs-regexp')) {
+      return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.regex);
+    }
+    if (classes.contains('hljs-addition')) {
+      return const _ReaderCodeImportedStyle(
+        role: ReaderCodeTokenRole.diffInserted,
+      );
+    }
+    if (classes.contains('hljs-deletion')) {
+      return const _ReaderCodeImportedStyle(
+        role: ReaderCodeTokenRole.diffDeleted,
+      );
+    }
     return null;
+  }
+
+  static TextStyle? _styleForToken(ReaderCodeToken token, TextStyle baseStyle) {
+    final color = token.colorOverride ?? _colorForRole(token.role);
+    if (color == null) return null;
+    return TextStyle(color: color);
+  }
+
+  static Color? _colorForRole(ReaderCodeTokenRole role) {
+    return switch (role) {
+      ReaderCodeTokenRole.keyword => const Color(0xFF00009F),
+      ReaderCodeTokenRole.string ||
+      ReaderCodeTokenRole.regex => const Color(0xFFE3116C),
+      ReaderCodeTokenRole.number ||
+      ReaderCodeTokenRole.constant ||
+      ReaderCodeTokenRole.property ||
+      ReaderCodeTokenRole.attribute => const Color(0xFF36ACAA),
+      ReaderCodeTokenRole.comment => const Color(0xFF6A737D),
+      ReaderCodeTokenRole.function ||
+      ReaderCodeTokenRole.type ||
+      ReaderCodeTokenRole.builtin => const Color(0xFFD73A49),
+      ReaderCodeTokenRole.tag ||
+      ReaderCodeTokenRole.namespace => const Color(0xFF00009F),
+      ReaderCodeTokenRole.operator ||
+      ReaderCodeTokenRole.punctuation => const Color(0xFF393A34),
+      ReaderCodeTokenRole.diffInserted => const Color(0xFF116329),
+      ReaderCodeTokenRole.diffDeleted => const Color(0xFFD1242F),
+      _ => null,
+    };
   }
 
   static Color? _inlineColor(String? style) {
@@ -288,5 +415,25 @@ final class ReaderCodeHtmlRenderer {
     final parsed = double.tryParse(value);
     if (parsed == null) return null;
     return (parsed.clamp(0, 1) * 255).round();
+  }
+}
+
+final class _ReaderCodeImportedStyle {
+  const _ReaderCodeImportedStyle({
+    this.role = ReaderCodeTokenRole.plain,
+    this.colorOverride,
+  });
+
+  final ReaderCodeTokenRole role;
+  final Color? colorOverride;
+
+  _ReaderCodeImportedStyle copyWith({
+    ReaderCodeTokenRole? role,
+    Color? colorOverride,
+  }) {
+    return _ReaderCodeImportedStyle(
+      role: role ?? this.role,
+      colorOverride: colorOverride ?? this.colorOverride,
+    );
   }
 }

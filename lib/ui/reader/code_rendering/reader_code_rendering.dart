@@ -5,3 +5,6 @@ export 'reader_code_models.dart';
 export 'reader_code_renderer.dart';
 export 'reader_code_search_overlay.dart';
 export 'reader_code_syntax_adapter.dart';
+export 'reader_code_token_overlay.dart';
+export 'reader_code_token_theme.dart';
+export 'reader_code_tokenizer.dart';

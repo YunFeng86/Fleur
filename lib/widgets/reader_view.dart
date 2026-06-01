@@ -748,27 +748,25 @@ class _ReaderCodeBlockState extends State<_ReaderCodeBlock> {
   }
 
   ReaderCodeRenderResult _fallbackResult(BuildContext context) {
-    final theme = Theme.of(context);
     final extraction = const ReaderCodeHtmlRenderer().extract(widget.source);
-    final baseSpan = TextSpan(
-      text: extraction.text,
-      style: _codeStyle(context),
+    final language = const ReaderCodeLanguageResolver().resolveForElements(
+      widget.source,
+      widget.pre,
+    );
+    final tokens = applyReaderCodeSearchTokenOverlay(
+      extraction.tokens,
+      searchRanges: extraction.searchRanges,
+      currentAnchorId: widget.currentAnchorId,
     );
     return ReaderCodeRenderResult(
-      text: extraction.text,
-      language: const ReaderCodeLanguageResolver()
-          .resolveForElements(widget.source, widget.pre)
-          ?.id,
-      sourceKind: ReaderCodeSourceKind.plainText,
-      searchRanges: extraction.searchRanges,
-      span: applyReaderCodeSearchRanges(
-        baseSpan,
+      document: ReaderCodeDocument.fromTokens(
+        text: extraction.text,
+        language: language,
+        sourceKind: extraction.hasTokenStyles
+            ? ReaderCodeSourceKind.htmlTokens
+            : ReaderCodeSourceKind.plainText,
+        tokens: tokens,
         searchRanges: extraction.searchRanges,
-        currentAnchorId: widget.currentAnchorId,
-        activeBackground: theme.fleurState.selectionTint.withValues(
-          alpha: 0.95,
-        ),
-        background: theme.fleurReader.bannerSurface.withValues(alpha: 0.8),
       ),
     );
   }
@@ -818,7 +816,7 @@ class _ReaderCodeBlockState extends State<_ReaderCodeBlock> {
         _registerCodeSearchAnchors(result);
         _scheduleCodeSearchReveal(result);
         return ReaderCodeBlockChrome(
-          result: result,
+          document: result.document,
           codeStyle: _codeStyle(context),
         );
       },
