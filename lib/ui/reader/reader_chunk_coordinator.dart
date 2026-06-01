@@ -6,6 +6,9 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
     _usingChunkedLayout = isChunked;
     _chunkKeys.clear();
     _chunkHtmlKeys.clear();
+    _chunkHtmlSources.clear();
+    _codeSearchAnchorKeys.clear();
+    _fullHtmlSource = null;
     _pendingAnchor = null;
     _resizeRestoreAttempts = 0;
     _resizeTimer?.cancel();
@@ -314,6 +317,12 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
     if (!_scrollController.hasClients) return;
 
     if (!_usingChunkedLayout) {
+      if (await _scrollToCodeSearchAnchor(
+        match.anchorId,
+        requestId: requestId,
+      )) {
+        return;
+      }
       final htmlState = _fullHtmlKey.currentState;
       if (htmlState != null) {
         unawaited(htmlState.scrollToAnchor(match.anchorId));
@@ -325,6 +334,10 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
     await _seekToChunkIndex(targetIndex, requestId: requestId);
     if (!mounted) return;
     if (requestId != _searchScrollRequestId) return;
+
+    if (await _scrollToCodeSearchAnchor(match.anchorId, requestId: requestId)) {
+      return;
+    }
 
     final state = _chunkHtmlKeys[targetIndex]?.currentState;
     if (state != null) {
@@ -348,6 +361,58 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
     if (htmlState != null) {
       unawaited(htmlState.scrollToAnchor(match.anchorId));
     }
+  }
+
+  Future<bool> _scrollToCodeSearchAnchor(
+    String anchorId, {
+    required int requestId,
+  }) async {
+    for (var attempt = 0; attempt < 5; attempt++) {
+      if (!mounted) return false;
+      if (requestId != _searchScrollRequestId) return false;
+      final codeKey = _codeSearchAnchorKeys[anchorId];
+      final codeContext = codeKey?.currentContext;
+      if (codeContext != null && codeContext.mounted) {
+        return _revealContextInReaderScroll(codeContext, alignment: 0.1);
+      }
+      await WidgetsBinding.instance.endOfFrame;
+    }
+    return false;
+  }
+
+  bool _revealContextInReaderScroll(
+    BuildContext targetContext, {
+    required double alignment,
+  }) {
+    if (!_scrollController.hasClients) return false;
+    final targetBox = targetContext.findRenderObject() as RenderBox?;
+    final scrollContext =
+        _scrollController.position.context.notificationContext;
+    final scrollBox = scrollContext?.findRenderObject() as RenderBox?;
+    if (targetBox == null ||
+        scrollBox == null ||
+        !targetBox.hasSize ||
+        !scrollBox.hasSize) {
+      return false;
+    }
+    final targetTop = targetBox.localToGlobal(Offset.zero).dy;
+    final viewportTop = scrollBox.localToGlobal(Offset.zero).dy;
+    final viewportOffset = scrollBox.size.height * alignment;
+    final delta = targetTop - viewportTop - viewportOffset;
+    final position = _scrollController.position;
+    final next = (position.pixels + delta).clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
+    if ((next - position.pixels).abs() < 0.5) return true;
+    unawaited(
+      _scrollController.animateTo(
+        next,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+      ),
+    );
+    return true;
   }
 
   double _estimateAverageChunkHeight() {
@@ -443,6 +508,7 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
       settings.horizontalPadding,
       reader.contentPaddingHorizontal,
     );
+    _codeSearchAnchorKeys.clear();
 
     String rgba(Color color, {double alpha = 1}) {
       final a = (color.a * alpha).clamp(0.0, 1.0);
@@ -585,12 +651,29 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
       if (localName == 'pre') {
         final codeElement = element.querySelector('code');
         final source = codeElement ?? element;
-        final code = source.text;
-        if (code.trim().isEmpty) return null;
+        final extraction = _extractReaderCode(source);
+        if (extraction.text.trim().isEmpty) return null;
+        final key = GlobalKey();
+        for (final range in extraction.searchRanges) {
+          _codeSearchAnchorKeys[range.anchorId] = key;
+        }
+        if (currentAnchorId != null &&
+            extraction.searchRanges.any(
+              (range) => range.anchorId == currentAnchorId,
+            )) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            final codeContext = key.currentContext;
+            if (codeContext == null || !codeContext.mounted) return;
+            _revealContextInReaderScroll(codeContext, alignment: 0.1);
+          });
+        }
         return _ReaderCodeBlock(
-          code: code,
-          language: _codeLanguage(source) ?? _codeLanguage(element),
+          key: key,
+          code: extraction.text,
+          language: _codeLanguageForElements(source, element),
           fontSize: settings.fontSize,
+          searchRanges: extraction.searchRanges,
+          currentAnchorId: currentAnchorId,
         );
       }
 
@@ -623,6 +706,10 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
     if (!isChunked) {
       final html = chunks.isEmpty ? '' : chunks.first;
       _currentChunks = null;
+      if (_fullHtmlSource != html) {
+        _fullHtmlSource = html;
+        _fullHtmlKey = GlobalKey<HtmlWidgetState>();
+      }
       return SelectionArea(
         key: _selectionAreaKey,
         onSelectionChanged: _handleSelectionChanged,
@@ -721,14 +808,16 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
                     if (index == 0) {
                       return KeyedSubtree(key: key, child: inlineHeader);
                     }
-                    final htmlKey = _chunkHtmlKeys.putIfAbsent(
-                      index,
-                      () => GlobalKey<HtmlWidgetState>(),
-                    );
+                    final chunkHtml = chunks[index - 1];
+                    if (_chunkHtmlSources[index] != chunkHtml) {
+                      _chunkHtmlSources[index] = chunkHtml;
+                      _chunkHtmlKeys[index] = GlobalKey<HtmlWidgetState>();
+                    }
+                    final htmlKey = _chunkHtmlKeys[index]!;
                     return KeyedSubtree(
                       key: key,
                       child: HtmlWidget(
-                        chunks[index - 1],
+                        chunkHtml,
                         key: htmlKey,
                         baseUrl: Uri.tryParse(article.link),
                         factoryBuilder: () => _ReaderWidgetFactory(

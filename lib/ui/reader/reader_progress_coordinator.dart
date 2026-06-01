@@ -14,12 +14,14 @@ final class _ReaderViewportCoordinator {
   final _ReaderInteractionController _interactionController;
 
   final ScrollController _scrollController = ScrollController();
-  final GlobalKey<HtmlWidgetState> _fullHtmlKey = GlobalKey<HtmlWidgetState>();
+  GlobalKey<HtmlWidgetState> _fullHtmlKey = GlobalKey<HtmlWidgetState>();
   final GlobalKey<ReaderSearchBarState> _searchBarKey =
       GlobalKey<ReaderSearchBarState>();
   final GlobalKey _listViewKey = GlobalKey();
   final Map<int, GlobalKey> _chunkKeys = {};
   final Map<int, GlobalKey<HtmlWidgetState>> _chunkHtmlKeys = {};
+  final Map<int, String> _chunkHtmlSources = {};
+  final Map<String, GlobalKey> _codeSearchAnchorKeys = {};
   final Set<int> _prefetchedChunks = <int>{};
 
   Timer? _progressSaveTimer;
@@ -42,6 +44,7 @@ final class _ReaderViewportCoordinator {
   bool _usingChunkedLayout = false;
   Timer? _prefetchTimer;
   List<String>? _currentChunks;
+  String? _fullHtmlSource;
   Uri? _currentImageBaseUrl;
   int? _pendingSaveArticleId;
   String? _pendingSaveContentHash;
@@ -98,8 +101,12 @@ final class _ReaderViewportCoordinator {
     _usingChunkedLayout = false;
     _chunkKeys.clear();
     _chunkHtmlKeys.clear();
+    _chunkHtmlSources.clear();
+    _codeSearchAnchorKeys.clear();
     _prefetchedChunks.clear();
     _currentChunks = null;
+    _fullHtmlKey = GlobalKey<HtmlWidgetState>();
+    _fullHtmlSource = null;
     _currentImageBaseUrl = null;
     _restoreAttempts = 0;
     _pendingSaveArticleId = null;

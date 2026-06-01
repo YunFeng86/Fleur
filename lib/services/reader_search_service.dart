@@ -25,6 +25,8 @@ class ReaderSearchService {
 
   static const String markerAttribute = 'data-reader-search';
   static const String markerAttributeValue = '1';
+  static const String markerAnchorAttribute = 'data-reader-search-anchor';
+  static const String markerProxyAttribute = 'data-reader-search-proxy';
 
   static const int _asyncThreshold = 50000;
 
@@ -159,6 +161,26 @@ class ReaderSearchService {
       return text.toLowerCase().contains(needle);
     }
 
+    dom.Element? nearestPre(dom.Node node) {
+      var cur = node.parent;
+      while (cur != null) {
+        if (cur.localName == 'pre') return cur;
+        cur = cur.parent;
+      }
+      return null;
+    }
+
+    void insertCodeAnchorProxy(dom.Element pre, String id) {
+      final parent = pre.parentNode;
+      if (parent == null) return;
+      final at = parent.nodes.indexOf(pre);
+      if (at < 0) return;
+      final proxy = dom.Element.tag('span');
+      proxy.attributes['id'] = id;
+      proxy.attributes[markerProxyAttribute] = markerAttributeValue;
+      parent.nodes.insert(at, proxy);
+    }
+
     void visit(dom.Node node) {
       if (node is dom.Element) {
         final tag = node.localName;
@@ -177,6 +199,7 @@ class ReaderSearchService {
 
         final replacement = <dom.Node>[];
         final haystack = caseSensitive ? text : text.toLowerCase();
+        final pre = nearestPre(node);
         int i = 0;
         while (true) {
           final hit = haystack.indexOf(needle, i);
@@ -190,8 +213,14 @@ class ReaderSearchService {
           final mark = dom.Element.tag('mark');
           mark.attributes['id'] = id;
           mark.attributes[markerAttribute] = markerAttributeValue;
+          if (pre != null) {
+            mark.attributes[markerAnchorAttribute] = id;
+          }
           mark.nodes.add(dom.Text(text.substring(hit, hit + query.length)));
           replacement.add(mark);
+          if (pre != null) {
+            insertCodeAnchorProxy(pre, id);
+          }
           i = hit + query.length;
           if (i >= text.length) break;
         }

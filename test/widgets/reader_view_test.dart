@@ -134,6 +134,31 @@ void main() {
     }
   }
 
+  Future<void> pumpUntil(
+    WidgetTester tester,
+    bool Function() condition, {
+    int attempts = 50,
+  }) async {
+    for (var i = 0; i < attempts; i++) {
+      await tester.runAsync(() async {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      });
+      await tester.pump(const Duration(milliseconds: 100));
+      if (condition()) return;
+    }
+    expect(condition(), isTrue);
+  }
+
+  ScrollableState verticalReaderScrollable(WidgetTester tester) {
+    return tester
+        .stateList<ScrollableState>(find.byType(Scrollable))
+        .firstWhere(
+          (state) =>
+              state.position.axis == Axis.vertical &&
+              state.position.maxScrollExtent > 0,
+        );
+  }
+
   Feed buildFeed() {
     return Feed()
       ..id = 70
@@ -269,6 +294,31 @@ void main() {
       span,
       for (final child in span.children ?? const <InlineSpan>[])
         if (child is TextSpan) ...flattenTextSpans(child),
+    ];
+  }
+
+  List<SelectableText> readerCodeTexts(WidgetTester tester) {
+    return tester
+        .widgetList<SelectableText>(
+          find.descendant(
+            of: find.byKey(const Key('reader_code_block')),
+            matching: find.byType(SelectableText),
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  List<String> readerCodePlainTexts(WidgetTester tester) {
+    return [
+      for (final widget in readerCodeTexts(tester))
+        if (widget.textSpan != null) widget.textSpan!.toPlainText(),
+    ];
+  }
+
+  List<TextSpan> readerCodeTextSpans(WidgetTester tester) {
+    return [
+      for (final widget in readerCodeTexts(tester))
+        if (widget.textSpan != null) ...flattenTextSpans(widget.textSpan!),
     ];
   }
 
@@ -685,6 +735,139 @@ void main() {
       );
     },
   );
+
+  testWidgets('reader preserves structured code line breaks and language candidates', (
+    tester,
+  ) async {
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html:
+            '<pre class="prism-code language-jsx"><code class="codeBlockLines_e6Vv">'
+            '<span class="token-line"><span>import</span><span> React;</span><br></span>'
+            '<span class="token-line"><span style="display: inline-block;"></span><br></span>'
+            '<span class="token-line"><span>export default App;</span><br></span>'
+            '</code></pre>'
+            '<pre><code>a<br>b</code></pre>'
+            '<pre><code><div>first line</div><div>second line</div></code></pre>'
+            '<pre><code class="language-text language-jsx">'
+            'const value = 1;\n'
+            'function demo() { return value; }'
+            '</code></pre>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 20);
+
+    final codeTexts = readerCodePlainTexts(tester);
+    expect(codeTexts, hasLength(4));
+    expect(codeTexts[0], "import React;\n\nexport default App;");
+    expect(codeTexts[0], isNot(contains(';export')));
+    expect(codeTexts[1], 'a\nb');
+    expect(codeTexts[2], 'first line\nsecond line');
+    expect(codeTexts[3], 'const value = 1;\nfunction demo() { return value; }');
+
+    final candidateCodeSpans = readerCodeTextSpans(
+      tester,
+    ).where((span) => span.text?.contains('const value') ?? false);
+    expect(candidateCodeSpans, isNotEmpty);
+  });
+
+  testWidgets('reader highlights and scrolls to code search matches', (
+    tester,
+  ) async {
+    final leadingHtml = List<String>.generate(
+      18,
+      (index) => '<p>Intro paragraph ${index + 1} ${'content ' * 24}</p>',
+    ).join();
+
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html:
+            '$leadingHtml'
+            '<pre class="language-jsx"><code>'
+            '<span class="token-line"><span>const targetAlpha = 1;</span><br></span>'
+            '<span class="token-line"><span>const targetBeta = 2;</span><br></span>'
+            '</code></pre>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      size: const Size(560, 320),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 20);
+
+    expect(find.byKey(const Key('reader_code_block')), findsOneWidget);
+    final readerScrollable = verticalReaderScrollable(tester);
+    expect(readerScrollable.position.pixels, 0);
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(ReaderView)),
+    );
+    final controller = container.read(
+      readerSearchControllerProvider(articleId).notifier,
+    );
+    controller.open();
+    controller.setQuery('target');
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 6);
+    await pumpUntil(
+      tester,
+      () => find.byKey(const Key('reader_code_block')).evaluate().isNotEmpty,
+    );
+
+    expect(find.byKey(const Key('reader_code_block')), findsOneWidget);
+    expect(
+      container.read(readerSearchControllerProvider(articleId)).totalMatches,
+      2,
+    );
+    await pumpUntil(
+      tester,
+      () => readerCodeTextSpans(tester).any(
+        (span) =>
+            (span.text?.contains('target') ?? false) &&
+            span.style?.backgroundColor != null,
+      ),
+      attempts: 80,
+    );
+    await pumpUntil(
+      tester,
+      () => readerScrollable.position.pixels > 0,
+      attempts: 80,
+    );
+
+    final firstCurrent = readerCodeTextSpans(tester).firstWhere(
+      (span) =>
+          (span.text?.contains('target') ?? false) &&
+          span.style?.backgroundColor != null,
+    );
+    expect(firstCurrent.style?.backgroundColor, isNotNull);
+
+    controller.nextMatch();
+    await settleReader(tester, rounds: 8);
+
+    final targetSpans = readerCodeTextSpans(tester)
+        .where(
+          (span) =>
+              (span.text?.contains('target') ?? false) &&
+              span.style?.backgroundColor != null,
+        )
+        .toList(growable: false);
+    expect(targetSpans, hasLength(2));
+    expect(
+      targetSpans.map((span) => span.style?.backgroundColor).toSet(),
+      hasLength(2),
+    );
+  });
 
   testWidgets('reader renders media tags as cards', (tester) async {
     await pumpReader(
