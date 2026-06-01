@@ -13,7 +13,6 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_math_fork/flutter_math.dart' as flutter_math;
 import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
-import 'package:syntax_highlight/syntax_highlight.dart';
 
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
@@ -46,6 +45,7 @@ import '../utils/content_hash.dart';
 import '../utils/language_utils.dart';
 import '../ui/layout.dart';
 import '../ui/workspace_layers.dart';
+import '../ui/reader/code_rendering/reader_code_rendering.dart';
 import '../ui/reader/reader_selectable_rich_text.dart';
 
 part '../ui/reader/reader_session_coordinator.dart';
@@ -92,25 +92,6 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
   static const double _autoScrollDeadZone = 6;
   static const double _autoScrollSpeedFactor = 0.12;
   static const int _chunkThreshold = 50000;
-
-  static const List<String> _highlightLanguages = [
-    'css',
-    'dart',
-    'go',
-    'html',
-    'java',
-    'javascript',
-    'json',
-    'kotlin',
-    'python',
-    'rust',
-    'sql',
-    'swift',
-    'typescript',
-    'yaml',
-  ];
-
-  static Future<void>? _syntaxHighlightInit;
 
   @override
   void initState() {
@@ -690,17 +671,15 @@ class _MediaEmbedCard extends StatelessWidget {
 class _ReaderCodeBlock extends StatefulWidget {
   const _ReaderCodeBlock({
     super.key,
-    required this.code,
-    required this.language,
+    required this.source,
+    required this.pre,
     required this.fontSize,
-    required this.searchRanges,
     required this.currentAnchorId,
   });
 
-  final String code;
-  final String? language;
+  final dom.Element source;
+  final dom.Element pre;
   final double fontSize;
-  final List<_ReaderCodeSearchRange> searchRanges;
   final String? currentAnchorId;
 
   @override
@@ -708,12 +687,12 @@ class _ReaderCodeBlock extends StatefulWidget {
 }
 
 class _ReaderCodeBlockState extends State<_ReaderCodeBlock> {
-  Future<TextSpan>? _highlightFuture;
+  Future<ReaderCodeRenderResult>? _renderFuture;
+  final ReaderCodeRenderer _renderer = const ReaderCodeRenderer();
   Brightness? _highlightBrightness;
-  String? _highlightLanguage;
-  String? _highlightCodeText;
+  dom.Element? _highlightSource;
+  dom.Element? _highlightPre;
   double? _highlightFontSize;
-  List<_ReaderCodeSearchRange>? _highlightSearchRanges;
   String? _highlightCurrentAnchorId;
 
   @override
@@ -725,39 +704,93 @@ class _ReaderCodeBlockState extends State<_ReaderCodeBlock> {
   @override
   void didUpdateWidget(covariant _ReaderCodeBlock oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.code != widget.code ||
-        oldWidget.language != widget.language ||
+    if (!identical(oldWidget.source, widget.source) ||
+        !identical(oldWidget.pre, widget.pre) ||
         oldWidget.fontSize != widget.fontSize ||
-        oldWidget.searchRanges != widget.searchRanges ||
         oldWidget.currentAnchorId != widget.currentAnchorId) {
       _refreshHighlightFuture();
     }
   }
 
   void _refreshHighlightFuture() {
-    final brightness = Theme.of(context).brightness;
-    if (_highlightFuture != null &&
+    final theme = Theme.of(context);
+    final brightness = theme.brightness;
+    if (_renderFuture != null &&
         _highlightBrightness == brightness &&
-        _highlightLanguage == widget.language &&
-        _highlightCodeText == widget.code &&
+        identical(_highlightSource, widget.source) &&
+        identical(_highlightPre, widget.pre) &&
         _highlightFontSize == widget.fontSize &&
-        _highlightSearchRanges == widget.searchRanges &&
         _highlightCurrentAnchorId == widget.currentAnchorId) {
       return;
     }
     _highlightBrightness = brightness;
-    _highlightLanguage = widget.language;
-    _highlightCodeText = widget.code;
+    _highlightSource = widget.source;
+    _highlightPre = widget.pre;
     _highlightFontSize = widget.fontSize;
-    _highlightSearchRanges = widget.searchRanges;
     _highlightCurrentAnchorId = widget.currentAnchorId;
-    _highlightFuture = _highlightCode(
+    _renderFuture = _renderer.render(
+      ReaderCodeRenderInput(
+        source: widget.source,
+        pre: widget.pre,
+        baseStyle: _codeStyle(context),
+        activeSearchBackground: theme.fleurState.selectionTint.withValues(
+          alpha: 0.95,
+        ),
+        searchBackground: theme.fleurReader.bannerSurface.withValues(
+          alpha: 0.8,
+        ),
+        errorColor: theme.colorScheme.error,
+        brightness: brightness,
+        maxHighlightedCodeLength: _maxHighlightedCodeLength,
+        currentAnchorId: widget.currentAnchorId,
+      ),
+    );
+  }
+
+  ReaderCodeRenderResult _fallbackResult(BuildContext context) {
+    final theme = Theme.of(context);
+    final extraction = const ReaderCodeHtmlRenderer().extract(widget.source);
+    final baseSpan = TextSpan(
+      text: extraction.text,
+      style: _codeStyle(context),
+    );
+    return ReaderCodeRenderResult(
+      text: extraction.text,
+      language: const ReaderCodeLanguageResolver()
+          .resolveForElements(widget.source, widget.pre)
+          ?.id,
+      sourceKind: ReaderCodeSourceKind.plainText,
+      searchRanges: extraction.searchRanges,
+      span: applyReaderCodeSearchRanges(
+        baseSpan,
+        searchRanges: extraction.searchRanges,
+        currentAnchorId: widget.currentAnchorId,
+        activeBackground: theme.fleurState.selectionTint.withValues(
+          alpha: 0.95,
+        ),
+        background: theme.fleurReader.bannerSurface.withValues(alpha: 0.8),
+      ),
+    );
+  }
+
+  void _scheduleCodeSearchReveal(ReaderCodeRenderResult result) {
+    final currentAnchorId = widget.currentAnchorId;
+    if (currentAnchorId == null) return;
+    if (!result.searchRanges.any(
+      (range) => range.anchorId == currentAnchorId,
+    )) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _ReaderViewportChunkCoordinator.revealCodeSearchContext(context);
+    });
+  }
+
+  void _registerCodeSearchAnchors(ReaderCodeRenderResult result) {
+    _ReaderViewportChunkCoordinator.registerCodeSearchAnchors(
       context,
-      widget.code,
-      widget.language,
-      _codeStyle(context),
-      searchRanges: widget.searchRanges,
-      currentAnchorId: widget.currentAnchorId,
+      result.searchRanges,
     );
   }
 
@@ -778,8 +811,6 @@ class _ReaderCodeBlockState extends State<_ReaderCodeBlock> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final reader = theme.fleurReader;
-    final codeStyle = _codeStyle(context);
-
     return Container(
       key: const Key('reader_code_block'),
       width: double.infinity,
@@ -793,389 +824,24 @@ class _ReaderCodeBlockState extends State<_ReaderCodeBlock> {
         scrollDirection: Axis.horizontal,
         child: Padding(
           padding: const EdgeInsets.all(14),
-          child: FutureBuilder<TextSpan>(
-            future: _highlightFuture,
+          child: FutureBuilder<ReaderCodeRenderResult>(
+            future: _renderFuture,
             builder: (context, snapshot) {
-              final span = snapshot.connectionState == ConnectionState.done
-                  ? snapshot.data ??
-                        TextSpan(text: widget.code, style: codeStyle)
-                  : _fallbackCodeSpan(context, codeStyle);
-              return SelectableText.rich(span);
+              final result = snapshot.connectionState == ConnectionState.done
+                  ? snapshot.data ?? _fallbackResult(context)
+                  : _fallbackResult(context);
+              _registerCodeSearchAnchors(result);
+              _scheduleCodeSearchReveal(result);
+              return SelectableText.rich(result.span);
             },
           ),
         ),
       ),
     );
   }
-
-  TextSpan _fallbackCodeSpan(BuildContext context, TextStyle codeStyle) {
-    final theme = Theme.of(context);
-    return _applyReaderCodeSearchRanges(
-      TextSpan(text: widget.code, style: codeStyle),
-      searchRanges: widget.searchRanges,
-      currentAnchorId: widget.currentAnchorId,
-      activeBackground: theme.fleurState.selectionTint.withValues(alpha: 0.95),
-      background: theme.fleurReader.bannerSurface.withValues(alpha: 0.8),
-    );
-  }
-
-  static Future<TextSpan> _highlightCode(
-    BuildContext context,
-    String code,
-    String? language,
-    TextStyle fallbackStyle, {
-    required List<_ReaderCodeSearchRange> searchRanges,
-    required String? currentAnchorId,
-  }) async {
-    final theme = Theme.of(context);
-    final activeSearchBackground = theme.fleurState.selectionTint.withValues(
-      alpha: 0.95,
-    );
-    final searchBackground = theme.fleurReader.bannerSurface.withValues(
-      alpha: 0.8,
-    );
-    final normalized = _normalizeCodeLanguage(language);
-    if (normalized == null || code.length > _maxHighlightedCodeLength) {
-      return _applyReaderCodeSearchRanges(
-        TextSpan(text: code, style: fallbackStyle),
-        searchRanges: searchRanges,
-        currentAnchorId: currentAnchorId,
-        activeBackground: activeSearchBackground,
-        background: searchBackground,
-      );
-    }
-    if (normalized == 'diff') {
-      return _applyReaderCodeSearchRanges(
-        _highlightDiffCode(context, code, fallbackStyle),
-        searchRanges: searchRanges,
-        currentAnchorId: currentAnchorId,
-        activeBackground: activeSearchBackground,
-        background: searchBackground,
-      );
-    }
-    final brightness = theme.brightness;
-    try {
-      _ReaderViewState._syntaxHighlightInit ??= Highlighter.initialize(
-        _ReaderViewState._highlightLanguages,
-      );
-      await _ReaderViewState._syntaxHighlightInit;
-      final highlighter = Highlighter(
-        language: normalized,
-        theme: await HighlighterTheme.loadForBrightness(brightness),
-      );
-      return _applyReaderCodeSearchRanges(
-        _readerCodeHighlightSpan(highlighter.highlight(code), fallbackStyle),
-        searchRanges: searchRanges,
-        currentAnchorId: currentAnchorId,
-        activeBackground: activeSearchBackground,
-        background: searchBackground,
-      );
-    } catch (_) {
-      return _applyReaderCodeSearchRanges(
-        TextSpan(text: code, style: fallbackStyle),
-        searchRanges: searchRanges,
-        currentAnchorId: currentAnchorId,
-        activeBackground: activeSearchBackground,
-        background: searchBackground,
-      );
-    }
-  }
 }
 
 const int _maxHighlightedCodeLength = 20000;
-
-final class _ReaderCodeExtraction {
-  const _ReaderCodeExtraction({required this.text, required this.searchRanges});
-
-  final String text;
-  final List<_ReaderCodeSearchRange> searchRanges;
-}
-
-final class _ReaderCodeSearchRange {
-  const _ReaderCodeSearchRange({
-    required this.anchorId,
-    required this.start,
-    required this.end,
-  });
-
-  final String anchorId;
-  final int start;
-  final int end;
-}
-
-_ReaderCodeExtraction _extractReaderCode(dom.Element source) {
-  final buffer = StringBuffer();
-  final ranges = <_ReaderCodeSearchRange>[];
-  var lastIsNewline = false;
-
-  void writeText(String text) {
-    final normalized = text.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
-    if (normalized.isEmpty) return;
-    buffer.write(normalized);
-    lastIsNewline = normalized.endsWith('\n');
-  }
-
-  void writeNewline() {
-    buffer.write('\n');
-    lastIsNewline = true;
-  }
-
-  void writeLineBoundary(int startLength) {
-    if (buffer.length == startLength || !lastIsNewline) {
-      writeNewline();
-    }
-  }
-
-  bool isSearchMark(dom.Element element) {
-    return element.localName == 'mark' &&
-        element.attributes[ReaderSearchService.markerAttribute] ==
-            ReaderSearchService.markerAttributeValue;
-  }
-
-  bool isLineElement(dom.Element element) {
-    final tag = element.localName;
-    return element.classes.contains('token-line') ||
-        tag == 'div' ||
-        tag == 'p' ||
-        tag == 'li';
-  }
-
-  void visit(dom.Node node) {
-    if (node is dom.Text) {
-      writeText(node.text);
-      return;
-    }
-    if (node is! dom.Element) return;
-
-    if (node.localName == 'br') {
-      writeNewline();
-      return;
-    }
-
-    final startLength = buffer.length;
-    if (isSearchMark(node)) {
-      for (final child in node.nodes) {
-        visit(child);
-      }
-      final id =
-          (node.attributes[ReaderSearchService.markerAnchorAttribute] ??
-                  node.id)
-              .trim();
-      if (id.isNotEmpty && buffer.length > startLength) {
-        ranges.add(
-          _ReaderCodeSearchRange(
-            anchorId: id,
-            start: startLength,
-            end: buffer.length,
-          ),
-        );
-      }
-      return;
-    }
-
-    for (final child in node.nodes) {
-      visit(child);
-    }
-    if (isLineElement(node)) {
-      writeLineBoundary(startLength);
-    }
-  }
-
-  for (final child in source.nodes) {
-    visit(child);
-  }
-
-  var text = buffer.toString();
-  if (text.endsWith('\n')) {
-    text = text.substring(0, text.length - 1);
-  }
-  return _ReaderCodeExtraction(text: text, searchRanges: ranges);
-}
-
-TextSpan _applyReaderCodeSearchRanges(
-  TextSpan span, {
-  required List<_ReaderCodeSearchRange> searchRanges,
-  required String? currentAnchorId,
-  required Color activeBackground,
-  required Color background,
-}) {
-  if (searchRanges.isEmpty) return span;
-  final ranges = [...searchRanges]..sort((a, b) => a.start.compareTo(b.start));
-  var offset = 0;
-
-  TextSpan visit(TextSpan node) {
-    final children = <InlineSpan>[];
-    final text = node.text;
-    if (text != null && text.isNotEmpty) {
-      children.addAll(
-        _splitReaderCodeSearchText(
-          text,
-          node.style,
-          offset,
-          ranges: ranges,
-          currentAnchorId: currentAnchorId,
-          activeBackground: activeBackground,
-          background: background,
-        ),
-      );
-      offset += text.length;
-    }
-    for (final child in node.children ?? const <InlineSpan>[]) {
-      if (child is TextSpan) {
-        children.add(visit(child));
-      } else {
-        children.add(child);
-      }
-    }
-    return TextSpan(
-      style: node.style,
-      children: children.isEmpty ? null : children,
-    );
-  }
-
-  return visit(span);
-}
-
-List<TextSpan> _splitReaderCodeSearchText(
-  String text,
-  TextStyle? style,
-  int globalStart, {
-  required List<_ReaderCodeSearchRange> ranges,
-  required String? currentAnchorId,
-  required Color activeBackground,
-  required Color background,
-}) {
-  final boundaries = <int>{0, text.length};
-  final globalEnd = globalStart + text.length;
-  for (final range in ranges) {
-    if (range.end <= globalStart) continue;
-    if (range.start >= globalEnd) break;
-    boundaries.add((range.start - globalStart).clamp(0, text.length));
-    boundaries.add((range.end - globalStart).clamp(0, text.length));
-  }
-  final sorted = boundaries.toList()..sort();
-  final spans = <TextSpan>[];
-  for (var i = 0; i < sorted.length - 1; i++) {
-    final start = sorted[i];
-    final end = sorted[i + 1];
-    if (start == end) continue;
-    final range = _readerCodeSearchRangeAt(
-      ranges,
-      globalStart + start,
-      globalStart + end,
-    );
-    final bg = range == null
-        ? null
-        : range.anchorId == currentAnchorId
-        ? activeBackground
-        : background;
-    spans.add(
-      TextSpan(
-        text: text.substring(start, end),
-        style: bg == null
-            ? style
-            : (style ?? const TextStyle()).copyWith(backgroundColor: bg),
-      ),
-    );
-  }
-  return spans;
-}
-
-_ReaderCodeSearchRange? _readerCodeSearchRangeAt(
-  List<_ReaderCodeSearchRange> ranges,
-  int start,
-  int end,
-) {
-  for (final range in ranges) {
-    if (range.end <= start) continue;
-    if (range.start >= end) return null;
-    return range;
-  }
-  return null;
-}
-
-TextSpan _readerCodeHighlightSpan(TextSpan span, TextStyle baseStyle) {
-  return TextSpan(
-    text: span.text,
-    style: baseStyle,
-    children: _readerCodeHighlightChildren(span.children),
-  );
-}
-
-List<InlineSpan>? _readerCodeHighlightChildren(List<InlineSpan>? children) {
-  if (children == null) return null;
-  return [
-    for (final child in children)
-      if (child is TextSpan)
-        TextSpan(
-          text: child.text,
-          style: _highlightColorOnly(child.style),
-          children: _readerCodeHighlightChildren(child.children),
-        )
-      else
-        child,
-  ];
-}
-
-TextStyle? _highlightColorOnly(TextStyle? style) {
-  final color = style?.color;
-  return color == null ? null : TextStyle(color: color);
-}
-
-TextSpan _highlightDiffCode(
-  BuildContext context,
-  String code,
-  TextStyle fallbackStyle,
-) {
-  final theme = Theme.of(context);
-  final dark = theme.brightness == Brightness.dark;
-  final addedColor = dark ? const Color(0xFF7EE787) : const Color(0xFF116329);
-  final removedColor = dark ? const Color(0xFFFF7B72) : theme.colorScheme.error;
-  final addedBackground = addedColor.withAlpha(dark ? 44 : 30);
-  final removedBackground = removedColor.withAlpha(dark ? 42 : 28);
-  final spans = <TextSpan>[];
-
-  var start = 0;
-  while (start < code.length) {
-    final newline = code.indexOf('\n', start);
-    final end = newline < 0 ? code.length : newline + 1;
-    final line = code.substring(start, end);
-    final marker = line.codeUnitAt(0);
-    final style = switch (marker) {
-      43 => TextStyle(color: addedColor, backgroundColor: addedBackground),
-      45 => TextStyle(color: removedColor, backgroundColor: removedBackground),
-      _ => null,
-    };
-    spans.add(TextSpan(text: line, style: style));
-    start = end;
-  }
-
-  return TextSpan(style: fallbackStyle, children: spans);
-}
-
-String? _normalizeCodeLanguage(String? raw) {
-  final tokens = (raw ?? '').trim().toLowerCase().split(RegExp(r'\s+'));
-  for (var lang in tokens) {
-    if (lang.isEmpty) continue;
-    if (lang.startsWith('language-')) {
-      lang = lang.substring('language-'.length);
-    }
-    if (lang == 'diff' || lang.startsWith('diff-')) return 'diff';
-    final normalized = switch (lang) {
-      'js' || 'jsx' => 'javascript',
-      'ts' || 'tsx' => 'typescript',
-      'py' => 'python',
-      'kt' => 'kotlin',
-      'rs' => 'rust',
-      'yml' => 'yaml',
-      _ => lang,
-    };
-    if (_ReaderViewState._highlightLanguages.contains(normalized)) {
-      return normalized;
-    }
-  }
-  return null;
-}
 
 class _ReaderMathNode extends StatelessWidget {
   const _ReaderMathNode({required this.expression, required this.display});
@@ -1439,25 +1105,6 @@ class _MathMatch {
   final int end;
   final String expression;
   final bool display;
-}
-
-String? _codeLanguageForElements(dom.Element source, dom.Element pre) {
-  for (final element in [source, if (!identical(source, pre)) pre]) {
-    final dataLanguage = element.attributes['data-language']?.trim();
-    if (dataLanguage != null && dataLanguage.isNotEmpty) {
-      final normalized = _normalizeCodeLanguage(dataLanguage);
-      if (normalized != null) return normalized;
-    }
-    final rawClass = element.attributes['class'] ?? '';
-    for (final part in rawClass.split(RegExp(r'\s+'))) {
-      if (!part.startsWith('language-')) continue;
-      final normalized = _normalizeCodeLanguage(
-        part.substring('language-'.length),
-      );
-      if (normalized != null) return normalized;
-    }
-  }
-  return null;
 }
 
 String? _mediaSourceForElement(dom.Element element) {

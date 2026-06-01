@@ -754,6 +754,21 @@ void main() {
             '<pre><code class="language-text language-jsx">'
             'const value = 1;\n'
             'function demo() { return value; }'
+            '</code></pre>'
+            '<pre><code class="language-jsx">'
+            '<span class="token keyword">import</span>'
+            '<span class="token plain"> </span>'
+            '<span class="token function">demo</span>'
+            '<span class="token punctuation">()</span>'
+            '</code></pre>'
+            '<pre><code class="language-js">'
+            '<span class="hljs-keyword">const</span>'
+            '<span> value = </span>'
+            '<span class="hljs-string">"ok"</span>'
+            '</code></pre>'
+            '<pre><code class="language-tsx">'
+            '<span style="color:#ff0000">inlineRed</span>'
+            '<span style="color: rgb(0, 128, 0)">inlineGreen</span>'
             '</code></pre>',
       ),
       appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
@@ -764,17 +779,55 @@ void main() {
     await settleReader(tester, rounds: 20);
 
     final codeTexts = readerCodePlainTexts(tester);
-    expect(codeTexts, hasLength(4));
+    expect(codeTexts, hasLength(7));
     expect(codeTexts[0], "import React;\n\nexport default App;");
     expect(codeTexts[0], isNot(contains(';export')));
     expect(codeTexts[1], 'a\nb');
     expect(codeTexts[2], 'first line\nsecond line');
     expect(codeTexts[3], 'const value = 1;\nfunction demo() { return value; }');
 
-    final candidateCodeSpans = readerCodeTextSpans(
-      tester,
-    ).where((span) => span.text?.contains('const value') ?? false);
-    expect(candidateCodeSpans, isNotEmpty);
+    await pumpUntil(tester, () {
+      final textSpan = readerCodeTexts(tester)[3].textSpan;
+      if (textSpan == null) return false;
+      return flattenTextSpans(textSpan).any(
+        (span) =>
+            (span.text?.contains('const') ?? false) &&
+            span.style?.color != null,
+      );
+    }, attempts: 80);
+
+    await pumpUntil(tester, () {
+      final spans = readerCodeTextSpans(tester);
+      return spans.any(
+            (span) => span.text == 'import' && span.style?.color != null,
+          ) &&
+          spans.any(
+            (span) => span.text == '"ok"' && span.style?.color != null,
+          ) &&
+          spans.any(
+            (span) =>
+                span.text == 'inlineRed' &&
+                span.style?.color == const Color(0xFFFF0000),
+          );
+    }, attempts: 80);
+
+    final spans = readerCodeTextSpans(tester);
+    expect(
+      spans.any((span) => span.text == 'import' && span.style?.color != null),
+      isTrue,
+    );
+    expect(
+      spans.any((span) => span.text == '"ok"' && span.style?.color != null),
+      isTrue,
+    );
+    expect(
+      spans.any(
+        (span) =>
+            span.text == 'inlineRed' &&
+            span.style?.color == const Color(0xFFFF0000),
+      ),
+      isTrue,
+    );
   });
 
   testWidgets('reader highlights and scrolls to code search matches', (

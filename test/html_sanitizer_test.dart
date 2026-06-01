@@ -140,6 +140,23 @@ void main() {
     expect(sanitized, isNot(contains('evil')));
   });
 
+  test('keeps safe code token classes and color styles inside pre blocks', () {
+    const html =
+        '<article><pre><code class="language-js">'
+        '<span class="token keyword" style="color:#ff0000; position:absolute" onclick="bad()">import</span>'
+        '<span class="hljs-string" style="color: rgb(0, 128, 0)">"ok"</span>'
+        '</code></pre>'
+        '<p><span class="token keyword" style="color:#ff0000">body</span></p></article>';
+    final sanitized = HtmlSanitizer.sanitize(html);
+    expect(sanitized, contains('class="token keyword"'));
+    expect(sanitized, contains('class="hljs-string"'));
+    expect(sanitized, contains('color: #ff0000'));
+    expect(sanitized, contains('color: rgb(0, 128, 0)'));
+    expect(sanitized, isNot(contains('position')));
+    expect(sanitized, isNot(contains('onclick')));
+    expect(sanitized, isNot(contains('<p><span class="token keyword"')));
+  });
+
   test('keeps reader math marker attributes', () {
     const html =
         '<article><fleur-math data-fleur-math="x^2" data-fleur-math-display="inline" onclick="bad()">x^2</fleur-math></article>';
