@@ -7,6 +7,13 @@ final class ReaderCodeTokenizer {
     return switch (language) {
       'javascript' || 'typescript' => _tokenizeScript(code, jsx: false),
       'jsx' || 'tsx' => _tokenizeScript(code, jsx: true),
+      'json' => _tokenizeJson(code),
+      'yaml' => _tokenizeYaml(code),
+      'css' => _tokenizeCss(code),
+      'html' => _tokenizeHtml(code),
+      'python' => _tokenizePython(code),
+      'dart' => _tokenizeDart(code),
+      'sql' => _tokenizeSql(code),
       'shell' => _tokenizeShell(code),
       'markdown' => _tokenizeMarkdown(code),
       _ => null,
@@ -410,6 +417,32 @@ final class ReaderCodeTokenizer {
     return previous != null && code[previous] == '.';
   }
 
+  ReaderCodeTokenRole _cStyleIdentifierRole(
+    String code,
+    int start,
+    int end,
+    String value, {
+    required Set<String> keywords,
+    required Set<String> constants,
+    required Set<String> builtins,
+  }) {
+    if (keywords.contains(value)) return ReaderCodeTokenRole.keyword;
+    if (constants.contains(value)) return ReaderCodeTokenRole.constant;
+    if (builtins.contains(value)) return ReaderCodeTokenRole.builtin;
+    if (_isLikelyPropertyAccess(code, start)) {
+      return _isLikelyFunction(code, end)
+          ? ReaderCodeTokenRole.function
+          : ReaderCodeTokenRole.property;
+    }
+    if (_isLikelyFunction(code, end)) return ReaderCodeTokenRole.function;
+    if (value.isNotEmpty &&
+        value.codeUnitAt(0) >= 65 &&
+        value.codeUnitAt(0) <= 90) {
+      return ReaderCodeTokenRole.type;
+    }
+    return ReaderCodeTokenRole.plain;
+  }
+
   bool _isLikelyFunction(String code, int end) {
     final next = _nextNonSpace(code, end);
     return next != null && code[next] == '(';
@@ -472,6 +505,22 @@ final class ReaderCodeTokenizer {
     return unit == 32 || unit == 9 || unit == 10 || unit == 13;
   }
 
+  bool _startsWithAt(String code, String value, int start) {
+    if (start + value.length > code.length) return false;
+    return code.substring(start, start + value.length) == value;
+  }
+
+  int _readDecorator(String code, int start, int end) {
+    var cursor = start + 1;
+    while (cursor < end) {
+      final unit = code.codeUnitAt(cursor);
+      final char = code[cursor];
+      if (!_isIdentifierPart(unit) && char != '.') break;
+      cursor++;
+    }
+    return cursor;
+  }
+
   void _addToken(
     List<ReaderCodeToken> tokens,
     String code,
@@ -512,6 +561,284 @@ final class ReaderCodeTokenizer {
         end: match.end,
       );
     });
+    return tokens;
+  }
+
+  List<ReaderCodeToken> _tokenizeJson(String code) {
+    final tokens = <ReaderCodeToken>[];
+    final pattern = RegExp(
+      r'''"(?:\\.|[^"\\])*"\s*(?=:)|"(?:\\.|[^"\\])*"|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|\b(?:true|false|null)\b|[{}[\]:,]''',
+    );
+    _scanMatches(code, pattern, tokens, (match) {
+      final value = match.group(0)!;
+      final trimmed = value.trimRight();
+      final next = _nextNonSpace(code, match.end);
+      final role = switch (trimmed) {
+        final v when v.startsWith('"') && next != null && code[next] == ':' =>
+          ReaderCodeTokenRole.property,
+        final v when v.startsWith('"') => ReaderCodeTokenRole.string,
+        final v when RegExp(r'^-?\d').hasMatch(v) => ReaderCodeTokenRole.number,
+        'true' || 'false' || 'null' => ReaderCodeTokenRole.constant,
+        _ => ReaderCodeTokenRole.punctuation,
+      };
+      return ReaderCodeToken(
+        text: value,
+        role: role,
+        start: match.start,
+        end: match.end,
+      );
+    });
+    return tokens;
+  }
+
+  List<ReaderCodeToken> _tokenizeYaml(String code) {
+    final tokens = <ReaderCodeToken>[];
+    final pattern = RegExp(
+      r'''#[^\n]*|^(\s*[-?]?\s*)([A-Za-z0-9_.-]+)(\s*:)|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\b(?:true|false|null|yes|no|on|off)\b|-?\d+(?:\.\d+)?|[&*][A-Za-z0-9_-]+|^---|^\.\.\.''',
+      multiLine: true,
+    );
+    _scanMatches(code, pattern, tokens, (match) {
+      final key = match.group(2);
+      if (key != null) {
+        return ReaderCodeToken(
+          text: match.group(0)!,
+          role: ReaderCodeTokenRole.property,
+          start: match.start,
+          end: match.end,
+        );
+      }
+      final value = match.group(0)!;
+      final role = switch (value.trim()) {
+        final v when v.startsWith('#') => ReaderCodeTokenRole.comment,
+        final v when v.startsWith('"') || v.startsWith("'") =>
+          ReaderCodeTokenRole.string,
+        final v when v.startsWith('&') || v.startsWith('*') =>
+          ReaderCodeTokenRole.variable,
+        final v
+            when RegExp(
+              r'^(true|false|null|yes|no|on|off)$',
+              caseSensitive: false,
+            ).hasMatch(v) =>
+          ReaderCodeTokenRole.constant,
+        final v when RegExp(r'^-?\d').hasMatch(v) => ReaderCodeTokenRole.number,
+        _ => ReaderCodeTokenRole.punctuation,
+      };
+      return ReaderCodeToken(
+        text: value,
+        role: role,
+        start: match.start,
+        end: match.end,
+      );
+    });
+    return tokens;
+  }
+
+  List<ReaderCodeToken> _tokenizeCss(String code) {
+    final tokens = <ReaderCodeToken>[];
+    final pattern = RegExp(
+      r'''/\*[\s\S]*?\*/|#[0-9A-Fa-f]{3,8}\b|--[A-Za-z0-9_-]+|[A-Za-z-]+(?=\s*:)|\.[A-Za-z0-9_-]+|#[A-Za-z0-9_-]+|:[A-Za-z-]+|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|-?\d+(?:\.\d+)?(?:px|rem|em|%|vh|vw|s|ms)?|\b(?:rgb|rgba|hsl|hsla|var|calc|url)\b|[{}():;,>]''',
+    );
+    _scanMatches(code, pattern, tokens, (match) {
+      final value = match.group(0)!;
+      final role = switch (value) {
+        final v when v.startsWith('/*') => ReaderCodeTokenRole.comment,
+        final v when v.startsWith('"') || v.startsWith("'") =>
+          ReaderCodeTokenRole.string,
+        final v
+            when v.startsWith('#') && RegExp(r'^#[0-9A-Fa-f]').hasMatch(v) =>
+          ReaderCodeTokenRole.number,
+        final v when v.startsWith('--') => ReaderCodeTokenRole.variable,
+        final v
+            when v.startsWith('.') || v.startsWith('#') || v.startsWith(':') =>
+          ReaderCodeTokenRole.tag,
+        final v when RegExp(r'^-?\d').hasMatch(v) => ReaderCodeTokenRole.number,
+        final v when _cssFunctions.contains(v) => ReaderCodeTokenRole.function,
+        final v when RegExp(r'^[A-Za-z-]+$').hasMatch(v) =>
+          ReaderCodeTokenRole.property,
+        _ => ReaderCodeTokenRole.punctuation,
+      };
+      return ReaderCodeToken(
+        text: value,
+        role: role,
+        start: match.start,
+        end: match.end,
+      );
+    });
+    return tokens;
+  }
+
+  List<ReaderCodeToken> _tokenizeHtml(String code) {
+    final tokens = <ReaderCodeToken>[];
+    final pattern = RegExp(
+      r'''<!--[\s\S]*?-->|<!DOCTYPE[^>]*>|</?[A-Za-z][\w:-]*|[A-Za-z_:][\w:.-]*(?=\s*=)|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|/?>''',
+      caseSensitive: false,
+    );
+    _scanMatches(code, pattern, tokens, (match) {
+      final value = match.group(0)!;
+      final role = switch (value) {
+        final v when v.startsWith('<!--') || v.startsWith('<!') =>
+          ReaderCodeTokenRole.comment,
+        final v when v.startsWith('<') => ReaderCodeTokenRole.tag,
+        final v when v.startsWith('"') || v.startsWith("'") =>
+          ReaderCodeTokenRole.string,
+        final v when v == '>' || v == '/>' => ReaderCodeTokenRole.punctuation,
+        _ => ReaderCodeTokenRole.attribute,
+      };
+      return ReaderCodeToken(
+        text: value,
+        role: role,
+        start: match.start,
+        end: match.end,
+      );
+    });
+    return tokens;
+  }
+
+  List<ReaderCodeToken> _tokenizePython(String code) {
+    return _tokenizeCStyleLike(
+      code,
+      lineComment: '#',
+      keywords: _pythonKeywords,
+      constants: _pythonConstants,
+      builtins: _pythonBuiltins,
+      decoratorPrefix: '@',
+    );
+  }
+
+  List<ReaderCodeToken> _tokenizeDart(String code) {
+    return _tokenizeCStyleLike(
+      code,
+      lineComment: '//',
+      blockComment: true,
+      keywords: _dartKeywords,
+      constants: _dartConstants,
+      builtins: _dartBuiltins,
+      decoratorPrefix: '@',
+    );
+  }
+
+  List<ReaderCodeToken> _tokenizeSql(String code) {
+    final tokens = <ReaderCodeToken>[];
+    final pattern = RegExp(
+      r'''--[^\n]*|/\*[\s\S]*?\*/|'(?:''|[^'])*'|"(?:\\"|[^"])*"|\b[A-Za-z_][\w$]*\b|-?\d+(?:\.\d+)?|[(),.;*=<>+-]''',
+      caseSensitive: false,
+    );
+    _scanMatches(code, pattern, tokens, (match) {
+      final value = match.group(0)!;
+      final lower = value.toLowerCase();
+      final role = switch (value) {
+        final v when v.startsWith('--') || v.startsWith('/*') =>
+          ReaderCodeTokenRole.comment,
+        final v when v.startsWith("'") || v.startsWith('"') =>
+          ReaderCodeTokenRole.string,
+        final v when RegExp(r'^-?\d').hasMatch(v) => ReaderCodeTokenRole.number,
+        _ when _sqlKeywords.contains(lower) => ReaderCodeTokenRole.keyword,
+        _ when _sqlFunctions.contains(lower) => ReaderCodeTokenRole.function,
+        _ when _sqlTypes.contains(lower) => ReaderCodeTokenRole.type,
+        _ =>
+          RegExp(r'^[(),.;*=<>+-]$').hasMatch(value)
+              ? ReaderCodeTokenRole.operator
+              : ReaderCodeTokenRole.plain,
+      };
+      return ReaderCodeToken(
+        text: value,
+        role: role,
+        start: match.start,
+        end: match.end,
+      );
+    });
+    return tokens;
+  }
+
+  List<ReaderCodeToken> _tokenizeCStyleLike(
+    String code, {
+    required String lineComment,
+    required Set<String> keywords,
+    required Set<String> constants,
+    required Set<String> builtins,
+    bool blockComment = false,
+    String? decoratorPrefix,
+  }) {
+    final tokens = <ReaderCodeToken>[];
+    var cursor = 0;
+    while (cursor < code.length) {
+      final char = code[cursor];
+      if (_startsWithAt(code, lineComment, cursor)) {
+        final tokenEnd = _readLineComment(code, cursor, code.length);
+        _addToken(tokens, code, cursor, tokenEnd, ReaderCodeTokenRole.comment);
+        cursor = tokenEnd;
+        continue;
+      }
+      if (blockComment &&
+          char == '/' &&
+          cursor + 1 < code.length &&
+          code[cursor + 1] == '*') {
+        final tokenEnd = _readBlockComment(code, cursor, code.length);
+        _addToken(tokens, code, cursor, tokenEnd, ReaderCodeTokenRole.comment);
+        cursor = tokenEnd;
+        continue;
+      }
+      if (decoratorPrefix != null && char == decoratorPrefix) {
+        final tokenEnd = _readDecorator(code, cursor, code.length);
+        _addToken(
+          tokens,
+          code,
+          cursor,
+          tokenEnd,
+          ReaderCodeTokenRole.attribute,
+        );
+        cursor = tokenEnd;
+        continue;
+      }
+      if (char == '"' || char == "'") {
+        final tokenEnd = _readString(code, cursor, code.length, char);
+        _addToken(tokens, code, cursor, tokenEnd, ReaderCodeTokenRole.string);
+        cursor = tokenEnd;
+        continue;
+      }
+      if (_isDigit(code.codeUnitAt(cursor))) {
+        final tokenEnd = _readNumber(code, cursor, code.length);
+        _addToken(tokens, code, cursor, tokenEnd, ReaderCodeTokenRole.number);
+        cursor = tokenEnd;
+        continue;
+      }
+      if (_isIdentifierStart(code.codeUnitAt(cursor))) {
+        final tokenEnd = _readIdentifier(code, cursor, code.length);
+        final value = code.substring(cursor, tokenEnd);
+        _addToken(
+          tokens,
+          code,
+          cursor,
+          tokenEnd,
+          _cStyleIdentifierRole(
+            code,
+            cursor,
+            tokenEnd,
+            value,
+            keywords: keywords,
+            constants: constants,
+            builtins: builtins,
+          ),
+        );
+        cursor = tokenEnd;
+        continue;
+      }
+      if (_isOperatorStart(char)) {
+        final tokenEnd = _readOperator(code, cursor, code.length);
+        _addToken(
+          tokens,
+          code,
+          cursor,
+          tokenEnd,
+          _operatorRole(code.substring(cursor, tokenEnd)),
+        );
+        cursor = tokenEnd;
+        continue;
+      }
+      final tokenEnd = _readPlain(code, cursor, code.length, jsx: false);
+      _addToken(tokens, code, cursor, tokenEnd, ReaderCodeTokenRole.plain);
+      cursor = tokenEnd;
+    }
     return tokens;
   }
 
@@ -645,5 +972,214 @@ final class ReaderCodeTokenizer {
     'useReducer',
     'useRef',
     'useState',
+  };
+
+  static const Set<String> _cssFunctions = {
+    'calc',
+    'hsl',
+    'hsla',
+    'rgb',
+    'rgba',
+    'url',
+    'var',
+  };
+
+  static const Set<String> _pythonKeywords = {
+    'and',
+    'as',
+    'assert',
+    'async',
+    'await',
+    'break',
+    'class',
+    'continue',
+    'def',
+    'del',
+    'elif',
+    'else',
+    'except',
+    'finally',
+    'for',
+    'from',
+    'global',
+    'if',
+    'import',
+    'in',
+    'is',
+    'lambda',
+    'nonlocal',
+    'not',
+    'or',
+    'pass',
+    'raise',
+    'return',
+    'try',
+    'while',
+    'with',
+    'yield',
+  };
+
+  static const Set<String> _pythonConstants = {'False', 'None', 'True'};
+
+  static const Set<String> _pythonBuiltins = {
+    'bool',
+    'dict',
+    'enumerate',
+    'float',
+    'int',
+    'len',
+    'list',
+    'map',
+    'print',
+    'range',
+    'set',
+    'str',
+    'tuple',
+    'zip',
+  };
+
+  static const Set<String> _dartKeywords = {
+    'abstract',
+    'as',
+    'async',
+    'await',
+    'base',
+    'break',
+    'case',
+    'catch',
+    'class',
+    'const',
+    'continue',
+    'covariant',
+    'default',
+    'deferred',
+    'do',
+    'else',
+    'enum',
+    'export',
+    'extends',
+    'extension',
+    'external',
+    'factory',
+    'final',
+    'finally',
+    'for',
+    'get',
+    'hide',
+    'if',
+    'implements',
+    'import',
+    'in',
+    'interface',
+    'is',
+    'late',
+    'library',
+    'mixin',
+    'new',
+    'of',
+    'on',
+    'operator',
+    'part',
+    'required',
+    'return',
+    'sealed',
+    'set',
+    'show',
+    'static',
+    'super',
+    'switch',
+    'sync',
+    'this',
+    'throw',
+    'try',
+    'typedef',
+    'var',
+    'void',
+    'when',
+    'while',
+    'with',
+    'yield',
+  };
+
+  static const Set<String> _dartConstants = {'false', 'null', 'true'};
+
+  static const Set<String> _dartBuiltins = {
+    'bool',
+    'double',
+    'Duration',
+    'Future',
+    'int',
+    'Iterable',
+    'List',
+    'Map',
+    'Object',
+    'Set',
+    'Stream',
+    'String',
+    'Widget',
+  };
+
+  static const Set<String> _sqlKeywords = {
+    'and',
+    'as',
+    'by',
+    'case',
+    'create',
+    'delete',
+    'desc',
+    'distinct',
+    'else',
+    'end',
+    'from',
+    'group',
+    'having',
+    'in',
+    'insert',
+    'into',
+    'is',
+    'join',
+    'left',
+    'limit',
+    'not',
+    'null',
+    'on',
+    'or',
+    'order',
+    'outer',
+    'right',
+    'select',
+    'set',
+    'then',
+    'update',
+    'values',
+    'when',
+    'where',
+  };
+
+  static const Set<String> _sqlFunctions = {
+    'avg',
+    'coalesce',
+    'count',
+    'date',
+    'lower',
+    'max',
+    'min',
+    'sum',
+    'upper',
+  };
+
+  static const Set<String> _sqlTypes = {
+    'bigint',
+    'boolean',
+    'date',
+    'decimal',
+    'float',
+    'int',
+    'integer',
+    'json',
+    'numeric',
+    'text',
+    'timestamp',
+    'varchar',
   };
 }

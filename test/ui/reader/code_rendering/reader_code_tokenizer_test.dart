@@ -185,4 +185,229 @@ void main() {
     expect(tokens.any((token) => token.text.startsWith('[Docs]')), isTrue);
     expect(tokens.any((token) => token.text == '`code`'), isTrue);
   });
+
+  test('tokenizes json keys strings numbers constants and punctuation', () {
+    final tokens = tokenizer.tokenize(
+      '{"name": "Fleur", "count": 2, "enabled": true}',
+      'json',
+    )!;
+
+    expect(
+      tokens.any(
+        (token) =>
+            token.text.trim() == '"name"' &&
+            token.role == ReaderCodeTokenRole.property,
+      ),
+      isTrue,
+    );
+    expect(
+      tokens.any(
+        (token) =>
+            token.text == '"Fleur"' && token.role == ReaderCodeTokenRole.string,
+      ),
+      isTrue,
+    );
+    expect(
+      tokens.any(
+        (token) =>
+            token.text == '2' && token.role == ReaderCodeTokenRole.number,
+      ),
+      isTrue,
+    );
+    expect(
+      tokens.any(
+        (token) =>
+            token.text == 'true' && token.role == ReaderCodeTokenRole.constant,
+      ),
+      isTrue,
+    );
+  });
+
+  test('tokenizes yaml keys scalars anchors and comments', () {
+    final tokens = tokenizer.tokenize(
+      'name: Fleur\nenabled: true\nref: &base value\ncopy: *base # reuse',
+      'yaml',
+    )!;
+
+    expect(
+      tokens.any(
+        (token) =>
+            token.text.contains('name:') &&
+            token.role == ReaderCodeTokenRole.property,
+      ),
+      isTrue,
+    );
+    expect(
+      tokens.any(
+        (token) =>
+            token.text == 'true' && token.role == ReaderCodeTokenRole.constant,
+      ),
+      isTrue,
+    );
+    expect(
+      tokens.any(
+        (token) =>
+            token.text == '&base' && token.role == ReaderCodeTokenRole.variable,
+      ),
+      isTrue,
+    );
+    expect(
+      tokens.any(
+        (token) =>
+            token.text == '# reuse' &&
+            token.role == ReaderCodeTokenRole.comment,
+      ),
+      isTrue,
+    );
+  });
+
+  test('tokenizes css selectors properties values variables and comments', () {
+    final tokens = tokenizer.tokenize(
+      '.card { --gap: 8px; color: rgba(0,0,0,.8); /* note */ }',
+      'css',
+    )!;
+
+    expect(
+      tokens.any(
+        (token) =>
+            token.text == '.card' && token.role == ReaderCodeTokenRole.tag,
+      ),
+      isTrue,
+    );
+    expect(
+      tokens.any(
+        (token) =>
+            token.text == '--gap' && token.role == ReaderCodeTokenRole.variable,
+      ),
+      isTrue,
+    );
+    expect(
+      tokens.any(
+        (token) =>
+            token.text == 'color' && token.role == ReaderCodeTokenRole.property,
+      ),
+      isTrue,
+    );
+    expect(
+      tokens.any(
+        (token) =>
+            token.text == 'rgba' && token.role == ReaderCodeTokenRole.function,
+      ),
+      isTrue,
+    );
+    expect(
+      tokens.any(
+        (token) =>
+            token.text == '/* note */' &&
+            token.role == ReaderCodeTokenRole.comment,
+      ),
+      isTrue,
+    );
+  });
+
+  test('tokenizes html tags attributes strings and comments', () {
+    final tokens = tokenizer.tokenize(
+      '<!-- note --><section class="hero">Title</section>',
+      'html',
+    )!;
+
+    expect(
+      tokens.any(
+        (token) =>
+            token.text == '<!-- note -->' &&
+            token.role == ReaderCodeTokenRole.comment,
+      ),
+      isTrue,
+    );
+    expect(
+      tokens.any(
+        (token) =>
+            token.text == '<section' && token.role == ReaderCodeTokenRole.tag,
+      ),
+      isTrue,
+    );
+    expect(
+      tokens.any(
+        (token) =>
+            token.text == 'class' &&
+            token.role == ReaderCodeTokenRole.attribute,
+      ),
+      isTrue,
+    );
+    expect(
+      tokens.any(
+        (token) =>
+            token.text == '"hero"' && token.role == ReaderCodeTokenRole.string,
+      ),
+      isTrue,
+    );
+  });
+
+  test('tokenizes python dart and sql common roles', () {
+    final python = tokenizer.tokenize(
+      '@decorator\ndef greet(name):\n    print("hi", name) # note',
+      'python',
+    )!;
+    final dart = tokenizer.tokenize(
+      '@override\nFuture<String> load() async => "ok";',
+      'dart',
+    )!;
+    final sql = tokenizer.tokenize(
+      "SELECT count(*) FROM articles WHERE title = 'Fleur'",
+      'sql',
+    )!;
+
+    expect(
+      python.any(
+        (token) =>
+            token.text == '@decorator' &&
+            token.role == ReaderCodeTokenRole.attribute,
+      ),
+      isTrue,
+    );
+    expect(
+      python.any(
+        (token) =>
+            token.text == 'def' && token.role == ReaderCodeTokenRole.keyword,
+      ),
+      isTrue,
+    );
+    expect(
+      python.any(
+        (token) =>
+            token.text == 'print' && token.role == ReaderCodeTokenRole.builtin,
+      ),
+      isTrue,
+    );
+    expect(
+      dart.any(
+        (token) =>
+            token.text == 'Future' && token.role == ReaderCodeTokenRole.builtin,
+      ),
+      isTrue,
+    );
+    expect(
+      dart.any(
+        (token) =>
+            token.text == 'load' && token.role == ReaderCodeTokenRole.function,
+      ),
+      isTrue,
+    );
+    expect(
+      sql.any(
+        (token) =>
+            token.text.toLowerCase() == 'select' &&
+            token.role == ReaderCodeTokenRole.keyword,
+      ),
+      isTrue,
+    );
+    expect(
+      sql.any(
+        (token) =>
+            token.text.toLowerCase() == 'count' &&
+            token.role == ReaderCodeTokenRole.function,
+      ),
+      isTrue,
+    );
+  });
 }

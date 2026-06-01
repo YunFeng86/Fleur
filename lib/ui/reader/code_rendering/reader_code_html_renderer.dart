@@ -191,6 +191,11 @@ final class ReaderCodeHtmlRenderer {
           role: ReaderCodeTokenRole.comment,
         );
       }
+      if (classes.contains('cdata') || classes.contains('doctype')) {
+        return const _ReaderCodeImportedStyle(
+          role: ReaderCodeTokenRole.comment,
+        );
+      }
       if (classes.contains('plain') || classes.contains('plain-text')) {
         return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.plain);
       }
@@ -203,6 +208,7 @@ final class ReaderCodeHtmlRenderer {
         );
       }
       if (classes.contains('string') ||
+          classes.contains('char') ||
           classes.contains('string-property') ||
           classes.contains('attr-value')) {
         return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.string);
@@ -215,12 +221,18 @@ final class ReaderCodeHtmlRenderer {
           role: ReaderCodeTokenRole.constant,
         );
       }
+      if (classes.contains('symbol')) {
+        return const _ReaderCodeImportedStyle(
+          role: ReaderCodeTokenRole.constant,
+        );
+      }
       if (classes.contains('attr-name')) {
         return const _ReaderCodeImportedStyle(
           role: ReaderCodeTokenRole.attribute,
         );
       }
       if (classes.contains('property') ||
+          classes.contains('key') ||
           classes.contains('literal-property')) {
         return const _ReaderCodeImportedStyle(
           role: ReaderCodeTokenRole.property,
@@ -238,7 +250,7 @@ final class ReaderCodeHtmlRenderer {
       if (classes.contains('tag')) {
         return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.tag);
       }
-      if (classes.contains('builtin')) {
+      if (classes.contains('builtin') || classes.contains('known-class-name')) {
         return const _ReaderCodeImportedStyle(
           role: ReaderCodeTokenRole.builtin,
         );
@@ -257,6 +269,9 @@ final class ReaderCodeHtmlRenderer {
         return const _ReaderCodeImportedStyle(
           role: ReaderCodeTokenRole.namespace,
         );
+      }
+      if (classes.contains('url')) {
+        return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.string);
       }
       if (classes.contains('inserted')) {
         return const _ReaderCodeImportedStyle(
@@ -288,10 +303,12 @@ final class ReaderCodeHtmlRenderer {
     }
     if (classes.contains('hljs-keyword') ||
         classes.contains('hljs-meta') ||
+        classes.contains('hljs-doctag') ||
         classes.contains('hljs-selector-tag')) {
       return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.keyword);
     }
     if (classes.contains('hljs-string') ||
+        classes.contains('hljs-code') ||
         classes.contains('hljs-template-variable')) {
       return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.string);
     }
@@ -303,7 +320,9 @@ final class ReaderCodeHtmlRenderer {
         role: ReaderCodeTokenRole.attribute,
       );
     }
-    if (classes.contains('hljs-title') || classes.contains('hljs-section')) {
+    if (classes.contains('hljs-title') ||
+        classes.contains('hljs-title.function') ||
+        classes.contains('hljs-section')) {
       return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.function);
     }
     if (classes.contains('hljs-name') ||
@@ -340,6 +359,38 @@ final class ReaderCodeHtmlRenderer {
       return const _ReaderCodeImportedStyle(
         role: ReaderCodeTokenRole.punctuation,
       );
+    }
+    final githubRole = _githubTokenRole(classes);
+    if (githubRole != null) return githubRole;
+    return null;
+  }
+
+  static _ReaderCodeImportedStyle? _githubTokenRole(Set<String> classes) {
+    if (classes.contains('pl-c') || classes.contains('pl-c1-comment')) {
+      return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.comment);
+    }
+    if (classes.contains('pl-k')) {
+      return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.keyword);
+    }
+    if (classes.contains('pl-s') ||
+        classes.contains('pl-pds') ||
+        classes.contains('pl-s1')) {
+      return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.string);
+    }
+    if (classes.contains('pl-c1') || classes.contains('pl-kos')) {
+      return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.constant);
+    }
+    if (classes.contains('pl-en')) {
+      return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.function);
+    }
+    if (classes.contains('pl-ent')) {
+      return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.tag);
+    }
+    if (classes.contains('pl-e') || classes.contains('pl-v')) {
+      return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.variable);
+    }
+    if (classes.contains('pl-smi')) {
+      return const _ReaderCodeImportedStyle(role: ReaderCodeTokenRole.type);
     }
     return null;
   }

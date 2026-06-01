@@ -14,6 +14,11 @@ void main() {
     expect(resolver.resolveCandidates(['bash'])?.id, 'shell');
     expect(resolver.resolveCandidates(['md'])?.id, 'markdown');
     expect(resolver.resolveCandidates(['mdx'])?.id, 'markdown');
+    expect(resolver.resolveCandidates(['jsonc'])?.id, 'json');
+    expect(resolver.resolveCandidates(['scss'])?.id, 'css');
+    expect(resolver.resolveCandidates(['svg'])?.id, 'html');
+    expect(resolver.resolveCandidates(['python3'])?.id, 'python');
+    expect(resolver.resolveCandidates(['postgres'])?.id, 'sql');
     expect(resolver.resolveCandidates(['plain'])?.id, 'plain');
   });
 

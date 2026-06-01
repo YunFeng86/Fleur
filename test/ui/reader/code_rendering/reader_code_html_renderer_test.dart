@@ -108,4 +108,31 @@ void main() {
     expect(roleFor(','), ReaderCodeTokenRole.punctuation);
     expect(roleFor('<Slider'), ReaderCodeTokenRole.plain);
   });
+
+  test('maps highlightjs and github starry-night scopes to internal roles', () {
+    final fragment = html_parser.parseFragment(
+      '<code>'
+      '<span class="hljs-selector-class">.card</span>'
+      '<span class="hljs-doctag">@param</span>'
+      '<span class="hljs-code">`inline`</span>'
+      '<span class="pl-k">return</span>'
+      '<span class="pl-en">render</span>'
+      '<span class="pl-ent">section</span>'
+      '<span class="pl-smi">Widget</span>'
+      '</code>',
+    );
+
+    final extraction = renderer.extract(fragment.querySelector('code')!);
+
+    ReaderCodeTokenRole roleFor(String text) {
+      return extraction.tokens.firstWhere((token) => token.text == text).role;
+    }
+
+    expect(roleFor('@param'), ReaderCodeTokenRole.keyword);
+    expect(roleFor('`inline`'), ReaderCodeTokenRole.string);
+    expect(roleFor('return'), ReaderCodeTokenRole.keyword);
+    expect(roleFor('render'), ReaderCodeTokenRole.function);
+    expect(roleFor('section'), ReaderCodeTokenRole.tag);
+    expect(roleFor('Widget'), ReaderCodeTokenRole.type);
+  });
 }
