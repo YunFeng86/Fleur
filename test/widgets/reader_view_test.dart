@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
@@ -37,6 +38,7 @@ import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
 import 'package:fleur/ui/reader/reader_selectable_rich_text.dart';
+import 'package:fleur/ui/reader/code_rendering/reader_code_rendering.dart';
 import 'package:fleur/utils/content_hash.dart';
 import 'package:fleur/utils/path_manager.dart';
 import 'package:fleur/utils/tag_colors.dart';
@@ -127,6 +129,11 @@ class _FakePathProviderPlatform extends PathProviderPlatform {
 
 void main() {
   const articleId = 7;
+
+  tearDown(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, null);
+  });
 
   Future<void> settleReader(WidgetTester tester, {int rounds = 20}) async {
     for (var i = 0; i < rounds; i++) {
@@ -785,6 +792,13 @@ void main() {
     expect(codeTexts[1], 'a\nb');
     expect(codeTexts[2], 'first line\nsecond line');
     expect(codeTexts[3], 'const value = 1;\nfunction demo() { return value; }');
+    final lineNumbers = tester
+        .widgetList<Text>(find.byKey(const Key('reader_code_line_numbers')))
+        .map((widget) => widget.data)
+        .toList(growable: false);
+    expect(lineNumbers[0], '1\n2\n3');
+    expect(lineNumbers[1], '1\n2');
+    expect(lineNumbers[2], '1\n2');
 
     await pumpUntil(tester, () {
       final textSpan = readerCodeTexts(tester)[3].textSpan;
@@ -829,6 +843,83 @@ void main() {
       isTrue,
     );
   });
+
+  testWidgets(
+    'reader code block header copies text and line numbers stay separate',
+    (tester) async {
+      String? clipboardText;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+            if (call.method == 'Clipboard.setData') {
+              clipboardText =
+                  (call.arguments as Map<Object?, Object?>)['text'] as String?;
+            }
+            return null;
+          });
+
+      await pumpReader(
+        tester,
+        article: buildArticle(
+          title: 'A',
+          html:
+              '<pre><code class="language-text language-jsx">const value = 1;\n\nreturn value;</code></pre>'
+              '<pre><code class="language-plain">plain text</code></pre>',
+        ),
+        appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      );
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 500)),
+      );
+      await settleReader(tester, rounds: 12);
+
+      expect(find.byKey(const Key('reader_code_block')), findsNWidgets(2));
+      expect(find.byKey(const Key('reader_code_header')), findsNWidgets(2));
+      expect(find.text('jsx'), findsOneWidget);
+      expect(find.text('plain'), findsNothing);
+      expect(
+        find.byTooltip(
+          MaterialLocalizations.of(
+            tester.element(find.byType(ReaderView)),
+          ).copyButtonLabel,
+        ),
+        findsNWidgets(2),
+      );
+
+      final lineNumbers = tester
+          .widgetList<Text>(find.byKey(const Key('reader_code_line_numbers')))
+          .map((widget) => widget.data)
+          .toList(growable: false);
+      expect(lineNumbers, ['1\n2\n3', '1']);
+      expect(readerCodePlainTexts(tester), [
+        'const value = 1;\n\nreturn value;',
+        'plain text',
+      ]);
+
+      await tester.tap(find.byKey(const Key('reader_code_copy_button')).first);
+      await tester.pump();
+
+      expect(clipboardText, 'const value = 1;\n\nreturn value;');
+      expect(clipboardText, isNot(contains('jsx')));
+      expect(clipboardText, isNot(contains('1\n2\n3')));
+      expect(
+        find.byKey(const Key('reader_code_copy_success_icon')),
+        findsOneWidget,
+      );
+      expect(
+        find.byTooltip(
+          AppLocalizations.of(
+            tester.element(find.byType(ReaderView)),
+          )!.copiedToClipboard,
+        ),
+        findsOneWidget,
+      );
+
+      await tester.pump(ReaderCodeBlockChrome.copyFeedbackDuration);
+      await tester.pump();
+
+      expect(find.byKey(const Key('reader_code_copy_icon')), findsNWidgets(2));
+    },
+  );
 
   testWidgets('reader highlights and scrolls to code search matches', (
     tester,

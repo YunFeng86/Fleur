@@ -809,34 +809,19 @@ class _ReaderCodeBlockState extends State<_ReaderCodeBlock> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final reader = theme.fleurReader;
-    return Container(
-      key: const Key('reader_code_block'),
-      width: double.infinity,
-      margin: const EdgeInsets.symmetric(vertical: 18),
-      decoration: BoxDecoration(
-        color: reader.codeBlockSurface,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: theme.fleurSurface.subtleDivider),
-      ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: FutureBuilder<ReaderCodeRenderResult>(
-            future: _renderFuture,
-            builder: (context, snapshot) {
-              final result = snapshot.connectionState == ConnectionState.done
-                  ? snapshot.data ?? _fallbackResult(context)
-                  : _fallbackResult(context);
-              _registerCodeSearchAnchors(result);
-              _scheduleCodeSearchReveal(result);
-              return SelectableText.rich(result.span);
-            },
-          ),
-        ),
-      ),
+    return FutureBuilder<ReaderCodeRenderResult>(
+      future: _renderFuture,
+      builder: (context, snapshot) {
+        final result = snapshot.connectionState == ConnectionState.done
+            ? snapshot.data ?? _fallbackResult(context)
+            : _fallbackResult(context);
+        _registerCodeSearchAnchors(result);
+        _scheduleCodeSearchReveal(result);
+        return ReaderCodeBlockChrome(
+          result: result,
+          codeStyle: _codeStyle(context),
+        );
+      },
     );
   }
 }

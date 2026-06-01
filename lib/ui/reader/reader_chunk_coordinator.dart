@@ -8,7 +8,9 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
     final coordinator = context
         .findAncestorStateOfType<_ReaderViewState>()
         ?._viewportCoordinator;
-    final key = context.widget.key;
+    final key =
+        context.widget.key ??
+        context.findAncestorWidgetOfExactType<_ReaderCodeBlock>()?.key;
     if (coordinator == null || key is! GlobalKey) return;
     for (final range in ranges) {
       coordinator._codeSearchAnchorKeys[range.anchorId] = key;
