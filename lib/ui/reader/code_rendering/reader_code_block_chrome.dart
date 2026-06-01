@@ -1,12 +1,11 @@
 import 'dart:async';
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../theme/fleur_icons.dart';
 import '../../../theme/fleur_theme_extensions.dart';
+import '../reader_selectable_rich_text.dart';
 import 'reader_code_models.dart';
 
 final class ReaderCodeBlockPresentation {
@@ -47,6 +46,64 @@ final class ReaderCodeBlockPresentation {
     if (text.isEmpty) return 1;
     return '\n'.allMatches(text).length + 1;
   }
+}
+
+final class ReaderCodeLayoutMetrics {
+  ReaderCodeLayoutMetrics._({
+    required this.strutStyle,
+    required this.textHeightBehavior,
+    required this.gutterWidth,
+    required this.lineHeight,
+  });
+
+  factory ReaderCodeLayoutMetrics.resolve({
+    required TextStyle codeStyle,
+    required int lineCount,
+    required TextDirection textDirection,
+  }) {
+    final strutStyle = StrutStyle.fromTextStyle(
+      codeStyle,
+      forceStrutHeight: true,
+    );
+    const textHeightBehavior = TextHeightBehavior(
+      applyHeightToFirstAscent: false,
+      applyHeightToLastDescent: false,
+    );
+    final maxLineNumber = lineCount < 1 ? '1' : lineCount.toString();
+    final painter = TextPainter(
+      text: TextSpan(text: maxLineNumber, style: codeStyle),
+      textDirection: textDirection,
+      maxLines: 1,
+    )..layout();
+    final linePainter = TextPainter(
+      text: TextSpan(text: '0', style: codeStyle),
+      textDirection: textDirection,
+      strutStyle: strutStyle,
+      textHeightBehavior: textHeightBehavior,
+      maxLines: 1,
+    )..layout();
+    final lineMetrics = linePainter.computeLineMetrics();
+
+    return ReaderCodeLayoutMetrics._(
+      strutStyle: strutStyle,
+      textHeightBehavior: textHeightBehavior,
+      gutterWidth: painter.width + _ReaderCodeLineGutter.horizontalPadding,
+      lineHeight: lineMetrics.isEmpty
+          ? linePainter.preferredLineHeight
+          : lineMetrics.first.height,
+    );
+  }
+
+  final StrutStyle strutStyle;
+  final TextHeightBehavior textHeightBehavior;
+  final double gutterWidth;
+  final double lineHeight;
+}
+
+final class _ReaderCodeVisualLine {
+  const _ReaderCodeVisualLine({required this.span});
+
+  final TextSpan span;
 }
 
 class ReaderCodeBlockChrome extends StatelessWidget {
@@ -165,23 +222,37 @@ class _ReaderCodeBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final direction = Directionality.of(context);
+    final lines = _splitReaderCodeLines(result.span);
+    final metrics = ReaderCodeLayoutMetrics.resolve(
+      codeStyle: codeStyle,
+      lineCount: lines.length,
+      textDirection: direction,
+    );
     return Row(
       key: const Key('reader_code_body'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _ReaderCodeLineGutter(lineCount: lineCount, codeStyle: codeStyle),
-        Container(
-          width: 1,
-          height: _estimatedBodyHeight(lineCount, codeStyle),
-          margin: const EdgeInsets.symmetric(vertical: 14),
-          color: theme.fleurSurface.subtleDivider,
+        _ReaderCodeLineGutter(
+          lineCount: lines.length,
+          codeStyle: codeStyle,
+          metrics: metrics,
+          dividerColor: theme.fleurSurface.subtleDivider,
         ),
         Expanded(
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Padding(
               padding: const EdgeInsets.all(14),
-              child: SelectableText.rich(result.span),
+              child: Column(
+                key: const Key('reader_code_line_column'),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (var index = 0; index < lines.length; index++)
+                    _ReaderCodeLineText(line: lines[index], metrics: metrics),
+                ],
+              ),
             ),
           ),
         ),
@@ -189,10 +260,85 @@ class _ReaderCodeBody extends StatelessWidget {
     );
   }
 
-  double _estimatedBodyHeight(int lines, TextStyle style) {
-    final fontSize = style.fontSize ?? 13;
-    final height = style.height ?? 1.0;
-    return math.max(1, lines) * fontSize * height;
+  List<_ReaderCodeVisualLine> _splitReaderCodeLines(TextSpan span) {
+    final lineSegments = <List<TextSpan>>[<TextSpan>[]];
+
+    TextStyle? mergeStyle(TextStyle? base, TextStyle? overlay) {
+      if (base == null) return overlay;
+      if (overlay == null) return base;
+      return base.merge(overlay);
+    }
+
+    void writeText(String text, TextStyle? style) {
+      var start = 0;
+      while (true) {
+        final newline = text.indexOf('\n', start);
+        if (newline < 0) {
+          final value = text.substring(start);
+          if (value.isNotEmpty) {
+            lineSegments.last.add(TextSpan(text: value, style: style));
+          }
+          return;
+        }
+        final value = text.substring(start, newline);
+        if (value.isNotEmpty) {
+          lineSegments.last.add(TextSpan(text: value, style: style));
+        }
+        lineSegments.add(<TextSpan>[]);
+        start = newline + 1;
+      }
+    }
+
+    void visit(TextSpan node, TextStyle? inheritedStyle) {
+      final style = mergeStyle(inheritedStyle, node.style);
+      final text = node.text;
+      if (text != null && text.isNotEmpty) {
+        writeText(text, style);
+      }
+      for (final child in node.children ?? const <InlineSpan>[]) {
+        if (child is TextSpan) visit(child, style);
+      }
+    }
+
+    visit(span, null);
+    return [
+      for (final segments in lineSegments)
+        _ReaderCodeVisualLine(
+          span: TextSpan(children: segments.isEmpty ? null : segments),
+        ),
+    ];
+  }
+}
+
+class _ReaderCodeLineText extends StatelessWidget {
+  const _ReaderCodeLineText({required this.line, required this.metrics});
+
+  final _ReaderCodeVisualLine line;
+  final ReaderCodeLayoutMetrics metrics;
+
+  @override
+  Widget build(BuildContext context) {
+    final registrar = SelectionContainer.maybeOf(context);
+    final selectionColor = registrar == null
+        ? null
+        : DefaultSelectionStyle.of(context).selectionColor ??
+              DefaultSelectionStyle.defaultColor;
+    final text = ReaderSelectableRichText(
+      key: const Key('reader_code_line_code'),
+      overflow: TextOverflow.visible,
+      selectionColor: selectionColor,
+      selectionRegistrar: registrar,
+      softWrap: false,
+      strutStyle: metrics.strutStyle,
+      text: line.span,
+      textHeightBehavior: metrics.textHeightBehavior,
+      textWidthBasis: TextWidthBasis.longestLine,
+    );
+
+    return SizedBox(
+      height: metrics.lineHeight,
+      child: MouseRegion(cursor: SystemMouseCursors.text, child: text),
+    );
   }
 }
 
@@ -200,36 +346,60 @@ class _ReaderCodeLineGutter extends StatelessWidget {
   const _ReaderCodeLineGutter({
     required this.lineCount,
     required this.codeStyle,
+    required this.metrics,
+    required this.dividerColor,
   });
+
+  static const double leadingPadding = 10;
+  static const double trailingPadding = 12;
+  static const double horizontalPadding = leadingPadding + trailingPadding;
 
   final int lineCount;
   final TextStyle codeStyle;
+  final ReaderCodeLayoutMetrics metrics;
+  final Color dividerColor;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final digits = math.max(2, lineCount.toString().length);
-    final fontSize = codeStyle.fontSize ?? 13;
-    final width = math.max(26.0, digits * fontSize * 0.68 + 12);
-    final numbers = List<String>.generate(lineCount, (index) {
-      return '${index + 1}';
-    }).join('\n');
-
     return SelectionContainer.disabled(
       child: IgnorePointer(
         child: ExcludeSemantics(
           child: Container(
             key: const Key('reader_code_line_gutter'),
-            width: width,
-            padding: const EdgeInsetsDirectional.fromSTEB(10, 14, 8, 14),
-            child: Text(
-              numbers,
+            width: metrics.gutterWidth,
+            padding: const EdgeInsetsDirectional.fromSTEB(
+              leadingPadding,
+              14,
+              trailingPadding,
+              14,
+            ),
+            decoration: BoxDecoration(
+              border: BorderDirectional(end: BorderSide(color: dividerColor)),
+            ),
+            child: Column(
               key: const Key('reader_code_line_numbers'),
-              softWrap: false,
-              textAlign: TextAlign.end,
-              style: codeStyle.copyWith(
-                color: theme.colorScheme.onSurfaceVariant.withAlpha(150),
-              ),
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (var index = 0; index < lineCount; index++)
+                  SizedBox(
+                    height: metrics.lineHeight,
+                    child: Text(
+                      '${index + 1}',
+                      key: const Key('reader_code_line_number'),
+                      softWrap: false,
+                      textAlign: TextAlign.end,
+                      strutStyle: metrics.strutStyle,
+                      textHeightBehavior: metrics.textHeightBehavior,
+                      style: codeStyle.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant.withAlpha(
+                          150,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         ),

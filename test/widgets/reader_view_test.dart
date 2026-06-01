@@ -304,28 +304,33 @@ void main() {
     ];
   }
 
-  List<SelectableText> readerCodeTexts(WidgetTester tester) {
-    return tester
-        .widgetList<SelectableText>(
-          find.descendant(
-            of: find.byKey(const Key('reader_code_block')),
-            matching: find.byType(SelectableText),
-          ),
-        )
-        .toList(growable: false);
+  List<List<ReaderSelectableRichText>> readerCodeLines(WidgetTester tester) {
+    return [
+      for (final block in find.byKey(const Key('reader_code_block')).evaluate())
+        tester
+            .widgetList<ReaderSelectableRichText>(
+              find.descendant(
+                of: find.byElementPredicate((element) => element == block),
+                matching: find.byKey(const Key('reader_code_line_code')),
+              ),
+            )
+            .toList(growable: false),
+    ];
   }
 
   List<String> readerCodePlainTexts(WidgetTester tester) {
     return [
-      for (final widget in readerCodeTexts(tester))
-        if (widget.textSpan != null) widget.textSpan!.toPlainText(),
+      for (final lines in readerCodeLines(tester))
+        lines.map((widget) => widget.text.toPlainText()).join('\n'),
     ];
   }
 
   List<TextSpan> readerCodeTextSpans(WidgetTester tester) {
     return [
-      for (final widget in readerCodeTexts(tester))
-        if (widget.textSpan != null) ...flattenTextSpans(widget.textSpan!),
+      for (final lines in readerCodeLines(tester))
+        for (final widget in lines)
+          if (widget.text is TextSpan)
+            ...flattenTextSpans(widget.text as TextSpan),
     ];
   }
 
@@ -674,7 +679,7 @@ void main() {
       );
       expect(
         find.textContaining('createLogger', findRichText: true),
-        findsOneWidget,
+        findsWidgets,
       );
       expect(
         find.textContaining('+added line', findRichText: true),
@@ -689,16 +694,7 @@ void main() {
         findsOneWidget,
       );
 
-      final codeTexts = tester.widgetList<SelectableText>(
-        find.descendant(
-          of: find.byKey(const Key('reader_code_block')),
-          matching: find.byType(SelectableText),
-        ),
-      );
-      final spans = <TextSpan>[
-        for (final widget in codeTexts)
-          if (widget.textSpan != null) ...flattenTextSpans(widget.textSpan!),
-      ];
+      final spans = readerCodeTextSpans(tester);
       final baseCodeColor = Theme.of(
         tester.element(find.byType(ReaderView)),
       ).colorScheme.onSurface;
@@ -793,21 +789,23 @@ void main() {
     expect(codeTexts[2], 'first line\nsecond line');
     expect(codeTexts[3], 'const value = 1;\nfunction demo() { return value; }');
     final lineNumbers = tester
-        .widgetList<Text>(find.byKey(const Key('reader_code_line_numbers')))
+        .widgetList<Text>(find.byKey(const Key('reader_code_line_number')))
         .map((widget) => widget.data)
         .toList(growable: false);
-    expect(lineNumbers[0], '1\n2\n3');
-    expect(lineNumbers[1], '1\n2');
-    expect(lineNumbers[2], '1\n2');
+    expect(lineNumbers.take(3), ['1', '2', '3']);
+    expect(lineNumbers.skip(3).take(2), ['1', '2']);
+    expect(lineNumbers.skip(5).take(2), ['1', '2']);
 
     await pumpUntil(tester, () {
-      final textSpan = readerCodeTexts(tester)[3].textSpan;
-      if (textSpan == null) return false;
-      return flattenTextSpans(textSpan).any(
-        (span) =>
-            (span.text?.contains('const') ?? false) &&
-            span.style?.color != null,
-      );
+      final lines = readerCodeLines(tester)[3];
+      return lines
+          .where((line) => line.text is TextSpan)
+          .expand((line) => flattenTextSpans(line.text as TextSpan))
+          .any(
+            (span) =>
+                (span.text?.contains('const') ?? false) &&
+                span.style?.color != null,
+          );
     }, attempts: 80);
 
     await pumpUntil(tester, () {
@@ -886,10 +884,10 @@ void main() {
       );
 
       final lineNumbers = tester
-          .widgetList<Text>(find.byKey(const Key('reader_code_line_numbers')))
+          .widgetList<Text>(find.byKey(const Key('reader_code_line_number')))
           .map((widget) => widget.data)
           .toList(growable: false);
-      expect(lineNumbers, ['1\n2\n3', '1']);
+      expect(lineNumbers, ['1', '2', '3', '1']);
       expect(readerCodePlainTexts(tester), [
         'const value = 1;\n\nreturn value;',
         'plain text',
@@ -918,6 +916,102 @@ void main() {
       await tester.pump();
 
       expect(find.byKey(const Key('reader_code_copy_icon')), findsNWidgets(2));
+    },
+  );
+
+  testWidgets(
+    'reader code line gutter shares text metrics and sizes to line digits',
+    (tester) async {
+      final shortCode = List<String>.generate(
+        9,
+        (index) => 'shortLine${index + 1};',
+      ).join('\n');
+      final longCode = List<String>.generate(
+        120,
+        (index) => 'longLine${index + 1};',
+      ).join('\n');
+
+      await pumpReader(
+        tester,
+        article: buildArticle(
+          title: 'A',
+          html:
+              '<pre><code class="language-js">$shortCode</code></pre>'
+              '<pre><code class="language-js">$longCode</code></pre>',
+        ),
+        appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      );
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 500)),
+      );
+      await settleReader(tester, rounds: 12);
+
+      final codeLines = readerCodeLines(tester);
+      final lineNumbers = tester
+          .widgetList<Text>(find.byKey(const Key('reader_code_line_number')))
+          .toList(growable: false);
+      expect(codeLines, hasLength(2));
+      expect(codeLines[0], hasLength(9));
+      expect(codeLines[1], hasLength(120));
+      expect(lineNumbers, hasLength(129));
+      for (var i = 0; i < lineNumbers.length; i++) {
+        final codeLine = i < 9 ? codeLines[0][i] : codeLines[1][i - 9];
+        expect(lineNumbers[i].strutStyle, codeLine.strutStyle);
+        expect(lineNumbers[i].textHeightBehavior, codeLine.textHeightBehavior);
+      }
+      expect(codeLines.first.first.strutStyle?.forceStrutHeight, isTrue);
+      expect(
+        codeLines.first.first.textHeightBehavior?.applyHeightToFirstAscent,
+        isFalse,
+      );
+      expect(
+        codeLines.first.first.textHeightBehavior?.applyHeightToLastDescent,
+        isFalse,
+      );
+
+      final gutterSizes = tester
+          .widgetList<Container>(
+            find.byKey(const Key('reader_code_line_gutter')),
+          )
+          .map((widget) => widget.constraints!.maxWidth)
+          .toList(growable: false);
+      expect(gutterSizes, hasLength(2));
+      expect(gutterSizes[1], greaterThan(gutterSizes[0]));
+      expect(lineNumbers.last.data, '120');
+
+      final firstBlock = find.byKey(const Key('reader_code_block')).first;
+      final firstBlockNumbers = tester
+          .widgetList<Text>(
+            find.descendant(
+              of: firstBlock,
+              matching: find.byKey(const Key('reader_code_line_number')),
+            ),
+          )
+          .toList(growable: false);
+      final firstBlockLines = tester
+          .widgetList<ReaderSelectableRichText>(
+            find.descendant(
+              of: firstBlock,
+              matching: find.byKey(const Key('reader_code_line_code')),
+            ),
+          )
+          .toList(growable: false);
+      for (var i = 0; i < firstBlockLines.length; i++) {
+        final numberBox = tester.getRect(find.byWidget(firstBlockNumbers[i]));
+        final codeBox = tester.getRect(find.byWidget(firstBlockLines[i]));
+        expect(numberBox.top, moreOrLessEquals(codeBox.top, epsilon: 0.01));
+        expect(
+          numberBox.bottom,
+          moreOrLessEquals(codeBox.bottom, epsilon: 0.01),
+        );
+      }
+
+      final gutter = tester.widget<Container>(
+        find.byKey(const Key('reader_code_line_gutter')).first,
+      );
+      final decoration = gutter.decoration! as BoxDecoration;
+      final border = decoration.border! as BorderDirectional;
+      expect(border.end.width, 1);
     },
   );
 
