@@ -19,6 +19,7 @@ import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/ui/settings/subscriptions/subscription_layout_manager.dart';
 import 'package:fleur/ui/settings/subscriptions/settings_detail_panel.dart';
+import 'package:fleur/ui/settings/widgets/section_header.dart';
 
 import '../../../test_utils/critical_workflow_test_support.dart';
 
@@ -276,7 +277,7 @@ void main() {
       expect(find.text('Example Feed'), findsOneWidget);
       final tile = find.ancestor(
         of: find.text('Auto translate'),
-        matching: find.byType(ListTile),
+        matching: find.byType(SettingsTile),
       );
       expect(
         find.descendant(of: tile, matching: find.byIcon(FleurIcons.inherit)),

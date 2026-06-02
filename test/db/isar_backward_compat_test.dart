@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:fleur/models/article.dart';
@@ -180,7 +180,7 @@ void main() {
 
 Future<void> _initializeIsarCoreFromFlutterLibs() async {
   String? libraryPath;
-  final pkgRoot = await _findPackageRoot('isar_flutter_libs');
+  final pkgRoot = await _findPackageRoot('isar_community_flutter_libs');
   if (pkgRoot != null) {
     if (Platform.isWindows) {
       libraryPath = p.join(pkgRoot, 'windows', 'isar.dll');

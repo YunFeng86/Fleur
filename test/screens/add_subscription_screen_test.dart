@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 import 'package:fleur/l10n/app_localizations.dart';
 import 'package:fleur/models/article.dart';
@@ -29,6 +29,8 @@ import 'package:fleur/services/sync/sync_service.dart';
 import 'package:fleur/theme/app_theme.dart';
 
 import '../test_utils/isar_test_utils.dart';
+
+const _asyncUiSettleAttempts = 300;
 
 class _FakeFeedDiscoveryService extends FeedDiscoveryService {
   _FakeFeedDiscoveryService(this.candidates) : super(Dio());
@@ -263,11 +265,11 @@ Finder _viewResultButton(String url) {
   return find.byKey(Key('add_subscription_result_view_$url'));
 }
 
-Future<void> _tapConfirmAdd(WidgetTester tester) {
-  return _tapVisible(
-    tester,
-    find.byKey(const Key('add_subscription_confirm_add_button')),
-  );
+Future<void> _tapConfirmAdd(WidgetTester tester) async {
+  final finder = find.byKey(const Key('add_subscription_confirm_add_button'));
+  await _pumpUntilButtonEnabled(tester, finder);
+  await _tapVisible(tester, finder);
+  await tester.pump();
 }
 
 Future<void> _pumpFrames(WidgetTester tester) async {
@@ -281,7 +283,7 @@ Future<void> _pumpFrames(WidgetTester tester) async {
 Future<void> _pumpUntilFound(
   WidgetTester tester,
   Finder finder, {
-  int attempts = 20,
+  int attempts = _asyncUiSettleAttempts,
 }) async {
   for (var i = 0; i < attempts; i++) {
     await tester.runAsync(() async {
@@ -296,7 +298,7 @@ Future<void> _pumpUntilFound(
 Future<void> _pumpUntilAbsent(
   WidgetTester tester,
   Finder finder, {
-  int attempts = 20,
+  int attempts = _asyncUiSettleAttempts,
 }) async {
   for (var i = 0; i < attempts; i++) {
     await tester.runAsync(() async {
@@ -306,6 +308,24 @@ Future<void> _pumpUntilAbsent(
     if (finder.evaluate().isEmpty) return;
   }
   expect(finder, findsNothing);
+}
+
+Future<void> _pumpUntilButtonEnabled(
+  WidgetTester tester,
+  Finder finder, {
+  int attempts = _asyncUiSettleAttempts,
+}) async {
+  for (var i = 0; i < attempts; i++) {
+    await tester.runAsync(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    });
+    await tester.pump(const Duration(milliseconds: 100));
+    if (finder.evaluate().isEmpty) continue;
+    final button = tester.widget<FilledButton>(finder);
+    if (button.onPressed != null) return;
+  }
+  expect(finder, findsOneWidget);
+  expect(tester.widget<FilledButton>(finder).onPressed, isNotNull);
 }
 
 void main() {
@@ -494,9 +514,11 @@ void main() {
       find.byKey(const Key('add_subscription_new_category_field')),
       'Blogs',
     );
-    await tester.tap(
-      find.byKey(const Key('add_subscription_create_category_button')),
+    final createButton = find.byKey(
+      const Key('add_subscription_create_category_button'),
     );
+    await _pumpUntilButtonEnabled(tester, createButton);
+    await tester.tap(createButton);
     await _pumpUntilAbsent(
       tester,
       find.byKey(const Key('add_subscription_new_category_field')),

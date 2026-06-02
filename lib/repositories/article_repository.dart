@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 import 'article_merge_policy.dart';
 import '../models/article.dart';

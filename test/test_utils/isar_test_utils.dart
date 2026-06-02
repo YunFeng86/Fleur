@@ -2,14 +2,14 @@ import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
 
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 bool _isarCoreInitialized = false;
 
 /// Ensures Isar Core native libraries are available for unit tests.
 ///
 /// In `flutter test`, the working directory might not contain Isar Core binaries,
-/// so we load them from `isar_flutter_libs` in pub cache to keep tests runnable
+/// so we load them from `isar_community_flutter_libs` in pub cache to keep tests runnable
 /// offline.
 Future<void> ensureIsarCoreInitialized() async {
   if (_isarCoreInitialized) return;
@@ -25,11 +25,13 @@ Future<void> ensureIsarCoreInitialized() async {
     _ => 'linux',
   };
 
-  final isarFlutterLibsRoot = await _resolvePackageRoot('isar_flutter_libs');
+  final isarFlutterLibsRoot = await _resolvePackageRoot(
+    'isar_community_flutter_libs',
+  );
   if (isarFlutterLibsRoot == null) {
     throw StateError(
-      'Failed to locate isar_flutter_libs in the package config. '
-      'Add isar_flutter_libs to your dependencies.',
+      'Failed to locate isar_community_flutter_libs in the package config. '
+      'Add isar_community_flutter_libs to your dependencies.',
     );
   }
 
