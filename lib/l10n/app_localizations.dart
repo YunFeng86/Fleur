@@ -417,41 +417,35 @@ abstract class AppLocalizations {
   /// **'Mono'**
   String get readerFontMono;
 
-  /// Reader theme preset setting label
+  /// Reader surface texture preset setting label
   ///
   /// In en, this message translates to:
-  /// **'Reading theme'**
+  /// **'Reading texture'**
   String get readerTheme;
 
-  /// Default reader theme option
+  /// Default reader texture option
   ///
   /// In en, this message translates to:
   /// **'Default'**
   String get readerThemeDefault;
 
-  /// Paper reader theme option
+  /// Paper reader texture option
   ///
   /// In en, this message translates to:
   /// **'Paper'**
   String get readerThemePaper;
 
-  /// Sepia reader theme option
+  /// Sepia reader texture option
   ///
   /// In en, this message translates to:
   /// **'Sepia'**
   String get readerThemeSepia;
 
-  /// Dim reader theme option
+  /// Soft gray reader texture option
   ///
   /// In en, this message translates to:
-  /// **'Dim'**
+  /// **'Soft gray'**
   String get readerThemeDim;
-
-  /// Dark reader theme option
-  ///
-  /// In en, this message translates to:
-  /// **'Dark'**
-  String get readerThemeDark;
 
   /// Reader content width setting label
   ///

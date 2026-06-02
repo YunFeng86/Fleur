@@ -47,11 +47,18 @@ void main() {
     expect(results.first.id, 'appearance.reader.font_size');
   });
 
-  test('reader theme keywords are searchable', () {
+  test('reader texture keywords are searchable', () {
     final results = searchSettingsEntries(
       buildSettingsSearchEntries(en),
-      'sepia',
+      'texture',
     );
+
+    expect(results.first.id, 'appearance.reader.theme');
+  });
+
+  test('localized reader texture is searchable', () {
+    final zh = AppLocalizationsZh();
+    final results = searchSettingsEntries(buildSettingsSearchEntries(zh), '质感');
 
     expect(results.first.id, 'appearance.reader.theme');
   });

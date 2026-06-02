@@ -201,14 +201,15 @@ List<SettingsSearchEntry> buildSettingsSearchEntries(AppLocalizations l10n) {
       targetId: 'appearance.reader.theme',
       keywords: [
         'theme',
+        'texture',
+        'surface',
         'paper',
         'sepia',
         'dim',
-        'dark',
         l10n.readerThemePaper,
         l10n.readerThemeSepia,
         l10n.readerThemeDim,
-        l10n.readerThemeDark,
+        l10n.readerTheme,
       ],
     ),
     _section(

@@ -70,6 +70,14 @@ void main() {
     expect(settings.contentWidthPreset, ReaderContentWidthPreset.standard);
   });
 
+  test('ReaderSettings maps legacy dark reader theme to dim texture', () {
+    final settings = ReaderSettings.fromJson(<String, Object?>{
+      'readerTheme': 'dark',
+    });
+
+    expect(settings.readerTheme, ReaderThemePreset.dim);
+  });
+
   test('ReaderSettings maps legacy horizontal padding to width preset', () {
     final wide = ReaderSettings.fromJson(<String, Object?>{
       'horizontalPadding': 8,

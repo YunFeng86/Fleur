@@ -172,22 +172,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get readerFontMono => '等宽';
 
   @override
-  String get readerTheme => '阅读主题';
+  String get readerTheme => '阅读质感';
 
   @override
   String get readerThemeDefault => '默认';
 
   @override
-  String get readerThemePaper => '纸白';
+  String get readerThemePaper => '纸张';
 
   @override
   String get readerThemeSepia => '暖色';
 
   @override
-  String get readerThemeDim => '暗灰';
-
-  @override
-  String get readerThemeDark => '深色';
+  String get readerThemeDim => '柔灰';
 
   @override
   String get readingWidth => '阅读宽度';
@@ -1512,22 +1509,19 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get readerFontMono => '等寬';
 
   @override
-  String get readerTheme => '閱讀主題';
+  String get readerTheme => '閱讀質感';
 
   @override
   String get readerThemeDefault => '預設';
 
   @override
-  String get readerThemePaper => '紙白';
+  String get readerThemePaper => '紙張';
 
   @override
   String get readerThemeSepia => '暖色';
 
   @override
-  String get readerThemeDim => '暗灰';
-
-  @override
-  String get readerThemeDark => '深色';
+  String get readerThemeDim => '柔灰';
 
   @override
   String get readingWidth => '閱讀寬度';

@@ -1,6 +1,6 @@
 import 'settings_json.dart';
 
-enum ReaderThemePreset { defaultLightAware, paper, sepia, dim, dark }
+enum ReaderThemePreset { defaultLightAware, paper, sepia, dim }
 
 enum ReaderFontFamily { system, serif, sans, mono }
 
@@ -62,12 +62,7 @@ class ReaderSettings {
         json['horizontalPadding'],
         defaultHorizontalPadding,
       ),
-      readerTheme: readEnumByNameOr(
-        ReaderThemePreset.values,
-        json['readerTheme'],
-        ReaderThemePreset.defaultLightAware,
-        trim: false,
-      ),
+      readerTheme: _readReaderThemePreset(json['readerTheme']),
       fontFamily: readEnumByNameOr(
         ReaderFontFamily.values,
         json['fontFamily'],
@@ -96,5 +91,15 @@ class ReaderSettings {
     if (legacyPadding <= 12) return ReaderContentWidthPreset.wide;
     if (legacyPadding >= 24) return ReaderContentWidthPreset.narrow;
     return ReaderContentWidthPreset.standard;
+  }
+
+  static ReaderThemePreset _readReaderThemePreset(Object? value) {
+    if (value == 'dark') return ReaderThemePreset.dim;
+    return readEnumByNameOr(
+      ReaderThemePreset.values,
+      value,
+      ReaderThemePreset.defaultLightAware,
+      trim: false,
+    );
   }
 }

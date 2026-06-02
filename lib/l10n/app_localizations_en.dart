@@ -178,7 +178,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get readerFontMono => 'Mono';
 
   @override
-  String get readerTheme => 'Reading theme';
+  String get readerTheme => 'Reading texture';
 
   @override
   String get readerThemeDefault => 'Default';
@@ -190,10 +190,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get readerThemeSepia => 'Sepia';
 
   @override
-  String get readerThemeDim => 'Dim';
-
-  @override
-  String get readerThemeDark => 'Dark';
+  String get readerThemeDim => 'Soft gray';
 
   @override
   String get readingWidth => 'Reading width';

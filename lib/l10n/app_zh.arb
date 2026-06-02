@@ -218,29 +218,25 @@
   "@readerFontMono": {
     "description": "Reader mono font option"
   },
-  "readerTheme": "阅读主题",
+  "readerTheme": "阅读质感",
   "@readerTheme": {
-    "description": "Reader theme preset setting label"
+    "description": "Reader surface texture preset setting label"
   },
   "readerThemeDefault": "默认",
   "@readerThemeDefault": {
-    "description": "Default reader theme option"
+    "description": "Default reader texture option"
   },
-  "readerThemePaper": "纸白",
+  "readerThemePaper": "纸张",
   "@readerThemePaper": {
-    "description": "Paper reader theme option"
+    "description": "Paper reader texture option"
   },
   "readerThemeSepia": "暖色",
   "@readerThemeSepia": {
-    "description": "Sepia reader theme option"
+    "description": "Sepia reader texture option"
   },
-  "readerThemeDim": "暗灰",
+  "readerThemeDim": "柔灰",
   "@readerThemeDim": {
-    "description": "Dim reader theme option"
-  },
-  "readerThemeDark": "深色",
-  "@readerThemeDark": {
-    "description": "Dark reader theme option"
+    "description": "Soft gray reader texture option"
   },
   "readingWidth": "阅读宽度",
   "@readingWidth": {

@@ -54,7 +54,6 @@ class AppearanceTab extends ConsumerWidget {
       ReaderThemePreset.paper => l10n.readerThemePaper,
       ReaderThemePreset.sepia => l10n.readerThemeSepia,
       ReaderThemePreset.dim => l10n.readerThemeDim,
-      ReaderThemePreset.dark => l10n.readerThemeDark,
     };
     String readingWidthLabel(ReaderContentWidthPreset preset) =>
         switch (preset) {

@@ -173,15 +173,6 @@ ColorScheme _readerScheme(ColorScheme base, ReaderThemePreset preset) {
       outline: const Color(0xFF555B60),
       accent: const Color(0xFF9DB7FF),
     ),
-    ReaderThemePreset.dark => (
-      brightness: Brightness.dark,
-      surface: const Color(0xFF111214),
-      container: const Color(0xFF1B1D20),
-      onSurface: const Color(0xFFECEFF1),
-      onVariant: const Color(0xFFBDC1C6),
-      outline: const Color(0xFF4B5055),
-      accent: const Color(0xFFAECBFA),
-    ),
     ReaderThemePreset.defaultLightAware => throw StateError('handled above'),
   };
 
@@ -218,8 +209,7 @@ Color _readerSurfaceFor({
     ReaderThemePreset.defaultLightAware => base,
     ReaderThemePreset.paper ||
     ReaderThemePreset.sepia ||
-    ReaderThemePreset.dim ||
-    ReaderThemePreset.dark => scheme.surface,
+    ReaderThemePreset.dim => scheme.surface,
   };
 }
 

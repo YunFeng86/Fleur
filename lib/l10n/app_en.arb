@@ -218,29 +218,25 @@
   "@readerFontMono": {
     "description": "Reader mono font option"
   },
-  "readerTheme": "Reading theme",
+  "readerTheme": "Reading texture",
   "@readerTheme": {
-    "description": "Reader theme preset setting label"
+    "description": "Reader surface texture preset setting label"
   },
   "readerThemeDefault": "Default",
   "@readerThemeDefault": {
-    "description": "Default reader theme option"
+    "description": "Default reader texture option"
   },
   "readerThemePaper": "Paper",
   "@readerThemePaper": {
-    "description": "Paper reader theme option"
+    "description": "Paper reader texture option"
   },
   "readerThemeSepia": "Sepia",
   "@readerThemeSepia": {
-    "description": "Sepia reader theme option"
+    "description": "Sepia reader texture option"
   },
-  "readerThemeDim": "Dim",
+  "readerThemeDim": "Soft gray",
   "@readerThemeDim": {
-    "description": "Dim reader theme option"
-  },
-  "readerThemeDark": "Dark",
-  "@readerThemeDark": {
-    "description": "Dark reader theme option"
+    "description": "Soft gray reader texture option"
   },
   "readingWidth": "Reading width",
   "@readingWidth": {
