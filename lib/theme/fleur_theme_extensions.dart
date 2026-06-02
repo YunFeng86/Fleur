@@ -332,6 +332,7 @@ class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
     required ColorScheme scheme,
     required AppThemeProfile profile,
     FleurReaderColorTokens? colors,
+    ReaderSettings settings = const ReaderSettings(),
   }) {
     final bodyColor = scheme.onSurface.withValues(
       alpha: scheme.brightness == Brightness.dark ? 0.92 : 0.88,
@@ -359,16 +360,27 @@ class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
           codeBlockSurface: scheme.surfaceContainerHigh,
         );
 
+    final fontFamily = _readerFontFamily(settings.fontFamily);
+    final fontFallback = _readerFontFallback(settings.fontFamily);
+    TextStyle applyReaderFont(TextStyle style) {
+      return style.copyWith(
+        fontFamily: fontFamily,
+        fontFamilyFallback: fontFallback,
+      );
+    }
+
     return FleurReaderTheme(
-      maxWidth: kMaxReadingWidth,
+      maxWidth: _readerMaxWidth(settings.contentWidthPreset),
       contentPaddingHorizontal: profile.readerHorizontalPadding,
       contentPaddingTop: profile.readerTopPadding,
       contentPaddingBottom: profile.readerBottomPadding,
-      titleStyle: (textTheme.headlineMedium ?? const TextStyle()).copyWith(
-        fontWeight: AppTypography.platformWeight(FontWeight.w700),
-        letterSpacing: 0,
-        height: 1.12,
-        color: scheme.onSurface,
+      titleStyle: applyReaderFont(
+        (textTheme.headlineMedium ?? const TextStyle()).copyWith(
+          fontWeight: AppTypography.platformWeight(FontWeight.w700),
+          letterSpacing: 0,
+          height: 1.12,
+          color: scheme.onSurface,
+        ),
       ),
       metaStyle: (textTheme.labelLarge ?? const TextStyle()).copyWith(
         color: scheme.onSurfaceVariant,
@@ -377,15 +389,19 @@ class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
         letterSpacing: 0,
         height: 1.2,
       ),
-      bodyStyle: (textTheme.bodyMedium ?? const TextStyle()).copyWith(
-        color: bodyColor,
-        fontWeight: FontWeight.w400,
-        height: ReaderSettings.defaultLineHeight,
-        letterSpacing: 0,
+      bodyStyle: applyReaderFont(
+        (textTheme.bodyMedium ?? const TextStyle()).copyWith(
+          color: bodyColor,
+          fontWeight: FontWeight.w400,
+          height: ReaderSettings.defaultLineHeight,
+          letterSpacing: 0,
+        ),
       ),
-      summaryStyle: (textTheme.bodyMedium ?? const TextStyle()).copyWith(
-        color: scheme.onSurface,
-        height: 1.56,
+      summaryStyle: applyReaderFont(
+        (textTheme.bodyMedium ?? const TextStyle()).copyWith(
+          color: scheme.onSurface,
+          height: 1.56,
+        ),
       ),
       summarySurface: readerColors.summarySurface,
       toolbarSurface: readerColors.toolbarSurface,
@@ -475,6 +491,49 @@ class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
           codeBlockSurface,
     );
   }
+}
+
+double _readerMaxWidth(ReaderContentWidthPreset preset) {
+  return switch (preset) {
+    ReaderContentWidthPreset.narrow => 620,
+    ReaderContentWidthPreset.standard => kMaxReadingWidth,
+    ReaderContentWidthPreset.wide => 860,
+  };
+}
+
+String? _readerFontFamily(ReaderFontFamily family) {
+  return switch (family) {
+    ReaderFontFamily.system => AppTypography.fontFamily(),
+    ReaderFontFamily.serif => 'Georgia',
+    ReaderFontFamily.sans => AppTypography.fontFamily(),
+    ReaderFontFamily.mono => 'SF Mono',
+  };
+}
+
+List<String>? _readerFontFallback(ReaderFontFamily family) {
+  return switch (family) {
+    ReaderFontFamily.system => AppTypography.fontFallback(),
+    ReaderFontFamily.serif => const [
+      'Songti SC',
+      'Songti TC',
+      'SimSun',
+      'Noto Serif CJK SC',
+      'Noto Serif SC',
+      'Noto Serif',
+      'Times New Roman',
+      'serif',
+    ],
+    ReaderFontFamily.sans => AppTypography.fontFallback(),
+    ReaderFontFamily.mono => const [
+      'SF Mono',
+      'Menlo',
+      'Consolas',
+      'Cascadia Mono',
+      'Noto Sans Mono CJK SC',
+      'Noto Sans Mono',
+      'monospace',
+    ],
+  };
 }
 
 extension FleurThemeDataX on ThemeData {

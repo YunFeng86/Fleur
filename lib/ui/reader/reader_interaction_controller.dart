@@ -532,10 +532,28 @@ final class _ReaderInteractionController {
     final l10n = AppLocalizations.of(context)!;
     final isNarrow = MediaQuery.sizeOf(context).width < kCompactWidth;
 
-    Future<void> saveAndPop(ReaderSettings current) async {
-      await ref.read(readerSettingsProvider.notifier).save(current);
-      if (!context.mounted) return;
-      Navigator.of(context).pop();
+    String readerFontLabel(ReaderFontFamily family) => switch (family) {
+      ReaderFontFamily.system => l10n.readerFontSystem,
+      ReaderFontFamily.serif => l10n.readerFontSerif,
+      ReaderFontFamily.sans => l10n.readerFontSans,
+      ReaderFontFamily.mono => l10n.readerFontMono,
+    };
+    String readerThemeLabel(ReaderThemePreset preset) => switch (preset) {
+      ReaderThemePreset.defaultLightAware => l10n.readerThemeDefault,
+      ReaderThemePreset.paper => l10n.readerThemePaper,
+      ReaderThemePreset.sepia => l10n.readerThemeSepia,
+      ReaderThemePreset.dim => l10n.readerThemeDim,
+      ReaderThemePreset.dark => l10n.readerThemeDark,
+    };
+    String readingWidthLabel(ReaderContentWidthPreset preset) =>
+        switch (preset) {
+          ReaderContentWidthPreset.narrow => l10n.readingWidthNarrow,
+          ReaderContentWidthPreset.standard => l10n.readingWidthStandard,
+          ReaderContentWidthPreset.wide => l10n.readingWidthWide,
+        };
+
+    Future<void> save(ReaderSettings next) {
+      return ref.read(readerSettingsProvider.notifier).save(next);
     }
 
     Widget buildContent(
@@ -549,53 +567,124 @@ final class _ReaderInteractionController {
           return SafeArea(
             child: Padding(
               padding: padding,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          l10n.readerSettings,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            l10n.readerSettings,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
                         ),
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: Text(l10n.done),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    SettingsControlRow(
+                      padding: EdgeInsets.zero,
+                      title: Text(l10n.readerFontFamily),
+                      control: SettingsSelectField<ReaderFontFamily>(
+                        value: current.fontFamily,
+                        options: [
+                          for (final family in ReaderFontFamily.values)
+                            SettingsSelectOption(
+                              value: family,
+                              label: Text(readerFontLabel(family)),
+                            ),
+                        ],
+                        onChanged: (value) {
+                          final next = current.copyWith(fontFamily: value);
+                          setState(() => current = next);
+                          unawaited(save(next));
+                        },
                       ),
-                      TextButton(
-                        onPressed: () => saveAndPop(current),
-                        child: Text(l10n.done),
+                    ),
+                    const SizedBox(height: 10),
+                    SettingsControlRow(
+                      padding: EdgeInsets.zero,
+                      title: Text(l10n.fontSize),
+                      controlWidth: 260,
+                      control: SettingsSliderControl(
+                        value: current.fontSize,
+                        min: 12,
+                        max: 28,
+                        format: (value) => value.toStringAsFixed(0),
+                        onChanged: (value) {
+                          final next = current.copyWith(fontSize: value);
+                          setState(() => current = next);
+                          unawaited(save(next));
+                        },
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  _slider(
-                    label: l10n.fontSize,
-                    value: current.fontSize,
-                    min: 12,
-                    max: 28,
-                    onChanged: (value) => setState(
-                      () => current = current.copyWith(fontSize: value),
                     ),
-                  ),
-                  _slider(
-                    label: l10n.lineHeight,
-                    value: current.lineHeight,
-                    min: 1.1,
-                    max: 2.2,
-                    onChanged: (value) => setState(
-                      () => current = current.copyWith(lineHeight: value),
+                    const SizedBox(height: 10),
+                    SettingsControlRow(
+                      padding: EdgeInsets.zero,
+                      title: Text(l10n.lineHeight),
+                      controlWidth: 260,
+                      control: SettingsSliderControl(
+                        value: current.lineHeight,
+                        min: 1.1,
+                        max: 2.2,
+                        format: (value) => value.toStringAsFixed(1),
+                        onChanged: (value) {
+                          final next = current.copyWith(lineHeight: value);
+                          setState(() => current = next);
+                          unawaited(save(next));
+                        },
+                      ),
                     ),
-                  ),
-                  _slider(
-                    label: l10n.horizontalPadding,
-                    value: current.horizontalPadding,
-                    min: 8,
-                    max: 32,
-                    onChanged: (value) => setState(
-                      () =>
-                          current = current.copyWith(horizontalPadding: value),
+                    const SizedBox(height: 10),
+                    SettingsControlRow(
+                      padding: EdgeInsets.zero,
+                      title: Text(l10n.readingWidth),
+                      controlWidth: 300,
+                      control: SegmentedButton<ReaderContentWidthPreset>(
+                        segments: [
+                          for (final preset in ReaderContentWidthPreset.values)
+                            ButtonSegment(
+                              value: preset,
+                              label: Text(readingWidthLabel(preset)),
+                            ),
+                        ],
+                        selected: {current.contentWidthPreset},
+                        onSelectionChanged: (selected) {
+                          if (selected.isEmpty) return;
+                          final next = current.copyWith(
+                            contentWidthPreset: selected.first,
+                          );
+                          setState(() => current = next);
+                          unawaited(save(next));
+                        },
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 10),
+                    SettingsControlRow(
+                      padding: EdgeInsets.zero,
+                      title: Text(l10n.readerTheme),
+                      control: SettingsSelectField<ReaderThemePreset>(
+                        value: current.readerTheme,
+                        options: [
+                          for (final preset in ReaderThemePreset.values)
+                            SettingsSelectOption(
+                              value: preset,
+                              label: Text(readerThemeLabel(preset)),
+                            ),
+                        ],
+                        onChanged: (value) {
+                          final next = current.copyWith(readerTheme: value);
+                          setState(() => current = next);
+                          unawaited(save(next));
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
@@ -620,31 +709,5 @@ final class _ReaderInteractionController {
         },
       );
     }
-  }
-
-  Widget _slider({
-    required String label,
-    required double value,
-    required double min,
-    required double max,
-    required ValueChanged<double> onChanged,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(child: Text(label)),
-            Text(value.toStringAsFixed(1)),
-          ],
-        ),
-        Slider(
-          value: value.clamp(min, max),
-          min: min,
-          max: max,
-          onChanged: onChanged,
-        ),
-      ],
-    );
   }
 }

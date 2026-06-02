@@ -77,6 +77,7 @@ extension _ReaderSceneScaffold on _ReaderViewState {
             isChunked,
             article,
             settings,
+            sceneTheme,
             inlineHeader,
             searchState.currentAnchorId,
           );

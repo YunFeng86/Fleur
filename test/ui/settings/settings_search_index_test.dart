@@ -27,7 +27,7 @@ void main() {
       'FONT',
     );
 
-    expect(results.first.id, 'appearance.reader.font_size');
+    expect(results.first.id, 'appearance.reader.font_family');
     expect(results.first.tab, SettingsTab.appearance);
   });
 
@@ -45,6 +45,25 @@ void main() {
     final results = searchSettingsEntries(buildSettingsSearchEntries(zh), '字号');
 
     expect(results.first.id, 'appearance.reader.font_size');
+  });
+
+  test('reader theme keywords are searchable', () {
+    final results = searchSettingsEntries(
+      buildSettingsSearchEntries(en),
+      'sepia',
+    );
+
+    expect(results.first.id, 'appearance.reader.theme');
+  });
+
+  test('localized reading width is searchable', () {
+    final zh = AppLocalizationsZh();
+    final results = searchSettingsEntries(
+      buildSettingsSearchEntries(zh),
+      '阅读宽度',
+    );
+
+    expect(results.first.id, 'appearance.reader.width');
   });
 
   test('no matching query returns empty list', () {

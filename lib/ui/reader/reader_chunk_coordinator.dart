@@ -519,12 +519,13 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
     bool isChunked,
     Article article,
     ReaderSettings settings,
+    ThemeData sceneTheme,
     Widget inlineHeader,
     String? currentAnchorId,
   ) {
     final cacheManager = ref.read(cacheManagerProvider);
     _currentImageBaseUrl = Uri.tryParse(article.link);
-    final theme = Theme.of(context);
+    final theme = sceneTheme;
     final states = theme.fleurState;
     final reader = theme.fleurReader;
     final contentHorizontalPadding = math.max(

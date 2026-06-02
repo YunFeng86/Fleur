@@ -82,7 +82,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get dynamicColorSubtitle => '可用时跟随系统动态色或强调色';
 
   @override
-  String get seedColorPreset => '主题配色';
+  String get seedColorPreset => '强调色';
 
   @override
   String get seedColorPresetSubtitle => '动态取色关闭或不可用时生效';
@@ -128,6 +128,78 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get horizontalPadding => '左右边距';
+
+  @override
+  String get applicationAppearance => '应用外观';
+
+  @override
+  String get readerAppearance => '阅读外观';
+
+  @override
+  String get appearancePreview => '预览';
+
+  @override
+  String get appearancePreviewTitle => '更安静的阅读界面';
+
+  @override
+  String get appearancePreviewMeta => '预览 · 今天';
+
+  @override
+  String get appearancePreviewBody => '只需要调好一次，之后每篇文章都会以同样舒适的节奏打开。';
+
+  @override
+  String get appearancePreviewQuote => '好的阅读设置，应该先被看见，再被配置。';
+
+  @override
+  String get appearancePreviewLink => '示例链接';
+
+  @override
+  String get appearancePreviewCode => '代码示例';
+
+  @override
+  String get readerFontFamily => '字体';
+
+  @override
+  String get readerFontSystem => '系统';
+
+  @override
+  String get readerFontSerif => '衬线';
+
+  @override
+  String get readerFontSans => '无衬线';
+
+  @override
+  String get readerFontMono => '等宽';
+
+  @override
+  String get readerTheme => '阅读主题';
+
+  @override
+  String get readerThemeDefault => '默认';
+
+  @override
+  String get readerThemePaper => '纸白';
+
+  @override
+  String get readerThemeSepia => '暖色';
+
+  @override
+  String get readerThemeDim => '暗灰';
+
+  @override
+  String get readerThemeDark => '深色';
+
+  @override
+  String get readingWidth => '阅读宽度';
+
+  @override
+  String get readingWidthNarrow => '窄';
+
+  @override
+  String get readingWidthStandard => '标准';
+
+  @override
+  String get readingWidthWide => '宽';
 
   @override
   String get storage => '存储';
@@ -1350,7 +1422,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get dynamicColorSubtitle => '可用時跟隨系統動態色或強調色';
 
   @override
-  String get seedColorPreset => '主題配色';
+  String get seedColorPreset => '強調色';
 
   @override
   String get seedColorPresetSubtitle => '動態取色關閉或不可用時生效';
@@ -1396,6 +1468,78 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get horizontalPadding => '左右邊距';
+
+  @override
+  String get applicationAppearance => '應用外觀';
+
+  @override
+  String get readerAppearance => '閱讀外觀';
+
+  @override
+  String get appearancePreview => '預覽';
+
+  @override
+  String get appearancePreviewTitle => '更安靜的閱讀介面';
+
+  @override
+  String get appearancePreviewMeta => '預覽 · 今天';
+
+  @override
+  String get appearancePreviewBody => '只需要調好一次，之後每篇文章都會以同樣舒適的節奏打開。';
+
+  @override
+  String get appearancePreviewQuote => '好的閱讀設定，應該先被看見，再被配置。';
+
+  @override
+  String get appearancePreviewLink => '範例連結';
+
+  @override
+  String get appearancePreviewCode => '程式碼範例';
+
+  @override
+  String get readerFontFamily => '字體';
+
+  @override
+  String get readerFontSystem => '系統';
+
+  @override
+  String get readerFontSerif => '襯線';
+
+  @override
+  String get readerFontSans => '無襯線';
+
+  @override
+  String get readerFontMono => '等寬';
+
+  @override
+  String get readerTheme => '閱讀主題';
+
+  @override
+  String get readerThemeDefault => '預設';
+
+  @override
+  String get readerThemePaper => '紙白';
+
+  @override
+  String get readerThemeSepia => '暖色';
+
+  @override
+  String get readerThemeDim => '暗灰';
+
+  @override
+  String get readerThemeDark => '深色';
+
+  @override
+  String get readingWidth => '閱讀寬度';
+
+  @override
+  String get readingWidthNarrow => '窄';
+
+  @override
+  String get readingWidthStandard => '標準';
+
+  @override
+  String get readingWidthWide => '寬';
 
   @override
   String get storage => '儲存';

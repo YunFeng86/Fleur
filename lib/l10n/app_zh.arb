@@ -98,7 +98,7 @@
   "@dynamicColorSubtitle": {
     "description": "Hint for dynamic colors setting"
   },
-  "seedColorPreset": "主题配色",
+  "seedColorPreset": "强调色",
   "@seedColorPreset": {
     "description": "Seed color preset selector label"
   },
@@ -161,6 +161,102 @@
   "horizontalPadding": "左右边距",
   "@horizontalPadding": {
     "description": "horizontalPadding"
+  },
+  "applicationAppearance": "应用外观",
+  "@applicationAppearance": {
+    "description": "Section title for app-wide appearance settings"
+  },
+  "readerAppearance": "阅读外观",
+  "@readerAppearance": {
+    "description": "Section title for reader appearance settings"
+  },
+  "appearancePreview": "预览",
+  "@appearancePreview": {
+    "description": "Appearance settings preview section title"
+  },
+  "appearancePreviewTitle": "更安静的阅读界面",
+  "@appearancePreviewTitle": {
+    "description": "Sample reader preview article title"
+  },
+  "appearancePreviewMeta": "预览 · 今天",
+  "@appearancePreviewMeta": {
+    "description": "Sample reader preview metadata"
+  },
+  "appearancePreviewBody": "只需要调好一次，之后每篇文章都会以同样舒适的节奏打开。",
+  "@appearancePreviewBody": {
+    "description": "Sample reader preview body"
+  },
+  "appearancePreviewQuote": "好的阅读设置，应该先被看见，再被配置。",
+  "@appearancePreviewQuote": {
+    "description": "Sample reader preview quote"
+  },
+  "appearancePreviewLink": "示例链接",
+  "@appearancePreviewLink": {
+    "description": "Sample reader preview link"
+  },
+  "appearancePreviewCode": "代码示例",
+  "@appearancePreviewCode": {
+    "description": "Sample reader preview code text"
+  },
+  "readerFontFamily": "字体",
+  "@readerFontFamily": {
+    "description": "Reader font family setting label"
+  },
+  "readerFontSystem": "系统",
+  "@readerFontSystem": {
+    "description": "Reader system font option"
+  },
+  "readerFontSerif": "衬线",
+  "@readerFontSerif": {
+    "description": "Reader serif font option"
+  },
+  "readerFontSans": "无衬线",
+  "@readerFontSans": {
+    "description": "Reader sans font option"
+  },
+  "readerFontMono": "等宽",
+  "@readerFontMono": {
+    "description": "Reader mono font option"
+  },
+  "readerTheme": "阅读主题",
+  "@readerTheme": {
+    "description": "Reader theme preset setting label"
+  },
+  "readerThemeDefault": "默认",
+  "@readerThemeDefault": {
+    "description": "Default reader theme option"
+  },
+  "readerThemePaper": "纸白",
+  "@readerThemePaper": {
+    "description": "Paper reader theme option"
+  },
+  "readerThemeSepia": "暖色",
+  "@readerThemeSepia": {
+    "description": "Sepia reader theme option"
+  },
+  "readerThemeDim": "暗灰",
+  "@readerThemeDim": {
+    "description": "Dim reader theme option"
+  },
+  "readerThemeDark": "深色",
+  "@readerThemeDark": {
+    "description": "Dark reader theme option"
+  },
+  "readingWidth": "阅读宽度",
+  "@readingWidth": {
+    "description": "Reader content width setting label"
+  },
+  "readingWidthNarrow": "窄",
+  "@readingWidthNarrow": {
+    "description": "Narrow reader content width option"
+  },
+  "readingWidthStandard": "标准",
+  "@readingWidthStandard": {
+    "description": "Standard reader content width option"
+  },
+  "readingWidthWide": "宽",
+  "@readingWidthWide": {
+    "description": "Wide reader content width option"
   },
   "storage": "存储",
   "@storage": {

@@ -240,7 +240,7 @@ abstract class AppLocalizations {
   /// Seed color preset selector label
   ///
   /// In en, this message translates to:
-  /// **'Theme colors'**
+  /// **'Accent color'**
   String get seedColorPreset;
 
   /// Seed color preset selector hint
@@ -332,6 +332,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Horizontal padding'**
   String get horizontalPadding;
+
+  /// Section title for app-wide appearance settings
+  ///
+  /// In en, this message translates to:
+  /// **'App appearance'**
+  String get applicationAppearance;
+
+  /// Section title for reader appearance settings
+  ///
+  /// In en, this message translates to:
+  /// **'Reader appearance'**
+  String get readerAppearance;
+
+  /// Appearance settings preview section title
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get appearancePreview;
+
+  /// Sample reader preview article title
+  ///
+  /// In en, this message translates to:
+  /// **'A quieter reading surface'**
+  String get appearancePreviewTitle;
+
+  /// Sample reader preview metadata
+  ///
+  /// In en, this message translates to:
+  /// **'Preview · Today'**
+  String get appearancePreviewMeta;
+
+  /// Sample reader preview body
+  ///
+  /// In en, this message translates to:
+  /// **'Tune the reader once, then let every article open with the same calm rhythm.'**
+  String get appearancePreviewBody;
+
+  /// Sample reader preview quote
+  ///
+  /// In en, this message translates to:
+  /// **'Readable settings should feel visible before they feel configurable.'**
+  String get appearancePreviewQuote;
+
+  /// Sample reader preview link
+  ///
+  /// In en, this message translates to:
+  /// **'Sample link'**
+  String get appearancePreviewLink;
+
+  /// Sample reader preview code text
+  ///
+  /// In en, this message translates to:
+  /// **'code sample'**
+  String get appearancePreviewCode;
+
+  /// Reader font family setting label
+  ///
+  /// In en, this message translates to:
+  /// **'Font family'**
+  String get readerFontFamily;
+
+  /// Reader system font option
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get readerFontSystem;
+
+  /// Reader serif font option
+  ///
+  /// In en, this message translates to:
+  /// **'Serif'**
+  String get readerFontSerif;
+
+  /// Reader sans font option
+  ///
+  /// In en, this message translates to:
+  /// **'Sans'**
+  String get readerFontSans;
+
+  /// Reader mono font option
+  ///
+  /// In en, this message translates to:
+  /// **'Mono'**
+  String get readerFontMono;
+
+  /// Reader theme preset setting label
+  ///
+  /// In en, this message translates to:
+  /// **'Reading theme'**
+  String get readerTheme;
+
+  /// Default reader theme option
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get readerThemeDefault;
+
+  /// Paper reader theme option
+  ///
+  /// In en, this message translates to:
+  /// **'Paper'**
+  String get readerThemePaper;
+
+  /// Sepia reader theme option
+  ///
+  /// In en, this message translates to:
+  /// **'Sepia'**
+  String get readerThemeSepia;
+
+  /// Dim reader theme option
+  ///
+  /// In en, this message translates to:
+  /// **'Dim'**
+  String get readerThemeDim;
+
+  /// Dark reader theme option
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get readerThemeDark;
+
+  /// Reader content width setting label
+  ///
+  /// In en, this message translates to:
+  /// **'Reading width'**
+  String get readingWidth;
+
+  /// Narrow reader content width option
+  ///
+  /// In en, this message translates to:
+  /// **'Narrow'**
+  String get readingWidthNarrow;
+
+  /// Standard reader content width option
+  ///
+  /// In en, this message translates to:
+  /// **'Standard'**
+  String get readingWidthStandard;
+
+  /// Wide reader content width option
+  ///
+  /// In en, this message translates to:
+  /// **'Wide'**
+  String get readingWidthWide;
 
   /// storage
   ///

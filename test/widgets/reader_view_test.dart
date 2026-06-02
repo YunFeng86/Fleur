@@ -268,7 +268,10 @@ void main() {
     ReaderSettings settings,
   ) {
     final readerElement = tester.element(find.byType(ReaderView));
-    final sceneTheme = AppTheme.readerScene(Theme.of(readerElement));
+    final sceneTheme = AppTheme.readerScene(
+      Theme.of(readerElement),
+      settings: settings,
+    );
     final reader = sceneTheme.fleurReader;
     final readerViewWidth = tester.getSize(find.byType(ReaderView)).width;
     final readingWidth = math.min(readerViewWidth, reader.maxWidth);
@@ -1344,6 +1347,49 @@ void main() {
     expect(bodyFinder, findsOneWidget);
     expect(tester.getTopLeft(titleFinder).dx, closeTo(expectedLeft, 1));
     expect(tester.getTopLeft(bodyFinder).dx, closeTo(expectedLeft, 1));
+  });
+
+  testWidgets('reader width preset changes the reading measure', (
+    tester,
+  ) async {
+    const settings = ReaderSettings(
+      horizontalPadding: 20,
+      contentWidthPreset: ReaderContentWidthPreset.wide,
+    );
+
+    await pumpReader(
+      tester,
+      article: buildArticle(title: 'A', html: '<p>B</p>'),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      readerSettings: settings,
+      size: const Size(1000, 800),
+    );
+
+    final expectedLeft = expectedReaderContentLeft(tester, settings);
+
+    expect(tester.getTopLeft(find.text('A')).dx, closeTo(expectedLeft, 1));
+    expect(expectedLeft, closeTo(90, 1));
+  });
+
+  testWidgets('reader applies selected reader theme surface', (tester) async {
+    const settings = ReaderSettings(readerTheme: ReaderThemePreset.sepia);
+
+    await pumpReader(
+      tester,
+      article: buildArticle(title: 'A', html: '<p>B</p>'),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      readerSettings: settings,
+    );
+
+    final htmlElement = tester.element(find.byType(HtmlWidget));
+    final theme = Theme.of(htmlElement);
+
+    expect(theme.fleurSurface.reader, const Color(0xFFF3E7D2));
+    expect(theme.fleurReader.bodyStyle.color, isNotNull);
+    expect(
+      theme.fleurReader.bodyStyle.color,
+      isNot(AppTheme.light().colorScheme.onSurface),
+    );
   });
 
   testWidgets(

@@ -98,7 +98,7 @@
   "@dynamicColorSubtitle": {
     "description": "Hint for dynamic colors setting"
   },
-  "seedColorPreset": "Theme colors",
+  "seedColorPreset": "Accent color",
   "@seedColorPreset": {
     "description": "Seed color preset selector label"
   },
@@ -161,6 +161,102 @@
   "horizontalPadding": "Horizontal padding",
   "@horizontalPadding": {
     "description": "horizontalPadding"
+  },
+  "applicationAppearance": "App appearance",
+  "@applicationAppearance": {
+    "description": "Section title for app-wide appearance settings"
+  },
+  "readerAppearance": "Reader appearance",
+  "@readerAppearance": {
+    "description": "Section title for reader appearance settings"
+  },
+  "appearancePreview": "Preview",
+  "@appearancePreview": {
+    "description": "Appearance settings preview section title"
+  },
+  "appearancePreviewTitle": "A quieter reading surface",
+  "@appearancePreviewTitle": {
+    "description": "Sample reader preview article title"
+  },
+  "appearancePreviewMeta": "Preview · Today",
+  "@appearancePreviewMeta": {
+    "description": "Sample reader preview metadata"
+  },
+  "appearancePreviewBody": "Tune the reader once, then let every article open with the same calm rhythm.",
+  "@appearancePreviewBody": {
+    "description": "Sample reader preview body"
+  },
+  "appearancePreviewQuote": "Readable settings should feel visible before they feel configurable.",
+  "@appearancePreviewQuote": {
+    "description": "Sample reader preview quote"
+  },
+  "appearancePreviewLink": "Sample link",
+  "@appearancePreviewLink": {
+    "description": "Sample reader preview link"
+  },
+  "appearancePreviewCode": "code sample",
+  "@appearancePreviewCode": {
+    "description": "Sample reader preview code text"
+  },
+  "readerFontFamily": "Font family",
+  "@readerFontFamily": {
+    "description": "Reader font family setting label"
+  },
+  "readerFontSystem": "System",
+  "@readerFontSystem": {
+    "description": "Reader system font option"
+  },
+  "readerFontSerif": "Serif",
+  "@readerFontSerif": {
+    "description": "Reader serif font option"
+  },
+  "readerFontSans": "Sans",
+  "@readerFontSans": {
+    "description": "Reader sans font option"
+  },
+  "readerFontMono": "Mono",
+  "@readerFontMono": {
+    "description": "Reader mono font option"
+  },
+  "readerTheme": "Reading theme",
+  "@readerTheme": {
+    "description": "Reader theme preset setting label"
+  },
+  "readerThemeDefault": "Default",
+  "@readerThemeDefault": {
+    "description": "Default reader theme option"
+  },
+  "readerThemePaper": "Paper",
+  "@readerThemePaper": {
+    "description": "Paper reader theme option"
+  },
+  "readerThemeSepia": "Sepia",
+  "@readerThemeSepia": {
+    "description": "Sepia reader theme option"
+  },
+  "readerThemeDim": "Dim",
+  "@readerThemeDim": {
+    "description": "Dim reader theme option"
+  },
+  "readerThemeDark": "Dark",
+  "@readerThemeDark": {
+    "description": "Dark reader theme option"
+  },
+  "readingWidth": "Reading width",
+  "@readingWidth": {
+    "description": "Reader content width setting label"
+  },
+  "readingWidthNarrow": "Narrow",
+  "@readingWidthNarrow": {
+    "description": "Narrow reader content width option"
+  },
+  "readingWidthStandard": "Standard",
+  "@readingWidthStandard": {
+    "description": "Standard reader content width option"
+  },
+  "readingWidthWide": "Wide",
+  "@readingWidthWide": {
+    "description": "Wide reader content width option"
   },
   "storage": "Storage",
   "@storage": {

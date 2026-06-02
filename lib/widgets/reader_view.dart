@@ -48,6 +48,7 @@ import '../ui/layout.dart';
 import '../ui/workspace_layers.dart';
 import '../ui/reader/code_rendering/reader_code_rendering.dart';
 import '../ui/reader/reader_selectable_rich_text.dart';
+import '../ui/settings/widgets/section_header.dart';
 
 part '../ui/reader/reader_session_coordinator.dart';
 part '../ui/reader/reader_progress_coordinator.dart';
@@ -199,7 +200,8 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
       data: (article) {
         final l10n = AppLocalizations.of(context)!;
         final baseTheme = Theme.of(context);
-        final sceneTheme = AppTheme.readerScene(baseTheme);
+        final settings = settingsAsync.valueOrNull ?? const ReaderSettings();
+        final sceneTheme = AppTheme.readerScene(baseTheme, settings: settings);
         final readerTokens = sceneTheme.fleurReader;
         if (article == null) {
           return FleurEmptyState(
@@ -210,7 +212,6 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
           );
         }
 
-        final settings = settingsAsync.valueOrNull ?? const ReaderSettings();
         final aiState = ref.watch(
           articleAiControllerProvider(widget.articleId),
         );

@@ -85,7 +85,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Follow system dynamic or accent colors when available';
 
   @override
-  String get seedColorPreset => 'Theme colors';
+  String get seedColorPreset => 'Accent color';
 
   @override
   String get seedColorPresetSubtitle =>
@@ -132,6 +132,80 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get horizontalPadding => 'Horizontal padding';
+
+  @override
+  String get applicationAppearance => 'App appearance';
+
+  @override
+  String get readerAppearance => 'Reader appearance';
+
+  @override
+  String get appearancePreview => 'Preview';
+
+  @override
+  String get appearancePreviewTitle => 'A quieter reading surface';
+
+  @override
+  String get appearancePreviewMeta => 'Preview · Today';
+
+  @override
+  String get appearancePreviewBody =>
+      'Tune the reader once, then let every article open with the same calm rhythm.';
+
+  @override
+  String get appearancePreviewQuote =>
+      'Readable settings should feel visible before they feel configurable.';
+
+  @override
+  String get appearancePreviewLink => 'Sample link';
+
+  @override
+  String get appearancePreviewCode => 'code sample';
+
+  @override
+  String get readerFontFamily => 'Font family';
+
+  @override
+  String get readerFontSystem => 'System';
+
+  @override
+  String get readerFontSerif => 'Serif';
+
+  @override
+  String get readerFontSans => 'Sans';
+
+  @override
+  String get readerFontMono => 'Mono';
+
+  @override
+  String get readerTheme => 'Reading theme';
+
+  @override
+  String get readerThemeDefault => 'Default';
+
+  @override
+  String get readerThemePaper => 'Paper';
+
+  @override
+  String get readerThemeSepia => 'Sepia';
+
+  @override
+  String get readerThemeDim => 'Dim';
+
+  @override
+  String get readerThemeDark => 'Dark';
+
+  @override
+  String get readingWidth => 'Reading width';
+
+  @override
+  String get readingWidthNarrow => 'Narrow';
+
+  @override
+  String get readingWidthStandard => 'Standard';
+
+  @override
+  String get readingWidthWide => 'Wide';
 
   @override
   String get storage => 'Storage';

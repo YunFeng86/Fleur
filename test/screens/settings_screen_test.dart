@@ -67,13 +67,15 @@ void main() {
   Future<void> pumpSettingsScreen(
     WidgetTester tester,
     double width, {
+    double height = 800,
     SettingsTab? initialTab,
     String? initialSettingId,
     bool showBack = false,
     bool dynamicColorAvailable = false,
+    FakeReaderSettingsStore? readerSettingsStore,
     List<Override> overrides = const [],
   }) async {
-    tester.view.physicalSize = Size(width, 800);
+    tester.view.physicalSize = Size(width, height);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
 
@@ -81,7 +83,8 @@ void main() {
       ProviderScope(
         overrides: [
           readerSettingsStoreProvider.overrideWithValue(
-            FakeReaderSettingsStore(const ReaderSettings()),
+            readerSettingsStore ??
+                FakeReaderSettingsStore(const ReaderSettings()),
           ),
           ...overrides,
         ],
@@ -188,11 +191,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Appearance'), findsOneWidget);
+    expect(find.text('Preview'), findsOneWidget);
+    expect(find.text('App appearance'), findsOneWidget);
+    expect(find.text('Reader appearance'), findsWidgets);
     expect(find.text('Theme mode'), findsOneWidget);
-    expect(find.text('Theme colors'), findsOneWidget);
+    expect(find.text('Accent color'), findsOneWidget);
     expect(find.text('Font size'), findsOneWidget);
     expect(find.text('Line height'), findsOneWidget);
-    expect(find.text('Horizontal padding'), findsOneWidget);
+    expect(find.text('Reading width'), findsOneWidget);
     expect(find.byKey(const Key('settings_back_button')), findsOneWidget);
   });
 
@@ -377,6 +383,8 @@ void main() {
 
       expect(find.text('Theme mode'), findsOneWidget);
       expect(find.text('Font size'), findsOneWidget);
+      expect(find.text('Preview'), findsOneWidget);
+      expect(find.text('Reader appearance'), findsWidgets);
       expect(find.text('System language'), findsNothing);
     },
   );
@@ -391,8 +399,9 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Theme mode'), findsNothing);
-    expect(find.text('Theme colors'), findsNothing);
+    expect(find.text('Accent color'), findsNothing);
     expect(find.text('Font size'), findsNothing);
+    expect(find.text('Reader appearance'), findsNothing);
     expect(
       find.byKey(const Key('appearance_seed_color_pink_card')),
       findsNothing,
@@ -419,6 +428,47 @@ void main() {
 
     expect(store.settings.useDynamicColor, isFalse);
     expect(store.settings.seedColorPreset, SeedColorPreset.pink);
+  });
+
+  testWidgets('Appearance reader controls persist reader appearance', (
+    tester,
+  ) async {
+    final store = FakeReaderSettingsStore(const ReaderSettings());
+    await pumpSettingsScreen(
+      tester,
+      1000,
+      height: 1200,
+      initialTab: SettingsTab.appearance,
+      readerSettingsStore: store,
+      overrides: servicesOverrides(),
+    );
+
+    await tester.tap(
+      find.byKey(const Key('appearance_reader_font_family_select')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Serif').last);
+    await tester.pumpAndSettle();
+    expect(store.settings.fontFamily, ReaderFontFamily.serif);
+
+    await tester.tap(find.text('Wide'));
+    await tester.pumpAndSettle();
+    expect(store.settings.contentWidthPreset, ReaderContentWidthPreset.wide);
+
+    await tester.tap(find.byKey(const Key('appearance_reader_theme_select')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sepia').last);
+    await tester.pumpAndSettle();
+    expect(store.settings.readerTheme, ReaderThemePreset.sepia);
+
+    await tester.tap(find.byKey(const Key('appearance_reader_reset_button')));
+    await tester.pumpAndSettle();
+    expect(store.settings.fontFamily, ReaderFontFamily.system);
+    expect(
+      store.settings.contentWidthPreset,
+      ReaderContentWidthPreset.standard,
+    );
+    expect(store.settings.readerTheme, ReaderThemePreset.defaultLightAware);
   });
 
   testWidgets('Appearance shows dynamic color switch only when available', (
@@ -512,7 +562,7 @@ void main() {
       find.byKey(const Key('settings_search_results_body')),
       findsOneWidget,
     );
-    expect(find.text('Appearance / Reader settings'), findsOneWidget);
+    expect(find.text('Appearance / Reader appearance'), findsWidgets);
 
     await tester.tap(
       find.byKey(
@@ -526,6 +576,30 @@ void main() {
     expect(find.text('Font size'), findsOneWidget);
     expect(
       find.byKey(const Key('settings_target_appearance.reader.font_size')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Settings search opens reading width in Appearance', (
+    tester,
+  ) async {
+    await pumpSettingsScreen(tester, 1000, overrides: servicesOverrides());
+
+    await tester.tap(find.byKey(const Key('settings_search_placeholder')));
+    await tester.enterText(find.byType(TextField), 'width');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Appearance / Reader appearance'), findsWidgets);
+
+    await tester.tap(
+      find.byKey(const Key('settings_search_result_appearance.reader.width')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('settings_search_results_body')), findsNothing);
+    expect(find.text('Reading width'), findsOneWidget);
+    expect(
+      find.byKey(const Key('settings_target_appearance.reader.width')),
       findsOneWidget,
     );
   });
