@@ -20,13 +20,19 @@ import '../../dialogs/side_panel.dart';
 import '../../dialogs/text_input_dialog.dart';
 import '../translation_ai/ai_service_editor_dialog.dart';
 import '../translation_ai/ai_service_templates.dart';
+import '../settings_targets.dart';
 import '../widgets/section_header.dart';
 
 enum _AiServiceAction { setDefault, edit, delete }
 
 class TranslationAiServicesTab extends ConsumerWidget {
-  const TranslationAiServicesTab({super.key, this.showPageTitle = true});
+  const TranslationAiServicesTab({
+    super.key,
+    required this.targetController,
+    this.showPageTitle = true,
+  });
 
+  final SettingsTargetController targetController;
   final bool showPageTitle;
 
   @override
@@ -881,30 +887,42 @@ class TranslationAiServicesTab extends ConsumerWidget {
                 padding: EdgeInsets.zero,
                 child: SettingsTileGroup(
                   children: [
-                    SettingsTile(
-                      leading: const Icon(FleurIcons.translate),
-                      title: Text(l10n.translationProvider),
-                      subtitle: Text(translationLabel),
-                      trailing: const Icon(FleurIcons.chevronRight),
-                      onTap: pickTranslationProvider,
-                    ),
-                    SettingsTile(
-                      leading: const Icon(FleurIcons.language),
-                      title: Text(l10n.targetLanguage),
-                      subtitle: Text(targetLanguageSubtitle),
-                      trailing: const Icon(FleurIcons.chevronRight),
-                      onTap: pickTargetLanguage,
-                    ),
-                    SettingsTile(
-                      leading: const Icon(FleurIcons.prompt),
-                      title: Text(l10n.aiTranslationPrompt),
-                      subtitle: Text(
-                        effectiveAiTranslationPrompt,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                    SettingsTargetAnchor(
+                      id: 'translation_ai.translation.provider',
+                      controller: targetController,
+                      child: SettingsTile(
+                        leading: const Icon(FleurIcons.translate),
+                        title: Text(l10n.translationProvider),
+                        subtitle: Text(translationLabel),
+                        trailing: const Icon(FleurIcons.chevronRight),
+                        onTap: pickTranslationProvider,
                       ),
-                      trailing: const Icon(FleurIcons.chevronRight),
-                      onTap: editAiTranslationPrompt,
+                    ),
+                    SettingsTargetAnchor(
+                      id: 'translation_ai.translation.target_language',
+                      controller: targetController,
+                      child: SettingsTile(
+                        leading: const Icon(FleurIcons.language),
+                        title: Text(l10n.targetLanguage),
+                        subtitle: Text(targetLanguageSubtitle),
+                        trailing: const Icon(FleurIcons.chevronRight),
+                        onTap: pickTargetLanguage,
+                      ),
+                    ),
+                    SettingsTargetAnchor(
+                      id: 'translation_ai.translation.prompt',
+                      controller: targetController,
+                      child: SettingsTile(
+                        leading: const Icon(FleurIcons.prompt),
+                        title: Text(l10n.aiTranslationPrompt),
+                        subtitle: Text(
+                          effectiveAiTranslationPrompt,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: const Icon(FleurIcons.chevronRight),
+                        onTap: editAiTranslationPrompt,
+                      ),
                     ),
                     SettingsTile(
                       title: Text(l10n.translationProviderBaiduApi),
@@ -942,32 +960,44 @@ class TranslationAiServicesTab extends ConsumerWidget {
                 padding: EdgeInsets.zero,
                 child: SettingsTileGroup(
                   children: [
-                    SettingsTile(
-                      leading: const Icon(FleurIcons.aiSummary),
-                      title: Text(l10n.aiSummaryService),
-                      subtitle: Text(aiSummaryServiceSubtitle),
-                      trailing: const Icon(FleurIcons.chevronRight),
-                      onTap: pickAiSummaryService,
-                    ),
-                    SettingsTile(
-                      leading: const Icon(FleurIcons.prompt),
-                      title: Text(l10n.aiSummaryPrompt),
-                      subtitle: Text(
-                        effectiveAiSummaryPrompt,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                    SettingsTargetAnchor(
+                      id: 'translation_ai.summary.service',
+                      controller: targetController,
+                      child: SettingsTile(
+                        leading: const Icon(FleurIcons.aiSummary),
+                        title: Text(l10n.aiSummaryService),
+                        subtitle: Text(aiSummaryServiceSubtitle),
+                        trailing: const Icon(FleurIcons.chevronRight),
+                        onTap: pickAiSummaryService,
                       ),
-                      trailing: const Icon(FleurIcons.chevronRight),
-                      onTap: editAiSummaryPrompt,
                     ),
-                    SettingsTile(
-                      leading: const Icon(FleurIcons.speed),
-                      title: Text(l10n.tpmLimit),
-                      subtitle: Text(
-                        '${settings.tpmLimit} · ${l10n.tpmLimitSubtitle}',
+                    SettingsTargetAnchor(
+                      id: 'translation_ai.summary.prompt',
+                      controller: targetController,
+                      child: SettingsTile(
+                        leading: const Icon(FleurIcons.prompt),
+                        title: Text(l10n.aiSummaryPrompt),
+                        subtitle: Text(
+                          effectiveAiSummaryPrompt,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: const Icon(FleurIcons.chevronRight),
+                        onTap: editAiSummaryPrompt,
                       ),
-                      trailing: const Icon(FleurIcons.chevronRight),
-                      onTap: editTpmLimit,
+                    ),
+                    SettingsTargetAnchor(
+                      id: 'translation_ai.summary.tpm_limit',
+                      controller: targetController,
+                      child: SettingsTile(
+                        leading: const Icon(FleurIcons.speed),
+                        title: Text(l10n.tpmLimit),
+                        subtitle: Text(
+                          '${settings.tpmLimit} · ${l10n.tpmLimitSubtitle}',
+                        ),
+                        trailing: const Icon(FleurIcons.chevronRight),
+                        onTap: editTpmLimit,
+                      ),
                     ),
                   ],
                 ),
@@ -981,12 +1011,16 @@ class TranslationAiServicesTab extends ConsumerWidget {
                 children: [
                   Align(
                     alignment: Alignment.centerRight,
-                    child: SettingsActionButton(
-                      key: const Key('translation_ai_add_service_button'),
-                      onPressed: addAiService,
-                      icon: const Icon(FleurIcons.add),
-                      variant: SettingsActionButtonVariant.filled,
-                      label: Text(l10n.addAiService),
+                    child: SettingsTargetAnchor(
+                      id: 'translation_ai.services.add',
+                      controller: targetController,
+                      child: SettingsActionButton(
+                        key: const Key('translation_ai_add_service_button'),
+                        onPressed: addAiService,
+                        icon: const Icon(FleurIcons.add),
+                        variant: SettingsActionButtonVariant.filled,
+                        label: Text(l10n.addAiService),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),

@@ -141,6 +141,36 @@ abstract class AppLocalizations {
   /// **'Search settings'**
   String get settingsSearchHint;
 
+  /// Empty state text for the settings page search results
+  ///
+  /// In en, this message translates to:
+  /// **'No settings match this search.'**
+  String get settingsSearchNoResults;
+
+  /// Settings search result type label for top-level pages
+  ///
+  /// In en, this message translates to:
+  /// **'Page'**
+  String get settingsSearchPageLabel;
+
+  /// Settings search result type label for settings sections
+  ///
+  /// In en, this message translates to:
+  /// **'Section'**
+  String get settingsSearchSectionLabel;
+
+  /// Settings search result type label for individual settings
+  ///
+  /// In en, this message translates to:
+  /// **'Setting'**
+  String get settingsSearchSettingLabel;
+
+  /// Settings search result count badge
+  ///
+  /// In en, this message translates to:
+  /// **'{count} results'**
+  String settingsSearchResultCount(Object count);
+
   /// Global navigation label: feeds
   ///
   /// In en, this message translates to:

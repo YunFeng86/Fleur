@@ -1,5 +1,6 @@
 enum SettingsTab {
   appPreferences,
+  appearance,
   subscriptions,
   groupingAndSorting,
   services,
@@ -10,6 +11,7 @@ enum SettingsTab {
 extension SettingsTabX on SettingsTab {
   String get queryValue => switch (this) {
     SettingsTab.appPreferences => 'app-preferences',
+    SettingsTab.appearance => 'appearance',
     SettingsTab.subscriptions => 'subscriptions',
     SettingsTab.groupingAndSorting => 'grouping-and-sorting',
     SettingsTab.services => 'services',
@@ -26,10 +28,11 @@ SettingsTab? settingsTabFromQueryValue(String? value) {
   return null;
 }
 
-String settingsLocation({SettingsTab? tab}) {
+String settingsLocation({SettingsTab? tab, String? setting}) {
   if (tab == null) return '/settings';
-  return Uri(
-    path: '/settings',
-    queryParameters: {'tab': tab.queryValue},
-  ).toString();
+  final queryParameters = <String, String>{'tab': tab.queryValue};
+  if (setting != null && setting.trim().isNotEmpty) {
+    queryParameters['setting'] = setting.trim();
+  }
+  return Uri(path: '/settings', queryParameters: queryParameters).toString();
 }

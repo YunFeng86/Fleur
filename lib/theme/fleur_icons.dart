@@ -85,6 +85,8 @@ abstract final class FleurIcons {
 
   static const IconData appPreferences = LucideIcons.settings;
   static const IconData appPreferencesSelected = LucideIcons.settings500;
+  static const IconData appearance = LucideIcons.palette;
+  static const IconData appearanceSelected = LucideIcons.palette500;
   static const IconData grouping = LucideIcons.list;
   static const IconData groupingSelected = LucideIcons.list500;
   static const IconData services = LucideIcons.cloud;
