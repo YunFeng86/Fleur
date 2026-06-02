@@ -46,6 +46,113 @@ void main() {
     );
   });
 
+  test('guesses javascript for unlabeled rss code blocks', () async {
+    final fragment = html_parser.parseFragment(
+      '<pre>'
+      "let obj = { data: 'heavy resource' };\n"
+      'const ref = new WeakRef(obj);\n'
+      '// 通过 .deref() 获取目标对象\n'
+      'console.log(ref.deref()?.data);'
+      '</pre>',
+    );
+    final pre = fragment.querySelector('pre')!;
+
+    final result = await renderer.render(
+      ReaderCodeRenderInput(
+        source: pre,
+        pre: pre,
+        baseStyle: const TextStyle(fontFamily: 'monospace'),
+        activeSearchBackground: const Color(0xFFFFFF00),
+        searchBackground: const Color(0xFFEEEE00),
+        errorColor: const Color(0xFFD1242F),
+        brightness: Brightness.light,
+        currentAnchorId: null,
+      ),
+    );
+
+    expect(result.sourceKind, ReaderCodeSourceKind.internalTokenizer);
+    expect(result.document.language?.id, 'javascript');
+    expect(
+      result.document.lines
+          .expand((line) => line.tokens)
+          .any(
+            (token) =>
+                token.text == 'const' &&
+                token.role == ReaderCodeTokenRole.keyword,
+          ),
+      isTrue,
+    );
+    expect(
+      result.document.lines
+          .expand((line) => line.tokens)
+          .any(
+            (token) =>
+                token.text == 'WeakRef' &&
+                token.role == ReaderCodeTokenRole.builtin,
+          ),
+      isTrue,
+    );
+  });
+
+  test('guesses css for unlabeled style-like code blocks', () async {
+    final fragment = html_parser.parseFragment(
+      '<pre>button {\n'
+      '  background-color: var(--button-color, black);\n'
+      '  color: contrast-color(var(--button-color, black));\n'
+      '}</pre>',
+    );
+    final pre = fragment.querySelector('pre')!;
+
+    final result = await renderer.render(
+      ReaderCodeRenderInput(
+        source: pre,
+        pre: pre,
+        baseStyle: const TextStyle(fontFamily: 'monospace'),
+        activeSearchBackground: const Color(0xFFFFFF00),
+        searchBackground: const Color(0xFFEEEE00),
+        errorColor: const Color(0xFFD1242F),
+        brightness: Brightness.light,
+        currentAnchorId: null,
+      ),
+    );
+
+    expect(result.sourceKind, ReaderCodeSourceKind.internalTokenizer);
+    expect(result.document.language?.id, 'css');
+    expect(
+      result.document.lines
+          .expand((line) => line.tokens)
+          .any(
+            (token) =>
+                token.text == 'background-color' &&
+                token.role == ReaderCodeTokenRole.property,
+          ),
+      isTrue,
+    );
+  });
+
+  test('does not guess when explicit language exists', () async {
+    final fragment = html_parser.parseFragment(
+      '<pre><code class="language-python">const value = 1</code></pre>',
+    );
+    final pre = fragment.querySelector('pre')!;
+    final code = fragment.querySelector('code')!;
+
+    final result = await renderer.render(
+      ReaderCodeRenderInput(
+        source: code,
+        pre: pre,
+        baseStyle: const TextStyle(fontFamily: 'monospace'),
+        activeSearchBackground: const Color(0xFFFFFF00),
+        searchBackground: const Color(0xFFEEEE00),
+        errorColor: const Color(0xFFD1242F),
+        brightness: Brightness.light,
+        currentAnchorId: null,
+      ),
+    );
+
+    expect(result.document.language?.id, 'python');
+  });
+
   test('applies search background without replacing token role', () async {
     final fragment = html_parser.parseFragment(
       '<pre><code class="language-jsx"><mark '

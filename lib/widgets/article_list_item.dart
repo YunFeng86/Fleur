@@ -71,6 +71,7 @@ class _ArticleListItemState extends ConsumerState<ArticleListItem> {
     final imageMetaStore = ref.watch(imageMetaStoreProvider);
     final imageUrl = extractPreviewImageSrc(
       article.contentHtml,
+      baseUrl: Uri.tryParse(article.link),
       metaLookup: (url) {
         final meta = imageMetaStore.peek(url);
         if (meta == null) return null;

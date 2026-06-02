@@ -82,5 +82,29 @@ void main() {
         'https://example.com/second.jpg',
       );
     });
+
+    test('falls back within the same image when src is a placeholder', () {
+      const html =
+          '<img src="/placeholder.png" data-lazy-src="//cdn.example.com/real.webp" width="640" height="360">';
+      expect(
+        extractPreviewImageSrc(
+          html,
+          baseUrl: Uri.parse('https://site.example/post'),
+        ),
+        'https://cdn.example.com/real.webp',
+      );
+    });
+
+    test('resolves relative preview image urls and srcset candidates', () {
+      const html =
+          '<img src="about:blank" data-srcset="./cover.webp 1x, ./cover@2x.webp 2x" width="640" height="360">';
+      expect(
+        extractPreviewImageSrc(
+          html,
+          baseUrl: Uri.parse('https://site.example/articles/demo/'),
+        ),
+        'https://site.example/articles/demo/cover.webp',
+      );
+    });
   });
 }

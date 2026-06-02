@@ -1173,7 +1173,7 @@ void main() {
       'contrast-color(red)\ncontrast-color(var(--backgroundColor))',
       '.contrast-x { button { color: contrast-color(red); } }',
     ]);
-    expect(find.text('css'), findsOneWidget);
+    expect(find.text('css'), findsNWidgets(2));
     expect(find.byKey(const Key('reader_inert_color_input')), findsOneWidget);
     expect(find.byKey(const Key('reader_inert_button')), findsOneWidget);
     expect(find.text('我是按钮'), findsOneWidget);

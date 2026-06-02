@@ -67,22 +67,23 @@ String extractPreviewText(String? html) {
 
 String? extractPreviewImageSrc(
   String? html, {
+  Uri? baseUrl,
   PreviewImageSize? Function(String url)? metaLookup,
 }) {
   if (html == null || html.trim().isEmpty) return null;
 
   for (final match in _imgTagRegex.allMatches(html)) {
     final attrs = _parseAttributes(match.group(0)!);
-    final src = _firstNonEmpty([
-      attrs['src'],
-      attrs['data-src'],
-      attrs['data-original'],
-      attrs['data-lazy-src'],
-    ]);
-    if (src == null) continue;
-    final url = _decodeHtmlEntities(src.trim());
-    if (url.isEmpty) continue;
-    if (_looksDecorativeImage(url, attrs)) continue;
+    String? url;
+    for (final candidate in _imageSourceCandidates(attrs)) {
+      if (_looksDecorativeImage(candidate, attrs)) continue;
+      final normalized = _normalizePreviewUrl(candidate, baseUrl: baseUrl);
+      if (normalized == null) continue;
+      if (_looksDecorativeImage(normalized, attrs)) continue;
+      url = normalized;
+      break;
+    }
+    if (url == null) continue;
 
     final declared = _declaredImageSize(attrs);
     if (_isKnownSmallImage(declared)) continue;
@@ -96,6 +97,17 @@ String? extractPreviewImageSrc(
   return null;
 }
 
+List<String> _imageSourceCandidates(Map<String, String> attrs) {
+  return [
+    attrs['src'],
+    attrs['data-lazy-src'],
+    attrs['data-src'],
+    attrs['data-original'],
+    _firstSrcFromSrcset(attrs['srcset']),
+    _firstSrcFromSrcset(attrs['data-srcset']),
+  ].whereType<String>().toList(growable: false);
+}
+
 Map<String, String> _parseAttributes(String tag) {
   final attrs = <String, String>{};
   for (final match in _attrRegex.allMatches(tag)) {
@@ -107,12 +119,38 @@ Map<String, String> _parseAttributes(String tag) {
   return attrs;
 }
 
-String? _firstNonEmpty(List<String?> values) {
-  for (final value in values) {
-    final trimmed = value?.trim();
-    if (trimmed != null && trimmed.isNotEmpty) return trimmed;
+String? _firstSrcFromSrcset(String? srcset) {
+  if (srcset == null || srcset.trim().isEmpty) return null;
+  final first = srcset.split(',').first.trim();
+  if (first.isEmpty) return null;
+  return first.split(RegExp(r'\s+')).first.trim();
+}
+
+String? _normalizePreviewUrl(String raw, {required Uri? baseUrl}) {
+  final value = _decodeHtmlEntities(raw.trim());
+  if (value.isEmpty) return null;
+  final lower = value.toLowerCase();
+  if (lower.startsWith('data:')) return null;
+  if (lower == 'about:blank') return null;
+
+  if (value.startsWith('//')) {
+    final scheme = (baseUrl?.scheme == 'http' || baseUrl?.scheme == 'https')
+        ? baseUrl!.scheme
+        : 'https';
+    return '$scheme:$value';
   }
-  return null;
+
+  try {
+    final uri = Uri.parse(value);
+    if (uri.hasScheme) {
+      final scheme = uri.scheme.toLowerCase();
+      if (scheme != 'http' && scheme != 'https') return null;
+      return uri.toString();
+    }
+    return baseUrl?.resolve(value).toString() ?? value;
+  } on FormatException {
+    return null;
+  }
 }
 
 PreviewImageSize? _declaredImageSize(Map<String, String> attrs) {
@@ -175,7 +213,9 @@ bool _looksDecorativeImage(String url, Map<String, String> attrs) {
     'favicon',
     'icon',
     'logo',
+    'loading',
     'pixel',
+    'placeholder',
     'spacer',
     'sprite',
     'tracking',
