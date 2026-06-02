@@ -49,6 +49,8 @@ class HtmlSanitizer {
     'audio',
     'source',
     'track',
+    'button',
+    'input',
     'div',
     'span',
     'b',
@@ -101,6 +103,8 @@ class HtmlSanitizer {
     'audio': ['src', 'title', 'controls', 'preload'],
     'source': ['src', 'type'],
     'track': ['src', 'kind', 'srclang', 'label', 'default'],
+    'button': ['title', 'aria-label', 'disabled', 'type'],
+    'input': ['type', 'value', 'title', 'aria-label', 'disabled'],
     'code': ['class', 'data-language'],
     'pre': ['class', 'data-language'],
     'fleur-math': ['data-fleur-math', 'data-fleur-math-display'],
@@ -116,6 +120,23 @@ class HtmlSanitizer {
     'descriptions',
     'chapters',
     'metadata',
+  };
+
+  static const _safeButtonTypes = {'button', 'submit', 'reset'};
+
+  static const _safeInputTypes = {
+    'button',
+    'checkbox',
+    'color',
+    'email',
+    'number',
+    'password',
+    'radio',
+    'range',
+    'search',
+    'tel',
+    'text',
+    'url',
   };
 
   /// CSS properties allowed in inline styles.
@@ -217,6 +238,7 @@ class HtmlSanitizer {
   static void _cleanNode(Element element, {bool inCodeBlock = false}) {
     final toRemove = <Node>[];
     final toUnwrap = <Element>[];
+    final toReplace = <Element, Node>{};
 
     for (final child in element.nodes) {
       if (child is Element) {
@@ -243,6 +265,16 @@ class HtmlSanitizer {
             toRemove.add(child);
             continue;
           }
+        }
+
+        if (tag == 'style') {
+          final replacement = _styleElementToCodeBlock(child);
+          if (replacement == null) {
+            toRemove.add(child);
+          } else {
+            toReplace[child] = replacement;
+          }
+          continue;
         }
 
         if (_dangerousTags.contains(tag)) {
@@ -294,6 +326,9 @@ class HtmlSanitizer {
     }
     for (final node in toUnwrap) {
       _unwrapNode(element, node);
+    }
+    for (final entry in toReplace.entries) {
+      _replaceNode(element, entry.key, entry.value);
     }
   }
 
@@ -353,6 +388,16 @@ class HtmlSanitizer {
       }
       return;
     }
+
+    if (tag == 'button') {
+      _sanitizeButtonAttributes(element);
+      return;
+    }
+
+    if (tag == 'input') {
+      _sanitizeInputAttributes(element);
+      return;
+    }
   }
 
   static bool _canKeepCodeTokenClass(String tag) {
@@ -400,6 +445,41 @@ class HtmlSanitizer {
     child.nodes.clear();
     parent.nodes.removeAt(index);
     parent.nodes.insertAll(index, replacement);
+  }
+
+  static void _replaceNode(Element parent, Element child, Node replacement) {
+    final index = parent.nodes.indexOf(child);
+    if (index == -1) return;
+    parent.nodes.removeAt(index);
+    parent.nodes.insert(index, replacement);
+  }
+
+  static Element? _styleElementToCodeBlock(Element style) {
+    final css = style.text.trim();
+    if (css.isEmpty) return null;
+
+    final pre = Element.tag('pre');
+    final code = Element.tag('code');
+    code.attributes['class'] = 'language-css';
+    code.nodes.add(Text(css));
+    pre.nodes.add(code);
+    return pre;
+  }
+
+  static void _sanitizeButtonAttributes(Element element) {
+    final type = element.attributes['type']?.trim().toLowerCase();
+    element.attributes['type'] = _safeButtonTypes.contains(type)
+        ? type!
+        : 'button';
+    element.attributes['disabled'] = 'disabled';
+  }
+
+  static void _sanitizeInputAttributes(Element element) {
+    final type = element.attributes['type']?.trim().toLowerCase();
+    element.attributes['type'] = _safeInputTypes.contains(type)
+        ? type!
+        : 'text';
+    element.attributes['disabled'] = 'disabled';
   }
 
   /// Parse inline `style` and keep only safe layout/structural CSS properties.

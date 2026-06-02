@@ -33,6 +33,7 @@ import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/settings/reader_progress_store.dart';
 import 'package:fleur/services/settings/reader_settings.dart';
 import 'package:fleur/services/settings/translation_ai_settings.dart';
+import 'package:fleur/services/feed_html_normalizer.dart';
 import 'package:fleur/services/html_sanitizer.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/fleur_icons.dart';
@@ -280,7 +281,14 @@ void main() {
 
   String displayedContentHash(String html) {
     return ContentHash.compute(
-      HtmlSanitizer.sanitize(normalizeReaderHtmlForDisplay(html)),
+      HtmlSanitizer.sanitize(
+        normalizeReaderHtmlForDisplay(
+          FeedHtmlNormalizer.normalize(
+            html,
+            baseUrl: Uri.parse('https://example.com/article'),
+          ),
+        ),
+      ),
     );
   }
 
@@ -1130,6 +1138,46 @@ void main() {
     expect(find.text('Audio media'), findsOneWidget);
     expect(find.text('www.youtube.com'), findsOneWidget);
     expect(find.text('cdn.example.com'), findsNWidgets(2));
+  });
+
+  testWidgets('reader renders normalized feed demo content as static UI', (
+    tester,
+  ) async {
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html:
+            '<p>CSS contrast-color()函数是专为无障碍访问设计的。</p>'
+            '<pre>contrast-color(red)\ncontrast-color(var(--backgroundColor))</pre>'
+            '<div class="contrast-x">'
+            '<style>.contrast-x { button { color: contrast-color(red); } }</style>'
+            '<p>请改变背景色：<input type="color" value="#336699" oninput="bad()"></p>'
+            '<p><button onclick="bad()">我是按钮</button></p>'
+            '</div>'
+            '<p><img src="//image.zhangxinxu.com/image/blog/demo.gif" width="228" height="225" alt="自动配色按钮示意"></p>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 20);
+
+    expect(
+      find.textContaining('CSS contrast-color()', findRichText: true),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('reader_code_block')), findsNWidgets(2));
+    expect(readerCodePlainTexts(tester), [
+      'contrast-color(red)\ncontrast-color(var(--backgroundColor))',
+      '.contrast-x { button { color: contrast-color(red); } }',
+    ]);
+    expect(find.text('css'), findsOneWidget);
+    expect(find.byKey(const Key('reader_inert_color_input')), findsOneWidget);
+    expect(find.byKey(const Key('reader_inert_button')), findsOneWidget);
+    expect(find.text('我是按钮'), findsOneWidget);
+    expect(readerPlainText(tester), isNot(contains('bad()')));
   });
 
   testWidgets('reader renders table caption and footer with theme styling', (

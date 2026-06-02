@@ -167,6 +167,35 @@ void main() {
     expect(sanitized, isNot(contains('onclick')));
   });
 
+  test('converts style elements to css code blocks', () {
+    const html =
+        '<article><div><style>.demo { color: red; }</style></div></article>';
+    final sanitized = HtmlSanitizer.sanitize(html);
+    expect(sanitized, contains('<pre><code class="language-css"'));
+    expect(sanitized, contains('.demo { color: red; }'));
+    expect(sanitized, isNot(contains('<style')));
+  });
+
+  test('keeps inert form controls and strips event handlers', () {
+    const html =
+        '<article>'
+        '<input type="color" value="#336699" oninput="bad()" autofocus>'
+        '<input type="date" value="2026-01-01" onchange="bad()">'
+        '<button onclick="bad()" type="submit">我是按钮</button>'
+        '</article>';
+    final sanitized = HtmlSanitizer.sanitize(html);
+
+    expect(sanitized, contains('<input type="color" value="#336699"'));
+    expect(sanitized, contains('disabled="disabled"'));
+    expect(sanitized, contains('<input type="text" value="2026-01-01"'));
+    expect(sanitized, contains('<button type="submit" disabled="disabled"'));
+    expect(sanitized, contains('我是按钮'));
+    expect(sanitized, isNot(contains('oninput')));
+    expect(sanitized, isNot(contains('onchange')));
+    expect(sanitized, isNot(contains('onclick')));
+    expect(sanitized, isNot(contains('autofocus')));
+  });
+
   group('CSS property filtering', () {
     test('preserves allowed layout CSS properties', () {
       const html = '''

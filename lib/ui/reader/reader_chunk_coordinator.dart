@@ -686,6 +686,14 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
         );
       }
 
+      if (localName == 'button') {
+        return InlineCustomWidget(child: _ReaderInertButton(element: element));
+      }
+
+      if (localName == 'input') {
+        return InlineCustomWidget(child: _ReaderInertInput(element: element));
+      }
+
       if (localName == 'iframe' ||
           localName == 'video' ||
           localName == 'audio') {
