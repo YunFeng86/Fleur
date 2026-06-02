@@ -20,11 +20,17 @@ import '../../app_menu.dart';
 import '../../actions/subscription_actions.dart';
 import '../../dialogs/add_account_dialogs.dart';
 import '../../dialogs/text_input_dialog.dart';
+import '../settings_targets.dart';
 import '../widgets/section_header.dart';
 
 class ServicesTab extends ConsumerStatefulWidget {
-  const ServicesTab({super.key, this.showPageTitle = true});
+  const ServicesTab({
+    super.key,
+    required this.targetController,
+    this.showPageTitle = true,
+  });
 
+  final SettingsTargetController targetController;
   final bool showPageTitle;
 
   @override
@@ -241,15 +247,19 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
                             ? null
                             : () => unawaited(deleteAccount(account)),
                       ),
-                    SettingsTile(
-                      key: const Key('services_add_account'),
-                      leading: const CircleAvatar(
-                        radius: 18,
-                        child: Icon(FleurIcons.add),
+                    SettingsTargetAnchor(
+                      id: 'services.account.add',
+                      controller: widget.targetController,
+                      child: SettingsTile(
+                        key: const Key('services_add_account'),
+                        leading: const CircleAvatar(
+                          radius: 18,
+                          child: Icon(FleurIcons.add),
+                        ),
+                        title: Text(l10n.addOrRegisterAccount),
+                        trailing: const Icon(FleurIcons.chevronRight, size: 20),
+                        onTap: () => unawaited(addAccount()),
                       ),
-                      title: Text(l10n.addOrRegisterAccount),
-                      trailing: const Icon(FleurIcons.chevronRight, size: 20),
-                      onTap: () => unawaited(addAccount()),
                     ),
                   ],
                 );
@@ -265,47 +275,57 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
               padding: EdgeInsets.zero,
               child: SettingsTileGroup(
                 children: [
-                  SettingsControlRow(
-                    title: Text(refreshSectionTitle),
-                    control: SettingsSelectField<int?>(
-                      key: const Key('services_source_refresh_interval_select'),
-                      value: interval,
-                      options: [
-                        SettingsSelectOption<int?>(
-                          value: null,
-                          label: Text(l10n.off),
+                  SettingsTargetAnchor(
+                    id: 'services.refresh.interval',
+                    controller: widget.targetController,
+                    child: SettingsControlRow(
+                      title: Text(refreshSectionTitle),
+                      control: SettingsSelectField<int?>(
+                        key: const Key(
+                          'services_source_refresh_interval_select',
                         ),
-                        for (final m in const [15, 30, 60])
+                        value: interval,
+                        options: [
                           SettingsSelectOption<int?>(
-                            value: m,
-                            label: Text(l10n.everyMinutes(m)),
+                            value: null,
+                            label: Text(l10n.off),
                           ),
-                      ],
-                      onChanged: (v) => ref
-                          .read(appSettingsProvider.notifier)
-                          .setSourceRefreshMinutes(v),
+                          for (final m in const [15, 30, 60])
+                            SettingsSelectOption<int?>(
+                              value: m,
+                              label: Text(l10n.everyMinutes(m)),
+                            ),
+                        ],
+                        onChanged: (v) => ref
+                            .read(appSettingsProvider.notifier)
+                            .setSourceRefreshMinutes(v),
+                      ),
                     ),
                   ),
                   if (showRefreshConcurrency)
-                    SettingsControlRow(
-                      title: Text(l10n.refreshConcurrency),
-                      control: SettingsSelectField<int>(
-                        key: const Key('services_refresh_concurrency_select'),
-                        value: appSettings.autoRefreshConcurrency,
-                        options: [
-                          for (final c in [1, 2, 4, 6])
-                            SettingsSelectOption(
-                              value: c,
-                              label: Text(c.toString()),
-                            ),
-                        ],
-                        onChanged: (v) {
-                          unawaited(
-                            ref
-                                .read(appSettingsProvider.notifier)
-                                .setAutoRefreshConcurrency(v),
-                          );
-                        },
+                    SettingsTargetAnchor(
+                      id: 'services.refresh.concurrency',
+                      controller: widget.targetController,
+                      child: SettingsControlRow(
+                        title: Text(l10n.refreshConcurrency),
+                        control: SettingsSelectField<int>(
+                          key: const Key('services_refresh_concurrency_select'),
+                          value: appSettings.autoRefreshConcurrency,
+                          options: [
+                            for (final c in [1, 2, 4, 6])
+                              SettingsSelectOption(
+                                value: c,
+                                label: Text(c.toString()),
+                              ),
+                          ],
+                          onChanged: (v) {
+                            unawaited(
+                              ref
+                                  .read(appSettingsProvider.notifier)
+                                  .setAutoRefreshConcurrency(v),
+                            );
+                          },
+                        ),
                       ),
                     ),
                   SettingsControlRow(
@@ -344,80 +364,94 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
               child: SettingsTileGroup(
                 children: [
                   if (syncSemantics.supportsEntrySyncLimit)
-                    SettingsControlRow(
-                      title: Text(l10n.remoteEntriesLimit),
-                      control: SettingsSelectField<int>(
-                        key: const Key('services_remote_entries_limit_select'),
-                        value: appSettings.remoteEntriesLimit,
-                        options: [
-                          for (final v in const [100, 200, 400, 800, 1200])
-                            SettingsSelectOption(value: v, label: Text('$v')),
-                          SettingsSelectOption(
-                            value: 0,
-                            label: Text(l10n.unlimited),
+                    SettingsTargetAnchor(
+                      id: 'services.remote.entries_limit',
+                      controller: widget.targetController,
+                      child: SettingsControlRow(
+                        title: Text(l10n.remoteEntriesLimit),
+                        control: SettingsSelectField<int>(
+                          key: const Key(
+                            'services_remote_entries_limit_select',
                           ),
-                        ],
-                        onChanged: (v) {
-                          unawaited(
-                            ref
-                                .read(appSettingsProvider.notifier)
-                                .setRemoteEntriesLimit(v),
-                          );
-                        },
+                          value: appSettings.remoteEntriesLimit,
+                          options: [
+                            for (final v in const [100, 200, 400, 800, 1200])
+                              SettingsSelectOption(value: v, label: Text('$v')),
+                            SettingsSelectOption(
+                              value: 0,
+                              label: Text(l10n.unlimited),
+                            ),
+                          ],
+                          onChanged: (v) {
+                            unawaited(
+                              ref
+                                  .read(appSettingsProvider.notifier)
+                                  .setRemoteEntriesLimit(v),
+                            );
+                          },
+                        ),
                       ),
                     ),
                   if (syncSemantics.supportsRemoteFetchConcurrency)
-                    SettingsControlRow(
-                      title: Text(l10n.remoteFetchConcurrency),
-                      subtitle: Text(l10n.remoteFetchConcurrencySubtitle),
-                      control: SettingsSelectField<int>(
-                        key: const Key(
-                          'services_remote_fetch_concurrency_select',
+                    SettingsTargetAnchor(
+                      id: 'services.remote.fetch_concurrency',
+                      controller: widget.targetController,
+                      child: SettingsControlRow(
+                        title: Text(l10n.remoteFetchConcurrency),
+                        subtitle: Text(l10n.remoteFetchConcurrencySubtitle),
+                        control: SettingsSelectField<int>(
+                          key: const Key(
+                            'services_remote_fetch_concurrency_select',
+                          ),
+                          value: appSettings.remoteFetchConcurrency,
+                          options: [
+                            for (final c in const [1, 2, 3, 4])
+                              SettingsSelectOption(
+                                value: c,
+                                label: Text(c.toString()),
+                              ),
+                          ],
+                          onChanged: (v) {
+                            unawaited(
+                              ref
+                                  .read(appSettingsProvider.notifier)
+                                  .setRemoteFetchConcurrency(v),
+                            );
+                          },
                         ),
-                        value: appSettings.remoteFetchConcurrency,
-                        options: [
-                          for (final c in const [1, 2, 3, 4])
-                            SettingsSelectOption(
-                              value: c,
-                              label: Text(c.toString()),
-                            ),
-                        ],
-                        onChanged: (v) {
-                          unawaited(
-                            ref
-                                .read(appSettingsProvider.notifier)
-                                .setRemoteFetchConcurrency(v),
-                          );
-                        },
                       ),
                     ),
                   if (contentCapabilities
                       .canChooseServerArticleContentFetchMode)
-                    SettingsControlRow(
-                      title: Text(l10n.minifluxWebFetchMode),
-                      subtitle: Text(l10n.minifluxWebFetchModeSubtitle),
-                      control: SettingsSelectField<MinifluxWebFetchMode>(
-                        key: const Key(
-                          'services_miniflux_web_fetch_mode_select',
+                    SettingsTargetAnchor(
+                      id: 'services.remote.miniflux_web_fetch_mode',
+                      controller: widget.targetController,
+                      child: SettingsControlRow(
+                        title: Text(l10n.minifluxWebFetchMode),
+                        subtitle: Text(l10n.minifluxWebFetchModeSubtitle),
+                        control: SettingsSelectField<MinifluxWebFetchMode>(
+                          key: const Key(
+                            'services_miniflux_web_fetch_mode_select',
+                          ),
+                          value: appSettings.minifluxWebFetchMode,
+                          options: [
+                            SettingsSelectOption(
+                              value: MinifluxWebFetchMode.clientReadability,
+                              label: Text(l10n.minifluxWebFetchModeClient),
+                            ),
+                            SettingsSelectOption(
+                              value: MinifluxWebFetchMode.serverFetchContent,
+                              label: Text(l10n.minifluxWebFetchModeServer),
+                            ),
+                          ],
+                          onChanged: (v) {
+                            unawaited(
+                              ref
+                                  .read(appSettingsProvider.notifier)
+                                  .setMinifluxWebFetchMode(v),
+                            );
+                          },
                         ),
-                        value: appSettings.minifluxWebFetchMode,
-                        options: [
-                          SettingsSelectOption(
-                            value: MinifluxWebFetchMode.clientReadability,
-                            label: Text(l10n.minifluxWebFetchModeClient),
-                          ),
-                          SettingsSelectOption(
-                            value: MinifluxWebFetchMode.serverFetchContent,
-                            label: Text(l10n.minifluxWebFetchModeServer),
-                          ),
-                        ],
-                        onChanged: (v) {
-                          unawaited(
-                            ref
-                                .read(appSettingsProvider.notifier)
-                                .setMinifluxWebFetchMode(v),
-                          );
-                        },
                       ),
                     ),
                 ],

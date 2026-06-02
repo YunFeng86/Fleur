@@ -34,6 +34,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSearchHint => 'Search settings';
 
   @override
+  String get settingsSearchNoResults => 'No settings match this search.';
+
+  @override
+  String get settingsSearchPageLabel => 'Page';
+
+  @override
+  String get settingsSearchSectionLabel => 'Section';
+
+  @override
+  String get settingsSearchSettingLabel => 'Setting';
+
+  @override
   String get feeds => 'Feeds';
 
   @override

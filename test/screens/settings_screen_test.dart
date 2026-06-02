@@ -5,10 +5,12 @@ import 'package:fleur/l10n/app_localizations.dart';
 import 'package:fleur/app/settings_routes.dart';
 import 'package:fleur/providers/account_providers.dart';
 import 'package:fleur/providers/app_settings_providers.dart';
+import 'package:fleur/providers/settings_providers.dart';
 import 'package:fleur/screens/settings_screen.dart';
 import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/services/accounts/account_store.dart';
 import 'package:fleur/services/settings/app_settings.dart';
+import 'package:fleur/services/settings/reader_settings.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/seed_color_presets.dart';
 import 'package:fleur/utils/platform.dart';
@@ -67,6 +69,7 @@ void main() {
     WidgetTester tester,
     double width, {
     SettingsTab? initialTab,
+    String? initialSettingId,
     bool showBack = false,
     List<Override> overrides = const [],
   }) async {
@@ -76,12 +79,21 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: overrides,
+        overrides: [
+          readerSettingsStoreProvider.overrideWithValue(
+            FakeReaderSettingsStore(const ReaderSettings()),
+          ),
+          ...overrides,
+        ],
         child: MaterialApp(
           theme: AppTheme.light(),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: SettingsScreen(initialTab: initialTab, showBack: showBack),
+          home: SettingsScreen(
+            initialTab: initialTab,
+            initialSettingId: initialSettingId,
+            showBack: showBack,
+          ),
         ),
       ),
     );
@@ -110,8 +122,13 @@ void main() {
     expect(find.byKey(const Key('settings_sidebar_button')), findsOneWidget);
     expect(find.byKey(const Key('settings_sidebar')), findsNothing);
     expect(find.text('App Preferences'), findsOneWidget);
+    expect(find.text('Appearance'), findsOneWidget);
     expect(
       find.byKey(const Key('settings_list_nav_app-preferences')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('settings_list_nav_appearance')),
       findsOneWidget,
     );
     expect(find.text('System language'), findsNothing);
@@ -159,6 +176,23 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Subscriptions'), findsOneWidget);
+    expect(find.byKey(const Key('settings_back_button')), findsOneWidget);
+  });
+
+  testWidgets('Appearance detail shows theme and reader display controls', (
+    tester,
+  ) async {
+    await pumpSettingsScreen(tester, 400);
+
+    await tester.tap(find.text('Appearance'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Appearance'), findsOneWidget);
+    expect(find.text('Theme mode'), findsOneWidget);
+    expect(find.text('Theme colors'), findsOneWidget);
+    expect(find.text('Font size'), findsOneWidget);
+    expect(find.text('Line height'), findsOneWidget);
+    expect(find.text('Horizontal padding'), findsOneWidget);
     expect(find.byKey(const Key('settings_back_button')), findsOneWidget);
   });
 
@@ -254,6 +288,7 @@ void main() {
       find.byKey(const Key('settings_nav_app-preferences')),
       findsOneWidget,
     );
+    expect(find.byKey(const Key('settings_nav_appearance')), findsOneWidget);
     expect(
       find.byKey(const Key('app_preferences_language_select')),
       findsOneWidget,
@@ -331,13 +366,47 @@ void main() {
     },
   );
 
-  testWidgets('App Preferences theme controls persist mode and seed color', (
+  testWidgets(
+    'Settings Screen selects Appearance from initial tab in wide mode',
+    (tester) async {
+      await pumpSettingsScreen(
+        tester,
+        1000,
+        initialTab: SettingsTab.appearance,
+      );
+
+      expect(find.text('Theme mode'), findsOneWidget);
+      expect(find.text('Font size'), findsOneWidget);
+      expect(find.text('System language'), findsNothing);
+    },
+  );
+
+  testWidgets('App Preferences does not show appearance controls', (
+    tester,
+  ) async {
+    await pumpSettingsScreen(tester, 1000, overrides: servicesOverrides());
+
+    expect(
+      find.byKey(const Key('app_preferences_language_select')),
+      findsOneWidget,
+    );
+    expect(find.text('Theme mode'), findsNothing);
+    expect(find.text('Theme colors'), findsNothing);
+    expect(find.text('Font size'), findsNothing);
+    expect(
+      find.byKey(const Key('appearance_seed_color_pink_card')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('Appearance theme controls persist mode and seed color', (
     tester,
   ) async {
     final store = appSettingsStore(AppSettings.defaults());
     await pumpSettingsScreen(
       tester,
       1000,
+      initialTab: SettingsTab.appearance,
       overrides: servicesOverrides(settingsStore: store),
     );
 
@@ -345,36 +414,112 @@ void main() {
     await tester.pumpAndSettle();
     expect(store.settings.themeMode, ThemeMode.dark);
 
-    await tester.tap(
-      find.byKey(const Key('app_preferences_seed_color_pink_card')),
-    );
+    await tester.tap(find.byKey(const Key('appearance_seed_color_pink_card')));
     await tester.pumpAndSettle();
 
     expect(store.settings.useDynamicColor, isFalse);
     expect(store.settings.seedColorPreset, SeedColorPreset.pink);
   });
 
-  testWidgets('App Preferences shows dynamic color card only on Android', (
+  testWidgets('Appearance shows dynamic color card only on Android', (
     tester,
   ) async {
     debugFleurTargetPlatformOverride = TargetPlatform.android;
     addTearDown(() => debugFleurTargetPlatformOverride = null);
 
-    await pumpSettingsScreen(tester, 1000, overrides: servicesOverrides());
+    await pumpSettingsScreen(
+      tester,
+      1000,
+      initialTab: SettingsTab.appearance,
+      overrides: servicesOverrides(),
+    );
 
     expect(
-      find.byKey(const Key('app_preferences_dynamic_color_card')),
+      find.byKey(const Key('appearance_dynamic_color_card')),
       findsOneWidget,
     );
 
     debugFleurTargetPlatformOverride = TargetPlatform.windows;
     await tester.pumpWidget(const SizedBox.shrink());
-    await pumpSettingsScreen(tester, 1000, overrides: servicesOverrides());
+    await pumpSettingsScreen(
+      tester,
+      1000,
+      initialTab: SettingsTab.appearance,
+      overrides: servicesOverrides(),
+    );
 
     expect(
-      find.byKey(const Key('app_preferences_dynamic_color_card')),
+      find.byKey(const Key('appearance_dynamic_color_card')),
       findsNothing,
     );
+  });
+
+  testWidgets('Settings search opens font size in Appearance', (tester) async {
+    await pumpSettingsScreen(tester, 1000, overrides: servicesOverrides());
+
+    await tester.tap(find.byKey(const Key('settings_search_placeholder')));
+    await tester.enterText(find.byType(TextField), 'font');
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(
+        const Key('settings_search_result_appearance.reader.font_size'),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 260));
+
+    expect(find.text('Appearance'), findsWidgets);
+    expect(find.text('Font size'), findsOneWidget);
+    expect(
+      find.byKey(const Key('settings_target_appearance.reader.font_size')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Settings search opens language in App Preferences', (
+    tester,
+  ) async {
+    await pumpSettingsScreen(
+      tester,
+      1000,
+      initialTab: SettingsTab.appearance,
+      overrides: servicesOverrides(),
+    );
+
+    await tester.tap(find.byKey(const Key('settings_search_placeholder')));
+    await tester.enterText(find.byType(TextField), 'language');
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(
+        const Key('settings_search_result_app_preferences.language.system'),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 260));
+
+    expect(
+      find.byKey(const Key('app_preferences_language_select')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('settings_target_app_preferences.language.system')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Settings search shows empty state for no results', (
+    tester,
+  ) async {
+    await pumpSettingsScreen(tester, 1000, overrides: servicesOverrides());
+
+    await tester.tap(find.byKey(const Key('settings_search_placeholder')));
+    await tester.enterText(find.byType(TextField), 'zzzz-not-a-setting');
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('settings_search_no_results')), findsOneWidget);
+    expect(find.text('No settings match this search.'), findsOneWidget);
   });
 
   testWidgets('AppLocalizations uses strict pathNotFound message in English', (

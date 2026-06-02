@@ -31,6 +31,22 @@
   "@settingsSearchHint": {
     "description": "Placeholder for the settings page search field"
   },
+  "settingsSearchNoResults": "No settings match this search.",
+  "@settingsSearchNoResults": {
+    "description": "Empty state text for the settings page search results"
+  },
+  "settingsSearchPageLabel": "Page",
+  "@settingsSearchPageLabel": {
+    "description": "Settings search result type label for top-level pages"
+  },
+  "settingsSearchSectionLabel": "Section",
+  "@settingsSearchSectionLabel": {
+    "description": "Settings search result type label for settings sections"
+  },
+  "settingsSearchSettingLabel": "Setting",
+  "@settingsSearchSettingLabel": {
+    "description": "Settings search result type label for individual settings"
+  },
   "feeds": "Feeds",
   "@feeds": {
     "description": "Global navigation label: feeds"

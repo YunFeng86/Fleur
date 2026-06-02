@@ -452,10 +452,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           final tab = settingsTabFromQueryValue(
             state.uri.queryParameters['tab'],
           );
+          final settingId = state.uri.queryParameters['setting'];
           return settingsLayerPage(
             state: state,
             child: SettingsScreen(
               initialTab: tab,
+              initialSettingId: settingId,
               showBack: true,
               fallbackBackLocation: '/all',
             ),

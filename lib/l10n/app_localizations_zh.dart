@@ -32,6 +32,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsSearchHint => '搜索设置';
 
   @override
+  String get settingsSearchNoResults => '没有匹配的设置。';
+
+  @override
+  String get settingsSearchPageLabel => '页面';
+
+  @override
+  String get settingsSearchSectionLabel => '分区';
+
+  @override
+  String get settingsSearchSettingLabel => '设置项';
+
+  @override
   String get feeds => '订阅';
 
   @override
@@ -1281,6 +1293,18 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get settingsSearchHint => '搜尋設定';
+
+  @override
+  String get settingsSearchNoResults => '沒有符合的設定。';
+
+  @override
+  String get settingsSearchPageLabel => '頁面';
+
+  @override
+  String get settingsSearchSectionLabel => '區段';
+
+  @override
+  String get settingsSearchSettingLabel => '設定項';
 
   @override
   String get feeds => '訂閱';

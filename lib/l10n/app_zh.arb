@@ -31,6 +31,22 @@
   "@settingsSearchHint": {
     "description": "Placeholder for the settings page search field"
   },
+  "settingsSearchNoResults": "没有匹配的设置。",
+  "@settingsSearchNoResults": {
+    "description": "Empty state text for the settings page search results"
+  },
+  "settingsSearchPageLabel": "页面",
+  "@settingsSearchPageLabel": {
+    "description": "Settings search result type label for top-level pages"
+  },
+  "settingsSearchSectionLabel": "分区",
+  "@settingsSearchSectionLabel": {
+    "description": "Settings search result type label for settings sections"
+  },
+  "settingsSearchSettingLabel": "设置项",
+  "@settingsSearchSettingLabel": {
+    "description": "Settings search result type label for individual settings"
+  },
   "feeds": "订阅",
   "@feeds": {
     "description": "Global navigation label: feeds"
