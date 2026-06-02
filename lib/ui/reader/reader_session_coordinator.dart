@@ -16,7 +16,13 @@ String _selectSanitizedDisplayHtml({
   final rawHtml = translatedHtml.isNotEmpty
       ? translatedHtml
       : _selectActiveHtmlForArticle(article);
-  return HtmlSanitizer.sanitize(normalizeReaderHtmlForDisplay(rawHtml)).trim();
+  final normalizedFeedHtml = FeedHtmlNormalizer.normalize(
+    rawHtml,
+    baseUrl: Uri.tryParse(article.link),
+  );
+  return HtmlSanitizer.sanitize(
+    normalizeReaderHtmlForDisplay(normalizedFeedHtml),
+  ).trim();
 }
 
 final class _ReaderSessionCoordinator {

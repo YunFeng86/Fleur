@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
@@ -32,11 +33,13 @@ import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/settings/reader_progress_store.dart';
 import 'package:fleur/services/settings/reader_settings.dart';
 import 'package:fleur/services/settings/translation_ai_settings.dart';
+import 'package:fleur/services/feed_html_normalizer.dart';
 import 'package:fleur/services/html_sanitizer.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
 import 'package:fleur/ui/reader/reader_selectable_rich_text.dart';
+import 'package:fleur/ui/reader/code_rendering/reader_code_rendering.dart';
 import 'package:fleur/utils/content_hash.dart';
 import 'package:fleur/utils/path_manager.dart';
 import 'package:fleur/utils/tag_colors.dart';
@@ -127,6 +130,11 @@ class _FakePathProviderPlatform extends PathProviderPlatform {
 
 void main() {
   const articleId = 7;
+
+  tearDown(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, null);
+  });
 
   Future<void> settleReader(WidgetTester tester, {int rounds = 20}) async {
     for (var i = 0; i < rounds; i++) {
@@ -273,7 +281,14 @@ void main() {
 
   String displayedContentHash(String html) {
     return ContentHash.compute(
-      HtmlSanitizer.sanitize(normalizeReaderHtmlForDisplay(html)),
+      HtmlSanitizer.sanitize(
+        normalizeReaderHtmlForDisplay(
+          FeedHtmlNormalizer.normalize(
+            html,
+            baseUrl: Uri.parse('https://example.com/article'),
+          ),
+        ),
+      ),
     );
   }
 
@@ -297,28 +312,33 @@ void main() {
     ];
   }
 
-  List<SelectableText> readerCodeTexts(WidgetTester tester) {
-    return tester
-        .widgetList<SelectableText>(
-          find.descendant(
-            of: find.byKey(const Key('reader_code_block')),
-            matching: find.byType(SelectableText),
-          ),
-        )
-        .toList(growable: false);
+  List<List<ReaderSelectableRichText>> readerCodeLines(WidgetTester tester) {
+    return [
+      for (final block in find.byKey(const Key('reader_code_block')).evaluate())
+        tester
+            .widgetList<ReaderSelectableRichText>(
+              find.descendant(
+                of: find.byElementPredicate((element) => element == block),
+                matching: find.byKey(const Key('reader_code_line_code')),
+              ),
+            )
+            .toList(growable: false),
+    ];
   }
 
   List<String> readerCodePlainTexts(WidgetTester tester) {
     return [
-      for (final widget in readerCodeTexts(tester))
-        if (widget.textSpan != null) widget.textSpan!.toPlainText(),
+      for (final lines in readerCodeLines(tester))
+        lines.map((widget) => widget.text.toPlainText()).join('\n'),
     ];
   }
 
   List<TextSpan> readerCodeTextSpans(WidgetTester tester) {
     return [
-      for (final widget in readerCodeTexts(tester))
-        if (widget.textSpan != null) ...flattenTextSpans(widget.textSpan!),
+      for (final lines in readerCodeLines(tester))
+        for (final widget in lines)
+          if (widget.text is TextSpan)
+            ...flattenTextSpans(widget.text as TextSpan),
     ];
   }
 
@@ -667,7 +687,7 @@ void main() {
       );
       expect(
         find.textContaining('createLogger', findRichText: true),
-        findsOneWidget,
+        findsWidgets,
       );
       expect(
         find.textContaining('+added line', findRichText: true),
@@ -682,16 +702,7 @@ void main() {
         findsOneWidget,
       );
 
-      final codeTexts = tester.widgetList<SelectableText>(
-        find.descendant(
-          of: find.byKey(const Key('reader_code_block')),
-          matching: find.byType(SelectableText),
-        ),
-      );
-      final spans = <TextSpan>[
-        for (final widget in codeTexts)
-          if (widget.textSpan != null) ...flattenTextSpans(widget.textSpan!),
-      ];
+      final spans = readerCodeTextSpans(tester);
       final baseCodeColor = Theme.of(
         tester.element(find.byType(ReaderView)),
       ).colorScheme.onSurface;
@@ -754,6 +765,21 @@ void main() {
             '<pre><code class="language-text language-jsx">'
             'const value = 1;\n'
             'function demo() { return value; }'
+            '</code></pre>'
+            '<pre><code class="language-jsx">'
+            '<span class="token keyword">import</span>'
+            '<span class="token plain"> </span>'
+            '<span class="token function">demo</span>'
+            '<span class="token punctuation">()</span>'
+            '</code></pre>'
+            '<pre><code class="language-js">'
+            '<span class="hljs-keyword">const</span>'
+            '<span> value = </span>'
+            '<span class="hljs-string">"ok"</span>'
+            '</code></pre>'
+            '<pre><code class="language-tsx">'
+            '<span style="color:#ff0000">inlineRed</span>'
+            '<span style="color: rgb(0, 128, 0)">inlineGreen</span>'
             '</code></pre>',
       ),
       appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
@@ -764,18 +790,288 @@ void main() {
     await settleReader(tester, rounds: 20);
 
     final codeTexts = readerCodePlainTexts(tester);
-    expect(codeTexts, hasLength(4));
+    expect(codeTexts, hasLength(7));
     expect(codeTexts[0], "import React;\n\nexport default App;");
     expect(codeTexts[0], isNot(contains(';export')));
     expect(codeTexts[1], 'a\nb');
     expect(codeTexts[2], 'first line\nsecond line');
     expect(codeTexts[3], 'const value = 1;\nfunction demo() { return value; }');
+    final lineNumbers = tester
+        .widgetList<Text>(find.byKey(const Key('reader_code_line_number')))
+        .map((widget) => widget.data)
+        .toList(growable: false);
+    expect(lineNumbers.take(3), ['1', '2', '3']);
+    expect(lineNumbers.skip(3).take(2), ['1', '2']);
+    expect(lineNumbers.skip(5).take(2), ['1', '2']);
 
-    final candidateCodeSpans = readerCodeTextSpans(
-      tester,
-    ).where((span) => span.text?.contains('const value') ?? false);
-    expect(candidateCodeSpans, isNotEmpty);
+    await pumpUntil(tester, () {
+      final lines = readerCodeLines(tester)[3];
+      return lines
+          .where((line) => line.text is TextSpan)
+          .expand((line) => flattenTextSpans(line.text as TextSpan))
+          .any(
+            (span) =>
+                (span.text?.contains('const') ?? false) &&
+                span.style?.color != null,
+          );
+    }, attempts: 80);
+
+    await pumpUntil(tester, () {
+      final spans = readerCodeTextSpans(tester);
+      return spans.any(
+            (span) => span.text == 'import' && span.style?.color != null,
+          ) &&
+          spans.any(
+            (span) => span.text == '"ok"' && span.style?.color != null,
+          ) &&
+          spans.any(
+            (span) =>
+                span.text == 'inlineRed' &&
+                span.style?.color == const Color(0xFFFF0000),
+          );
+    }, attempts: 80);
+
+    final spans = readerCodeTextSpans(tester);
+    expect(
+      spans.any((span) => span.text == 'import' && span.style?.color != null),
+      isTrue,
+    );
+    expect(
+      spans.any((span) => span.text == '"ok"' && span.style?.color != null),
+      isTrue,
+    );
+    expect(
+      spans.any(
+        (span) =>
+            span.text == 'inlineRed' &&
+            span.style?.color == const Color(0xFFFF0000),
+      ),
+      isTrue,
+    );
   });
+
+  testWidgets(
+    'reader code block header copies text and line numbers stay separate',
+    (tester) async {
+      String? clipboardText;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+            if (call.method == 'Clipboard.setData') {
+              clipboardText =
+                  (call.arguments as Map<Object?, Object?>)['text'] as String?;
+            }
+            return null;
+          });
+
+      await pumpReader(
+        tester,
+        article: buildArticle(
+          title: 'A',
+          html:
+              '<pre><code class="language-text language-jsx">const value = 1;\n\nreturn value;</code></pre>'
+              '<pre><code class="language-plain">plain text</code></pre>',
+        ),
+        appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      );
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 500)),
+      );
+      await settleReader(tester, rounds: 12);
+
+      expect(find.byKey(const Key('reader_code_block')), findsNWidgets(2));
+      expect(find.byKey(const Key('reader_code_header')), findsNWidgets(2));
+      expect(find.text('jsx'), findsOneWidget);
+      expect(find.text('plain'), findsNothing);
+      expect(
+        find.byTooltip(
+          MaterialLocalizations.of(
+            tester.element(find.byType(ReaderView)),
+          ).copyButtonLabel,
+        ),
+        findsNWidgets(2),
+      );
+
+      final lineNumbers = tester
+          .widgetList<Text>(find.byKey(const Key('reader_code_line_number')))
+          .map((widget) => widget.data)
+          .toList(growable: false);
+      expect(lineNumbers, ['1', '2', '3', '1']);
+      expect(readerCodePlainTexts(tester), [
+        'const value = 1;\n\nreturn value;',
+        'plain text',
+      ]);
+
+      await tester.tap(find.byKey(const Key('reader_code_copy_button')).first);
+      await tester.pump();
+
+      expect(clipboardText, 'const value = 1;\n\nreturn value;');
+      expect(clipboardText, isNot(contains('jsx')));
+      expect(clipboardText, isNot(contains('1\n2\n3')));
+      expect(
+        find.byKey(const Key('reader_code_copy_success_icon')),
+        findsOneWidget,
+      );
+      expect(
+        find.byTooltip(
+          AppLocalizations.of(
+            tester.element(find.byType(ReaderView)),
+          )!.copiedToClipboard,
+        ),
+        findsOneWidget,
+      );
+
+      await tester.pump(ReaderCodeBlockChrome.copyFeedbackDuration);
+      await tester.pump();
+
+      expect(find.byKey(const Key('reader_code_copy_icon')), findsNWidgets(2));
+    },
+  );
+
+  testWidgets(
+    'reader labels high-confidence code guesses and hides low-confidence labels',
+    (tester) async {
+      await pumpReader(
+        tester,
+        article: buildArticle(
+          title: 'A',
+          html:
+              '<pre>const ref = new WeakRef({ data: "heavy resource" });\n'
+              'console.log(ref.deref()?.data);</pre>'
+              '<pre>echo hi</pre>',
+        ),
+        appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      );
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 500)),
+      );
+      await settleReader(tester, rounds: 12);
+
+      expect(find.byKey(const Key('reader_code_block')), findsNWidgets(2));
+      expect(find.text('javascript'), findsOneWidget);
+      expect(find.text('shell'), findsNothing);
+      expect(readerCodePlainTexts(tester), [
+        'const ref = new WeakRef({ data: "heavy resource" });\nconsole.log(ref.deref()?.data);',
+        'echo hi',
+      ]);
+
+      await pumpUntil(tester, () {
+        final firstBlockLines = readerCodeLines(tester).first;
+        return firstBlockLines
+            .where((line) => line.text is TextSpan)
+            .expand((line) => flattenTextSpans(line.text as TextSpan))
+            .any((span) => span.text == 'const' && span.style?.color != null);
+      }, attempts: 80);
+
+      final lowConfidenceChildSpans = readerCodeLines(tester).last.expand((
+        line,
+      ) {
+        final text = line.text;
+        return text is TextSpan
+            ? (text.children ?? const <InlineSpan>[]).whereType<TextSpan>()
+            : const <TextSpan>[];
+      });
+      expect(
+        lowConfidenceChildSpans.any((span) => span.style?.color != null),
+        isFalse,
+      );
+    },
+  );
+
+  testWidgets(
+    'reader code line gutter shares text metrics and sizes to line digits',
+    (tester) async {
+      final shortCode = List<String>.generate(
+        9,
+        (index) => 'shortLine${index + 1};',
+      ).join('\n');
+      final longCode = List<String>.generate(
+        120,
+        (index) => 'longLine${index + 1};',
+      ).join('\n');
+
+      await pumpReader(
+        tester,
+        article: buildArticle(
+          title: 'A',
+          html:
+              '<pre><code class="language-js">$shortCode</code></pre>'
+              '<pre><code class="language-js">$longCode</code></pre>',
+        ),
+        appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      );
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 500)),
+      );
+      await settleReader(tester, rounds: 12);
+
+      final codeLines = readerCodeLines(tester);
+      final lineNumbers = tester
+          .widgetList<Text>(find.byKey(const Key('reader_code_line_number')))
+          .toList(growable: false);
+      expect(codeLines, hasLength(2));
+      expect(codeLines[0], hasLength(9));
+      expect(codeLines[1], hasLength(120));
+      expect(lineNumbers, hasLength(129));
+      for (var i = 0; i < lineNumbers.length; i++) {
+        final codeLine = i < 9 ? codeLines[0][i] : codeLines[1][i - 9];
+        expect(lineNumbers[i].strutStyle, codeLine.strutStyle);
+        expect(lineNumbers[i].textHeightBehavior, codeLine.textHeightBehavior);
+      }
+      expect(codeLines.first.first.strutStyle?.forceStrutHeight, isTrue);
+      expect(
+        codeLines.first.first.textHeightBehavior?.applyHeightToFirstAscent,
+        isFalse,
+      );
+      expect(
+        codeLines.first.first.textHeightBehavior?.applyHeightToLastDescent,
+        isFalse,
+      );
+
+      final gutterSizes = tester
+          .widgetList<Container>(
+            find.byKey(const Key('reader_code_line_gutter')),
+          )
+          .map((widget) => widget.constraints!.maxWidth)
+          .toList(growable: false);
+      expect(gutterSizes, hasLength(2));
+      expect(gutterSizes[1], greaterThan(gutterSizes[0]));
+      expect(lineNumbers.last.data, '120');
+
+      final firstBlock = find.byKey(const Key('reader_code_block')).first;
+      final firstBlockNumbers = tester
+          .widgetList<Text>(
+            find.descendant(
+              of: firstBlock,
+              matching: find.byKey(const Key('reader_code_line_number')),
+            ),
+          )
+          .toList(growable: false);
+      final firstBlockLines = tester
+          .widgetList<ReaderSelectableRichText>(
+            find.descendant(
+              of: firstBlock,
+              matching: find.byKey(const Key('reader_code_line_code')),
+            ),
+          )
+          .toList(growable: false);
+      for (var i = 0; i < firstBlockLines.length; i++) {
+        final numberBox = tester.getRect(find.byWidget(firstBlockNumbers[i]));
+        final codeBox = tester.getRect(find.byWidget(firstBlockLines[i]));
+        expect(numberBox.top, moreOrLessEquals(codeBox.top, epsilon: 0.01));
+        expect(
+          numberBox.bottom,
+          moreOrLessEquals(codeBox.bottom, epsilon: 0.01),
+        );
+      }
+
+      final gutter = tester.widget<Container>(
+        find.byKey(const Key('reader_code_line_gutter')).first,
+      );
+      final decoration = gutter.decoration! as BoxDecoration;
+      final border = decoration.border! as BorderDirectional;
+      expect(border.end.width, 1);
+    },
+  );
 
   testWidgets('reader highlights and scrolls to code search matches', (
     tester,
@@ -892,6 +1188,46 @@ void main() {
     expect(find.text('Audio media'), findsOneWidget);
     expect(find.text('www.youtube.com'), findsOneWidget);
     expect(find.text('cdn.example.com'), findsNWidgets(2));
+  });
+
+  testWidgets('reader renders normalized feed demo content as static UI', (
+    tester,
+  ) async {
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html:
+            '<p>CSS contrast-color()函数是专为无障碍访问设计的。</p>'
+            '<pre>contrast-color(red)\ncontrast-color(var(--backgroundColor))</pre>'
+            '<div class="contrast-x">'
+            '<style>.contrast-x { button { color: contrast-color(red); } }</style>'
+            '<p>请改变背景色：<input type="color" value="#336699" oninput="bad()"></p>'
+            '<p><button onclick="bad()">我是按钮</button></p>'
+            '</div>'
+            '<p><img src="//image.zhangxinxu.com/image/blog/demo.gif" width="228" height="225" alt="自动配色按钮示意"></p>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 20);
+
+    expect(
+      find.textContaining('CSS contrast-color()', findRichText: true),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('reader_code_block')), findsNWidgets(2));
+    expect(readerCodePlainTexts(tester), [
+      'contrast-color(red)\ncontrast-color(var(--backgroundColor))',
+      '.contrast-x { button { color: contrast-color(red); } }',
+    ]);
+    expect(find.text('css'), findsNWidgets(2));
+    expect(find.byKey(const Key('reader_inert_color_input')), findsOneWidget);
+    expect(find.byKey(const Key('reader_inert_button')), findsOneWidget);
+    expect(find.text('我是按钮'), findsOneWidget);
+    expect(readerPlainText(tester), isNot(contains('bad()')));
   });
 
   testWidgets('reader renders table caption and footer with theme styling', (

@@ -140,6 +140,23 @@ void main() {
     expect(sanitized, isNot(contains('evil')));
   });
 
+  test('keeps safe code token classes and color styles inside pre blocks', () {
+    const html =
+        '<article><pre><code class="language-js">'
+        '<span class="token keyword" style="color:#ff0000; position:absolute" onclick="bad()">import</span>'
+        '<span class="hljs-string" style="color: rgb(0, 128, 0)">"ok"</span>'
+        '</code></pre>'
+        '<p><span class="token keyword" style="color:#ff0000">body</span></p></article>';
+    final sanitized = HtmlSanitizer.sanitize(html);
+    expect(sanitized, contains('class="token keyword"'));
+    expect(sanitized, contains('class="hljs-string"'));
+    expect(sanitized, contains('color: #ff0000'));
+    expect(sanitized, contains('color: rgb(0, 128, 0)'));
+    expect(sanitized, isNot(contains('position')));
+    expect(sanitized, isNot(contains('onclick')));
+    expect(sanitized, isNot(contains('<p><span class="token keyword"')));
+  });
+
   test('keeps reader math marker attributes', () {
     const html =
         '<article><fleur-math data-fleur-math="x^2" data-fleur-math-display="inline" onclick="bad()">x^2</fleur-math></article>';
@@ -148,6 +165,35 @@ void main() {
     expect(sanitized, contains('data-fleur-math="x^2"'));
     expect(sanitized, contains('data-fleur-math-display="inline"'));
     expect(sanitized, isNot(contains('onclick')));
+  });
+
+  test('converts style elements to css code blocks', () {
+    const html =
+        '<article><div><style>.demo { color: red; }</style></div></article>';
+    final sanitized = HtmlSanitizer.sanitize(html);
+    expect(sanitized, contains('<pre><code class="language-css"'));
+    expect(sanitized, contains('.demo { color: red; }'));
+    expect(sanitized, isNot(contains('<style')));
+  });
+
+  test('keeps inert form controls and strips event handlers', () {
+    const html =
+        '<article>'
+        '<input type="color" value="#336699" oninput="bad()" autofocus>'
+        '<input type="date" value="2026-01-01" onchange="bad()">'
+        '<button onclick="bad()" type="submit">我是按钮</button>'
+        '</article>';
+    final sanitized = HtmlSanitizer.sanitize(html);
+
+    expect(sanitized, contains('<input type="color" value="#336699"'));
+    expect(sanitized, contains('disabled="disabled"'));
+    expect(sanitized, contains('<input type="text" value="2026-01-01"'));
+    expect(sanitized, contains('<button type="submit" disabled="disabled"'));
+    expect(sanitized, contains('我是按钮'));
+    expect(sanitized, isNot(contains('oninput')));
+    expect(sanitized, isNot(contains('onchange')));
+    expect(sanitized, isNot(contains('onclick')));
+    expect(sanitized, isNot(contains('autofocus')));
   });
 
   group('CSS property filtering', () {

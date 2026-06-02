@@ -1,6 +1,29 @@
 part of '../../widgets/reader_view.dart';
 
 extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
+  static void registerCodeSearchAnchors(
+    BuildContext context,
+    List<ReaderCodeSearchRange> ranges,
+  ) {
+    final coordinator = context
+        .findAncestorStateOfType<_ReaderViewState>()
+        ?._viewportCoordinator;
+    final key =
+        context.widget.key ??
+        context.findAncestorWidgetOfExactType<_ReaderCodeBlock>()?.key;
+    if (coordinator == null || key is! GlobalKey) return;
+    for (final range in ranges) {
+      coordinator._codeSearchAnchorKeys[range.anchorId] = key;
+    }
+  }
+
+  static void revealCodeSearchContext(BuildContext context) {
+    final coordinator = context
+        .findAncestorStateOfType<_ReaderViewState>()
+        ?._viewportCoordinator;
+    coordinator?._revealContextInReaderScroll(context, alignment: 0.1);
+  }
+
   void _setChunkedLayout(bool isChunked) {
     if (_usingChunkedLayout == isChunked) return;
     _usingChunkedLayout = isChunked;
@@ -651,30 +674,24 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
       if (localName == 'pre') {
         final codeElement = element.querySelector('code');
         final source = codeElement ?? element;
-        final extraction = _extractReaderCode(source);
+        final extraction = const ReaderCodeHtmlRenderer().extract(source);
         if (extraction.text.trim().isEmpty) return null;
         final key = GlobalKey();
-        for (final range in extraction.searchRanges) {
-          _codeSearchAnchorKeys[range.anchorId] = key;
-        }
-        if (currentAnchorId != null &&
-            extraction.searchRanges.any(
-              (range) => range.anchorId == currentAnchorId,
-            )) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            final codeContext = key.currentContext;
-            if (codeContext == null || !codeContext.mounted) return;
-            _revealContextInReaderScroll(codeContext, alignment: 0.1);
-          });
-        }
         return _ReaderCodeBlock(
           key: key,
-          code: extraction.text,
-          language: _codeLanguageForElements(source, element),
+          source: source,
+          pre: element,
           fontSize: settings.fontSize,
-          searchRanges: extraction.searchRanges,
           currentAnchorId: currentAnchorId,
         );
+      }
+
+      if (localName == 'button') {
+        return InlineCustomWidget(child: _ReaderInertButton(element: element));
+      }
+
+      if (localName == 'input') {
+        return InlineCustomWidget(child: _ReaderInertInput(element: element));
       }
 
       if (localName == 'iframe' ||
