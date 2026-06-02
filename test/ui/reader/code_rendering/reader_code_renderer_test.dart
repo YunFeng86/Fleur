@@ -73,6 +73,14 @@ void main() {
     expect(result.sourceKind, ReaderCodeSourceKind.internalTokenizer);
     expect(result.document.language?.id, 'javascript');
     expect(
+      result.document.languageDecision.source,
+      ReaderCodeLanguageDecisionSource.contentHeuristic,
+    );
+    expect(
+      result.document.languageDecision.reasons,
+      contains('builtin:WeakRef'),
+    );
+    expect(
       result.document.lines
           .expand((line) => line.tokens)
           .any(
@@ -119,6 +127,14 @@ void main() {
     expect(result.sourceKind, ReaderCodeSourceKind.internalTokenizer);
     expect(result.document.language?.id, 'css');
     expect(
+      result.document.languageDecision.source,
+      ReaderCodeLanguageDecisionSource.contentHeuristic,
+    );
+    expect(
+      result.document.languageDecision.reasons,
+      contains('css:function:contrast-color'),
+    );
+    expect(
       result.document.lines
           .expand((line) => line.tokens)
           .any(
@@ -151,6 +167,40 @@ void main() {
     );
 
     expect(result.document.language?.id, 'python');
+    expect(
+      result.document.languageDecision.source,
+      ReaderCodeLanguageDecisionSource.codeClass,
+    );
+  });
+
+  test('keeps low-confidence content guesses as plain text', () async {
+    final fragment = html_parser.parseFragment('<pre>echo hi</pre>');
+    final pre = fragment.querySelector('pre')!;
+
+    final result = await renderer.render(
+      ReaderCodeRenderInput(
+        source: pre,
+        pre: pre,
+        baseStyle: const TextStyle(fontFamily: 'monospace'),
+        activeSearchBackground: const Color(0xFFFFFF00),
+        searchBackground: const Color(0xFFEEEE00),
+        errorColor: const Color(0xFFD1242F),
+        brightness: Brightness.light,
+        currentAnchorId: null,
+      ),
+    );
+
+    expect(result.sourceKind, ReaderCodeSourceKind.plainText);
+    expect(result.document.language?.id, 'shell');
+    expect(
+      result.document.languageDecision.source,
+      ReaderCodeLanguageDecisionSource.contentHeuristic,
+    );
+    expect(result.document.languageDecision.confidence, lessThan(0.62));
+    expect(
+      result.document.lines.single.tokens.single.role,
+      ReaderCodeTokenRole.plain,
+    );
   });
 
   test('applies search background without replacing token role', () async {

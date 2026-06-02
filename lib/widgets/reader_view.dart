@@ -906,10 +906,14 @@ class _ReaderCodeBlockState extends State<_ReaderCodeBlock> {
 
   ReaderCodeRenderResult _fallbackResult(BuildContext context) {
     final extraction = const ReaderCodeHtmlRenderer().extract(widget.source);
-    final language = const ReaderCodeLanguageResolver().resolveForElements(
-      widget.source,
-      widget.pre,
-    );
+    final languageDecision = const ReaderCodeLanguageResolver()
+        .resolveForCodeBlock(
+          source: widget.source,
+          pre: widget.pre,
+          text: extraction.text,
+          hasUpstreamTokenStyles: extraction.hasTokenStyles,
+        );
+    final language = languageDecision.language;
     final tokens = applyReaderCodeSearchTokenOverlay(
       extraction.tokens,
       searchRanges: extraction.searchRanges,
@@ -919,6 +923,7 @@ class _ReaderCodeBlockState extends State<_ReaderCodeBlock> {
       document: ReaderCodeDocument.fromTokens(
         text: extraction.text,
         language: language,
+        languageDecision: languageDecision,
         sourceKind: extraction.hasTokenStyles
             ? ReaderCodeSourceKind.htmlTokens
             : ReaderCodeSourceKind.plainText,

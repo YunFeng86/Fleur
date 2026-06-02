@@ -32,6 +32,18 @@ enum ReaderCodeTokenRole {
   searchCurrent,
 }
 
+enum ReaderCodeLanguageDecisionSource {
+  codeDataLanguage,
+  codeClass,
+  preDataLanguage,
+  preClass,
+  metadata,
+  shebang,
+  contentHeuristic,
+  plainFallback,
+  none,
+}
+
 final class ReaderCodeRenderInput {
   const ReaderCodeRenderInput({
     required this.source,
@@ -85,6 +97,7 @@ final class ReaderCodeDocument {
   const ReaderCodeDocument({
     required this.text,
     required this.language,
+    required this.languageDecision,
     required this.sourceKind,
     required this.lines,
     required this.searchRanges,
@@ -93,13 +106,17 @@ final class ReaderCodeDocument {
   factory ReaderCodeDocument.fromTokens({
     required String text,
     required ReaderCodeLanguage? language,
+    ReaderCodeLanguageDecision? languageDecision,
     required ReaderCodeSourceKind sourceKind,
     required List<ReaderCodeToken> tokens,
     required List<ReaderCodeSearchRange> searchRanges,
   }) {
+    final decision =
+        languageDecision ?? ReaderCodeLanguageDecision.fromLanguage(language);
     return ReaderCodeDocument(
       text: text,
-      language: language,
+      language: decision.language,
+      languageDecision: decision,
       sourceKind: sourceKind,
       lines: ReaderCodeLine.split(text: text, tokens: tokens),
       searchRanges: searchRanges,
@@ -108,6 +125,7 @@ final class ReaderCodeDocument {
 
   final String text;
   final ReaderCodeLanguage? language;
+  final ReaderCodeLanguageDecision languageDecision;
   final ReaderCodeSourceKind sourceKind;
   final List<ReaderCodeLine> lines;
   final List<ReaderCodeSearchRange> searchRanges;
@@ -235,4 +253,80 @@ final class ReaderCodeLanguage {
   final String id;
   final String? innerLanguage;
   final bool isPlainText;
+}
+
+final class ReaderCodeLanguageCandidate {
+  const ReaderCodeLanguageCandidate({
+    required this.raw,
+    required this.language,
+    required this.confidence,
+    required this.source,
+    required this.reasons,
+    this.isLowValue = false,
+  });
+
+  final String raw;
+  final ReaderCodeLanguage? language;
+  final double confidence;
+  final ReaderCodeLanguageDecisionSource source;
+  final List<String> reasons;
+  final bool isLowValue;
+}
+
+final class ReaderCodeLanguageDecision {
+  const ReaderCodeLanguageDecision({
+    required this.language,
+    required this.confidence,
+    required this.source,
+    required this.reasons,
+    required this.candidates,
+  });
+
+  factory ReaderCodeLanguageDecision.fromLanguage(
+    ReaderCodeLanguage? language,
+  ) {
+    if (language == null) return none;
+    return ReaderCodeLanguageDecision(
+      language: language,
+      confidence: language.isPlainText ? 0.1 : 1,
+      source: language.isPlainText
+          ? ReaderCodeLanguageDecisionSource.plainFallback
+          : ReaderCodeLanguageDecisionSource.none,
+      reasons: const [],
+      candidates: const [],
+    );
+  }
+
+  static const contentHighlightConfidenceThreshold = 0.62;
+  static const contentLabelConfidenceThreshold = 0.72;
+
+  static const none = ReaderCodeLanguageDecision(
+    language: null,
+    confidence: 0,
+    source: ReaderCodeLanguageDecisionSource.none,
+    reasons: [],
+    candidates: [],
+  );
+
+  final ReaderCodeLanguage? language;
+  final double confidence;
+  final ReaderCodeLanguageDecisionSource source;
+  final List<String> reasons;
+  final List<ReaderCodeLanguageCandidate> candidates;
+
+  bool get isContentHeuristic =>
+      source == ReaderCodeLanguageDecisionSource.contentHeuristic;
+
+  bool get shouldHighlight {
+    final resolved = language;
+    if (resolved == null || resolved.isPlainText) return false;
+    return !isContentHeuristic ||
+        confidence >= contentHighlightConfidenceThreshold;
+  }
+
+  bool get shouldDisplayLabel {
+    final resolved = language;
+    if (resolved == null || resolved.isPlainText) return false;
+    return !isContentHeuristic || confidence >= contentLabelConfidenceThreshold;
+  }
 }

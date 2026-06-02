@@ -21,7 +21,9 @@ final class ReaderCodeBlockPresentation {
   ) {
     return ReaderCodeBlockPresentation._(
       copyText: document.text,
-      displayLanguage: _displayLanguage(document.language?.id),
+      displayLanguage: document.languageDecision.shouldDisplayLabel
+          ? _displayLanguage(document.languageDecision.language?.id)
+          : null,
       lineCount: document.lines.length,
     );
   }

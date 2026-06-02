@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import 'reader_code_html_renderer.dart';
 import 'reader_code_language.dart';
-import 'reader_code_language_guesser.dart';
 import 'reader_code_models.dart';
 import 'reader_code_token_overlay.dart';
 import 'reader_code_syntax_adapter.dart';
@@ -15,31 +14,25 @@ final class ReaderCodeRenderer {
         const ReaderCodeLanguageResolver(),
     ReaderCodeSyntaxAdapter syntaxAdapter = const ReaderCodeSyntaxAdapter(),
     ReaderCodeTokenizer tokenizer = const ReaderCodeTokenizer(),
-    ReaderCodeLanguageGuesser languageGuesser =
-        const ReaderCodeLanguageGuesser(),
   }) : _htmlRenderer = htmlRenderer,
        _languageResolver = languageResolver,
        _syntaxAdapter = syntaxAdapter,
-       _tokenizer = tokenizer,
-       _languageGuesser = languageGuesser;
+       _tokenizer = tokenizer;
 
   final ReaderCodeHtmlRenderer _htmlRenderer;
   final ReaderCodeLanguageResolver _languageResolver;
   final ReaderCodeSyntaxAdapter _syntaxAdapter;
   final ReaderCodeTokenizer _tokenizer;
-  final ReaderCodeLanguageGuesser _languageGuesser;
 
   Future<ReaderCodeRenderResult> render(ReaderCodeRenderInput input) async {
     final extraction = _htmlRenderer.extract(input.source);
-    final explicitLanguage = _languageResolver.resolveForElements(
-      input.source,
-      input.pre,
+    final languageDecision = _languageResolver.resolveForCodeBlock(
+      source: input.source,
+      pre: input.pre,
+      text: extraction.text,
+      hasUpstreamTokenStyles: extraction.hasTokenStyles,
     );
-    final language =
-        explicitLanguage ??
-        (extraction.hasTokenStyles
-            ? null
-            : _languageGuesser.guess(extraction.text));
+    final language = languageDecision.language;
     final baseTokens = _applySearchOverlay(
       extraction.tokens,
       searchRanges: extraction.searchRanges,
@@ -49,7 +42,7 @@ final class ReaderCodeRenderer {
 
     if (extraction.hasTokenStyles) {
       sourceKind = ReaderCodeSourceKind.htmlTokens;
-    } else if (language?.id == 'diff') {
+    } else if (languageDecision.shouldHighlight && language?.id == 'diff') {
       final diffTokens = _applySearchOverlay(
         _highlightDiffTokens(extraction.text),
         searchRanges: extraction.searchRanges,
@@ -60,12 +53,14 @@ final class ReaderCodeRenderer {
         document: ReaderCodeDocument.fromTokens(
           text: extraction.text,
           language: language,
+          languageDecision: languageDecision,
           sourceKind: sourceKind,
           tokens: diffTokens,
           searchRanges: extraction.searchRanges,
         ),
       );
-    } else if (extraction.text.length <= input.maxHighlightedCodeLength) {
+    } else if (languageDecision.shouldHighlight &&
+        extraction.text.length <= input.maxHighlightedCodeLength) {
       final tokenized = _tokenizer.tokenize(extraction.text, language?.id);
       if (tokenized != null) {
         final overlayTokens = _applySearchOverlay(
@@ -77,6 +72,7 @@ final class ReaderCodeRenderer {
           document: ReaderCodeDocument.fromTokens(
             text: extraction.text,
             language: language,
+            languageDecision: languageDecision,
             sourceKind: ReaderCodeSourceKind.internalTokenizer,
             tokens: overlayTokens,
             searchRanges: extraction.searchRanges,
@@ -99,6 +95,7 @@ final class ReaderCodeRenderer {
           document: ReaderCodeDocument.fromTokens(
             text: extraction.text,
             language: language,
+            languageDecision: languageDecision,
             sourceKind: ReaderCodeSourceKind.syntaxHighlightFallback,
             tokens: overlayTokens,
             searchRanges: extraction.searchRanges,
@@ -114,6 +111,7 @@ final class ReaderCodeRenderer {
       document: ReaderCodeDocument.fromTokens(
         text: extraction.text,
         language: language,
+        languageDecision: languageDecision,
         sourceKind: sourceKind,
         tokens: baseTokens,
         searchRanges: extraction.searchRanges,

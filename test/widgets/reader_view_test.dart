@@ -928,6 +928,56 @@ void main() {
   );
 
   testWidgets(
+    'reader labels high-confidence code guesses and hides low-confidence labels',
+    (tester) async {
+      await pumpReader(
+        tester,
+        article: buildArticle(
+          title: 'A',
+          html:
+              '<pre>const ref = new WeakRef({ data: "heavy resource" });\n'
+              'console.log(ref.deref()?.data);</pre>'
+              '<pre>echo hi</pre>',
+        ),
+        appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      );
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 500)),
+      );
+      await settleReader(tester, rounds: 12);
+
+      expect(find.byKey(const Key('reader_code_block')), findsNWidgets(2));
+      expect(find.text('javascript'), findsOneWidget);
+      expect(find.text('shell'), findsNothing);
+      expect(readerCodePlainTexts(tester), [
+        'const ref = new WeakRef({ data: "heavy resource" });\nconsole.log(ref.deref()?.data);',
+        'echo hi',
+      ]);
+
+      await pumpUntil(tester, () {
+        final firstBlockLines = readerCodeLines(tester).first;
+        return firstBlockLines
+            .where((line) => line.text is TextSpan)
+            .expand((line) => flattenTextSpans(line.text as TextSpan))
+            .any((span) => span.text == 'const' && span.style?.color != null);
+      }, attempts: 80);
+
+      final lowConfidenceChildSpans = readerCodeLines(tester).last.expand((
+        line,
+      ) {
+        final text = line.text;
+        return text is TextSpan
+            ? (text.children ?? const <InlineSpan>[]).whereType<TextSpan>()
+            : const <TextSpan>[];
+      });
+      expect(
+        lowConfidenceChildSpans.any((span) => span.style?.color != null),
+        isFalse,
+      );
+    },
+  );
+
+  testWidgets(
     'reader code line gutter shares text metrics and sizes to line digits',
     (tester) async {
       final shortCode = List<String>.generate(

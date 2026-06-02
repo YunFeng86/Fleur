@@ -1,121 +1,277 @@
 import 'package:html/dom.dart' as dom;
 
+import 'reader_code_language_guesser.dart';
 import 'reader_code_models.dart';
 
 final class ReaderCodeLanguageResolver {
   const ReaderCodeLanguageResolver({
     ReaderCodeLanguageCatalog catalog = const ReaderCodeLanguageCatalog(),
-  }) : _catalog = catalog;
+    ReaderCodeLanguageGuesser languageGuesser =
+        const ReaderCodeLanguageGuesser(),
+  }) : _catalog = catalog,
+       _languageGuesser = languageGuesser;
 
   final ReaderCodeLanguageCatalog _catalog;
+  final ReaderCodeLanguageGuesser _languageGuesser;
 
   ReaderCodeLanguage? resolveForElements(dom.Element source, dom.Element pre) {
-    final candidates = <_LanguageCandidate>[
-      ..._dataLanguageCandidates(source, priority: 0),
-      ..._classCandidates(source, priority: 1),
-      if (!identical(source, pre)) ..._dataLanguageCandidates(pre, priority: 2),
-      if (!identical(source, pre)) ..._classCandidates(pre, priority: 3),
-      ..._metaCandidates(source, priority: 4),
-      if (!identical(source, pre)) ..._metaCandidates(pre, priority: 4),
-      ..._shebangCandidates(source, priority: 5),
+    return resolveForCodeBlock(
+      source: source,
+      pre: pre,
+      text: source.text,
+      hasUpstreamTokenStyles: true,
+    ).language;
+  }
+
+  ReaderCodeLanguageDecision resolveForCodeBlock({
+    required dom.Element source,
+    required dom.Element pre,
+    required String text,
+    required bool hasUpstreamTokenStyles,
+  }) {
+    final candidates = <ReaderCodeLanguageCandidate>[
+      ..._dataLanguageCandidates(
+        source,
+        source: ReaderCodeLanguageDecisionSource.codeDataLanguage,
+        confidence: 1,
+        reasonPrefix: 'code:data-language',
+      ),
+      ..._classCandidates(
+        source,
+        source: ReaderCodeLanguageDecisionSource.codeClass,
+        confidence: 0.98,
+        reasonPrefix: 'code:class',
+      ),
+      if (!identical(source, pre))
+        ..._dataLanguageCandidates(
+          pre,
+          source: ReaderCodeLanguageDecisionSource.preDataLanguage,
+          confidence: 0.94,
+          reasonPrefix: 'pre:data-language',
+        ),
+      if (!identical(source, pre))
+        ..._classCandidates(
+          pre,
+          source: ReaderCodeLanguageDecisionSource.preClass,
+          confidence: 0.92,
+          reasonPrefix: 'pre:class',
+        ),
+      ..._metaCandidates(source),
+      if (!identical(source, pre)) ..._metaCandidates(pre),
+      ..._shebangCandidates(text),
     ];
-    return resolveCandidates(candidates.map((candidate) => candidate.value));
+
+    final explicitDecision = _decisionFromCandidates(candidates);
+    if (explicitDecision.language != null &&
+        !explicitDecision.language!.isPlainText) {
+      return explicitDecision;
+    }
+
+    if (!hasUpstreamTokenStyles) {
+      candidates.addAll(_languageGuesser.guessCandidates(text));
+      final decision = _decisionFromCandidates(candidates);
+      if (decision.language != null) return decision;
+    }
+
+    return explicitDecision.language == null
+        ? _decisionFromCandidates(candidates)
+        : explicitDecision;
   }
 
   ReaderCodeLanguage? resolveCandidates(Iterable<String> rawCandidates) {
-    ReaderCodeLanguage? plainText;
-    for (final raw in rawCandidates) {
-      for (final token in _splitCandidate(raw)) {
-        final resolved = _catalog.resolve(token);
-        if (resolved == null) continue;
-        if (resolved.isPlainText) {
-          plainText ??= resolved;
-          continue;
-        }
-        return resolved;
-      }
-    }
-    return plainText;
+    final candidates = rawCandidates.expand(
+      (raw) => _resolvedCandidates(
+        raw,
+        source: ReaderCodeLanguageDecisionSource.codeClass,
+        confidence: 0.98,
+        reason: 'candidate:$raw',
+      ),
+    );
+    return _decisionFromCandidates(candidates).language;
   }
 
-  static Iterable<_LanguageCandidate> _dataLanguageCandidates(
+  Iterable<ReaderCodeLanguageCandidate> _dataLanguageCandidates(
     dom.Element element, {
-    required int priority,
+    required ReaderCodeLanguageDecisionSource source,
+    required double confidence,
+    required String reasonPrefix,
   }) sync* {
     final dataLanguage = element.attributes['data-language']?.trim();
     if (dataLanguage != null && dataLanguage.isNotEmpty) {
-      yield _LanguageCandidate(dataLanguage, priority);
+      yield* _resolvedCandidates(
+        dataLanguage,
+        source: source,
+        confidence: confidence,
+        reason: '$reasonPrefix:$dataLanguage',
+      );
     }
     final lang = element.attributes['lang']?.trim();
     if (lang != null && lang.isNotEmpty) {
-      yield _LanguageCandidate(lang, priority);
+      yield* _resolvedCandidates(
+        lang,
+        source: source,
+        confidence: confidence,
+        reason: 'lang:$lang',
+      );
     }
   }
 
-  static Iterable<_LanguageCandidate> _classCandidates(
+  Iterable<ReaderCodeLanguageCandidate> _classCandidates(
     dom.Element element, {
-    required int priority,
+    required ReaderCodeLanguageDecisionSource source,
+    required double confidence,
+    required String reasonPrefix,
   }) sync* {
     final rawClass = element.attributes['class'] ?? '';
     for (final part in rawClass.split(RegExp(r'\s+'))) {
       if (part.isEmpty) continue;
       if (part.startsWith('language-')) {
-        yield _LanguageCandidate(part.substring('language-'.length), priority);
+        yield* _resolvedCandidates(
+          part.substring('language-'.length),
+          source: source,
+          confidence: confidence,
+          reason: '$reasonPrefix:$part',
+        );
       } else if (part.startsWith('lang-')) {
-        yield _LanguageCandidate(part.substring('lang-'.length), priority);
+        yield* _resolvedCandidates(
+          part.substring('lang-'.length),
+          source: source,
+          confidence: confidence,
+          reason: '$reasonPrefix:$part',
+        );
       } else if (part.startsWith('source-')) {
-        yield _LanguageCandidate(part.substring('source-'.length), priority);
+        yield* _resolvedCandidates(
+          part.substring('source-'.length),
+          source: source,
+          confidence: confidence,
+          reason: '$reasonPrefix:$part',
+        );
       }
     }
   }
 
-  static Iterable<_LanguageCandidate> _metaCandidates(
-    dom.Element element, {
-    required int priority,
-  }) sync* {
+  Iterable<ReaderCodeLanguageCandidate> _metaCandidates(
+    dom.Element element,
+  ) sync* {
     for (final name in const ['data-meta', 'metastring', 'data-filename']) {
       final value = element.attributes[name]?.trim();
       if (value == null || value.isEmpty) continue;
-      yield* _filenameCandidates(value, priority: priority);
+      yield* _filenameCandidates(value, attributeName: name);
       final parts = value.split(RegExp(r'\s+'));
       final first = parts.isEmpty ? '' : parts.first;
       if (first.isNotEmpty && !first.contains('=')) {
-        yield _LanguageCandidate(first, priority);
+        yield* _resolvedCandidates(
+          first,
+          source: ReaderCodeLanguageDecisionSource.metadata,
+          confidence: 0.86,
+          reason: 'metadata:$name:$first',
+        );
       }
     }
   }
 
-  static Iterable<_LanguageCandidate> _filenameCandidates(
+  Iterable<ReaderCodeLanguageCandidate> _filenameCandidates(
     String value, {
-    required int priority,
+    required String attributeName,
   }) sync* {
     final filenameMatch = RegExp(
       r'(^|[/\\])([A-Za-z0-9_.+-]+)$',
     ).firstMatch(value);
     final filename = filenameMatch?.group(2);
     if (filename != null && filename.isNotEmpty) {
-      yield _LanguageCandidate(filename, priority);
+      yield* _resolvedCandidates(
+        filename,
+        source: ReaderCodeLanguageDecisionSource.metadata,
+        confidence: 0.86,
+        reason: 'metadata:$attributeName:filename:$filename',
+      );
     }
     final match = RegExp(r'[\w./-]+\.([A-Za-z0-9_+-]+)').firstMatch(value);
     final extension = match?.group(1);
     if (extension != null && extension.isNotEmpty) {
-      yield _LanguageCandidate(extension, priority);
+      yield* _resolvedCandidates(
+        extension,
+        source: ReaderCodeLanguageDecisionSource.metadata,
+        confidence: 0.86,
+        reason: 'metadata:$attributeName:extension:$extension',
+      );
     }
   }
 
-  static Iterable<_LanguageCandidate> _shebangCandidates(
-    dom.Element source, {
-    required int priority,
-  }) sync* {
-    final text = source.text.trimLeft();
-    if (!text.startsWith('#!')) return;
-    final firstLineEnd = text.indexOf('\n');
-    final firstLine = firstLineEnd < 0 ? text : text.substring(0, firstLineEnd);
+  Iterable<ReaderCodeLanguageCandidate> _shebangCandidates(String text) sync* {
+    final trimmed = text.trimLeft();
+    if (!trimmed.startsWith('#!')) return;
+    final firstLineEnd = trimmed.indexOf('\n');
+    final firstLine = firstLineEnd < 0
+        ? trimmed
+        : trimmed.substring(0, firstLineEnd);
     final executable = firstLine.split(RegExp(r'\s+')).last;
     final slash = executable.lastIndexOf('/');
-    yield _LanguageCandidate(
-      slash < 0 ? executable : executable.substring(slash + 1),
-      priority,
+    final raw = slash < 0 ? executable : executable.substring(slash + 1);
+    yield* _resolvedCandidates(
+      raw,
+      source: ReaderCodeLanguageDecisionSource.shebang,
+      confidence: 0.9,
+      reason: 'shebang:$raw',
+    );
+  }
+
+  Iterable<ReaderCodeLanguageCandidate> _resolvedCandidates(
+    String raw, {
+    required ReaderCodeLanguageDecisionSource source,
+    required double confidence,
+    required String reason,
+  }) sync* {
+    for (final token in _splitCandidate(raw)) {
+      final resolved = _catalog.resolve(token);
+      if (resolved == null) continue;
+      final isLowValue = resolved.isPlainText;
+      yield ReaderCodeLanguageCandidate(
+        raw: token,
+        language: resolved,
+        confidence: isLowValue ? 0.1 : confidence,
+        source: isLowValue
+            ? ReaderCodeLanguageDecisionSource.plainFallback
+            : source,
+        reasons: [reason],
+        isLowValue: isLowValue,
+      );
+    }
+  }
+
+  static ReaderCodeLanguageDecision _decisionFromCandidates(
+    Iterable<ReaderCodeLanguageCandidate> candidates,
+  ) {
+    final all = candidates.toList(growable: false);
+    for (final candidate in all) {
+      if (candidate.language != null && !candidate.isLowValue) {
+        return _decisionFromCandidate(candidate, all);
+      }
+    }
+    for (final candidate in all) {
+      if (candidate.language != null && candidate.isLowValue) {
+        return _decisionFromCandidate(candidate, all);
+      }
+    }
+    return ReaderCodeLanguageDecision(
+      language: null,
+      confidence: 0,
+      source: ReaderCodeLanguageDecisionSource.none,
+      reasons: const [],
+      candidates: all,
+    );
+  }
+
+  static ReaderCodeLanguageDecision _decisionFromCandidate(
+    ReaderCodeLanguageCandidate candidate,
+    List<ReaderCodeLanguageCandidate> candidates,
+  ) {
+    return ReaderCodeLanguageDecision(
+      language: candidate.language,
+      confidence: candidate.confidence,
+      source: candidate.source,
+      reasons: candidate.reasons,
+      candidates: candidates,
     );
   }
 
@@ -282,11 +438,4 @@ final class ReaderCodeLanguageCatalog {
     'yml': 'yaml',
     'zsh': 'shell',
   };
-}
-
-final class _LanguageCandidate {
-  const _LanguageCandidate(this.value, this.priority);
-
-  final String value;
-  final int priority;
 }
