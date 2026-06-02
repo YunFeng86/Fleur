@@ -140,6 +140,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get readerAppearance => 'Reader appearance';
 
   @override
+  String get codeAppearance => 'Code appearance';
+
+  @override
+  String get custom => 'Custom';
+
+  @override
   String get appearancePreview => 'Preview';
 
   @override
@@ -178,6 +184,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get readerFontMono => 'Mono';
 
   @override
+  String get readerFontStack => 'Reading font stack';
+
+  @override
+  String get fontStackExample =>
+      '\"PingFang SC\", \"Noto Sans CJK SC\", system-ui, sans-serif';
+
+  @override
   String get readerTheme => 'Reading texture';
 
   @override
@@ -203,6 +216,30 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get readingWidthWide => 'Wide';
+
+  @override
+  String get codeFontFamily => 'Code font';
+
+  @override
+  String get codeFontSystemMono => 'System mono';
+
+  @override
+  String get codeFontStack => 'Code font stack';
+
+  @override
+  String get codeFontSize => 'Code font size';
+
+  @override
+  String get codeFontSizeFollowReader => 'Follow body';
+
+  @override
+  String get codeFontSizeOneStepDown => 'One step down';
+
+  @override
+  String get codeLineHeight => 'Code line height';
+
+  @override
+  String get codeSoftWrap => 'Wrap code lines';
 
   @override
   String get storage => 'Storage';

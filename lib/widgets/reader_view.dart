@@ -957,14 +957,9 @@ class _ReaderCodeBlockState extends State<_ReaderCodeBlock> {
 
   TextStyle _codeStyle(BuildContext context) {
     final theme = Theme.of(context);
-    return TextStyle(
+    return theme.fleurReader.codeStyle.copyWith(
       color: theme.colorScheme.onSurface,
       decoration: TextDecoration.none,
-      fontFamily: 'monospace',
-      fontSize: math.max(12, widget.fontSize - 1),
-      fontStyle: FontStyle.normal,
-      fontWeight: FontWeight.w400,
-      height: 1.45,
     );
   }
 
@@ -981,6 +976,7 @@ class _ReaderCodeBlockState extends State<_ReaderCodeBlock> {
         return ReaderCodeBlockChrome(
           document: result.document,
           codeStyle: _codeStyle(context),
+          softWrap: Theme.of(context).fleurReader.codeSoftWrap,
         );
       },
     );
@@ -1011,7 +1007,9 @@ class _ReaderMathNode extends StatelessWidget {
       onErrorFallback: (_) => Text(
         expression,
         key: const Key('reader_math_fallback'),
-        style: textStyle.copyWith(fontFamily: 'monospace'),
+        style: theme.fleurReader.codeStyle.copyWith(
+          color: theme.colorScheme.onSurface,
+        ),
       ),
     );
 

@@ -103,12 +103,14 @@ class ReaderCodeBlockChrome extends StatelessWidget {
     super.key,
     required this.document,
     required this.codeStyle,
+    required this.softWrap,
   });
 
   static const copyFeedbackDuration = Duration(milliseconds: 1200);
 
   final ReaderCodeDocument document;
   final TextStyle codeStyle;
+  final bool softWrap;
 
   @override
   Widget build(BuildContext context) {
@@ -133,11 +135,13 @@ class ReaderCodeBlockChrome extends StatelessWidget {
             language: presentation.displayLanguage,
             copyText: presentation.copyText,
             codeTheme: codeTheme,
+            codeStyle: codeStyle,
           ),
           _ReaderCodeBody(
             document: document,
             codeStyle: codeStyle,
             codeTheme: codeTheme,
+            softWrap: softWrap,
           ),
         ],
       ),
@@ -150,11 +154,13 @@ class _ReaderCodeHeader extends StatelessWidget {
     required this.language,
     required this.copyText,
     required this.codeTheme,
+    required this.codeStyle,
   });
 
   final String? language;
   final String copyText;
   final ReaderCodeTheme codeTheme;
+  final TextStyle codeStyle;
 
   @override
   Widget build(BuildContext context) {
@@ -177,9 +183,10 @@ class _ReaderCodeHeader extends StatelessWidget {
                     key: const Key('reader_code_language_label'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelSmall?.copyWith(
+                    style: codeStyle.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
-                      fontFamily: 'monospace',
+                      fontSize: theme.textTheme.labelSmall?.fontSize,
+                      height: theme.textTheme.labelSmall?.height,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -196,11 +203,13 @@ class _ReaderCodeBody extends StatelessWidget {
     required this.document,
     required this.codeStyle,
     required this.codeTheme,
+    required this.softWrap,
   });
 
   final ReaderCodeDocument document;
   final TextStyle codeStyle;
   final ReaderCodeTheme codeTheme;
+  final bool softWrap;
 
   @override
   Widget build(BuildContext context) {
@@ -222,8 +231,8 @@ class _ReaderCodeBody extends StatelessWidget {
           codeTheme: codeTheme,
         ),
         Expanded(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
+          child: _ReaderCodeLineColumn(
+            softWrap: softWrap,
             child: Padding(
               padding: const EdgeInsets.all(14),
               child: Column(
@@ -237,6 +246,7 @@ class _ReaderCodeBody extends StatelessWidget {
                       metrics: metrics,
                       tokenTheme: tokenTheme,
                       baseStyle: codeStyle,
+                      softWrap: softWrap,
                     ),
                 ],
               ),
@@ -248,18 +258,36 @@ class _ReaderCodeBody extends StatelessWidget {
   }
 }
 
+class _ReaderCodeLineColumn extends StatelessWidget {
+  const _ReaderCodeLineColumn({required this.softWrap, required this.child});
+
+  final bool softWrap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (softWrap) return child;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: child,
+    );
+  }
+}
+
 class _ReaderCodeLineText extends StatelessWidget {
   const _ReaderCodeLineText({
     required this.line,
     required this.metrics,
     required this.tokenTheme,
     required this.baseStyle,
+    required this.softWrap,
   });
 
   final ReaderCodeLine line;
   final ReaderCodeLayoutMetrics metrics;
   final ReaderCodeTokenTheme tokenTheme;
   final TextStyle baseStyle;
+  final bool softWrap;
 
   @override
   Widget build(BuildContext context) {
@@ -273,7 +301,7 @@ class _ReaderCodeLineText extends StatelessWidget {
       overflow: TextOverflow.visible,
       selectionColor: selectionColor,
       selectionRegistrar: registrar,
-      softWrap: false,
+      softWrap: softWrap,
       strutStyle: metrics.strutStyle,
       text: TextSpan(
         style: baseStyle,
@@ -283,8 +311,14 @@ class _ReaderCodeLineText extends StatelessWidget {
         ],
       ),
       textHeightBehavior: metrics.textHeightBehavior,
-      textWidthBasis: TextWidthBasis.longestLine,
+      textWidthBasis: softWrap
+          ? TextWidthBasis.parent
+          : TextWidthBasis.longestLine,
     );
+
+    if (softWrap) {
+      return MouseRegion(cursor: SystemMouseCursors.text, child: text);
+    }
 
     return SizedBox(
       height: metrics.lineHeight,

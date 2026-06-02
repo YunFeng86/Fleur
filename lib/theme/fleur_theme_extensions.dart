@@ -276,6 +276,21 @@ class FleurReaderColorTokens {
 }
 
 @immutable
+class FleurFontStack {
+  const FleurFontStack({this.fontFamily, this.fontFamilyFallback});
+
+  final String? fontFamily;
+  final List<String>? fontFamilyFallback;
+
+  TextStyle applyTo(TextStyle style) {
+    return style.copyWith(
+      fontFamily: fontFamily,
+      fontFamilyFallback: fontFamilyFallback,
+    );
+  }
+}
+
+@immutable
 class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
   const FleurReaderTheme({
     required this.maxWidth,
@@ -286,6 +301,8 @@ class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
     required this.metaStyle,
     required this.bodyStyle,
     required this.summaryStyle,
+    required this.codeStyle,
+    required this.codeSoftWrap,
     required this.summarySurface,
     required this.toolbarSurface,
     required this.searchBarSurface,
@@ -302,6 +319,8 @@ class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
   final TextStyle metaStyle;
   final TextStyle bodyStyle;
   final TextStyle summaryStyle;
+  final TextStyle codeStyle;
+  final bool codeSoftWrap;
   final Color summarySurface;
   final Color toolbarSurface;
   final Color searchBarSurface;
@@ -360,14 +379,13 @@ class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
           codeBlockSurface: scheme.surfaceContainerHigh,
         );
 
-    final fontFamily = _readerFontFamily(settings.fontFamily);
-    final fontFallback = _readerFontFallback(settings.fontFamily);
+    final readerFontStack = readerFontStackFor(settings);
     TextStyle applyReaderFont(TextStyle style) {
-      return style.copyWith(
-        fontFamily: fontFamily,
-        fontFamilyFallback: fontFallback,
-      );
+      return readerFontStack.applyTo(style);
     }
+
+    final codeFontStack = codeFontStackFor(settings);
+    final codeFontSize = codeFontSizeFor(settings);
 
     return FleurReaderTheme(
       maxWidth: _readerMaxWidth(settings.contentWidthPreset),
@@ -403,6 +421,17 @@ class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
           height: 1.56,
         ),
       ),
+      codeStyle: codeFontStack.applyTo(
+        const TextStyle().copyWith(
+          color: scheme.onSurface,
+          decoration: TextDecoration.none,
+          fontSize: codeFontSize,
+          fontStyle: FontStyle.normal,
+          fontWeight: FontWeight.w400,
+          height: _clampDouble(settings.codeLineHeight, 1.1, 2.0),
+        ),
+      ),
+      codeSoftWrap: settings.codeSoftWrap,
       summarySurface: readerColors.summarySurface,
       toolbarSurface: readerColors.toolbarSurface,
       searchBarSurface: readerColors.searchBarSurface,
@@ -422,6 +451,8 @@ class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
     TextStyle? metaStyle,
     TextStyle? bodyStyle,
     TextStyle? summaryStyle,
+    TextStyle? codeStyle,
+    bool? codeSoftWrap,
     Color? summarySurface,
     Color? toolbarSurface,
     Color? searchBarSurface,
@@ -439,6 +470,8 @@ class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
       metaStyle: metaStyle ?? this.metaStyle,
       bodyStyle: bodyStyle ?? this.bodyStyle,
       summaryStyle: summaryStyle ?? this.summaryStyle,
+      codeStyle: codeStyle ?? this.codeStyle,
+      codeSoftWrap: codeSoftWrap ?? this.codeSoftWrap,
       summarySurface: summarySurface ?? this.summarySurface,
       toolbarSurface: toolbarSurface ?? this.toolbarSurface,
       searchBarSurface: searchBarSurface ?? this.searchBarSurface,
@@ -474,6 +507,8 @@ class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
       bodyStyle: TextStyle.lerp(bodyStyle, other.bodyStyle, t) ?? bodyStyle,
       summaryStyle:
           TextStyle.lerp(summaryStyle, other.summaryStyle, t) ?? summaryStyle,
+      codeStyle: TextStyle.lerp(codeStyle, other.codeStyle, t) ?? codeStyle,
+      codeSoftWrap: t < 0.5 ? codeSoftWrap : other.codeSoftWrap,
       summarySurface:
           Color.lerp(summarySurface, other.summarySurface, t) ?? summarySurface,
       toolbarSurface:
@@ -501,12 +536,86 @@ double _readerMaxWidth(ReaderContentWidthPreset preset) {
   };
 }
 
+FleurFontStack readerFontStackFor(ReaderSettings settings) {
+  if (settings.fontFamily == ReaderFontFamily.custom) {
+    final custom = parseFontStack(settings.readerFontStack);
+    if (custom.fontFamily != null) return custom;
+  }
+  return FleurFontStack(
+    fontFamily: _readerFontFamily(settings.fontFamily),
+    fontFamilyFallback: _readerFontFallback(settings.fontFamily),
+  );
+}
+
+FleurFontStack codeFontStackFor(ReaderSettings settings) {
+  if (settings.codeFontFamily == CodeFontFamilyPreset.custom) {
+    final custom = parseFontStack(settings.codeFontStack);
+    if (custom.fontFamily != null) return custom;
+  }
+  return const FleurFontStack(
+    fontFamily: 'SF Mono',
+    fontFamilyFallback: [
+      'Menlo',
+      'Consolas',
+      'Cascadia Mono',
+      'Noto Sans Mono CJK SC',
+      'Noto Sans Mono',
+      'monospace',
+    ],
+  );
+}
+
+double codeFontSizeFor(ReaderSettings settings) {
+  return switch (settings.codeFontSizeMode) {
+    CodeFontSizeMode.followReader => settings.fontSize,
+    CodeFontSizeMode.oneStepDown => math.max(12, settings.fontSize - 1),
+    CodeFontSizeMode.custom => _clampDouble(settings.codeFontSize, 11, 24),
+  };
+}
+
+FleurFontStack parseFontStack(String value) {
+  final rawItems = value.split(',');
+  final fonts = <String>[];
+  for (final raw in rawItems) {
+    var item = raw.trim();
+    if (item.length >= 2) {
+      final quote = item[0];
+      final endQuote = item[item.length - 1];
+      if ((quote == '"' && endQuote == '"') ||
+          (quote == '\'' && endQuote == '\'')) {
+        item = item.substring(1, item.length - 1).trim();
+      }
+    }
+    if (item.isEmpty) continue;
+    if (item == 'system-ui') {
+      final systemFamily = AppTypography.fontFamily();
+      if (systemFamily != null && systemFamily.isNotEmpty) {
+        fonts.add(systemFamily);
+      }
+      fonts.addAll(AppTypography.fontFallback());
+      continue;
+    }
+    fonts.add(item);
+  }
+
+  final deduped = <String>[];
+  for (final font in fonts) {
+    if (!deduped.contains(font)) deduped.add(font);
+  }
+  if (deduped.isEmpty) return const FleurFontStack();
+  return FleurFontStack(
+    fontFamily: deduped.first,
+    fontFamilyFallback: deduped.length > 1 ? deduped.sublist(1) : null,
+  );
+}
+
 String? _readerFontFamily(ReaderFontFamily family) {
   return switch (family) {
     ReaderFontFamily.system => AppTypography.fontFamily(),
     ReaderFontFamily.serif => 'Georgia',
     ReaderFontFamily.sans => AppTypography.fontFamily(),
     ReaderFontFamily.mono => 'SF Mono',
+    ReaderFontFamily.custom => AppTypography.fontFamily(),
   };
 }
 
@@ -533,6 +642,7 @@ List<String>? _readerFontFallback(ReaderFontFamily family) {
       'Noto Sans Mono',
       'monospace',
     ],
+    ReaderFontFamily.custom => AppTypography.fontFallback(),
   };
 }
 

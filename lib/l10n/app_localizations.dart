@@ -345,6 +345,18 @@ abstract class AppLocalizations {
   /// **'Reader appearance'**
   String get readerAppearance;
 
+  /// Section title for code appearance settings
+  ///
+  /// In en, this message translates to:
+  /// **'Code appearance'**
+  String get codeAppearance;
+
+  /// Generic custom option label
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get custom;
+
   /// Appearance settings preview section title
   ///
   /// In en, this message translates to:
@@ -417,6 +429,18 @@ abstract class AppLocalizations {
   /// **'Mono'**
   String get readerFontMono;
 
+  /// Reader custom font stack setting label
+  ///
+  /// In en, this message translates to:
+  /// **'Reading font stack'**
+  String get readerFontStack;
+
+  /// Example helper text for custom font stack input
+  ///
+  /// In en, this message translates to:
+  /// **'\"PingFang SC\", \"Noto Sans CJK SC\", system-ui, sans-serif'**
+  String get fontStackExample;
+
   /// Reader surface texture preset setting label
   ///
   /// In en, this message translates to:
@@ -470,6 +494,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Wide'**
   String get readingWidthWide;
+
+  /// Code font family setting label
+  ///
+  /// In en, this message translates to:
+  /// **'Code font'**
+  String get codeFontFamily;
+
+  /// Code system monospace font option
+  ///
+  /// In en, this message translates to:
+  /// **'System mono'**
+  String get codeFontSystemMono;
+
+  /// Code custom font stack setting label
+  ///
+  /// In en, this message translates to:
+  /// **'Code font stack'**
+  String get codeFontStack;
+
+  /// Code font size setting label
+  ///
+  /// In en, this message translates to:
+  /// **'Code font size'**
+  String get codeFontSize;
+
+  /// Code font size follows reader body option
+  ///
+  /// In en, this message translates to:
+  /// **'Follow body'**
+  String get codeFontSizeFollowReader;
+
+  /// Code font size one step smaller than reader body option
+  ///
+  /// In en, this message translates to:
+  /// **'One step down'**
+  String get codeFontSizeOneStepDown;
+
+  /// Code line height setting label
+  ///
+  /// In en, this message translates to:
+  /// **'Code line height'**
+  String get codeLineHeight;
+
+  /// Code soft wrap setting label
+  ///
+  /// In en, this message translates to:
+  /// **'Wrap code lines'**
+  String get codeSoftWrap;
 
   /// storage
   ///

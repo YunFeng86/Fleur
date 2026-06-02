@@ -170,6 +170,14 @@
   "@readerAppearance": {
     "description": "Section title for reader appearance settings"
   },
+  "codeAppearance": "Code appearance",
+  "@codeAppearance": {
+    "description": "Section title for code appearance settings"
+  },
+  "custom": "Custom",
+  "@custom": {
+    "description": "Generic custom option label"
+  },
   "appearancePreview": "Preview",
   "@appearancePreview": {
     "description": "Appearance settings preview section title"
@@ -218,6 +226,14 @@
   "@readerFontMono": {
     "description": "Reader mono font option"
   },
+  "readerFontStack": "Reading font stack",
+  "@readerFontStack": {
+    "description": "Reader custom font stack setting label"
+  },
+  "fontStackExample": "\"PingFang SC\", \"Noto Sans CJK SC\", system-ui, sans-serif",
+  "@fontStackExample": {
+    "description": "Example helper text for custom font stack input"
+  },
   "readerTheme": "Reading texture",
   "@readerTheme": {
     "description": "Reader surface texture preset setting label"
@@ -253,6 +269,38 @@
   "readingWidthWide": "Wide",
   "@readingWidthWide": {
     "description": "Wide reader content width option"
+  },
+  "codeFontFamily": "Code font",
+  "@codeFontFamily": {
+    "description": "Code font family setting label"
+  },
+  "codeFontSystemMono": "System mono",
+  "@codeFontSystemMono": {
+    "description": "Code system monospace font option"
+  },
+  "codeFontStack": "Code font stack",
+  "@codeFontStack": {
+    "description": "Code custom font stack setting label"
+  },
+  "codeFontSize": "Code font size",
+  "@codeFontSize": {
+    "description": "Code font size setting label"
+  },
+  "codeFontSizeFollowReader": "Follow body",
+  "@codeFontSizeFollowReader": {
+    "description": "Code font size follows reader body option"
+  },
+  "codeFontSizeOneStepDown": "One step down",
+  "@codeFontSizeOneStepDown": {
+    "description": "Code font size one step smaller than reader body option"
+  },
+  "codeLineHeight": "Code line height",
+  "@codeLineHeight": {
+    "description": "Code line height setting label"
+  },
+  "codeSoftWrap": "Wrap code lines",
+  "@codeSoftWrap": {
+    "description": "Code soft wrap setting label"
   },
   "storage": "Storage",
   "@storage": {

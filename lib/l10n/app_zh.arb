@@ -170,6 +170,14 @@
   "@readerAppearance": {
     "description": "Section title for reader appearance settings"
   },
+  "codeAppearance": "代码外观",
+  "@codeAppearance": {
+    "description": "Section title for code appearance settings"
+  },
+  "custom": "自定义",
+  "@custom": {
+    "description": "Generic custom option label"
+  },
   "appearancePreview": "预览",
   "@appearancePreview": {
     "description": "Appearance settings preview section title"
@@ -218,6 +226,14 @@
   "@readerFontMono": {
     "description": "Reader mono font option"
   },
+  "readerFontStack": "阅读字体栈",
+  "@readerFontStack": {
+    "description": "Reader custom font stack setting label"
+  },
+  "fontStackExample": "\"PingFang SC\", \"Noto Sans CJK SC\", system-ui, sans-serif",
+  "@fontStackExample": {
+    "description": "Example helper text for custom font stack input"
+  },
   "readerTheme": "阅读质感",
   "@readerTheme": {
     "description": "Reader surface texture preset setting label"
@@ -253,6 +269,38 @@
   "readingWidthWide": "宽",
   "@readingWidthWide": {
     "description": "Wide reader content width option"
+  },
+  "codeFontFamily": "代码字体",
+  "@codeFontFamily": {
+    "description": "Code font family setting label"
+  },
+  "codeFontSystemMono": "系统等宽",
+  "@codeFontSystemMono": {
+    "description": "Code system monospace font option"
+  },
+  "codeFontStack": "代码字体栈",
+  "@codeFontStack": {
+    "description": "Code custom font stack setting label"
+  },
+  "codeFontSize": "代码字号",
+  "@codeFontSize": {
+    "description": "Code font size setting label"
+  },
+  "codeFontSizeFollowReader": "跟随正文",
+  "@codeFontSizeFollowReader": {
+    "description": "Code font size follows reader body option"
+  },
+  "codeFontSizeOneStepDown": "小一号",
+  "@codeFontSizeOneStepDown": {
+    "description": "Code font size one step smaller than reader body option"
+  },
+  "codeLineHeight": "代码行高",
+  "@codeLineHeight": {
+    "description": "Code line height setting label"
+  },
+  "codeSoftWrap": "自动换行",
+  "@codeSoftWrap": {
+    "description": "Code soft wrap setting label"
   },
   "storage": "存储",
   "@storage": {

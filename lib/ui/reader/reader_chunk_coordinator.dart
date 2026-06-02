@@ -543,6 +543,19 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
     }
 
     String cssColor(Color color) => rgba(color);
+    String cssFontFamily(TextStyle style) {
+      final fonts = <String>[?style.fontFamily, ...?style.fontFamilyFallback];
+      if (fonts.isEmpty) return 'monospace';
+      return fonts
+          .map((font) => font.contains(' ') ? '"$font"' : font)
+          .join(', ');
+    }
+
+    final codeStyle = reader.codeStyle;
+    final codeCssFontFamily = cssFontFamily(codeStyle);
+    final codeCssFontSize = codeStyle.fontSize ?? settings.fontSize - 1;
+    final codeCssLineHeight =
+        codeStyle.height ?? ReaderSettings.defaultCodeLineHeight;
 
     Map<String, String>? customStyles(dom.Element element) {
       final localName = element.localName;
@@ -585,13 +598,15 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
           'background-color': cssColor(reader.codeBlockSurface),
           'border': '1px solid ${rgba(theme.fleurSurface.subtleDivider)}',
           'border-radius': '6px',
-          'font-family': 'monospace',
+          'font-family': codeCssFontFamily,
+          'font-size': '${codeCssFontSize.toStringAsFixed(0)}px',
           'font-style': 'normal',
           'font-weight': '400',
+          'line-height': codeCssLineHeight.toStringAsFixed(2),
           'margin': '18px 0',
           'padding': '14px 16px',
           'text-decoration': 'none',
-          'white-space': 'pre-wrap',
+          'white-space': reader.codeSoftWrap ? 'pre-wrap' : 'pre',
         };
       }
 
@@ -599,9 +614,11 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
         return <String, String>{
           'background-color': cssColor(reader.codeBlockSurface),
           'border-radius': '4px',
-          'font-family': 'monospace',
+          'font-family': codeCssFontFamily,
+          'font-size': '${codeCssFontSize.toStringAsFixed(0)}px',
           'font-style': 'normal',
           'font-weight': '400',
+          'line-height': codeCssLineHeight.toStringAsFixed(2),
           'padding': '1px 4px',
           'text-decoration': 'none',
         };

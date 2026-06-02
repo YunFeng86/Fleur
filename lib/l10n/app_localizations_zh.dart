@@ -136,6 +136,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get readerAppearance => '阅读外观';
 
   @override
+  String get codeAppearance => '代码外观';
+
+  @override
+  String get custom => '自定义';
+
+  @override
   String get appearancePreview => '预览';
 
   @override
@@ -172,6 +178,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get readerFontMono => '等宽';
 
   @override
+  String get readerFontStack => '阅读字体栈';
+
+  @override
+  String get fontStackExample =>
+      '\"PingFang SC\", \"Noto Sans CJK SC\", system-ui, sans-serif';
+
+  @override
   String get readerTheme => '阅读质感';
 
   @override
@@ -197,6 +210,30 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get readingWidthWide => '宽';
+
+  @override
+  String get codeFontFamily => '代码字体';
+
+  @override
+  String get codeFontSystemMono => '系统等宽';
+
+  @override
+  String get codeFontStack => '代码字体栈';
+
+  @override
+  String get codeFontSize => '代码字号';
+
+  @override
+  String get codeFontSizeFollowReader => '跟随正文';
+
+  @override
+  String get codeFontSizeOneStepDown => '小一号';
+
+  @override
+  String get codeLineHeight => '代码行高';
+
+  @override
+  String get codeSoftWrap => '自动换行';
 
   @override
   String get storage => '存储';
@@ -1473,6 +1510,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get readerAppearance => '閱讀外觀';
 
   @override
+  String get codeAppearance => '程式碼外觀';
+
+  @override
+  String get custom => '自訂';
+
+  @override
   String get appearancePreview => '預覽';
 
   @override
@@ -1509,6 +1552,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get readerFontMono => '等寬';
 
   @override
+  String get readerFontStack => '閱讀字體棧';
+
+  @override
+  String get fontStackExample =>
+      '\"PingFang SC\", \"Noto Sans CJK SC\", system-ui, sans-serif';
+
+  @override
   String get readerTheme => '閱讀質感';
 
   @override
@@ -1534,6 +1584,30 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get readingWidthWide => '寬';
+
+  @override
+  String get codeFontFamily => '程式碼字體';
+
+  @override
+  String get codeFontSystemMono => '系統等寬';
+
+  @override
+  String get codeFontStack => '程式碼字體棧';
+
+  @override
+  String get codeFontSize => '程式碼字號';
+
+  @override
+  String get codeFontSizeFollowReader => '跟隨正文';
+
+  @override
+  String get codeFontSizeOneStepDown => '小一號';
+
+  @override
+  String get codeLineHeight => '程式碼行高';
+
+  @override
+  String get codeSoftWrap => '自動換行';
 
   @override
   String get storage => '儲存';

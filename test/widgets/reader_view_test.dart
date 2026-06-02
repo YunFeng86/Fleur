@@ -461,6 +461,40 @@ void main() {
     expect(style.color, reader.bodyStyle.color);
   });
 
+  testWidgets('reader body applies custom reading font stack', (tester) async {
+    const settings = ReaderSettings(
+      fontFamily: ReaderFontFamily.custom,
+      readerFontStack: '"Georgia", "Times New Roman", serif',
+    );
+
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html: '<p>Long form body copy should use the custom stack.</p>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      readerSettings: settings,
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 12);
+
+    final bodyText = tester.widget<ReaderSelectableRichText>(
+      find
+          .descendant(
+            of: find.byType(HtmlWidget),
+            matching: find.byType(ReaderSelectableRichText),
+          )
+          .first,
+    );
+    final style = (bodyText.text as TextSpan).style!;
+
+    expect(style.fontFamily, 'Georgia');
+    expect(style.fontFamilyFallback, ['Times New Roman', 'serif']);
+  });
+
   testWidgets('reader sanitizes feed html before rendering and search', (
     tester,
   ) async {
@@ -749,6 +783,150 @@ void main() {
       );
     },
   );
+
+  testWidgets('reader code blocks apply code appearance settings', (
+    tester,
+  ) async {
+    const settings = ReaderSettings(
+      fontSize: 18,
+      codeFontFamily: CodeFontFamilyPreset.custom,
+      codeFontStack: '"JetBrains Mono", "SF Mono", monospace',
+      codeFontSizeMode: CodeFontSizeMode.custom,
+      codeFontSize: 16,
+      codeLineHeight: 1.7,
+      codeSoftWrap: true,
+    );
+
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html: '<pre><code class="language-js">const value = 1;</code></pre>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      readerSettings: settings,
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 12);
+
+    final codeLine = readerCodeLines(tester).single.single;
+    final style = (codeLine.text as TextSpan).style!;
+    final languageLabel = tester.widget<Text>(
+      find.byKey(const Key('reader_code_language_label')),
+    );
+
+    expect(style.fontFamily, 'JetBrains Mono');
+    expect(style.fontFamilyFallback, ['SF Mono', 'monospace']);
+    expect(style.fontSize, 16);
+    expect(style.height, 1.7);
+    expect(codeLine.softWrap, isTrue);
+    expect(languageLabel.style?.fontFamily, 'JetBrains Mono');
+    expect(languageLabel.style?.fontFamilyFallback, ['SF Mono', 'monospace']);
+  });
+
+  testWidgets('reader code font size modes derive effective code size', (
+    tester,
+  ) async {
+    Future<double?> codeSizeFor(ReaderSettings settings) async {
+      await pumpReader(
+        tester,
+        article: buildArticle(
+          title: 'A',
+          html: '<pre><code>const value = 1;</code></pre>',
+        ),
+        appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+        readerSettings: settings,
+      );
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 500)),
+      );
+      await settleReader(tester, rounds: 12);
+
+      final codeLine = readerCodeLines(tester).single.single;
+      return (codeLine.text as TextSpan).style?.fontSize;
+    }
+
+    expect(
+      await codeSizeFor(
+        const ReaderSettings(
+          fontSize: 18,
+          codeFontSizeMode: CodeFontSizeMode.followReader,
+        ),
+      ),
+      18,
+    );
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+
+    expect(
+      await codeSizeFor(
+        const ReaderSettings(
+          fontSize: 18,
+          codeFontSizeMode: CodeFontSizeMode.oneStepDown,
+        ),
+      ),
+      17,
+    );
+  });
+
+  testWidgets('reader code soft wrap toggles horizontal scrolling', (
+    tester,
+  ) async {
+    const html =
+        '<pre><code>const veryLongValueName = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";</code></pre>';
+
+    await pumpReader(
+      tester,
+      article: buildArticle(title: 'A', html: html),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      readerSettings: const ReaderSettings(codeSoftWrap: false),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 12);
+    expect(readerCodeLines(tester).single.single.softWrap, isFalse);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('reader_code_block')),
+        matching: find.byWidgetPredicate(
+          (widget) =>
+              widget is SingleChildScrollView &&
+              widget.scrollDirection == Axis.horizontal,
+        ),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+
+    await pumpReader(
+      tester,
+      article: buildArticle(title: 'A', html: html),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      readerSettings: const ReaderSettings(codeSoftWrap: true),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 12);
+    expect(readerCodeLines(tester).single.single.softWrap, isTrue);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('reader_code_block')),
+        matching: find.byWidgetPredicate(
+          (widget) =>
+              widget is SingleChildScrollView &&
+              widget.scrollDirection == Axis.horizontal,
+        ),
+      ),
+      findsNothing,
+    );
+  });
 
   testWidgets('reader preserves structured code line breaks and language candidates', (
     tester,
@@ -1390,6 +1568,38 @@ void main() {
       theme.fleurReader.bodyStyle.color,
       isNot(AppTheme.light().colorScheme.onSurface),
     );
+  });
+
+  testWidgets('reader math fallback uses code appearance font', (tester) async {
+    const settings = ReaderSettings(
+      codeFontFamily: CodeFontFamilyPreset.custom,
+      codeFontStack: '"JetBrains Mono", monospace',
+      codeFontSizeMode: CodeFontSizeMode.custom,
+      codeFontSize: 13,
+      codeLineHeight: 1.4,
+    );
+
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html: r'<p>Broken $\notACommand{$ formula.</p>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      readerSettings: settings,
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 16);
+
+    final fallback = tester.widget<Text>(
+      find.byKey(const Key('reader_math_fallback')).first,
+    );
+    expect(fallback.style?.fontFamily, 'JetBrains Mono');
+    expect(fallback.style?.fontFamilyFallback, ['monospace']);
+    expect(fallback.style?.fontSize, 13);
+    expect(fallback.style?.height, 1.4);
   });
 
   testWidgets(

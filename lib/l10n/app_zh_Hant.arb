@@ -170,6 +170,14 @@
   "@readerAppearance": {
     "description": "Section title for reader appearance settings"
   },
+  "codeAppearance": "程式碼外觀",
+  "@codeAppearance": {
+    "description": "Section title for code appearance settings"
+  },
+  "custom": "自訂",
+  "@custom": {
+    "description": "Generic custom option label"
+  },
   "appearancePreview": "預覽",
   "@appearancePreview": {
     "description": "Appearance settings preview section title"
@@ -218,6 +226,14 @@
   "@readerFontMono": {
     "description": "Reader mono font option"
   },
+  "readerFontStack": "閱讀字體棧",
+  "@readerFontStack": {
+    "description": "Reader custom font stack setting label"
+  },
+  "fontStackExample": "\"PingFang SC\", \"Noto Sans CJK SC\", system-ui, sans-serif",
+  "@fontStackExample": {
+    "description": "Example helper text for custom font stack input"
+  },
   "readerTheme": "閱讀質感",
   "@readerTheme": {
     "description": "Reader surface texture preset setting label"
@@ -253,6 +269,38 @@
   "readingWidthWide": "寬",
   "@readingWidthWide": {
     "description": "Wide reader content width option"
+  },
+  "codeFontFamily": "程式碼字體",
+  "@codeFontFamily": {
+    "description": "Code font family setting label"
+  },
+  "codeFontSystemMono": "系統等寬",
+  "@codeFontSystemMono": {
+    "description": "Code system monospace font option"
+  },
+  "codeFontStack": "程式碼字體棧",
+  "@codeFontStack": {
+    "description": "Code custom font stack setting label"
+  },
+  "codeFontSize": "程式碼字號",
+  "@codeFontSize": {
+    "description": "Code font size setting label"
+  },
+  "codeFontSizeFollowReader": "跟隨正文",
+  "@codeFontSizeFollowReader": {
+    "description": "Code font size follows reader body option"
+  },
+  "codeFontSizeOneStepDown": "小一號",
+  "@codeFontSizeOneStepDown": {
+    "description": "Code font size one step smaller than reader body option"
+  },
+  "codeLineHeight": "程式碼行高",
+  "@codeLineHeight": {
+    "description": "Code line height setting label"
+  },
+  "codeSoftWrap": "自動換行",
+  "@codeSoftWrap": {
+    "description": "Code soft wrap setting label"
   },
   "storage": "儲存",
   "@storage": {

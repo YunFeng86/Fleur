@@ -537,6 +537,7 @@ final class _ReaderInteractionController {
       ReaderFontFamily.serif => l10n.readerFontSerif,
       ReaderFontFamily.sans => l10n.readerFontSans,
       ReaderFontFamily.mono => l10n.readerFontMono,
+      ReaderFontFamily.custom => l10n.custom,
     };
     String readerThemeLabel(ReaderThemePreset preset) => switch (preset) {
       ReaderThemePreset.defaultLightAware => l10n.readerThemeDefault,

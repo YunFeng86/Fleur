@@ -27,7 +27,14 @@ void main() {
     expect(settings.horizontalPadding, ReaderSettings.defaultHorizontalPadding);
     expect(settings.readerTheme, ReaderThemePreset.defaultLightAware);
     expect(settings.fontFamily, ReaderFontFamily.system);
+    expect(settings.readerFontStack, isEmpty);
     expect(settings.contentWidthPreset, ReaderContentWidthPreset.standard);
+    expect(settings.codeFontFamily, CodeFontFamilyPreset.systemMono);
+    expect(settings.codeFontStack, isEmpty);
+    expect(settings.codeFontSizeMode, CodeFontSizeMode.oneStepDown);
+    expect(settings.codeFontSize, ReaderSettings.defaultCodeFontSize);
+    expect(settings.codeLineHeight, ReaderSettings.defaultCodeLineHeight);
+    expect(settings.codeSoftWrap, isFalse);
   });
 
   test('ReaderSettings.fromJson defaults non-finite values', () {
@@ -45,8 +52,16 @@ void main() {
   test('ReaderSettings persists reader appearance fields', () {
     const settings = ReaderSettings(
       readerTheme: ReaderThemePreset.sepia,
-      fontFamily: ReaderFontFamily.serif,
+      fontFamily: ReaderFontFamily.custom,
+      readerFontStack:
+          '"PingFang SC", "Noto Sans CJK SC", system-ui, sans-serif',
       contentWidthPreset: ReaderContentWidthPreset.wide,
+      codeFontFamily: CodeFontFamilyPreset.custom,
+      codeFontStack: '"JetBrains Mono", "SF Mono", monospace',
+      codeFontSizeMode: CodeFontSizeMode.custom,
+      codeFontSize: 16,
+      codeLineHeight: 1.7,
+      codeSoftWrap: true,
     );
 
     final restored = ReaderSettings.fromJson(
@@ -54,8 +69,15 @@ void main() {
     );
 
     expect(restored.readerTheme, ReaderThemePreset.sepia);
-    expect(restored.fontFamily, ReaderFontFamily.serif);
+    expect(restored.fontFamily, ReaderFontFamily.custom);
+    expect(restored.readerFontStack, settings.readerFontStack);
     expect(restored.contentWidthPreset, ReaderContentWidthPreset.wide);
+    expect(restored.codeFontFamily, CodeFontFamilyPreset.custom);
+    expect(restored.codeFontStack, settings.codeFontStack);
+    expect(restored.codeFontSizeMode, CodeFontSizeMode.custom);
+    expect(restored.codeFontSize, 16);
+    expect(restored.codeLineHeight, 1.7);
+    expect(restored.codeSoftWrap, isTrue);
   });
 
   test('ReaderSettings defaults unknown reader appearance fields', () {
@@ -63,11 +85,33 @@ void main() {
       'readerTheme': 'neon',
       'fontFamily': 'comic',
       'contentWidthPreset': 'huge',
+      'codeFontFamily': 'proportional',
+      'codeFontSizeMode': 'huge',
     });
 
     expect(settings.readerTheme, ReaderThemePreset.defaultLightAware);
     expect(settings.fontFamily, ReaderFontFamily.system);
     expect(settings.contentWidthPreset, ReaderContentWidthPreset.standard);
+    expect(settings.codeFontFamily, CodeFontFamilyPreset.systemMono);
+    expect(settings.codeFontSizeMode, CodeFontSizeMode.oneStepDown);
+  });
+
+  test('ReaderSettings loads old json without new appearance fields', () {
+    final settings = ReaderSettings.fromJson(<String, Object?>{
+      'fontSize': 17,
+      'lineHeight': 1.8,
+      'horizontalPadding': 16,
+    });
+
+    expect(settings.fontSize, 17);
+    expect(settings.lineHeight, 1.8);
+    expect(settings.readerFontStack, isEmpty);
+    expect(settings.codeFontFamily, CodeFontFamilyPreset.systemMono);
+    expect(settings.codeFontStack, isEmpty);
+    expect(settings.codeFontSizeMode, CodeFontSizeMode.oneStepDown);
+    expect(settings.codeFontSize, ReaderSettings.defaultCodeFontSize);
+    expect(settings.codeLineHeight, ReaderSettings.defaultCodeLineHeight);
+    expect(settings.codeSoftWrap, isFalse);
   });
 
   test('ReaderSettings maps legacy dark reader theme to dim texture', () {

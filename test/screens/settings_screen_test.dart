@@ -197,11 +197,16 @@ void main() {
     );
     expect(find.text('App appearance'), findsOneWidget);
     expect(find.text('Reader appearance'), findsWidgets);
+    expect(find.text('Code appearance'), findsWidgets);
     expect(find.text('Theme mode'), findsOneWidget);
     expect(find.text('Accent color'), findsOneWidget);
     expect(find.text('Font size'), findsOneWidget);
     expect(find.text('Line height'), findsOneWidget);
     expect(find.text('Reading width'), findsOneWidget);
+    expect(find.text('Code font'), findsOneWidget);
+    expect(find.text('Code font size'), findsOneWidget);
+    expect(find.text('Code line height'), findsOneWidget);
+    expect(find.text('Wrap code lines'), findsOneWidget);
     expect(find.byKey(const Key('settings_back_button')), findsOneWidget);
   });
 
@@ -408,6 +413,8 @@ void main() {
     expect(find.text('Accent color'), findsNothing);
     expect(find.text('Font size'), findsNothing);
     expect(find.text('Reader appearance'), findsNothing);
+    expect(find.text('Code appearance'), findsNothing);
+    expect(find.text('Code font'), findsNothing);
     expect(
       find.byKey(const Key('appearance_seed_color_pink_card')),
       findsNothing,
@@ -472,14 +479,122 @@ void main() {
     await tester.pumpAndSettle();
     expect(store.settings.readerTheme, ReaderThemePreset.sepia);
 
+    await tester.tap(
+      find.byKey(const Key('appearance_reader_font_custom_card')),
+    );
+    await tester.pumpAndSettle();
+    expect(store.settings.fontFamily, ReaderFontFamily.custom);
+    expect(
+      find.byKey(const Key('appearance_reader_font_stack_input')),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('appearance_reader_font_stack_input')),
+      '"PingFang SC", system-ui, sans-serif',
+    );
+    await tester.pumpAndSettle();
+    expect(
+      store.settings.readerFontStack,
+      '"PingFang SC", system-ui, sans-serif',
+    );
+
     await tester.tap(find.byKey(const Key('appearance_reader_reset_button')));
     await tester.pumpAndSettle();
     expect(store.settings.fontFamily, ReaderFontFamily.system);
+    expect(store.settings.readerFontStack, isEmpty);
     expect(
       store.settings.contentWidthPreset,
       ReaderContentWidthPreset.standard,
     );
     expect(store.settings.readerTheme, ReaderThemePreset.defaultLightAware);
+  });
+
+  testWidgets('Appearance code controls persist code appearance', (
+    tester,
+  ) async {
+    final store = FakeReaderSettingsStore(const ReaderSettings());
+    await pumpSettingsScreen(
+      tester,
+      1000,
+      height: 1400,
+      initialTab: SettingsTab.appearance,
+      readerSettingsStore: store,
+      overrides: servicesOverrides(),
+    );
+
+    await tester.tap(find.byKey(const Key('appearance_code_font_custom_card')));
+    await tester.pumpAndSettle();
+    expect(store.settings.codeFontFamily, CodeFontFamilyPreset.custom);
+    expect(
+      find.byKey(const Key('appearance_code_font_stack_input')),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('appearance_code_font_stack_input')),
+      '"JetBrains Mono", "SF Mono", monospace',
+    );
+    await tester.pumpAndSettle();
+    expect(
+      store.settings.codeFontStack,
+      '"JetBrains Mono", "SF Mono", monospace',
+    );
+
+    await tester.ensureVisible(
+      find.byKey(const Key('appearance_code_font_size_custom_card')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const Key('appearance_code_font_size_custom_card')),
+    );
+    await tester.pumpAndSettle();
+    expect(store.settings.codeFontSizeMode, CodeFontSizeMode.custom);
+    expect(
+      find.byKey(const Key('appearance_code_font_size_slider')),
+      findsOneWidget,
+    );
+
+    final fontSizeSlider = tester.widget<Slider>(
+      find.descendant(
+        of: find.byKey(const Key('appearance_code_font_size_slider')),
+        matching: find.byType(Slider),
+      ),
+    );
+    fontSizeSlider.onChanged!(18);
+    await tester.pumpAndSettle();
+    expect(store.settings.codeFontSize, 18);
+
+    final lineHeightSlider = tester.widget<Slider>(
+      find.descendant(
+        of: find.byKey(const Key('appearance_code_line_height_slider')),
+        matching: find.byType(Slider),
+      ),
+    );
+    lineHeightSlider.onChanged!(1.7);
+    await tester.pumpAndSettle();
+    expect(store.settings.codeLineHeight, 1.7);
+
+    await tester.ensureVisible(
+      find.byKey(const Key('appearance_code_soft_wrap_switch')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('appearance_code_soft_wrap_switch')));
+    await tester.pumpAndSettle();
+    expect(store.settings.codeSoftWrap, isTrue);
+
+    await tester.ensureVisible(
+      find.byKey(const Key('appearance_code_reset_button')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('appearance_code_reset_button')));
+    await tester.pumpAndSettle();
+    expect(store.settings.codeFontFamily, CodeFontFamilyPreset.systemMono);
+    expect(store.settings.codeFontStack, isEmpty);
+    expect(store.settings.codeFontSizeMode, CodeFontSizeMode.oneStepDown);
+    expect(store.settings.codeFontSize, ReaderSettings.defaultCodeFontSize);
+    expect(store.settings.codeLineHeight, ReaderSettings.defaultCodeLineHeight);
+    expect(store.settings.codeSoftWrap, isFalse);
   });
 
   testWidgets('Appearance shows dynamic color switch only when available', (

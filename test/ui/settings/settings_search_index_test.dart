@@ -73,6 +73,40 @@ void main() {
     expect(results.first.id, 'appearance.reader.width');
   });
 
+  test('code appearance font stack keywords are searchable', () {
+    final results = searchSettingsEntries(
+      buildSettingsSearchEntries(en),
+      'font stack',
+    );
+
+    expect(results.map((entry) => entry.id), contains('appearance.code.font'));
+  });
+
+  test('monospace searches code font', () {
+    final results = searchSettingsEntries(
+      buildSettingsSearchEntries(en),
+      'monospace',
+    );
+
+    expect(results.first.id, 'appearance.code.font');
+    expect(results.first.targetId, 'appearance.code.font');
+  });
+
+  test('localized code appearance entries are searchable', () {
+    final zh = AppLocalizationsZh();
+    final fontResults = searchSettingsEntries(
+      buildSettingsSearchEntries(zh),
+      '代码字体',
+    );
+    final wrapResults = searchSettingsEntries(
+      buildSettingsSearchEntries(zh),
+      '自动换行',
+    );
+
+    expect(fontResults.first.id, 'appearance.code.font');
+    expect(wrapResults.first.id, 'appearance.code.wrap');
+  });
+
   test('no matching query returns empty list', () {
     final results = searchSettingsEntries(
       buildSettingsSearchEntries(en),
