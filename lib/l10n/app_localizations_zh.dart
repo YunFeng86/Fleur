@@ -44,6 +44,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsSearchSettingLabel => '设置项';
 
   @override
+  String settingsSearchResultCount(Object count) {
+    return '$count 条结果';
+  }
+
+  @override
   String get feeds => '订阅';
 
   @override
@@ -1305,6 +1310,11 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get settingsSearchSettingLabel => '設定項';
+
+  @override
+  String settingsSearchResultCount(Object count) {
+    return '$count 條結果';
+  }
 
   @override
   String get feeds => '訂閱';

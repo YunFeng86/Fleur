@@ -47,6 +47,13 @@
   "@settingsSearchSettingLabel": {
     "description": "Settings search result type label for individual settings"
   },
+  "settingsSearchResultCount": "{count} 条结果",
+  "@settingsSearchResultCount": {
+    "description": "Settings search result count badge",
+    "placeholders": {
+      "count": {}
+    }
+  },
   "feeds": "订阅",
   "@feeds": {
     "description": "Global navigation label: feeds"

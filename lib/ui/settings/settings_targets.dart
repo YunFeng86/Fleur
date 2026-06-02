@@ -5,6 +5,7 @@ import '../../theme/fleur_theme_extensions.dart';
 class SettingsTargetController extends ChangeNotifier {
   String? _highlightedId;
   final Map<String, GlobalKey> _keys = {};
+  final Set<String> _registeredIds = {};
 
   String? get highlightedId => _highlightedId;
 
@@ -14,6 +15,19 @@ class SettingsTargetController extends ChangeNotifier {
 
   BuildContext? contextFor(String id) {
     return _keys[id]?.currentContext;
+  }
+
+  bool isRegistered(String id) {
+    return _registeredIds.contains(id);
+  }
+
+  void register(String id) {
+    if (!_registeredIds.add(id)) return;
+    notifyListeners();
+  }
+
+  void unregister(String id) {
+    _registeredIds.remove(id);
   }
 
   void highlight(String id) {
@@ -49,24 +63,39 @@ class _SettingsTargetAnchorState extends State<SettingsTargetAnchor> {
   void initState() {
     super.initState();
     widget.controller.addListener(_handleHighlightChanged);
+    _registerAfterBuild();
   }
 
   @override
   void didUpdateWidget(covariant SettingsTargetAnchor oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.controller == widget.controller) return;
-    oldWidget.controller.removeListener(_handleHighlightChanged);
-    widget.controller.addListener(_handleHighlightChanged);
+    if (oldWidget.controller != widget.controller ||
+        oldWidget.id != widget.id) {
+      oldWidget.controller.unregister(oldWidget.id);
+      if (oldWidget.controller != widget.controller) {
+        oldWidget.controller.removeListener(_handleHighlightChanged);
+        widget.controller.addListener(_handleHighlightChanged);
+      }
+      _registerAfterBuild();
+    }
   }
 
   @override
   void dispose() {
     widget.controller.removeListener(_handleHighlightChanged);
+    widget.controller.unregister(widget.id);
     super.dispose();
   }
 
   void _handleHighlightChanged() {
     if (mounted) setState(() {});
+  }
+
+  void _registerAfterBuild() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      widget.controller.register(widget.id);
+    });
   }
 
   @override

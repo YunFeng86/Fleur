@@ -47,6 +47,13 @@
   "@settingsSearchSettingLabel": {
     "description": "Settings search result type label for individual settings"
   },
+  "settingsSearchResultCount": "{count} results",
+  "@settingsSearchResultCount": {
+    "description": "Settings search result count badge",
+    "placeholders": {
+      "count": {}
+    }
+  },
   "feeds": "Feeds",
   "@feeds": {
     "description": "Global navigation label: feeds"

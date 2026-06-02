@@ -56,12 +56,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   SettingsTab? _selectedTab;
   bool _sidebarOpen = false;
   final SettingsTargetController _targetController = SettingsTargetController();
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   Timer? _highlightTimer;
   String? _pendingInitialSettingId;
+  String? _pendingRevealTargetId;
+  String _searchQuery = '';
+  bool _searchFocused = false;
 
   @override
   void initState() {
     super.initState();
+    _targetController.addListener(_handleTargetControllerChanged);
+    _searchController.addListener(_handleSearchChanged);
+    _searchFocusNode.addListener(_handleSearchFocusChanged);
     _selectedTab =
         widget.initialTab ?? _tabForSettingId(widget.initialSettingId);
     _pendingInitialSettingId = widget.initialSettingId;
@@ -82,6 +90,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   void dispose() {
     _highlightTimer?.cancel();
+    _searchFocusNode.removeListener(_handleSearchFocusChanged);
+    _searchController.removeListener(_handleSearchChanged);
+    _targetController.removeListener(_handleTargetControllerChanged);
+    _searchFocusNode.dispose();
+    _searchController.dispose();
     _targetController.dispose();
     super.dispose();
   }
@@ -210,35 +223,69 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return null;
   }
 
-  void _revealTarget(String targetId) {
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
+  void _handleSearchChanged() {
+    final query = _searchController.text;
+    if (query == _searchQuery) return;
+    setState(() => _searchQuery = query);
+  }
+
+  void _handleSearchFocusChanged() {
+    final focused = _searchFocusNode.hasFocus;
+    if (focused == _searchFocused) return;
+    setState(() => _searchFocused = focused);
+  }
+
+  void _handleTargetControllerChanged() {
+    _tryRevealPendingTarget();
+  }
+
+  void _queueRevealTarget(String targetId) {
+    _pendingRevealTargetId = targetId;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final targetContext = _targetController.contextFor(targetId);
-      if (targetContext == null) return;
-      await Scrollable.ensureVisible(
-        targetContext,
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOutCubic,
-        alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtStart,
-      );
+      _tryRevealPendingTarget();
+    });
+  }
+
+  void _tryRevealPendingTarget() {
+    final targetId = _pendingRevealTargetId;
+    if (targetId == null || !_targetController.isRegistered(targetId)) return;
+    final targetContext = _targetController.contextFor(targetId);
+    if (targetContext == null) return;
+    _pendingRevealTargetId = null;
+    unawaited(_revealVisibleTarget(targetId, targetContext));
+  }
+
+  Future<void> _revealVisibleTarget(
+    String targetId,
+    BuildContext targetContext,
+  ) async {
+    await Scrollable.ensureVisible(
+      targetContext,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtStart,
+    );
+    if (!mounted) return;
+    _targetController.highlight(targetId);
+    _highlightTimer?.cancel();
+    _highlightTimer = Timer(const Duration(milliseconds: 1200), () {
       if (!mounted) return;
-      _targetController.highlight(targetId);
-      _highlightTimer?.cancel();
-      _highlightTimer = Timer(const Duration(milliseconds: 1200), () {
-        if (!mounted) return;
-        _targetController.clear(targetId);
-        _highlightTimer = null;
-      });
+      _targetController.clear(targetId);
+      _highlightTimer = null;
     });
   }
 
   void _selectSearchEntry(SettingsSearchEntry entry) {
+    _searchFocusNode.unfocus();
+    if (_searchController.text.isNotEmpty) _searchController.clear();
     setState(() {
       _selectedTab = entry.tab;
       _sidebarOpen = false;
+      _searchQuery = '';
     });
     final targetId = entry.targetId;
-    if (targetId != null) _revealTarget(targetId);
+    if (targetId != null) _queueRevealTarget(targetId);
   }
 
   void _closeSettings() {
@@ -266,11 +313,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         if (tab != null && tab != _selectedTab) {
           setState(() => _selectedTab = tab);
         }
-        final targetId = entry?.targetId ?? trimmed;
-        if (entry?.targetId != null ||
-            _targetController.contextFor(targetId) != null) {
-          _revealTarget(targetId);
-        }
+        final targetId = entry?.targetId;
+        if (targetId != null) _queueRevealTarget(targetId);
       });
     }
 
@@ -283,10 +327,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             final sidebarPinned = width >= _kSidebarPinnedWidth;
             final sidebarOpen = !sidebarPinned && _sidebarOpen;
             final items = _buildItems(context, showPageTitle: false);
+            final trimmedSearchQuery = _searchQuery.trim();
+            final showingSearchResults = trimmedSearchQuery.isNotEmpty;
             final currentSelectedIndex = _selectedIndexFor(items);
             final showingList = !sidebarPinned && currentSelectedIndex == null;
             final selectedIndex = currentSelectedIndex ?? 0;
             final selectedItem = items[selectedIndex];
+            final tabLabels = {for (final item in items) item.tab: item.label};
+            final searchResults = showingSearchResults
+                ? searchSettingsEntries(searchEntries, trimmedSearchQuery)
+                : const <SettingsSearchEntry>[];
 
             void selectTab(SettingsTab tab) {
               setState(() {
@@ -307,14 +357,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               setState(() => _selectedTab = null);
             }
 
-            final content = showingList
+            final content = showingSearchResults
+                ? _SettingsSearchResultsBody(
+                    query: trimmedSearchQuery,
+                    results: searchResults,
+                    tabLabels: tabLabels,
+                    onSelected: _selectSearchEntry,
+                  )
+                : showingList
                 ? _SettingsListBody(items: items, onSelect: selectTab)
                 : FocusTraversalGroup(child: selectedItem.content);
             final scene = _SettingsScene(
               width: width,
               sidebarPinned: sidebarPinned,
               sidebarOpen: sidebarOpen,
-              title: showingList ? l10n.settings : selectedItem.label,
+              title: showingSearchResults || showingList
+                  ? l10n.settings
+                  : selectedItem.label,
               sidebarTitle: l10n.settings,
               showSidebarButton: !sidebarPinned,
               onToggleSidebar: () {
@@ -329,13 +388,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               sidebarSelectedIndex: sidebarPinned
                   ? selectedIndex
                   : currentSelectedIndex,
-              selectedContentKey: showingList
+              selectedContentKey: showingSearchResults
+                  ? const ValueKey('settings-search-results')
+                  : showingList
                   ? const ValueKey('settings-list')
                   : ValueKey(selectedItem.tab),
               content: content,
               onSelect: selectTab,
-              searchEntries: searchEntries,
-              onSearchEntrySelected: _selectSearchEntry,
+              searchController: _searchController,
+              searchFocusNode: _searchFocusNode,
+              searchFocused: _searchFocused,
             );
 
             if (!sidebarPinned && !showingList) {
@@ -372,8 +434,9 @@ class _SettingsScene extends StatelessWidget {
     required this.selectedContentKey,
     required this.content,
     required this.onSelect,
-    required this.searchEntries,
-    required this.onSearchEntrySelected,
+    required this.searchController,
+    required this.searchFocusNode,
+    required this.searchFocused,
   });
 
   final double width;
@@ -389,8 +452,9 @@ class _SettingsScene extends StatelessWidget {
   final Key selectedContentKey;
   final Widget content;
   final ValueChanged<SettingsTab> onSelect;
-  final List<SettingsSearchEntry> searchEntries;
-  final ValueChanged<SettingsSearchEntry> onSearchEntrySelected;
+  final TextEditingController searchController;
+  final FocusNode searchFocusNode;
+  final bool searchFocused;
 
   @override
   Widget build(BuildContext context) {
@@ -448,8 +512,9 @@ class _SettingsScene extends StatelessWidget {
               onToggleSidebar: onToggleSidebar,
               onBack: onBack,
               selectedContentKey: selectedContentKey,
-              searchEntries: searchEntries,
-              onSearchEntrySelected: onSearchEntrySelected,
+              searchController: searchController,
+              searchFocusNode: searchFocusNode,
+              searchFocused: searchFocused,
               child: content,
             ),
           ),
@@ -587,8 +652,9 @@ class _SettingsContentLayer extends StatelessWidget {
     required this.onToggleSidebar,
     required this.onBack,
     required this.selectedContentKey,
-    required this.searchEntries,
-    required this.onSearchEntrySelected,
+    required this.searchController,
+    required this.searchFocusNode,
+    required this.searchFocused,
     required this.child,
   });
 
@@ -599,8 +665,9 @@ class _SettingsContentLayer extends StatelessWidget {
   final VoidCallback onToggleSidebar;
   final VoidCallback? onBack;
   final Key selectedContentKey;
-  final List<SettingsSearchEntry> searchEntries;
-  final ValueChanged<SettingsSearchEntry> onSearchEntrySelected;
+  final TextEditingController searchController;
+  final FocusNode searchFocusNode;
+  final bool searchFocused;
   final Widget child;
 
   @override
@@ -626,13 +693,20 @@ class _SettingsContentLayer extends StatelessWidget {
           if (!sidebarPinned)
             _SettingsSearchDock(
               insidePaper: true,
-              entries: searchEntries,
-              onSelected: onSearchEntrySelected,
+              controller: searchController,
+              focusNode: searchFocusNode,
+              focused: searchFocused,
             ),
           Divider(height: 1, color: surfaces.subtleDivider),
           Expanded(
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 180),
+              layoutBuilder: (currentChild, previousChildren) {
+                return Stack(
+                  alignment: Alignment.topCenter,
+                  children: [...previousChildren, ?currentChild],
+                );
+              },
               transitionBuilder: (child, animation) {
                 return FadeTransition(opacity: animation, child: child);
               },
@@ -661,8 +735,9 @@ class _SettingsContentLayer extends StatelessWidget {
                 children: [
                   _SettingsSearchDock(
                     insidePaper: false,
-                    entries: searchEntries,
-                    onSelected: onSearchEntrySelected,
+                    controller: searchController,
+                    focusNode: searchFocusNode,
+                    focused: searchFocused,
                   ),
                   const SizedBox(
                     height: _SettingsScreenState._kSettingsSearchPaperGap,
@@ -831,149 +906,39 @@ class _SettingsHeaderButton extends StatelessWidget {
   }
 }
 
-class _SettingsSearchDock extends StatefulWidget {
+class _SettingsSearchDock extends StatelessWidget {
   const _SettingsSearchDock({
     required this.insidePaper,
-    required this.entries,
-    required this.onSelected,
+    required this.controller,
+    required this.focusNode,
+    required this.focused,
   });
 
   final bool insidePaper;
-  final List<SettingsSearchEntry> entries;
-  final ValueChanged<SettingsSearchEntry> onSelected;
-
-  @override
-  State<_SettingsSearchDock> createState() => _SettingsSearchDockState();
-}
-
-class _SettingsSearchDockState extends State<_SettingsSearchDock> {
-  final TextEditingController _controller = TextEditingController();
-  final FocusNode _focusNode = FocusNode();
-  final LayerLink _layerLink = LayerLink();
-  OverlayEntry? _overlayEntry;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller.addListener(_handleSearchChanged);
-    _focusNode.addListener(_handleFocusChanged);
-  }
-
-  @override
-  void didUpdateWidget(covariant _SettingsSearchDock oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.entries != widget.entries && _overlayEntry != null) {
-      _overlayEntry!.markNeedsBuild();
-    }
-  }
-
-  @override
-  void dispose() {
-    _removeOverlay();
-    _controller.removeListener(_handleSearchChanged);
-    _focusNode.removeListener(_handleFocusChanged);
-    _controller.dispose();
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  void _handleSearchChanged() {
-    if (_focusNode.hasFocus) _showOverlay();
-  }
-
-  void _handleFocusChanged() {
-    if (_focusNode.hasFocus) {
-      _showOverlay();
-    } else {
-      scheduleMicrotask(_removeOverlay);
-    }
-  }
-
-  void _showOverlay() {
-    if (_overlayEntry != null) {
-      _overlayEntry!.markNeedsBuild();
-      return;
-    }
-    final overlay = Overlay.of(context);
-    _overlayEntry = OverlayEntry(builder: _buildOverlay);
-    overlay.insert(_overlayEntry!);
-  }
-
-  void _removeOverlay() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-  }
-
-  Widget _buildOverlay(BuildContext context) {
-    final box = this.context.findRenderObject() as RenderBox?;
-    final width =
-        box?.size.width ?? _SettingsScreenState._kSettingsPaperMaxWidth;
-    final results = searchSettingsEntries(widget.entries, _controller.text);
-
-    return Positioned.fill(
-      child: IgnorePointer(
-        ignoring: false,
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                onTap: () => _focusNode.unfocus(),
-                child: const SizedBox.expand(),
-              ),
-            ),
-            CompositedTransformFollower(
-              link: _layerLink,
-              showWhenUnlinked: false,
-              targetAnchor: Alignment.bottomLeft,
-              followerAnchor: Alignment.topLeft,
-              offset: const Offset(0, 6),
-              child: Material(
-                type: MaterialType.transparency,
-                child: SizedBox(
-                  width: width,
-                  child: _SettingsSearchResultsPanel(
-                    results: results,
-                    onSelected: (entry) {
-                      _controller.clear();
-                      _focusNode.unfocus();
-                      _removeOverlay();
-                      widget.onSelected(entry);
-                    },
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final bool focused;
 
   @override
   Widget build(BuildContext context) {
-    final horizontalPadding = widget.insidePaper ? 12.0 : 16.0;
+    final horizontalPadding = insidePaper ? 12.0 : 16.0;
     return SizedBox(
       key: Key(
-        widget.insidePaper
+        insidePaper
             ? 'settings_search_inside_paper'
             : 'settings_search_outside_paper',
       ),
-      height: widget.insidePaper ? 50 : 56,
+      height: insidePaper ? 56 : 64,
       child: Align(
         alignment: Alignment.center,
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: _SettingsScreenState._kSettingsPaperMaxWidth,
-            ),
-            child: CompositedTransformTarget(
-              link: _layerLink,
-              child: _SettingsSearchField(
-                controller: _controller,
-                focusNode: _focusNode,
-              ),
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: _SettingsSearchField(
+              controller: controller,
+              focusNode: focusNode,
+              focused: focused,
             ),
           ),
         ),
@@ -986,80 +951,12 @@ class _SettingsSearchField extends StatelessWidget {
   const _SettingsSearchField({
     required this.controller,
     required this.focusNode,
+    required this.focused,
   });
 
   final TextEditingController controller;
   final FocusNode focusNode;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final surfaces = theme.fleurSurface;
-
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (context, _) {
-        return Container(
-          key: const Key('settings_search_placeholder'),
-          height: 40,
-          decoration: BoxDecoration(
-            color: surfaces.card,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: surfaces.subtleDivider),
-          ),
-          child: Row(
-            children: [
-              const SizedBox(width: 12),
-              Icon(FleurIcons.search, size: 16, color: scheme.onSurfaceVariant),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextField(
-                  controller: controller,
-                  focusNode: focusNode,
-                  decoration: InputDecoration.collapsed(
-                    hintText: l10n.settingsSearchHint,
-                    hintStyle: theme.textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                  style: theme.textTheme.bodySmall,
-                  textInputAction: TextInputAction.search,
-                ),
-              ),
-              if (controller.text.isNotEmpty)
-                IconButton(
-                  tooltip: MaterialLocalizations.of(
-                    context,
-                  ).deleteButtonTooltip,
-                  onPressed: controller.clear,
-                  icon: const Icon(FleurIcons.close, size: 16),
-                  style: IconButton.styleFrom(
-                    fixedSize: const Size.square(32),
-                    minimumSize: const Size.square(32),
-                    padding: EdgeInsets.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                )
-              else
-                const SizedBox(width: 12),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _SettingsSearchResultsPanel extends StatelessWidget {
-  const _SettingsSearchResultsPanel({
-    required this.results,
-    required this.onSelected,
-  });
-
-  final List<SettingsSearchEntry> results;
-  final ValueChanged<SettingsSearchEntry> onSelected;
+  final bool focused;
 
   @override
   Widget build(BuildContext context) {
@@ -1069,108 +966,419 @@ class _SettingsSearchResultsPanel extends StatelessWidget {
     final surfaces = theme.fleurSurface;
     final dark = theme.brightness == Brightness.dark;
 
-    return DecoratedBox(
-      key: const Key('settings_search_results_panel'),
-      decoration: BoxDecoration(
-        color: surfaces.floating,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: surfaces.subtleDivider),
-        boxShadow: [
-          BoxShadow(
-            color: theme.shadowColor.withValues(alpha: dark ? 0.28 : 0.12),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        return SizedBox(
+          key: const Key('settings_search_placeholder'),
+          height: 44,
+          child: AnimatedContainer(
+            key: const Key('settings_search_field_surface'),
+            duration: const Duration(milliseconds: 140),
+            curve: Curves.easeOutCubic,
+            decoration: BoxDecoration(
+              color: surfaces.card,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(
+                color: focused ? scheme.primary : surfaces.subtleDivider,
+                width: focused ? 2 : 1,
+              ),
+              boxShadow: focused
+                  ? [
+                      BoxShadow(
+                        color: scheme.primary.withValues(
+                          alpha: dark ? 0.24 : 0.18,
+                        ),
+                        blurRadius: 0,
+                        spreadRadius: 2,
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Row(
+              children: [
+                const SizedBox(width: 14),
+                Icon(
+                  FleurIcons.search,
+                  size: 18,
+                  color: scheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    focusNode: focusNode,
+                    decoration: InputDecoration(
+                      hintText: l10n.settingsSearchHint,
+                      hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                      errorBorder: InputBorder.none,
+                      focusedErrorBorder: InputBorder.none,
+                      isCollapsed: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    style: theme.textTheme.bodyMedium,
+                    textInputAction: TextInputAction.search,
+                  ),
+                ),
+                if (controller.text.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: IconButton(
+                      tooltip: MaterialLocalizations.of(
+                        context,
+                      ).deleteButtonTooltip,
+                      onPressed: controller.clear,
+                      icon: const Icon(FleurIcons.close, size: 16),
+                      style: IconButton.styleFrom(
+                        foregroundColor: scheme.onPrimary,
+                        backgroundColor: scheme.onSurfaceVariant,
+                        fixedSize: const Size.square(30),
+                        minimumSize: const Size.square(30),
+                        padding: EdgeInsets.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                  )
+                else
+                  const SizedBox(width: 14),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SettingsSearchResultsBody extends StatelessWidget {
+  const _SettingsSearchResultsBody({
+    required this.query,
+    required this.results,
+    required this.tabLabels,
+    required this.onSelected,
+  });
+
+  final String query;
+  final List<SettingsSearchEntry> results;
+  final Map<SettingsTab, String> tabLabels;
+  final ValueChanged<SettingsSearchEntry> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final grouped = <SettingsTab, List<SettingsSearchEntry>>{};
+    for (final entry in results) {
+      grouped.putIfAbsent(entry.tab, () => []).add(entry);
+    }
+
+    return SettingsPageBody(
+      key: const Key('settings_search_results_body'),
+      maxWidth: 760,
+      padding: const EdgeInsets.fromLTRB(24, 18, 24, 28),
+      children: results.isEmpty
+          ? [const _SettingsSearchEmptyState()]
+          : [
+              for (final group in grouped.entries)
+                _SettingsSearchResultGroup(
+                  title: tabLabels[group.key] ?? group.key.queryValue,
+                  query: query,
+                  results: group.value,
+                  onSelected: onSelected,
+                ),
+            ],
+    );
+  }
+}
+
+class _SettingsSearchEmptyState extends StatelessWidget {
+  const _SettingsSearchEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return Padding(
+      key: const Key('settings_search_no_results'),
+      padding: const EdgeInsets.symmetric(vertical: 88),
+      child: Column(
+        children: [
+          Icon(FleurIcons.search, size: 28, color: scheme.onSurfaceVariant),
+          const SizedBox(height: 12),
+          Text(
+            l10n.settingsSearchNoResults,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 320),
-          child: results.isEmpty
-              ? Padding(
-                  key: const Key('settings_search_no_results'),
-                  padding: const EdgeInsets.all(16),
-                  child: Text(
-                    l10n.settingsSearchNoResults,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                )
-              : AppScrollbar(
-                  child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    shrinkWrap: true,
-                    itemCount: results.length,
-                    separatorBuilder: (_, _) =>
-                        Divider(height: 1, color: surfaces.subtleDivider),
-                    itemBuilder: (context, index) {
-                      final entry = results[index];
-                      final sectionText = entry.section.isEmpty
-                          ? settingsSearchEntryKindLabel(l10n, entry.kind)
-                          : '${settingsSearchEntryKindLabel(l10n, entry.kind)} · ${entry.section}';
+    );
+  }
+}
 
-                      return Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          key: Key('settings_search_result_${entry.id}'),
-                          onTap: () => onSelected(entry),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 10,
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Icon(
-                                  settingsSearchEntryIcon(entry),
-                                  size: 18,
-                                  color: scheme.onSurfaceVariant,
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        entry.title,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: theme.textTheme.bodyMedium
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        entry.subtitle.isEmpty
-                                            ? sectionText
-                                            : '$sectionText · ${entry.subtitle}',
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: theme.textTheme.bodySmall
-                                            ?.copyWith(
-                                              color: scheme.onSurfaceVariant,
-                                            ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    },
+class _SettingsSearchResultGroup extends StatelessWidget {
+  const _SettingsSearchResultGroup({
+    required this.title,
+    required this.query,
+    required this.results,
+    required this.onSelected,
+  });
+
+  final String title;
+  final String query;
+  final List<SettingsSearchEntry> results;
+  final ValueChanged<SettingsSearchEntry> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final surfaces = theme.fleurSurface;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
+              ),
+              const SizedBox(width: 12),
+              _SettingsSearchCountBadge(
+                label: l10n.settingsSearchResultCount(results.length),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: surfaces.card,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: surfaces.subtleDivider),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Column(
+                children: [
+                  for (var index = 0; index < results.length; index++) ...[
+                    if (index > 0)
+                      Divider(height: 1, color: surfaces.subtleDivider),
+                    _SettingsSearchResultRow(
+                      entry: results[index],
+                      query: query,
+                      path: _settingsSearchEntryPath(
+                        l10n,
+                        title,
+                        results[index],
+                      ),
+                      onSelected: onSelected,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SettingsSearchCountBadge extends StatelessWidget {
+  const _SettingsSearchCountBadge({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final dark = theme.brightness == Brightness.dark;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.amber.withValues(alpha: dark ? 0.28 : 0.42),
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Text(
+          label,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: dark ? Colors.amber.shade100 : Colors.black87,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );
   }
+}
+
+class _SettingsSearchResultRow extends StatelessWidget {
+  const _SettingsSearchResultRow({
+    required this.entry,
+    required this.query,
+    required this.path,
+    required this.onSelected,
+  });
+
+  final SettingsSearchEntry entry;
+  final String query;
+  final String path;
+  final ValueChanged<SettingsSearchEntry> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final surfaces = theme.fleurSurface;
+    final titleStyle = theme.textTheme.bodyMedium?.copyWith(
+      fontWeight: FontWeight.w600,
+    );
+    final pathStyle = theme.textTheme.bodySmall?.copyWith(
+      color: scheme.onSurfaceVariant,
+    );
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: Key('settings_search_result_${entry.id}'),
+        onTap: () => onSelected(entry),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: surfaces.cardSelected,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: SizedBox(
+                  width: 30,
+                  height: 30,
+                  child: Icon(
+                    settingsSearchEntryIcon(entry),
+                    size: 17,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text.rich(
+                      TextSpan(
+                        children: _settingsSearchHighlightSpans(
+                          entry.title,
+                          query,
+                          titleStyle,
+                          _settingsSearchHighlightStyle(titleStyle, context),
+                        ),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text.rich(
+                      TextSpan(
+                        children: _settingsSearchHighlightSpans(
+                          path,
+                          query,
+                          pathStyle,
+                          _settingsSearchHighlightStyle(pathStyle, context),
+                        ),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Icon(FleurIcons.expand, size: 18, color: scheme.onSurfaceVariant),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+String _settingsSearchEntryPath(
+  AppLocalizations l10n,
+  String tabLabel,
+  SettingsSearchEntry entry,
+) {
+  if (entry.kind == SettingsSearchEntryKind.page) {
+    return settingsSearchEntryKindLabel(l10n, entry.kind);
+  }
+  if (entry.section.isEmpty) return tabLabel;
+  return '$tabLabel / ${entry.section}';
+}
+
+TextStyle _settingsSearchHighlightStyle(
+  TextStyle? baseStyle,
+  BuildContext context,
+) {
+  final theme = Theme.of(context);
+  final dark = theme.brightness == Brightness.dark;
+  return (baseStyle ?? const TextStyle()).copyWith(
+    backgroundColor: Colors.amber.withValues(alpha: dark ? 0.36 : 0.48),
+    color: baseStyle?.color,
+  );
+}
+
+List<TextSpan> _settingsSearchHighlightSpans(
+  String text,
+  String query,
+  TextStyle? baseStyle,
+  TextStyle highlightStyle,
+) {
+  final normalizedText = text.toLowerCase();
+  final normalizedQuery = query.trim().toLowerCase();
+  if (normalizedQuery.isEmpty || !normalizedText.contains(normalizedQuery)) {
+    return [TextSpan(text: text, style: baseStyle)];
+  }
+
+  final spans = <TextSpan>[];
+  var cursor = 0;
+  while (cursor < text.length) {
+    final match = normalizedText.indexOf(normalizedQuery, cursor);
+    if (match < 0) {
+      spans.add(TextSpan(text: text.substring(cursor), style: baseStyle));
+      break;
+    }
+    if (match > cursor) {
+      spans.add(
+        TextSpan(text: text.substring(cursor, match), style: baseStyle),
+      );
+    }
+    final end = match + normalizedQuery.length;
+    spans.add(
+      TextSpan(text: text.substring(match, end), style: highlightStyle),
+    );
+    cursor = end;
+  }
+  return spans;
 }
 
 class _SettingsNavigationTile extends StatelessWidget {

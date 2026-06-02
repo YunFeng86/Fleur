@@ -302,7 +302,7 @@ void main() {
       find.byKey(const Key('settings_search_placeholder')),
     );
     expect(paperSize.width, closeTo(960, 1));
-    expect(searchSize.width, greaterThan(900));
+    expect(searchSize.width, closeTo(720, 1));
     final searchDockBottom = tester
         .getBottomLeft(find.byKey(const Key('settings_search_outside_paper')))
         .dy;
@@ -461,14 +461,24 @@ void main() {
     await tester.enterText(find.byType(TextField), 'font');
     await tester.pumpAndSettle();
 
+    expect(
+      find.byKey(const Key('settings_search_results_panel')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('settings_search_results_body')),
+      findsOneWidget,
+    );
+    expect(find.text('Appearance / Reader settings'), findsOneWidget);
+
     await tester.tap(
       find.byKey(
         const Key('settings_search_result_appearance.reader.font_size'),
       ),
     );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 260));
+    await tester.pumpAndSettle();
 
+    expect(find.byKey(const Key('settings_search_results_body')), findsNothing);
     expect(find.text('Appearance'), findsWidgets);
     expect(find.text('Font size'), findsOneWidget);
     expect(
@@ -491,14 +501,20 @@ void main() {
     await tester.enterText(find.byType(TextField), 'language');
     await tester.pumpAndSettle();
 
+    expect(
+      find.byKey(const Key('settings_search_results_body')),
+      findsOneWidget,
+    );
+    expect(find.text('App Preferences / Language'), findsOneWidget);
+
     await tester.tap(
       find.byKey(
         const Key('settings_search_result_app_preferences.language.system'),
       ),
     );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 260));
+    await tester.pumpAndSettle();
 
+    expect(find.byKey(const Key('settings_search_results_body')), findsNothing);
     expect(
       find.byKey(const Key('app_preferences_language_select')),
       findsOneWidget,
@@ -518,8 +534,68 @@ void main() {
     await tester.enterText(find.byType(TextField), 'zzzz-not-a-setting');
     await tester.pumpAndSettle();
 
+    expect(
+      find.byKey(const Key('settings_search_results_panel')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('settings_search_results_body')),
+      findsOneWidget,
+    );
     expect(find.byKey(const Key('settings_search_no_results')), findsOneWidget);
     expect(find.text('No settings match this search.'), findsOneWidget);
+  });
+
+  testWidgets('Settings search focus ring is on the field surface', (
+    tester,
+  ) async {
+    await pumpSettingsScreen(tester, 1000, overrides: servicesOverrides());
+
+    AnimatedContainer fieldSurface() {
+      return tester.widget<AnimatedContainer>(
+        find.byKey(const Key('settings_search_field_surface')),
+      );
+    }
+
+    final initialDecoration = fieldSurface().decoration! as BoxDecoration;
+    final initialBorder = initialDecoration.border! as Border;
+    expect(initialBorder.top.width, 1);
+
+    await tester.tap(find.byKey(const Key('settings_search_placeholder')));
+    await tester.pumpAndSettle();
+
+    final focusedDecoration = fieldSurface().decoration! as BoxDecoration;
+    final focusedBorder = focusedDecoration.border! as Border;
+    expect(focusedBorder.top.width, 2);
+
+    final textField = tester.widget<TextField>(find.byType(TextField));
+    expect(textField.decoration?.border, InputBorder.none);
+  });
+
+  testWidgets('Settings search clears back to the selected tab', (
+    tester,
+  ) async {
+    await pumpSettingsScreen(
+      tester,
+      1000,
+      initialTab: SettingsTab.appearance,
+      overrides: servicesOverrides(),
+    );
+
+    await tester.tap(find.byKey(const Key('settings_search_placeholder')));
+    await tester.enterText(find.byType(TextField), 'font');
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('settings_search_results_body')),
+      findsOneWidget,
+    );
+
+    await tester.enterText(find.byType(TextField), '');
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('settings_search_results_body')), findsNothing);
+    expect(find.text('Theme mode'), findsOneWidget);
+    expect(find.text('Font size'), findsOneWidget);
   });
 
   testWidgets('AppLocalizations uses strict pathNotFound message in English', (

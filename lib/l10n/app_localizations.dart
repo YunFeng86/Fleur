@@ -165,6 +165,12 @@ abstract class AppLocalizations {
   /// **'Setting'**
   String get settingsSearchSettingLabel;
 
+  /// Settings search result count badge
+  ///
+  /// In en, this message translates to:
+  /// **'{count} results'**
+  String settingsSearchResultCount(Object count);
+
   /// Global navigation label: feeds
   ///
   /// In en, this message translates to:

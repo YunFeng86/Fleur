@@ -46,6 +46,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSearchSettingLabel => 'Setting';
 
   @override
+  String settingsSearchResultCount(Object count) {
+    return '$count results';
+  }
+
+  @override
   String get feeds => 'Feeds';
 
   @override
