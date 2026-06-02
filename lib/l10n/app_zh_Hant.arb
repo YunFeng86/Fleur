@@ -92,9 +92,9 @@
   },
   "dynamicColor": "動態取色",
   "@dynamicColor": {
-    "description": "Use Material You dynamic colors when available"
+    "description": "Use system dynamic or accent colors when available"
   },
-  "dynamicColorSubtitle": "使用 Material You 動態配色（僅 Android 12+）",
+  "dynamicColorSubtitle": "可用時跟隨系統動態色或強調色",
   "@dynamicColorSubtitle": {
     "description": "Hint for dynamic colors setting"
   },

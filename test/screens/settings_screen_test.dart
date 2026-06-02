@@ -13,7 +13,6 @@ import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/settings/reader_settings.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/seed_color_presets.dart';
-import 'package:fleur/utils/platform.dart';
 
 import '../test_utils/critical_workflow_test_support.dart';
 
@@ -71,6 +70,7 @@ void main() {
     SettingsTab? initialTab,
     String? initialSettingId,
     bool showBack = false,
+    bool dynamicColorAvailable = false,
     List<Override> overrides = const [],
   }) async {
     tester.view.physicalSize = Size(width, 800);
@@ -86,7 +86,7 @@ void main() {
           ...overrides,
         ],
         child: MaterialApp(
-          theme: AppTheme.light(),
+          theme: AppTheme.light(dynamicColorAvailable: dynamicColorAvailable),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: SettingsScreen(
@@ -421,12 +421,9 @@ void main() {
     expect(store.settings.seedColorPreset, SeedColorPreset.pink);
   });
 
-  testWidgets('Appearance shows dynamic color card only on Android', (
+  testWidgets('Appearance shows dynamic color switch only when available', (
     tester,
   ) async {
-    debugFleurTargetPlatformOverride = TargetPlatform.android;
-    addTearDown(() => debugFleurTargetPlatformOverride = null);
-
     await pumpSettingsScreen(
       tester,
       1000,
@@ -435,23 +432,69 @@ void main() {
     );
 
     expect(
-      find.byKey(const Key('appearance_dynamic_color_card')),
+      find.byKey(const Key('appearance_dynamic_color_switch')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('appearance_seed_color_pink_card')),
       findsOneWidget,
     );
 
-    debugFleurTargetPlatformOverride = TargetPlatform.windows;
     await tester.pumpWidget(const SizedBox.shrink());
     await pumpSettingsScreen(
       tester,
       1000,
       initialTab: SettingsTab.appearance,
+      dynamicColorAvailable: true,
       overrides: servicesOverrides(),
     );
 
     expect(
-      find.byKey(const Key('appearance_dynamic_color_card')),
+      find.byKey(const Key('appearance_dynamic_color_switch')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('appearance_seed_color_pink_card')),
       findsNothing,
     );
+  });
+
+  testWidgets('Appearance dynamic color switch reveals manual theme colors', (
+    tester,
+  ) async {
+    final store = appSettingsStore(AppSettings.defaults());
+    await pumpSettingsScreen(
+      tester,
+      1000,
+      initialTab: SettingsTab.appearance,
+      dynamicColorAvailable: true,
+      overrides: servicesOverrides(settingsStore: store),
+    );
+
+    expect(store.settings.useDynamicColor, isTrue);
+    expect(
+      find.byKey(const Key('appearance_dynamic_color_switch')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('appearance_seed_color_pink_card')),
+      findsNothing,
+    );
+
+    await tester.tap(find.byKey(const Key('appearance_dynamic_color_switch')));
+    await tester.pumpAndSettle();
+
+    expect(store.settings.useDynamicColor, isFalse);
+    expect(
+      find.byKey(const Key('appearance_seed_color_pink_card')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('appearance_seed_color_pink_card')));
+    await tester.pumpAndSettle();
+
+    expect(store.settings.useDynamicColor, isFalse);
+    expect(store.settings.seedColorPreset, SeedColorPreset.pink);
   });
 
   testWidgets('Settings search opens font size in Appearance', (tester) async {

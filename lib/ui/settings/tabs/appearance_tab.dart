@@ -10,8 +10,8 @@ import '../../../services/settings/app_settings.dart';
 import '../../../services/settings/reader_settings.dart';
 import '../../../theme/fleur_color_engine.dart';
 import '../../../theme/fleur_icons.dart';
+import '../../../theme/fleur_theme_extensions.dart';
 import '../../../theme/seed_color_presets.dart';
-import '../../../utils/platform.dart';
 import '../settings_targets.dart';
 import '../widgets/section_header.dart';
 import '../widgets/slider_tile.dart';
@@ -43,7 +43,10 @@ class AppearanceTab extends ConsumerWidget {
       SeedColorPreset.pink => l10n.seedColorPink,
     };
 
-    final currentBrightness = Theme.of(context).brightness;
+    final currentBrightness = theme.brightness;
+    final dynamicColorAvailable = theme.fleurDynamicColor.available;
+    final showManualColors =
+        !dynamicColorAvailable || !appSettings.useDynamicColor;
 
     return SettingsPageBody(
       children: [
@@ -135,70 +138,67 @@ class AppearanceTab extends ConsumerWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: [
-                          if (isAndroid)
-                            Tooltip(
-                              message: l10n.dynamicColorSubtitle,
-                              child: _ThemeColorCard(
-                                key: const Key('appearance_dynamic_color_card'),
-                                selected: appSettings.useDynamicColor,
-                                scheme: Theme.of(context).colorScheme,
-                                semanticLabel: l10n.dynamicColor,
-                                trailingIcon: const Icon(
-                                  FleurIcons.colorPicker,
-                                  size: 18,
-                                ),
-                                onTap: () {
-                                  unawaited(
-                                    ref
-                                        .read(appSettingsProvider.notifier)
-                                        .setUseDynamicColor(true),
-                                  );
-                                },
-                              ),
-                            ),
-                          for (final p in SeedColorPreset.values)
-                            Tooltip(
-                              message: seedPresetLabel(p),
-                              child: _ThemeColorCard(
-                                key: Key(
-                                  'appearance_seed_color_${p.name}_card',
-                                ),
-                                selected:
-                                    !appSettings.useDynamicColor &&
-                                    appSettings.seedColorPreset == p,
-                                scheme: FleurColorEngine.resolve(
-                                  brightness: currentBrightness,
-                                  seedColorPreset: p,
-                                ).materialScheme,
-                                semanticLabel: seedPresetLabel(p),
-                                onTap: () {
-                                  unawaited(
-                                    ref
-                                        .read(appSettingsProvider.notifier)
-                                        .save(
-                                          appSettings.copyWith(
-                                            useDynamicColor: false,
-                                            seedColorPreset: p,
-                                          ),
-                                        ),
-                                  );
-                                },
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        l10n.seedColorPresetSubtitle,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                      if (dynamicColorAvailable) ...[
+                        const SizedBox(height: 12),
+                        SettingsSwitchTile(
+                          key: const Key('appearance_dynamic_color_switch'),
+                          title: Text(l10n.dynamicColor),
+                          subtitle: Text(l10n.dynamicColorSubtitle),
+                          value: appSettings.useDynamicColor,
+                          onChanged: (v) {
+                            unawaited(
+                              ref
+                                  .read(appSettingsProvider.notifier)
+                                  .setUseDynamicColor(v),
+                            );
+                          },
+                          secondary: const Icon(FleurIcons.colorPicker),
+                          contentPadding: EdgeInsets.zero,
                         ),
-                      ),
+                      ],
+                      if (showManualColors) ...[
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: [
+                            for (final p in SeedColorPreset.values)
+                              Tooltip(
+                                message: seedPresetLabel(p),
+                                child: _ThemeColorCard(
+                                  key: Key(
+                                    'appearance_seed_color_${p.name}_card',
+                                  ),
+                                  selected: appSettings.seedColorPreset == p,
+                                  scheme: FleurColorEngine.resolve(
+                                    brightness: currentBrightness,
+                                    seedColorPreset: p,
+                                  ).materialScheme,
+                                  semanticLabel: seedPresetLabel(p),
+                                  onTap: () {
+                                    unawaited(
+                                      ref
+                                          .read(appSettingsProvider.notifier)
+                                          .save(
+                                            appSettings.copyWith(
+                                              useDynamicColor: false,
+                                              seedColorPreset: p,
+                                            ),
+                                          ),
+                                    );
+                                  },
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          l10n.seedColorPresetSubtitle,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -270,14 +270,12 @@ class _ThemeColorCard extends StatelessWidget {
     required this.selected,
     required this.scheme,
     required this.onTap,
-    this.trailingIcon,
     this.semanticLabel,
   });
 
   final bool selected;
   final ColorScheme scheme;
   final VoidCallback onTap;
-  final Widget? trailingIcon;
   final String? semanticLabel;
 
   @override
@@ -327,17 +325,6 @@ class _ThemeColorCard extends StatelessWidget {
                         size: 18,
                         color: onSelectedColor,
                       ),
-                    ),
-                  ),
-                if (trailingIcon != null)
-                  Positioned(
-                    right: 0,
-                    bottom: 0,
-                    child: IconTheme(
-                      data: IconThemeData(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                      child: trailingIcon!,
                     ),
                   ),
               ],

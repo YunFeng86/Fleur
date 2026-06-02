@@ -12,6 +12,7 @@ class AppComponentThemes {
     required FleurSurfaceTheme surfaces,
     required FleurStateTheme states,
     required FleurReaderTheme reader,
+    required FleurDynamicColorTheme dynamicColor,
   }) {
     final scheme = base.colorScheme;
     final panelBorder = surfaces.subtleDivider.withAlpha(
@@ -34,7 +35,12 @@ class AppComponentThemes {
     }
 
     return base.copyWith(
-      extensions: <ThemeExtension<dynamic>>[surfaces, states, reader],
+      extensions: <ThemeExtension<dynamic>>[
+        surfaces,
+        states,
+        reader,
+        dynamicColor,
+      ],
       scaffoldBackgroundColor: surfaces.chrome,
       dividerTheme: DividerThemeData(
         color: surfaces.subtleDivider,

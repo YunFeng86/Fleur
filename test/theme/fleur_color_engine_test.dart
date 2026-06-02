@@ -84,7 +84,20 @@ void main() {
       expect(theme.extension<FleurSurfaceTheme>(), isNotNull);
       expect(theme.extension<FleurStateTheme>(), isNotNull);
       expect(theme.extension<FleurReaderTheme>(), isNotNull);
+      expect(theme.extension<FleurDynamicColorTheme>(), isNotNull);
     }
+  });
+
+  test('AppTheme exposes dynamic color availability', () {
+    expect(AppTheme.light().fleurDynamicColor.available, isFalse);
+    expect(
+      AppTheme.light(dynamicColorAvailable: true).fleurDynamicColor.available,
+      isTrue,
+    );
+    expect(
+      AppTheme.dark(dynamicColorAvailable: true).fleurDynamicColor.available,
+      isTrue,
+    );
   });
 
   test('scrollbar state tokens keep neutral idle and dynamic drag colors', () {

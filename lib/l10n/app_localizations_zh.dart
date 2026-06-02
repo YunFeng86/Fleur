@@ -79,7 +79,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get dynamicColor => '动态取色';
 
   @override
-  String get dynamicColorSubtitle => '使用 Material You 动态配色（仅 Android 12+）';
+  String get dynamicColorSubtitle => '可用时跟随系统动态色或强调色';
 
   @override
   String get seedColorPreset => '主题配色';
@@ -1347,7 +1347,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get dynamicColor => '動態取色';
 
   @override
-  String get dynamicColorSubtitle => '使用 Material You 動態配色（僅 Android 12+）';
+  String get dynamicColorSubtitle => '可用時跟隨系統動態色或強調色';
 
   @override
   String get seedColorPreset => '主題配色';

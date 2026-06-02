@@ -81,7 +81,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dynamicColor => 'Dynamic colors';
 
   @override
-  String get dynamicColorSubtitle => 'Use Material You colors (Android 12+)';
+  String get dynamicColorSubtitle =>
+      'Follow system dynamic or accent colors when available';
 
   @override
   String get seedColorPreset => 'Theme colors';

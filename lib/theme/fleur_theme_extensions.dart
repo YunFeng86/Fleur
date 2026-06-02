@@ -17,6 +17,27 @@ double _clampDouble(double value, double min, double max) {
 }
 
 @immutable
+class FleurDynamicColorTheme extends ThemeExtension<FleurDynamicColorTheme> {
+  const FleurDynamicColorTheme({required this.available});
+
+  final bool available;
+
+  @override
+  FleurDynamicColorTheme copyWith({bool? available}) {
+    return FleurDynamicColorTheme(available: available ?? this.available);
+  }
+
+  @override
+  FleurDynamicColorTheme lerp(
+    covariant ThemeExtension<FleurDynamicColorTheme>? other,
+    double t,
+  ) {
+    if (other is! FleurDynamicColorTheme) return this;
+    return t < 0.5 ? this : other;
+  }
+}
+
+@immutable
 class FleurSurfaceTheme extends ThemeExtension<FleurSurfaceTheme> {
   const FleurSurfaceTheme({
     required this.chrome,
@@ -457,6 +478,10 @@ class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
 }
 
 extension FleurThemeDataX on ThemeData {
+  FleurDynamicColorTheme get fleurDynamicColor =>
+      extension<FleurDynamicColorTheme>() ??
+      const FleurDynamicColorTheme(available: false);
+
   FleurSurfaceTheme get fleurSurface =>
       extension<FleurSurfaceTheme>() ??
       FleurSurfaceTheme.fromScheme(colorScheme, brightness: brightness);

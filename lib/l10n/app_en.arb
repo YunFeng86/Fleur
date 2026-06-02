@@ -92,9 +92,9 @@
   },
   "dynamicColor": "Dynamic colors",
   "@dynamicColor": {
-    "description": "Use Material You dynamic colors when available"
+    "description": "Use system dynamic or accent colors when available"
   },
-  "dynamicColorSubtitle": "Use Material You colors (Android 12+)",
+  "dynamicColorSubtitle": "Follow system dynamic or accent colors when available",
   "@dynamicColorSubtitle": {
     "description": "Hint for dynamic colors setting"
   },

@@ -14,25 +14,30 @@ class AppTheme {
   static ThemeData light({
     ColorScheme? scheme,
     SeedColorPreset? seedColorPreset,
+    bool dynamicColorAvailable = false,
   }) => _build(
     Brightness.light,
     dynamicScheme: scheme,
     seedColorPreset: seedColorPreset ?? SeedColorPreset.blue,
+    dynamicColorAvailable: dynamicColorAvailable,
   );
 
   static ThemeData dark({
     ColorScheme? scheme,
     SeedColorPreset? seedColorPreset,
+    bool dynamicColorAvailable = false,
   }) => _build(
     Brightness.dark,
     dynamicScheme: scheme,
     seedColorPreset: seedColorPreset ?? SeedColorPreset.blue,
+    dynamicColorAvailable: dynamicColorAvailable,
   );
 
   static ThemeData readerScene(ThemeData base) {
     final surfaces = base.fleurSurface;
     final states = base.fleurState;
     final reader = base.fleurReader;
+    final dynamicColor = base.fleurDynamicColor;
     return base.copyWith(
       scaffoldBackgroundColor: surfaces.reader,
       canvasColor: surfaces.reader,
@@ -53,6 +58,7 @@ class AppTheme {
         ),
         states,
         reader,
+        dynamicColor,
       ],
     );
   }
@@ -61,6 +67,7 @@ class AppTheme {
     Brightness brightness, {
     ColorScheme? dynamicScheme,
     required SeedColorPreset seedColorPreset,
+    required bool dynamicColorAvailable,
   }) {
     final profile = AppThemeProfile.resolve();
     final colorTokens = FleurColorEngine.resolve(
@@ -83,6 +90,9 @@ class AppTheme {
     );
     final surfaces = colorTokens.surfaces;
     final states = colorTokens.states;
+    final dynamicColor = FleurDynamicColorTheme(
+      available: dynamicColorAvailable,
+    );
     final reader = FleurReaderTheme.fromTheme(
       textTheme: baseTheme.textTheme,
       scheme: cs,
@@ -96,6 +106,7 @@ class AppTheme {
       surfaces: surfaces,
       states: states,
       reader: reader,
+      dynamicColor: dynamicColor,
     );
   }
 }

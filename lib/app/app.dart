@@ -88,6 +88,7 @@ class App extends ConsumerWidget {
     return AppControllerHost(
       child: DynamicColorBuilder(
         builder: (lightDynamic, darkDynamic) {
+          final hasDynamicColor = lightDynamic != null || darkDynamic != null;
           return MaterialApp.router(
             debugShowCheckedModeBanner: false,
             onGenerateTitle: (context) =>
@@ -99,10 +100,12 @@ class App extends ConsumerWidget {
             theme: AppTheme.light(
               scheme: useDynamicColor ? lightDynamic : null,
               seedColorPreset: seedColorPreset,
+              dynamicColorAvailable: hasDynamicColor,
             ),
             darkTheme: AppTheme.dark(
               scheme: useDynamicColor ? darkDynamic : null,
               seedColorPreset: seedColorPreset,
+              dynamicColorAvailable: hasDynamicColor,
             ),
             themeMode: appSettings?.themeMode ?? ThemeMode.system,
             locale: (localeTag == null) ? null : _localeFromTag(localeTag),

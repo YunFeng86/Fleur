@@ -225,7 +225,7 @@ abstract class AppLocalizations {
   /// **'Dark'**
   String get dark;
 
-  /// Use Material You dynamic colors when available
+  /// Use system dynamic or accent colors when available
   ///
   /// In en, this message translates to:
   /// **'Dynamic colors'**
@@ -234,7 +234,7 @@ abstract class AppLocalizations {
   /// Hint for dynamic colors setting
   ///
   /// In en, this message translates to:
-  /// **'Use Material You colors (Android 12+)'**
+  /// **'Follow system dynamic or accent colors when available'**
   String get dynamicColorSubtitle;
 
   /// Seed color preset selector label
