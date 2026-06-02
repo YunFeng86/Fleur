@@ -1561,12 +1561,35 @@ void main() {
 
     final htmlElement = tester.element(find.byType(HtmlWidget));
     final theme = Theme.of(htmlElement);
+    final baseTheme = AppTheme.light();
+    final defaultReaderScene = AppTheme.readerScene(baseTheme);
 
-    expect(theme.fleurSurface.reader, const Color(0xFFF3E7D2));
+    expect(theme.colorScheme.brightness, Brightness.light);
+    expect(theme.colorScheme.primary, baseTheme.colorScheme.primary);
+    expect(
+      theme.fleurSurface.reader,
+      isNot(defaultReaderScene.fleurSurface.reader),
+    );
     expect(theme.fleurReader.bodyStyle.color, isNotNull);
     expect(
       theme.fleurReader.bodyStyle.color,
       isNot(AppTheme.light().colorScheme.onSurface),
+    );
+  });
+
+  test('reader texture preserves dark mode brightness', () {
+    final baseTheme = AppTheme.dark();
+    final sceneTheme = AppTheme.readerScene(
+      baseTheme,
+      settings: const ReaderSettings(readerTheme: ReaderThemePreset.paper),
+    );
+    final defaultSceneTheme = AppTheme.readerScene(baseTheme);
+
+    expect(sceneTheme.colorScheme.brightness, Brightness.dark);
+    expect(sceneTheme.colorScheme.primary, baseTheme.colorScheme.primary);
+    expect(
+      sceneTheme.fleurSurface.reader,
+      isNot(defaultSceneTheme.fleurSurface.reader),
     );
   });
 

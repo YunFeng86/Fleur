@@ -178,6 +178,58 @@
   "@custom": {
     "description": "Generic custom option label"
   },
+  "back": "Back",
+  "@back": {
+    "description": "Generic back action label"
+  },
+  "fontSettings": "Fonts",
+  "@fontSettings": {
+    "description": "Appearance font detail page title"
+  },
+  "fontsAndCode": "Fonts and code",
+  "@fontsAndCode": {
+    "description": "Appearance code font detail row label"
+  },
+  "customFontStack": "Custom font stack",
+  "@customFontStack": {
+    "description": "Custom font stack option label"
+  },
+  "codeTypography": "Code typography",
+  "@codeTypography": {
+    "description": "Code typography settings section title"
+  },
+  "fontSizeExtraSmall": "Extra small",
+  "@fontSizeExtraSmall": {
+    "description": "Reader font size preset label"
+  },
+  "fontSizeSmall": "Small",
+  "@fontSizeSmall": {
+    "description": "Reader font size preset label"
+  },
+  "fontSizeMediumRecommended": "Medium (recommended)",
+  "@fontSizeMediumRecommended": {
+    "description": "Reader font size preset label"
+  },
+  "fontSizeLarge": "Large",
+  "@fontSizeLarge": {
+    "description": "Reader font size preset label"
+  },
+  "fontSizeExtraLarge": "Extra large",
+  "@fontSizeExtraLarge": {
+    "description": "Reader font size preset label"
+  },
+  "lineHeightCompact": "Compact",
+  "@lineHeightCompact": {
+    "description": "Reader line height preset label"
+  },
+  "lineHeightStandard": "Standard",
+  "@lineHeightStandard": {
+    "description": "Reader line height preset label"
+  },
+  "lineHeightRelaxed": "Relaxed",
+  "@lineHeightRelaxed": {
+    "description": "Reader line height preset label"
+  },
   "appearancePreview": "Preview",
   "@appearancePreview": {
     "description": "Appearance settings preview section title"

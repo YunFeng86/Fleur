@@ -146,6 +146,45 @@ class AppLocalizationsEn extends AppLocalizations {
   String get custom => 'Custom';
 
   @override
+  String get back => 'Back';
+
+  @override
+  String get fontSettings => 'Fonts';
+
+  @override
+  String get fontsAndCode => 'Fonts and code';
+
+  @override
+  String get customFontStack => 'Custom font stack';
+
+  @override
+  String get codeTypography => 'Code typography';
+
+  @override
+  String get fontSizeExtraSmall => 'Extra small';
+
+  @override
+  String get fontSizeSmall => 'Small';
+
+  @override
+  String get fontSizeMediumRecommended => 'Medium (recommended)';
+
+  @override
+  String get fontSizeLarge => 'Large';
+
+  @override
+  String get fontSizeExtraLarge => 'Extra large';
+
+  @override
+  String get lineHeightCompact => 'Compact';
+
+  @override
+  String get lineHeightStandard => 'Standard';
+
+  @override
+  String get lineHeightRelaxed => 'Relaxed';
+
+  @override
   String get appearancePreview => 'Preview';
 
   @override

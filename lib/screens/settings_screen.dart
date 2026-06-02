@@ -54,6 +54,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   // Nullable tab: null means "List View" in narrow mode or default first item
   // in wide mode.
   SettingsTab? _selectedTab;
+  AppearanceDetailPage? _appearanceDetailPage;
   bool _sidebarOpen = false;
   final SettingsTargetController _targetController = SettingsTargetController();
   final TextEditingController _searchController = TextEditingController();
@@ -72,6 +73,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _searchFocusNode.addListener(_handleSearchFocusChanged);
     _selectedTab =
         widget.initialTab ?? _tabForSettingId(widget.initialSettingId);
+    _appearanceDetailPage = null;
     _pendingInitialSettingId = widget.initialSettingId;
   }
 
@@ -84,6 +86,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
     _selectedTab =
         widget.initialTab ?? _tabForSettingId(widget.initialSettingId);
+    _appearanceDetailPage = null;
     _pendingInitialSettingId = widget.initialSettingId;
   }
 
@@ -123,6 +126,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         content: AppearanceTab(
           showPageTitle: showPageTitle,
           targetController: _targetController,
+          detailPage: _appearanceDetailPage,
+          onOpenFontsDetail: () {
+            setState(() => _appearanceDetailPage = AppearanceDetailPage.fonts);
+          },
+          onCloseDetail: () {
+            setState(() => _appearanceDetailPage = null);
+          },
         ),
       ),
       _SettingsPageItem(
@@ -281,6 +291,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (_searchController.text.isNotEmpty) _searchController.clear();
     setState(() {
       _selectedTab = entry.tab;
+      _appearanceDetailPage = null;
       _sidebarOpen = false;
       _searchQuery = '';
     });
@@ -341,11 +352,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             void selectTab(SettingsTab tab) {
               setState(() {
                 _selectedTab = tab;
+                _appearanceDetailPage = null;
                 if (!sidebarPinned) _sidebarOpen = false;
               });
             }
 
             void handleDetailBack() {
+              if (selectedItem.tab == SettingsTab.appearance &&
+                  _appearanceDetailPage != null) {
+                setState(() => _appearanceDetailPage = null);
+                return;
+              }
               // Subscriptions has its own internal list/detail back stack.
               if (selectedItem.tab == SettingsTab.subscriptions) {
                 final notifier = ref.read(
@@ -354,7 +371,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 final shouldPop = notifier.handleBack();
                 if (!shouldPop) return;
               }
-              setState(() => _selectedTab = null);
+              setState(() {
+                _selectedTab = null;
+                _appearanceDetailPage = null;
+              });
+            }
+
+            void handleChromeBack() {
+              if (selectedItem.tab == SettingsTab.appearance &&
+                  _appearanceDetailPage != null) {
+                setState(() => _appearanceDetailPage = null);
+                return;
+              }
+              _closeSettings();
             }
 
             final content = showingSearchResults
@@ -380,7 +409,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 setState(() => _sidebarOpen = !_sidebarOpen);
               },
               onBack: sidebarPinned
-                  ? (widget.showBack ? _closeSettings : null)
+                  ? (widget.showBack ? handleChromeBack : null)
                   : showingList
                   ? (widget.showBack ? _closeSettings : null)
                   : handleDetailBack,

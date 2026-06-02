@@ -1,5 +1,15 @@
 part of '../../widgets/reader_view.dart';
 
+enum _ReaderSettingsFontSizePreset {
+  extraSmall,
+  small,
+  medium,
+  large,
+  extraLarge,
+}
+
+enum _ReaderSettingsLineHeightPreset { compact, standard, relaxed }
+
 final class _ReaderInteractionController {
   _ReaderInteractionController({
     required _ReaderViewState owner,
@@ -551,6 +561,21 @@ final class _ReaderInteractionController {
           ReaderContentWidthPreset.standard => l10n.readingWidthStandard,
           ReaderContentWidthPreset.wide => l10n.readingWidthWide,
         };
+    String fontSizePresetLabel(_ReaderSettingsFontSizePreset preset) =>
+        switch (preset) {
+          _ReaderSettingsFontSizePreset.extraSmall => l10n.fontSizeExtraSmall,
+          _ReaderSettingsFontSizePreset.small => l10n.fontSizeSmall,
+          _ReaderSettingsFontSizePreset.medium =>
+            l10n.fontSizeMediumRecommended,
+          _ReaderSettingsFontSizePreset.large => l10n.fontSizeLarge,
+          _ReaderSettingsFontSizePreset.extraLarge => l10n.fontSizeExtraLarge,
+        };
+    String lineHeightPresetLabel(_ReaderSettingsLineHeightPreset preset) =>
+        switch (preset) {
+          _ReaderSettingsLineHeightPreset.compact => l10n.lineHeightCompact,
+          _ReaderSettingsLineHeightPreset.standard => l10n.lineHeightStandard,
+          _ReaderSettingsLineHeightPreset.relaxed => l10n.lineHeightRelaxed,
+        };
 
     Future<void> save(ReaderSettings next) {
       return ref.read(readerSettingsProvider.notifier).save(next);
@@ -610,34 +635,59 @@ final class _ReaderInteractionController {
                       padding: EdgeInsets.zero,
                       title: Text(l10n.fontSize),
                       controlWidth: 260,
-                      control: SettingsSliderControl(
-                        value: current.fontSize,
-                        min: 12,
-                        max: 28,
-                        format: (value) => value.toStringAsFixed(0),
-                        onChanged: (value) {
-                          final next = current.copyWith(fontSize: value);
-                          setState(() => current = next);
-                          unawaited(save(next));
-                        },
-                      ),
+                      control:
+                          SettingsSelectField<_ReaderSettingsFontSizePreset>(
+                            value: _readerSettingsFontSizePresetFor(
+                              current.fontSize,
+                            ),
+                            options: [
+                              for (final preset
+                                  in _ReaderSettingsFontSizePreset.values)
+                                SettingsSelectOption(
+                                  value: preset,
+                                  label: Text(fontSizePresetLabel(preset)),
+                                ),
+                            ],
+                            onChanged: (preset) {
+                              final next = current.copyWith(
+                                fontSize: _readerSettingsFontSizePresetValue(
+                                  preset,
+                                ),
+                              );
+                              setState(() => current = next);
+                              unawaited(save(next));
+                            },
+                          ),
                     ),
                     const SizedBox(height: 10),
                     SettingsControlRow(
                       padding: EdgeInsets.zero,
                       title: Text(l10n.lineHeight),
                       controlWidth: 260,
-                      control: SettingsSliderControl(
-                        value: current.lineHeight,
-                        min: 1.1,
-                        max: 2.2,
-                        format: (value) => value.toStringAsFixed(1),
-                        onChanged: (value) {
-                          final next = current.copyWith(lineHeight: value);
-                          setState(() => current = next);
-                          unawaited(save(next));
-                        },
-                      ),
+                      control:
+                          SettingsSelectField<_ReaderSettingsLineHeightPreset>(
+                            value: _readerSettingsLineHeightPresetFor(
+                              current.lineHeight,
+                            ),
+                            options: [
+                              for (final preset
+                                  in _ReaderSettingsLineHeightPreset.values)
+                                SettingsSelectOption(
+                                  value: preset,
+                                  label: Text(lineHeightPresetLabel(preset)),
+                                ),
+                            ],
+                            onChanged: (preset) {
+                              final next = current.copyWith(
+                                lineHeight:
+                                    _readerSettingsLineHeightPresetValue(
+                                      preset,
+                                    ),
+                              );
+                              setState(() => current = next);
+                              unawaited(save(next));
+                            },
+                          ),
                     ),
                     const SizedBox(height: 10),
                     SettingsControlRow(
@@ -710,4 +760,43 @@ final class _ReaderInteractionController {
       );
     }
   }
+}
+
+_ReaderSettingsFontSizePreset _readerSettingsFontSizePresetFor(double value) {
+  if (value <= 13) return _ReaderSettingsFontSizePreset.extraSmall;
+  if (value <= 14.5) return _ReaderSettingsFontSizePreset.small;
+  if (value <= 16.5) return _ReaderSettingsFontSizePreset.medium;
+  if (value <= 20) return _ReaderSettingsFontSizePreset.large;
+  return _ReaderSettingsFontSizePreset.extraLarge;
+}
+
+double _readerSettingsFontSizePresetValue(
+  _ReaderSettingsFontSizePreset preset,
+) {
+  return switch (preset) {
+    _ReaderSettingsFontSizePreset.extraSmall => 12,
+    _ReaderSettingsFontSizePreset.small => 14,
+    _ReaderSettingsFontSizePreset.medium => ReaderSettings.defaultFontSize,
+    _ReaderSettingsFontSizePreset.large => 18,
+    _ReaderSettingsFontSizePreset.extraLarge => 22,
+  };
+}
+
+_ReaderSettingsLineHeightPreset _readerSettingsLineHeightPresetFor(
+  double value,
+) {
+  if (value <= 1.475) return _ReaderSettingsLineHeightPreset.compact;
+  if (value <= 1.725) return _ReaderSettingsLineHeightPreset.standard;
+  return _ReaderSettingsLineHeightPreset.relaxed;
+}
+
+double _readerSettingsLineHeightPresetValue(
+  _ReaderSettingsLineHeightPreset preset,
+) {
+  return switch (preset) {
+    _ReaderSettingsLineHeightPreset.compact => 1.35,
+    _ReaderSettingsLineHeightPreset.standard =>
+      ReaderSettings.defaultLineHeight,
+    _ReaderSettingsLineHeightPreset.relaxed => 1.85,
+  };
 }

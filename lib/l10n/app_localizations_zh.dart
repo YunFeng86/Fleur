@@ -142,6 +142,45 @@ class AppLocalizationsZh extends AppLocalizations {
   String get custom => '自定义';
 
   @override
+  String get back => '返回';
+
+  @override
+  String get fontSettings => '字体';
+
+  @override
+  String get fontsAndCode => '字体与代码';
+
+  @override
+  String get customFontStack => '自定义字体栈';
+
+  @override
+  String get codeTypography => '代码排版';
+
+  @override
+  String get fontSizeExtraSmall => '特小';
+
+  @override
+  String get fontSizeSmall => '小';
+
+  @override
+  String get fontSizeMediumRecommended => '中（推荐）';
+
+  @override
+  String get fontSizeLarge => '大';
+
+  @override
+  String get fontSizeExtraLarge => '特大';
+
+  @override
+  String get lineHeightCompact => '紧凑';
+
+  @override
+  String get lineHeightStandard => '标准';
+
+  @override
+  String get lineHeightRelaxed => '宽松';
+
+  @override
   String get appearancePreview => '预览';
 
   @override
@@ -1514,6 +1553,45 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get custom => '自訂';
+
+  @override
+  String get back => '返回';
+
+  @override
+  String get fontSettings => '字體';
+
+  @override
+  String get fontsAndCode => '字體與程式碼';
+
+  @override
+  String get customFontStack => '自訂字體棧';
+
+  @override
+  String get codeTypography => '程式碼排版';
+
+  @override
+  String get fontSizeExtraSmall => '特小';
+
+  @override
+  String get fontSizeSmall => '小';
+
+  @override
+  String get fontSizeMediumRecommended => '中（推薦）';
+
+  @override
+  String get fontSizeLarge => '大';
+
+  @override
+  String get fontSizeExtraLarge => '特大';
+
+  @override
+  String get lineHeightCompact => '緊湊';
+
+  @override
+  String get lineHeightStandard => '標準';
+
+  @override
+  String get lineHeightRelaxed => '寬鬆';
 
   @override
   String get appearancePreview => '預覽';

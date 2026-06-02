@@ -357,6 +357,84 @@ abstract class AppLocalizations {
   /// **'Custom'**
   String get custom;
 
+  /// Generic back action label
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get back;
+
+  /// Appearance font detail page title
+  ///
+  /// In en, this message translates to:
+  /// **'Fonts'**
+  String get fontSettings;
+
+  /// Appearance code font detail row label
+  ///
+  /// In en, this message translates to:
+  /// **'Fonts and code'**
+  String get fontsAndCode;
+
+  /// Custom font stack option label
+  ///
+  /// In en, this message translates to:
+  /// **'Custom font stack'**
+  String get customFontStack;
+
+  /// Code typography settings section title
+  ///
+  /// In en, this message translates to:
+  /// **'Code typography'**
+  String get codeTypography;
+
+  /// Reader font size preset label
+  ///
+  /// In en, this message translates to:
+  /// **'Extra small'**
+  String get fontSizeExtraSmall;
+
+  /// Reader font size preset label
+  ///
+  /// In en, this message translates to:
+  /// **'Small'**
+  String get fontSizeSmall;
+
+  /// Reader font size preset label
+  ///
+  /// In en, this message translates to:
+  /// **'Medium (recommended)'**
+  String get fontSizeMediumRecommended;
+
+  /// Reader font size preset label
+  ///
+  /// In en, this message translates to:
+  /// **'Large'**
+  String get fontSizeLarge;
+
+  /// Reader font size preset label
+  ///
+  /// In en, this message translates to:
+  /// **'Extra large'**
+  String get fontSizeExtraLarge;
+
+  /// Reader line height preset label
+  ///
+  /// In en, this message translates to:
+  /// **'Compact'**
+  String get lineHeightCompact;
+
+  /// Reader line height preset label
+  ///
+  /// In en, this message translates to:
+  /// **'Standard'**
+  String get lineHeightStandard;
+
+  /// Reader line height preset label
+  ///
+  /// In en, this message translates to:
+  /// **'Relaxed'**
+  String get lineHeightRelaxed;
+
   /// Appearance settings preview section title
   ///
   /// In en, this message translates to:

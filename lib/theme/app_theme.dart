@@ -145,59 +145,73 @@ class AppTheme {
 ColorScheme _readerScheme(ColorScheme base, ReaderThemePreset preset) {
   if (preset == ReaderThemePreset.defaultLightAware) return base;
 
-  final values = switch (preset) {
-    ReaderThemePreset.paper => (
-      brightness: Brightness.light,
-      surface: const Color(0xFFFBF7EF),
-      container: const Color(0xFFF2E9DC),
-      onSurface: const Color(0xFF2E261F),
-      onVariant: const Color(0xFF6D6256),
-      outline: const Color(0xFFCDBEA9),
-      accent: const Color(0xFF7D5A2E),
-    ),
-    ReaderThemePreset.sepia => (
-      brightness: Brightness.light,
-      surface: const Color(0xFFF3E7D2),
-      container: const Color(0xFFEBD9BD),
-      onSurface: const Color(0xFF2F2419),
-      onVariant: const Color(0xFF735F48),
-      outline: const Color(0xFFC7A97E),
-      accent: const Color(0xFF8A5A24),
-    ),
-    ReaderThemePreset.dim => (
-      brightness: Brightness.dark,
-      surface: const Color(0xFF222426),
-      container: const Color(0xFF2B2E31),
-      onSurface: const Color(0xFFE5E1DA),
-      onVariant: const Color(0xFFBEB7AE),
-      outline: const Color(0xFF555B60),
-      accent: const Color(0xFF9DB7FF),
-    ),
+  final dark = base.brightness == Brightness.dark;
+  final textureTint = _readerTextureTint(base, preset);
+  final surfaceWeight = switch (preset) {
+    ReaderThemePreset.paper => dark ? 0.10 : 0.16,
+    ReaderThemePreset.sepia => dark ? 0.14 : 0.24,
+    ReaderThemePreset.dim => dark ? 0.08 : 0.05,
     ReaderThemePreset.defaultLightAware => throw StateError('handled above'),
   };
+  final containerWeight = (surfaceWeight + (dark ? 0.04 : 0.03)).clamp(
+    0.0,
+    1.0,
+  );
 
   return base.copyWith(
-    brightness: values.brightness,
-    primary: values.accent,
-    secondary: values.accent,
-    tertiary: values.accent,
-    surface: values.surface,
-    surfaceDim: values.surface,
-    surfaceBright: values.surface,
-    surfaceContainerLowest: values.surface,
-    surfaceContainerLow: values.container,
-    surfaceContainer: values.container,
-    surfaceContainerHigh: values.container,
-    surfaceContainerHighest: values.container,
-    onSurface: values.onSurface,
-    onSurfaceVariant: values.onVariant,
-    outline: values.outline,
-    outlineVariant: values.outline.withValues(alpha: 0.64),
-    primaryContainer: values.container,
-    onPrimaryContainer: values.onSurface,
-    secondaryContainer: values.container,
-    onSecondaryContainer: values.onSurface,
+    surface: _blend(base.surface, textureTint, surfaceWeight),
+    surfaceDim: _blend(base.surfaceDim, textureTint, surfaceWeight),
+    surfaceBright: _blend(base.surfaceBright, textureTint, surfaceWeight),
+    surfaceContainerLowest: _blend(
+      base.surfaceContainerLowest,
+      textureTint,
+      surfaceWeight,
+    ),
+    surfaceContainerLow: _blend(
+      base.surfaceContainerLow,
+      textureTint,
+      containerWeight,
+    ),
+    surfaceContainer: _blend(
+      base.surfaceContainer,
+      textureTint,
+      containerWeight,
+    ),
+    surfaceContainerHigh: _blend(
+      base.surfaceContainerHigh,
+      textureTint,
+      containerWeight,
+    ),
+    surfaceContainerHighest: _blend(
+      base.surfaceContainerHighest,
+      textureTint,
+      containerWeight,
+    ),
+    outlineVariant: _blend(
+      base.outlineVariant,
+      textureTint,
+      dark ? 0.18 : 0.12,
+    ),
   );
+}
+
+Color _readerTextureTint(ColorScheme base, ReaderThemePreset preset) {
+  final dark = base.brightness == Brightness.dark;
+  final accent = base.primary;
+  final warmPaper = dark ? const Color(0xFFFFE8C7) : const Color(0xFFFFF3DE);
+  final warmSepia = dark ? const Color(0xFFFFC777) : const Color(0xFFE2A75A);
+  final neutral = dark ? base.onSurface : const Color(0xFF66707A);
+
+  return switch (preset) {
+    ReaderThemePreset.paper => _blend(warmPaper, accent, dark ? 0.18 : 0.12),
+    ReaderThemePreset.sepia => _blend(warmSepia, accent, dark ? 0.16 : 0.10),
+    ReaderThemePreset.dim => _blend(neutral, accent, dark ? 0.22 : 0.12),
+    ReaderThemePreset.defaultLightAware => accent,
+  };
+}
+
+Color _blend(Color base, Color tint, double opacity) {
+  return Color.alphaBlend(tint.withValues(alpha: opacity), base);
 }
 
 Color _readerSurfaceFor({

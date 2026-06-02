@@ -191,23 +191,69 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Appearance'), findsOneWidget);
-    expect(
-      find.byKey(const Key('appearance_reader_font_serif_card')),
-      findsOneWidget,
-    );
     expect(find.text('App appearance'), findsOneWidget);
     expect(find.text('Reader appearance'), findsWidgets);
     expect(find.text('Code appearance'), findsWidgets);
     expect(find.text('Theme mode'), findsOneWidget);
     expect(find.text('Accent color'), findsOneWidget);
+    expect(
+      find.byKey(const Key('appearance_fonts_detail_tile')),
+      findsOneWidget,
+    );
     expect(find.text('Font size'), findsOneWidget);
     expect(find.text('Line height'), findsOneWidget);
     expect(find.text('Reading width'), findsOneWidget);
-    expect(find.text('Code font'), findsOneWidget);
-    expect(find.text('Code font size'), findsOneWidget);
-    expect(find.text('Code line height'), findsOneWidget);
+    expect(find.text('Reading texture'), findsOneWidget);
+    expect(
+      find.byKey(const Key('appearance_code_detail_tile')),
+      findsOneWidget,
+    );
     expect(find.text('Wrap code lines'), findsOneWidget);
+    expect(
+      find.byKey(const Key('appearance_reader_font_stack_input')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('appearance_code_font_size_slider')),
+      findsNothing,
+    );
     expect(find.byKey(const Key('settings_back_button')), findsOneWidget);
+  });
+
+  testWidgets('Appearance fonts detail back returns to Appearance first', (
+    tester,
+  ) async {
+    await pumpSettingsScreen(tester, 400, overrides: servicesOverrides());
+
+    await tester.tap(find.text('Appearance'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('appearance_fonts_detail_tile')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Fonts'), findsOneWidget);
+    expect(
+      find.byKey(const Key('appearance_reader_font_family_options')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('settings_back_button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Fonts'), findsNothing);
+    expect(find.text('App appearance'), findsOneWidget);
+    expect(
+      find.byKey(const Key('appearance_fonts_detail_tile')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('settings_back_button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('App appearance'), findsNothing);
+    expect(
+      find.byKey(const Key('settings_list_nav_appearance')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('Settings Screen expands temporary sidebar in narrow mode', (
@@ -392,7 +438,7 @@ void main() {
       expect(find.text('Theme mode'), findsOneWidget);
       expect(find.text('Font size'), findsOneWidget);
       expect(
-        find.byKey(const Key('appearance_reader_theme_sepia_card')),
+        find.byKey(const Key('appearance_reader_theme_options')),
         findsOneWidget,
       );
       expect(find.text('Reader appearance'), findsWidgets);
@@ -414,7 +460,7 @@ void main() {
     expect(find.text('Font size'), findsNothing);
     expect(find.text('Reader appearance'), findsNothing);
     expect(find.text('Code appearance'), findsNothing);
-    expect(find.text('Code font'), findsNothing);
+    expect(find.text('Fonts and code'), findsNothing);
     expect(
       find.byKey(const Key('appearance_seed_color_pink_card')),
       findsNothing,
@@ -461,26 +507,47 @@ void main() {
       overrides: servicesOverrides(),
     );
 
+    await tester.tap(find.byKey(const Key('appearance_fonts_detail_tile')));
+    await tester.pumpAndSettle();
+    expect(find.text('Fonts'), findsOneWidget);
+
     await tester.tap(
-      find.byKey(const Key('appearance_reader_font_serif_card')),
+      find.byKey(const Key('appearance_reader_font_family_serif_option')),
     );
     await tester.pumpAndSettle();
     expect(store.settings.fontFamily, ReaderFontFamily.serif);
 
+    await tester.tap(find.byKey(const Key('appearance_fonts_back_button')));
+    await tester.pumpAndSettle();
+
     await tester.tap(
-      find.byKey(const Key('appearance_reader_width_wide_card')),
+      find.byKey(const Key('appearance_reader_font_size_large_option')),
+    );
+    await tester.pumpAndSettle();
+    expect(store.settings.fontSize, 18);
+
+    await tester.tap(
+      find.byKey(const Key('appearance_reader_line_height_relaxed_option')),
+    );
+    await tester.pumpAndSettle();
+    expect(store.settings.lineHeight, 1.85);
+
+    await tester.tap(
+      find.byKey(const Key('appearance_reader_width_wide_option')),
     );
     await tester.pumpAndSettle();
     expect(store.settings.contentWidthPreset, ReaderContentWidthPreset.wide);
 
     await tester.tap(
-      find.byKey(const Key('appearance_reader_theme_sepia_card')),
+      find.byKey(const Key('appearance_reader_theme_sepia_option')),
     );
     await tester.pumpAndSettle();
     expect(store.settings.readerTheme, ReaderThemePreset.sepia);
 
+    await tester.tap(find.byKey(const Key('appearance_fonts_detail_tile')));
+    await tester.pumpAndSettle();
     await tester.tap(
-      find.byKey(const Key('appearance_reader_font_custom_card')),
+      find.byKey(const Key('appearance_reader_font_family_custom_option')),
     );
     await tester.pumpAndSettle();
     expect(store.settings.fontFamily, ReaderFontFamily.custom);
@@ -499,6 +566,8 @@ void main() {
       '"PingFang SC", system-ui, sans-serif',
     );
 
+    await tester.tap(find.byKey(const Key('appearance_fonts_back_button')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('appearance_reader_reset_button')));
     await tester.pumpAndSettle();
     expect(store.settings.fontFamily, ReaderFontFamily.system);
@@ -523,7 +592,13 @@ void main() {
       overrides: servicesOverrides(),
     );
 
-    await tester.tap(find.byKey(const Key('appearance_code_font_custom_card')));
+    await tester.tap(find.byKey(const Key('appearance_code_detail_tile')));
+    await tester.pumpAndSettle();
+    expect(find.text('Fonts'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const Key('appearance_code_font_family_custom_option')),
+    );
     await tester.pumpAndSettle();
     expect(store.settings.codeFontFamily, CodeFontFamilyPreset.custom);
     expect(
@@ -541,12 +616,8 @@ void main() {
       '"JetBrains Mono", "SF Mono", monospace',
     );
 
-    await tester.ensureVisible(
-      find.byKey(const Key('appearance_code_font_size_custom_card')),
-    );
-    await tester.pumpAndSettle();
     await tester.tap(
-      find.byKey(const Key('appearance_code_font_size_custom_card')),
+      find.byKey(const Key('appearance_code_font_size_mode_custom_option')),
     );
     await tester.pumpAndSettle();
     expect(store.settings.codeFontSizeMode, CodeFontSizeMode.custom);
@@ -575,6 +646,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(store.settings.codeLineHeight, 1.7);
 
+    await tester.tap(find.byKey(const Key('appearance_fonts_back_button')));
+    await tester.pumpAndSettle();
     await tester.ensureVisible(
       find.byKey(const Key('appearance_code_soft_wrap_switch')),
     );

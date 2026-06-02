@@ -178,6 +178,58 @@
   "@custom": {
     "description": "Generic custom option label"
   },
+  "back": "返回",
+  "@back": {
+    "description": "Generic back action label"
+  },
+  "fontSettings": "字體",
+  "@fontSettings": {
+    "description": "Appearance font detail page title"
+  },
+  "fontsAndCode": "字體與程式碼",
+  "@fontsAndCode": {
+    "description": "Appearance code font detail row label"
+  },
+  "customFontStack": "自訂字體棧",
+  "@customFontStack": {
+    "description": "Custom font stack option label"
+  },
+  "codeTypography": "程式碼排版",
+  "@codeTypography": {
+    "description": "Code typography settings section title"
+  },
+  "fontSizeExtraSmall": "特小",
+  "@fontSizeExtraSmall": {
+    "description": "Reader font size preset label"
+  },
+  "fontSizeSmall": "小",
+  "@fontSizeSmall": {
+    "description": "Reader font size preset label"
+  },
+  "fontSizeMediumRecommended": "中（推薦）",
+  "@fontSizeMediumRecommended": {
+    "description": "Reader font size preset label"
+  },
+  "fontSizeLarge": "大",
+  "@fontSizeLarge": {
+    "description": "Reader font size preset label"
+  },
+  "fontSizeExtraLarge": "特大",
+  "@fontSizeExtraLarge": {
+    "description": "Reader font size preset label"
+  },
+  "lineHeightCompact": "緊湊",
+  "@lineHeightCompact": {
+    "description": "Reader line height preset label"
+  },
+  "lineHeightStandard": "標準",
+  "@lineHeightStandard": {
+    "description": "Reader line height preset label"
+  },
+  "lineHeightRelaxed": "寬鬆",
+  "@lineHeightRelaxed": {
+    "description": "Reader line height preset label"
+  },
   "appearancePreview": "預覽",
   "@appearancePreview": {
     "description": "Appearance settings preview section title"
