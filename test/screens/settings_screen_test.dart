@@ -191,7 +191,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Appearance'), findsOneWidget);
-    expect(find.text('Preview'), findsOneWidget);
+    expect(
+      find.byKey(const Key('appearance_reader_font_serif_card')),
+      findsOneWidget,
+    );
     expect(find.text('App appearance'), findsOneWidget);
     expect(find.text('Reader appearance'), findsWidgets);
     expect(find.text('Theme mode'), findsOneWidget);
@@ -383,7 +386,10 @@ void main() {
 
       expect(find.text('Theme mode'), findsOneWidget);
       expect(find.text('Font size'), findsOneWidget);
-      expect(find.text('Preview'), findsOneWidget);
+      expect(
+        find.byKey(const Key('appearance_reader_theme_sepia_card')),
+        findsOneWidget,
+      );
       expect(find.text('Reader appearance'), findsWidgets);
       expect(find.text('System language'), findsNothing);
     },
@@ -419,7 +425,12 @@ void main() {
       overrides: servicesOverrides(settingsStore: store),
     );
 
-    await tester.tap(find.text('Dark'));
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const Key('appearance_theme_mode_segmented')),
+        matching: find.text('Dark'),
+      ),
+    );
     await tester.pumpAndSettle();
     expect(store.settings.themeMode, ThemeMode.dark);
 
@@ -444,20 +455,20 @@ void main() {
     );
 
     await tester.tap(
-      find.byKey(const Key('appearance_reader_font_family_select')),
+      find.byKey(const Key('appearance_reader_font_serif_card')),
     );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Serif').last);
     await tester.pumpAndSettle();
     expect(store.settings.fontFamily, ReaderFontFamily.serif);
 
-    await tester.tap(find.text('Wide'));
+    await tester.tap(
+      find.byKey(const Key('appearance_reader_width_wide_card')),
+    );
     await tester.pumpAndSettle();
     expect(store.settings.contentWidthPreset, ReaderContentWidthPreset.wide);
 
-    await tester.tap(find.byKey(const Key('appearance_reader_theme_select')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Sepia').last);
+    await tester.tap(
+      find.byKey(const Key('appearance_reader_theme_sepia_card')),
+    );
     await tester.pumpAndSettle();
     expect(store.settings.readerTheme, ReaderThemePreset.sepia);
 

@@ -75,10 +75,6 @@ class AppearanceTab extends ConsumerWidget {
           const SizedBox(height: 8),
         ],
         SettingsSection(
-          title: l10n.appearancePreview,
-          child: _AppearancePreviewCard(settings: readerSettings),
-        ),
-        SettingsSection(
           title: l10n.applicationAppearance,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -238,21 +234,28 @@ class AppearanceTab extends ConsumerWidget {
                   controller: targetController,
                   child: SettingsControlRow(
                     title: Text(l10n.readerFontFamily),
-                    control: SettingsSelectField<ReaderFontFamily>(
-                      key: const Key('appearance_reader_font_family_select'),
-                      value: readerSettings.fontFamily,
-                      options: [
+                    controlWidth: 456,
+                    control: _ReaderOptionWrap(
+                      children: [
                         for (final family in ReaderFontFamily.values)
-                          SettingsSelectOption(
-                            value: family,
-                            label: Text(readerFontLabel(family)),
+                          _PreviewChoiceCard(
+                            key: Key(
+                              'appearance_reader_font_${family.name}_card',
+                            ),
+                            label: readerFontLabel(family),
+                            selected: readerSettings.fontFamily == family,
+                            width: 108,
+                            onTap: () => unawaited(
+                              ref
+                                  .read(readerSettingsProvider.notifier)
+                                  .setFontFamily(family),
+                            ),
+                            preview: _ReaderFontOptionPreview(
+                              settings: readerSettings,
+                              family: family,
+                            ),
                           ),
                       ],
-                      onChanged: (value) => unawaited(
-                        ref
-                            .read(readerSettingsProvider.notifier)
-                            .setFontFamily(value),
-                      ),
                     ),
                   ),
                 ),
@@ -291,25 +294,26 @@ class AppearanceTab extends ConsumerWidget {
                   controller: targetController,
                   child: SettingsControlRow(
                     title: Text(l10n.readingWidth),
-                    controlWidth: 320,
-                    control: SegmentedButton<ReaderContentWidthPreset>(
-                      key: const Key('appearance_reader_width_segmented'),
-                      segments: [
+                    controlWidth: 420,
+                    control: _ReaderOptionWrap(
+                      children: [
                         for (final preset in ReaderContentWidthPreset.values)
-                          ButtonSegment(
-                            value: preset,
-                            label: Text(readingWidthLabel(preset)),
+                          _PreviewChoiceCard(
+                            key: Key(
+                              'appearance_reader_width_${preset.name}_card',
+                            ),
+                            label: readingWidthLabel(preset),
+                            selected:
+                                readerSettings.contentWidthPreset == preset,
+                            width: 132,
+                            onTap: () => unawaited(
+                              ref
+                                  .read(readerSettingsProvider.notifier)
+                                  .setContentWidthPreset(preset),
+                            ),
+                            preview: _ReadingWidthOptionPreview(preset: preset),
                           ),
                       ],
-                      selected: {readerSettings.contentWidthPreset},
-                      onSelectionChanged: (selected) {
-                        if (selected.isEmpty) return;
-                        unawaited(
-                          ref
-                              .read(readerSettingsProvider.notifier)
-                              .setContentWidthPreset(selected.first),
-                        );
-                      },
                     ),
                   ),
                 ),
@@ -318,21 +322,28 @@ class AppearanceTab extends ConsumerWidget {
                   controller: targetController,
                   child: SettingsControlRow(
                     title: Text(l10n.readerTheme),
-                    control: SettingsSelectField<ReaderThemePreset>(
-                      key: const Key('appearance_reader_theme_select'),
-                      value: readerSettings.readerTheme,
-                      options: [
+                    controlWidth: 456,
+                    control: _ReaderOptionWrap(
+                      children: [
                         for (final preset in ReaderThemePreset.values)
-                          SettingsSelectOption(
-                            value: preset,
-                            label: Text(readerThemeLabel(preset)),
+                          _PreviewChoiceCard(
+                            key: Key(
+                              'appearance_reader_theme_${preset.name}_card',
+                            ),
+                            label: readerThemeLabel(preset),
+                            selected: readerSettings.readerTheme == preset,
+                            width: 84,
+                            onTap: () => unawaited(
+                              ref
+                                  .read(readerSettingsProvider.notifier)
+                                  .setReaderTheme(preset),
+                            ),
+                            preview: _ReaderThemeOptionPreview(
+                              settings: readerSettings,
+                              preset: preset,
+                            ),
                           ),
                       ],
-                      onChanged: (value) => unawaited(
-                        ref
-                            .read(readerSettingsProvider.notifier)
-                            .setReaderTheme(value),
-                      ),
                     ),
                   ),
                 ),
@@ -361,126 +372,261 @@ class AppearanceTab extends ConsumerWidget {
   }
 }
 
-class _AppearancePreviewCard extends StatelessWidget {
-  const _AppearancePreviewCard({required this.settings});
+class _ReaderOptionWrap extends StatelessWidget {
+  const _ReaderOptionWrap({required this.children});
 
-  final ReaderSettings settings;
+  final List<Widget> children;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final baseTheme = Theme.of(context);
-    final previewTheme = AppTheme.readerScene(baseTheme, settings: settings);
-    final reader = previewTheme.fleurReader;
-    final surfaces = previewTheme.fleurSurface;
-    final scheme = previewTheme.colorScheme;
+    return Wrap(spacing: 8, runSpacing: 8, children: children);
+  }
+}
 
-    return Theme(
-      data: previewTheme,
-      child: SettingsCard(
-        key: const Key('appearance_preview_card'),
-        color: surfaces.reader,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.maxWidth.isFinite
-                ? constraints.maxWidth
-                : reader.maxWidth;
-            final measure = width.clamp(280, reader.maxWidth).toDouble();
+class _PreviewChoiceCard extends StatelessWidget {
+  const _PreviewChoiceCard({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    required this.preview,
+    required this.width,
+  });
 
-            return Center(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: measure),
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final Widget preview;
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final surfaces = theme.fleurSurface;
+    final borderColor = selected ? scheme.primary : surfaces.subtleDivider;
+    final backgroundColor = selected
+        ? scheme.primaryContainer.withValues(alpha: 0.18)
+        : surfaces.card;
+    final labelColor = selected ? scheme.primary : scheme.onSurfaceVariant;
+
+    return Tooltip(
+      message: label,
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label: label,
+        child: SizedBox(
+          width: width,
+          child: Material(
+            type: MaterialType.transparency,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: onTap,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 120),
+                curve: Curves.easeOutCubic,
+                constraints: const BoxConstraints(minHeight: 78),
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: backgroundColor,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: borderColor,
+                    width: selected ? 2 : 1,
+                  ),
+                ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
+                    SizedBox(height: 38, child: Center(child: preview)),
+                    const SizedBox(height: 6),
                     Text(
-                      l10n.appearancePreviewTitle,
-                      style: reader.titleStyleForBodyFontSize(
-                        settings.fontSize,
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: labelColor,
+                        fontWeight: selected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(l10n.appearancePreviewMeta, style: reader.metaStyle),
-                    const SizedBox(height: 14),
-                    Text(
-                      l10n.appearancePreviewBody,
-                      style: reader.bodyStyle.copyWith(
-                        fontSize: settings.fontSize,
-                        height: settings.lineHeight,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsetsDirectional.only(
-                        start: 12,
-                        top: 8,
-                        bottom: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        border: Border(
-                          left: BorderSide(
-                            color: reader.blockquoteAccent,
-                            width: 3,
-                          ),
-                        ),
-                      ),
-                      child: Text(
-                        l10n.appearancePreviewQuote,
-                        style: reader.bodyStyle.copyWith(
-                          fontSize: settings.fontSize,
-                          height: settings.lineHeight,
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 8,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Text(
-                          l10n.appearancePreviewLink,
-                          style: reader.bodyStyle.copyWith(
-                            color: scheme.primary,
-                            fontSize: settings.fontSize,
-                            height: settings.lineHeight,
-                            decoration: TextDecoration.underline,
-                            decorationColor: scheme.primary,
-                          ),
-                        ),
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: reader.codeBlockSurface,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            child: Text(
-                              l10n.appearancePreviewCode,
-                              style: reader.bodyStyle.copyWith(
-                                fontSize: (settings.fontSize - 1).clamp(12, 24),
-                                height: 1.35,
-                                fontFamily: 'SF Mono',
-                                fontFamilyFallback: const [
-                                  'Menlo',
-                                  'Consolas',
-                                  'monospace',
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
                     ),
                   ],
                 ),
               ),
-            );
-          },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReaderFontOptionPreview extends StatelessWidget {
+  const _ReaderFontOptionPreview({
+    required this.settings,
+    required this.family,
+  });
+
+  final ReaderSettings settings;
+  final ReaderFontFamily family;
+
+  @override
+  Widget build(BuildContext context) {
+    final previewTheme = AppTheme.readerScene(
+      Theme.of(context),
+      settings: settings.copyWith(fontFamily: family),
+    );
+    final reader = previewTheme.fleurReader;
+
+    return Theme(
+      data: previewTheme,
+      child: Text(
+        'Aa',
+        style: reader.bodyStyle.copyWith(
+          fontSize: 24,
+          height: 1,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _ReadingWidthOptionPreview extends StatelessWidget {
+  const _ReadingWidthOptionPreview({required this.preset});
+
+  final ReaderContentWidthPreset preset;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final surfaces = theme.fleurSurface;
+    final width = switch (preset) {
+      ReaderContentWidthPreset.narrow => 38.0,
+      ReaderContentWidthPreset.standard => 52.0,
+      ReaderContentWidthPreset.wide => 68.0,
+    };
+    final lineColor = scheme.primary;
+    final mutedLineColor = scheme.onSurfaceVariant.withValues(alpha: 0.42);
+
+    return SizedBox(
+      width: 82,
+      height: 34,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: surfaces.reader,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: surfaces.subtleDivider),
+        ),
+        child: Center(
+          child: SizedBox(
+            width: width,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _PreviewLine(color: lineColor, widthFactor: 0.9),
+                const SizedBox(height: 4),
+                _PreviewLine(color: mutedLineColor),
+                const SizedBox(height: 4),
+                _PreviewLine(color: mutedLineColor, widthFactor: 0.78),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReaderThemeOptionPreview extends StatelessWidget {
+  const _ReaderThemeOptionPreview({
+    required this.settings,
+    required this.preset,
+  });
+
+  final ReaderSettings settings;
+  final ReaderThemePreset preset;
+
+  @override
+  Widget build(BuildContext context) {
+    final previewTheme = AppTheme.readerScene(
+      Theme.of(context),
+      settings: settings.copyWith(readerTheme: preset),
+    );
+    final scheme = previewTheme.colorScheme;
+    final reader = previewTheme.fleurReader;
+    final surfaces = previewTheme.fleurSurface;
+
+    return Theme(
+      data: previewTheme,
+      child: SizedBox(
+        width: 58,
+        height: 34,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: surfaces.reader,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: surfaces.subtleDivider),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _PreviewLine(color: scheme.primary, widthFactor: 0.54),
+                const SizedBox(height: 4),
+                _PreviewLine(
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.5),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Container(
+                      width: 3,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: reader.blockquoteAccent,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(width: 3),
+                    Expanded(
+                      child: _PreviewLine(
+                        color: reader.codeBlockSurface,
+                        widthFactor: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PreviewLine extends StatelessWidget {
+  const _PreviewLine({required this.color, this.widthFactor = 1});
+
+  final Color color;
+  final double widthFactor;
+
+  @override
+  Widget build(BuildContext context) {
+    return FractionallySizedBox(
+      alignment: AlignmentDirectional.centerStart,
+      widthFactor: widthFactor,
+      child: Container(
+        height: 3,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(2),
         ),
       ),
     );
