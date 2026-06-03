@@ -82,11 +82,7 @@ class AppTheme {
         selectionColor: states.selectionTint,
       ),
       extensions: <ThemeExtension<dynamic>>[
-        surfaces.copyWith(
-          card: reader.summarySurface,
-          floating: reader.searchBarSurface,
-          reader: readerSurface,
-        ),
+        surfaces.copyWith(reader: readerSurface),
         states,
         reader,
         dynamicColor,
@@ -245,8 +241,8 @@ FleurReaderColorTokens _readerColorsFor({
 
   return FleurReaderColorTokens(
     summarySurface: scheme.surfaceContainerLow,
-    toolbarSurface: scheme.surfaceContainerLow,
-    searchBarSurface: scheme.surfaceContainerHigh,
+    toolbarSurface: base.toolbarSurface,
+    searchBarSurface: base.searchBarSurface,
     bannerSurface: scheme.surfaceContainer,
     blockquoteAccent: scheme.primary,
     codeBlockSurface: scheme.surfaceContainerHighest,

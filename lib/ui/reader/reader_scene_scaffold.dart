@@ -104,6 +104,10 @@ extension _ReaderSceneScaffold on _ReaderViewState {
       child: Stack(
         fit: StackFit.expand,
         children: [
+          ColoredBox(
+            key: const Key('reader_scene_background'),
+            color: sceneTheme.fleurSurface.reader,
+          ),
           paddedContentWidget,
           ReaderSearchBar(
             key: _viewportCoordinator.searchBarKey,

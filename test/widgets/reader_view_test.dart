@@ -1591,6 +1591,19 @@ void main() {
       sceneTheme.fleurSurface.reader,
       isNot(defaultSceneTheme.fleurSurface.reader),
     );
+    expect(sceneTheme.fleurSurface.card, defaultSceneTheme.fleurSurface.card);
+    expect(
+      sceneTheme.fleurSurface.floating,
+      defaultSceneTheme.fleurSurface.floating,
+    );
+    expect(
+      sceneTheme.fleurReader.toolbarSurface,
+      defaultSceneTheme.fleurReader.toolbarSurface,
+    );
+    expect(
+      sceneTheme.fleurReader.searchBarSurface,
+      defaultSceneTheme.fleurReader.searchBarSurface,
+    );
   });
 
   testWidgets('reader math fallback uses code appearance font', (tester) async {
@@ -1965,13 +1978,15 @@ void main() {
     expect(saved.anchorFraction, isNotNull);
   });
 
-  testWidgets('reader scene applies themed search and toolbar surfaces', (
+  testWidgets('reader scene applies reader surfaces without tinting chrome', (
     tester,
   ) async {
+    const settings = ReaderSettings(readerTheme: ReaderThemePreset.sepia);
     await pumpReader(
       tester,
       article: buildArticle(),
       appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      readerSettings: settings,
     );
 
     final container = ProviderScope.containerOf(
@@ -1991,6 +2006,9 @@ void main() {
           .first,
     );
     final bottomBarDecoration = bottomBarContainer.decoration as BoxDecoration?;
+    final background = tester.widget<ColoredBox>(
+      find.byKey(const Key('reader_scene_background')),
+    );
 
     final searchBarMaterial = tester.widget<Material>(
       find
@@ -2003,10 +2021,24 @@ void main() {
           .first,
     );
 
+    final baseTheme = AppTheme.readerScene(AppTheme.light());
     expect(sceneTheme.scaffoldBackgroundColor, sceneTheme.fleurSurface.reader);
+    expect(background.color, sceneTheme.fleurSurface.reader);
+    expect(
+      sceneTheme.fleurSurface.reader,
+      isNot(baseTheme.fleurSurface.reader),
+    );
     expect(sceneTheme.cardTheme.color, sceneTheme.fleurReader.summarySurface);
-    expect(bottomBarDecoration?.color, sceneTheme.fleurReader.toolbarSurface);
+    expect(bottomBarDecoration?.color, baseTheme.fleurReader.toolbarSurface);
+    expect(
+      sceneTheme.fleurReader.toolbarSurface,
+      baseTheme.fleurReader.toolbarSurface,
+    );
     expect(searchBarMaterial.color, sceneTheme.fleurReader.searchBarSurface);
+    expect(
+      sceneTheme.fleurReader.searchBarSurface,
+      baseTheme.fleurReader.searchBarSurface,
+    );
     expect(
       tester.getSize(find.byKey(const Key('reader_feed_icon'))),
       const Size(32, 32),
