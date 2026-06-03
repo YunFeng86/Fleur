@@ -302,6 +302,8 @@ class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
     required this.bodyStyle,
     required this.summaryStyle,
     required this.codeStyle,
+    required this.mathStyle,
+    required this.mathFallbackStyle,
     required this.codeSoftWrap,
     required this.summarySurface,
     required this.toolbarSurface,
@@ -320,6 +322,8 @@ class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
   final TextStyle bodyStyle;
   final TextStyle summaryStyle;
   final TextStyle codeStyle;
+  final TextStyle mathStyle;
+  final TextStyle mathFallbackStyle;
   final bool codeSoftWrap;
   final Color summarySurface;
   final Color toolbarSurface;
@@ -386,6 +390,29 @@ class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
 
     final codeFontStack = codeFontStackFor(settings);
     final codeFontSize = codeFontSizeFor(settings);
+    final mathFontStack = mathFontStackFor(settings);
+    final bodyBaseStyle = applyReaderFont(
+      (textTheme.bodyMedium ?? const TextStyle()).copyWith(
+        color: bodyColor,
+        fontWeight: FontWeight.w400,
+        height: ReaderSettings.defaultLineHeight,
+        letterSpacing: 0,
+      ),
+    );
+    final codeBaseStyle = codeFontStack.applyTo(
+      const TextStyle().copyWith(
+        color: scheme.onSurface,
+        decoration: TextDecoration.none,
+        fontSize: codeFontSize,
+        fontStyle: FontStyle.normal,
+        fontWeight: FontWeight.w400,
+        height: _clampDouble(settings.codeLineHeight, 1.1, 2.0),
+      ),
+    );
+    final mathBaseStyle = bodyBaseStyle.copyWith(color: scheme.onSurface);
+    final mathStyle = mathFontStack?.applyTo(mathBaseStyle) ?? mathBaseStyle;
+    final mathFallbackStyle =
+        mathFontStack?.applyTo(codeBaseStyle) ?? codeBaseStyle;
 
     return FleurReaderTheme(
       maxWidth: _readerMaxWidth(settings.contentWidthPreset),
@@ -407,30 +434,16 @@ class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
         letterSpacing: 0,
         height: 1.2,
       ),
-      bodyStyle: applyReaderFont(
-        (textTheme.bodyMedium ?? const TextStyle()).copyWith(
-          color: bodyColor,
-          fontWeight: FontWeight.w400,
-          height: ReaderSettings.defaultLineHeight,
-          letterSpacing: 0,
-        ),
-      ),
+      bodyStyle: bodyBaseStyle,
       summaryStyle: applyReaderFont(
         (textTheme.bodyMedium ?? const TextStyle()).copyWith(
           color: scheme.onSurface,
           height: 1.56,
         ),
       ),
-      codeStyle: codeFontStack.applyTo(
-        const TextStyle().copyWith(
-          color: scheme.onSurface,
-          decoration: TextDecoration.none,
-          fontSize: codeFontSize,
-          fontStyle: FontStyle.normal,
-          fontWeight: FontWeight.w400,
-          height: _clampDouble(settings.codeLineHeight, 1.1, 2.0),
-        ),
-      ),
+      codeStyle: codeBaseStyle,
+      mathStyle: mathStyle,
+      mathFallbackStyle: mathFallbackStyle,
       codeSoftWrap: settings.codeSoftWrap,
       summarySurface: readerColors.summarySurface,
       toolbarSurface: readerColors.toolbarSurface,
@@ -452,6 +465,8 @@ class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
     TextStyle? bodyStyle,
     TextStyle? summaryStyle,
     TextStyle? codeStyle,
+    TextStyle? mathStyle,
+    TextStyle? mathFallbackStyle,
     bool? codeSoftWrap,
     Color? summarySurface,
     Color? toolbarSurface,
@@ -471,6 +486,8 @@ class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
       bodyStyle: bodyStyle ?? this.bodyStyle,
       summaryStyle: summaryStyle ?? this.summaryStyle,
       codeStyle: codeStyle ?? this.codeStyle,
+      mathStyle: mathStyle ?? this.mathStyle,
+      mathFallbackStyle: mathFallbackStyle ?? this.mathFallbackStyle,
       codeSoftWrap: codeSoftWrap ?? this.codeSoftWrap,
       summarySurface: summarySurface ?? this.summarySurface,
       toolbarSurface: toolbarSurface ?? this.toolbarSurface,
@@ -508,6 +525,10 @@ class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
       summaryStyle:
           TextStyle.lerp(summaryStyle, other.summaryStyle, t) ?? summaryStyle,
       codeStyle: TextStyle.lerp(codeStyle, other.codeStyle, t) ?? codeStyle,
+      mathStyle: TextStyle.lerp(mathStyle, other.mathStyle, t) ?? mathStyle,
+      mathFallbackStyle:
+          TextStyle.lerp(mathFallbackStyle, other.mathFallbackStyle, t) ??
+          mathFallbackStyle,
       codeSoftWrap: t < 0.5 ? codeSoftWrap : other.codeSoftWrap,
       summarySurface:
           Color.lerp(summarySurface, other.summarySurface, t) ?? summarySurface,
@@ -537,10 +558,16 @@ double _readerMaxWidth(ReaderContentWidthPreset preset) {
 }
 
 FleurFontStack readerFontStackFor(ReaderSettings settings) {
-  if (settings.fontFamily == ReaderFontFamily.custom) {
-    final custom = parseFontStack(settings.readerFontStack);
-    if (custom.fontFamily != null) return custom;
-  }
+  final configured = switch (settings.fontFamily) {
+    ReaderFontFamily.system => settings.standardFontStack,
+    ReaderFontFamily.serif => settings.serifFontStack,
+    ReaderFontFamily.sans => settings.sansFontStack,
+    ReaderFontFamily.mono => settings.monoFontStack,
+    ReaderFontFamily.custom => settings.readerFontStack,
+  };
+  final custom = parseFontStack(configured);
+  if (custom.fontFamily != null) return custom;
+
   return FleurFontStack(
     fontFamily: _readerFontFamily(settings.fontFamily),
     fontFamilyFallback: _readerFontFallback(settings.fontFamily),
@@ -548,6 +575,9 @@ FleurFontStack readerFontStackFor(ReaderSettings settings) {
 }
 
 FleurFontStack codeFontStackFor(ReaderSettings settings) {
+  final configured = parseFontStack(settings.monoFontStack);
+  if (configured.fontFamily != null) return configured;
+
   if (settings.codeFontFamily == CodeFontFamilyPreset.custom) {
     final custom = parseFontStack(settings.codeFontStack);
     if (custom.fontFamily != null) return custom;
@@ -563,6 +593,11 @@ FleurFontStack codeFontStackFor(ReaderSettings settings) {
       'monospace',
     ],
   );
+}
+
+FleurFontStack? mathFontStackFor(ReaderSettings settings) {
+  final configured = parseFontStack(settings.mathFontStack);
+  return configured.fontFamily == null ? null : configured;
 }
 
 double codeFontSizeFor(ReaderSettings settings) {

@@ -369,6 +369,12 @@ abstract class AppLocalizations {
   /// **'Fonts'**
   String get fontSettings;
 
+  /// Appearance advanced font settings row and detail page title
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced font settings'**
+  String get advancedFontSettings;
+
   /// Appearance code font detail row label
   ///
   /// In en, this message translates to:
@@ -416,6 +422,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Extra large'**
   String get fontSizeExtraLarge;
+
+  /// Minimum reader body font size setting label
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum font size'**
+  String get minimumFontSize;
 
   /// Reader line height preset label
   ///
@@ -513,11 +525,53 @@ abstract class AppLocalizations {
   /// **'Reading font stack'**
   String get readerFontStack;
 
+  /// Standard reader font stack setting label
+  ///
+  /// In en, this message translates to:
+  /// **'Standard font'**
+  String get standardFont;
+
+  /// Serif reader font stack setting label
+  ///
+  /// In en, this message translates to:
+  /// **'Serif font'**
+  String get serifFont;
+
+  /// Sans-serif reader font stack setting label
+  ///
+  /// In en, this message translates to:
+  /// **'Sans-serif font'**
+  String get sansSerifFont;
+
+  /// Fixed-width reader and code font stack setting label
+  ///
+  /// In en, this message translates to:
+  /// **'Fixed-width font'**
+  String get fixedWidthFont;
+
+  /// Math font stack setting label
+  ///
+  /// In en, this message translates to:
+  /// **'Math font'**
+  String get mathFont;
+
   /// Example helper text for custom font stack input
   ///
   /// In en, this message translates to:
   /// **'\"PingFang SC\", \"Noto Sans CJK SC\", system-ui, sans-serif'**
   String get fontStackExample;
+
+  /// Example helper text for monospace font stack input
+  ///
+  /// In en, this message translates to:
+  /// **'\"SF Mono\", Menlo, Consolas, monospace'**
+  String get monoFontStackExample;
+
+  /// Example helper text for math font stack input
+  ///
+  /// In en, this message translates to:
+  /// **'\"STIX Two Math\", \"Cambria Math\", serif'**
+  String get mathFontStackExample;
 
   /// Reader surface texture preset setting label
   ///

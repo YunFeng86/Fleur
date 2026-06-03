@@ -309,7 +309,13 @@ class _ReaderWidgetFactory extends WidgetFactory {
     final softWrap = resolved.get<CssWhitespace>() != CssWhitespace.nowrap;
     final textAlign = resolved.get<TextAlign>() ?? TextAlign.start;
     final textDirection = resolved.get<ui.TextDirection>();
-    final textStyle = resolved.prepareTextStyle();
+    final clampMinimumFontSize = !_isInsideCodeLikeElement(tree.element);
+    final textStyle = clampMinimumFontSize
+        ? _applyMinimumFontSize(resolved.prepareTextStyle())
+        : resolved.prepareTextStyle();
+    final effectiveText = clampMinimumFontSize
+        ? _applyMinimumFontSizeToSpan(text)
+        : text;
     final strutStyle = StrutStyle.fromTextStyle(
       textStyle,
       fontSize: textStyle.fontSize ?? _settings.fontSize,
@@ -331,7 +337,7 @@ class _ReaderWidgetFactory extends WidgetFactory {
           selectionRegistrar: selectionRegistrar,
           softWrap: softWrap,
           strutStyle: strutStyle,
-          text: text,
+          text: effectiveText,
           textAlign: textAlign,
           textDirection: textDirection,
         );
@@ -343,6 +349,46 @@ class _ReaderWidgetFactory extends WidgetFactory {
         return built;
       },
     );
+  }
+
+  TextStyle _applyMinimumFontSize(TextStyle style) {
+    final minimum = _settings.minimumFontSize.clamp(10, 18).toDouble();
+    final current = style.fontSize;
+    if (current == null || current >= minimum) return style;
+    return style.copyWith(fontSize: minimum);
+  }
+
+  InlineSpan _applyMinimumFontSizeToSpan(InlineSpan span) {
+    if (span is! TextSpan) return span;
+    return TextSpan(
+      text: span.text,
+      children: span.children
+          ?.map(_applyMinimumFontSizeToSpan)
+          .toList(growable: false),
+      style: span.style == null ? null : _applyMinimumFontSize(span.style!),
+      recognizer: span.recognizer,
+      mouseCursor: span.mouseCursor,
+      onEnter: span.onEnter,
+      onExit: span.onExit,
+      semanticsLabel: span.semanticsLabel,
+      semanticsIdentifier: span.semanticsIdentifier,
+      locale: span.locale,
+      spellOut: span.spellOut,
+    );
+  }
+
+  bool _isInsideCodeLikeElement(dom.Element element) {
+    dom.Element? current = element;
+    while (current != null) {
+      final localName = current.localName;
+      if (localName == 'pre' ||
+          localName == 'code' ||
+          localName == 'fleur-math') {
+        return true;
+      }
+      current = current.parent;
+    }
+    return false;
   }
 }
 
@@ -994,7 +1040,7 @@ class _ReaderMathNode extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final textStyle = theme.fleurReader.bodyStyle.copyWith(
+    final textStyle = theme.fleurReader.mathStyle.copyWith(
       color: theme.colorScheme.onSurface,
     );
     final math = flutter_math.Math.tex(
@@ -1007,7 +1053,7 @@ class _ReaderMathNode extends StatelessWidget {
       onErrorFallback: (_) => Text(
         expression,
         key: const Key('reader_math_fallback'),
-        style: theme.fleurReader.codeStyle.copyWith(
+        style: theme.fleurReader.mathFallbackStyle.copyWith(
           color: theme.colorScheme.onSurface,
         ),
       ),

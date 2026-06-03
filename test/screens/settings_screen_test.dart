@@ -193,11 +193,11 @@ void main() {
     expect(find.text('Appearance'), findsOneWidget);
     expect(find.text('App appearance'), findsOneWidget);
     expect(find.text('Reader appearance'), findsWidgets);
-    expect(find.text('Code appearance'), findsWidgets);
+    expect(find.text('Code appearance'), findsNothing);
     expect(find.text('Theme mode'), findsOneWidget);
     expect(find.text('Accent color'), findsOneWidget);
     expect(
-      find.byKey(const Key('appearance_fonts_detail_tile')),
+      find.byKey(const Key('appearance_reader_font_family_options')),
       findsOneWidget,
     );
     expect(find.text('Font size'), findsOneWidget);
@@ -205,9 +205,10 @@ void main() {
     expect(find.text('Reading width'), findsOneWidget);
     expect(find.text('Reading texture'), findsOneWidget);
     expect(
-      find.byKey(const Key('appearance_code_detail_tile')),
+      find.byKey(const Key('appearance_advanced_fonts_tile')),
       findsOneWidget,
     );
+    expect(find.text('Advanced font settings'), findsOneWidget);
     expect(find.text('Wrap code lines'), findsOneWidget);
     expect(
       find.byKey(const Key('appearance_reader_font_stack_input')),
@@ -227,22 +228,29 @@ void main() {
 
     await tester.tap(find.text('Appearance'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('appearance_fonts_detail_tile')));
+    await tester.ensureVisible(
+      find.byKey(const Key('appearance_advanced_fonts_tile')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('appearance_advanced_fonts_tile')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Fonts'), findsOneWidget);
+    expect(find.text('Advanced font settings'), findsOneWidget);
     expect(
-      find.byKey(const Key('appearance_reader_font_family_options')),
+      find.byKey(const Key('appearance_standard_font_stack_input')),
       findsOneWidget,
     );
 
     await tester.tap(find.byKey(const Key('settings_back_button')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Fonts'), findsNothing);
+    expect(
+      find.byKey(const Key('appearance_standard_font_stack_input')),
+      findsNothing,
+    );
     expect(find.text('App appearance'), findsOneWidget);
     expect(
-      find.byKey(const Key('appearance_fonts_detail_tile')),
+      find.byKey(const Key('appearance_advanced_fonts_tile')),
       findsOneWidget,
     );
 
@@ -507,18 +515,11 @@ void main() {
       overrides: servicesOverrides(),
     );
 
-    await tester.tap(find.byKey(const Key('appearance_fonts_detail_tile')));
-    await tester.pumpAndSettle();
-    expect(find.text('Fonts'), findsOneWidget);
-
     await tester.tap(
       find.byKey(const Key('appearance_reader_font_family_serif_option')),
     );
     await tester.pumpAndSettle();
     expect(store.settings.fontFamily, ReaderFontFamily.serif);
-
-    await tester.tap(find.byKey(const Key('appearance_fonts_back_button')));
-    await tester.pumpAndSettle();
 
     await tester.tap(
       find.byKey(const Key('appearance_reader_font_size_large_option')),
@@ -544,27 +545,44 @@ void main() {
     await tester.pumpAndSettle();
     expect(store.settings.readerTheme, ReaderThemePreset.sepia);
 
-    await tester.tap(find.byKey(const Key('appearance_fonts_detail_tile')));
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(const Key('appearance_reader_font_family_custom_option')),
+    await tester.ensureVisible(
+      find.byKey(const Key('appearance_code_soft_wrap_switch')),
     );
     await tester.pumpAndSettle();
-    expect(store.settings.fontFamily, ReaderFontFamily.custom);
+    await tester.tap(find.byKey(const Key('appearance_code_soft_wrap_switch')));
+    await tester.pumpAndSettle();
+    expect(store.settings.codeSoftWrap, isTrue);
+
+    await tester.ensureVisible(
+      find.byKey(const Key('appearance_advanced_fonts_tile')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('appearance_advanced_fonts_tile')));
+    await tester.pumpAndSettle();
     expect(
-      find.byKey(const Key('appearance_reader_font_stack_input')),
+      find.byKey(const Key('appearance_standard_font_stack_input')),
       findsOneWidget,
     );
 
     await tester.enterText(
-      find.byKey(const Key('appearance_reader_font_stack_input')),
+      find.byKey(const Key('appearance_standard_font_stack_input')),
       '"PingFang SC", system-ui, sans-serif',
     );
     await tester.pumpAndSettle();
     expect(
-      store.settings.readerFontStack,
+      store.settings.standardFontStack,
       '"PingFang SC", system-ui, sans-serif',
     );
+
+    final minimumFontSizeSlider = tester.widget<Slider>(
+      find.descendant(
+        of: find.byKey(const Key('appearance_minimum_font_size_slider')),
+        matching: find.byType(Slider),
+      ),
+    );
+    minimumFontSizeSlider.onChanged!(13);
+    await tester.pumpAndSettle();
+    expect(store.settings.minimumFontSize, 13);
 
     await tester.tap(find.byKey(const Key('appearance_fonts_back_button')));
     await tester.pumpAndSettle();
@@ -572,14 +590,20 @@ void main() {
     await tester.pumpAndSettle();
     expect(store.settings.fontFamily, ReaderFontFamily.system);
     expect(store.settings.readerFontStack, isEmpty);
+    expect(store.settings.standardFontStack, isEmpty);
+    expect(
+      store.settings.minimumFontSize,
+      ReaderSettings.defaultMinimumFontSize,
+    );
     expect(
       store.settings.contentWidthPreset,
       ReaderContentWidthPreset.standard,
     );
     expect(store.settings.readerTheme, ReaderThemePreset.defaultLightAware);
+    expect(store.settings.codeSoftWrap, isFalse);
   });
 
-  testWidgets('Appearance code controls persist code appearance', (
+  testWidgets('Appearance advanced font controls persist code typography', (
     tester,
   ) async {
     final store = FakeReaderSettingsStore(const ReaderSettings());
@@ -592,29 +616,33 @@ void main() {
       overrides: servicesOverrides(),
     );
 
-    await tester.tap(find.byKey(const Key('appearance_code_detail_tile')));
-    await tester.pumpAndSettle();
-    expect(find.text('Fonts'), findsOneWidget);
-
-    await tester.tap(
-      find.byKey(const Key('appearance_code_font_family_custom_option')),
+    await tester.ensureVisible(
+      find.byKey(const Key('appearance_advanced_fonts_tile')),
     );
     await tester.pumpAndSettle();
-    expect(store.settings.codeFontFamily, CodeFontFamilyPreset.custom);
+    await tester.tap(find.byKey(const Key('appearance_advanced_fonts_tile')));
+    await tester.pumpAndSettle();
     expect(
-      find.byKey(const Key('appearance_code_font_stack_input')),
+      find.byKey(const Key('appearance_mono_font_stack_input')),
       findsOneWidget,
     );
 
     await tester.enterText(
-      find.byKey(const Key('appearance_code_font_stack_input')),
+      find.byKey(const Key('appearance_mono_font_stack_input')),
       '"JetBrains Mono", "SF Mono", monospace',
     );
     await tester.pumpAndSettle();
     expect(
-      store.settings.codeFontStack,
+      store.settings.monoFontStack,
       '"JetBrains Mono", "SF Mono", monospace',
     );
+
+    await tester.enterText(
+      find.byKey(const Key('appearance_math_font_stack_input')),
+      '"STIX Two Math", serif',
+    );
+    await tester.pumpAndSettle();
+    expect(store.settings.mathFontStack, '"STIX Two Math", serif');
 
     await tester.tap(
       find.byKey(const Key('appearance_code_font_size_mode_custom_option')),
@@ -648,22 +676,12 @@ void main() {
 
     await tester.tap(find.byKey(const Key('appearance_fonts_back_button')));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(
-      find.byKey(const Key('appearance_code_soft_wrap_switch')),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('appearance_code_soft_wrap_switch')));
-    await tester.pumpAndSettle();
-    expect(store.settings.codeSoftWrap, isTrue);
-
-    await tester.ensureVisible(
-      find.byKey(const Key('appearance_code_reset_button')),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('appearance_code_reset_button')));
+    await tester.tap(find.byKey(const Key('appearance_reader_reset_button')));
     await tester.pumpAndSettle();
     expect(store.settings.codeFontFamily, CodeFontFamilyPreset.systemMono);
     expect(store.settings.codeFontStack, isEmpty);
+    expect(store.settings.monoFontStack, isEmpty);
+    expect(store.settings.mathFontStack, isEmpty);
     expect(store.settings.codeFontSizeMode, CodeFontSizeMode.oneStepDown);
     expect(store.settings.codeFontSize, ReaderSettings.defaultCodeFontSize);
     expect(store.settings.codeLineHeight, ReaderSettings.defaultCodeLineHeight);

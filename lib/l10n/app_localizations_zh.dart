@@ -148,6 +148,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fontSettings => '字体';
 
   @override
+  String get advancedFontSettings => '高级字体设置';
+
+  @override
   String get fontsAndCode => '字体与代码';
 
   @override
@@ -170,6 +173,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get fontSizeExtraLarge => '特大';
+
+  @override
+  String get minimumFontSize => '最小字号';
 
   @override
   String get lineHeightCompact => '紧凑';
@@ -220,8 +226,30 @@ class AppLocalizationsZh extends AppLocalizations {
   String get readerFontStack => '阅读字体栈';
 
   @override
+  String get standardFont => '标准字体';
+
+  @override
+  String get serifFont => 'Serif 字体';
+
+  @override
+  String get sansSerifFont => 'Sans-serif 字体';
+
+  @override
+  String get fixedWidthFont => '宽度固定的字体';
+
+  @override
+  String get mathFont => '数学字体';
+
+  @override
   String get fontStackExample =>
       '\"PingFang SC\", \"Noto Sans CJK SC\", system-ui, sans-serif';
+
+  @override
+  String get monoFontStackExample => '\"SF Mono\", Menlo, Consolas, monospace';
+
+  @override
+  String get mathFontStackExample =>
+      '\"STIX Two Math\", \"Cambria Math\", serif';
 
   @override
   String get readerTheme => '阅读质感';
@@ -1561,6 +1589,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get fontSettings => '字體';
 
   @override
+  String get advancedFontSettings => '進階字體設定';
+
+  @override
   String get fontsAndCode => '字體與程式碼';
 
   @override
@@ -1583,6 +1614,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get fontSizeExtraLarge => '特大';
+
+  @override
+  String get minimumFontSize => '最小字號';
 
   @override
   String get lineHeightCompact => '緊湊';
@@ -1633,8 +1667,30 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get readerFontStack => '閱讀字體棧';
 
   @override
+  String get standardFont => '標準字體';
+
+  @override
+  String get serifFont => 'Serif 字體';
+
+  @override
+  String get sansSerifFont => 'Sans-serif 字體';
+
+  @override
+  String get fixedWidthFont => '固定寬度字體';
+
+  @override
+  String get mathFont => '數學字體';
+
+  @override
   String get fontStackExample =>
       '\"PingFang SC\", \"Noto Sans CJK SC\", system-ui, sans-serif';
+
+  @override
+  String get monoFontStackExample => '\"SF Mono\", Menlo, Consolas, monospace';
+
+  @override
+  String get mathFontStackExample =>
+      '\"STIX Two Math\", \"Cambria Math\", serif';
 
   @override
   String get readerTheme => '閱讀質感';

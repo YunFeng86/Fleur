@@ -186,6 +186,10 @@
   "@fontSettings": {
     "description": "Appearance font detail page title"
   },
+  "advancedFontSettings": "進階字體設定",
+  "@advancedFontSettings": {
+    "description": "Appearance advanced font settings row and detail page title"
+  },
   "fontsAndCode": "字體與程式碼",
   "@fontsAndCode": {
     "description": "Appearance code font detail row label"
@@ -217,6 +221,10 @@
   "fontSizeExtraLarge": "特大",
   "@fontSizeExtraLarge": {
     "description": "Reader font size preset label"
+  },
+  "minimumFontSize": "最小字號",
+  "@minimumFontSize": {
+    "description": "Minimum reader body font size setting label"
   },
   "lineHeightCompact": "緊湊",
   "@lineHeightCompact": {
@@ -282,9 +290,37 @@
   "@readerFontStack": {
     "description": "Reader custom font stack setting label"
   },
+  "standardFont": "標準字體",
+  "@standardFont": {
+    "description": "Standard reader font stack setting label"
+  },
+  "serifFont": "Serif 字體",
+  "@serifFont": {
+    "description": "Serif reader font stack setting label"
+  },
+  "sansSerifFont": "Sans-serif 字體",
+  "@sansSerifFont": {
+    "description": "Sans-serif reader font stack setting label"
+  },
+  "fixedWidthFont": "固定寬度字體",
+  "@fixedWidthFont": {
+    "description": "Fixed-width reader and code font stack setting label"
+  },
+  "mathFont": "數學字體",
+  "@mathFont": {
+    "description": "Math font stack setting label"
+  },
   "fontStackExample": "\"PingFang SC\", \"Noto Sans CJK SC\", system-ui, sans-serif",
   "@fontStackExample": {
     "description": "Example helper text for custom font stack input"
+  },
+  "monoFontStackExample": "\"SF Mono\", Menlo, Consolas, monospace",
+  "@monoFontStackExample": {
+    "description": "Example helper text for monospace font stack input"
+  },
+  "mathFontStackExample": "\"STIX Two Math\", \"Cambria Math\", serif",
+  "@mathFontStackExample": {
+    "description": "Example helper text for math font stack input"
   },
   "readerTheme": "閱讀質感",
   "@readerTheme": {

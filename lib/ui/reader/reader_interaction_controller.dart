@@ -586,7 +586,9 @@ final class _ReaderInteractionController {
       ReaderSettings initial,
       EdgeInsets padding,
     ) {
-      var current = initial;
+      var current = initial.fontFamily == ReaderFontFamily.custom
+          ? initial.copyWith(fontFamily: ReaderFontFamily.system)
+          : initial;
       return StatefulBuilder(
         builder: (context, setState) {
           return SafeArea(
@@ -618,10 +620,11 @@ final class _ReaderInteractionController {
                         value: current.fontFamily,
                         options: [
                           for (final family in ReaderFontFamily.values)
-                            SettingsSelectOption(
-                              value: family,
-                              label: Text(readerFontLabel(family)),
-                            ),
+                            if (family != ReaderFontFamily.custom)
+                              SettingsSelectOption(
+                                value: family,
+                                label: Text(readerFontLabel(family)),
+                              ),
                         ],
                         onChanged: (value) {
                           final next = current.copyWith(fontFamily: value);

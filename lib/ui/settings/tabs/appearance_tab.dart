@@ -23,6 +23,13 @@ enum _ReaderFontSizePreset { extraSmall, small, medium, large, extraLarge }
 
 enum _ReaderLineHeightPreset { compact, standard, relaxed }
 
+const _visibleReaderFontFamilies = [
+  ReaderFontFamily.system,
+  ReaderFontFamily.serif,
+  ReaderFontFamily.sans,
+  ReaderFontFamily.mono,
+];
+
 class AppearanceTab extends ConsumerStatefulWidget {
   const AppearanceTab({
     super.key,
@@ -233,16 +240,36 @@ class _AppearanceTabState extends ConsumerState<AppearanceTab> {
                 SettingsTargetAnchor(
                   id: 'appearance.reader.font_family',
                   controller: widget.targetController,
-                  child: SettingsTile(
-                    key: const Key('appearance_fonts_detail_tile'),
+                  child: SettingsControlRow(
                     title: Text(l10n.readerFontFamily),
-                    trailing: _DisclosureTrailing(
-                      summary: _readerFontLabel(
-                        l10n,
-                        readerSettings.fontFamily,
+                    controlWidth: 560,
+                    control: _PreviewOptionGroup<ReaderFontFamily>(
+                      key: const Key('appearance_reader_font_family_options'),
+                      value: _visibleReaderFontFamily(readerSettings),
+                      options: [
+                        for (final family in _visibleReaderFontFamilies)
+                          _PreviewOption(
+                            key: Key(
+                              'appearance_reader_font_family_${family.name}_option',
+                            ),
+                            value: family,
+                            semanticLabel: _readerFontLabel(l10n, family),
+                            width: 128,
+                            minHeight: 82,
+                            child: _ReaderFontFamilyPreview(
+                              label: _readerFontLabel(l10n, family),
+                              settings: readerSettings.copyWith(
+                                fontFamily: family,
+                              ),
+                            ),
+                          ),
+                      ],
+                      onChanged: (family) => unawaited(
+                        ref
+                            .read(readerSettingsProvider.notifier)
+                            .setFontFamily(family),
                       ),
                     ),
-                    onTap: widget.onOpenFontsDetail,
                   ),
                 ),
                 SettingsTargetAnchor(
@@ -377,45 +404,6 @@ class _AppearanceTabState extends ConsumerState<AppearanceTab> {
                     ),
                   ),
                 ),
-                SettingsControlRow(
-                  title: Text(l10n.readerAppearance),
-                  control: Align(
-                    alignment: AlignmentDirectional.centerEnd,
-                    child: SettingsActionButton(
-                      key: const Key('appearance_reader_reset_button'),
-                      onPressed: () => unawaited(
-                        ref
-                            .read(readerSettingsProvider.notifier)
-                            .resetReaderAppearance(),
-                      ),
-                      icon: const Icon(FleurIcons.reset),
-                      label: Text(l10n.resetToDefault),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        SettingsSection(
-          title: l10n.codeAppearance,
-          bottomSpacing: 0,
-          child: SettingsCard(
-            padding: EdgeInsets.zero,
-            child: SettingsTileGroup(
-              children: [
-                SettingsTargetAnchor(
-                  id: 'appearance.code.font',
-                  controller: widget.targetController,
-                  child: SettingsTile(
-                    key: const Key('appearance_code_detail_tile'),
-                    title: Text(l10n.fontsAndCode),
-                    trailing: _DisclosureTrailing(
-                      summary: _codeAppearanceSummary(l10n, readerSettings),
-                    ),
-                    onTap: widget.onOpenFontsDetail,
-                  ),
-                ),
                 SettingsTargetAnchor(
                   id: 'appearance.code.wrap',
                   controller: widget.targetController,
@@ -431,16 +419,31 @@ class _AppearanceTabState extends ConsumerState<AppearanceTab> {
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                   ),
                 ),
+                SettingsTargetAnchor(
+                  id: 'appearance.fonts.advanced',
+                  controller: widget.targetController,
+                  child: SettingsTile(
+                    key: const Key('appearance_advanced_fonts_tile'),
+                    title: Text(l10n.advancedFontSettings),
+                    trailing: _DisclosureTrailing(
+                      summary: _advancedFontSettingsSummary(
+                        l10n,
+                        readerSettings,
+                      ),
+                    ),
+                    onTap: widget.onOpenFontsDetail,
+                  ),
+                ),
                 SettingsControlRow(
-                  title: Text(l10n.codeAppearance),
+                  title: Text(l10n.readerAppearance),
                   control: Align(
                     alignment: AlignmentDirectional.centerEnd,
                     child: SettingsActionButton(
-                      key: const Key('appearance_code_reset_button'),
+                      key: const Key('appearance_reader_reset_button'),
                       onPressed: () => unawaited(
                         ref
                             .read(readerSettingsProvider.notifier)
-                            .resetCodeAppearance(),
+                            .resetReaderAppearance(),
                       ),
                       icon: const Icon(FleurIcons.reset),
                       label: Text(l10n.resetToDefault),
@@ -465,7 +468,7 @@ class _AppearanceTabState extends ConsumerState<AppearanceTab> {
     return SettingsPageBody(
       children: [
         SettingsDetailHeader(
-          title: l10n.fontSettings,
+          title: l10n.advancedFontSettings,
           trailing: SettingsActionButton(
             key: const Key('appearance_fonts_back_button'),
             onPressed: widget.onCloseDetail,
@@ -474,132 +477,112 @@ class _AppearanceTabState extends ConsumerState<AppearanceTab> {
           ),
         ),
         SettingsSection(
-          title: l10n.readerFontFamily,
+          title: l10n.fontSize,
           child: SettingsCard(
             padding: EdgeInsets.zero,
             child: SettingsTileGroup(
               children: [
-                SettingsControlRow(
-                  title: Text(l10n.readerFontFamily),
-                  controlWidth: 560,
-                  control: _PreviewOptionGroup<ReaderFontFamily>(
-                    key: const Key('appearance_reader_font_family_options'),
-                    value: readerSettings.fontFamily,
-                    options: [
-                      for (final family in ReaderFontFamily.values)
-                        _PreviewOption(
-                          key: Key(
-                            'appearance_reader_font_family_${family.name}_option',
-                          ),
-                          value: family,
-                          semanticLabel: family == ReaderFontFamily.custom
-                              ? l10n.customFontStack
-                              : _readerFontLabel(l10n, family),
-                          width: 160,
-                          minHeight: 86,
-                          child: _ReaderFontFamilyPreview(
-                            label: family == ReaderFontFamily.custom
-                                ? l10n.customFontStack
-                                : _readerFontLabel(l10n, family),
-                            settings: readerSettings.copyWith(
-                              fontFamily: family,
-                            ),
-                          ),
-                        ),
-                    ],
-                    onChanged: (family) =>
-                        unawaited(notifier.setFontFamily(family)),
-                  ),
+                SliderTile(
+                  key: const Key('appearance_reader_font_size_slider'),
+                  title: l10n.fontSize,
+                  value: readerSettings.fontSize,
+                  min: 12,
+                  max: 28,
+                  format: (v) => v.toStringAsFixed(0),
+                  onChanged: (value) => unawaited(notifier.setFontSize(value)),
                 ),
-                if (readerSettings.fontFamily == ReaderFontFamily.custom)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-                    child: _FontStackField(
-                      key: const Key('appearance_reader_font_stack_field'),
-                      inputKey: const Key('appearance_reader_font_stack_input'),
-                      label: l10n.readerFontStack,
-                      value: readerSettings.readerFontStack,
-                      helperText: l10n.fontStackExample,
-                      preview: _ReaderFontStackInlinePreview(
-                        settings: readerSettings,
-                      ),
-                      onChanged: (value) =>
-                          unawaited(notifier.setReaderFontStack(value)),
-                    ),
-                  )
-                else
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-                    child: _ReaderFontStackInlinePreview(
-                      settings: readerSettings,
-                    ),
-                  ),
+                SliderTile(
+                  key: const Key('appearance_minimum_font_size_slider'),
+                  title: l10n.minimumFontSize,
+                  value: readerSettings.minimumFontSize,
+                  min: 10,
+                  max: 18,
+                  format: (v) => v.toStringAsFixed(0),
+                  onChanged: (value) =>
+                      unawaited(notifier.setMinimumFontSize(value)),
+                ),
               ],
             ),
           ),
         ),
         SettingsSection(
-          title: l10n.codeFontFamily,
+          title: l10n.fontSettings,
           child: SettingsCard(
-            padding: EdgeInsets.zero,
-            child: SettingsTileGroup(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SettingsControlRow(
-                  title: Text(l10n.codeFontFamily),
-                  controlWidth: 460,
-                  control: _PreviewOptionGroup<CodeFontFamilyPreset>(
-                    key: const Key('appearance_code_font_family_options'),
-                    value: readerSettings.codeFontFamily,
-                    options: [
-                      for (final preset in CodeFontFamilyPreset.values)
-                        _PreviewOption(
-                          key: Key(
-                            'appearance_code_font_family_${preset.name}_option',
-                          ),
-                          value: preset,
-                          semanticLabel: preset == CodeFontFamilyPreset.custom
-                              ? l10n.customFontStack
-                              : _codeFontLabel(l10n, preset),
-                          width: 210,
-                          minHeight: 82,
-                          child: _CodeFontFamilyPreview(
-                            label: preset == CodeFontFamilyPreset.custom
-                                ? l10n.customFontStack
-                                : _codeFontLabel(l10n, preset),
-                            settings: readerSettings.copyWith(
-                              codeFontFamily: preset,
-                            ),
-                          ),
-                        ),
-                    ],
-                    onChanged: (preset) =>
-                        unawaited(notifier.setCodeFontFamily(preset)),
+                _FontStackField(
+                  key: const Key('appearance_standard_font_stack_field'),
+                  inputKey: const Key('appearance_standard_font_stack_input'),
+                  label: l10n.standardFont,
+                  value: readerSettings.standardFontStack,
+                  helperText: l10n.fontStackExample,
+                  preview: _ReaderFontStackInlinePreview(
+                    settings: readerSettings.copyWith(
+                      fontFamily: ReaderFontFamily.system,
+                    ),
                   ),
+                  onChanged: (value) =>
+                      unawaited(notifier.setStandardFontStack(value)),
                 ),
-                if (readerSettings.codeFontFamily ==
-                    CodeFontFamilyPreset.custom)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-                    child: _FontStackField(
-                      key: const Key('appearance_code_font_stack_field'),
-                      inputKey: const Key('appearance_code_font_stack_input'),
-                      label: l10n.codeFontStack,
-                      value: readerSettings.codeFontStack,
-                      helperText: l10n.fontStackExample,
-                      preview: _CodeFontStackInlinePreview(
-                        settings: readerSettings,
-                      ),
-                      onChanged: (value) =>
-                          unawaited(notifier.setCodeFontStack(value)),
-                    ),
-                  )
-                else
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-                    child: _CodeFontStackInlinePreview(
-                      settings: readerSettings,
+                const SizedBox(height: 18),
+                _FontStackField(
+                  key: const Key('appearance_serif_font_stack_field'),
+                  inputKey: const Key('appearance_serif_font_stack_input'),
+                  label: l10n.serifFont,
+                  value: readerSettings.serifFontStack,
+                  helperText: l10n.fontStackExample,
+                  preview: _ReaderFontStackInlinePreview(
+                    settings: readerSettings.copyWith(
+                      fontFamily: ReaderFontFamily.serif,
                     ),
                   ),
+                  onChanged: (value) =>
+                      unawaited(notifier.setSerifFontStack(value)),
+                ),
+                const SizedBox(height: 18),
+                _FontStackField(
+                  key: const Key('appearance_sans_font_stack_field'),
+                  inputKey: const Key('appearance_sans_font_stack_input'),
+                  label: l10n.sansSerifFont,
+                  value: readerSettings.sansFontStack,
+                  helperText: l10n.fontStackExample,
+                  preview: _ReaderFontStackInlinePreview(
+                    settings: readerSettings.copyWith(
+                      fontFamily: ReaderFontFamily.sans,
+                    ),
+                  ),
+                  onChanged: (value) =>
+                      unawaited(notifier.setSansFontStack(value)),
+                ),
+                const SizedBox(height: 18),
+                _FontStackField(
+                  key: const Key('appearance_mono_font_stack_field'),
+                  inputKey: const Key('appearance_mono_font_stack_input'),
+                  label: l10n.fixedWidthFont,
+                  value: readerSettings.monoFontStack,
+                  helperText: l10n.monoFontStackExample,
+                  preview: _ReaderFontStackInlinePreview(
+                    settings: readerSettings.copyWith(
+                      fontFamily: ReaderFontFamily.mono,
+                    ),
+                  ),
+                  onChanged: (value) =>
+                      unawaited(notifier.setMonoFontStack(value)),
+                ),
+                const SizedBox(height: 18),
+                _FontStackField(
+                  key: const Key('appearance_math_font_stack_field'),
+                  inputKey: const Key('appearance_math_font_stack_input'),
+                  label: l10n.mathFont,
+                  value: readerSettings.mathFontStack,
+                  helperText: l10n.mathFontStackExample,
+                  preview: _MathFontStackInlinePreview(
+                    settings: readerSettings,
+                  ),
+                  onChanged: (value) =>
+                      unawaited(notifier.setMathFontStack(value)),
+                ),
               ],
             ),
           ),
@@ -1093,47 +1076,6 @@ class _ReaderFontFamilyPreview extends StatelessWidget {
   }
 }
 
-class _CodeFontFamilyPreview extends StatelessWidget {
-  const _CodeFontFamilyPreview({required this.label, required this.settings});
-
-  final String label;
-  final ReaderSettings settings;
-
-  @override
-  Widget build(BuildContext context) {
-    final previewTheme = AppTheme.readerScene(
-      Theme.of(context),
-      settings: settings,
-    );
-    final reader = previewTheme.fleurReader;
-
-    return Theme(
-      data: previewTheme,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'const value = await loadArticle();',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: reader.codeStyle.copyWith(fontSize: 12, height: 1.25),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: previewTheme.textTheme.labelSmall?.copyWith(
-              letterSpacing: 0,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _CodeFontSizeModePreview extends StatelessWidget {
   const _CodeFontSizeModePreview({required this.label, required this.settings});
 
@@ -1207,13 +1149,6 @@ String _readerFontLabel(AppLocalizations l10n, ReaderFontFamily family) {
   };
 }
 
-String _codeFontLabel(AppLocalizations l10n, CodeFontFamilyPreset preset) {
-  return switch (preset) {
-    CodeFontFamilyPreset.systemMono => l10n.codeFontSystemMono,
-    CodeFontFamilyPreset.custom => l10n.custom,
-  };
-}
-
 String _codeFontSizeModeLabel(AppLocalizations l10n, CodeFontSizeMode mode) {
   return switch (mode) {
     CodeFontSizeMode.followReader => l10n.codeFontSizeFollowReader,
@@ -1229,6 +1164,12 @@ String _readerThemeLabel(AppLocalizations l10n, ReaderThemePreset preset) {
     ReaderThemePreset.sepia => l10n.readerThemeSepia,
     ReaderThemePreset.dim => l10n.readerThemeDim,
   };
+}
+
+ReaderFontFamily _visibleReaderFontFamily(ReaderSettings settings) {
+  return settings.fontFamily == ReaderFontFamily.custom
+      ? ReaderFontFamily.system
+      : settings.fontFamily;
 }
 
 String _readingWidthLabel(
@@ -1298,8 +1239,11 @@ String _lineHeightPresetLabel(
   };
 }
 
-String _codeAppearanceSummary(AppLocalizations l10n, ReaderSettings settings) {
-  final fontLabel = _codeFontLabel(l10n, settings.codeFontFamily);
+String _advancedFontSettingsSummary(
+  AppLocalizations l10n,
+  ReaderSettings settings,
+) {
+  final fontLabel = _readerFontLabel(l10n, _visibleReaderFontFamily(settings));
   final sizeLabel = settings.codeFontSizeMode == CodeFontSizeMode.custom
       ? settings.codeFontSize.toStringAsFixed(0)
       : _codeFontSizeModeLabel(l10n, settings.codeFontSizeMode);
@@ -1405,10 +1349,50 @@ class _ReaderFontStackInlinePreview extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Text(
-            '雨落在窗前 Reading quietly 2026',
-            maxLines: 1,
+            '16: The quick brown fox jumps over the lazy dog\n雨落在窗前 Reading quietly 2026',
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: reader.bodyStyle.copyWith(
+              fontSize: 16,
+              height: 1.35,
+              color: previewTheme.colorScheme.onSurface,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MathFontStackInlinePreview extends StatelessWidget {
+  const _MathFontStackInlinePreview({required this.settings});
+
+  final ReaderSettings settings;
+
+  @override
+  Widget build(BuildContext context) {
+    final previewTheme = AppTheme.readerScene(
+      Theme.of(context),
+      settings: settings,
+    );
+    final reader = previewTheme.fleurReader;
+    final surfaces = previewTheme.fleurSurface;
+
+    return Theme(
+      data: previewTheme,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: surfaces.card,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: surfaces.subtleDivider),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Text(
+            '16: E = mc^2  |  \\int_0^1 x^2 dx',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: reader.mathStyle.copyWith(
               fontSize: 16,
               height: 1.35,
               color: previewTheme.colorScheme.onSurface,
@@ -1453,42 +1437,6 @@ class _CodeAppearancePreview extends StatelessWidget {
                 : TextOverflow.ellipsis,
             softWrap: settings.codeSoftWrap,
             style: reader.codeStyle.copyWith(color: scheme.onSurface),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CodeFontStackInlinePreview extends StatelessWidget {
-  const _CodeFontStackInlinePreview({required this.settings});
-
-  final ReaderSettings settings;
-
-  @override
-  Widget build(BuildContext context) {
-    final previewTheme = AppTheme.readerScene(
-      Theme.of(context),
-      settings: settings,
-    );
-    final reader = previewTheme.fleurReader;
-    final surfaces = previewTheme.fleurSurface;
-
-    return Theme(
-      data: previewTheme,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: reader.codeBlockSurface,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: surfaces.subtleDivider),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Text(
-            'const value = await loadArticle();',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: reader.codeStyle,
           ),
         ),
       ),

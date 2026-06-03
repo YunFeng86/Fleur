@@ -23,6 +23,11 @@ class ReaderSettingsController extends AsyncNotifier<ReaderSettings> {
     await save(cur.copyWith(fontSize: value));
   }
 
+  Future<void> setMinimumFontSize(double value) async {
+    final cur = state.valueOrNull ?? const ReaderSettings();
+    await save(cur.copyWith(minimumFontSize: value));
+  }
+
   Future<void> setLineHeight(double value) async {
     final cur = state.valueOrNull ?? const ReaderSettings();
     await save(cur.copyWith(lineHeight: value));
@@ -36,6 +41,31 @@ class ReaderSettingsController extends AsyncNotifier<ReaderSettings> {
   Future<void> setReaderFontStack(String value) async {
     final cur = state.valueOrNull ?? const ReaderSettings();
     await save(cur.copyWith(readerFontStack: value));
+  }
+
+  Future<void> setStandardFontStack(String value) async {
+    final cur = state.valueOrNull ?? const ReaderSettings();
+    await save(cur.copyWith(standardFontStack: value));
+  }
+
+  Future<void> setSerifFontStack(String value) async {
+    final cur = state.valueOrNull ?? const ReaderSettings();
+    await save(cur.copyWith(serifFontStack: value));
+  }
+
+  Future<void> setSansFontStack(String value) async {
+    final cur = state.valueOrNull ?? const ReaderSettings();
+    await save(cur.copyWith(sansFontStack: value));
+  }
+
+  Future<void> setMonoFontStack(String value) async {
+    final cur = state.valueOrNull ?? const ReaderSettings();
+    await save(cur.copyWith(monoFontStack: value));
+  }
+
+  Future<void> setMathFontStack(String value) async {
+    final cur = state.valueOrNull ?? const ReaderSettings();
+    await save(cur.copyWith(mathFontStack: value));
   }
 
   Future<void> setReaderTheme(ReaderThemePreset value) async {
@@ -83,12 +113,24 @@ class ReaderSettingsController extends AsyncNotifier<ReaderSettings> {
     await save(
       cur.copyWith(
         fontSize: ReaderSettings.defaultFontSize,
+        minimumFontSize: ReaderSettings.defaultMinimumFontSize,
         lineHeight: ReaderSettings.defaultLineHeight,
         horizontalPadding: ReaderSettings.defaultHorizontalPadding,
         readerTheme: ReaderThemePreset.defaultLightAware,
         fontFamily: ReaderFontFamily.system,
         readerFontStack: '',
+        standardFontStack: '',
+        serifFontStack: '',
+        sansFontStack: '',
+        monoFontStack: '',
+        mathFontStack: '',
         contentWidthPreset: ReaderContentWidthPreset.standard,
+        codeFontFamily: CodeFontFamilyPreset.systemMono,
+        codeFontStack: '',
+        codeFontSizeMode: CodeFontSizeMode.oneStepDown,
+        codeFontSize: ReaderSettings.defaultCodeFontSize,
+        codeLineHeight: ReaderSettings.defaultCodeLineHeight,
+        codeSoftWrap: false,
       ),
     );
   }

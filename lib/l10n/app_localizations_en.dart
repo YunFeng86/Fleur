@@ -152,6 +152,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fontSettings => 'Fonts';
 
   @override
+  String get advancedFontSettings => 'Advanced font settings';
+
+  @override
   String get fontsAndCode => 'Fonts and code';
 
   @override
@@ -174,6 +177,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get fontSizeExtraLarge => 'Extra large';
+
+  @override
+  String get minimumFontSize => 'Minimum font size';
 
   @override
   String get lineHeightCompact => 'Compact';
@@ -226,8 +232,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get readerFontStack => 'Reading font stack';
 
   @override
+  String get standardFont => 'Standard font';
+
+  @override
+  String get serifFont => 'Serif font';
+
+  @override
+  String get sansSerifFont => 'Sans-serif font';
+
+  @override
+  String get fixedWidthFont => 'Fixed-width font';
+
+  @override
+  String get mathFont => 'Math font';
+
+  @override
   String get fontStackExample =>
       '\"PingFang SC\", \"Noto Sans CJK SC\", system-ui, sans-serif';
+
+  @override
+  String get monoFontStackExample => '\"SF Mono\", Menlo, Consolas, monospace';
+
+  @override
+  String get mathFontStackExample =>
+      '\"STIX Two Math\", \"Cambria Math\", serif';
 
   @override
   String get readerTheme => 'Reading texture';

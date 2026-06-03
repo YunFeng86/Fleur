@@ -461,10 +461,12 @@ void main() {
     expect(style.color, reader.bodyStyle.color);
   });
 
-  testWidgets('reader body applies custom reading font stack', (tester) async {
+  testWidgets('reader body applies selected category font stack', (
+    tester,
+  ) async {
     const settings = ReaderSettings(
-      fontFamily: ReaderFontFamily.custom,
-      readerFontStack: '"Georgia", "Times New Roman", serif',
+      fontFamily: ReaderFontFamily.serif,
+      serifFontStack: '"Georgia", "Times New Roman", serif',
     );
 
     await pumpReader(
@@ -493,6 +495,41 @@ void main() {
 
     expect(style.fontFamily, 'Georgia');
     expect(style.fontFamilyFallback, ['Times New Roman', 'serif']);
+  });
+
+  testWidgets('reader minimum font size clamps tiny html body text', (
+    tester,
+  ) async {
+    const settings = ReaderSettings(minimumFontSize: 18);
+
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html: '<p><span style="font-size: 8px">Tiny body text</span></p>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      readerSettings: settings,
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 12);
+
+    final spans = tester
+        .widgetList<ReaderSelectableRichText>(
+          find.descendant(
+            of: find.byType(HtmlWidget),
+            matching: find.byType(ReaderSelectableRichText),
+          ),
+        )
+        .where((widget) => widget.text is TextSpan)
+        .expand((widget) => flattenTextSpans(widget.text as TextSpan));
+    final tinySpan = spans.firstWhere(
+      (span) => span.text?.contains('Tiny body text') ?? false,
+    );
+
+    expect(tinySpan.style?.fontSize, 18);
   });
 
   testWidgets('reader sanitizes feed html before rendering and search', (
@@ -789,8 +826,7 @@ void main() {
   ) async {
     const settings = ReaderSettings(
       fontSize: 18,
-      codeFontFamily: CodeFontFamilyPreset.custom,
-      codeFontStack: '"JetBrains Mono", "SF Mono", monospace',
+      monoFontStack: '"JetBrains Mono", "SF Mono", monospace',
       codeFontSizeMode: CodeFontSizeMode.custom,
       codeFontSize: 16,
       codeLineHeight: 1.7,
@@ -1606,10 +1642,9 @@ void main() {
     );
   });
 
-  testWidgets('reader math fallback uses code appearance font', (tester) async {
+  testWidgets('reader math fallback uses math font stack', (tester) async {
     const settings = ReaderSettings(
-      codeFontFamily: CodeFontFamilyPreset.custom,
-      codeFontStack: '"JetBrains Mono", monospace',
+      mathFontStack: '"STIX Two Math", serif',
       codeFontSizeMode: CodeFontSizeMode.custom,
       codeFontSize: 13,
       codeLineHeight: 1.4,
@@ -1632,8 +1667,8 @@ void main() {
     final fallback = tester.widget<Text>(
       find.byKey(const Key('reader_math_fallback')).first,
     );
-    expect(fallback.style?.fontFamily, 'JetBrains Mono');
-    expect(fallback.style?.fontFamilyFallback, ['monospace']);
+    expect(fallback.style?.fontFamily, 'STIX Two Math');
+    expect(fallback.style?.fontFamilyFallback, ['serif']);
     expect(fallback.style?.fontSize, 13);
     expect(fallback.style?.height, 1.4);
   });
