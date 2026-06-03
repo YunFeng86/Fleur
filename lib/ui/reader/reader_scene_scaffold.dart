@@ -20,7 +20,7 @@ extension _ReaderSceneScaffold on _ReaderViewState {
     _viewportCoordinator.requestContentHashUpdate(html: html);
     _scheduleSearchDocumentHtmlSync(html);
 
-    final isChunked = html.length >= _ReaderViewState._chunkThreshold;
+    final isChunked = _shouldUseChunkedLayout(html);
     _viewportCoordinator._handleViewportSizeChange(
       MediaQuery.sizeOf(context),
       isChunked: isChunked,

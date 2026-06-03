@@ -29,6 +29,7 @@ import 'package:fleur/providers/translation_ai_settings_providers.dart';
 import 'package:fleur/repositories/article_repository.dart';
 import 'package:fleur/repositories/tag_repository.dart';
 import 'package:fleur/services/logging/app_logger.dart';
+import 'package:fleur/services/reader_chunk_policy.dart';
 import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/settings/reader_progress_store.dart';
 import 'package:fleur/services/settings/reader_settings.dart';
@@ -1382,6 +1383,80 @@ void main() {
     );
   });
 
+  testWidgets('reader handles many code block fallbacks during search', (
+    tester,
+  ) async {
+    final codeBlocks = List<String>.generate(
+      30,
+      (index) =>
+          '<pre><code class="language-js">const target$index = $index; ${'payload ' * 18}</code></pre>',
+    ).join();
+
+    await pumpReader(
+      tester,
+      article: buildArticle(title: 'A', html: codeBlocks),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      size: const Size(560, 320),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 20);
+
+    for (
+      var i = 0;
+      i < 8 && find.byKey(const Key('reader_code_block')).evaluate().isEmpty;
+      i++
+    ) {
+      final scrollables = tester
+          .stateList<ScrollableState>(find.byType(Scrollable))
+          .where(
+            (state) =>
+                state.position.axis == Axis.vertical &&
+                state.position.maxScrollExtent > 0,
+          );
+      if (scrollables.isEmpty) break;
+      final scrollable = scrollables.first;
+      final next = (scrollable.position.pixels + 600).clamp(
+        scrollable.position.minScrollExtent,
+        scrollable.position.maxScrollExtent,
+      );
+      scrollable.position.jumpTo(next);
+      await settleReader(tester, rounds: 4);
+    }
+
+    expect(find.byKey(const Key('reader_code_block')), findsWidgets);
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(ReaderView)),
+    );
+    final controller = container.read(
+      readerSearchControllerProvider(articleId).notifier,
+    );
+    controller.open();
+    controller.setQuery('target');
+    await pumpUntil(
+      tester,
+      () =>
+          container
+              .read(readerSearchControllerProvider(articleId))
+              .totalMatches ==
+          30,
+      attempts: 80,
+    );
+
+    controller.nextMatch();
+    await pumpUntil(
+      tester,
+      () => readerCodeTextSpans(tester).any(
+        (span) =>
+            (span.text?.contains('target') ?? false) &&
+            span.style?.backgroundColor != null,
+      ),
+      attempts: 80,
+    );
+  });
+
   testWidgets('reader renders media tags as cards', (tester) async {
     await pumpReader(
       tester,
@@ -1750,6 +1825,65 @@ void main() {
     expect(titleFinder, findsOneWidget);
     expect(tester.getTopLeft(titleFinder).dx, closeTo(expectedLeft, 1));
     expect(find.byType(ListView), findsOneWidget);
+  });
+
+  testWidgets('reader chunks structurally dense short articles', (
+    tester,
+  ) async {
+    final denseHtml = List<String>.generate(
+      150,
+      (index) => '<p>Dense paragraph ${index + 1} ${'content ' * 34}</p>',
+    ).join();
+    expect(
+      denseHtml.length,
+      lessThan(ReaderChunkPolicy.defaultPolicy.lengthThreshold),
+    );
+
+    await pumpReader(
+      tester,
+      article: buildArticle(title: 'A', html: denseHtml),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      size: const Size(1000, 800),
+    );
+    await settleReader(tester, rounds: 20);
+
+    expect(find.byType(ListView), findsOneWidget);
+  });
+
+  testWidgets('reader chunks image-heavy short articles', (tester) async {
+    final imageHtml = List<String>.generate(
+      21,
+      (index) => '<p><img alt="Image ${index + 1}"></p>',
+    ).join();
+    expect(
+      imageHtml.length,
+      lessThan(ReaderChunkPolicy.defaultPolicy.lengthThreshold),
+    );
+
+    await pumpReader(
+      tester,
+      article: buildArticle(title: 'A', html: imageHtml),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      size: const Size(1000, 800),
+    );
+    await settleReader(tester, rounds: 20);
+
+    expect(find.byType(ListView), findsOneWidget);
+  });
+
+  testWidgets('reader keeps simple short articles unchunked', (tester) async {
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html: '<p>Short readable body.</p><p>Still small.</p>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      size: const Size(1000, 800),
+    );
+    await settleReader(tester, rounds: 12);
+
+    expect(find.byType(ListView), findsNothing);
   });
 
   testWidgets('full-text button triggers fetch from reader action', (

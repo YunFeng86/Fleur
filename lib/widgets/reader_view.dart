@@ -33,6 +33,7 @@ import '../providers/settings_providers.dart';
 import '../services/cache/image_meta_store.dart';
 import '../services/feed_html_normalizer.dart';
 import '../services/html_sanitizer.dart';
+import '../services/reader_chunk_policy.dart';
 import '../services/reader_search_service.dart';
 import '../services/settings/app_settings.dart';
 import '../services/settings/reader_settings.dart';
@@ -90,10 +91,11 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
   late final _ReaderViewportCoordinator _viewportCoordinator;
   late final _ReaderSessionCoordinator _sessionCoordinator;
   String? _lastScheduledSearchHtml;
+  String? _lastChunkPolicyHtml;
+  bool _lastChunkPolicyResult = false;
   bool _searchHtmlSyncScheduled = false;
   static const double _autoScrollDeadZone = 6;
   static const double _autoScrollSpeedFactor = 0.12;
-  static const int _chunkThreshold = 50000;
 
   @override
   void initState() {
@@ -185,6 +187,14 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
           .read(readerSearchControllerProvider(widget.articleId).notifier)
           .setDocumentHtml(nextHtml);
     });
+  }
+
+  bool _shouldUseChunkedLayout(String html) {
+    if (_lastChunkPolicyHtml == html) return _lastChunkPolicyResult;
+    final result = ReaderChunkPolicy.defaultPolicy.shouldUseChunkedLayout(html);
+    _lastChunkPolicyHtml = html;
+    _lastChunkPolicyResult = result;
+    return result;
   }
 
   @override
@@ -898,6 +908,8 @@ class _ReaderCodeBlockState extends State<_ReaderCodeBlock> {
   dom.Element? _highlightPre;
   double? _highlightFontSize;
   String? _highlightCurrentAnchorId;
+  _ReaderCodeFallbackCacheKey? _fallbackCacheKey;
+  ReaderCodeRenderResult? _fallbackCache;
 
   @override
   void didChangeDependencies() {
@@ -951,7 +963,17 @@ class _ReaderCodeBlockState extends State<_ReaderCodeBlock> {
     );
   }
 
-  ReaderCodeRenderResult _fallbackResult(BuildContext context) {
+  ReaderCodeRenderResult _fallbackResult() {
+    final key = _ReaderCodeFallbackCacheKey(
+      source: widget.source,
+      pre: widget.pre,
+      currentAnchorId: widget.currentAnchorId,
+    );
+    final cached = _fallbackCache;
+    if (cached != null && _fallbackCacheKey == key) {
+      return cached;
+    }
+
     final extraction = const ReaderCodeHtmlRenderer().extract(widget.source);
     final languageDecision = const ReaderCodeLanguageResolver()
         .resolveForCodeBlock(
@@ -966,7 +988,7 @@ class _ReaderCodeBlockState extends State<_ReaderCodeBlock> {
       searchRanges: extraction.searchRanges,
       currentAnchorId: widget.currentAnchorId,
     );
-    return ReaderCodeRenderResult(
+    final result = ReaderCodeRenderResult(
       document: ReaderCodeDocument.fromTokens(
         text: extraction.text,
         language: language,
@@ -978,6 +1000,9 @@ class _ReaderCodeBlockState extends State<_ReaderCodeBlock> {
         searchRanges: extraction.searchRanges,
       ),
     );
+    _fallbackCacheKey = key;
+    _fallbackCache = result;
+    return result;
   }
 
   void _scheduleCodeSearchReveal(ReaderCodeRenderResult result) {
@@ -1011,12 +1036,14 @@ class _ReaderCodeBlockState extends State<_ReaderCodeBlock> {
 
   @override
   Widget build(BuildContext context) {
+    final fallback = _fallbackResult();
     return FutureBuilder<ReaderCodeRenderResult>(
       future: _renderFuture,
+      initialData: fallback,
       builder: (context, snapshot) {
         final result = snapshot.connectionState == ConnectionState.done
-            ? snapshot.data ?? _fallbackResult(context)
-            : _fallbackResult(context);
+            ? snapshot.data ?? fallback
+            : fallback;
         _registerCodeSearchAnchors(result);
         _scheduleCodeSearchReveal(result);
         return ReaderCodeBlockChrome(
@@ -1027,6 +1054,34 @@ class _ReaderCodeBlockState extends State<_ReaderCodeBlock> {
       },
     );
   }
+}
+
+@immutable
+class _ReaderCodeFallbackCacheKey {
+  const _ReaderCodeFallbackCacheKey({
+    required this.source,
+    required this.pre,
+    required this.currentAnchorId,
+  });
+
+  final dom.Element source;
+  final dom.Element pre;
+  final String? currentAnchorId;
+
+  @override
+  bool operator ==(Object other) {
+    return other is _ReaderCodeFallbackCacheKey &&
+        identical(source, other.source) &&
+        identical(pre, other.pre) &&
+        currentAnchorId == other.currentAnchorId;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    identityHashCode(source),
+    identityHashCode(pre),
+    currentAnchorId,
+  );
 }
 
 const int _maxHighlightedCodeLength = 20000;
