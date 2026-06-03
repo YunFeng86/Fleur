@@ -351,7 +351,7 @@ final class _ReaderViewportCoordinator {
     final translatedHtml =
         (ref.read(articleAiControllerProvider(articleId)).translationHtml ?? '')
             .trim();
-    final displayHtml = _selectSanitizedDisplayHtml(
+    final displayHtml = _owner._sessionCoordinator.getSanitizedDisplayHtml(
       article: article,
       translationHtml: translatedHtml,
     );

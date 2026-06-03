@@ -8,23 +8,6 @@ String _selectActiveHtmlForArticle(Article article) {
   return (article.contentHtml ?? '').trim();
 }
 
-String _selectSanitizedDisplayHtml({
-  required Article article,
-  String? translationHtml,
-}) {
-  final translatedHtml = (translationHtml ?? '').trim();
-  final rawHtml = translatedHtml.isNotEmpty
-      ? translatedHtml
-      : _selectActiveHtmlForArticle(article);
-  final normalizedFeedHtml = FeedHtmlNormalizer.normalize(
-    rawHtml,
-    baseUrl: Uri.tryParse(article.link),
-  );
-  return HtmlSanitizer.sanitize(
-    normalizeReaderHtmlForDisplay(normalizedFeedHtml),
-  ).trim();
-}
-
 final class _ReaderSessionCoordinator {
   _ReaderSessionCoordinator({
     required _ReaderViewState owner,
@@ -35,14 +18,51 @@ final class _ReaderSessionCoordinator {
   final _ReaderViewState _owner;
   final _ReaderViewportCoordinator _viewportCoordinator;
 
+  String? _cachedRawHtml;
+  String? _cachedBaseUrl;
+  String? _cachedResult;
+
   ProviderSubscription<AsyncValue<Article?>>? _articleSub;
   ProviderSubscription<String?>? _translationHtmlSub;
 
   WidgetRef get ref => _owner.ref;
 
+  String getSanitizedDisplayHtml({
+    required Article article,
+    String? translationHtml,
+  }) {
+    final translatedHtml = (translationHtml ?? '').trim();
+    final rawHtml = translatedHtml.isNotEmpty
+        ? translatedHtml
+        : _selectActiveHtmlForArticle(article);
+    final baseUrl = article.link;
+
+    if (_cachedResult != null &&
+        _cachedBaseUrl == baseUrl &&
+        (identical(_cachedRawHtml, rawHtml) || _cachedRawHtml == rawHtml)) {
+      return _cachedResult!;
+    }
+
+    final normalizedFeedHtml = FeedHtmlNormalizer.normalize(
+      rawHtml,
+      baseUrl: Uri.tryParse(baseUrl),
+    );
+    final result = HtmlSanitizer.sanitize(
+      normalizeReaderHtmlForDisplay(normalizedFeedHtml),
+    ).trim();
+
+    _cachedRawHtml = rawHtml;
+    _cachedBaseUrl = baseUrl;
+    _cachedResult = result;
+    return result;
+  }
+
   void dispose() {
     _articleSub?.close();
     _translationHtmlSub?.close();
+    _cachedRawHtml = null;
+    _cachedBaseUrl = null;
+    _cachedResult = null;
   }
 
   void listenTranslationHtml(int articleId) {
@@ -59,7 +79,7 @@ final class _ReaderSessionCoordinator {
 
         final article = ref.read(articleProvider(articleId)).valueOrNull;
         if (article == null) return;
-        final displayHtml = _selectSanitizedDisplayHtml(
+        final displayHtml = getSanitizedDisplayHtml(
           article: article,
           translationHtml: nextTrimmed,
         );
@@ -73,6 +93,9 @@ final class _ReaderSessionCoordinator {
 
   void listenArticle(int articleId) {
     _articleSub?.close();
+    _cachedRawHtml = null;
+    _cachedBaseUrl = null;
+    _cachedResult = null;
     var hasMarkedRead = false;
     _articleSub = ref.listenManual<AsyncValue<Article?>>(
       articleProvider(articleId),
@@ -99,7 +122,7 @@ final class _ReaderSessionCoordinator {
                       '')
                   .trim();
           _viewportCoordinator.requestContentHashUpdate(
-            html: _selectSanitizedDisplayHtml(
+            html: getSanitizedDisplayHtml(
               article: article,
               translationHtml: translatedHtml,
             ),
@@ -124,7 +147,7 @@ final class _ReaderSessionCoordinator {
             (ref.read(articleAiControllerProvider(articleId)).translationHtml ??
                     '')
                 .trim();
-        final displayHtml = _selectSanitizedDisplayHtml(
+        final displayHtml = getSanitizedDisplayHtml(
           article: article,
           translationHtml: translatedHtml,
         );

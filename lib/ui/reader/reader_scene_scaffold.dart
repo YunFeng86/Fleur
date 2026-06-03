@@ -12,7 +12,7 @@ extension _ReaderSceneScaffold on _ReaderViewState {
   }) {
     final sceneStates = sceneTheme.fleurState;
     final translatedHtml = (aiState.translationHtml ?? '').trim();
-    final html = _selectSanitizedDisplayHtml(
+    final html = _sessionCoordinator.getSanitizedDisplayHtml(
       article: article,
       translationHtml: translatedHtml,
     );
