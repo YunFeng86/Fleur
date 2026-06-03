@@ -2953,6 +2953,7 @@ void main() {
   ) async {
     final feed = _buildFeed();
     final article = _buildArticle(isRead: true, isStarred: false)
+      ..contentHash = 'image-only-preview'
       ..contentHtml =
           '<img src="https://example.com/icon.png" width="32" height="32">';
 

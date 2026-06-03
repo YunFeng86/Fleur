@@ -20,7 +20,7 @@ const _allowedRawBackendTypeUses = <String, String>{
   'lib/providers/backend_sync_semantics_provider.dart':
       'derives sync semantics from the active account',
   'lib/providers/add_subscription_controller.dart':
-      'constructs the Miniflux add-subscription executor after capability gating',
+      'logs add-subscription failures with concrete account type metadata',
   'lib/providers/service_providers.dart':
       'selects the concrete sync service implementation',
   'lib/services/accounts/account.dart': 'defines AccountType serialization',
@@ -30,6 +30,8 @@ const _allowedRawBackendTypeUses = <String, String>{
       'creates and normalizes local account records',
   'lib/services/actions/article_action_service.dart':
       'uses concrete remote clients after capability gating',
+  'lib/services/subscriptions/add_subscription_workflow.dart':
+      'constructs the Miniflux add-subscription executor after capability gating',
   'lib/services/background/background_sync_service.dart':
       'derives background capabilities from the active account',
   'lib/services/sync/backend_capabilities.dart':
