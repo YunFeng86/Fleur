@@ -45,6 +45,62 @@ class PreviewImageSize {
   final double height;
 }
 
+/// Cached preview data for an article's HTML content.
+class ArticlePreviewData {
+  const ArticlePreviewData({required this.previewText, this.previewImageUrl});
+
+  /// Plain-text preview extracted from article HTML.
+  final String previewText;
+
+  /// First suitable preview image URL, or null if none found.
+  final String? previewImageUrl;
+}
+
+/// Bounded FIFO cache for article preview extractions.
+///
+/// Keyed by `(articleId, contentHash)` — cached data auto-invalidates when
+/// article content changes. FIFO eviction matches typical list scroll patterns.
+class ArticlePreviewCache {
+  static final _entries = <String, ArticlePreviewData>{};
+  static const _maxSize = 500;
+
+  static String _key(int articleId, String? contentHash) =>
+      '$articleId:${contentHash ?? ''}';
+
+  /// Return cached [ArticlePreviewData] for [articleId], or compute and cache
+  /// it from [contentHtml] / [contentHash].
+  static ArticlePreviewData getOrCompute(
+    int articleId,
+    String? contentHtml,
+    String? contentHash, {
+    Uri? baseUrl,
+    PreviewImageSize? Function(String url)? metaLookup,
+  }) {
+    final key = _key(articleId, contentHash);
+    final cached = _entries[key];
+    if (cached != null) return cached;
+
+    final previewText = extractPreviewText(contentHtml);
+    final imageUrl = extractPreviewImageSrc(
+      contentHtml,
+      baseUrl: baseUrl,
+      metaLookup: metaLookup,
+    );
+
+    if (_entries.length >= _maxSize) {
+      _entries.remove(_entries.keys.first);
+    }
+
+    return _entries[key] = ArticlePreviewData(
+      previewText: previewText,
+      previewImageUrl: imageUrl,
+    );
+  }
+
+  /// Clear all cached entries.
+  static void clear() => _entries.clear();
+}
+
 String? extractFirstImageSrc(String? html) {
   if (html == null || html.isEmpty) return null;
   // Prefer real src, but fall back to data-src for lazy-loaded markup.

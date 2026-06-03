@@ -69,8 +69,10 @@ class _ArticleListItemState extends ConsumerState<ArticleListItem> {
     );
 
     final imageMetaStore = ref.watch(imageMetaStoreProvider);
-    final imageUrl = extractPreviewImageSrc(
+    final preview = ArticlePreviewCache.getOrCompute(
+      article.id,
       article.contentHtml,
+      article.contentHash,
       baseUrl: Uri.tryParse(article.link),
       metaLookup: (url) {
         final meta = imageMetaStore.peek(url);
@@ -78,7 +80,8 @@ class _ArticleListItemState extends ConsumerState<ArticleListItem> {
         return PreviewImageSize(width: meta.width, height: meta.height);
       },
     );
-    final previewText = extractPreviewText(article.contentHtml);
+    final previewText = preview.previewText;
+    final imageUrl = preview.previewImageUrl;
     final metaColor = theme.colorScheme.onSurfaceVariant;
     final metadataStyle = theme.textTheme.labelMedium?.copyWith(
       color: metaColor,
