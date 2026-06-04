@@ -150,6 +150,13 @@ abstract class SyncServiceBase {
     void Function(int current, int total)? onProgress,
     bool notify = true,
   });
+
+  Future<BatchRefreshResult> syncAccountSafe({
+    int maxConcurrent = 2,
+    void Function(int current, int total)? onProgress,
+    bool notify = true,
+    Iterable<int>? feedIds,
+  });
 }
 
 abstract class OutboxFlushCapable {
@@ -530,6 +537,24 @@ class SyncService implements SyncServiceBase {
       _batchRefreshQueue = task.then((_) {}).catchError((_) {});
       return task;
     });
+  }
+
+  @override
+  Future<BatchRefreshResult> syncAccountSafe({
+    int maxConcurrent = 2,
+    void Function(int current, int total)? onProgress,
+    bool notify = true,
+    Iterable<int>? feedIds,
+  }) async {
+    final ids =
+        feedIds?.toList(growable: false) ??
+        (await _feeds.getAll()).map((feed) => feed.id).toList(growable: false);
+    return refreshFeedsSafe(
+      ids,
+      maxConcurrent: maxConcurrent,
+      onProgress: onProgress,
+      notify: notify,
+    );
   }
 
   Future<BatchRefreshResult> _refreshFeedsSafeImpl(

@@ -52,31 +52,12 @@ class SubscriptionActions {
         FeatureAvailability.onlineRequired;
   }
 
-  static String _normalizeFeedUrl(String url) {
-    return url.trim().replaceAll(RegExp(r'/+$'), '');
-  }
-
-  static int? _remoteIdAsInt(String? remoteId) {
-    final trimmed = remoteId?.trim();
-    if (trimmed == null || trimmed.isEmpty) return null;
-    final value = int.tryParse(trimmed);
-    return value != null && value > 0 ? value : null;
-  }
-
   @visibleForTesting
   static String remoteStructureFailureMessageForTest(
     AppLocalizations l10n,
     Object error,
   ) {
     return remote_feedback.remoteStructureFailureMessage(l10n, error);
-  }
-
-  static Future<MinifluxRemoteSubscriptionStructureExecutor>
-  _buildMinifluxStructureExecutor(WidgetRef ref, Account account) async {
-    final client = await ref
-        .read(remoteClientFactoryProvider)
-        .miniflux(account);
-    return MinifluxRemoteSubscriptionStructureExecutor(client);
   }
 
   static Future<MinifluxRemoteSubscriptionStructureExecutor>
@@ -126,33 +107,6 @@ class SubscriptionActions {
       buildExecutor: () =>
           _buildMinifluxStructureExecutorFromRead(read, account),
     );
-  }
-
-  static Future<String> _localFeedUrlFromRead(
-    ProviderReadCallback read,
-    int localFeedId,
-  ) async {
-    final feed = await read(feedRepositoryProvider).getById(localFeedId);
-    if (feed == null) {
-      throw StateError('Local feed not found: $localFeedId');
-    }
-
-    final target = _normalizeFeedUrl(feed.url);
-    if (target.isEmpty) {
-      throw StateError('Local feed url is empty: $localFeedId');
-    }
-    return feed.url;
-  }
-
-  static Future<int?> _localFeedRemoteIdFromRead(
-    ProviderReadCallback read,
-    int localFeedId,
-  ) async {
-    final feed = await read(feedRepositoryProvider).getById(localFeedId);
-    if (feed == null) {
-      throw StateError('Local feed not found: $localFeedId');
-    }
-    return _remoteIdAsInt(feed.remoteId);
   }
 
   static Future<T?> _presentDialog<T>(
@@ -710,31 +664,28 @@ class SubscriptionActions {
       return;
     }
 
-    if (!_isOnlineRequired(capabilities, feature)) {
-      final r = await ref.read(syncServiceProvider).refreshFeedSafe(feedId);
-      if (!context.mounted) return;
-      context.showSnack(
-        r.ok ? l10n.refreshed : l10n.errorMessage(r.error.toString()),
-      );
-      return;
-    }
-
     try {
-      final account = ref.read(activeAccountProvider);
-      final executor = await _buildMinifluxStructureExecutor(ref, account);
-      final feedRemoteId = await _localFeedRemoteIdFromRead(ref.read, feedId);
-      if (feedRemoteId == null) {
-        final feedUrl = await _localFeedUrlFromRead(ref.read, feedId);
-        await executor.refreshFeedByUrl(feedUrl);
-      } else {
-        await executor.refreshFeedById(feedRemoteId);
-      }
       final result = await ref
-          .read(syncServiceProvider)
-          .refreshFeedSafe(feedId, notify: false);
+          .read(scopedRefreshCoordinatorProvider)
+          .refreshScope(scope: FeedRefreshScope(feedId));
       if (!context.mounted) return;
+      final err = result.firstError;
+      if (result.error != null) {
+        _logSubscriptionFailure(
+          ref,
+          'refreshFeed',
+          result.error!,
+          result.stackTrace,
+        );
+        remote_feedback.showRemoteStructureFailure(
+          context,
+          l10n,
+          result.error!,
+        );
+        return;
+      }
       context.showSnack(
-        result.ok ? l10n.refreshed : l10n.errorMessage(result.error.toString()),
+        err == null ? l10n.refreshed : l10n.errorMessage(err.toString()),
       );
     } catch (error, stackTrace) {
       _logSubscriptionFailure(ref, 'refreshFeed', error, stackTrace);
@@ -760,52 +711,34 @@ class SubscriptionActions {
     final concurrency = appSettings?.autoRefreshConcurrency ?? 2;
     final capabilities = _capabilities(ref);
     final mode = resolveSubscriptionRootSyncMode(capabilities);
-
-    switch (mode) {
-      case SubscriptionRootSyncMode.refreshSources:
-        final result = await ref
-            .read(refreshSourcesCoordinatorProvider)
-            .refreshSources(
-              trigger: RefreshSourcesTrigger.manual,
-              maxConcurrent: concurrency,
-            );
-        if (!context.mounted) return;
-        final err = result.firstError;
-        if (result.error != null) {
-          _logSubscriptionFailure(
-            ref,
-            'refreshAllFeeds',
-            result.error!,
-            result.stackTrace,
-          );
-          remote_feedback.showRemoteStructureFailure(
-            context,
-            l10n,
-            result.error!,
-          );
-          return;
-        }
-        context.showSnack(
-          err == null ? l10n.refreshedAll : l10n.errorMessage(err.toString()),
-        );
-        return;
-      case SubscriptionRootSyncMode.syncAccount:
-        final result = await ref
-            .read(accountSyncCoordinatorProvider)
-            .syncAccount(
-              trigger: AccountSyncTrigger.manual,
-              maxConcurrent: concurrency,
-            );
-        if (!context.mounted) return;
-        final err = result.firstError;
-        context.showSnack(
-          err == null ? l10n.syncedAccount : l10n.errorMessage(err.toString()),
-        );
-        return;
-      case null:
-        remote_feedback.showUnsupportedRemoteCommand(context, l10n);
-        return;
+    if (mode == null) {
+      remote_feedback.showUnsupportedRemoteCommand(context, l10n);
+      return;
     }
+
+    final result = await ref
+        .read(scopedRefreshCoordinatorProvider)
+        .refreshScope(
+          scope: const AllRefreshScope(),
+          maxConcurrent: concurrency,
+        );
+    if (!context.mounted) return;
+    final err = result.firstError;
+    if (result.error != null) {
+      _logSubscriptionFailure(
+        ref,
+        'refreshAllFeeds',
+        result.error!,
+        result.stackTrace,
+      );
+      remote_feedback.showRemoteStructureFailure(context, l10n, result.error!);
+      return;
+    }
+    context.showSnack(
+      err == null
+          ? subscriptionRootSyncSuccessLabel(l10n, mode)
+          : l10n.errorMessage(err.toString()),
+    );
   }
 
   static Future<void> moveFeedToCategory(

@@ -1779,10 +1779,7 @@ void main() {
       expect(syncService.refreshCalls, [
         [10],
       ]);
-      expect(
-        outcome.successFeedback,
-        HomeRefreshSuccessFeedback.refreshedAndSynced,
-      );
+      expect(outcome.successFeedback, HomeRefreshSuccessFeedback.refreshed);
     },
   );
 
@@ -1817,12 +1814,9 @@ void main() {
       expect(minifluxSourceRefresh.refreshedFeedIds, [1, 2]);
       expect(minifluxSourceRefresh.refreshAllCalls, 0);
       expect(syncService.refreshCalls, [
-        [1, 2, 3],
+        [1, 2],
       ]);
-      expect(
-        outcome.successFeedback,
-        HomeRefreshSuccessFeedback.refreshedAndSynced,
-      );
+      expect(outcome.successFeedback, HomeRefreshSuccessFeedback.refreshed);
     },
   );
 
@@ -2499,6 +2493,9 @@ void main() {
           overrides: [
             activeAccountProvider.overrideWithValue(buildTestAccount()),
             syncServiceProvider.overrideWithValue(syncService),
+            feedRepositoryProvider.overrideWithValue(
+              _FakeFeedRepository([feed]),
+            ),
             feedsProvider.overrideWith((ref) => Stream.value([feed])),
             categoriesProvider.overrideWith(
               (ref) => Stream.value(<Category>[]),
@@ -2556,6 +2553,9 @@ void main() {
           overrides: [
             activeAccountProvider.overrideWithValue(buildTestAccount()),
             syncServiceProvider.overrideWithValue(syncService),
+            feedRepositoryProvider.overrideWithValue(
+              _FakeFeedRepository([feed]),
+            ),
             feedsProvider.overrideWith((ref) => Stream.value([feed])),
             categoriesProvider.overrideWith(
               (ref) => Stream.value(<Category>[]),

@@ -47,6 +47,8 @@ class _FakeFeedDiscoveryService extends FeedDiscoveryService {
 }
 
 class _FakeSyncService implements SyncServiceBase {
+  final List<int> refreshFeedCalls = <int>[];
+
   @override
   Future<int> offlineCacheFeed(int feedId) async => 0;
 
@@ -57,6 +59,7 @@ class _FakeSyncService implements SyncServiceBase {
     AppSettings? appSettings,
     bool notify = true,
   }) async {
+    refreshFeedCalls.add(feedId);
     return FeedRefreshResult(feedId: feedId, incomingCount: 0, newCount: 0);
   }
 
@@ -70,6 +73,18 @@ class _FakeSyncService implements SyncServiceBase {
   }) async {
     return const BatchRefreshResult([]);
   }
+
+  @override
+  Future<BatchRefreshResult> syncAccountSafe({
+    int maxConcurrent = 2,
+    void Function(int current, int total)? onProgress,
+    bool notify = true,
+    Iterable<int>? feedIds,
+  }) async {
+    final ids = feedIds?.toList(growable: false) ?? const <int>[];
+    onProgress?.call(ids.length, ids.length);
+    return const BatchRefreshResult([]);
+  }
 }
 
 class _FailingSyncService extends _FakeSyncService {
@@ -80,31 +95,13 @@ class _FailingSyncService extends _FakeSyncService {
     AppSettings? appSettings,
     bool notify = true,
   }) async {
+    refreshFeedCalls.add(feedId);
     return FeedRefreshResult(
       feedId: feedId,
       incomingCount: 0,
       newCount: 0,
       error: StateError('refresh failed'),
     );
-  }
-}
-
-class _CreatingSyncService extends _FakeSyncService {
-  _CreatingSyncService({required this.isar, required this.feedUrl});
-
-  final Isar isar;
-  final String feedUrl;
-
-  @override
-  Future<BatchRefreshResult> refreshFeedsSafe(
-    Iterable<int> feedIds, {
-    int maxConcurrent = 2,
-    int maxAttemptsPerFeed = 2,
-    void Function(int current, int total)? onProgress,
-    bool notify = true,
-  }) async {
-    await FeedRepository(isar).upsertUrl(feedUrl);
-    return const BatchRefreshResult([]);
   }
 }
 
@@ -1020,77 +1017,99 @@ void main() {
     },
   );
 
-  test('controller submits a Miniflux subscription after sync', () async {
-    const feedUrl = 'https://example.com/feed.xml';
-    final dio = _buildDio({
-      'GET /v1/categories': (options, handler) {
-        handler.resolve(
-          Response<List<Map<String, Object?>>>(
-            requestOptions: options,
-            statusCode: 200,
-            data: const [
-              {'id': 42, 'title': 'Remote News'},
-            ],
+  test(
+    'controller submits a Miniflux subscription after local mirror',
+    () async {
+      const feedUrl = 'https://example.com/feed.xml';
+      final sync = _FakeSyncService();
+      final dio = _buildDio({
+        'GET /v1/categories': (options, handler) {
+          handler.resolve(
+            Response<List<Map<String, Object?>>>(
+              requestOptions: options,
+              statusCode: 200,
+              data: const [
+                {'id': 42, 'title': 'Remote News'},
+              ],
+            ),
+          );
+        },
+        'GET /v1/feeds': (options, handler) {
+          handler.resolve(
+            Response<List<Map<String, Object?>>>(
+              requestOptions: options,
+              statusCode: 200,
+              data: const [
+                {
+                  'id': 99,
+                  'feed_url': feedUrl,
+                  'title': 'Remote Feed',
+                  'site_url': 'https://example.com',
+                  'category_id': 42,
+                },
+              ],
+            ),
+          );
+        },
+        'POST /v1/feeds': (options, handler) {
+          expect(options.data, {'feed_url': feedUrl, 'category_id': 42});
+          handler.resolve(
+            Response<Map<String, Object?>>(
+              requestOptions: options,
+              statusCode: 201,
+              data: const {'id': 99, 'feed_url': feedUrl},
+            ),
+          );
+        },
+      });
+      final container = ProviderContainer(
+        overrides: [
+          isarProvider.overrideWithValue(isar!),
+          activeAccountProvider.overrideWithValue(_minifluxAccount()),
+          dioProvider.overrideWithValue(dio),
+          credentialStoreProvider.overrideWithValue(_FakeCredentialStore()),
+          feedDiscoveryServiceProvider.overrideWithValue(
+            _FakeFeedDiscoveryService(const [
+              DiscoveredFeed(url: feedUrl, title: 'Feed'),
+            ]),
           ),
-        );
-      },
-      'POST /v1/feeds': (options, handler) {
-        expect(options.data, {'feed_url': feedUrl, 'category_id': 42});
-        handler.resolve(
-          Response<Map<String, Object?>>(
-            requestOptions: options,
-            statusCode: 201,
-            data: const {'id': 99, 'feed_url': feedUrl},
+          syncServiceProvider.overrideWithValue(sync),
+          appSettingsStoreProvider.overrideWithValue(
+            _FakeAppSettingsStore(AppSettings.defaults()),
           ),
-        );
-      },
-    });
-    final container = ProviderContainer(
-      overrides: [
-        isarProvider.overrideWithValue(isar!),
-        activeAccountProvider.overrideWithValue(_minifluxAccount()),
-        dioProvider.overrideWithValue(dio),
-        credentialStoreProvider.overrideWithValue(_FakeCredentialStore()),
-        feedDiscoveryServiceProvider.overrideWithValue(
-          _FakeFeedDiscoveryService(const [
-            DiscoveredFeed(url: feedUrl, title: 'Feed'),
-          ]),
-        ),
-        syncServiceProvider.overrideWithValue(
-          _CreatingSyncService(isar: isar!, feedUrl: feedUrl),
-        ),
-        appSettingsStoreProvider.overrideWithValue(
-          _FakeAppSettingsStore(AppSettings.defaults()),
-        ),
-      ],
-    );
-    addTearDown(container.dispose);
-    final subscription = container.listen(
-      addSubscriptionControllerProvider,
-      (_, _) {},
-      fireImmediately: true,
-    );
-    addTearDown(subscription.close);
+        ],
+      );
+      addTearDown(container.dispose);
+      final subscription = container.listen(
+        addSubscriptionControllerProvider,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      addTearDown(subscription.close);
 
-    final controller = container.read(
-      addSubscriptionControllerProvider.notifier,
-    );
-    await controller.discover(feedUrl);
-    await controller.selectCandidate(
-      container.read(addSubscriptionControllerProvider).candidates.single,
-    );
-    controller.selectCategory(
-      const AddSubscriptionCategoryOption(id: 42, title: 'Remote News'),
-    );
+      final controller = container.read(
+        addSubscriptionControllerProvider.notifier,
+      );
+      await controller.discover(feedUrl);
+      await controller.selectCandidate(
+        container.read(addSubscriptionControllerProvider).candidates.single,
+      );
+      controller.selectCategory(
+        const AddSubscriptionCategoryOption(id: 42, title: 'Remote News'),
+      );
 
-    final id = await controller.submit();
+      final id = await controller.submit();
 
-    expect(id, isNotNull);
-    final feed = await FeedRepository(isar!).getByUrl(feedUrl);
-    expect(feed, isNotNull);
-    expect(feed!.id, id);
-    final state = container.read(addSubscriptionControllerProvider);
-    expect(state.phase, AddSubscriptionPhase.success);
-    expect(state.refreshWarning, isNull);
-  });
+      expect(id, isNotNull);
+      final feed = await FeedRepository(isar!).getByUrl(feedUrl);
+      expect(feed, isNotNull);
+      expect(feed!.id, id);
+      expect(feed.remoteId, '99');
+      expect(feed.title, 'Remote Feed');
+      final state = container.read(addSubscriptionControllerProvider);
+      expect(state.phase, AddSubscriptionPhase.success);
+      expect(state.refreshWarning, isNull);
+      expect(sync.refreshFeedCalls, [feed.id]);
+    },
+  );
 }

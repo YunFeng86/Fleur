@@ -547,6 +547,23 @@ class FakeSyncService implements SyncServiceBase, OutboxFlushCapable {
   }
 
   @override
+  Future<BatchRefreshResult> syncAccountSafe({
+    int maxConcurrent = 2,
+    void Function(int current, int total)? onProgress,
+    bool notify = true,
+    Iterable<int>? feedIds,
+  }) async {
+    final ids = feedIds?.toList(growable: false) ?? const <int>[];
+    refreshCalls.add(ids);
+    onProgress?.call(ids.length, ids.length);
+    final callback = onRefresh;
+    if (callback != null) {
+      return callback(ids);
+    }
+    return refreshResult;
+  }
+
+  @override
   Future<bool> flushOutboxSafe() async {
     flushCalls++;
     final callback = onFlush;

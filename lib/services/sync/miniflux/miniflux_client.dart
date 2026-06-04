@@ -107,6 +107,33 @@ class MinifluxClient {
     return const <String, Object?>{};
   }
 
+  Future<Map<String, Object?>> getFeedEntries({
+    required int feedId,
+    required int limit,
+    int offset = 0,
+    List<String> statuses = const ['unread', 'read'],
+    String order = 'published_at',
+    String direction = 'desc',
+  }) async {
+    if (feedId <= 0) {
+      throw ArgumentError('Feed id is invalid');
+    }
+    final resp = await _dio.get(
+      '$_baseUrl/v1/feeds/$feedId/entries',
+      options: _options,
+      queryParameters: <String, Object?>{
+        'limit': limit,
+        if (offset > 0) 'offset': offset,
+        if (statuses.isNotEmpty) 'status': statuses,
+        'order': order,
+        'direction': direction,
+      },
+    );
+    final data = resp.data;
+    if (data is Map) return data.cast<String, Object?>();
+    return const <String, Object?>{};
+  }
+
   Future<void> setEntriesStatus(
     List<int> entryIds, {
     required String status,

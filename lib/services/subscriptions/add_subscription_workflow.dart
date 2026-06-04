@@ -325,7 +325,11 @@ class AddSubscriptionWorkflow {
         feedId: remoteFeedId,
         categoryId: targetCategoryId,
       );
-      await _readSync().refreshFeedsSafe(const []);
+      final localCategoryId = await _localCategoryIdForRemoteCategory(
+        executor,
+        targetCategoryId,
+      );
+      await _feeds.setCategory(feedId: feedId, categoryId: localCategoryId);
     } else {
       await _feeds.setCategory(feedId: feedId, categoryId: targetCategoryId);
     }
@@ -364,18 +368,15 @@ class AddSubscriptionWorkflow {
     if (_capabilities.isOnlineRequired(BackendFeature.addSubscription)) {
       final executor = await _buildMinifluxStructureExecutor();
       final rawCategories = await executor.listCategories();
-      final categories =
-          rawCategories
-              .where((c) => c['id'] is int && c['title'] is String)
-              .map(
-                (c) => AddSubscriptionCategoryOption(
-                  id: c['id'] as int,
-                  title: (c['title'] as String).trim(),
-                ),
-              )
-              .where((c) => c.id != null && c.id! > 0 && c.title.isNotEmpty)
-              .toList(growable: false)
-            ..sort((a, b) => a.title.compareTo(b.title));
+      final categories = <AddSubscriptionCategoryOption>[];
+      for (final raw in rawCategories) {
+        final id = raw['id'];
+        final title = _trimmedString(raw['title']);
+        if (id is! int || id <= 0 || title == null) continue;
+        await _upsertRemoteCategory(remoteId: id, title: title);
+        categories.add(AddSubscriptionCategoryOption(id: id, title: title));
+      }
+      categories.sort((a, b) => a.title.compareTo(b.title));
 
       final selectedCategoryId = await _initialRemoteCategoryId(
         categories,
@@ -513,21 +514,19 @@ class AddSubscriptionWorkflow {
     }
 
     final executor = await _buildMinifluxStructureExecutor();
-    final batch = await SyncMutex.instance.run('sync', () async {
-      await executor.createFeed(
+    final feedId = await SyncMutex.instance.run('sync', () async {
+      final rawFeed = await executor.createFeed(
         feedUrl: feedUri.toString(),
         categoryId: categoryId,
       );
-      return _readSync().refreshFeedsSafe(const []);
+      return _mirrorCreatedMinifluxFeed(
+        executor: executor,
+        rawFeed: rawFeed,
+        feedUri: feedUri,
+        remoteCategoryId: categoryId,
+        candidate: candidate,
+      );
     });
-
-    final feedId = await resolveLocalFeedIdByUrl(feedUri.toString());
-    if (feedId == null) {
-      final error =
-          batch.firstError?.error ??
-          StateError('Remote feed not found for url: ${feedUri.toString()}');
-      throw error;
-    }
 
     final updated = candidate.copyWith(
       existingFeedId: feedId,
@@ -537,7 +536,6 @@ class AddSubscriptionWorkflow {
       feedId: feedId,
       categoryId: categoryId,
       candidate: updated,
-      refreshWarning: batch.firstError?.error,
     );
   }
 
@@ -586,26 +584,22 @@ class AddSubscriptionWorkflow {
     }
 
     final executor = await _buildMinifluxStructureExecutor();
-    final batch = await SyncMutex.instance.run('sync', () async {
-      await executor.createFeed(
+    final feedId = await SyncMutex.instance.run('sync', () async {
+      final rawFeed = await executor.createFeed(
         feedUrl: feedUri.toString(),
         categoryId: categoryId,
       );
-      return _readSync().refreshFeedsSafe(const []);
+      return _mirrorCreatedMinifluxFeed(
+        executor: executor,
+        rawFeed: rawFeed,
+        feedUri: feedUri,
+        remoteCategoryId: categoryId,
+      );
     });
-
-    final feedId = await resolveLocalFeedIdByUrl(feedUri.toString());
-    if (feedId == null) {
-      final error =
-          batch.firstError?.error ??
-          StateError('Remote feed not found for url: ${feedUri.toString()}');
-      throw error;
-    }
 
     return AddSubscriptionWorkflowResult(
       feedId: feedId,
       categoryId: categoryId,
-      refreshWarning: batch.firstError?.error,
     );
   }
 
@@ -616,6 +610,150 @@ class AddSubscriptionWorkflow {
     }
     final client = await _remoteClients.miniflux(_account);
     return MinifluxRemoteSubscriptionStructureExecutor(client);
+  }
+
+  Future<int> _mirrorCreatedMinifluxFeed({
+    required MinifluxRemoteSubscriptionStructureExecutor executor,
+    required Map<String, Object?> rawFeed,
+    required Uri feedUri,
+    required int remoteCategoryId,
+    AddSubscriptionCandidate? candidate,
+  }) async {
+    final remoteFeed = await _resolveCreatedRemoteFeed(
+      executor: executor,
+      rawFeed: rawFeed,
+      feedUri: feedUri,
+    );
+    final remoteId = remoteFeed['id'];
+    if (remoteId is! int || remoteId <= 0) {
+      throw StateError('Unexpected Miniflux response for create feed');
+    }
+
+    final feedUrl =
+        _trimmedString(remoteFeed['feed_url']) ?? feedUri.toString();
+    final remoteCategory = _remoteCategoryMap(remoteFeed);
+    final effectiveRemoteCategoryId =
+        _remoteCategoryId(remoteFeed) ?? remoteCategoryId;
+    final localCategoryId = await _localCategoryIdForRemoteCategory(
+      executor,
+      effectiveRemoteCategoryId,
+      rawCategory: remoteCategory,
+    );
+
+    final result = await _feeds.upsertRemoteDetailed(
+      remoteId: remoteId.toString(),
+      url: feedUrl,
+      title: _trimmedString(remoteFeed['title']) ?? candidate?.feed.title,
+      siteUrl: _trimmedString(remoteFeed['site_url']),
+      description: _trimmedString(remoteFeed['description']),
+      categoryId: localCategoryId,
+      updateCategory: localCategoryId != null,
+    );
+    if (!result.isBound) {
+      throw StateError('Remote feed identity conflict for url: $feedUrl');
+    }
+    return result.localId;
+  }
+
+  Future<Map<String, Object?>> _resolveCreatedRemoteFeed({
+    required MinifluxRemoteSubscriptionStructureExecutor executor,
+    required Map<String, Object?> rawFeed,
+    required Uri feedUri,
+  }) async {
+    final remoteId = rawFeed['id'];
+    final feedUrl = _trimmedString(rawFeed['feed_url']);
+    if (remoteId is int && remoteId > 0 && feedUrl != null) {
+      if (_hasUsefulFeedMirrorFields(rawFeed)) return rawFeed;
+    }
+
+    final targetUrl = _normalizeFeedUrl(feedUri.toString());
+    final remoteFeeds = await executor.listFeeds();
+    for (final remote in remoteFeeds) {
+      final candidateId = remote['id'];
+      if (remoteId is int && candidateId == remoteId) return remote;
+    }
+    for (final remote in remoteFeeds) {
+      final candidateUrl = _trimmedString(remote['feed_url']);
+      if (candidateUrl == null) continue;
+      if (_normalizeFeedUrl(candidateUrl) == targetUrl) return remote;
+    }
+
+    if (remoteId is int && remoteId > 0 && feedUrl != null) return rawFeed;
+    throw StateError('Remote feed not found for url: ${feedUri.toString()}');
+  }
+
+  bool _hasUsefulFeedMirrorFields(Map<String, Object?> rawFeed) {
+    return _trimmedString(rawFeed['title']) != null ||
+        _trimmedString(rawFeed['site_url']) != null ||
+        _remoteCategoryMap(rawFeed) != null ||
+        _remoteCategoryId(rawFeed) != null;
+  }
+
+  Future<int?> _localCategoryIdForRemoteCategory(
+    MinifluxRemoteSubscriptionStructureExecutor executor,
+    int remoteCategoryId, {
+    Map<String, Object?>? rawCategory,
+  }) async {
+    if (remoteCategoryId <= 0) return null;
+
+    final rawTitle = _trimmedString(rawCategory?['title']);
+    if (rawTitle != null) {
+      final localId = await _upsertRemoteCategory(
+        remoteId: remoteCategoryId,
+        title: rawTitle,
+      );
+      if (localId != null) return localId;
+    }
+
+    final existing = await _categories.getByRemoteId(
+      remoteCategoryId.toString(),
+    );
+    if (existing != null) return existing.id;
+
+    final remoteCategories = await executor.listCategories();
+    for (final remote in remoteCategories) {
+      if (remote['id'] != remoteCategoryId) continue;
+      final title = _trimmedString(remote['title']);
+      if (title == null) break;
+      return _upsertRemoteCategory(remoteId: remoteCategoryId, title: title);
+    }
+    return null;
+  }
+
+  Future<int?> _upsertRemoteCategory({
+    required int remoteId,
+    required String title,
+  }) async {
+    final result = await _categories.upsertRemoteDetailed(
+      remoteId: remoteId.toString(),
+      name: title,
+    );
+    return result.isBound ? result.localId : null;
+  }
+
+  Map<String, Object?>? _remoteCategoryMap(Map<String, Object?> rawFeed) {
+    final category = rawFeed['category'];
+    if (category is Map) return category.cast<String, Object?>();
+    return null;
+  }
+
+  int? _remoteCategoryId(Map<String, Object?> rawFeed) {
+    final category = _remoteCategoryMap(rawFeed);
+    final nestedId = category?['id'];
+    if (nestedId is int && nestedId > 0) return nestedId;
+    final flatId = rawFeed['category_id'];
+    if (flatId is int && flatId > 0) return flatId;
+    return null;
+  }
+
+  String? _trimmedString(Object? value) {
+    if (value is! String) return null;
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
+
+  String _normalizeFeedUrl(String url) {
+    return url.trim().replaceAll(RegExp(r'/+$'), '');
   }
 
   Future<List<AddSubscriptionCategoryOption>> _localCategoryOptions() async {

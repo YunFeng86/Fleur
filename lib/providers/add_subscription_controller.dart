@@ -500,8 +500,7 @@ class AddSubscriptionController
         failure: null,
         refreshWarning: result.refreshWarning,
       );
-      if (!capabilities.isOnlineRequired(BackendFeature.addSubscription) &&
-          feedId != null) {
+      if (feedId != null) {
         unawaited(_refreshAddedLocalFeed(feedId));
       }
       return feedId;
@@ -641,8 +640,7 @@ class AddSubscriptionController
         failure: null,
         refreshWarning: result.refreshWarning,
       );
-      if (!capabilities.isOnlineRequired(BackendFeature.addSubscription) &&
-          feedId != null) {
+      if (feedId != null) {
         unawaited(_refreshAddedLocalFeed(feedId));
       }
       return feedId;
