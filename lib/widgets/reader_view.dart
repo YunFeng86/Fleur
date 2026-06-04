@@ -12,7 +12,6 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_math_fork/flutter_math.dart' as flutter_math;
 import 'package:html/dom.dart' as dom;
-import 'package:html/parser.dart' as html_parser;
 
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
@@ -25,15 +24,16 @@ import 'fleur_empty_state.dart';
 import '../models/article.dart';
 import '../providers/app_settings_providers.dart';
 import '../providers/article_ai_providers.dart';
+import '../providers/reader_document_providers.dart';
 import '../providers/reader_search_providers.dart';
 import '../providers/reader_providers.dart';
 import '../providers/query_providers.dart';
 import '../providers/service_providers.dart';
 import '../providers/settings_providers.dart';
 import '../services/cache/image_meta_store.dart';
-import '../services/feed_html_normalizer.dart';
-import '../services/html_sanitizer.dart';
-import '../services/reader_chunk_policy.dart';
+import '../services/reader_document/reader_document_handle.dart';
+import '../services/reader_document/reader_document_models.dart';
+import '../services/reader_html_normalizer.dart' as reader_html;
 import '../services/reader_search_service.dart';
 import '../services/settings/app_settings.dart';
 import '../services/settings/reader_settings.dart';
@@ -42,8 +42,8 @@ import '../theme/app_theme.dart';
 import '../theme/app_typography.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
-import '../utils/platform.dart';
 import '../utils/content_hash.dart';
+import '../utils/platform.dart';
 import '../utils/language_utils.dart';
 import '../ui/layout.dart';
 import '../ui/workspace_layers.dart';
@@ -90,10 +90,9 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
   late final _ReaderInteractionController _interactionController;
   late final _ReaderViewportCoordinator _viewportCoordinator;
   late final _ReaderSessionCoordinator _sessionCoordinator;
-  String? _lastScheduledSearchHtml;
-  String? _lastChunkPolicyHtml;
-  bool _lastChunkPolicyResult = false;
-  bool _searchHtmlSyncScheduled = false;
+  ReaderDocumentHandle? _lastScheduledSearchDocumentHandle;
+  ReaderDocumentKey? _lastScheduledSearchDocumentKey;
+  bool _searchDocumentSyncScheduled = false;
   static const double _autoScrollDeadZone = 6;
   static const double _autoScrollSpeedFactor = 0.12;
 
@@ -110,10 +109,7 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
       interactionController: _interactionController,
     );
     _interactionController.attachViewport(_viewportCoordinator);
-    _sessionCoordinator = _ReaderSessionCoordinator(
-      owner: this,
-      viewportCoordinator: _viewportCoordinator,
-    );
+    _sessionCoordinator = _ReaderSessionCoordinator(owner: this);
     _interactionController.prime();
     _viewportCoordinator.init();
 
@@ -173,28 +169,25 @@ class _ReaderViewState extends ConsumerState<ReaderView> {
     super.dispose();
   }
 
-  void _scheduleSearchDocumentHtmlSync(String html) {
-    if (_lastScheduledSearchHtml == html) return;
-    _lastScheduledSearchHtml = html;
-    if (_searchHtmlSyncScheduled) return;
-    _searchHtmlSyncScheduled = true;
+  void _scheduleSearchDocumentSync(ReaderDocumentHandle handle) {
+    final key = handle.snapshot.documentKey;
+    if (_lastScheduledSearchDocumentKey == key &&
+        identical(_lastScheduledSearchDocumentHandle, handle)) {
+      return;
+    }
+    _lastScheduledSearchDocumentKey = key;
+    _lastScheduledSearchDocumentHandle = handle;
+    if (_searchDocumentSyncScheduled) return;
+    _searchDocumentSyncScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _searchHtmlSyncScheduled = false;
+      _searchDocumentSyncScheduled = false;
       if (!mounted) return;
-      final nextHtml = _lastScheduledSearchHtml;
-      if (nextHtml == null) return;
+      final nextHandle = _lastScheduledSearchDocumentHandle;
+      if (nextHandle == null) return;
       ref
           .read(readerSearchControllerProvider(widget.articleId).notifier)
-          .setDocumentHtml(nextHtml);
+          .setDocumentHandle(nextHandle);
     });
-  }
-
-  bool _shouldUseChunkedLayout(String html) {
-    if (_lastChunkPolicyHtml == html) return _lastChunkPolicyResult;
-    final result = ReaderChunkPolicy.defaultPolicy.shouldUseChunkedLayout(html);
-    _lastChunkPolicyHtml = html;
-    _lastChunkPolicyResult = result;
-    return result;
   }
 
   @override
@@ -1198,158 +1191,7 @@ class _CssLength {
 
 @visibleForTesting
 String normalizeReaderHtmlForDisplay(String html) {
-  if (html.trim().isEmpty) return '';
-  final fragment = html_parser.parseFragment(html);
-
-  void visit(dom.Node node) {
-    if (node is dom.Element && _skipMathNormalizationInside(node)) {
-      return;
-    }
-
-    final children = List<dom.Node>.from(node.nodes);
-    for (final child in children) {
-      if (child is dom.Text) {
-        _replaceMathTextNode(child);
-      } else {
-        visit(child);
-      }
-    }
-  }
-
-  visit(fragment);
-  return fragment.outerHtml;
-}
-
-bool _skipMathNormalizationInside(dom.Element element) {
-  final tag = element.localName?.toLowerCase();
-  return tag == 'pre' || tag == 'code' || tag == 'a' || tag == 'fleur-math';
-}
-
-void _replaceMathTextNode(dom.Text node) {
-  final text = node.text;
-  if (!_mayContainMathDelimiter(text)) return;
-  final parent = node.parent;
-  if (parent == null) return;
-  final index = parent.nodes.indexOf(node);
-  if (index < 0) return;
-
-  final replacements = _parseMathText(text);
-  if (replacements == null) return;
-  parent.nodes.removeAt(index);
-  parent.nodes.insertAll(index, replacements);
-}
-
-bool _mayContainMathDelimiter(String text) {
-  return text.contains(r'$') || text.contains(r'\(') || text.contains(r'\[');
-}
-
-List<dom.Node>? _parseMathText(String text) {
-  final nodes = <dom.Node>[];
-  var cursor = 0;
-  var found = false;
-
-  while (cursor < text.length) {
-    final match = _findNextMath(text, cursor);
-    if (match == null) break;
-    if (match.start > cursor) {
-      nodes.add(dom.Text(text.substring(cursor, match.start)));
-    }
-    nodes.add(_buildMathElement(match.expression, display: match.display));
-    found = true;
-    cursor = match.end;
-  }
-
-  if (!found) return null;
-  if (cursor < text.length) {
-    nodes.add(dom.Text(text.substring(cursor)));
-  }
-  return nodes;
-}
-
-_MathMatch? _findNextMath(String text, int start) {
-  _MathMatch? best;
-  for (final opener in const [r'$$', r'\[', r'\(', r'$']) {
-    final candidate = _findMathWithOpener(text, start, opener);
-    if (candidate == null) continue;
-    if (best == null || candidate.start < best.start) {
-      best = candidate;
-    }
-  }
-  return best;
-}
-
-_MathMatch? _findMathWithOpener(String text, int start, String opener) {
-  final openIndex = _indexOfUnescaped(text, opener, start);
-  if (openIndex < 0) return null;
-  if (opener == r'$' && _isDoubleDollarAt(text, openIndex)) {
-    return null;
-  }
-
-  final closer = switch (opener) {
-    r'$$' => r'$$',
-    r'\[' => r'\]',
-    r'\(' => r'\)',
-    _ => r'$',
-  };
-  final closeStart = openIndex + opener.length;
-  final closeIndex = _indexOfUnescaped(text, closer, closeStart);
-  if (closeIndex < 0) return null;
-  if (closer == r'$' && _isDoubleDollarAt(text, closeIndex)) {
-    return null;
-  }
-
-  final expression = text.substring(closeStart, closeIndex).trim();
-  if (expression.isEmpty) return null;
-  return _MathMatch(
-    start: openIndex,
-    end: closeIndex + closer.length,
-    expression: expression,
-    display: opener == r'$$' || opener == r'\[',
-  );
-}
-
-int _indexOfUnescaped(String text, String pattern, int start) {
-  var index = text.indexOf(pattern, start);
-  while (index >= 0) {
-    if (!_isEscaped(text, index)) return index;
-    index = text.indexOf(pattern, index + pattern.length);
-  }
-  return -1;
-}
-
-bool _isEscaped(String text, int index) {
-  var count = 0;
-  for (var i = index - 1; i >= 0 && text.codeUnitAt(i) == 92; i--) {
-    count++;
-  }
-  return count.isOdd;
-}
-
-bool _isDoubleDollarAt(String text, int index) {
-  return index + 1 < text.length &&
-      text.codeUnitAt(index) == 36 &&
-      text.codeUnitAt(index + 1) == 36;
-}
-
-dom.Element _buildMathElement(String expression, {required bool display}) {
-  return dom.Element.tag('fleur-math')
-    ..attributes['data-fleur-math'] = expression
-    ..attributes['data-fleur-math-display'] = display ? 'block' : 'inline'
-    ..text = expression;
-}
-
-class _MathMatch {
-  const _MathMatch({
-    required this.start,
-    required this.end,
-    required this.expression,
-    required this.display,
-  });
-
-  final int start;
-  final int end;
-  final String expression;
-  final bool display;
+  return reader_html.normalizeReaderHtmlForDisplay(html);
 }
 
 String? _mediaSourceForElement(dom.Element element) {

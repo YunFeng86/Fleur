@@ -11,19 +11,24 @@ extension _ReaderSceneScaffold on _ReaderViewState {
     required FleurReaderTheme readerTokens,
   }) {
     final sceneStates = sceneTheme.fleurState;
-    final translatedHtml = (aiState.translationHtml ?? '').trim();
-    final html = _sessionCoordinator.getSanitizedDisplayHtml(
+    final documentRequest = _sessionCoordinator.buildDocumentRequest(
       article: article,
-      translationHtml: translatedHtml,
+      settings: settings,
+      aiState: aiState,
+    );
+    final documentHandle = ref.watch(readerDocumentProvider(documentRequest));
+    final snapshot = documentHandle.snapshot;
+
+    _viewportCoordinator.setDocumentSnapshot(snapshot);
+    _scheduleSearchDocumentSync(documentHandle);
+    _sessionCoordinator.maybePrefetchImages(
+      article: article,
+      snapshot: snapshot,
     );
 
-    _viewportCoordinator.requestContentHashUpdate(html: html);
-    _scheduleSearchDocumentHtmlSync(html);
-
-    final isChunked = _shouldUseChunkedLayout(html);
     _viewportCoordinator._handleViewportSizeChange(
       MediaQuery.sizeOf(context),
-      isChunked: isChunked,
+      isChunked: snapshot.isChunked,
       settings: settings,
     );
     final title = article.title?.trim().isNotEmpty == true
@@ -62,19 +67,13 @@ extension _ReaderSceneScaffold on _ReaderViewState {
       },
     );
 
-    final displayChunks = html.isEmpty
-        ? const <String>[]
-        : isChunked
-        ? (searchState.highlight?.highlightedChunks ??
-              ReaderSearchService.splitHtmlIntoChunks(html))
-        : (searchState.highlight?.highlightedChunks ?? <String>[html]);
-
-    final contentWidget = html.isEmpty
+    final contentWidget = snapshot.displayHtml.isEmpty
         ? Center(child: Text(article.link, style: readerTokens.bodyStyle))
         : _viewportCoordinator._buildContentWidget(
             context,
-            displayChunks,
-            isChunked,
+            documentHandle,
+            snapshot,
+            searchState.highlight?.highlightedChunks,
             article,
             settings,
             sceneTheme,

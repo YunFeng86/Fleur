@@ -36,9 +36,11 @@ final class _ReaderInteractionController {
   String _pendingQuickMenuText = '';
   OverlayEntry? _autoScrollOverlay;
   Timer? _autoScrollTimer;
+  Timer? _hoverResumeTimer;
   Offset? _autoScrollAnchor;
   Offset? _autoScrollPointer;
   bool _suppressNextContextMenu = false;
+  bool _hoverSuspendedForScroll = false;
 
   BuildContext get context => _owner.context;
   WidgetRef get ref => _owner.ref;
@@ -57,11 +59,24 @@ final class _ReaderInteractionController {
 
   void dispose() {
     _quickMenuTimer?.cancel();
+    _hoverResumeTimer?.cancel();
     ContextMenuController.removeAny();
     _autoScrollTimer?.cancel();
     _autoScrollOverlay?.remove();
     _autoScrollOverlay = null;
     hoveredUrl.dispose();
+  }
+
+  void suspendHoverForScroll() {
+    if (!isDesktop) return;
+    if (!_hoverSuspendedForScroll) {
+      _hoverSuspendedForScroll = true;
+      hoveredUrl.value = null;
+    }
+    _hoverResumeTimer?.cancel();
+    _hoverResumeTimer = Timer(const Duration(milliseconds: 180), () {
+      _hoverSuspendedForScroll = false;
+    });
   }
 
   String? _resolveImageUrl(String? raw) {
@@ -97,6 +112,7 @@ final class _ReaderInteractionController {
   void _handlePointerHover(PointerHoverEvent event) {
     if (event.kind != PointerDeviceKind.mouse) return;
     _autoScrollPointer = event.position;
+    if (_hoverSuspendedForScroll) return;
     _detectInlineLinkHover(event.position);
   }
 

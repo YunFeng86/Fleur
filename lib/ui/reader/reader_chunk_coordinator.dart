@@ -42,7 +42,6 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
     _prefetchedChunks.clear();
     _prefetchTimer?.cancel();
     _prefetchTimer = null;
-    _currentChunks = null;
     _lastAnchor = null;
   }
 
@@ -220,7 +219,7 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
   void _jumpNearProgressAnchor(ReaderProgress progress) {
     if (!_scrollController.hasClients) return;
     final position = _scrollController.position;
-    final chunks = _currentChunks;
+    final chunks = _currentDocumentSnapshot?.chunks;
     double target = progress.pixels;
     if (chunks != null && chunks.isNotEmpty && progress.anchorIndex != null) {
       final totalItems = chunks.length + 1;
@@ -245,9 +244,12 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
 
   void _maybePrefetchNextChunks() {
     if (!_usingChunkedLayout) return;
-    final chunks = _currentChunks;
+    final snapshot = _currentDocumentSnapshot;
+    final handle = _currentDocumentHandle;
     final baseUrl = _currentImageBaseUrl;
-    if (chunks == null || baseUrl == null) return;
+    if (snapshot == null || handle == null || baseUrl == null) return;
+    final chunks = snapshot.chunks;
+    if (chunks.isEmpty) return;
     if (_prefetchTimer != null) return;
     _prefetchTimer = Timer(const Duration(milliseconds: 220), () async {
       _prefetchTimer = null;
@@ -265,7 +267,7 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
       final cache = ref.read(articleCacheServiceProvider);
       for (final idx in toPrefetch) {
         _prefetchedChunks.add(idx);
-        final html = chunks[idx - 1];
+        final html = handle.materializeRange(chunks[idx - 1]);
         unawaited(
           cache.prefetchImagesFromHtml(
             html,
@@ -299,7 +301,10 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
                   .read(readerSearchControllerProvider(widget.articleId))
                   .visible;
               if (!isVisible) {
-                _syncSearchDocumentHtml(widget.articleId);
+                final handle = _currentDocumentHandle;
+                if (handle != null) {
+                  controller.setDocumentHandle(handle);
+                }
                 controller.open();
                 return null;
               }
@@ -461,7 +466,7 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
     if (!_scrollController.hasClients) return;
     if (requestId != _searchScrollRequestId) return;
 
-    final chunks = _currentChunks;
+    final chunks = _currentDocumentSnapshot?.chunks;
     if (chunks == null || chunks.isEmpty) return;
     final totalItems = chunks.length + 1;
     if (targetIndex < 0 || targetIndex >= totalItems) return;
@@ -515,8 +520,9 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
 
   Widget _buildContentWidget(
     BuildContext context,
-    List<String> chunks,
-    bool isChunked,
+    ReaderDocumentHandle documentHandle,
+    ReaderDocumentSnapshot snapshot,
+    List<String>? highlightedChunks,
     Article article,
     ReaderSettings settings,
     ThemeData sceneTheme,
@@ -524,6 +530,8 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
     String? currentAnchorId,
   ) {
     final cacheManager = ref.read(cacheManagerProvider);
+    _currentDocumentHandle = documentHandle;
+    _currentDocumentSnapshot = snapshot;
     _currentImageBaseUrl = Uri.tryParse(article.link);
     final theme = sceneTheme;
     final states = theme.fleurState;
@@ -738,9 +746,11 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
       return null;
     }
 
-    if (!isChunked) {
-      final html = chunks.isEmpty ? '' : chunks.first;
-      _currentChunks = null;
+    if (!snapshot.isChunked) {
+      final highlightedHtml = highlightedChunks;
+      final html = highlightedHtml == null || highlightedHtml.isEmpty
+          ? snapshot.displayHtml
+          : highlightedHtml.first;
       if (_fullHtmlSource != html) {
         _fullHtmlSource = html;
         _fullHtmlKey = GlobalKey<HtmlWidgetState>();
@@ -809,7 +819,8 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
       );
     }
 
-    _currentChunks = chunks;
+    final highlightedHtml = highlightedChunks;
+    final chunkCount = highlightedHtml?.length ?? snapshot.chunks.length;
     return SelectionArea(
       key: _selectionAreaKey,
       onSelectionChanged: _handleSelectionChanged,
@@ -834,7 +845,7 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
                     contentHorizontalPadding,
                     reader.contentPaddingBottom,
                   ),
-                  itemCount: chunks.length + 1,
+                  itemCount: chunkCount + 1,
                   itemBuilder: (context, index) {
                     final key = _chunkKeys.putIfAbsent(
                       index,
@@ -843,7 +854,11 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
                     if (index == 0) {
                       return KeyedSubtree(key: key, child: inlineHeader);
                     }
-                    final chunkHtml = chunks[index - 1];
+                    final chunkHtml = highlightedHtml == null
+                        ? documentHandle.materializeRange(
+                            snapshot.chunks[index - 1],
+                          )
+                        : highlightedHtml[index - 1];
                     if (_chunkHtmlSources[index] != chunkHtml) {
                       _chunkHtmlSources[index] = chunkHtml;
                       _chunkHtmlKeys[index] = GlobalKey<HtmlWidgetState>();

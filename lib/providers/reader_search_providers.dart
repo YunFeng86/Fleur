@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../services/reader_document/reader_document_handle.dart';
+import '../services/reader_document/reader_document_models.dart';
+import '../services/reader_document/reader_document_pipeline.dart';
 import '../services/reader_search_service.dart';
 
 final readerSearchServiceProvider = Provider<ReaderSearchService>((ref) {
@@ -97,8 +100,9 @@ class ReaderSearchController
   Timer? _debounce;
   int _requestId = 0;
   int _documentRevision = 0;
-  String _sourceHtml = '';
-  List<String> _sourceChunks = const <String>[];
+  ReaderDocumentHandle? _documentHandle;
+  ReaderDocumentKey? _documentKey;
+  String _fallbackHtml = '';
 
   ReaderSearchService get _service => ref.read(readerSearchServiceProvider);
 
@@ -108,18 +112,36 @@ class ReaderSearchController
       _debounce?.cancel();
       _debounce = null;
       _requestId++;
+      _documentHandle?.releaseTransientSearchArtifacts();
+      _documentHandle = null;
+      _documentKey = null;
     });
     return const ReaderSearchState.initial();
   }
 
-  void setDocumentHtml(String html) {
-    if (html == _sourceHtml) return;
-    _sourceHtml = html;
+  void setDocumentHandle(ReaderDocumentHandle handle) {
+    final key = handle.snapshot.documentKey;
+    final sameDocument =
+        _documentKey == key && identical(_documentHandle, handle);
+    if (sameDocument) return;
+    _documentHandle?.releaseTransientSearchArtifacts();
+    _documentHandle = handle;
+    _documentKey = key;
+    _fallbackHtml = '';
     _documentRevision++;
-    _sourceChunks = html.length >= ReaderSearchService.chunkThreshold
-        ? ReaderSearchService.splitHtmlIntoChunks(html)
-        : <String>[html];
+    state = state.copyWith(highlight: null, currentMatchIndex: 0);
+    if (state.visible && state.query.trim().isNotEmpty) {
+      _scheduleSearch(immediate: true);
+    }
+  }
 
+  void setDocumentHtml(String html) {
+    if (_documentHandle == null && html == _fallbackHtml) return;
+    _documentHandle?.releaseTransientSearchArtifacts();
+    _documentHandle = null;
+    _documentKey = null;
+    _fallbackHtml = html;
+    _documentRevision++;
     state = state.copyWith(highlight: null, currentMatchIndex: 0);
     if (state.visible && state.query.trim().isNotEmpty) {
       _scheduleSearch(immediate: true);
@@ -147,6 +169,9 @@ class ReaderSearchController
     _debounce?.cancel();
     _debounce = null;
     _requestId++;
+    if (clearQuery) {
+      _documentHandle?.releaseTransientSearchArtifacts();
+    }
     state = state.copyWith(
       visible: false,
       query: clearQuery ? '' : state.query,
@@ -204,6 +229,7 @@ class ReaderSearchController
   void _runSearch() {
     final query = state.query.trim();
     if (query.isEmpty) {
+      _documentHandle?.releaseTransientSearchArtifacts();
       state = state.copyWith(
         highlight: null,
         currentMatchIndex: 0,
@@ -211,8 +237,14 @@ class ReaderSearchController
       );
       return;
     }
-    if (_sourceChunks.isEmpty) {
-      _sourceChunks = <String>[_sourceHtml];
+    final chunks = _materializeSearchChunks();
+    if (chunks.isEmpty) {
+      state = state.copyWith(
+        highlight: null,
+        currentMatchIndex: 0,
+        isSearching: false,
+      );
+      return;
     }
 
     final requestId = ++_requestId;
@@ -221,7 +253,7 @@ class ReaderSearchController
 
     unawaited(() async {
       final highlight = await _service.highlightChunks(
-        chunks: _sourceChunks,
+        chunks: chunks,
         query: query,
         caseSensitive: state.caseSensitive,
         anchorPrefix: 'rs-$arg-',
@@ -239,5 +271,21 @@ class ReaderSearchController
             : state.navigationRequestId,
       );
     }());
+  }
+
+  List<String> _materializeSearchChunks() {
+    final handle = _documentHandle;
+    if (handle != null) {
+      final snapshot = handle.snapshot;
+      if (snapshot.displayHtml.isEmpty) return const <String>[];
+      if (!snapshot.isChunked) return <String>[snapshot.displayHtml];
+      return handle.materializeRanges(snapshot.chunks);
+    }
+
+    final html = _fallbackHtml;
+    if (html.isEmpty) return const <String>[];
+    if (html.length < ReaderSearchService.chunkThreshold) return <String>[html];
+    final ranges = ReaderDocumentPipeline.splitHtmlIntoRanges(html);
+    return [for (final range in ranges) html.substring(range.start, range.end)];
   }
 }
