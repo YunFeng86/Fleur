@@ -9,6 +9,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers/article_list_controller.dart';
 import '../../providers/app_settings_providers.dart';
 import '../../providers/backend_capabilities_provider.dart';
+import '../../providers/backend_sync_semantics_provider.dart';
 import '../../providers/query_providers.dart';
 import '../../providers/refresh_all_providers.dart';
 import '../../providers/repository_providers.dart';
@@ -113,6 +114,7 @@ class HomeSceneCommands {
 
   Future<HomeRefreshOutcome> refreshAll() async {
     final capabilities = _ref.read(backendCapabilitiesProvider);
+    final syncSemantics = _ref.read(backendSyncSemanticsProvider);
     final appSettings = _ref.read(appSettingsProvider).valueOrNull;
     final maxConcurrent = appSettings?.autoRefreshConcurrency ?? 2;
     final feedId = _ref.read(selectedFeedIdProvider);
@@ -129,6 +131,7 @@ class HomeSceneCommands {
       successFeedback: _successFeedbackForScope(
         scope,
         capabilities: capabilities,
+        syncSemantics: syncSemantics,
       ),
     );
   }
@@ -147,16 +150,19 @@ class HomeSceneCommands {
   HomeRefreshSuccessFeedback _successFeedbackForScope(
     RefreshScope scope, {
     required BackendCapabilities capabilities,
+    required BackendSyncSemantics syncSemantics,
   }) {
     if (!capabilities.isVisible(BackendFeature.refreshAllSources) &&
-        capabilities.isVisible(BackendFeature.syncNow)) {
+        capabilities.isVisible(BackendFeature.syncNow) &&
+        syncSemantics.isAccountWideRefresh) {
       return HomeRefreshSuccessFeedback.syncedAccount;
     }
     if (scope is FeedRefreshScope || scope is CategoryRefreshScope) {
       return HomeRefreshSuccessFeedback.refreshed;
     }
     if (capabilities.refreshesRemoteSourcesUpstream &&
-        capabilities.isVisible(BackendFeature.syncNow)) {
+        capabilities.isVisible(BackendFeature.syncNow) &&
+        syncSemantics.isAccountWideRefresh) {
       return HomeRefreshSuccessFeedback.refreshedAndSynced;
     }
     return HomeRefreshSuccessFeedback.refreshedAll;

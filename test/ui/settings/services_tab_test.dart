@@ -185,9 +185,11 @@ void main() {
       },
     );
     final account = buildTestAccount(type: AccountType.local, name: 'Local');
+    final capabilities = BackendCapabilities.forAccountType(account.type);
+    final feeds = _FakeFeedRepository([_feed(1)]);
     final coordinator = RefreshSourcesCoordinator(
-      capabilities: BackendCapabilities.forAccountType(account.type),
-      feeds: _FakeFeedRepository([_feed(1)]),
+      capabilities: capabilities,
+      feeds: feeds,
       syncService: syncService,
     );
 
@@ -195,7 +197,14 @@ void main() {
       tester,
       account: account,
       overrides: [
-        refreshSourcesCoordinatorProvider.overrideWithValue(coordinator),
+        scopedRefreshCoordinatorProvider.overrideWithValue(
+          ScopedRefreshCoordinator(
+            capabilities: capabilities,
+            feeds: feeds,
+            syncService: syncService,
+            refreshSources: coordinator,
+          ),
+        ),
       ],
     );
 

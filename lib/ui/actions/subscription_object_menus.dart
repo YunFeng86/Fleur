@@ -204,12 +204,16 @@ class SubscriptionObjectMenus {
 
   static SubscriptionRootSyncMode? rootSyncMode(
     BackendCapabilities capabilities,
+    BackendSyncSemantics syncSemantics,
   ) {
-    return resolveSubscriptionRootSyncMode(capabilities);
+    return resolveSubscriptionRootSyncMode(capabilities, syncSemantics);
   }
 
-  static bool showsRootRefresh(BackendCapabilities capabilities) {
-    return rootSyncMode(capabilities) != null;
+  static bool showsRootRefresh(
+    BackendCapabilities capabilities,
+    BackendSyncSemantics syncSemantics,
+  ) {
+    return rootSyncMode(capabilities, syncSemantics) != null;
   }
 
   static String rootRefreshLabel(
@@ -217,7 +221,7 @@ class SubscriptionObjectMenus {
     BackendCapabilities capabilities,
     BackendSyncSemantics syncSemantics,
   ) {
-    final mode = rootSyncMode(capabilities);
+    final mode = rootSyncMode(capabilities, syncSemantics);
     return mode == null
         ? l10n.refreshAll
         : subscriptionRootSyncLabel(l10n, mode);
@@ -228,7 +232,7 @@ class SubscriptionObjectMenus {
     BackendCapabilities capabilities,
     BackendSyncSemantics syncSemantics,
   ) {
-    final mode = rootSyncMode(capabilities);
+    final mode = rootSyncMode(capabilities, syncSemantics);
     return mode == null
         ? l10n.refreshedAll
         : subscriptionRootSyncSuccessLabel(l10n, mode);
@@ -243,7 +247,7 @@ class SubscriptionObjectMenus {
     bool includeAddActions = true,
   }) {
     return [
-      if (showsRootRefresh(capabilities))
+      if (showsRootRefresh(capabilities, syncSemantics))
         SubscriptionObjectMenuItem(
           action: SubscriptionRootMenuAction.refreshAll,
           icon: FleurIcons.refresh,

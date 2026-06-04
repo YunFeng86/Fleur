@@ -37,10 +37,11 @@ class HomeScreen extends ConsumerWidget {
       context,
     ).showsListSyncStatusCapsule;
     final capabilities = ref.watch(backendCapabilitiesProvider);
+    final syncSemantics = ref.watch(backendSyncSemanticsProvider);
     final showRootRefresh = SubscriptionObjectMenus.showsRootRefresh(
       capabilities,
+      syncSemantics,
     );
-    final syncSemantics = ref.watch(backendSyncSemanticsProvider);
     final selectedFeedId = ref.watch(selectedFeedIdProvider);
     final selectedCategoryId = ref.watch(selectedCategoryIdProvider);
     final refreshActionLabel = resolveHomeRefreshIntent(

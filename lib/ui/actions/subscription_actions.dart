@@ -13,6 +13,7 @@ import '../../models/article_scope.dart';
 import '../../providers/account_providers.dart';
 import '../../providers/app_settings_providers.dart';
 import '../../providers/backend_capabilities_provider.dart';
+import '../../providers/backend_sync_semantics_provider.dart';
 import '../../providers/opml_providers.dart';
 import '../../providers/query_providers.dart';
 import '../../providers/refresh_all_providers.dart';
@@ -710,7 +711,8 @@ class SubscriptionActions {
     final appSettings = ref.read(appSettingsProvider).valueOrNull;
     final concurrency = appSettings?.autoRefreshConcurrency ?? 2;
     final capabilities = _capabilities(ref);
-    final mode = resolveSubscriptionRootSyncMode(capabilities);
+    final syncSemantics = ref.read(backendSyncSemanticsProvider);
+    final mode = resolveSubscriptionRootSyncMode(capabilities, syncSemantics);
     if (mode == null) {
       remote_feedback.showUnsupportedRemoteCommand(context, l10n);
       return;
