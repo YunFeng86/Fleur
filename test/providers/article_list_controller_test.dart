@@ -181,6 +181,27 @@ void main() {
     },
   );
 
+  test('loadMore caps the retained article window at 500 items', () async {
+    await seedArticles(560);
+    final container = buildContainer();
+    keepArticleListAlive(container);
+    await container.read(appSettingsProvider.future);
+
+    var state = await container.read(articleListControllerProvider.future);
+    expect(articleIds(state), orderedEquals(List.generate(50, (i) => i + 1)));
+
+    for (var i = 0; i < 10; i++) {
+      await container.read(articleListControllerProvider.notifier).loadMore();
+    }
+
+    state = container.read(articleListControllerProvider).requireValue;
+    expect(state.items, hasLength(500));
+    expect(articleIds(state), orderedEquals(List.generate(500, (i) => i + 51)));
+    expect(state.startOffset, 50);
+    expect(state.nextOffset, 550);
+    expect(state.hasMore, isTrue);
+  });
+
   test('refresh keeps short lists without reporting more pages', () async {
     await seedArticles(30);
     final container = buildContainer();

@@ -63,9 +63,16 @@ class ArticleList extends ConsumerStatefulWidget {
 
 class _ArticleListState extends ConsumerState<ArticleList> {
   static const double _loadMoreThreshold = 600;
+  static const double _loadMoreIndicatorExtent = 48;
 
   late final ScrollController _controller;
   bool _loadMoreScheduled = false;
+  bool _postFrameListSyncScheduled = false;
+  int? _metricsContextKey;
+  int _lastStartOffset = 0;
+  int _pendingTrimmedArticleCount = 0;
+  int _pendingArticleCount = 0;
+  double? _averageArticleExtent;
 
   int? _lastContextKey;
   Set<int> _seenArticleIds = <int>{};
@@ -83,16 +90,19 @@ class _ArticleListState extends ConsumerState<ArticleList> {
   }
 
   void _handleScroll() {
-    final pos = _controller.position;
-    final currentOffset = pos.pixels;
-
-    if (pos.maxScrollExtent <= 0) {
-      return;
-    }
-
-    if (currentOffset >= pos.maxScrollExtent - _loadMoreThreshold) {
+    if (_shouldLoadMore()) {
       _scheduleLoadMore();
     }
+  }
+
+  bool _shouldLoadMore() {
+    if (!_controller.hasClients) return false;
+    final pos = _controller.position;
+    if (!pos.hasContentDimensions) return false;
+    if (pos.extentAfter > _loadMoreThreshold) return false;
+
+    final data = ref.read(articleListControllerProvider).valueOrNull;
+    return data != null && data.hasMore && !data.isLoadingMore;
   }
 
   void _scheduleLoadMore() {
@@ -101,8 +111,93 @@ class _ArticleListState extends ConsumerState<ArticleList> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadMoreScheduled = false;
       if (!mounted) return;
+      if (!_shouldLoadMore()) return;
       unawaited(ref.read(articleListControllerProvider.notifier).loadMore());
     });
+  }
+
+  int _consumeTrimmedArticleCount({
+    required int contextKey,
+    required int startOffset,
+  }) {
+    if (_metricsContextKey != contextKey) {
+      _metricsContextKey = contextKey;
+      _lastStartOffset = startOffset;
+      _averageArticleExtent = null;
+      return 0;
+    }
+
+    final trimmedCount = math.max(0, startOffset - _lastStartOffset);
+    _lastStartOffset = startOffset;
+    return trimmedCount;
+  }
+
+  void _queuePostFrameListSync({
+    required int articleCount,
+    required int trimmedArticleCount,
+  }) {
+    _pendingArticleCount = articleCount;
+    _pendingTrimmedArticleCount += trimmedArticleCount;
+    if (_postFrameListSyncScheduled) return;
+
+    _postFrameListSyncScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _postFrameListSyncScheduled = false;
+      final articleCount = _pendingArticleCount;
+      final trimmedArticleCount = _pendingTrimmedArticleCount;
+      _pendingTrimmedArticleCount = 0;
+      if (!mounted || !_controller.hasClients) return;
+
+      final pos = _controller.position;
+      if (!pos.hasContentDimensions) return;
+
+      final averageExtent = _averageArticleExtent;
+      if (trimmedArticleCount > 0 &&
+          averageExtent != null &&
+          averageExtent > 0) {
+        final target = (pos.pixels - trimmedArticleCount * averageExtent)
+            .clamp(pos.minScrollExtent, pos.maxScrollExtent)
+            .toDouble();
+        if ((target - pos.pixels).abs() >= 1) {
+          pos.jumpTo(target);
+        }
+      }
+
+      _updateAverageArticleExtent(articleCount);
+      if (_shouldLoadMore()) {
+        _scheduleLoadMore();
+      }
+    });
+  }
+
+  void _updateAverageArticleExtent(int articleCount) {
+    if (articleCount <= 0 || !_controller.hasClients) return;
+    final pos = _controller.position;
+    if (!pos.hasContentDimensions) return;
+
+    final totalExtent = pos.maxScrollExtent + pos.viewportDimension;
+    if (!totalExtent.isFinite || totalExtent <= 0) return;
+
+    final averageExtent = totalExtent / articleCount;
+    if (averageExtent.isFinite && averageExtent > 0) {
+      _averageArticleExtent = averageExtent;
+    }
+  }
+
+  Widget _buildLoadMoreIndicator() {
+    return _withReadableListWidth(
+      const RepaintBoundary(
+        child: SizedBox(
+          height: _loadMoreIndicatorExtent,
+          child: Center(
+            child: SizedBox.square(
+              dimension: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -356,6 +451,14 @@ class _ArticleListState extends ConsumerState<ArticleList> {
 
         final contextChanged = _lastContextKey != contextKey;
         final atTop = !_controller.hasClients || _controller.offset < 24;
+        final trimmedArticleCount = _consumeTrimmedArticleCount(
+          contextKey: contextKey,
+          startOffset: data.startOffset,
+        );
+        _queuePostFrameListSync(
+          articleCount: items.length,
+          trimmedArticleCount: trimmedArticleCount,
+        );
 
         // When the "context" changes (feed/category/tag/unread/search...), treat
         // this as a new list rather than an incremental update. We'll still do a
@@ -383,7 +486,7 @@ class _ArticleListState extends ConsumerState<ArticleList> {
           }
         }
 
-        Widget list = Container(
+        Widget list = Material(
           color: surfaces.list,
           child: AppScrollbar(
             controller: _controller,
@@ -394,19 +497,10 @@ class _ArticleListState extends ConsumerState<ArticleList> {
               padding: widget.topBar == null
                   ? null
                   : const EdgeInsets.only(top: kWorkspaceHeaderHeight),
-              itemCount: entries.length + (data.hasMore ? 1 : 0),
+              itemCount: entries.length + (data.isLoadingMore ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index >= entries.length) {
-                  return _withReadableListWidth(
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Center(
-                        child: data.isLoadingMore
-                            ? const CircularProgressIndicator()
-                            : Text(l10n.scrollToLoadMore),
-                      ),
-                    ),
-                  );
+                  return _buildLoadMoreIndicator();
                 }
 
                 final entry = entries[index];
