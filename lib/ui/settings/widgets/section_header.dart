@@ -16,6 +16,7 @@ const double _kSettingsSwitchVisualWidth = 42;
 const double _kSettingsSwitchVisualHeight = 28;
 const double _kSettingsSwitchTrackHeight = 14;
 const double _kSettingsSwitchThumbSize = 24;
+const double _kSettingsSwitchHaloSize = 44;
 
 class SectionHeader extends StatelessWidget {
   const SectionHeader({
@@ -954,6 +955,7 @@ class _SettingsCompactSwitchState extends State<SettingsCompactSwitch> {
     final dark = theme.brightness == Brightness.dark;
     final selected = widget.value;
     final enabled = _enabled;
+    final haloVisible = enabled && (_hovered || _pressed || _focused);
 
     final trackColor = enabled
         ? selected
@@ -970,12 +972,20 @@ class _SettingsCompactSwitchState extends State<SettingsCompactSwitch> {
               ? scheme.primary.withAlpha(160)
               : scheme.outlineVariant.withAlpha(dark ? 120 : 150)
         : Colors.transparent;
-    final focusBorderColor = _focused ? states.focusRing : Colors.transparent;
-    final hoverLayer = _hovered && enabled
-        ? states.hoverTint
+    final haloColor = haloVisible
+        ? _focused
+              ? states.focusRing.withAlpha(dark ? 58 : 42)
+              : selected
+              ? scheme.primary.withAlpha(dark ? 54 : 38)
+              : scheme.onSurfaceVariant.withAlpha(dark ? 54 : 34)
         : Colors.transparent;
-    final pressedLayer = _pressed && enabled
-        ? states.pressedTint
+    final haloBorderColor = _focused
+        ? states.focusRing.withAlpha(dark ? 180 : 150)
+        : Colors.transparent;
+    final haloShadowColor = haloVisible
+        ? selected
+              ? scheme.primary.withAlpha(dark ? 34 : 22)
+              : Colors.black.withAlpha(dark ? 54 : 24)
         : Colors.transparent;
 
     return FocusableActionDetector(
@@ -1014,16 +1024,13 @@ class _SettingsCompactSwitchState extends State<SettingsCompactSwitch> {
               width: _kSettingsSwitchHitSize.width,
               height: 32,
               alignment: Alignment.center,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: focusBorderColor, width: 1.4),
-                color: Color.alphaBlend(pressedLayer, hoverLayer),
-              ),
+              decoration: const BoxDecoration(color: Colors.transparent),
               child: SizedBox(
                 width: _kSettingsSwitchVisualWidth,
                 height: _kSettingsSwitchVisualHeight,
                 child: Stack(
                   alignment: Alignment.center,
+                  clipBehavior: Clip.none,
                   children: [
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 160),
@@ -1034,6 +1041,49 @@ class _SettingsCompactSwitchState extends State<SettingsCompactSwitch> {
                         color: trackColor,
                         borderRadius: BorderRadius.circular(
                           _kSettingsSwitchTrackHeight / 2,
+                        ),
+                      ),
+                    ),
+                    AnimatedAlign(
+                      duration: const Duration(milliseconds: 160),
+                      curve: Curves.easeOutCubic,
+                      alignment: selected
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
+                      child: SizedBox.square(
+                        dimension: _kSettingsSwitchThumbSize,
+                        child: Center(
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 120),
+                            curve: Curves.easeOutCubic,
+                            width: haloVisible
+                                ? (_pressed
+                                      ? _kSettingsSwitchHaloSize - 2
+                                      : _kSettingsSwitchHaloSize)
+                                : _kSettingsSwitchThumbSize,
+                            height: haloVisible
+                                ? (_pressed
+                                      ? _kSettingsSwitchHaloSize - 2
+                                      : _kSettingsSwitchHaloSize)
+                                : _kSettingsSwitchThumbSize,
+                            decoration: BoxDecoration(
+                              color: haloColor,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: haloBorderColor,
+                                width: 1.2,
+                              ),
+                              boxShadow: haloVisible
+                                  ? [
+                                      BoxShadow(
+                                        color: haloShadowColor,
+                                        blurRadius: _pressed ? 8 : 12,
+                                        spreadRadius: _pressed ? -1 : 0,
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                          ),
                         ),
                       ),
                     ),
