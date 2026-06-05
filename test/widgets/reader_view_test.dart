@@ -580,7 +580,29 @@ void main() {
     );
   });
 
-  testWidgets('reader display html prefers extracted content over feed', (
+  testWidgets('reader display html uses extracted content when preferred', (
+    tester,
+  ) async {
+    final article = buildArticle(title: 'A', html: '<p>Feed body</p>')
+      ..extractedContentHtml = '<p>Extracted body</p>'
+      ..preferredContentView = ArticleContentView.extracted;
+
+    await pumpReader(
+      tester,
+      article: article,
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 12);
+
+    final plainText = readerPlainText(tester);
+    expect(plainText, contains('Extracted body'));
+    expect(plainText, isNot(contains('Feed body')));
+  });
+
+  testWidgets('reader display html honors feed content preference', (
     tester,
   ) async {
     final article = buildArticle(title: 'A', html: '<p>Feed body</p>')
@@ -598,8 +620,8 @@ void main() {
     await settleReader(tester, rounds: 12);
 
     final plainText = readerPlainText(tester);
-    expect(plainText, contains('Extracted body'));
-    expect(plainText, isNot(contains('Feed body')));
+    expect(plainText, contains('Feed body'));
+    expect(plainText, isNot(contains('Extracted body')));
   });
 
   testWidgets(

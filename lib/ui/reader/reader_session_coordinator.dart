@@ -1,11 +1,13 @@
 part of '../../widgets/reader_view.dart';
 
 String _selectActiveHtmlForArticle(Article article) {
+  final feedHtml = (article.contentHtml ?? '').trim();
   final extractedHtml = (article.extractedContentHtml ?? '').trim();
-  if (extractedHtml.isNotEmpty) {
+  if (article.preferredContentView == ArticleContentView.extracted &&
+      extractedHtml.isNotEmpty) {
     return extractedHtml;
   }
-  return (article.contentHtml ?? '').trim();
+  return feedHtml.isNotEmpty ? feedHtml : extractedHtml;
 }
 
 final class _ReaderSessionCoordinator {
@@ -108,9 +110,10 @@ final class _ReaderSessionCoordinator {
     if (storedHash.isNotEmpty && sourceHtml == feedHtml) {
       return 'feed:$storedHash';
     }
+    final extractedHtml = (article.extractedContentHtml ?? '').trim();
     return _revisionForHtml(
       sourceHtml,
-      prefix: article.extractedContentHtml?.trim().isNotEmpty == true
+      prefix: extractedHtml.isNotEmpty && sourceHtml == extractedHtml
           ? 'extracted'
           : 'feed',
       updatedAt: article.updatedAt,
