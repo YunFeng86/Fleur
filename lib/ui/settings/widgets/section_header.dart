@@ -959,33 +959,35 @@ class _SettingsCompactSwitchState extends State<SettingsCompactSwitch> {
 
     final trackColor = enabled
         ? selected
-              ? scheme.primary.withAlpha(dark ? 92 : 62)
-              : scheme.onSurfaceVariant.withAlpha(dark ? 70 : 42)
+              ? scheme.primary.withAlpha(dark ? 118 : 62)
+              : scheme.onSurfaceVariant.withAlpha(dark ? 104 : 42)
         : scheme.onSurface.withAlpha(dark ? 34 : 22);
     final thumbColor = enabled
         ? selected
               ? scheme.primary
-              : surfaces.floating
+              : (dark ? scheme.surfaceContainerHighest : surfaces.floating)
         : scheme.onSurface.withAlpha(dark ? 86 : 64);
     final thumbBorderColor = enabled
         ? selected
               ? scheme.primary.withAlpha(160)
-              : scheme.outlineVariant.withAlpha(dark ? 120 : 150)
+              : scheme.outlineVariant.withAlpha(dark ? 150 : 150)
         : Colors.transparent;
     final haloColor = haloVisible
         ? _focused
-              ? states.focusRing.withAlpha(dark ? 58 : 42)
+              ? states.focusRing.withAlpha(dark ? 76 : 42)
               : selected
-              ? scheme.primary.withAlpha(dark ? 54 : 38)
-              : scheme.onSurfaceVariant.withAlpha(dark ? 54 : 34)
+              ? scheme.primary.withAlpha(dark ? 72 : 38)
+              : scheme.onSurface.withAlpha(dark ? 48 : 34)
         : Colors.transparent;
     final haloBorderColor = _focused
-        ? states.focusRing.withAlpha(dark ? 180 : 150)
+        ? states.focusRing.withAlpha(dark ? 210 : 150)
         : Colors.transparent;
     final haloShadowColor = haloVisible
         ? selected
-              ? scheme.primary.withAlpha(dark ? 34 : 22)
-              : Colors.black.withAlpha(dark ? 54 : 24)
+              ? scheme.primary.withAlpha(dark ? 50 : 22)
+              : (dark
+                    ? scheme.onSurface.withAlpha(30)
+                    : Colors.black.withAlpha(24))
         : Colors.transparent;
 
     return FocusableActionDetector(
