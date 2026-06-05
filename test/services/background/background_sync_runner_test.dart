@@ -16,6 +16,7 @@ import 'package:fleur/services/background/background_sync_service.dart';
 import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/settings/app_settings_store.dart';
 import 'package:fleur/services/sync/fever/fever_sync_service.dart';
+import 'package:fleur/services/sync/google_reader/google_reader_sync_service.dart';
 import 'package:fleur/services/sync/miniflux/miniflux_sync_service.dart';
 import 'package:fleur/services/sync/sync_service.dart';
 import 'package:fleur/services/sync/outbox/outbox_store.dart';
@@ -762,10 +763,27 @@ void main() {
         cache: cache,
         extractor: extractor,
       );
+      final googleReaderService = buildSyncServiceForAccount(
+        account: buildTestAccount(
+          type: AccountType.googleReader,
+          baseUrl: 'https://example.com',
+        ),
+        feeds: feeds,
+        categories: categories,
+        articles: articles,
+        outbox: outbox,
+        appSettingsStore: appSettingsStore,
+        dio: dio,
+        credentials: createCredentialStore(),
+        notifications: notifications,
+        cache: cache,
+        extractor: extractor,
+      );
 
       expect(localService, isA<SyncService>());
       expect(minifluxService, isA<MinifluxSyncService>());
       expect(feverService, isA<FeverSyncService>());
+      expect(googleReaderService, isA<GoogleReaderSyncService>());
     },
   );
 }

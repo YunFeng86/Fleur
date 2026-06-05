@@ -12,6 +12,7 @@ import '../services/rss/rss_client.dart';
 import '../services/sync/sync_service.dart';
 import '../services/sync/miniflux/miniflux_sync_service.dart';
 import '../services/sync/fever/fever_sync_service.dart';
+import '../services/sync/google_reader/google_reader_sync_service.dart';
 import '../services/sync/outbox/outbox_store.dart';
 import '../services/sync/remote_client_factory.dart';
 import '../services/sync/sync_status_reporter.dart';
@@ -145,6 +146,19 @@ SyncServiceBase buildSyncServiceForAccount({
         notifications: notifications,
         cache: cache,
         extractor: extractor,
+        statusReporter: statusReporter,
+      );
+    case AccountType.googleReader:
+      return GoogleReaderSyncService(
+        account: account,
+        dio: dio,
+        credentials: credentials,
+        feeds: feeds,
+        categories: categories,
+        articles: articles,
+        outbox: outbox,
+        appSettingsStore: appSettingsStore,
+        cache: cache,
         statusReporter: statusReporter,
       );
   }
