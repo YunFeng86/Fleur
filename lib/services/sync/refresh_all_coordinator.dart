@@ -1,5 +1,6 @@
 import '../../models/feed.dart';
 import '../../repositories/feed_repository.dart';
+import '../accounts/account.dart';
 import 'backend_capabilities.dart';
 import 'sync_service.dart';
 
@@ -98,7 +99,7 @@ class AccountSyncCoordinator {
       maxConcurrent: maxConcurrent,
       onProgress: onProgress,
       notify: notify,
-      feedIds: feeds.map((feed) => feed.id),
+      feedIds: _accountSyncFeedIds(_capabilities, feeds),
     );
     return RefreshAllResult(batch: batch);
   }
@@ -249,7 +250,7 @@ class ScopedRefreshCoordinator {
       maxConcurrent: maxConcurrent,
       onProgress: onProgress,
       notify: notify,
-      feedIds: feeds.map((feed) => feed.id),
+      feedIds: _accountSyncFeedIds(_capabilities, feeds),
     );
     return RefreshAllResult(batch: batch);
   }
@@ -362,4 +363,12 @@ class ScopedRefreshCoordinator {
       return RefreshAllResult.failure(error, stackTrace);
     }
   }
+}
+
+Iterable<int>? _accountSyncFeedIds(
+  BackendCapabilities capabilities,
+  List<Feed> feeds,
+) {
+  if (capabilities.accountType == AccountType.googleReader) return null;
+  return feeds.map((feed) => feed.id);
 }

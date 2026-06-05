@@ -146,6 +146,26 @@ void main() {
     ]);
   });
 
+  test(
+    'google reader account sync lets the service choose remote streams',
+    () async {
+      final syncService = FakeSyncService();
+      final account = buildTestAccount(type: AccountType.googleReader);
+      final coordinator = AccountSyncCoordinator(
+        capabilities: BackendCapabilities.forAccountType(account.type),
+        feeds: _FakeFeedRepository([_feed(1)]),
+        syncService: syncService,
+      );
+
+      final result = await coordinator.syncAccount(
+        trigger: AccountSyncTrigger.manual,
+      );
+
+      expect(result.ok, isTrue);
+      expect(syncService.refreshCalls, [<int>[]]);
+    },
+  );
+
   test('fever source refresh reports unsupported without syncing', () async {
     final syncService = FakeSyncService();
     final account = buildTestAccount(type: AccountType.fever);
@@ -231,4 +251,31 @@ void main() {
       [1, 2],
     ]);
   });
+
+  test(
+    'scoped google reader all refresh does not reuse stale local feed ids',
+    () async {
+      final syncService = FakeSyncService();
+      final account = buildTestAccount(type: AccountType.googleReader);
+      final feedRepository = _FakeFeedRepository([_feed(1)]);
+      final refreshSources = RefreshSourcesCoordinator(
+        capabilities: BackendCapabilities.forAccountType(account.type),
+        feeds: feedRepository,
+        syncService: syncService,
+      );
+      final coordinator = ScopedRefreshCoordinator(
+        capabilities: BackendCapabilities.forAccountType(account.type),
+        feeds: feedRepository,
+        syncService: syncService,
+        refreshSources: refreshSources,
+      );
+
+      final result = await coordinator.refreshScope(
+        scope: const AllRefreshScope(),
+      );
+
+      expect(result.ok, isTrue);
+      expect(syncService.refreshCalls, [<int>[]]);
+    },
+  );
 }
