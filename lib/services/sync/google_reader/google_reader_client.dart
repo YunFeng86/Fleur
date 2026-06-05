@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 
 class GoogleReaderAuthException implements Exception {
@@ -248,11 +250,20 @@ class GoogleReaderClient {
 
   static String? _parseClientLoginAuth(Object? data) {
     if (data is Map) {
-      final auth = data['Auth'] ?? data['auth'];
-      return auth?.toString().trim();
+      return _authFromMap(data);
     }
-    final text = data?.toString();
-    if (text == null || text.trim().isEmpty) return null;
+    final text = data?.toString().trim();
+    if (text == null || text.isEmpty) return null;
+    try {
+      final decoded = jsonDecode(text);
+      if (decoded is Map) {
+        final token = _authFromMap(decoded);
+        if (token != null && token.isNotEmpty) return token;
+      }
+    } on FormatException {
+      // ClientLogin-compatible services may still return the legacy key=value
+      // body even when output=json is present.
+    }
     for (final line in text.split(RegExp(r'\r?\n'))) {
       final idx = line.indexOf('=');
       if (idx <= 0) continue;
@@ -262,6 +273,12 @@ class GoogleReaderClient {
       if (value.isNotEmpty) return value;
     }
     return null;
+  }
+
+  static String? _authFromMap(Map<Object?, Object?> data) {
+    final auth = data['Auth'] ?? data['auth'];
+    final token = auth?.toString().trim();
+    return token == null || token.isEmpty ? null : token;
   }
 }
 

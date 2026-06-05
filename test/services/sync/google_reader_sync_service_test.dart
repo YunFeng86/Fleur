@@ -202,8 +202,8 @@ Dio _googleReaderDio(List<_RecordedRequest> requests) {
                   'htmlUrl': 'https://example.com',
                 },
                 'categories': [
-                  GoogleReaderRemoteArticleActionExecutor.readState,
-                  GoogleReaderRemoteArticleActionExecutor.starredState,
+                  'user/123/state/com.google/read',
+                  'user/123/state/com.google/starred',
                 ],
               },
             ],

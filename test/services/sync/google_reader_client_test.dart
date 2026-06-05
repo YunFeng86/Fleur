@@ -29,6 +29,24 @@ void main() {
     );
   });
 
+  test('ClientLogin parses Auth from a json string response', () async {
+    final requests = <_RecordedRequest>[];
+    final client = GoogleReaderClient(
+      dio: _dio(requests, clientLoginData: '{"Auth":"json-token"}'),
+      baseUrl: 'https://reader.example.com',
+      username: 'user@example.com',
+      password: 'secret',
+    );
+
+    expect(
+      await client.clientLogin(
+        username: 'user@example.com',
+        password: 'secret',
+      ),
+      'json-token',
+    );
+  });
+
   test('subscriptionList keeps reader API base path when supplied', () async {
     final requests = <_RecordedRequest>[];
     final client = GoogleReaderClient(
@@ -111,14 +129,15 @@ void main() {
   );
 }
 
-Dio _dio(List<_RecordedRequest> requests) {
+Dio _dio(List<_RecordedRequest> requests, {Object? clientLoginData}) {
   final dio = Dio();
   dio.interceptors.add(
     InterceptorsWrapper(
       onRequest: (options, handler) {
         requests.add(_RecordedRequest.fromOptions(options));
         final data = switch ((options.method, options.uri.path)) {
-          ('POST', '/accounts/ClientLogin') => 'SID=sid\nAuth=login-token\n',
+          ('POST', '/accounts/ClientLogin') =>
+            clientLoginData ?? 'SID=sid\nAuth=login-token\n',
           ('GET', '/reader/api/0/token') => 'write-token',
           ('GET', '/reader/api/0/subscription/list') => {
             'subscriptions': [

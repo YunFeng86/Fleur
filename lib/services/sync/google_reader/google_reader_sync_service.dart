@@ -665,12 +665,27 @@ class GoogleReaderSyncService implements SyncServiceBase, OutboxFlushCapable {
       ..author = _stringValue(item['author'])
       ..contentHtml = contentHtml
       ..publishedAt = publishedAt
-      ..isRead = categories.contains(
+      ..isRead = _containsState(
+        categories,
         GoogleReaderRemoteArticleActionExecutor.readState,
       )
-      ..isStarred = categories.contains(
+      ..isStarred = _containsState(
+        categories,
         GoogleReaderRemoteArticleActionExecutor.starredState,
       );
+  }
+
+  static bool _containsState(Set<String> categories, String stateId) {
+    final expected = _normalizeStateId(stateId);
+    return categories.any((value) => _normalizeStateId(value) == expected);
+  }
+
+  static String _normalizeStateId(String stateId) {
+    final value = stateId.trim();
+    const statePrefix = '/state/';
+    final stateIndex = value.indexOf(statePrefix);
+    if (!value.startsWith('user/') || stateIndex < 0) return value;
+    return 'user/-${value.substring(stateIndex)}';
   }
 
   static bool _matchesFilter(Article article, EffectiveFeedSettings settings) {
