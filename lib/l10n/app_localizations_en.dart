@@ -937,6 +937,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addMiniflux => 'Add Miniflux';
 
   @override
+  String get addGoogleReaderApi => 'Add Google Reader API';
+
+  @override
+  String get googleReaderApi => 'Google Reader API';
+
+  @override
+  String get googleReaderCompatible => 'Google Reader compatible';
+
+  @override
   String get addFever => 'Add Fever';
 
   @override
@@ -956,6 +965,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get remoteSyncStrategyMinifluxSubtitle =>
       'Miniflux can page through remote entries up to this per-sync window.';
+
+  @override
+  String get remoteSyncStrategyGoogleReaderSubtitle =>
+      'Google Reader compatible services page through remote stream entries up to this per-sync window.';
 
   @override
   String get remoteSyncStrategyFeverSubtitle =>

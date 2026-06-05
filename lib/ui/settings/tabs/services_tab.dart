@@ -12,7 +12,6 @@ import '../../../providers/backend_sync_semantics_provider.dart';
 import '../../../services/accounts/account.dart';
 import '../../../services/settings/app_settings.dart';
 import '../../../services/sync/backend_capabilities.dart';
-import '../../../services/sync/backend_sync_semantics.dart';
 import '../../../theme/fleur_icons.dart';
 import '../../../utils/context_extensions.dart';
 import '../../../widgets/account_avatar.dart';
@@ -58,13 +57,11 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
     final refreshSectionTitle = l10n.refreshAll;
     final refreshSectionDescription = l10n.autoRefreshSubtitle;
     final refreshActionLabel = l10n.refreshAll;
-    final remoteStrategySubtitle = switch (syncSemantics.historyCoverage) {
-      BackendHistoryCoverage.remotePaginatedEntries =>
-        l10n.remoteSyncStrategyMinifluxSubtitle,
-      BackendHistoryCoverage.remoteUnreadAndSavedItems =>
-        l10n.remoteSyncStrategyFeverSubtitle,
-      BackendHistoryCoverage.localFeedContent =>
-        l10n.remoteSyncStrategySubtitle,
+    final remoteStrategySubtitle = switch (syncSemantics.accountType) {
+      AccountType.miniflux => l10n.remoteSyncStrategyMinifluxSubtitle,
+      AccountType.googleReader => l10n.remoteSyncStrategyGoogleReaderSubtitle,
+      AccountType.fever => l10n.remoteSyncStrategyFeverSubtitle,
+      AccountType.local => l10n.remoteSyncStrategySubtitle,
     };
     final showRemoteSyncStrategy =
         syncSemantics.supportsEntrySyncLimit ||
@@ -114,8 +111,8 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
                 ),
                 ListTile(
                   leading: const Icon(FleurIcons.googleReaderAccount),
-                  title: const Text('Add Google Reader API'),
-                  subtitle: const Text('Google Reader compatible'),
+                  title: Text(l10n.addGoogleReaderApi),
+                  subtitle: Text(l10n.googleReaderCompatible),
                   onTap: () =>
                       Navigator.of(dialogContext).pop(AccountType.googleReader),
                 ),
@@ -160,7 +157,7 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
               : account.baseUrl!.trim(),
         AccountType.googleReader =>
           (account.baseUrl ?? '').trim().isEmpty
-              ? 'Google Reader compatible'
+              ? l10n.googleReaderCompatible
               : account.baseUrl!.trim(),
       };
     }

@@ -27,10 +27,10 @@ void main() {
   };
 
   const googleReaderMatrix = <BackendContentFeature, FeatureAvailability>{
-    BackendContentFeature.clientWebPageFetch: FeatureAvailability.localOnly,
+    BackendContentFeature.clientWebPageFetch: FeatureAvailability.hidden,
     BackendContentFeature.serverArticleContentFetch: FeatureAvailability.hidden,
-    BackendContentFeature.syncImagePrefetch: FeatureAvailability.localOnly,
-    BackendContentFeature.webFetchUserAgent: FeatureAvailability.localOnly,
+    BackendContentFeature.syncImagePrefetch: FeatureAvailability.hidden,
+    BackendContentFeature.webFetchUserAgent: FeatureAvailability.hidden,
   };
 
   test('matches the declared content capability matrix for every backend', () {
@@ -86,9 +86,9 @@ void main() {
     expect(fever.canChooseServerArticleContentFetchMode, isFalse);
     expect(fever.isWebFetchUserAgentApplicable, isTrue);
 
-    expect(googleReader.canFetchWebPages, isTrue);
-    expect(googleReader.canPrefetchImages, isTrue);
+    expect(googleReader.canFetchWebPages, isFalse);
+    expect(googleReader.canPrefetchImages, isFalse);
     expect(googleReader.canChooseServerArticleContentFetchMode, isFalse);
-    expect(googleReader.isWebFetchUserAgentApplicable, isTrue);
+    expect(googleReader.isWebFetchUserAgentApplicable, isFalse);
   });
 }

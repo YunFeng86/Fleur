@@ -73,7 +73,7 @@ class BackendSyncSemantics {
         remoteFetchConcurrencyScope:
             BackendRemoteFetchConcurrencyScope.remoteArticleBatches,
         taxonomySemantics: BackendTaxonomySemantics.remoteReadOnlyMirror,
-        notificationGranularity: BackendNotificationGranularity.summaryOnly,
+        notificationGranularity: BackendNotificationGranularity.none,
       ),
     };
   }

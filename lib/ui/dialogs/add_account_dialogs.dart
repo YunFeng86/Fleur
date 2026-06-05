@@ -812,7 +812,7 @@ Future<String?> showAddGoogleReaderAccountDialog(
   WidgetRef ref,
 ) async {
   final l10n = AppLocalizations.of(context)!;
-  final nameCtrl = TextEditingController(text: 'Google Reader API');
+  final nameCtrl = TextEditingController(text: l10n.googleReaderApi);
   final baseUrlCtrl = TextEditingController();
   final usernameCtrl = TextEditingController();
   final passwordCtrl = TextEditingController();
@@ -922,7 +922,7 @@ Future<String?> showAddGoogleReaderAccountDialog(
           builder: (dialogContext, setState) {
             return AlertDialog(
               scrollable: true,
-              title: const Text('Add Google Reader API'),
+              title: Text(l10n.addGoogleReaderApi),
               content: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 520),
                 child: Column(

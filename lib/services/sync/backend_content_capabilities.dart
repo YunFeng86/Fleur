@@ -81,11 +81,10 @@ class BackendContentCapabilities {
     BackendContentFeature feature,
   ) {
     return switch (feature) {
-      BackendContentFeature.serverArticleContentFetch =>
-        FeatureAvailability.hidden,
       BackendContentFeature.clientWebPageFetch ||
+      BackendContentFeature.serverArticleContentFetch ||
       BackendContentFeature.syncImagePrefetch ||
-      BackendContentFeature.webFetchUserAgent => FeatureAvailability.localOnly,
+      BackendContentFeature.webFetchUserAgent => FeatureAvailability.hidden,
     };
   }
 }

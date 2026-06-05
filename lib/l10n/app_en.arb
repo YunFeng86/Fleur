@@ -1200,6 +1200,18 @@
   "@addMiniflux": {
     "description": "addMiniflux"
   },
+  "addGoogleReaderApi": "Add Google Reader API",
+  "@addGoogleReaderApi": {
+    "description": "addGoogleReaderApi"
+  },
+  "googleReaderApi": "Google Reader API",
+  "@googleReaderApi": {
+    "description": "googleReaderApi"
+  },
+  "googleReaderCompatible": "Google Reader compatible",
+  "@googleReaderCompatible": {
+    "description": "googleReaderCompatible"
+  },
   "addFever": "Add Fever",
   "@addFever": {
     "description": "addFever"
@@ -1223,6 +1235,10 @@
   "remoteSyncStrategyMinifluxSubtitle": "Miniflux can page through remote entries up to this per-sync window.",
   "@remoteSyncStrategyMinifluxSubtitle": {
     "description": "remoteSyncStrategyMinifluxSubtitle"
+  },
+  "remoteSyncStrategyGoogleReaderSubtitle": "Google Reader compatible services page through remote stream entries up to this per-sync window.",
+  "@remoteSyncStrategyGoogleReaderSubtitle": {
+    "description": "remoteSyncStrategyGoogleReaderSubtitle"
   },
   "remoteSyncStrategyFeverSubtitle": "Fever syncs unread and saved items, capped by this per-sync window.",
   "@remoteSyncStrategyFeverSubtitle": {

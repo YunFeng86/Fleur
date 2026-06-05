@@ -894,6 +894,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get addMiniflux => '添加 Miniflux';
 
   @override
+  String get addGoogleReaderApi => '添加 Google Reader API';
+
+  @override
+  String get googleReaderApi => 'Google Reader API';
+
+  @override
+  String get googleReaderCompatible => 'Google Reader 兼容服务';
+
+  @override
   String get addFever => '添加 Fever';
 
   @override
@@ -911,6 +920,10 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get remoteSyncStrategyMinifluxSubtitle =>
       'Miniflux 会分页拉取远程文章，最多到这个每次同步窗口。';
+
+  @override
+  String get remoteSyncStrategyGoogleReaderSubtitle =>
+      'Google Reader 兼容服务会分页拉取远程 stream 文章，最多到这个每次同步窗口。';
 
   @override
   String get remoteSyncStrategyFeverSubtitle => 'Fever 同步未读和收藏条目，并受这个每次同步窗口限制。';
@@ -2335,6 +2348,15 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get addMiniflux => '新增 Miniflux';
 
   @override
+  String get addGoogleReaderApi => '新增 Google Reader API';
+
+  @override
+  String get googleReaderApi => 'Google Reader API';
+
+  @override
+  String get googleReaderCompatible => 'Google Reader 相容服務';
+
+  @override
   String get addFever => '新增 Fever';
 
   @override
@@ -2352,6 +2374,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String get remoteSyncStrategyMinifluxSubtitle =>
       'Miniflux 會分頁拉取遠端文章，最多到這個每次同步視窗。';
+
+  @override
+  String get remoteSyncStrategyGoogleReaderSubtitle =>
+      'Google Reader 相容服務會分頁拉取遠端 stream 文章，最多到這個每次同步視窗。';
 
   @override
   String get remoteSyncStrategyFeverSubtitle => 'Fever 同步未讀和收藏項目，並受這個每次同步視窗限制。';

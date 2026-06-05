@@ -54,8 +54,8 @@ class AccountManagerDialog extends ConsumerWidget {
                 ),
                 _AccountTypeCard(
                   icon: FleurIcons.googleReaderAccount,
-                  title: 'Add Google Reader API',
-                  subtitle: 'Google Reader compatible',
+                  title: l10n.addGoogleReaderApi,
+                  subtitle: l10n.googleReaderCompatible,
                   onTap: () =>
                       Navigator.of(dialogContext).pop(AccountType.googleReader),
                 ),
@@ -270,7 +270,7 @@ class AccountManagerDialog extends ConsumerWidget {
                                       : a.baseUrl!.trim(),
                                 AccountType.googleReader =>
                                   (a.baseUrl ?? '').trim().isEmpty
-                                      ? 'Google Reader compatible'
+                                      ? l10n.googleReaderCompatible
                                       : a.baseUrl!.trim(),
                               };
 

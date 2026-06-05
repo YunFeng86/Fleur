@@ -1201,6 +1201,18 @@
   "@addMiniflux": {
     "description": "addMiniflux"
   },
+  "addGoogleReaderApi": "新增 Google Reader API",
+  "@addGoogleReaderApi": {
+    "description": "addGoogleReaderApi"
+  },
+  "googleReaderApi": "Google Reader API",
+  "@googleReaderApi": {
+    "description": "googleReaderApi"
+  },
+  "googleReaderCompatible": "Google Reader 相容服務",
+  "@googleReaderCompatible": {
+    "description": "googleReaderCompatible"
+  },
   "addFever": "新增 Fever",
   "@addFever": {
     "description": "addFever"
@@ -1224,6 +1236,10 @@
   "remoteSyncStrategyMinifluxSubtitle": "Miniflux 會分頁拉取遠端文章，最多到這個每次同步視窗。",
   "@remoteSyncStrategyMinifluxSubtitle": {
     "description": "remoteSyncStrategyMinifluxSubtitle"
+  },
+  "remoteSyncStrategyGoogleReaderSubtitle": "Google Reader 相容服務會分頁拉取遠端 stream 文章，最多到這個每次同步視窗。",
+  "@remoteSyncStrategyGoogleReaderSubtitle": {
+    "description": "remoteSyncStrategyGoogleReaderSubtitle"
   },
   "remoteSyncStrategyFeverSubtitle": "Fever 同步未讀和收藏項目，並受這個每次同步視窗限制。",
   "@remoteSyncStrategyFeverSubtitle": {

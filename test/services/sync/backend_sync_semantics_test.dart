@@ -37,7 +37,7 @@ void main() {
       remoteFetchConcurrencyScope:
           BackendRemoteFetchConcurrencyScope.remoteArticleBatches,
       taxonomySemantics: BackendTaxonomySemantics.remoteReadOnlyMirror,
-      notificationGranularity: BackendNotificationGranularity.summaryOnly,
+      notificationGranularity: BackendNotificationGranularity.none,
     ),
   };
 
@@ -108,7 +108,7 @@ void main() {
     expect(googleReader.mirrorsRemoteTaxonomy, isTrue);
     expect(googleReader.isRemoteReadOnlyTaxonomy, isTrue);
     expect(googleReader.canWriteRemoteTaxonomy, isFalse);
-    expect(googleReader.usesSummaryNotifications, isTrue);
+    expect(googleReader.usesSummaryNotifications, isFalse);
   });
 }
 

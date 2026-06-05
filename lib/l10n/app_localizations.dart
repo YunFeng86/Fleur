@@ -1815,6 +1815,24 @@ abstract class AppLocalizations {
   /// **'Add Miniflux'**
   String get addMiniflux;
 
+  /// addGoogleReaderApi
+  ///
+  /// In en, this message translates to:
+  /// **'Add Google Reader API'**
+  String get addGoogleReaderApi;
+
+  /// googleReaderApi
+  ///
+  /// In en, this message translates to:
+  /// **'Google Reader API'**
+  String get googleReaderApi;
+
+  /// googleReaderCompatible
+  ///
+  /// In en, this message translates to:
+  /// **'Google Reader compatible'**
+  String get googleReaderCompatible;
+
   /// addFever
   ///
   /// In en, this message translates to:
@@ -1850,6 +1868,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Miniflux can page through remote entries up to this per-sync window.'**
   String get remoteSyncStrategyMinifluxSubtitle;
+
+  /// remoteSyncStrategyGoogleReaderSubtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Google Reader compatible services page through remote stream entries up to this per-sync window.'**
+  String get remoteSyncStrategyGoogleReaderSubtitle;
 
   /// remoteSyncStrategyFeverSubtitle
   ///
