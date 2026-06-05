@@ -150,6 +150,92 @@ void main() {
       expect(await factory.feverOrNull(_account(AccountType.fever)), isNull);
     });
   });
+
+  group('RemoteClientFactory Google Reader', () {
+    test('uses trimmed token as GoogleLogin auth', () async {
+      final requests = <_RecordedRequest>[];
+      final factory = RemoteClientFactory(
+        dio: _dio(requests),
+        credentials: _FakeCredentialStore(apiToken: ' auth-token '),
+      );
+
+      final client = await factory.googleReader(
+        _account(AccountType.googleReader),
+      );
+      await client.subscriptionList();
+
+      expect(
+        requests.single.headers['Authorization'],
+        'GoogleLogin auth=auth-token',
+      );
+    });
+
+    test('falls back to ClientLogin basic auth credentials', () async {
+      final requests = <_RecordedRequest>[];
+      final factory = RemoteClientFactory(
+        dio: _dio(requests),
+        credentials: _FakeCredentialStore(
+          basic: (username: 'user', password: 'pass'),
+        ),
+      );
+
+      final client = await factory.googleReader(
+        _account(AccountType.googleReader),
+      );
+      await client.subscriptionList();
+
+      expect(requests.map((request) => request.path), [
+        '/accounts/ClientLogin',
+        '/reader/api/0/subscription/list',
+      ]);
+      final loginPayload = requests.first.data as Map<String, Object?>;
+      expect(loginPayload['Email'], 'user');
+      expect(loginPayload['Passwd'], 'pass');
+      expect(
+        requests[1].headers['Authorization'],
+        'GoogleLogin auth=login-token',
+      );
+    });
+
+    test('throws or returns null for missing setup', () async {
+      final factory = RemoteClientFactory(
+        dio: _dio(<_RecordedRequest>[]),
+        credentials: _FakeCredentialStore(),
+      );
+
+      await expectLater(
+        factory.googleReader(_account(AccountType.googleReader, baseUrl: null)),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            'Google Reader API baseUrl is empty',
+          ),
+        ),
+      );
+      expect(
+        await factory.googleReaderOrNull(
+          _account(AccountType.googleReader, baseUrl: null),
+        ),
+        isNull,
+      );
+
+      await expectLater(
+        factory.googleReader(_account(AccountType.googleReader)),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            'Google Reader API credentials are missing',
+          ),
+        ),
+      );
+      expect(
+        await factory.googleReaderOrNull(_account(AccountType.googleReader)),
+        isNull,
+      );
+    });
+  });
 }
 
 Account _account(AccountType type, {String? baseUrl = 'https://example.com'}) {
@@ -172,6 +258,10 @@ Dio _dio(List<_RecordedRequest> requests) {
         requests.add(_RecordedRequest.fromOptions(options));
         final data = switch ((options.method, options.uri.path)) {
           ('GET', '/v1/categories') => <Map<String, Object?>>[],
+          ('POST', '/accounts/ClientLogin') => 'Auth=login-token\n',
+          ('GET', '/reader/api/0/subscription/list') => {
+            'subscriptions': <Map<String, Object?>>[],
+          },
           _ => <String, Object?>{'auth': 1, 'feeds': <Map<String, Object?>>[]},
         };
         handler.resolve(Response<Object?>(requestOptions: options, data: data));
@@ -202,15 +292,21 @@ class _FakeCredentialStore extends CredentialStore {
 }
 
 class _RecordedRequest {
-  _RecordedRequest({required this.headers, required this.data});
+  _RecordedRequest({
+    required this.headers,
+    required this.data,
+    required this.path,
+  });
 
   factory _RecordedRequest.fromOptions(RequestOptions options) {
     return _RecordedRequest(
       headers: Map<String, Object?>.from(options.headers),
       data: options.data,
+      path: options.uri.path,
     );
   }
 
   final Map<String, Object?> headers;
   final Object? data;
+  final String path;
 }
