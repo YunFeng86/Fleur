@@ -66,10 +66,12 @@ class _MemoryOutboxStore extends OutboxStore {
     current.removeWhere(
       (candidate) =>
           candidate.type == action.type &&
+          candidate.remoteEntryKey == action.remoteEntryKey &&
           candidate.remoteEntryId == action.remoteEntryId &&
           candidate.value == action.value &&
           candidate.feedUrl == action.feedUrl &&
-          candidate.categoryTitle == action.categoryTitle,
+          candidate.categoryTitle == action.categoryTitle &&
+          candidate.streamId == action.streamId,
     );
     _actions[accountId] = current;
   }
@@ -239,6 +241,8 @@ void main() {
     expect(decoded.feedUrl, 'https://example.com/rss.xml');
     expect(decoded.categoryTitle, isNull);
     expect(decoded.remoteEntryId, isNull);
+    expect(decoded.remoteEntryKey, isNull);
+    expect(decoded.streamId, isNull);
     expect(decoded.value, true);
     expect(decoded.createdAt.toIso8601String(), ts.toIso8601String());
   });
@@ -253,10 +257,59 @@ void main() {
     final a = OutboxAction.fromJson(legacy);
     expect(a.type, OutboxActionType.markRead);
     expect(a.remoteEntryId, 42);
+    expect(a.remoteEntryKey, '42');
     expect(a.value, true);
     expect(a.feedUrl, isNull);
     expect(a.categoryTitle, isNull);
   });
+
+  test(
+    'OutboxAction round-trips string remote entry keys and stream scopes',
+    () {
+      final ts = DateTime.utc(2026, 2, 9, 12, 0, 0);
+      final action = OutboxAction(
+        type: OutboxActionType.bookmark,
+        remoteEntryKey: 'tag:google.com,2005:reader/item/000000000000002a',
+        value: true,
+        createdAt: ts,
+      );
+
+      final decoded = OutboxAction.fromJson(action.toJson());
+      expect(decoded.remoteEntryId, isNull);
+      expect(
+        decoded.remoteEntryKey,
+        'tag:google.com,2005:reader/item/000000000000002a',
+      );
+      expect(decoded.value, isTrue);
+
+      final bulk = OutboxAction(
+        type: OutboxActionType.markAllRead,
+        streamId: 'user/-/label/News',
+        value: true,
+        createdAt: ts,
+      );
+      final decodedBulk = OutboxAction.fromJson(bulk.toJson());
+      expect(decodedBulk.streamId, 'user/-/label/News');
+      expect(decodedBulk.feedUrl, isNull);
+      expect(decodedBulk.categoryTitle, isNull);
+    },
+  );
+
+  test(
+    'OutboxAction.fromJson accepts string values in legacy remoteEntryId',
+    () {
+      final action = OutboxAction.fromJson(<String, Object?>{
+        'type': 'markRead',
+        'remoteEntryId': 'tag:google.com,2005:reader/item/abc',
+        'value': false,
+        'createdAt': '2026-02-09T12:00:00.000Z',
+      });
+
+      expect(action.remoteEntryId, isNull);
+      expect(action.remoteEntryKey, 'tag:google.com,2005:reader/item/abc');
+      expect(action.value, isFalse);
+    },
+  );
 
   test(
     'ArticleActionService markRead keeps local state and enqueues outbox on remote failure',
@@ -338,6 +391,7 @@ void main() {
       expect(pending, hasLength(1));
       expect(pending.single.type, OutboxActionType.markRead);
       expect(pending.single.remoteEntryId, 123);
+      expect(pending.single.remoteEntryKey, '123');
       expect(pending.single.value, isTrue);
     },
   );
@@ -412,6 +466,7 @@ void main() {
       expect(pending, hasLength(1));
       expect(pending.single.type, OutboxActionType.bookmark);
       expect(pending.single.remoteEntryId, 123);
+      expect(pending.single.remoteEntryKey, '123');
       expect(pending.single.value, isTrue);
     },
   );

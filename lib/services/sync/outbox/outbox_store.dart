@@ -41,42 +41,88 @@ class OutboxAction {
     required this.type,
     required this.createdAt,
     this.remoteEntryId,
+    String? remoteEntryKey,
     this.value,
     this.feedUrl,
     this.categoryTitle,
-  });
+    String? streamId,
+  }) : remoteEntryKey =
+           _normalizeRemoteEntryKey(remoteEntryKey) ??
+           remoteEntryId?.toString(),
+       streamId = _normalizeStreamId(streamId);
 
   final OutboxActionType type;
 
   /// For entry-level actions (markRead/bookmark).
+  ///
+  /// Kept for legacy Miniflux/Fever outbox payloads. New remote backends should
+  /// use [remoteEntryKey] because Google Reader compatible APIs use string IDs.
   final int? remoteEntryId;
+
+  /// Provider/account-scoped remote item identity.
+  ///
+  /// Numeric backends store their ID here as a decimal string too, so action
+  /// dedupe and replay can be string-first while preserving old integer JSON.
+  final String? remoteEntryKey;
+
   final bool? value;
 
   /// For bulk actions (markAllRead).
   final String? feedUrl;
   final String? categoryTitle;
+  final String? streamId;
 
   final DateTime createdAt;
 
   static OutboxAction fromJson(Map<String, Object?> json) {
+    final remoteEntryId = _readLegacyRemoteEntryId(json['remoteEntryId']);
     return OutboxAction(
       type: OutboxActionTypeX.fromWire(json['type'] as String),
-      remoteEntryId: json['remoteEntryId'] as int?,
+      remoteEntryId: remoteEntryId,
+      remoteEntryKey:
+          _readRemoteEntryKey(json['remoteEntryKey']) ??
+          _readRemoteEntryKey(json['remoteEntryId']) ??
+          remoteEntryId?.toString(),
       value: json['value'] as bool?,
       feedUrl: json['feedUrl'] as String?,
       categoryTitle: json['categoryTitle'] as String?,
+      streamId: json['streamId'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
     );
   }
 
   Map<String, Object?> toJson() => <String, Object?>{
     'type': type.wire,
+    'remoteEntryKey': remoteEntryKey,
     'remoteEntryId': remoteEntryId,
     'value': value,
     'feedUrl': feedUrl,
     'categoryTitle': categoryTitle,
+    'streamId': streamId,
     'createdAt': createdAt.toIso8601String(),
   };
+
+  static int? _readLegacyRemoteEntryId(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.isFinite ? value.toInt() : null;
+    if (value is String) return int.tryParse(value.trim());
+    return null;
+  }
+
+  static String? _readRemoteEntryKey(Object? value) {
+    if (value is! String) return null;
+    return _normalizeRemoteEntryKey(value);
+  }
+
+  static String? _normalizeRemoteEntryKey(String? value) {
+    final trimmed = value?.trim();
+    return trimmed == null || trimmed.isEmpty ? null : trimmed;
+  }
+
+  static String? _normalizeStreamId(String? value) {
+    final trimmed = value?.trim();
+    return trimmed == null || trimmed.isEmpty ? null : trimmed;
+  }
 }
 
 class OutboxStore {
@@ -525,10 +571,12 @@ class OutboxStore {
 
   static bool _sameAction(OutboxAction a, OutboxAction b) {
     return a.type == b.type &&
+        a.remoteEntryKey == b.remoteEntryKey &&
         a.remoteEntryId == b.remoteEntryId &&
         a.value == b.value &&
         a.feedUrl == b.feedUrl &&
         a.categoryTitle == b.categoryTitle &&
+        a.streamId == b.streamId &&
         a.createdAt.toIso8601String() == b.createdAt.toIso8601String();
   }
 
@@ -555,18 +603,19 @@ class OutboxStore {
   static String? _dedupeKey(OutboxAction a) {
     switch (a.type) {
       case OutboxActionType.markRead:
-        final id = a.remoteEntryId;
+        final id = a.remoteEntryKey;
         if (id == null) return null;
         return 'markRead:$id';
       case OutboxActionType.bookmark:
-        final id = a.remoteEntryId;
+        final id = a.remoteEntryKey;
         if (id == null) return null;
         return 'bookmark:$id';
       case OutboxActionType.markAllRead:
+        final streamId = (a.streamId ?? '').trim();
         final feedUrl = (a.feedUrl ?? '').trim();
         final categoryTitle = (a.categoryTitle ?? '').trim();
         // Empty values represent "all feeds" scope.
-        return 'markAllRead:feed=$feedUrl:cat=$categoryTitle';
+        return 'markAllRead:stream=$streamId:feed=$feedUrl:cat=$categoryTitle';
     }
   }
 

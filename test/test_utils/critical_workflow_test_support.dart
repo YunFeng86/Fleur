@@ -485,9 +485,11 @@ class FakeOutboxStore extends OutboxStore {
     final index = next.indexWhere(
       (candidate) =>
           candidate.type == action.type &&
+          candidate.remoteEntryKey == action.remoteEntryKey &&
           candidate.remoteEntryId == action.remoteEntryId &&
           candidate.feedUrl == action.feedUrl &&
           candidate.categoryTitle == action.categoryTitle &&
+          candidate.streamId == action.streamId &&
           candidate.value == action.value &&
           candidate.createdAt == action.createdAt,
     );
