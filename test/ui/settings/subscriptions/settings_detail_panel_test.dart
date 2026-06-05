@@ -75,6 +75,18 @@ void main() {
       ..autoTranslate = null;
   }
 
+  Finder settingsSwitchControlWithText(String label) {
+    return find.descendant(
+      of: find
+          .ancestor(
+            of: find.text(label),
+            matching: find.byType(SettingsSwitchTile),
+          )
+          .first,
+      matching: find.byType(SettingsCompactSwitch),
+    );
+  }
+
   Future<void> pumpPanel(
     WidgetTester tester, {
     required FakeAppSettingsStore appStore,
@@ -166,7 +178,7 @@ void main() {
       expect(find.text('Global defaults'), findsOneWidget);
       expect(find.text('Auto translate'), findsOneWidget);
 
-      await tester.tap(find.widgetWithText(SwitchListTile, 'Auto translate'));
+      await tester.tap(settingsSwitchControlWithText('Auto translate'));
       await tester.pumpAndSettle();
 
       expect(appStore.settings.autoTranslate, isTrue);
@@ -488,13 +500,13 @@ void main() {
     expect(find.text('Download Web Pages during Sync'), findsOneWidget);
 
     await tester.tap(
-      find.widgetWithText(SwitchListTile, 'Download Images during Sync'),
+      settingsSwitchControlWithText('Download Images during Sync'),
     );
     await tester.pumpAndSettle();
     expect(appStore.settings.syncImages, isFalse);
 
     await tester.tap(
-      find.widgetWithText(SwitchListTile, 'Download Web Pages during Sync'),
+      settingsSwitchControlWithText('Download Web Pages during Sync'),
     );
     await tester.pumpAndSettle();
     expect(appStore.settings.syncWebPages, isTrue);

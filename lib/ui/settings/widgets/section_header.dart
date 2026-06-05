@@ -11,6 +11,11 @@ const double _kSettingsControlGap = 16;
 const double _kSettingsControlRowMinHeight = 52;
 const double _kSettingsControlRowWithSubtitleMinHeight = 64;
 const double _kSettingsSelectFieldHeight = 36;
+const Size _kSettingsSwitchHitSize = Size(48, 40);
+const double _kSettingsSwitchVisualWidth = 42;
+const double _kSettingsSwitchVisualHeight = 28;
+const double _kSettingsSwitchTrackHeight = 14;
+const double _kSettingsSwitchThumbSize = 24;
 
 class SectionHeader extends StatelessWidget {
   const SectionHeader({
@@ -851,15 +856,232 @@ class SettingsSwitchTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SwitchListTile.adaptive(
-      contentPadding: contentPadding,
-      secondary: secondary,
-      title: title,
-      subtitle: subtitle,
-      value: value,
-      onChanged: onChanged,
+    final theme = Theme.of(context);
+    final titleStyle =
+        theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500) ??
+        const TextStyle(fontWeight: FontWeight.w500);
+    final subtitleStyle = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+    final minHeight = subtitle == null
+        ? _kSettingsControlRowMinHeight
+        : _kSettingsControlRowWithSubtitleMinHeight;
+    final enabled = onChanged != null;
+    final semanticLabel = _plainTextLabel(title);
+
+    return IconTheme.merge(
+      data: IconThemeData(color: theme.colorScheme.onSurfaceVariant),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minHeight: minHeight),
+        child: Padding(
+          padding: contentPadding,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              if (secondary != null) ...[secondary!, const SizedBox(width: 14)],
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    DefaultTextStyle.merge(style: titleStyle, child: title),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 3),
+                      DefaultTextStyle.merge(
+                        style: subtitleStyle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        child: subtitle!,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              Semantics(
+                label: semanticLabel,
+                toggled: value,
+                enabled: enabled,
+                onTap: enabled ? () => onChanged!(!value) : null,
+                child: ExcludeSemantics(
+                  child: SettingsCompactSwitch(
+                    value: value,
+                    onChanged: onChanged,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
+}
+
+class SettingsCompactSwitch extends StatefulWidget {
+  const SettingsCompactSwitch({
+    super.key,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+
+  @override
+  State<SettingsCompactSwitch> createState() => _SettingsCompactSwitchState();
+}
+
+class _SettingsCompactSwitchState extends State<SettingsCompactSwitch> {
+  bool _focused = false;
+  bool _hovered = false;
+  bool _pressed = false;
+
+  bool get _enabled => widget.onChanged != null;
+
+  void _toggle() {
+    final onChanged = widget.onChanged;
+    if (onChanged == null) return;
+    onChanged(!widget.value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final surfaces = theme.fleurSurface;
+    final states = theme.fleurState;
+    final dark = theme.brightness == Brightness.dark;
+    final selected = widget.value;
+    final enabled = _enabled;
+
+    final trackColor = enabled
+        ? selected
+              ? scheme.primary.withAlpha(dark ? 92 : 62)
+              : scheme.onSurfaceVariant.withAlpha(dark ? 70 : 42)
+        : scheme.onSurface.withAlpha(dark ? 34 : 22);
+    final thumbColor = enabled
+        ? selected
+              ? scheme.primary
+              : surfaces.floating
+        : scheme.onSurface.withAlpha(dark ? 86 : 64);
+    final thumbBorderColor = enabled
+        ? selected
+              ? scheme.primary.withAlpha(160)
+              : scheme.outlineVariant.withAlpha(dark ? 120 : 150)
+        : Colors.transparent;
+    final focusBorderColor = _focused ? states.focusRing : Colors.transparent;
+    final hoverLayer = _hovered && enabled
+        ? states.hoverTint
+        : Colors.transparent;
+    final pressedLayer = _pressed && enabled
+        ? states.pressedTint
+        : Colors.transparent;
+
+    return FocusableActionDetector(
+      enabled: enabled,
+      mouseCursor: enabled
+          ? SystemMouseCursors.click
+          : SystemMouseCursors.basic,
+      onShowFocusHighlight: (focused) {
+        if (_focused == focused) return;
+        setState(() => _focused = focused);
+      },
+      onShowHoverHighlight: (hovered) {
+        if (_hovered == hovered) return;
+        setState(() => _hovered = hovered);
+      },
+      actions: <Type, Action<Intent>>{
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (intent) {
+            _toggle();
+            return null;
+          },
+        ),
+      },
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: enabled ? _toggle : null,
+        onTapDown: enabled ? (_) => setState(() => _pressed = true) : null,
+        onTapCancel: enabled ? () => setState(() => _pressed = false) : null,
+        onTapUp: enabled ? (_) => setState(() => _pressed = false) : null,
+        child: SizedBox.fromSize(
+          size: _kSettingsSwitchHitSize,
+          child: Center(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 120),
+              curve: Curves.easeOutCubic,
+              width: _kSettingsSwitchHitSize.width,
+              height: 32,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: focusBorderColor, width: 1.4),
+                color: Color.alphaBlend(pressedLayer, hoverLayer),
+              ),
+              child: SizedBox(
+                width: _kSettingsSwitchVisualWidth,
+                height: _kSettingsSwitchVisualHeight,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 160),
+                      curve: Curves.easeOutCubic,
+                      width: _kSettingsSwitchVisualWidth,
+                      height: _kSettingsSwitchTrackHeight,
+                      decoration: BoxDecoration(
+                        color: trackColor,
+                        borderRadius: BorderRadius.circular(
+                          _kSettingsSwitchTrackHeight / 2,
+                        ),
+                      ),
+                    ),
+                    AnimatedAlign(
+                      duration: const Duration(milliseconds: 160),
+                      curve: Curves.easeOutCubic,
+                      alignment: selected
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 120),
+                        curve: Curves.easeOutCubic,
+                        width: _kSettingsSwitchThumbSize,
+                        height: _kSettingsSwitchThumbSize,
+                        decoration: BoxDecoration(
+                          color: thumbColor,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: thumbBorderColor),
+                          boxShadow: enabled
+                              ? [
+                                  BoxShadow(
+                                    color: Colors.black.withAlpha(
+                                      dark ? 82 : 38,
+                                    ),
+                                    blurRadius: _pressed ? 4 : 7,
+                                    offset: Offset(0, _pressed ? 1 : 2),
+                                  ),
+                                ]
+                              : null,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+String? _plainTextLabel(Widget widget) {
+  if (widget is Text) {
+    return widget.data ?? widget.textSpan?.toPlainText();
+  }
+  return null;
 }
 
 class SettingsDetailHeader extends StatelessWidget {

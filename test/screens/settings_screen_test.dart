@@ -13,6 +13,7 @@ import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/settings/reader_settings.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/seed_color_presets.dart';
+import 'package:fleur/ui/settings/widgets/section_header.dart';
 
 import '../test_utils/critical_workflow_test_support.dart';
 
@@ -101,6 +102,13 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+  }
+
+  Finder settingsSwitchControl(Key tileKey) {
+    return find.descendant(
+      of: find.byKey(tileKey),
+      matching: find.byType(SettingsCompactSwitch),
+    );
   }
 
   testWidgets('Settings Screen starts with List in Narrow Mode', (
@@ -549,7 +557,9 @@ void main() {
       find.byKey(const Key('appearance_code_soft_wrap_switch')),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('appearance_code_soft_wrap_switch')));
+    await tester.tap(
+      settingsSwitchControl(const Key('appearance_code_soft_wrap_switch')),
+    );
     await tester.pumpAndSettle();
     expect(store.settings.codeSoftWrap, isTrue);
 
@@ -748,7 +758,9 @@ void main() {
       findsNothing,
     );
 
-    await tester.tap(find.byKey(const Key('appearance_dynamic_color_switch')));
+    await tester.tap(
+      settingsSwitchControl(const Key('appearance_dynamic_color_switch')),
+    );
     await tester.pumpAndSettle();
 
     expect(store.settings.useDynamicColor, isFalse);
