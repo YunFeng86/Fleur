@@ -333,8 +333,25 @@ class RecordingArticleActionService implements ArticleActionService {
       <({int articleId, bool isRead})>[];
   final List<int> toggleStarCalls = <int>[];
   final List<int> toggleReadLaterCalls = <int>[];
-  final List<({int? feedId, int? categoryId})> markAllReadCalls =
-      <({int? feedId, int? categoryId})>[];
+  final List<
+    ({
+      int? feedId,
+      int? categoryId,
+      bool starredOnly,
+      bool readLaterOnly,
+      int? tagId,
+    })
+  >
+  markAllReadCalls =
+      <
+        ({
+          int? feedId,
+          int? categoryId,
+          bool starredOnly,
+          bool readLaterOnly,
+          int? tagId,
+        })
+      >[];
 
   @override
   Future<void> markRead(int articleId, bool isRead) async {
@@ -352,8 +369,20 @@ class RecordingArticleActionService implements ArticleActionService {
   }
 
   @override
-  Future<void> markAllRead({int? feedId, int? categoryId}) async {
-    markAllReadCalls.add((feedId: feedId, categoryId: categoryId));
+  Future<void> markAllRead({
+    int? feedId,
+    int? categoryId,
+    bool starredOnly = false,
+    bool readLaterOnly = false,
+    int? tagId,
+  }) async {
+    markAllReadCalls.add((
+      feedId: feedId,
+      categoryId: categoryId,
+      starredOnly: starredOnly,
+      readLaterOnly: readLaterOnly,
+      tagId: tagId,
+    ));
   }
 }
 

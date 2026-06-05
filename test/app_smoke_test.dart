@@ -303,6 +303,7 @@ Future<HomeSceneCommands> _pumpHomeCommandsHarness(
 
   await tester.pumpWidget(
     ProviderScope(
+      key: UniqueKey(),
       overrides: overrides,
       child: MaterialApp.router(routerConfig: router),
     ),
@@ -1627,6 +1628,10 @@ void main() {
             path: '/all/article/:id',
             builder: (context, state) => Text(state.pathParameters['id'] ?? ''),
           ),
+          GoRoute(
+            path: '/feed/:feedId/article/:id',
+            builder: (context, state) => Text(state.pathParameters['id'] ?? ''),
+          ),
         ],
       );
       addTearDown(router.dispose);
@@ -1641,6 +1646,9 @@ void main() {
         ProviderScope(
           overrides: [
             selectedFeedIdProvider.overrideWith((ref) => 10),
+            currentArticleScopeProvider.overrideWith(
+              (ref) => const ArticleScope.feed(10),
+            ),
             articleListControllerProvider.overrideWith(
               _FixedArticleListController.new,
             ),
@@ -1670,7 +1678,15 @@ void main() {
       );
 
       await homeCommands.markAllRead();
-      expect(actionService.markAllReadCalls, [(feedId: 10, categoryId: null)]);
+      expect(actionService.markAllReadCalls, [
+        (
+          feedId: 10,
+          categoryId: null,
+          starredOnly: false,
+          readLaterOnly: false,
+          tagId: null,
+        ),
+      ]);
 
       expect(container.read(unreadOnlyProvider), isFalse);
       homeCommands.toggleUnreadOnly();
@@ -1692,6 +1708,71 @@ void main() {
       expect(find.text('3'), findsOneWidget);
     },
   );
+
+  testWidgets('Home scene commands mark all read within the current scope', (
+    tester,
+  ) async {
+    final cases =
+        <
+          ({
+            ArticleScope scope,
+            ({
+              int? feedId,
+              int? categoryId,
+              bool starredOnly,
+              bool readLaterOnly,
+              int? tagId,
+            })
+            expected,
+          })
+        >[
+          (
+            scope: ArticleScope.starred,
+            expected: (
+              feedId: null,
+              categoryId: null,
+              starredOnly: true,
+              readLaterOnly: false,
+              tagId: null,
+            ),
+          ),
+          (
+            scope: ArticleScope.readLater,
+            expected: (
+              feedId: null,
+              categoryId: null,
+              starredOnly: false,
+              readLaterOnly: true,
+              tagId: null,
+            ),
+          ),
+          (
+            scope: const ArticleScope.tag(9),
+            expected: (
+              feedId: null,
+              categoryId: null,
+              starredOnly: false,
+              readLaterOnly: false,
+              tagId: 9,
+            ),
+          ),
+        ];
+
+    for (final c in cases) {
+      final actionService = RecordingArticleActionService();
+      final homeCommands = await _pumpHomeCommandsHarness(
+        tester,
+        overrides: [
+          currentArticleScopeProvider.overrideWith((ref) => c.scope),
+          articleActionServiceProvider.overrideWithValue(actionService),
+        ],
+      );
+
+      await homeCommands.markAllRead();
+
+      expect(actionService.markAllReadCalls, [c.expected]);
+    }
+  });
 
   testWidgets('Home scene commands refresh the selected local category only', (
     tester,

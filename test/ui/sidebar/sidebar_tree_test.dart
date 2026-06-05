@@ -292,7 +292,15 @@ void main() {
     await selectedCategoryHover.removePointer();
     await tester.pumpAndSettle();
 
-    expect(actionService.markAllReadCalls, [(feedId: null, categoryId: 1)]);
+    expect(actionService.markAllReadCalls, [
+      (
+        feedId: null,
+        categoryId: 1,
+        starredOnly: false,
+        readLaterOnly: false,
+        tagId: null,
+      ),
+    ]);
 
     await tester.tap(find.byIcon(FleurIcons.expand));
     await tester.pumpAndSettle();
@@ -324,8 +332,20 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(actionService.markAllReadCalls, [
-      (feedId: null, categoryId: 1),
-      (feedId: 101, categoryId: null),
+      (
+        feedId: null,
+        categoryId: 1,
+        starredOnly: false,
+        readLaterOnly: false,
+        tagId: null,
+      ),
+      (
+        feedId: 101,
+        categoryId: null,
+        starredOnly: false,
+        readLaterOnly: false,
+        tagId: null,
+      ),
     ]);
   });
 

@@ -166,6 +166,8 @@ Future<void> _seedFeedAndArticle(
   Isar isar, {
   int feedId = 1,
   String feedUrl = 'https://example.com/feed.xml',
+  String? feedRemoteId,
+  int? categoryId,
   int articleId = 10,
   String remoteId = '123',
   bool isRead = false,
@@ -176,8 +178,10 @@ Future<void> _seedFeedAndArticle(
   await isar.writeTxn(() async {
     final feed = Feed()
       ..id = feedId
+      ..remoteId = feedRemoteId
       ..url = feedUrl
       ..title = 'Feed $feedId'
+      ..categoryId = categoryId
       ..createdAt = now
       ..updatedAt = now;
     await isar.feeds.put(feed);
@@ -185,7 +189,7 @@ Future<void> _seedFeedAndArticle(
     final article = Article()
       ..id = articleId
       ..feedId = feedId
-      ..categoryId = null
+      ..categoryId = categoryId
       ..remoteId = remoteId
       ..link = 'https://example.com/posts/$articleId'
       ..title = 'Article $articleId'
@@ -604,6 +608,137 @@ void main() {
         expect(pending.single.categoryTitle, isNull);
         expect(pending.single.value, isTrue);
       }
+    },
+  );
+
+  test(
+    'ArticleActionService google reader markAllRead stores remote stream id',
+    () async {
+      await isar!.writeTxn(() async {
+        await isar!.categorys.put(
+          Category()
+            ..id = 7
+            ..remoteId = 'user/1/label/News'
+            ..name = 'News',
+        );
+      });
+      await _seedFeedAndArticle(
+        isar!,
+        feedId: 1,
+        feedRemoteId: 'feed/6',
+        feedUrl: 'https://example.com/google-reader.xml',
+        articleId: 10,
+        remoteId: 'tag:reader.example,2026:item/1',
+      );
+      await _seedFeedAndArticle(
+        isar!,
+        feedId: 2,
+        feedRemoteId: 'feed/7',
+        feedUrl: 'https://example.com/news.xml',
+        categoryId: 7,
+        articleId: 20,
+        remoteId: 'tag:reader.example,2026:item/2',
+      );
+
+      const accountId = 'google-reader-mark-all-account';
+      final outbox = _MemoryOutboxStore();
+      final service = _buildArticleActionService(
+        isar: isar!,
+        account: _buildAccount(
+          id: accountId,
+          type: AccountType.googleReader,
+          baseUrl: 'https://reader.example.com',
+        ),
+        outbox: outbox,
+        dio: _rejectingDio(),
+      );
+
+      await service.markAllRead(feedId: 1);
+      await service.markAllRead(categoryId: 7);
+
+      final pending = await outbox.load(accountId);
+      expect(pending, hasLength(2));
+
+      final feedAction = pending.firstWhere(
+        (action) => action.streamId == 'feed/6',
+      );
+      expect(feedAction.type, OutboxActionType.markAllRead);
+      expect(feedAction.feedUrl, 'https://example.com/google-reader.xml');
+      expect(feedAction.categoryTitle, isNull);
+      expect(feedAction.value, isTrue);
+
+      final categoryAction = pending.firstWhere(
+        (action) => action.streamId == 'user/1/label/News',
+      );
+      expect(categoryAction.type, OutboxActionType.markAllRead);
+      expect(categoryAction.feedUrl, isNull);
+      expect(categoryAction.categoryTitle, 'News');
+      expect(categoryAction.value, isTrue);
+    },
+  );
+
+  test(
+    'ArticleActionService keeps saved and tag markAllRead scopes local-only',
+    () async {
+      await _seedFeedAndArticle(
+        isar!,
+        articleId: 10,
+        remoteId: 'tag:reader.example,2026:item/1',
+        isStarred: true,
+      );
+      await _seedFeedAndArticle(
+        isar!,
+        feedId: 2,
+        feedUrl: 'https://example.com/read-later.xml',
+        articleId: 20,
+        remoteId: 'tag:reader.example,2026:item/2',
+        isReadLater: true,
+      );
+      await _seedFeedAndArticle(
+        isar!,
+        feedId: 3,
+        feedUrl: 'https://example.com/tagged.xml',
+        articleId: 30,
+        remoteId: 'tag:reader.example,2026:item/3',
+      );
+      await _seedFeedAndArticle(
+        isar!,
+        feedId: 4,
+        feedUrl: 'https://example.com/other.xml',
+        articleId: 40,
+        remoteId: 'tag:reader.example,2026:item/4',
+      );
+      final tag = Tag()..name = 'Topic';
+      await isar!.writeTxn(() async {
+        await isar!.tags.put(tag);
+        final tagged = await isar!.articles.get(30);
+        tagged!.tags.add(tag);
+        await tagged.tags.save();
+      });
+
+      const accountId = 'google-reader-local-scope-mark-all-account';
+      final outbox = _MemoryOutboxStore();
+      final service = _buildArticleActionService(
+        isar: isar!,
+        account: _buildAccount(
+          id: accountId,
+          type: AccountType.googleReader,
+          baseUrl: 'https://reader.example.com',
+        ),
+        outbox: outbox,
+        dio: _rejectingDio(),
+      );
+
+      await service.markAllRead(starredOnly: true);
+      await service.markAllRead(readLaterOnly: true);
+      await service.markAllRead(tagId: tag.id);
+
+      final articles = ArticleRepository(isar!);
+      expect((await articles.getById(10))!.isRead, isTrue);
+      expect((await articles.getById(20))!.isRead, isTrue);
+      expect((await articles.getById(30))!.isRead, isTrue);
+      expect((await articles.getById(40))!.isRead, isFalse);
+      expect(await outbox.load(accountId), isEmpty);
     },
   );
 

@@ -207,15 +207,26 @@ class ArticleActionService {
     if (!_shouldProjectRemote(BackendFeature.articleReadLater)) return;
   }
 
-  Future<void> markAllRead({int? feedId, int? categoryId}) async {
+  Future<void> markAllRead({
+    int? feedId,
+    int? categoryId,
+    bool starredOnly = false,
+    bool readLaterOnly = false,
+    int? tagId,
+  }) async {
     final effectiveCategoryId = feedId == null ? categoryId : null;
+    final localOnlyScope = starredOnly || readLaterOnly || tagId != null;
     final ok = await _runLocalInt(
       () => _articles.markAllRead(
         feedId: feedId,
         categoryId: effectiveCategoryId,
+        starredOnly: starredOnly,
+        readLaterOnly: readLaterOnly,
+        tagId: tagId,
       ),
     );
     if (ok == null) return;
+    if (localOnlyScope) return;
 
     if (!_shouldProjectRemote(BackendFeature.articleReadState)) return;
 
@@ -225,13 +236,10 @@ class ArticleActionService {
     );
     // Safety guard: if user targeted a specific scope but we can't resolve the
     // identifier needed for remote replay, do NOT fall back to "all".
-    if (feedId != null &&
-        (action.feedUrl == null || action.feedUrl!.trim().isEmpty)) {
+    if (feedId != null && !_hasFeedScopeIdentifier(action)) {
       return;
     }
-    if (effectiveCategoryId != null &&
-        (action.categoryTitle == null ||
-            action.categoryTitle!.trim().isEmpty)) {
+    if (effectiveCategoryId != null && !_hasCategoryScopeIdentifier(action)) {
       return;
     }
     // "Action as fact": persist intent first, then try to apply remotely.
@@ -284,20 +292,48 @@ class ArticleActionService {
   }) async {
     String? feedUrl;
     String? categoryTitle;
+    String? streamId;
     if (feedId != null) {
       final f = await _feeds.getById(feedId);
       feedUrl = f?.url;
+      streamId = _googleReaderStreamId(f?.remoteId);
     } else if (categoryId != null) {
       final c = await _categories.getById(categoryId);
       categoryTitle = c?.name;
+      streamId = _googleReaderStreamId(c?.remoteId);
     }
     return OutboxAction(
       type: OutboxActionType.markAllRead,
       feedUrl: feedUrl,
       categoryTitle: categoryTitle,
+      streamId: streamId,
       value: true,
       createdAt: DateTime.now(),
     );
+  }
+
+  bool _hasFeedScopeIdentifier(OutboxAction action) {
+    final feedUrl = action.feedUrl?.trim();
+    if (feedUrl != null && feedUrl.isNotEmpty) return true;
+    final streamId = action.streamId?.trim();
+    return _account.type == AccountType.googleReader &&
+        streamId != null &&
+        streamId.isNotEmpty;
+  }
+
+  bool _hasCategoryScopeIdentifier(OutboxAction action) {
+    final categoryTitle = action.categoryTitle?.trim();
+    if (categoryTitle != null && categoryTitle.isNotEmpty) return true;
+    final streamId = action.streamId?.trim();
+    return _account.type == AccountType.googleReader &&
+        streamId != null &&
+        streamId.isNotEmpty;
+  }
+
+  String? _googleReaderStreamId(String? remoteId) {
+    if (_account.type != AccountType.googleReader) return null;
+    final value = remoteId?.trim();
+    return value == null || value.isEmpty ? null : value;
   }
 
   bool _shouldProjectRemote(BackendFeature feature) {

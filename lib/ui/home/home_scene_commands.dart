@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/article_scope_routes.dart';
 import '../../l10n/app_localizations.dart';
+import '../../models/article_scope.dart';
 import '../../providers/article_list_controller.dart';
 import '../../providers/app_settings_providers.dart';
 import '../../providers/backend_capabilities_provider.dart';
@@ -169,14 +170,22 @@ class HomeSceneCommands {
   }
 
   Future<void> markAllRead() async {
-    final selectedFeedId = _ref.read(selectedFeedIdProvider);
-    final selectedCategoryId = _ref.read(selectedCategoryIdProvider);
-    await _ref
-        .read(articleActionServiceProvider)
-        .markAllRead(
-          feedId: selectedFeedId,
-          categoryId: selectedFeedId == null ? selectedCategoryId : null,
-        );
+    final scope = _ref.read(currentArticleScopeProvider);
+    final service = _ref.read(articleActionServiceProvider);
+    switch (scope.type) {
+      case ArticleScopeType.all:
+        await service.markAllRead();
+      case ArticleScopeType.starred:
+        await service.markAllRead(starredOnly: true);
+      case ArticleScopeType.readLater:
+        await service.markAllRead(readLaterOnly: true);
+      case ArticleScopeType.feed:
+        await service.markAllRead(feedId: scope.id);
+      case ArticleScopeType.category:
+        await service.markAllRead(categoryId: scope.id);
+      case ArticleScopeType.tag:
+        await service.markAllRead(tagId: scope.id);
+    }
   }
 
   void toggleUnreadOnly() {

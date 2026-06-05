@@ -277,11 +277,29 @@ class ArticleRepository {
     });
   }
 
-  Future<int> markAllRead({int? feedId, int? categoryId}) {
-    return _markAllReadBatched(feedId: feedId, categoryId: categoryId);
+  Future<int> markAllRead({
+    int? feedId,
+    int? categoryId,
+    bool starredOnly = false,
+    bool readLaterOnly = false,
+    int? tagId,
+  }) {
+    return _markAllReadBatched(
+      feedId: feedId,
+      categoryId: categoryId,
+      starredOnly: starredOnly,
+      readLaterOnly: readLaterOnly,
+      tagId: tagId,
+    );
   }
 
-  Future<int> _markAllReadBatched({int? feedId, int? categoryId}) async {
+  Future<int> _markAllReadBatched({
+    int? feedId,
+    int? categoryId,
+    bool starredOnly = false,
+    bool readLaterOnly = false,
+    int? tagId,
+  }) async {
     final qb = _isar.articles
         .filter()
         .optional(feedId != null, (q) => q.feedIdEqualTo(feedId!))
@@ -289,6 +307,9 @@ class ArticleRepository {
           feedId == null && categoryId != null,
           (q) => q.categoryIdEqualTo(categoryId),
         )
+        .optional(starredOnly, (q) => q.isStarredEqualTo(true))
+        .optional(readLaterOnly, (q) => q.isReadLaterEqualTo(true))
+        .optional(tagId != null, (q) => q.tags((tag) => tag.idEqualTo(tagId!)))
         .isReadEqualTo(false);
 
     // 先取出 ID，避免单次事务加载过多数据。
