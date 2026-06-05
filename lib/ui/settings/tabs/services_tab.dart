@@ -112,6 +112,13 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
                   onTap: () =>
                       Navigator.of(dialogContext).pop(AccountType.fever),
                 ),
+                ListTile(
+                  leading: const Icon(FleurIcons.googleReaderAccount),
+                  title: const Text('Add Google Reader API'),
+                  subtitle: const Text('Google Reader compatible'),
+                  onTap: () =>
+                      Navigator.of(dialogContext).pop(AccountType.googleReader),
+                ),
               ],
             ),
             actions: [
@@ -134,6 +141,9 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
         case AccountType.fever:
           await showAddFeverAccountDialog(context, ref);
           return;
+        case AccountType.googleReader:
+          await showAddGoogleReaderAccountDialog(context, ref);
+          return;
       }
     }
 
@@ -147,6 +157,10 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
         AccountType.fever =>
           (account.baseUrl ?? '').trim().isEmpty
               ? l10n.fever
+              : account.baseUrl!.trim(),
+        AccountType.googleReader =>
+          (account.baseUrl ?? '').trim().isEmpty
+              ? 'Google Reader compatible'
               : account.baseUrl!.trim(),
       };
     }

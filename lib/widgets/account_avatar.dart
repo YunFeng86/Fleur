@@ -43,6 +43,7 @@ class AccountAvatar extends StatelessWidget {
     AccountType.local => FleurIcons.localAccount,
     AccountType.miniflux => FleurIcons.minifluxAccount,
     AccountType.fever => FleurIcons.feverAccount,
+    AccountType.googleReader => FleurIcons.googleReaderAccount,
   };
 
   @override

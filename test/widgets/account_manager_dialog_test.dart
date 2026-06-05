@@ -108,7 +108,8 @@ void main() {
       ),
     );
 
-    expect(cards, hasLength(3));
+    expect(cards, hasLength(4));
+    expect(find.text('Add Google Reader API'), findsOneWidget);
     for (final card in cards) {
       final shape = card.shape! as RoundedRectangleBorder;
       expect(card.color, surfaces.card);

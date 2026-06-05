@@ -807,6 +807,238 @@ Future<String?> showAddMinifluxAccountDialog(
   return id;
 }
 
+Future<String?> showAddGoogleReaderAccountDialog(
+  BuildContext context,
+  WidgetRef ref,
+) async {
+  final l10n = AppLocalizations.of(context)!;
+  final nameCtrl = TextEditingController(text: 'Google Reader API');
+  final baseUrlCtrl = TextEditingController();
+  final usernameCtrl = TextEditingController();
+  final passwordCtrl = TextEditingController();
+  final nameFocus = FocusNode();
+  final baseUrlFocus = FocusNode();
+  final usernameFocus = FocusNode();
+  final passwordFocus = FocusNode();
+  var obscurePassword = true;
+  var submitting = false;
+  String? nameError;
+  String? baseUrlError;
+  String? usernameError;
+  String? passwordError;
+  String? createdId;
+
+  Future<void> submit(StateSetter setState, BuildContext dialogContext) async {
+    if (submitting) return;
+    final name = nameCtrl.text.trim();
+    final baseUrl = baseUrlCtrl.text.trim();
+    final username = usernameCtrl.text.trim();
+    final password = passwordCtrl.text;
+    final uri = Uri.tryParse(baseUrl);
+    String? nextNameError;
+    String? nextBaseUrlError;
+    String? nextUsernameError;
+    String? nextPasswordError;
+
+    if (name.isEmpty) nextNameError = l10n.nameRequired;
+    if (baseUrl.isEmpty) {
+      nextBaseUrlError = l10n.baseUrlRequired;
+    } else if (uri == null ||
+        !(uri.scheme == 'http' || uri.scheme == 'https')) {
+      nextBaseUrlError = l10n.invalidBaseUrl;
+    }
+    if (username.isEmpty) nextUsernameError = l10n.usernameRequired;
+    if (password.isEmpty) nextPasswordError = l10n.passwordRequired;
+
+    if (nextNameError != null ||
+        nextBaseUrlError != null ||
+        nextUsernameError != null ||
+        nextPasswordError != null) {
+      setState(() {
+        nameError = nextNameError;
+        baseUrlError = nextBaseUrlError;
+        usernameError = nextUsernameError;
+        passwordError = nextPasswordError;
+      });
+      if (nextNameError != null) {
+        FocusScope.of(dialogContext).requestFocus(nameFocus);
+      } else if (nextBaseUrlError != null) {
+        FocusScope.of(dialogContext).requestFocus(baseUrlFocus);
+      } else if (nextUsernameError != null) {
+        FocusScope.of(dialogContext).requestFocus(usernameFocus);
+      } else {
+        FocusScope.of(dialogContext).requestFocus(passwordFocus);
+      }
+      return;
+    }
+
+    setState(() {
+      nameError = null;
+      baseUrlError = null;
+      usernameError = null;
+      passwordError = null;
+      submitting = true;
+    });
+    try {
+      final id = await ref
+          .read(accountsControllerProvider.notifier)
+          .addAccount(
+            type: AccountType.googleReader,
+            name: name,
+            baseUrl: baseUrl,
+          );
+      final store = ref.read(credentialStoreProvider);
+      await store.setBasicAuth(
+        id,
+        AccountType.googleReader,
+        username: username,
+        password: password,
+      );
+      await store.deleteApiToken(id, AccountType.googleReader);
+      await ref.read(accountsControllerProvider.notifier).setActive(id);
+      createdId = id;
+      if (!dialogContext.mounted) return;
+      Navigator.of(dialogContext).pop();
+    } catch (e, s) {
+      _logAddRemoteAccountFailure(
+        accountType: AccountType.googleReader,
+        authMode: 'basicAuth',
+        baseUrl: baseUrl,
+        error: e,
+        stackTrace: s,
+      );
+      if (!dialogContext.mounted) return;
+      setState(() => submitting = false);
+      dialogContext.showSnack(l10n.errorMessage(e.toString()));
+    }
+  }
+
+  if (!context.mounted) return null;
+  try {
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (dialogContext, setState) {
+            return AlertDialog(
+              scrollable: true,
+              title: const Text('Add Google Reader API'),
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameCtrl,
+                      focusNode: nameFocus,
+                      autofocus: true,
+                      textInputAction: TextInputAction.next,
+                      onSubmitted: (_) => FocusScope.of(
+                        dialogContext,
+                      ).requestFocus(baseUrlFocus),
+                      decoration: InputDecoration(
+                        labelText: l10n.fieldName,
+                        errorText: nameError,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: baseUrlCtrl,
+                      focusNode: baseUrlFocus,
+                      textInputAction: TextInputAction.next,
+                      keyboardType: TextInputType.url,
+                      onSubmitted: (_) => FocusScope.of(
+                        dialogContext,
+                      ).requestFocus(usernameFocus),
+                      decoration: InputDecoration(
+                        labelText: l10n.baseUrl,
+                        hintText: 'https://example.com/reader/api/0',
+                        errorText: baseUrlError,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: usernameCtrl,
+                      focusNode: usernameFocus,
+                      textInputAction: TextInputAction.next,
+                      onSubmitted: (_) => FocusScope.of(
+                        dialogContext,
+                      ).requestFocus(passwordFocus),
+                      decoration: InputDecoration(
+                        labelText: l10n.username,
+                        errorText: usernameError,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: passwordCtrl,
+                      focusNode: passwordFocus,
+                      obscureText: obscurePassword,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) =>
+                          unawaited(submit(setState, dialogContext)),
+                      decoration: InputDecoration(
+                        labelText: l10n.password,
+                        errorText: passwordError,
+                        suffixIcon: IconButton(
+                          tooltip: obscurePassword ? l10n.show : l10n.hide,
+                          icon: Icon(
+                            obscurePassword
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                          ),
+                          onPressed: () => setState(
+                            () => obscurePassword = !obscurePassword,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: submitting
+                      ? null
+                      : () => Navigator.of(dialogContext).pop(),
+                  child: Text(l10n.cancel),
+                ),
+                FilledButton(
+                  onPressed: submitting
+                      ? null
+                      : () => unawaited(submit(setState, dialogContext)),
+                  child: submitting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(l10n.add),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  } finally {
+    nameCtrl.dispose();
+    baseUrlCtrl.dispose();
+    usernameCtrl.dispose();
+    passwordCtrl.dispose();
+    nameFocus.dispose();
+    baseUrlFocus.dispose();
+    usernameFocus.dispose();
+    passwordFocus.dispose();
+  }
+
+  final id = createdId;
+  if (id == null) return null;
+  if (!context.mounted) return id;
+  context.showSnack(l10n.done);
+  return id;
+}
+
 void _logAddRemoteAccountFailure({
   required AccountType accountType,
   required String authMode,

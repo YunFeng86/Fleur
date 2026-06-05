@@ -75,6 +75,7 @@ abstract final class FleurIcons {
   static const IconData localAccount = LucideIcons.rss;
   static const IconData minifluxAccount = LucideIcons.cloud;
   static const IconData feverAccount = LucideIcons.flame;
+  static const IconData googleReaderAccount = LucideIcons.cloudCog;
   static const IconData activeAccount = LucideIcons.circleCheck;
   static const IconData themeSystem = LucideIcons.monitor;
   static const IconData themeLight = LucideIcons.sun;

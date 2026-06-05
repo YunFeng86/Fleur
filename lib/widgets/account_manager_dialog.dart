@@ -52,6 +52,13 @@ class AccountManagerDialog extends ConsumerWidget {
                   onTap: () =>
                       Navigator.of(dialogContext).pop(AccountType.fever),
                 ),
+                _AccountTypeCard(
+                  icon: FleurIcons.googleReaderAccount,
+                  title: 'Add Google Reader API',
+                  subtitle: 'Google Reader compatible',
+                  onTap: () =>
+                      Navigator.of(dialogContext).pop(AccountType.googleReader),
+                ),
               ],
             ),
           ),
@@ -75,6 +82,9 @@ class AccountManagerDialog extends ConsumerWidget {
         return;
       case AccountType.fever:
         await showAddFeverAccountDialog(context, ref);
+        return;
+      case AccountType.googleReader:
+        await showAddGoogleReaderAccountDialog(context, ref);
         return;
     }
   }
@@ -257,6 +267,10 @@ class AccountManagerDialog extends ConsumerWidget {
                                 AccountType.fever =>
                                   (a.baseUrl ?? '').trim().isEmpty
                                       ? l10n.fever
+                                      : a.baseUrl!.trim(),
+                                AccountType.googleReader =>
+                                  (a.baseUrl ?? '').trim().isEmpty
+                                      ? 'Google Reader compatible'
                                       : a.baseUrl!.trim(),
                               };
 
