@@ -65,6 +65,16 @@ class BackendSyncSemantics {
         taxonomySemantics: BackendTaxonomySemantics.remoteReadOnlyMirror,
         notificationGranularity: BackendNotificationGranularity.summaryOnly,
       ),
+      AccountType.googleReader => const BackendSyncSemantics._(
+        accountType: AccountType.googleReader,
+        refreshScope: BackendRefreshScope.account,
+        historyCoverage: BackendHistoryCoverage.remotePaginatedEntries,
+        entrySyncLimitScope: BackendEntrySyncLimitScope.remoteAccountWindow,
+        remoteFetchConcurrencyScope:
+            BackendRemoteFetchConcurrencyScope.remoteArticleBatches,
+        taxonomySemantics: BackendTaxonomySemantics.remoteReadOnlyMirror,
+        notificationGranularity: BackendNotificationGranularity.summaryOnly,
+      ),
     };
   }
 

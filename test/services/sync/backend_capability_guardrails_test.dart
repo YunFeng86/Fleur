@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 const _rawBackendTypePattern =
-    r'AccountType\.(?:local|miniflux|fever)|'
+    r'AccountType\.(?:local|miniflux|fever|googleReader)|'
     r'\b(?:_?account|activeAccount)\.type\b';
 
 final _rawBackendTypeRegex = RegExp(_rawBackendTypePattern);

@@ -77,13 +77,14 @@ class Account {
   }
 }
 
-enum AccountType { local, miniflux, fever }
+enum AccountType { local, miniflux, fever, googleReader }
 
 extension AccountTypeX on AccountType {
   String get wire => switch (this) {
     AccountType.local => 'local',
     AccountType.miniflux => 'miniflux',
     AccountType.fever => 'fever',
+    AccountType.googleReader => 'googleReader',
   };
 
   static AccountType fromWire(String wire) {
@@ -94,6 +95,8 @@ extension AccountTypeX on AccountType {
         return AccountType.miniflux;
       case 'fever':
         return AccountType.fever;
+      case 'googleReader':
+        return AccountType.googleReader;
       default:
         throw ArgumentError('Unknown account type: $wire');
     }

@@ -24,6 +24,7 @@ class BackendContentCapabilities {
       AccountType.local => _localAvailability(feature),
       AccountType.miniflux => _minifluxAvailability(feature),
       AccountType.fever => _feverAvailability(feature),
+      AccountType.googleReader => _googleReaderAvailability(feature),
     };
   }
 
@@ -67,6 +68,18 @@ class BackendContentCapabilities {
   }
 
   static FeatureAvailability _feverAvailability(BackendContentFeature feature) {
+    return switch (feature) {
+      BackendContentFeature.serverArticleContentFetch =>
+        FeatureAvailability.hidden,
+      BackendContentFeature.clientWebPageFetch ||
+      BackendContentFeature.syncImagePrefetch ||
+      BackendContentFeature.webFetchUserAgent => FeatureAvailability.localOnly,
+    };
+  }
+
+  static FeatureAvailability _googleReaderAvailability(
+    BackendContentFeature feature,
+  ) {
     return switch (feature) {
       BackendContentFeature.serverArticleContentFetch =>
         FeatureAvailability.hidden,
