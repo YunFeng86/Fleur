@@ -34,6 +34,48 @@ void main() {
       expect(payload['status'], 'read');
     });
 
+    test(
+      'parses numeric string entry keys for legacy integer endpoint',
+      () async {
+        final requests = <_RecordedRequest>[];
+        final executor = MinifluxRemoteArticleActionExecutor(
+          _minifluxClient(_minifluxDio(requests)),
+        );
+
+        final applied = await executor.apply(
+          OutboxAction(
+            type: OutboxActionType.markRead,
+            remoteEntryKey: '42',
+            value: true,
+            createdAt: now,
+          ),
+        );
+
+        expect(applied, isTrue);
+        final payload = requests.single.data as Map<String, Object?>;
+        expect(payload['entry_ids'], [42]);
+      },
+    );
+
+    test('rejects nonnumeric string entry keys', () async {
+      final requests = <_RecordedRequest>[];
+      final executor = MinifluxRemoteArticleActionExecutor(
+        _minifluxClient(_minifluxDio(requests)),
+      );
+
+      final applied = await executor.apply(
+        OutboxAction(
+          type: OutboxActionType.bookmark,
+          remoteEntryKey: 'tag:google.com,2005:reader/item/a',
+          value: true,
+          createdAt: now,
+        ),
+      );
+
+      expect(applied, isFalse);
+      expect(requests, isEmpty);
+    });
+
     test('applies bookmark through idempotent bookmark state', () async {
       final requests = <_RecordedRequest>[];
       final executor = MinifluxRemoteArticleActionExecutor(
@@ -157,6 +199,31 @@ void main() {
       expect(requests[1].query, contains('as=unsaved'));
       expect(requests[1].query, contains('id=99'));
     });
+
+    test(
+      'parses numeric string entry keys for Fever item mark queries',
+      () async {
+        final requests = <_RecordedRequest>[];
+        final executor = FeverRemoteArticleActionExecutor(
+          _feverClient(_feverDio(requests)),
+        );
+
+        expect(
+          await executor.apply(
+            OutboxAction(
+              type: OutboxActionType.markRead,
+              remoteEntryKey: '42',
+              value: true,
+              createdAt: now,
+            ),
+          ),
+          isTrue,
+        );
+
+        expect(requests.single.query, contains('mark=item'));
+        expect(requests.single.query, contains('id=42'));
+      },
+    );
 
     test(
       'applies feed and group scoped markAllRead with action timestamp',

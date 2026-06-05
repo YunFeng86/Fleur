@@ -41,11 +41,10 @@ class ArticleActionService {
     if (!ok) return;
     if (!_shouldProjectRemote(BackendFeature.articleReadState)) return;
 
-    final entryId = await _resolveRemoteEntryId(articleId);
-    if (entryId == null) return;
-
     switch (_account.type) {
       case AccountType.miniflux:
+        final entryId = await _resolveRemoteEntryId(articleId);
+        if (entryId == null) return;
         final client = await _clientFactory.minifluxOrNull(_account);
         if (client == null) return;
         try {
@@ -70,6 +69,8 @@ class ArticleActionService {
         }
         return;
       case AccountType.fever:
+        final entryId = await _resolveRemoteEntryId(articleId);
+        if (entryId == null) return;
         final client = await _clientFactory.feverOrNull(_account);
         if (client == null) return;
         try {
@@ -93,6 +94,23 @@ class ArticleActionService {
           );
         }
         return;
+      case AccountType.googleReader:
+        final itemId = await _resolveRemoteEntryKey(articleId);
+        if (itemId == null) return;
+        final client = await _clientFactory.googleReaderOrNull(_account);
+        if (client == null) return;
+        final action = OutboxAction(
+          type: OutboxActionType.markRead,
+          remoteEntryKey: itemId,
+          value: isRead,
+          createdAt: DateTime.now(),
+        );
+        try {
+          await GoogleReaderRemoteArticleActionExecutor(client).apply(action);
+        } catch (_) {
+          await _outbox.enqueue(_account.id, action);
+        }
+        return;
       case AccountType.local:
         return;
     }
@@ -104,11 +122,11 @@ class ArticleActionService {
     if (!_shouldProjectRemote(BackendFeature.articleStarState)) return;
 
     final a = await _articles.getById(articleId);
-    final rid = int.tryParse((a?.remoteId ?? '').trim());
-    if (rid == null) return;
 
     switch (_account.type) {
       case AccountType.miniflux:
+        final rid = int.tryParse((a?.remoteId ?? '').trim());
+        if (rid == null) return;
         final client = await _clientFactory.minifluxOrNull(_account);
         if (client == null) return;
         try {
@@ -133,6 +151,8 @@ class ArticleActionService {
         }
         return;
       case AccountType.fever:
+        final rid = int.tryParse((a?.remoteId ?? '').trim());
+        if (rid == null) return;
         final client = await _clientFactory.feverOrNull(_account);
         if (client == null) return;
         final target = a?.isStarred == true;
@@ -155,6 +175,24 @@ class ArticleActionService {
               createdAt: DateTime.now(),
             ),
           );
+        }
+        return;
+      case AccountType.googleReader:
+        final itemId = (a?.remoteId ?? '').trim();
+        if (itemId.isEmpty) return;
+        final client = await _clientFactory.googleReaderOrNull(_account);
+        if (client == null) return;
+        final target = a?.isStarred == true;
+        final action = OutboxAction(
+          type: OutboxActionType.bookmark,
+          remoteEntryKey: itemId,
+          value: target,
+          createdAt: DateTime.now(),
+        );
+        try {
+          await GoogleReaderRemoteArticleActionExecutor(client).apply(action);
+        } catch (_) {
+          await _outbox.enqueue(_account.id, action);
         }
         return;
       case AccountType.local:
@@ -216,6 +254,19 @@ class ArticleActionService {
         if (client == null) return;
         try {
           if (await FeverRemoteArticleActionExecutor(client).apply(action)) {
+            await _outbox.remove(_account.id, action);
+          }
+        } catch (_) {
+          // Keep in outbox; will be flushed on next sync.
+        }
+        return;
+      case AccountType.googleReader:
+        final client = await _clientFactory.googleReaderOrNull(_account);
+        if (client == null) return;
+        try {
+          if (await GoogleReaderRemoteArticleActionExecutor(
+            client,
+          ).apply(action)) {
             await _outbox.remove(_account.id, action);
           }
         } catch (_) {
@@ -292,5 +343,11 @@ class ArticleActionService {
     final raw = a.remoteId?.trim() ?? '';
     if (raw.isEmpty) return null;
     return int.tryParse(raw);
+  }
+
+  Future<String?> _resolveRemoteEntryKey(int articleId) async {
+    final a = await _articles.getById(articleId);
+    final raw = a?.remoteId?.trim() ?? '';
+    return raw.isEmpty ? null : raw;
   }
 }
