@@ -165,8 +165,15 @@ class _SidebarState extends ConsumerState<Sidebar> {
     if (renderObject is! RenderBox || !renderObject.hasSize) return;
 
     final l10n = AppLocalizations.of(context)!;
+    const menuItemHeight = 40.0;
+    const menuVerticalPadding = 8.0;
+    const menuGap = 8.0;
+    const menuHorizontalInset = 12.0;
+    final menuHeight =
+        _SidebarAccountMenuAction.values.length * menuItemHeight +
+        menuVerticalPadding;
     final position = renderObject.localToGlobal(
-      Offset(renderObject.size.width - 16, -4),
+      Offset(menuHorizontalInset, -menuHeight - menuGap),
     );
     final action = await AppMenuHost.showAt<_SidebarAccountMenuAction>(
       context,
