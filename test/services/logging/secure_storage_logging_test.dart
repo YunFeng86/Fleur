@@ -1,3 +1,6 @@
+@Tags(['global_logger'])
+library;
+
 import 'dart:io';
 
 import 'package:flutter/services.dart';

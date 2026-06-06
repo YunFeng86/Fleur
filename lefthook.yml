@@ -25,4 +25,6 @@ pre-push:
     - name: analyze
       run: flutter analyze
     - name: test
-      run: flutter test
+      run: flutter test --exclude-tags global_logger
+    - name: test-global-logger
+      run: flutter test --tags global_logger --concurrency=1

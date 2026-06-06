@@ -1,3 +1,6 @@
+@Tags(['global_logger'])
+library;
+
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;

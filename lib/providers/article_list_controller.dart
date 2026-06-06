@@ -57,6 +57,7 @@ class ArticleListController extends AutoDisposeAsyncNotifier<ArticleListState> {
   bool? _searchInContentOverride;
   bool _sortAscending = false;
   bool _searchInContent = true;
+  bool _isMounted = false;
 
   ArticleQuery _currentQuery() {
     return ArticleQuery(
@@ -74,6 +75,7 @@ class ArticleListController extends AutoDisposeAsyncNotifier<ArticleListState> {
 
   @override
   Future<ArticleListState> build() async {
+    _isMounted = true;
     _scope = ref.watch(currentArticleScopeProvider);
     _unreadOnly = ref.watch(unreadOnlyProvider);
     _searchQuery = ref.watch(articleSearchQueryProvider);
@@ -96,9 +98,16 @@ class ArticleListController extends AutoDisposeAsyncNotifier<ArticleListState> {
     // 仅监听当前查询，避免全表刷新。
     final query = _currentQuery();
     _sub = repo.watchQueryChanges(query).listen((_) {
+      if (!_isMounted) return;
       unawaited(refresh());
     });
-    ref.onDispose(() => _sub?.cancel());
+    ref.onDispose(() {
+      _isMounted = false;
+      final sub = _sub;
+      if (sub != null) {
+        unawaited(sub.cancel());
+      }
+    });
 
     final items = await repo.fetchPage(query, offset: 0, limit: _pageSize);
     return ArticleListState(
@@ -109,13 +118,17 @@ class ArticleListController extends AutoDisposeAsyncNotifier<ArticleListState> {
   }
 
   Future<void> refresh() async {
+    if (!_isMounted) return;
     final repo = ref.read(articleRepositoryProvider);
+    final selectedArticleId = ref.read(activeArticleListSelectionProvider);
     final query = _currentQuery();
     final current = state.valueOrNull;
     if (current == null) {
       final ids = await repo.fetchPageIds(query, offset: 0, limit: _pageSize);
+      if (!_isMounted) return;
       final hasMore = ids.length == _pageSize;
       final items = await repo.fetchPage(query, offset: 0, limit: _pageSize);
+      if (!_isMounted) return;
       state = AsyncValue.data(
         ArticleListState(
           items: items,
@@ -132,6 +145,7 @@ class ArticleListController extends AutoDisposeAsyncNotifier<ArticleListState> {
       limit = current.items.isEmpty ? _pageSize : current.items.length;
     }
     var ids = await repo.fetchPageIds(query, offset: offset, limit: limit + 1);
+    if (!_isMounted) return;
     var hasMore = ids.length > limit;
     var windowIds = hasMore ? ids.sublist(0, limit) : ids;
 
@@ -139,6 +153,7 @@ class ArticleListController extends AutoDisposeAsyncNotifier<ArticleListState> {
       offset = 0;
       limit = _pageSize;
       ids = await repo.fetchPageIds(query, offset: offset, limit: limit + 1);
+      if (!_isMounted) return;
       hasMore = ids.length > limit;
       windowIds = hasMore ? ids.sublist(0, limit) : ids;
     }
@@ -147,6 +162,7 @@ class ArticleListController extends AutoDisposeAsyncNotifier<ArticleListState> {
       query: query,
       currentItems: current.items,
       windowIds: windowIds,
+      selectedArticleId: selectedArticleId,
     );
     final displayIds = retainedWindow.ids;
     final nextOffset = offset + windowIds.length;
@@ -157,6 +173,7 @@ class ArticleListController extends AutoDisposeAsyncNotifier<ArticleListState> {
           !current.isLoadingMore) {
         return;
       }
+      if (!_isMounted) return;
       state = AsyncValue.data(
         current.copyWith(
           hasMore: hasMore,
@@ -170,6 +187,7 @@ class ArticleListController extends AutoDisposeAsyncNotifier<ArticleListState> {
     final queryItems = windowIds.isEmpty
         ? const <Article>[]
         : await repo.fetchPage(query, offset: offset, limit: windowIds.length);
+    if (!_isMounted) return;
     final items = retainedWindow.apply(queryItems);
     state = AsyncValue.data(
       current.copyWith(
@@ -186,8 +204,8 @@ class ArticleListController extends AutoDisposeAsyncNotifier<ArticleListState> {
     required ArticleQuery query,
     required List<Article> currentItems,
     required List<int> windowIds,
+    required int? selectedArticleId,
   }) {
-    final selectedArticleId = ref.read(activeArticleListSelectionProvider);
     if (!query.unreadOnly ||
         selectedArticleId == null ||
         windowIds.contains(selectedArticleId)) {
