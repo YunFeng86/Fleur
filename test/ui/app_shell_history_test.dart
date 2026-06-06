@@ -84,6 +84,14 @@ IconButton _iconButton(WidgetTester tester, Key key) {
   return tester.widget<IconButton>(_shellIconButton(key));
 }
 
+Color? _resolvedForegroundColor(
+  WidgetTester tester,
+  Key key,
+  Set<WidgetState> states,
+) {
+  return _iconButton(tester, key).style?.foregroundColor?.resolve(states);
+}
+
 Future<void> _pumpDesktopShell(WidgetTester tester, GoRouter router) async {
   debugFleurTargetPlatformOverride = TargetPlatform.windows;
   addTearDown(() => debugFleurTargetPlatformOverride = null);
@@ -161,6 +169,36 @@ void main() {
       );
     },
   );
+
+  testWidgets('expanded controls use a visibly muted disabled foreground', (
+    tester,
+  ) async {
+    final router = _buildShellRouter();
+    addTearDown(router.dispose);
+    await _pumpDesktopShell(tester, router);
+
+    expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
+
+    final context = tester.element(
+      _shellIconButton(const Key('shell_forward_button')),
+    );
+    final scheme = Theme.of(context).colorScheme;
+
+    expect(
+      _resolvedForegroundColor(tester, const Key('shell_forward_button'), {
+        WidgetState.disabled,
+      }),
+      scheme.onSurface.withValues(alpha: 0.28),
+    );
+    expect(
+      _resolvedForegroundColor(
+        tester,
+        const Key('shell_sidebar_button'),
+        <WidgetState>{},
+      ),
+      scheme.onSurfaceVariant,
+    );
+  });
 
   testWidgets('collapsed capsule controls use the same history state', (
     tester,

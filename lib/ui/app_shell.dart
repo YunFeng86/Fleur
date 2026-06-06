@@ -924,15 +924,40 @@ class _DrawerControlButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final states = theme.fleurState;
+    final disabledOpacity = theme.brightness == Brightness.dark ? 0.22 : 0.28;
+
     return IconButton(
       tooltip: tooltip,
       onPressed: onPressed,
       icon: Icon(icon, size: kShellControlIconSize),
-      style: IconButton.styleFrom(
-        fixedSize: const Size.square(kShellControlSize),
-        minimumSize: const Size.square(kShellControlSize),
-        padding: EdgeInsets.zero,
+      style: ButtonStyle(
+        fixedSize: const WidgetStatePropertyAll(Size.square(kShellControlSize)),
+        minimumSize: const WidgetStatePropertyAll(
+          Size.square(kShellControlSize),
+        ),
+        padding: const WidgetStatePropertyAll(EdgeInsets.zero),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        visualDensity: VisualDensity.compact,
+        foregroundColor: WidgetStateProperty.resolveWith((stateSet) {
+          if (stateSet.contains(WidgetState.disabled)) {
+            return scheme.onSurface.withValues(alpha: disabledOpacity);
+          }
+          return scheme.onSurfaceVariant;
+        }),
+        overlayColor: WidgetStateProperty.resolveWith((stateSet) {
+          if (stateSet.contains(WidgetState.disabled)) {
+            return Colors.transparent;
+          }
+          if (stateSet.contains(WidgetState.pressed)) return states.pressedTint;
+          if (stateSet.contains(WidgetState.hovered) ||
+              stateSet.contains(WidgetState.focused)) {
+            return states.hoverTint;
+          }
+          return null;
+        }),
       ),
     );
   }
