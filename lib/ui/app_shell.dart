@@ -137,6 +137,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     required double width,
     required bool showAccountSyncStatus,
     required Uri currentUri,
+    required MacOSWindowChromeMetrics macOSWindowChromeMetrics,
     VoidCallback? onSearch,
     SidebarPresentationMode? presentationModeOverride,
   }) {
@@ -149,6 +150,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         showAccountSyncStatus: showAccountSyncStatus,
         currentUri: currentUri,
         onSearch: onSearch,
+        macOSWindowChromeMetrics: macOSWindowChromeMetrics,
       ),
     );
   }
@@ -314,6 +316,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                     width: sidebarWidth,
                     showAccountSyncStatus: showAccountSyncStatus,
                     currentUri: widget.currentUri,
+                    macOSWindowChromeMetrics: macOSWindowChromeMetrics,
                     onSearch: sidebarExpanded || temporarySidebarOpen
                         ? () => _goToSearch(context)
                         : null,

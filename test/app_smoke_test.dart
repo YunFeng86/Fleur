@@ -1127,10 +1127,14 @@ void main() {
     final shellButtonCenter = tester
         .getCenter(find.byKey(const Key('shell_sidebar_button')))
         .dy;
+    final shellSearchCenter = tester
+        .getCenter(find.byKey(const Key('shell_search_button')))
+        .dy;
 
     expect(shellButtonLeft, 96);
     expect(shellButtonTop, 26 - (kShellControlSize / 2));
     expect(shellButtonCenter, 26);
+    expect(shellSearchCenter, 26);
   });
 
   testWidgets(

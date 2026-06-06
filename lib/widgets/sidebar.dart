@@ -45,6 +45,7 @@ class Sidebar extends ConsumerStatefulWidget {
     this.showAccountSyncStatus = true,
     this.currentUri,
     this.onSearch,
+    this.macOSWindowChromeMetrics = MacOSWindowChromeMetrics.fallback,
   });
 
   final ValueChanged<ArticleScope> onSelectScope;
@@ -55,6 +56,7 @@ class Sidebar extends ConsumerStatefulWidget {
   final bool showAccountSyncStatus;
   final Uri? currentUri;
   final VoidCallback? onSearch;
+  final MacOSWindowChromeMetrics macOSWindowChromeMetrics;
 
   @override
   ConsumerState<Sidebar> createState() => _SidebarState();
@@ -311,6 +313,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
               reserveShellHeader: widget.reserveShellHeader,
               searchSelected: searchSelected,
               onSearch: widget.onSearch,
+              macOSWindowChromeMetrics: widget.macOSWindowChromeMetrics,
               navigationTree: navigationTree,
               navigationScrollController: _scrollController,
             ),
@@ -671,6 +674,7 @@ class _SidebarPanel extends StatelessWidget {
     required this.reserveShellHeader,
     required this.searchSelected,
     required this.onSearch,
+    required this.macOSWindowChromeMetrics,
     required this.navigationTree,
     required this.navigationScrollController,
   });
@@ -684,6 +688,7 @@ class _SidebarPanel extends StatelessWidget {
   final bool reserveShellHeader;
   final bool searchSelected;
   final VoidCallback? onSearch;
+  final MacOSWindowChromeMetrics macOSWindowChromeMetrics;
   final Widget navigationTree;
   final ScrollController navigationScrollController;
 
@@ -695,6 +700,7 @@ class _SidebarPanel extends StatelessWidget {
           _SidebarPanelHeader(
             searchSelected: searchSelected,
             onSearch: onSearch,
+            macOSWindowChromeMetrics: macOSWindowChromeMetrics,
           ),
         _SidebarPanelFixedItems(
           items: fixedItems,
@@ -717,47 +723,56 @@ class _SidebarPanelHeader extends StatelessWidget {
   const _SidebarPanelHeader({
     required this.searchSelected,
     required this.onSearch,
+    required this.macOSWindowChromeMetrics,
   });
 
   final bool searchSelected;
   final VoidCallback? onSearch;
+  final MacOSWindowChromeMetrics macOSWindowChromeMetrics;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final onPressed = onSearch;
+    final controlTop = isMacOS
+        ? macOSWindowChromeMetrics.shellControlTopInset
+        : kShellControlTopInset;
 
     return SizedBox(
       key: const Key('app_shell_sidebar_header'),
       height: kWorkspaceHeaderHeight,
       child: onPressed == null
           ? const SizedBox.shrink()
-          : Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: Semantics(
-                  button: true,
-                  selected: searchSelected,
-                  label: l10n.search,
-                  child: IconButton(
-                    key: const Key('shell_search_button'),
-                    tooltip: l10n.search,
-                    onPressed: onPressed,
-                    icon: Icon(
-                      searchSelected
-                          ? FleurIcons.searchSelected
-                          : FleurIcons.search,
-                    ),
-                    iconSize: kShellControlIconSize,
-                    style: FleurCapsuleIconButton.styleFor(
-                      context,
-                      selected: searchSelected,
-                      size: kShellControlSize,
+          : Stack(
+              children: [
+                Positioned(
+                  right: 8,
+                  top: controlTop,
+                  width: kShellControlSize,
+                  height: kShellControlSize,
+                  child: Semantics(
+                    button: true,
+                    selected: searchSelected,
+                    label: l10n.search,
+                    child: IconButton(
+                      key: const Key('shell_search_button'),
+                      tooltip: l10n.search,
+                      onPressed: onPressed,
+                      icon: Icon(
+                        searchSelected
+                            ? FleurIcons.searchSelected
+                            : FleurIcons.search,
+                      ),
+                      iconSize: kShellControlIconSize,
+                      style: FleurCapsuleIconButton.styleFor(
+                        context,
+                        selected: searchSelected,
+                        size: kShellControlSize,
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
     );
   }
