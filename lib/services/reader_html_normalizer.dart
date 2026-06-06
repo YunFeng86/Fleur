@@ -83,11 +83,12 @@ _MathMatch? _findNextMath(String text, int start) {
 }
 
 _MathMatch? _findMathWithOpener(String text, int start, String opener) {
+  if (opener == r'$') {
+    return _findSingleDollarMath(text, start);
+  }
+
   final openIndex = _indexOfUnescaped(text, opener, start);
   if (openIndex < 0) return null;
-  if (opener == r'$' && _isDoubleDollarAt(text, openIndex)) {
-    return null;
-  }
 
   final closer = switch (opener) {
     r'$$' => r'$$',
@@ -98,9 +99,6 @@ _MathMatch? _findMathWithOpener(String text, int start, String opener) {
   final closeStart = openIndex + opener.length;
   final closeIndex = _indexOfUnescaped(text, closer, closeStart);
   if (closeIndex < 0) return null;
-  if (closer == r'$' && _isDoubleDollarAt(text, closeIndex)) {
-    return null;
-  }
 
   final expression = text.substring(closeStart, closeIndex).trim();
   if (expression.isEmpty) return null;
@@ -110,6 +108,36 @@ _MathMatch? _findMathWithOpener(String text, int start, String opener) {
     expression: expression,
     display: opener == r'$$' || opener == r'\[',
   );
+}
+
+_MathMatch? _findSingleDollarMath(String text, int start) {
+  var openIndex = _indexOfUnescaped(text, r'$', start);
+  while (openIndex >= 0) {
+    if (!_isValidSingleDollarOpener(text, openIndex)) {
+      openIndex = _indexOfUnescaped(text, r'$', openIndex + 1);
+      continue;
+    }
+
+    final closeStart = openIndex + 1;
+    var closeIndex = _indexOfUnescaped(text, r'$', closeStart);
+    while (closeIndex >= 0) {
+      if (_isValidSingleDollarCloser(text, closeIndex)) {
+        final expression = text.substring(closeStart, closeIndex).trim();
+        if (expression.isNotEmpty) {
+          return _MathMatch(
+            start: openIndex,
+            end: closeIndex + 1,
+            expression: expression,
+            display: false,
+          );
+        }
+      }
+      closeIndex = _indexOfUnescaped(text, r'$', closeIndex + 1);
+    }
+
+    openIndex = _indexOfUnescaped(text, r'$', openIndex + 1);
+  }
+  return null;
 }
 
 int _indexOfUnescaped(String text, String pattern, int start) {
@@ -129,10 +157,43 @@ bool _isEscaped(String text, int index) {
   return count.isOdd;
 }
 
+bool _isValidSingleDollarOpener(String text, int index) {
+  return !_isPartOfDoubleDollar(text, index) &&
+      index + 1 < text.length &&
+      !_isAsciiWhitespace(text.codeUnitAt(index + 1));
+}
+
+bool _isValidSingleDollarCloser(String text, int index) {
+  return !_isPartOfDoubleDollar(text, index) &&
+      index > 0 &&
+      !_isAsciiWhitespace(text.codeUnitAt(index - 1)) &&
+      (index + 1 >= text.length || !_isAsciiDigit(text.codeUnitAt(index + 1)));
+}
+
+bool _isPartOfDoubleDollar(String text, int index) {
+  return _isDoubleDollarAt(text, index) ||
+      (index > 0 &&
+          text.codeUnitAt(index - 1) == 36 &&
+          text.codeUnitAt(index) == 36);
+}
+
 bool _isDoubleDollarAt(String text, int index) {
   return index + 1 < text.length &&
       text.codeUnitAt(index) == 36 &&
       text.codeUnitAt(index + 1) == 36;
+}
+
+bool _isAsciiWhitespace(int codeUnit) {
+  return codeUnit == 32 ||
+      codeUnit == 9 ||
+      codeUnit == 10 ||
+      codeUnit == 11 ||
+      codeUnit == 12 ||
+      codeUnit == 13;
+}
+
+bool _isAsciiDigit(int codeUnit) {
+  return codeUnit >= 48 && codeUnit <= 57;
 }
 
 dom.Element _buildMathElement(String expression, {required bool display}) {
