@@ -16,12 +16,14 @@ class SyncStatusCapsuleHost extends ConsumerWidget {
     super.key,
     required this.child,
     this.enabled = true,
+    this.alignment = Alignment.bottomLeft,
     this.padding = const EdgeInsets.fromLTRB(16, 0, 16, 12),
     this.maxWidth = kSyncStatusCapsuleMaxWidth,
   });
 
   final Widget child;
   final bool enabled;
+  final AlignmentGeometry alignment;
   final EdgeInsets padding;
   final double maxWidth;
 
@@ -33,6 +35,10 @@ class SyncStatusCapsuleHost extends ConsumerWidget {
     final visible = state.visible;
     final reduceMotion = AppMotion.reduceMotion(context);
     final duration = reduceMotion ? Duration.zero : AppMotion.short;
+    final resolvedAlignment = alignment.resolve(Directionality.of(context));
+    final capsuleMaxWidth = resolvedAlignment.x < 0
+        ? double.infinity
+        : maxWidth;
 
     return Stack(
       fit: StackFit.expand,
@@ -45,9 +51,9 @@ class SyncStatusCapsuleHost extends ConsumerWidget {
           child: Padding(
             padding: padding,
             child: Align(
-              alignment: Alignment.bottomLeft,
+              alignment: alignment,
               child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: maxWidth),
+                constraints: BoxConstraints(maxWidth: capsuleMaxWidth),
                 child: AnimatedSlide(
                   offset: visible ? Offset.zero : const Offset(0, 1),
                   duration: duration,

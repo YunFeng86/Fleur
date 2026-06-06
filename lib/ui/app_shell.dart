@@ -80,6 +80,9 @@ class _AppShellState extends ConsumerState<AppShell> {
     unawaited(Navigator.of(context).pushNamed('/search'));
   }
 
+  bool _isSearchRoute(Uri uri) =>
+      uri.pathSegments.isNotEmpty && uri.pathSegments.first == 'search';
+
   void _closeTemporarySidebar() {
     if (!_temporarySidebarOpen) return;
     setState(() => _temporarySidebarOpen = false);
@@ -114,6 +117,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   Widget _sidebarDrawer(
     BuildContext context, {
     required bool showAccountSyncStatus,
+    required Uri currentUri,
   }) {
     return Drawer(
       child: SafeArea(
@@ -122,6 +126,7 @@ class _AppShellState extends ConsumerState<AppShell> {
           router: GoRouter.maybeOf(context),
           presentationModeOverride: SidebarPresentationMode.expanded,
           showAccountSyncStatus: showAccountSyncStatus,
+          currentUri: currentUri,
         ),
       ),
     );
@@ -131,6 +136,8 @@ class _AppShellState extends ConsumerState<AppShell> {
     required BuildContext context,
     required double width,
     required bool showAccountSyncStatus,
+    required Uri currentUri,
+    VoidCallback? onSearch,
     SidebarPresentationMode? presentationModeOverride,
   }) {
     return SizedBox(
@@ -140,6 +147,8 @@ class _AppShellState extends ConsumerState<AppShell> {
         reserveShellHeader: isDesktop,
         presentationModeOverride: presentationModeOverride,
         showAccountSyncStatus: showAccountSyncStatus,
+        currentUri: currentUri,
+        onSearch: onSearch,
       ),
     );
   }
@@ -151,6 +160,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     required SidebarPresentationMode presentationMode,
     required MacOSWindowChromeMetrics macOSWindowChromeMetrics,
     required bool usesTemporarySidebar,
+    required bool searchSelected,
   }) {
     if (!isDesktop) return child;
     return Stack(
@@ -166,6 +176,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                 _toggleSidebar(ref, usesTemporarySidebar: usesTemporarySidebar),
             onPop: () => _pop(context),
             onSearch: () => _goToSearch(context),
+            searchSelected: searchSelected,
           ),
         ),
       ],
@@ -237,7 +248,8 @@ class _AppShellState extends ConsumerState<AppShell> {
       macOSWindowChromeMetrics,
       fallback: 12,
     );
-    final controlsRight = controlsLeft + _kShellControlsGroupWidth;
+    final controlsRight =
+        controlsLeft + _shellControlsGroupWidth(controlsPresentationMode);
     final overlapWithContent = controlsRight - contentLeft;
     final headerLeadingInset = overlapWithContent > 0
         ? overlapWithContent + 8
@@ -288,6 +300,7 @@ class _AppShellState extends ConsumerState<AppShell> {
             presentationMode: controlsPresentationMode,
             macOSWindowChromeMetrics: macOSWindowChromeMetrics,
             usesTemporarySidebar: !hasInlineSidebar,
+            searchSelected: _isSearchRoute(widget.currentUri),
             child: Stack(
               clipBehavior: Clip.hardEdge,
               children: [
@@ -300,6 +313,10 @@ class _AppShellState extends ConsumerState<AppShell> {
                     context: context,
                     width: sidebarWidth,
                     showAccountSyncStatus: showAccountSyncStatus,
+                    currentUri: widget.currentUri,
+                    onSearch: sidebarExpanded || temporarySidebarOpen
+                        ? () => _goToSearch(context)
+                        : null,
                     presentationModeOverride: SidebarPresentationMode.expanded,
                   ),
                 ),
@@ -355,6 +372,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                       presentationModeOverride:
                           SidebarPresentationMode.collapsed,
                       showAccountSyncStatus: showAccountSyncStatus,
+                      currentUri: widget.currentUri,
                     ),
                   ),
                 ),
@@ -471,6 +489,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         drawer: _sidebarDrawer(
           context,
           showAccountSyncStatus: !spec.showsListSyncStatusCapsule,
+          currentUri: widget.currentUri,
         ),
         body: Builder(
           builder: (scaffoldContext) {
@@ -498,7 +517,9 @@ class _AppShellState extends ConsumerState<AppShell> {
 }
 
 const _kContentLayerAnimationDuration = Duration(milliseconds: 180);
-const double _kShellControlsGroupWidth = kShellControlSize * 4;
+double _shellControlsGroupWidth(SidebarPresentationMode mode) {
+  return kShellControlSize * (mode == SidebarPresentationMode.expanded ? 3 : 4);
+}
 
 double _shellControlsLeftInset(
   MacOSWindowChromeMetrics metrics, {
@@ -596,6 +617,7 @@ class _InlineShellControlsHost extends StatelessWidget {
     required this.onToggleSidebar,
     required this.onPop,
     required this.onSearch,
+    required this.searchSelected,
   });
 
   final SidebarPresentationMode presentationMode;
@@ -603,6 +625,7 @@ class _InlineShellControlsHost extends StatelessWidget {
   final VoidCallback onToggleSidebar;
   final VoidCallback onPop;
   final VoidCallback onSearch;
+  final bool searchSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -630,12 +653,14 @@ class _InlineShellControlsHost extends StatelessWidget {
         onPressed: null,
         icon: FleurIcons.forward,
       ),
-      _ShellControlData(
-        key: const Key('shell_search_button'),
-        tooltip: l10n.search,
-        onPressed: onSearch,
-        icon: FleurIcons.search,
-      ),
+      if (!sidebarExpanded)
+        _ShellControlData(
+          key: const Key('shell_search_button'),
+          tooltip: l10n.search,
+          onPressed: onSearch,
+          icon: searchSelected ? FleurIcons.searchSelected : FleurIcons.search,
+          selected: searchSelected,
+        ),
     ];
 
     if (!sidebarExpanded) {
@@ -650,6 +675,7 @@ class _InlineShellControlsHost extends StatelessWidget {
               tooltip: control.tooltip,
               onPressed: control.onPressed,
               icon: control.icon,
+              selected: control.selected,
               size: kShellControlSize,
               iconSize: kShellControlIconSize,
             ),
@@ -678,12 +704,14 @@ class _ShellControlData {
     required this.tooltip,
     required this.onPressed,
     required this.icon,
+    this.selected = false,
   });
 
   final Key key;
   final String tooltip;
   final VoidCallback? onPressed;
   final IconData icon;
+  final bool selected;
 }
 
 class _DrawerControlsHost extends StatelessWidget {

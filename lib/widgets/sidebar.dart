@@ -31,6 +31,7 @@ import '../ui/sidebar/sidebar_selection_actions.dart';
 import '../ui/sidebar/sidebar_tree.dart';
 import '../utils/platform.dart';
 import 'account_avatar.dart';
+import 'fleur_capsule_button_group.dart';
 import 'overflow_marquee.dart';
 
 class Sidebar extends ConsumerStatefulWidget {
@@ -42,6 +43,8 @@ class Sidebar extends ConsumerStatefulWidget {
     this.reserveShellHeader = false,
     this.transparentBackground = false,
     this.showAccountSyncStatus = true,
+    this.currentUri,
+    this.onSearch,
   });
 
   final ValueChanged<ArticleScope> onSelectScope;
@@ -50,6 +53,8 @@ class Sidebar extends ConsumerStatefulWidget {
   final bool reserveShellHeader;
   final bool transparentBackground;
   final bool showAccountSyncStatus;
+  final Uri? currentUri;
+  final VoidCallback? onSearch;
 
   @override
   ConsumerState<Sidebar> createState() => _SidebarState();
@@ -227,10 +232,17 @@ class _SidebarState extends ConsumerState<Sidebar> {
     final readLaterOnly = ref.watch(readLaterOnlyProvider);
     final allUnreadCounts = ref.watch(allUnreadCountsProvider);
     final currentScope = ref.watch(currentArticleScopeProvider);
+    final searchSelected = _isSidebarSearchRoute(widget.currentUri);
+    final addSubscriptionSelected = _isSidebarAddSubscriptionRoute(
+      widget.currentUri,
+    );
+    final suppressScopeSelection = searchSelected || addSubscriptionSelected;
     final fixedItems = _fixedScopeItems(
       context: context,
       currentScope: currentScope,
       allUnreadCount: allUnreadCounts.valueOrNull?[null] ?? 0,
+      suppressScopeSelection: suppressScopeSelection,
+      addSubscriptionSelected: addSubscriptionSelected,
       showAddSubscription: capabilities.isVisible(
         BackendFeature.addSubscription,
       ),
@@ -297,6 +309,8 @@ class _SidebarState extends ConsumerState<Sidebar> {
               onAccountTap: () => unawaited(_showAccountMenu()),
               accountAnchorKey: _accountFooterKey,
               reserveShellHeader: widget.reserveShellHeader,
+              searchSelected: searchSelected,
+              onSearch: widget.onSearch,
               navigationTree: navigationTree,
               navigationScrollController: _scrollController,
             ),
@@ -389,10 +403,22 @@ const double _kSidebarAccountHeight = 56;
 const double _kSidebarRailHorizontalInset = 10;
 const double _kSidebarAccountAvatarRadius = 16;
 
+bool _isSidebarSearchRoute(Uri? uri) {
+  if (uri == null || uri.pathSegments.isEmpty) return false;
+  return uri.pathSegments.first == 'search';
+}
+
+bool _isSidebarAddSubscriptionRoute(Uri? uri) {
+  if (uri == null || uri.pathSegments.isEmpty) return false;
+  return uri.pathSegments.first == 'add-subscription';
+}
+
 List<_SidebarFixedItemData> _fixedScopeItems({
   required BuildContext context,
   required ArticleScope currentScope,
   required int allUnreadCount,
+  required bool suppressScopeSelection,
+  required bool addSubscriptionSelected,
   required bool showAddSubscription,
   required VoidCallback onSelectAll,
   required VoidCallback onSelectStarred,
@@ -403,7 +429,7 @@ List<_SidebarFixedItemData> _fixedScopeItems({
   return [
     _SidebarFixedItemData(
       key: const Key('sidebar_all_button'),
-      selected: currentScope == ArticleScope.all,
+      selected: !suppressScopeSelection && currentScope == ArticleScope.all,
       icon: FleurIcons.feed,
       title: l10n.all,
       count: allUnreadCount,
@@ -411,7 +437,7 @@ List<_SidebarFixedItemData> _fixedScopeItems({
     ),
     _SidebarFixedItemData(
       key: const Key('sidebar_starred_button'),
-      selected: currentScope == ArticleScope.starred,
+      selected: !suppressScopeSelection && currentScope == ArticleScope.starred,
       icon: FleurIcons.star,
       selectedIcon: FleurIcons.starActive,
       title: l10n.starred,
@@ -419,7 +445,8 @@ List<_SidebarFixedItemData> _fixedScopeItems({
     ),
     _SidebarFixedItemData(
       key: const Key('sidebar_read_later_button'),
-      selected: currentScope == ArticleScope.readLater,
+      selected:
+          !suppressScopeSelection && currentScope == ArticleScope.readLater,
       icon: FleurIcons.readLater,
       selectedIcon: FleurIcons.readLaterActive,
       title: l10n.readLater,
@@ -428,7 +455,7 @@ List<_SidebarFixedItemData> _fixedScopeItems({
     if (showAddSubscription)
       _SidebarFixedItemData(
         key: const Key('sidebar_add_subscription_button'),
-        selected: false,
+        selected: addSubscriptionSelected,
         icon: FleurIcons.add,
         title: l10n.addSubscription,
         onTap: onAddSubscription,
@@ -642,6 +669,8 @@ class _SidebarPanel extends StatelessWidget {
     required this.onAccountTap,
     required this.accountAnchorKey,
     required this.reserveShellHeader,
+    required this.searchSelected,
+    required this.onSearch,
     required this.navigationTree,
     required this.navigationScrollController,
   });
@@ -653,6 +682,8 @@ class _SidebarPanel extends StatelessWidget {
   final VoidCallback onAccountTap;
   final Key accountAnchorKey;
   final bool reserveShellHeader;
+  final bool searchSelected;
+  final VoidCallback? onSearch;
   final Widget navigationTree;
   final ScrollController navigationScrollController;
 
@@ -661,9 +692,9 @@ class _SidebarPanel extends StatelessWidget {
     return Column(
       children: [
         if (reserveShellHeader)
-          const SizedBox(
-            key: Key('app_shell_sidebar_header'),
-            height: kWorkspaceHeaderHeight,
+          _SidebarPanelHeader(
+            searchSelected: searchSelected,
+            onSearch: onSearch,
           ),
         _SidebarPanelFixedItems(
           items: fixedItems,
@@ -678,6 +709,56 @@ class _SidebarPanel extends StatelessWidget {
           accountAnchorKey: accountAnchorKey,
         ),
       ],
+    );
+  }
+}
+
+class _SidebarPanelHeader extends StatelessWidget {
+  const _SidebarPanelHeader({
+    required this.searchSelected,
+    required this.onSearch,
+  });
+
+  final bool searchSelected;
+  final VoidCallback? onSearch;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final onPressed = onSearch;
+
+    return SizedBox(
+      key: const Key('app_shell_sidebar_header'),
+      height: kWorkspaceHeaderHeight,
+      child: onPressed == null
+          ? const SizedBox.shrink()
+          : Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Semantics(
+                  button: true,
+                  selected: searchSelected,
+                  label: l10n.search,
+                  child: IconButton(
+                    key: const Key('shell_search_button'),
+                    tooltip: l10n.search,
+                    onPressed: onPressed,
+                    icon: Icon(
+                      searchSelected
+                          ? FleurIcons.searchSelected
+                          : FleurIcons.search,
+                    ),
+                    iconSize: kShellControlIconSize,
+                    style: FleurCapsuleIconButton.styleFor(
+                      context,
+                      selected: searchSelected,
+                      size: kShellControlSize,
+                    ),
+                  ),
+                ),
+              ),
+            ),
     );
   }
 }
@@ -699,14 +780,11 @@ class _SidebarPanelFixedItems extends StatelessWidget {
 
     return Stack(
       children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final item in items) _SidebarPanelFixedItem(item: item),
-            ],
-          ),
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final item in items) _SidebarPanelFixedItem(item: item),
+          ],
         ),
         Positioned(
           left: 0,

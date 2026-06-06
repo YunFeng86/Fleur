@@ -708,6 +708,18 @@ void main() {
     final expandedToggleTopLeft = tester.getTopLeft(
       find.byKey(const Key('shell_sidebar_button')),
     );
+    final expandedForwardRight = tester
+        .getRect(find.byKey(const Key('shell_forward_button')))
+        .right;
+    final expandedSearchTopLeft = tester.getTopLeft(
+      find.byKey(const Key('shell_search_button')),
+    );
+    expect(
+      expandedSearchTopLeft.dx,
+      kDefaultWorkspaceSidebarWidth - 8 - kShellControlSize,
+    );
+    expect(expandedSearchTopLeft.dy, kShellControlTopInset);
+    expect(expandedSearchTopLeft.dx, greaterThan(expandedForwardRight));
     final expandedAllDx = tester
         .getCenter(find.byKey(const Key('sidebar_all_button')))
         .dx;
@@ -729,6 +741,20 @@ void main() {
     expect(expandedStarredDx, fixedItemDx);
     expect(expandedReadLaterDx, fixedItemDx);
     expect(expandedAddDx, fixedItemDx);
+    final addTileRect = tester.getRect(
+      find
+          .ancestor(
+            of: find.byKey(const Key('sidebar_add_subscription_button')),
+            matching: find.byType(ListTile),
+          )
+          .first,
+    );
+    final subscriptionsTitleRect = tester.getRect(find.text('Subscriptions'));
+    expect(subscriptionsTitleRect.top - addTileRect.bottom, lessThan(16));
+    final newCategoryButton = find.byWidgetPredicate(
+      (widget) => widget is IconButton && widget.tooltip == 'New category',
+    );
+    expect(tester.getSize(newCategoryButton), const Size.square(32));
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
     await tester.pump();
@@ -766,6 +792,13 @@ void main() {
     expect(find.byKey(const Key('shell_back_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_forward_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('shell_controls_capsule')),
+        matching: find.byKey(const Key('shell_search_button')),
+      ),
+      findsOneWidget,
+    );
     expect(
       tester.getTopLeft(find.byKey(const Key('shell_sidebar_button'))),
       expandedToggleTopLeft,
@@ -856,6 +889,67 @@ void main() {
     expect(
       tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
       kDefaultWorkspaceSidebarWidth,
+    );
+  });
+
+  testWidgets('App shell utility routes drive sidebar active states', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(1200, 900);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    ListTile fixedTile(WidgetTester tester, Key key) {
+      return tester.widget<ListTile>(
+        find
+            .ancestor(of: find.byKey(key), matching: find.byType(ListTile))
+            .first,
+      );
+    }
+
+    await tester.pumpWidget(
+      _buildShellHarness(
+        currentUri: Uri.parse('/search/article/42?q=claude&scope=all'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('shell_search_button')),
+        matching: find.byIcon(FleurIcons.searchSelected),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      fixedTile(tester, const Key('sidebar_all_button')).selected,
+      isFalse,
+    );
+
+    await tester.pumpWidget(
+      _buildShellHarness(
+        currentUri: Uri.parse('/add-subscription?categoryId=7'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      fixedTile(tester, const Key('sidebar_add_subscription_button')).selected,
+      isTrue,
+    );
+    expect(
+      fixedTile(tester, const Key('sidebar_all_button')).selected,
+      isFalse,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('shell_search_button')),
+        matching: find.byIcon(FleurIcons.searchSelected),
+      ),
+      findsNothing,
     );
   });
 
@@ -1205,6 +1299,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    ListTile fixedTile(Key key) {
+      return tester.widget<ListTile>(
+        find
+            .ancestor(of: find.byKey(key), matching: find.byType(ListTile))
+            .first,
+      );
+    }
+
     await tester.tap(find.byKey(const Key('shell_search_button')));
     await tester.pumpAndSettle();
     expect(
@@ -1212,10 +1314,19 @@ void main() {
       '/search',
     );
     expect(find.text('search page'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('shell_search_button')),
+        matching: find.byIcon(FleurIcons.searchSelected),
+      ),
+      findsOneWidget,
+    );
+    expect(fixedTile(const Key('sidebar_all_button')).selected, isFalse);
 
     await tester.tap(find.byKey(const Key('sidebar_all_button')));
     await tester.pumpAndSettle();
     expect(router.routerDelegate.currentConfiguration.uri.toString(), '/all');
+    expect(fixedTile(const Key('sidebar_all_button')).selected, isTrue);
 
     await tester.tap(find.byKey(const Key('sidebar_starred_button')));
     await tester.pumpAndSettle();
@@ -1242,6 +1353,11 @@ void main() {
       router.routerDelegate.currentConfiguration.uri.toString(),
       '/add-subscription',
     );
+    expect(
+      fixedTile(const Key('sidebar_add_subscription_button')).selected,
+      isTrue,
+    );
+    expect(fixedTile(const Key('sidebar_all_button')).selected, isFalse);
 
     await tester.tap(find.byKey(const Key('sidebar_account_button')));
     await tester.pumpAndSettle();
@@ -2376,50 +2492,77 @@ void main() {
     expect(find.text('Syncing feeds（1/3）'), findsNothing);
   });
 
-  testWidgets('Sync status capsule is left aligned and width constrained', (
-    tester,
-  ) async {
-    Future<Size> pumpCapsule(double width) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          child: MaterialApp(
-            theme: AppTheme.light(),
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            home: Scaffold(
-              body: Align(
-                alignment: Alignment.topLeft,
-                child: SizedBox(
-                  width: width,
-                  height: 240,
-                  child: const SyncStatusCapsuleHost(child: SizedBox.expand()),
+  testWidgets(
+    'Sync status capsule fills left alignment and constrains center',
+    (tester) async {
+      Future<({Offset topLeft, Size size})> pumpCapsule(
+        double width, {
+        AlignmentGeometry alignment = Alignment.bottomLeft,
+      }) async {
+        await tester.pumpWidget(
+          ProviderScope(
+            child: MaterialApp(
+              theme: AppTheme.light(),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: Scaffold(
+                body: Align(
+                  alignment: Alignment.topLeft,
+                  child: SizedBox(
+                    width: width,
+                    height: 240,
+                    child: SyncStatusCapsuleHost(
+                      alignment: alignment,
+                      child: const SizedBox.expand(),
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
-        ),
+        );
+        await tester.pump();
+
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(SyncStatusCapsuleHost)),
+        );
+        container
+            .read(syncStatusReporterProvider)
+            .startTask(
+              label: SyncStatusLabel.syncingFeeds,
+              current: 1,
+              total: 3,
+            );
+        await tester.pump();
+
+        final capsule = find.byKey(const Key('sync_status_capsule'));
+        return (
+          topLeft: tester.getTopLeft(capsule),
+          size: tester.getSize(capsule),
+        );
+      }
+
+      const wideWidth = 760.0;
+
+      final wideLeft = await pumpCapsule(wideWidth);
+      expect(wideLeft.topLeft.dx, 16);
+      expect(wideLeft.size.width, wideWidth - 32);
+
+      final narrowLeft = await pumpCapsule(380);
+      expect(narrowLeft.topLeft.dx, 16);
+      expect(narrowLeft.size.width, 348);
+
+      final wideCenter = await pumpCapsule(
+        wideWidth,
+        alignment: Alignment.bottomCenter,
       );
-      await tester.pump();
-
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(SyncStatusCapsuleHost)),
+      expect(wideCenter.size.width, kSyncStatusCapsuleMaxWidth);
+      expect(
+        wideCenter.topLeft.dx,
+        (wideWidth - kSyncStatusCapsuleMaxWidth) / 2,
       );
-      container
-          .read(syncStatusReporterProvider)
-          .startTask(label: SyncStatusLabel.syncingFeeds, current: 1, total: 3);
-      await tester.pump();
-
-      final capsule = find.byKey(const Key('sync_status_capsule'));
-      expect(tester.getTopLeft(capsule).dx, 16);
-      return tester.getSize(capsule);
-    }
-
-    final wideSize = await pumpCapsule(900);
-    expect(wideSize.width, kSyncStatusCapsuleMaxWidth);
-
-    final narrowSize = await pumpCapsule(380);
-    expect(narrowSize.width, 348);
-  });
+    },
+  );
 
   testWidgets(
     'Sidebar selection actions share feed, category, tag, and clear-selection flows',

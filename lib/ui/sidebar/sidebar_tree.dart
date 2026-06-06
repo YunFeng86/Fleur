@@ -410,7 +410,7 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
               child: ListView.builder(
                 key: _listViewKey,
                 controller: scrollController,
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                padding: const EdgeInsets.only(bottom: 8),
                 itemCount: rows.length,
                 findChildIndexCallback: (key) {
                   if (key is ValueKey<String>) {
@@ -478,10 +478,14 @@ class _SidebarSectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final headerHeight = isDesktop ? 36.0 : 48.0;
+    final headerPadding = isDesktop
+        ? const EdgeInsets.fromLTRB(16, 0, 8, 0)
+        : const EdgeInsets.fromLTRB(16, 8, 8, 4);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 8, 4),
+      padding: headerPadding,
       child: SizedBox(
-        height: 48,
+        height: headerHeight,
         child: Row(
           children: [
             Expanded(
