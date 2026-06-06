@@ -6,9 +6,12 @@ class Account {
     required this.createdAt,
     required this.updatedAt,
     this.baseUrl,
+    this.profileId,
     this.dbName,
     this.isPrimary = false,
   });
+
+  static const googleReaderGenericProfileId = 'googleReaderGeneric';
 
   final String id;
   final AccountType type;
@@ -16,6 +19,10 @@ class Account {
 
   // Remote service base URL (for Miniflux/Fever), e.g. https://rss.example.com
   final String? baseUrl;
+
+  // Optional non-secret provider/profile discriminator. Google Reader compatible
+  // accounts use this to distinguish provider dialects without splitting AccountType.
+  final String? profileId;
 
   // For per-account DB isolation. Primary account uses legacy-safe resolver and
   // may leave this null.
@@ -33,6 +40,7 @@ class Account {
     AccountType? type,
     String? name,
     String? baseUrl,
+    String? profileId,
     String? dbName,
     bool? isPrimary,
     DateTime? createdAt,
@@ -43,6 +51,7 @@ class Account {
       type: type ?? this.type,
       name: name ?? this.name,
       baseUrl: baseUrl ?? this.baseUrl,
+      profileId: profileId ?? this.profileId,
       dbName: dbName ?? this.dbName,
       isPrimary: isPrimary ?? this.isPrimary,
       createdAt: createdAt ?? this.createdAt,
@@ -51,11 +60,14 @@ class Account {
   }
 
   static Account fromJson(Map<String, Object?> json) {
+    final type = AccountTypeX.fromWire(json['type'] as String);
+    final rawProfileId = json['profileId'] as String?;
     return Account(
       id: json['id'] as String,
-      type: AccountTypeX.fromWire(json['type'] as String),
+      type: type,
       name: json['name'] as String,
       baseUrl: json['baseUrl'] as String?,
+      profileId: _profileIdFromJson(type, rawProfileId),
       dbName: json['dbName'] as String?,
       isPrimary: (json['isPrimary'] as bool?) ?? false,
       createdAt: DateTime.parse(json['createdAt'] as String),
@@ -69,11 +81,19 @@ class Account {
       'type': type.wire,
       'name': name,
       'baseUrl': baseUrl,
+      'profileId': profileId,
       'dbName': dbName,
       'isPrimary': isPrimary,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
+  }
+
+  static String? _profileIdFromJson(AccountType type, String? raw) {
+    final trimmed = raw?.trim();
+    if (trimmed != null && trimmed.isNotEmpty) return trimmed;
+    if (type == AccountType.googleReader) return googleReaderGenericProfileId;
+    return null;
   }
 }
 

@@ -111,6 +111,9 @@ void main() {
         'GET /reader/api/0/stream/items/ids',
         'GET /reader/api/0/token',
         'POST /reader/api/0/stream/items/contents',
+        'GET /reader/api/0/stream/items/ids',
+        'GET /reader/api/0/stream/items/ids',
+        'GET /reader/api/0/unread-count',
       ]);
       expect(
         requests[1].queryParameters['s'],
@@ -157,9 +160,135 @@ void main() {
       'feed/https://example.com/feed.xml',
     );
   });
+
+  test('syncNow deduplicates item ids before fetching contents', () async {
+    final requests = <_RecordedRequest>[];
+    final service = GoogleReaderSyncService(
+      account: buildTestAccount(
+        type: AccountType.googleReader,
+        baseUrl: 'https://reader.example.com',
+      ),
+      dio: _googleReaderDio(
+        requests,
+        contentIds: const [
+          'tag:reader.example,2026:item/0001',
+          'tag:reader.example,2026:item/0001',
+        ],
+      ),
+      credentials: _FakeCredentialStore(),
+      feeds: FeedRepository(isar!),
+      categories: CategoryRepository(isar!),
+      articles: ArticleRepository(isar!),
+      outbox: _MemoryOutboxStore(),
+      appSettingsStore: FakeAppSettingsStore(
+        AppSettings.defaults().copyWith(remoteEntriesLimit: 10),
+      ),
+      cache: _unusedCache(),
+    );
+
+    await service.syncNow();
+
+    final contentsRequest = requests.firstWhere(
+      (request) => request.path == '/reader/api/0/stream/items/contents',
+    );
+    final payload = contentsRequest.data as Map<String, Object?>;
+    expect(payload['i'], ['tag:reader.example,2026:item/0001']);
+  });
+
+  test(
+    'syncNow flushes compatible Google Reader outbox actions in batches',
+    () async {
+      final requests = <_RecordedRequest>[];
+      final outbox = _MemoryOutboxStore([
+        OutboxAction(
+          type: OutboxActionType.markRead,
+          remoteEntryKey: 'item-1',
+          value: true,
+          createdAt: DateTime.utc(2026, 1, 1),
+        ),
+        OutboxAction(
+          type: OutboxActionType.markRead,
+          remoteEntryKey: 'item-2',
+          value: true,
+          createdAt: DateTime.utc(2026, 1, 1),
+        ),
+      ]);
+      final service = GoogleReaderSyncService(
+        account: buildTestAccount(
+          type: AccountType.googleReader,
+          baseUrl: 'https://reader.example.com',
+        ),
+        dio: _googleReaderDio(requests),
+        credentials: _FakeCredentialStore(),
+        feeds: FeedRepository(isar!),
+        categories: CategoryRepository(isar!),
+        articles: ArticleRepository(isar!),
+        outbox: outbox,
+        appSettingsStore: FakeAppSettingsStore(
+          AppSettings.defaults().copyWith(remoteEntriesLimit: 10),
+        ),
+        cache: _unusedCache(),
+      );
+
+      await service.syncNow();
+
+      expect(outbox.actions, isEmpty);
+      final editRequest = requests.firstWhere(
+        (request) => request.path == '/reader/api/0/edit-tag',
+      );
+      final payload = editRequest.data as Map<String, Object?>;
+      expect(payload['i'], ['item-1', 'item-2']);
+    },
+  );
+
+  test(
+    'syncNow keeps mark-all-read outbox action when verification fails',
+    () async {
+      final requests = <_RecordedRequest>[];
+      final action = OutboxAction(
+        type: OutboxActionType.markAllRead,
+        streamId: GoogleReaderRemoteArticleActionExecutor.readingListState,
+        value: true,
+        createdAt: DateTime.utc(2026, 1, 1),
+      );
+      final outbox = _MemoryOutboxStore([action]);
+      final service = GoogleReaderSyncService(
+        account: buildTestAccount(
+          type: AccountType.googleReader,
+          baseUrl: 'https://reader.example.com',
+        ),
+        dio: _googleReaderDio(
+          requests,
+          unreadIds: const ['tag:reader.example,2026:item/unread'],
+        ),
+        credentials: _FakeCredentialStore(),
+        feeds: FeedRepository(isar!),
+        categories: CategoryRepository(isar!),
+        articles: ArticleRepository(isar!),
+        outbox: outbox,
+        appSettingsStore: FakeAppSettingsStore(
+          AppSettings.defaults().copyWith(remoteEntriesLimit: 10),
+        ),
+        cache: _unusedCache(),
+      );
+
+      await service.syncNow();
+
+      expect(outbox.actions, [action]);
+      expect(
+        requests.map((request) => '${request.method} ${request.path}'),
+        contains('POST /reader/api/0/mark-all-as-read'),
+      );
+    },
+  );
 }
 
-Dio _googleReaderDio(List<_RecordedRequest> requests) {
+Dio _googleReaderDio(
+  List<_RecordedRequest> requests, {
+  List<String> contentIds = const ['tag:reader.example,2026:item/0001'],
+  List<String> unreadIds = const [],
+  List<String> starredIds = const ['tag:reader.example,2026:item/0001'],
+}) {
   final dio = Dio();
   dio.interceptors.add(
     InterceptorsWrapper(
@@ -179,12 +308,24 @@ Dio _googleReaderDio(List<_RecordedRequest> requests) {
               },
             ],
           },
-          ('GET', '/reader/api/0/stream/items/ids') => {
-            'itemRefs': [
-              {'id': 'tag:reader.example,2026:item/0001'},
+          ('GET', '/reader/api/0/stream/items/ids') =>
+            _itemRefsForStreamRequest(
+              options.uri.queryParameters,
+              contentIds: contentIds,
+              unreadIds: unreadIds,
+              starredIds: starredIds,
+            ),
+          ('GET', '/reader/api/0/token') => 'write-token',
+          ('POST', '/reader/api/0/edit-tag') => <String, Object?>{},
+          ('POST', '/reader/api/0/mark-all-as-read') => <String, Object?>{},
+          ('GET', '/reader/api/0/unread-count') => {
+            'unreadcounts': [
+              {
+                'id': GoogleReaderRemoteArticleActionExecutor.readingListState,
+                'count': unreadIds.length,
+              },
             ],
           },
-          ('GET', '/reader/api/0/token') => 'write-token',
           ('POST', '/reader/api/0/stream/items/contents') => {
             'items': [
               {
@@ -219,6 +360,30 @@ Dio _googleReaderDio(List<_RecordedRequest> requests) {
   return dio;
 }
 
+Map<String, Object?> _itemRefsForStreamRequest(
+  Map<String, Object?> queryParameters, {
+  required List<String> contentIds,
+  required List<String> unreadIds,
+  required List<String> starredIds,
+}) {
+  final streamId = queryParameters['s']?.toString();
+  final excludeState = queryParameters['xt']?.toString();
+  final ids = _hasGoogleReaderState(streamId, 'starred')
+      ? starredIds
+      : _hasGoogleReaderState(excludeState, 'read')
+      ? unreadIds
+      : contentIds;
+  return <String, Object?>{
+    'itemRefs': [
+      for (final id in ids) {'id': id},
+    ],
+  };
+}
+
+bool _hasGoogleReaderState(String? value, String state) {
+  return (value ?? '').contains('/state/com.google/$state');
+}
+
 ArticleCacheService _unusedCache() {
   return ArticleCacheService(_UnusedCacheManager(), ImageMetaStore());
 }
@@ -239,13 +404,20 @@ class _FakeCredentialStore extends CredentialStore {
 }
 
 class _MemoryOutboxStore extends OutboxStore {
+  _MemoryOutboxStore([List<OutboxAction> actions = const <OutboxAction>[]])
+    : actions = [...actions];
+
+  List<OutboxAction> actions;
+
   @override
   Future<List<OutboxAction>> load(String accountId) async {
-    return const <OutboxAction>[];
+    return actions;
   }
 
   @override
-  Future<void> save(String accountId, List<OutboxAction> actions) async {}
+  Future<void> save(String accountId, List<OutboxAction> actions) async {
+    this.actions = [...actions];
+  }
 }
 
 class _UnusedCacheManager extends Fake implements BaseCacheManager {}

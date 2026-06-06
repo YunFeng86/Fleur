@@ -219,9 +219,7 @@ class BackgroundSyncRunner {
       final activeAccount =
           accounts.findById(accounts.activeAccountId) ??
           accounts.accounts.first;
-      final capabilities = BackendCapabilities.forAccountType(
-        activeAccount.type,
-      );
+      final capabilities = BackendCapabilities.forAccount(activeAccount);
       final appSettings = _appSettings ?? await _appSettingsStore.load();
 
       final sourceRefreshMinutes = appSettings.sourceRefreshMinutes ?? 0;
@@ -432,7 +430,7 @@ class BackgroundSyncRunner {
   }
 
   Future<void> _flushOutboxSafe(Account account, SyncServiceBase svc) async {
-    if (!BackendCapabilities.forAccountType(account.type).isOutboxCapable) {
+    if (!BackendCapabilities.forAccount(account).isOutboxCapable) {
       return;
     }
     final OutboxFlushCapable? flushCapable = switch (svc) {

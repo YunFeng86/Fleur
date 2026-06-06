@@ -1,14 +1,18 @@
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 
 import 'package:fleur/providers/account_providers.dart';
+import 'package:fleur/providers/service_providers.dart';
 import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/services/accounts/account_store.dart';
+import 'package:fleur/services/accounts/credential_store.dart';
 import 'package:fleur/services/logging/app_logger.dart';
+import 'package:fleur/services/sync/google_reader/google_reader_provider_profile.dart';
 import 'package:fleur/ui/dialogs/add_account_dialogs.dart';
 import 'package:fleur/utils/path_manager.dart';
 
@@ -78,6 +82,13 @@ Widget _buildLauncher() {
             mainAxisSize: MainAxisSize.min,
             children: [
               FilledButton(
+                key: const Key('open_google_reader'),
+                onPressed: () async {
+                  await showAddGoogleReaderAccountDialog(context, ref);
+                },
+                child: const Text('open google reader'),
+              ),
+              FilledButton(
                 key: const Key('open_fever'),
                 onPressed: () async {
                   await showAddFeverAccountDialog(context, ref);
@@ -97,6 +108,40 @@ Widget _buildLauncher() {
       ),
     ),
   );
+}
+
+class _MemoryAccountStore extends AccountStore {
+  _MemoryAccountStore(this.state);
+
+  AccountsState state;
+
+  @override
+  Future<AccountsState> loadOrCreate() async => state;
+
+  @override
+  Future<void> save(AccountsState state) async {
+    this.state = state;
+  }
+}
+
+class _FakeCredentialStore extends CredentialStore {
+  final basicAuth = <String, ({String username, String password})>{};
+  final deletedApiTokens = <String>{};
+
+  @override
+  Future<void> setBasicAuth(
+    String accountId,
+    AccountType type, {
+    required String username,
+    required String password,
+  }) async {
+    basicAuth[accountId] = (username: username, password: password);
+  }
+
+  @override
+  Future<void> deleteApiToken(String accountId, AccountType type) async {
+    deletedApiTokens.add(accountId);
+  }
 }
 
 void main() {
@@ -180,6 +225,87 @@ void main() {
       });
     });
   }
+
+  testWidgets('Google Reader dialog probes and stores resolved profile', (
+    tester,
+  ) async {
+    final now = DateTime.utc(2026, 1, 1);
+    final store = _MemoryAccountStore(
+      AccountsState(
+        version: AccountStore.currentVersion,
+        activeAccountId: 'local',
+        accounts: [
+          Account(
+            id: 'local',
+            type: AccountType.local,
+            name: 'Local',
+            isPrimary: true,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        ],
+      ),
+    );
+    final credentials = _FakeCredentialStore();
+
+    await pumpLocalizedTestApp(
+      tester,
+      home: _buildLauncher(),
+      overrides: [
+        accountStoreProvider.overrideWithValue(store),
+        credentialStoreProvider.overrideWithValue(credentials),
+        dioProvider.overrideWithValue(_googleReaderProbeDio()),
+      ],
+    );
+
+    await tester.tap(find.byKey(const Key('open_google_reader')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byType(TextField).at(1),
+      'https://rss.example.com/api/greader.php/reader/api/0',
+    );
+    await tester.enterText(find.byType(TextField).at(2), 'reader-user');
+    await tester.enterText(find.byType(TextField).at(3), 'reader-password');
+    await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    final account = store.state.accounts.singleWhere(
+      (account) => account.type == AccountType.googleReader,
+    );
+    expect(account.profileId, GoogleReaderProviderProfiles.freshRssId);
+    expect(account.baseUrl, 'https://rss.example.com/');
+    expect(store.state.activeAccountId, account.id);
+    expect(credentials.basicAuth[account.id]?.username, 'reader-user');
+    expect(credentials.basicAuth[account.id]?.password, 'reader-password');
+    expect(credentials.deletedApiTokens, contains(account.id));
+  });
+}
+
+Dio _googleReaderProbeDio() {
+  final dio = Dio();
+  dio.interceptors.add(
+    InterceptorsWrapper(
+      onRequest: (options, handler) {
+        final data = switch ((options.method, options.uri.path)) {
+          ('POST', '/api/greader.php/accounts/ClientLogin') =>
+            'Auth=login-token\n',
+          ('GET', '/api/greader.php/reader/api/0/user-info') => {
+            'userName': 'Reader User',
+          },
+          ('GET', '/api/greader.php/reader/api/0/token') => 'write-token',
+          ('GET', '/api/greader.php/reader/api/0/stream/items/ids') => {
+            'itemRefs': <Object?>[],
+          },
+          _ => throw StateError(
+            'Unexpected request: ${options.method} ${options.uri}',
+          ),
+        };
+        handler.resolve(Response<Object?>(requestOptions: options, data: data));
+      },
+    ),
+  );
+  return dio;
 }
 
 Future<T> _withTestLogger<T>(

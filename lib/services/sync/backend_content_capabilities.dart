@@ -13,6 +13,10 @@ enum BackendContentFeature {
 class BackendContentCapabilities {
   const BackendContentCapabilities._(this.accountType);
 
+  factory BackendContentCapabilities.forAccount(Account account) {
+    return BackendContentCapabilities._(account.type);
+  }
+
   factory BackendContentCapabilities.forAccountType(AccountType type) {
     return BackendContentCapabilities._(type);
   }

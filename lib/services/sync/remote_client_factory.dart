@@ -7,6 +7,7 @@ import '../accounts/account.dart';
 import '../accounts/credential_store.dart';
 import 'fever/fever_client.dart';
 import 'google_reader/google_reader_client.dart';
+import 'google_reader/google_reader_provider_profile.dart';
 import 'miniflux/miniflux_client.dart';
 
 class RemoteClientFactory {
@@ -108,8 +109,14 @@ class RemoteClientFactory {
     String baseUrl,
   ) async {
     final token = await _apiTokenOrNull(account, AccountType.googleReader);
+    final profile = GoogleReaderProviderProfiles.forAccount(account);
     if (token != null) {
-      return GoogleReaderClient(dio: _dio, baseUrl: baseUrl, authToken: token);
+      return GoogleReaderClient(
+        dio: _dio,
+        baseUrl: baseUrl,
+        profile: profile,
+        authToken: token,
+      );
     }
 
     final basic = await _credentials.getBasicAuth(
@@ -120,6 +127,7 @@ class RemoteClientFactory {
     return GoogleReaderClient(
       dio: _dio,
       baseUrl: baseUrl,
+      profile: profile,
       username: basic.username,
       password: basic.password,
     );

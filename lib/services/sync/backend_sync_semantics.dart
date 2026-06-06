@@ -33,6 +33,10 @@ class BackendSyncSemantics {
     required this.notificationGranularity,
   });
 
+  factory BackendSyncSemantics.forAccount(Account account) {
+    return BackendSyncSemantics.forAccountType(account.type);
+  }
+
   factory BackendSyncSemantics.forAccountType(AccountType type) {
     return switch (type) {
       AccountType.local => const BackendSyncSemantics._(

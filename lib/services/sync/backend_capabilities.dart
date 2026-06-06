@@ -35,6 +35,10 @@ enum FeatureAvailability {
 class BackendCapabilities {
   const BackendCapabilities._(this.accountType);
 
+  factory BackendCapabilities.forAccount(Account account) {
+    return BackendCapabilities._(account.type);
+  }
+
   factory BackendCapabilities.forAccountType(AccountType type) {
     return BackendCapabilities._(type);
   }

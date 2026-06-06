@@ -254,15 +254,57 @@ class GoogleReaderRemoteArticleActionExecutor
         );
         return true;
       case OutboxActionType.markAllRead:
-        await _markAllRead(action);
-        return true;
+        return _markAllRead(action);
     }
   }
 
-  Future<void> _markAllRead(OutboxAction action) async {
+  Future<bool> applyBatch(Iterable<OutboxAction> actions) async {
+    final list = actions.toList(growable: false);
+    if (list.isEmpty) return true;
+    final first = list.first;
+    if (!isBatchable(first)) return false;
+    final value = first.value;
+    final ids = <String>[];
+    for (final action in list) {
+      if (!isBatchable(action) ||
+          action.type != first.type ||
+          action.value != value) {
+        return false;
+      }
+      final itemId = action.remoteEntryKey?.trim();
+      if (itemId == null || itemId.isEmpty) return false;
+      ids.add(itemId);
+    }
+    final state = first.type == OutboxActionType.markRead
+        ? readState
+        : starredState;
+    await _client.editTags(
+      itemIds: ids,
+      add: value == true ? [state] : const [],
+      remove: value == true ? const [] : [state],
+    );
+    return true;
+  }
+
+  Future<bool> _markAllRead(OutboxAction action) async {
     final streamId = _streamIdForMarkAllRead(action);
-    if (streamId == null || streamId.isEmpty) return;
+    if (streamId == null || streamId.isEmpty) return false;
     await _client.markAllAsRead(streamId: streamId, before: action.createdAt);
+    if (!_client.profile.verifyMarkAllAsRead) return true;
+    final unread = await _client.streamItemIds(
+      streamId: streamId,
+      count: 1,
+      excludeState: readState,
+    );
+    return unread.itemIds.isEmpty;
+  }
+
+  static bool isBatchable(OutboxAction action) {
+    return switch (action.type) {
+      OutboxActionType.markRead || OutboxActionType.bookmark =>
+        (action.remoteEntryKey ?? '').trim().isNotEmpty && action.value != null,
+      OutboxActionType.markAllRead => false,
+    };
   }
 
   static String? _streamIdForMarkAllRead(OutboxAction action) {

@@ -33,6 +33,7 @@ Account buildTestAccount({
   AccountType type = AccountType.local,
   String name = 'Test Account',
   String? baseUrl,
+  String? profileId,
   String? dbName,
   bool isPrimary = false,
 }) {
@@ -42,6 +43,7 @@ Account buildTestAccount({
     type: type,
     name: name,
     baseUrl: baseUrl,
+    profileId: profileId,
     dbName: dbName,
     isPrimary: isPrimary,
     createdAt: now,

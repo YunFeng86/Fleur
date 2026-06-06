@@ -21,6 +21,7 @@ import '../sync_mutex.dart';
 import '../sync_service.dart';
 import '../sync_status_reporter.dart';
 import 'google_reader_client.dart';
+import 'google_reader_provider_profile.dart';
 
 class _GoogleReaderEntryCounts {
   const _GoogleReaderEntryCounts({
@@ -75,6 +76,13 @@ class _GoogleReaderEntrySyncResult {
   }
 }
 
+class _GoogleReaderRemoteIdSet {
+  const _GoogleReaderRemoteIdSet({required this.ids, required this.complete});
+
+  final Set<String> ids;
+  final bool complete;
+}
+
 class _GoogleReaderFeedIndex {
   _GoogleReaderFeedIndex({
     required this.byLocalId,
@@ -127,6 +135,7 @@ class GoogleReaderSyncService implements SyncServiceBase, OutboxFlushCapable {
     required ArticleCacheService cache,
     SyncStatusReporter? statusReporter,
   }) : _clientFactory = RemoteClientFactory(dio: dio, credentials: credentials),
+       _profile = GoogleReaderProviderProfiles.forAccount(account),
        _feeds = feeds,
        _categories = categories,
        _articles = articles,
@@ -138,6 +147,7 @@ class GoogleReaderSyncService implements SyncServiceBase, OutboxFlushCapable {
   final Account account;
 
   final RemoteClientFactory _clientFactory;
+  final GoogleReaderProviderProfile _profile;
   final FeedRepository _feeds;
   final CategoryRepository _categories;
   final ArticleRepository _articles;
@@ -145,9 +155,6 @@ class GoogleReaderSyncService implements SyncServiceBase, OutboxFlushCapable {
   final AppSettingsStore _appSettingsStore;
   final ArticleCacheService _cache;
   final SyncStatusReporter _statusReporter;
-
-  static const int _itemIdsPageSize = 100;
-  static const int _contentBatchSize = 100;
 
   @override
   Future<int> offlineCacheFeed(int feedId) async {
@@ -261,6 +268,16 @@ class GoogleReaderSyncService implements SyncServiceBase, OutboxFlushCapable {
             feedIds: ids,
             status: status,
           );
+    if (ids.isEmpty) {
+      await _reconcileAccountState(client, appSettings);
+    } else {
+      await _reconcileFeedReadStates(
+        client,
+        appSettings,
+        feedIndex: feedIndex,
+        feedIds: ids,
+      );
+    }
     return _refreshResults(ids, result);
   }
 
@@ -453,9 +470,11 @@ class GoogleReaderSyncService implements SyncServiceBase, OutboxFlushCapable {
     var result = _GoogleReaderEntrySyncResult.zero;
     while (entriesLimit == 0 || fetchedIds < entriesLimit) {
       final remaining = entriesLimit == 0
-          ? _itemIdsPageSize
+          ? _profile.itemIdsPageSize
           : entriesLimit - fetchedIds;
-      final count = remaining < _itemIdsPageSize ? remaining : _itemIdsPageSize;
+      final count = remaining < _profile.itemIdsPageSize
+          ? remaining
+          : _profile.itemIdsPageSize;
       if (count <= 0) break;
 
       final page = await client.streamItemIds(
@@ -465,18 +484,19 @@ class GoogleReaderSyncService implements SyncServiceBase, OutboxFlushCapable {
       );
       if (page.itemIds.isEmpty) break;
       fetchedIds += page.itemIds.length;
+      final pageItemIds = _dedupeIds(page.itemIds);
 
       status?.update(
         current: fetchedIds,
         total: entriesLimit == 0 ? fetchedIds : entriesLimit,
       );
 
-      for (var i = 0; i < page.itemIds.length; i += _contentBatchSize) {
-        final end = i + _contentBatchSize > page.itemIds.length
-            ? page.itemIds.length
-            : i + _contentBatchSize;
+      for (var i = 0; i < pageItemIds.length; i += _profile.contentBatchSize) {
+        final end = i + _profile.contentBatchSize > pageItemIds.length
+            ? pageItemIds.length
+            : i + _profile.contentBatchSize;
         final items = await client.streamItemsContents(
-          page.itemIds.sublist(i, end),
+          pageItemIds.sublist(i, end),
         );
         result = result.plus(
           await _processItems(
@@ -493,6 +513,108 @@ class GoogleReaderSyncService implements SyncServiceBase, OutboxFlushCapable {
       await Future<void>.delayed(Duration.zero);
     }
     return result;
+  }
+
+  Future<void> _reconcileAccountState(
+    GoogleReaderClient client,
+    AppSettings appSettings,
+  ) async {
+    final unread = await _fetchRemoteIdSet(
+      client,
+      appSettings,
+      streamId: GoogleReaderRemoteArticleActionExecutor.readingListState,
+      excludeState: GoogleReaderRemoteArticleActionExecutor.readState,
+    );
+    await _articles.reconcileRemoteReadStates(
+      unreadRemoteIds: unread.ids,
+      complete: unread.complete,
+    );
+
+    final starred = await _fetchRemoteIdSet(
+      client,
+      appSettings,
+      streamId: GoogleReaderRemoteArticleActionExecutor.starredState,
+    );
+    await _articles.reconcileRemoteStarredStates(
+      starredRemoteIds: starred.ids,
+      complete: starred.complete,
+    );
+
+    try {
+      await client.unreadCounts();
+    } catch (e, s) {
+      AppLogger.w(
+        'Google Reader unread-count diagnostics failed',
+        tag: 'sync',
+        error: e,
+        stackTrace: s,
+        context: _accountFailureContext(e, operation: 'unreadCountDiagnostics'),
+      );
+    }
+  }
+
+  Future<void> _reconcileFeedReadStates(
+    GoogleReaderClient client,
+    AppSettings appSettings, {
+    required _GoogleReaderFeedIndex feedIndex,
+    required List<int> feedIds,
+  }) async {
+    for (final feedId in feedIds) {
+      final feed = feedIndex.byLocalId[feedId] ?? await _feeds.getById(feedId);
+      if (feed == null) continue;
+      final unread = await _fetchRemoteIdSet(
+        client,
+        appSettings,
+        streamId: _streamIdForFeed(feed),
+        excludeState: GoogleReaderRemoteArticleActionExecutor.readState,
+      );
+      await _articles.reconcileRemoteReadStates(
+        unreadRemoteIds: unread.ids,
+        complete: unread.complete,
+        feedId: feed.id,
+      );
+    }
+  }
+
+  Future<_GoogleReaderRemoteIdSet> _fetchRemoteIdSet(
+    GoogleReaderClient client,
+    AppSettings appSettings, {
+    required String streamId,
+    String? excludeState,
+    int? maxItems,
+  }) async {
+    final entriesLimit = maxItems ?? appSettings.remoteEntriesLimit;
+    if (entriesLimit < 0) {
+      return const _GoogleReaderRemoteIdSet(ids: <String>{}, complete: false);
+    }
+    final ids = <String>{};
+    String? continuation;
+    var fetched = 0;
+    var complete = false;
+    while (entriesLimit == 0 || fetched < entriesLimit) {
+      final remaining = entriesLimit == 0
+          ? _profile.itemIdsPageSize
+          : entriesLimit - fetched;
+      final count = remaining < _profile.itemIdsPageSize
+          ? remaining
+          : _profile.itemIdsPageSize;
+      if (count <= 0) break;
+      final page = await client.streamItemIds(
+        streamId: streamId,
+        count: count,
+        continuation: continuation,
+        excludeState: excludeState,
+      );
+      fetched += page.itemIds.length;
+      ids.addAll(_dedupeIds(page.itemIds));
+      continuation = page.continuation;
+      if (continuation == null || continuation.isEmpty) {
+        complete = true;
+        break;
+      }
+      await Future<void>.delayed(Duration.zero);
+    }
+    return _GoogleReaderRemoteIdSet(ids: ids, complete: complete);
   }
 
   Future<_GoogleReaderEntrySyncResult> _processItems(
@@ -588,30 +710,78 @@ class GoogleReaderSyncService implements SyncServiceBase, OutboxFlushCapable {
 
     final executor = GoogleReaderRemoteArticleActionExecutor(client);
     final remaining = <OutboxAction>[];
-    for (final action in pending) {
-      try {
-        if (!await executor.apply(action)) {
-          remaining.add(action);
+    var index = 0;
+    while (index < pending.length) {
+      final action = pending[index];
+      if (GoogleReaderRemoteArticleActionExecutor.isBatchable(action)) {
+        final batch = <OutboxAction>[action];
+        var nextIndex = index + 1;
+        while (nextIndex < pending.length &&
+            batch.length < _profile.editTagBatchSize &&
+            _isCompatibleOutboxBatchAction(action, pending[nextIndex])) {
+          batch.add(pending[nextIndex]);
+          nextIndex += 1;
         }
-      } catch (e, s) {
-        AppLogger.w(
-          'Google Reader outbox action failed',
-          tag: 'sync',
-          error: e,
-          stackTrace: s,
-          context: _accountFailureContext(
-            e,
-            operation: 'flushOutbox',
-            action: action,
-          ),
-        );
-        remaining.add(action);
+        if (!await _tryFlushOutboxBatch(executor, batch)) {
+          for (final item in batch) {
+            await _tryFlushOutboxAction(executor, item, remaining);
+          }
+        }
+        index = nextIndex;
+        continue;
       }
+      await _tryFlushOutboxAction(executor, action, remaining);
+      index += 1;
     }
 
     if (remaining.length != pending.length) {
       await _outbox.save(account.id, remaining);
     }
+  }
+
+  Future<bool> _tryFlushOutboxBatch(
+    GoogleReaderRemoteArticleActionExecutor executor,
+    List<OutboxAction> batch,
+  ) async {
+    try {
+      return await executor.applyBatch(batch);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _tryFlushOutboxAction(
+    GoogleReaderRemoteArticleActionExecutor executor,
+    OutboxAction action,
+    List<OutboxAction> remaining,
+  ) async {
+    try {
+      if (!await executor.apply(action)) {
+        remaining.add(action);
+      }
+    } catch (e, s) {
+      AppLogger.w(
+        'Google Reader outbox action failed',
+        tag: 'sync',
+        error: e,
+        stackTrace: s,
+        context: _accountFailureContext(
+          e,
+          operation: 'flushOutbox',
+          action: action,
+        ),
+      );
+      remaining.add(action);
+    }
+  }
+
+  static bool _isCompatibleOutboxBatchAction(
+    OutboxAction first,
+    OutboxAction next,
+  ) {
+    return GoogleReaderRemoteArticleActionExecutor.isBatchable(next) &&
+        first.type == next.type &&
+        first.value == next.value;
   }
 
   Map<String, Object?> _accountFailureContext(
@@ -701,6 +871,17 @@ class GoogleReaderSyncService implements SyncServiceBase, OutboxFlushCapable {
         article.contentHtml,
       ],
     );
+  }
+
+  static List<String> _dedupeIds(Iterable<String> ids) {
+    final seen = <String>{};
+    final result = <String>[];
+    for (final raw in ids) {
+      final id = raw.trim();
+      if (id.isEmpty || !seen.add(id)) continue;
+      result.add(id);
+    }
+    return result;
   }
 
   static String? _articleLink(Map<String, Object?> item) {

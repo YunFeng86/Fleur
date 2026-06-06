@@ -6,9 +6,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fleur/l10n/app_localizations.dart';
 
 import '../../providers/account_providers.dart';
+import '../../providers/service_providers.dart';
 import '../../services/accounts/account.dart';
 import '../../services/logging/app_logger.dart';
 import '../../services/logging/log_context.dart';
+import '../../services/sync/google_reader/google_reader_connection_probe.dart';
+import '../../services/sync/google_reader/google_reader_provider_profile.dart';
 import '../../utils/context_extensions.dart';
 
 enum _MinifluxAuthMode { apiToken, basicAuth }
@@ -820,6 +823,7 @@ Future<String?> showAddGoogleReaderAccountDialog(
   final baseUrlFocus = FocusNode();
   final usernameFocus = FocusNode();
   final passwordFocus = FocusNode();
+  var profileId = GoogleReaderProviderProfiles.autoId;
   var obscurePassword = true;
   var submitting = false;
   String? nameError;
@@ -880,12 +884,20 @@ Future<String?> showAddGoogleReaderAccountDialog(
       submitting = true;
     });
     try {
+      final probe = GoogleReaderConnectionProbe(dio: ref.read(dioProvider));
+      final probeResult = await probe.probe(
+        baseUrl: baseUrl,
+        username: username,
+        password: password,
+        profileId: profileId,
+      );
       final id = await ref
           .read(accountsControllerProvider.notifier)
           .addAccount(
             type: AccountType.googleReader,
             name: name,
-            baseUrl: baseUrl,
+            baseUrl: probeResult.normalizedBaseUrl,
+            profileId: probeResult.profile.id,
           );
       final store = ref.read(credentialStoreProvider);
       await store.setBasicAuth(
@@ -908,7 +920,12 @@ Future<String?> showAddGoogleReaderAccountDialog(
         stackTrace: s,
       );
       if (!dialogContext.mounted) return;
-      setState(() => submitting = false);
+      setState(() {
+        submitting = false;
+        if (e is GoogleReaderProbeException) {
+          baseUrlError = e.message;
+        }
+      });
       dialogContext.showSnack(l10n.errorMessage(e.toString()));
     }
   }
@@ -940,6 +957,29 @@ Future<String?> showAddGoogleReaderAccountDialog(
                         labelText: l10n.fieldName,
                         errorText: nameError,
                       ),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: profileId,
+                      decoration: const InputDecoration(labelText: 'Provider'),
+                      items: [
+                        const DropdownMenuItem(
+                          value: GoogleReaderProviderProfiles.autoId,
+                          child: Text('Auto'),
+                        ),
+                        for (final profile
+                            in GoogleReaderProviderProfiles.values)
+                          DropdownMenuItem(
+                            value: profile.id,
+                            child: Text(profile.displayName),
+                          ),
+                      ],
+                      onChanged: submitting
+                          ? null
+                          : (value) => setState(
+                              () => profileId =
+                                  value ?? GoogleReaderProviderProfiles.autoId,
+                            ),
                     ),
                     const SizedBox(height: 12),
                     TextField(

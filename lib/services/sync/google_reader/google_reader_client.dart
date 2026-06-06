@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 
+import 'google_reader_provider_profile.dart';
+
 class GoogleReaderAuthException implements Exception {
   const GoogleReaderAuthException(this.message);
 
@@ -21,20 +23,38 @@ class GoogleReaderItemIdsPage {
   final String? continuation;
 }
 
+class GoogleReaderUnreadCount {
+  const GoogleReaderUnreadCount({
+    required this.id,
+    required this.count,
+    required this.newestItemTimestampUsec,
+  });
+
+  final String id;
+  final int count;
+  final String? newestItemTimestampUsec;
+}
+
 class GoogleReaderClient {
   GoogleReaderClient({
     required Dio dio,
     required String baseUrl,
+    GoogleReaderProviderProfile? profile,
     String? authToken,
     String? username,
     String? password,
   }) : _dio = dio,
-       _base = _GoogleReaderBaseUris.fromRaw(baseUrl),
+       profile = profile ?? GoogleReaderProviderProfiles.generic,
+       _base = _GoogleReaderBaseUris.fromRaw(
+         baseUrl,
+         profile ?? GoogleReaderProviderProfiles.generic,
+       ),
        _authToken = authToken?.trim(),
        _username = username?.trim(),
        _password = password;
 
   final Dio _dio;
+  final GoogleReaderProviderProfile profile;
   final _GoogleReaderBaseUris _base;
   String? _authToken;
   String? _writeToken;
@@ -60,9 +80,11 @@ class GoogleReaderClient {
     return token;
   }
 
-  Future<void> ensureAuthenticated() async {
+  String get normalizedBaseUrl => _base.normalizedRoot.toString();
+
+  Future<void> ensureAuthenticated({bool forceLogin = false}) async {
     final token = _authToken?.trim();
-    if (token != null && token.isNotEmpty) return;
+    if (!forceLogin && token != null && token.isNotEmpty) return;
     final username = _username?.trim();
     final password = _password;
     if (username == null || username.isEmpty || password == null) {
@@ -76,13 +98,13 @@ class GoogleReaderClient {
     required String password,
   }) async {
     final resp = await _dio.postUri(
-      _base.authUri(const ['accounts', 'ClientLogin']),
+      _base.clientLoginUri,
       data: <String, Object?>{
         'Email': username,
         'Passwd': password,
         'service': 'reader',
         'accountType': 'HOSTED_OR_GOOGLE',
-        'output': 'json',
+        if (profile.requiresOutputJson) 'output': 'json',
       },
       options: Options(
         contentType: Headers.formUrlEncodedContentType,
@@ -103,6 +125,22 @@ class GoogleReaderClient {
     await ensureAuthenticated();
     final cached = _writeToken?.trim();
     if (cached != null && cached.isNotEmpty) return cached;
+    return _fetchToken(retryOnAuthFailure: true);
+  }
+
+  Future<String> _fetchToken({required bool retryOnAuthFailure}) async {
+    try {
+      return await _fetchTokenOnce();
+    } on DioException catch (e) {
+      if (!_shouldRetryWithClientLogin(e, retryOnAuthFailure)) rethrow;
+      _authToken = null;
+      _writeToken = null;
+      await ensureAuthenticated(forceLogin: true);
+      return _fetchTokenOnce();
+    }
+  }
+
+  Future<String> _fetchTokenOnce() async {
     final resp = await _dio.getUri(
       _base.apiUri(const ['token']),
       options: Options(
@@ -119,13 +157,37 @@ class GoogleReaderClient {
     return token;
   }
 
+  bool _shouldRetryWithClientLogin(
+    DioException error,
+    bool retryOnAuthFailure,
+  ) {
+    if (!retryOnAuthFailure || !profile.retryTokenOnAuthFailure) return false;
+    final username = _username?.trim();
+    if (username == null || username.isEmpty || _password == null) return false;
+    final status = error.response?.statusCode;
+    return status == 401 || status == 403;
+  }
+
+  Future<Map<String, Object?>> userInfo() async {
+    await ensureAuthenticated();
+    final resp = await _dio.getUri(
+      _base.apiUri(const [
+        'user-info',
+      ], queryParameters: _jsonQueryParameters()),
+      options: _jsonOptions,
+    );
+    final data = resp.data;
+    if (data is! Map) return const <String, Object?>{};
+    return data.cast<String, Object?>();
+  }
+
   Future<List<Map<String, Object?>>> subscriptionList() async {
     await ensureAuthenticated();
     final resp = await _dio.getUri(
-      _base.apiUri(
-        const ['subscription', 'list'],
-        queryParameters: const <String, Object?>{'output': 'json'},
-      ),
+      _base.apiUri(const [
+        'subscription',
+        'list',
+      ], queryParameters: _jsonQueryParameters()),
       options: _jsonOptions,
     );
     final data = resp.data;
@@ -135,6 +197,44 @@ class GoogleReaderClient {
     return subscriptions
         .whereType<Map>()
         .map((item) => item.cast<String, Object?>())
+        .toList(growable: false);
+  }
+
+  Future<List<Map<String, Object?>>> tagList() async {
+    await ensureAuthenticated();
+    final resp = await _dio.getUri(
+      _base.apiUri(const [
+        'tag',
+        'list',
+      ], queryParameters: _jsonQueryParameters()),
+      options: _jsonOptions,
+    );
+    final data = resp.data;
+    if (data is! Map) return const [];
+    final tags = data['tags'];
+    if (tags is! List) return const [];
+    return tags
+        .whereType<Map>()
+        .map((item) => item.cast<String, Object?>())
+        .toList(growable: false);
+  }
+
+  Future<List<GoogleReaderUnreadCount>> unreadCounts() async {
+    await ensureAuthenticated();
+    final resp = await _dio.getUri(
+      _base.apiUri(const [
+        'unread-count',
+      ], queryParameters: _jsonQueryParameters()),
+      options: _jsonOptions,
+    );
+    final data = resp.data;
+    if (data is! Map) return const [];
+    final counts = data['unreadcounts'];
+    if (counts is! List) return const [];
+    return counts
+        .whereType<Map>()
+        .map(_unreadCountFromMap)
+        .whereType<GoogleReaderUnreadCount>()
         .toList(growable: false);
   }
 
@@ -150,7 +250,7 @@ class GoogleReaderClient {
       _base.apiUri(
         const ['stream', 'items', 'ids'],
         queryParameters: {
-          'output': 'json',
+          ..._jsonQueryParameters(),
           's': streamId,
           'n': count,
           if (continuation != null && continuation.trim().isNotEmpty)
@@ -191,7 +291,7 @@ class GoogleReaderClient {
     final resp = await _dio.postUri(
       _base.apiUri(const ['stream', 'items', 'contents']),
       data: <String, Object?>{
-        'output': 'json',
+        ..._jsonFormFields(),
         'i': ids.toList(growable: false),
         'T': await token(),
       },
@@ -212,19 +312,34 @@ class GoogleReaderClient {
     Iterable<String> add = const [],
     Iterable<String> remove = const [],
   }) async {
+    await editTags(itemIds: [itemId], add: add, remove: remove);
+  }
+
+  Future<void> editTags({
+    required Iterable<String> itemIds,
+    Iterable<String> add = const [],
+    Iterable<String> remove = const [],
+  }) async {
     await ensureAuthenticated();
+    final ids = itemIds
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toList(growable: false);
+    if (ids.isEmpty) return;
+    final addStates = add
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toList(growable: false);
+    final removeStates = remove
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toList(growable: false);
     await _dio.postUri(
       _base.apiUri(const ['edit-tag']),
       data: <String, Object?>{
-        'i': itemId,
-        'a': add
-            .map((value) => value.trim())
-            .where((value) => value.isNotEmpty)
-            .toList(growable: false),
-        'r': remove
-            .map((value) => value.trim())
-            .where((value) => value.isNotEmpty)
-            .toList(growable: false),
+        'i': ids.length == 1 ? ids.single : ids,
+        'a': addStates,
+        'r': removeStates,
         'T': await token(),
       },
       options: _formOptions,
@@ -246,6 +361,38 @@ class GoogleReaderClient {
       },
       options: _formOptions,
     );
+  }
+
+  Map<String, Object?> _jsonQueryParameters() {
+    return profile.requiresOutputJson
+        ? const <String, Object?>{'output': 'json'}
+        : const <String, Object?>{};
+  }
+
+  Map<String, Object?> _jsonFormFields() {
+    return profile.requiresOutputJson
+        ? const <String, Object?>{'output': 'json'}
+        : const <String, Object?>{};
+  }
+
+  static GoogleReaderUnreadCount? _unreadCountFromMap(
+    Map<Object?, Object?> raw,
+  ) {
+    final id = raw['id']?.toString().trim();
+    if (id == null || id.isEmpty) return null;
+    final count = _readInt(raw['count']);
+    return GoogleReaderUnreadCount(
+      id: id,
+      count: count ?? 0,
+      newestItemTimestampUsec: raw['newestItemTimestampUsec']?.toString(),
+    );
+  }
+
+  static int? _readInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.isFinite ? value.toInt() : null;
+    if (value is String) return int.tryParse(value.trim());
+    return null;
   }
 
   static String? _parseClientLoginAuth(Object? data) {
@@ -283,12 +430,20 @@ class GoogleReaderClient {
 }
 
 class _GoogleReaderBaseUris {
-  const _GoogleReaderBaseUris({required this.authBase, required this.apiBase});
+  const _GoogleReaderBaseUris({
+    required this.normalizedRoot,
+    required this.clientLoginUri,
+    required this.apiBase,
+  });
 
-  final Uri authBase;
+  final Uri normalizedRoot;
+  final Uri clientLoginUri;
   final Uri apiBase;
 
-  factory _GoogleReaderBaseUris.fromRaw(String raw) {
+  factory _GoogleReaderBaseUris.fromRaw(
+    String raw,
+    GoogleReaderProviderProfile profile,
+  ) {
     final trimmed = raw.trim().replaceAll(RegExp(r'/+$'), '');
     if (trimmed.isEmpty) {
       throw ArgumentError('Google Reader baseUrl is empty');
@@ -300,27 +455,19 @@ class _GoogleReaderBaseUris {
     if (!(uri.scheme == 'http' || uri.scheme == 'https')) {
       throw ArgumentError('Google Reader baseUrl must be http/https: $raw');
     }
-    final clean = uri.replace(query: '', fragment: '');
-    const apiSuffix = '/reader/api/0';
-    if (clean.path.endsWith(apiSuffix)) {
-      final authPath = clean.path.substring(
-        0,
-        clean.path.length - apiSuffix.length,
-      );
-      return _GoogleReaderBaseUris(
-        authBase: clean.replace(path: authPath.isEmpty ? '/' : authPath),
-        apiBase: clean,
-      );
-    }
-    final apiPath = _appendPath(clean.path, const ['reader', 'api', '0']);
+    final clean = _withoutQueryAndFragment(uri);
+    final rootPath = _rootPathFor(clean.path, profile);
+    final root = clean.replace(path: rootPath.isEmpty ? '/' : rootPath);
+    final apiPath = _appendPath(root.path, profile.apiPathSegments);
+    final clientLoginPath = _appendPath(
+      root.path,
+      profile.clientLoginPathSegments,
+    );
     return _GoogleReaderBaseUris(
-      authBase: clean,
+      normalizedRoot: root,
+      clientLoginUri: clean.replace(path: clientLoginPath),
       apiBase: clean.replace(path: apiPath),
     );
-  }
-
-  Uri authUri(List<String> segments) {
-    return authBase.replace(path: _appendPath(authBase.path, segments));
   }
 
   Uri apiUri(
@@ -341,5 +488,36 @@ class _GoogleReaderBaseUris {
     final encoded = segments.map(Uri.encodeComponent).join('/');
     if (cleanBase.isEmpty) return '/$encoded';
     return '$cleanBase/$encoded';
+  }
+
+  static Uri _withoutQueryAndFragment(Uri uri) {
+    return Uri(
+      scheme: uri.scheme,
+      userInfo: uri.userInfo,
+      host: uri.host,
+      port: uri.hasPort ? uri.port : null,
+      path: uri.path,
+    );
+  }
+
+  static String _rootPathFor(String path, GoogleReaderProviderProfile profile) {
+    final cleanPath = path.replaceAll(RegExp(r'/+$'), '');
+    if (cleanPath.isEmpty) return '';
+
+    final candidateSuffixes = <String>{
+      profile.apiPath,
+      profile.clientLoginPath,
+      if (profile.id == GoogleReaderProviderProfiles.freshRssId)
+        '/api/greader.php',
+      '/reader/api/0',
+    };
+    for (final suffix in candidateSuffixes) {
+      if (cleanPath == suffix) return '';
+      if (cleanPath.endsWith(suffix)) {
+        final root = cleanPath.substring(0, cleanPath.length - suffix.length);
+        return root.replaceAll(RegExp(r'/+$'), '');
+      }
+    }
+    return cleanPath;
   }
 }

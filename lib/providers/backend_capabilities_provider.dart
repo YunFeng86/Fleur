@@ -5,5 +5,5 @@ import 'account_providers.dart';
 
 final backendCapabilitiesProvider = Provider<BackendCapabilities>((ref) {
   final account = ref.watch(activeAccountProvider);
-  return BackendCapabilities.forAccountType(account.type);
+  return BackendCapabilities.forAccount(account);
 });

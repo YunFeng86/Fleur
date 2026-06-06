@@ -13,12 +13,6 @@ const _allowedRawBackendTypeUses = <String, String>{
       'logs account database open failures for diagnostics only',
   'lib/providers/account_providers.dart':
       'creates the default local account state',
-  'lib/providers/backend_capabilities_provider.dart':
-      'derives capabilities from the active account',
-  'lib/providers/backend_content_capabilities_provider.dart':
-      'derives content capabilities from the active account',
-  'lib/providers/backend_sync_semantics_provider.dart':
-      'derives sync semantics from the active account',
   'lib/providers/add_subscription_controller.dart':
       'logs add-subscription failures with concrete account type metadata',
   'lib/providers/service_providers.dart':
@@ -32,16 +26,18 @@ const _allowedRawBackendTypeUses = <String, String>{
       'uses concrete remote clients after capability gating',
   'lib/services/subscriptions/add_subscription_workflow.dart':
       'constructs the Miniflux add-subscription executor after capability gating',
-  'lib/services/background/background_sync_service.dart':
-      'derives background capabilities from the active account',
   'lib/services/sync/backend_capabilities.dart':
       'declares the backend capability matrix',
   'lib/services/sync/backend_content_capabilities.dart':
       'declares the backend content capability matrix',
   'lib/services/sync/backend_sync_semantics.dart':
       'declares the backend sync semantics matrix',
+  'lib/services/sync/google_reader/google_reader_provider_profile.dart':
+      'maps Google Reader account profiles without splitting AccountType',
   'lib/services/sync/remote_client_factory.dart':
       'centralizes remote credential lookup and client construction',
+  'lib/services/sync/refresh_all_coordinator.dart':
+      'keeps Google Reader account-wide refresh semantics explicit',
   'lib/ui/dialogs/add_account_dialogs.dart': 'creates concrete account types',
   'lib/ui/settings/tabs/services_tab.dart':
       'renders account creation and account type labels',
@@ -179,24 +175,21 @@ void main() {
     }
   });
 
-  test('background sync only derives capabilities from raw account type', () {
+  test('background sync derives capabilities from the active account', () {
     const path = 'lib/services/background/background_sync_service.dart';
     final contents = File(path).readAsStringSync();
-    final withoutAllowedDerivations = contents.replaceAll(
-      RegExp(
-        r'BackendCapabilities\.forAccountType\(\s*'
-        r'(?:activeAccount|account)\.type\s*,?\s*\)',
-        multiLine: true,
-      ),
-      '',
-    );
 
     expect(
-      withoutAllowedDerivations,
+      contents,
+      contains('BackendCapabilities.forAccount(activeAccount)'),
+      reason:
+          '$path should derive background capabilities from the full account.',
+    );
+    expect(
+      contents,
       isNot(contains(RegExp(_rawBackendTypePattern))),
       reason:
-          '$path may read raw account type only when deriving '
-          'BackendCapabilities.',
+          '$path should not read raw account type for capability decisions.',
     );
   });
 

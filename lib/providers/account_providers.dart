@@ -38,6 +38,7 @@ class AccountsController extends AsyncNotifier<AccountsState> {
     required AccountType type,
     required String name,
     String? baseUrl,
+    String? profileId,
     String? dbName,
   }) async {
     final cur = state.valueOrNull ?? await future;
@@ -48,6 +49,7 @@ class AccountsController extends AsyncNotifier<AccountsState> {
       type: type,
       name: name.trim().isEmpty ? type.wire : name.trim(),
       baseUrl: baseUrl?.trim(),
+      profileId: profileId?.trim(),
       dbName: dbName,
       createdAt: now,
       updatedAt: now,

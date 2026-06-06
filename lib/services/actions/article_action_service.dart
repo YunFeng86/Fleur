@@ -21,7 +21,7 @@ class ArticleActionService {
     required CredentialStore credentials,
     required OutboxStore outbox,
   }) : _account = account,
-       _capabilities = BackendCapabilities.forAccountType(account.type),
+       _capabilities = BackendCapabilities.forAccount(account),
        _articles = articles,
        _feeds = feeds,
        _categories = categories,
