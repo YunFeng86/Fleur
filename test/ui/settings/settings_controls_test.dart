@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:fleur/theme/app_theme.dart';
+import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
 import 'package:fleur/ui/settings/widgets/section_header.dart';
 import 'package:fleur/ui/settings/widgets/slider_tile.dart';
@@ -26,6 +27,19 @@ Future<void> _pumpControl(
 }
 
 void main() {
+  testWidgets('Fleur menu theme keeps popover height content-sized', (
+    tester,
+  ) async {
+    await _pumpControl(tester, child: const SizedBox.shrink());
+
+    final theme = Theme.of(tester.element(find.byType(Scaffold)));
+    final minimumSize = theme.menuTheme.style?.minimumSize?.resolve({});
+
+    expect(minimumSize?.width, 156);
+    expect(minimumSize?.height, 0);
+    expect(minimumSize?.height.isFinite, isTrue);
+  });
+
   testWidgets('SettingsControlRow aligns control to the right on wide widths', (
     tester,
   ) async {
@@ -117,6 +131,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('settings_select')));
     await tester.pumpAndSettle();
+    expect(find.byIcon(FleurIcons.check), findsOneWidget);
     await tester.tap(find.text('Two').last);
     await tester.pumpAndSettle();
 

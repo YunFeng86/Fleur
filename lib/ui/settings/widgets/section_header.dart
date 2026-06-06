@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../theme/fleur_icons.dart';
 import '../../../theme/fleur_theme_extensions.dart';
 import '../../../widgets/app_scrollbar.dart';
+import '../../../widgets/fleur_select_field.dart';
 
 const double _kSettingsControlBreakpoint = 680;
 const double _kSettingsControlMinWidth = 220;
@@ -10,7 +10,6 @@ const double _kSettingsControlMaxWidth = 320;
 const double _kSettingsControlGap = 16;
 const double _kSettingsControlRowMinHeight = 52;
 const double _kSettingsControlRowWithSubtitleMinHeight = 64;
-const double _kSettingsSelectFieldHeight = 36;
 const Size _kSettingsSwitchHitSize = Size(48, 40);
 const double _kSettingsSwitchVisualWidth = 42;
 const double _kSettingsSwitchVisualHeight = 28;
@@ -466,154 +465,16 @@ class _SettingsControlTitle extends StatelessWidget {
   }
 }
 
-class SettingsSelectOption<T> {
-  const SettingsSelectOption({required this.value, required this.label});
+typedef SettingsSelectOption<T> = FleurSelectOption<T>;
 
-  final T value;
-  final Widget label;
-}
-
-class SettingsSelectField<T> extends StatefulWidget {
+class SettingsSelectField<T> extends FleurSelectField<T> {
   const SettingsSelectField({
     super.key,
-    required this.value,
-    required this.options,
-    required this.onChanged,
-    this.hint,
+    required super.value,
+    required super.options,
+    required super.onChanged,
+    super.hint,
   });
-
-  final T value;
-  final List<SettingsSelectOption<T>> options;
-  final ValueChanged<T>? onChanged;
-  final Widget? hint;
-
-  @override
-  State<SettingsSelectField<T>> createState() => _SettingsSelectFieldState<T>();
-}
-
-class _SettingsSelectFieldState<T> extends State<SettingsSelectField<T>> {
-  bool _hovered = false;
-  bool _focused = false;
-
-  SettingsSelectOption<T>? get _selectedOption {
-    for (final option in widget.options) {
-      if (option.value == widget.value) return option;
-    }
-    return null;
-  }
-
-  Future<void> _openMenu() async {
-    final onChanged = widget.onChanged;
-    if (onChanged == null) return;
-
-    final box = context.findRenderObject() as RenderBox;
-    final overlay =
-        Navigator.of(context).overlay!.context.findRenderObject() as RenderBox;
-    final topLeft = box.localToGlobal(Offset.zero, ancestor: overlay);
-    final bottomRight = box.localToGlobal(
-      box.size.bottomRight(Offset.zero),
-      ancestor: overlay,
-    );
-    final selected = await showMenu<SettingsSelectOption<T>>(
-      context: context,
-      position: RelativeRect.fromRect(
-        Rect.fromPoints(topLeft, bottomRight),
-        Offset.zero & overlay.size,
-      ),
-      constraints: BoxConstraints.tightFor(width: box.size.width),
-      color: Theme.of(context).fleurSurface.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      items: [
-        for (final option in widget.options)
-          PopupMenuItem<SettingsSelectOption<T>>(
-            value: option,
-            height: 36,
-            child: DefaultTextStyle.merge(
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: option.value == widget.value
-                    ? FontWeight.w600
-                    : FontWeight.w400,
-              ),
-              child: option.label,
-            ),
-          ),
-      ],
-    );
-    if (selected == null || !mounted) return;
-    onChanged(selected.value);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final surfaces = theme.fleurSurface;
-    final enabled = widget.onChanged != null;
-    final borderColor = !enabled
-        ? surfaces.subtleDivider.withValues(alpha: 0.42)
-        : _focused
-        ? scheme.primary
-        : _hovered
-        ? scheme.outline
-        : surfaces.subtleDivider;
-    final foregroundColor = enabled
-        ? scheme.onSurface
-        : scheme.onSurface.withValues(alpha: 0.38);
-    final selectedOption = _selectedOption;
-
-    return FocusableActionDetector(
-      enabled: enabled,
-      mouseCursor: enabled ? SystemMouseCursors.click : MouseCursor.defer,
-      onShowHoverHighlight: (value) => setState(() => _hovered = value),
-      onShowFocusHighlight: (value) => setState(() => _focused = value),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        curve: Curves.easeOutCubic,
-        height: _kSettingsSelectFieldHeight,
-        decoration: BoxDecoration(
-          color: surfaces.card,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: borderColor, width: _focused ? 2 : 1),
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(10),
-            onTap: enabled ? _openMenu : null,
-            child: Padding(
-              padding: const EdgeInsetsDirectional.only(start: 12, end: 10),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: DefaultTextStyle.merge(
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: foregroundColor,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      child:
-                          selectedOption?.label ??
-                          widget.hint ??
-                          const SizedBox.shrink(),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Icon(
-                    FleurIcons.dropdown,
-                    size: 16,
-                    color: enabled
-                        ? scheme.onSurfaceVariant
-                        : scheme.onSurface.withValues(alpha: 0.38),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class SettingsSliderControl extends StatelessWidget {

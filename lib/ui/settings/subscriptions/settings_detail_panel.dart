@@ -16,6 +16,7 @@ import '../../../../services/sync/backend_capabilities.dart';
 import '../../../../services/network/user_agents.dart';
 import '../../../../theme/fleur_icons.dart';
 import '../../../../utils/timeago_locale.dart';
+import '../../../../widgets/fleur_select_field.dart';
 import '../widgets/section_header.dart';
 import 'subscription_actions.dart';
 import 'settings_inheritance_helper.dart';
@@ -826,34 +827,6 @@ class _TriStateSwitchState extends State<_TriStateSwitch> {
     };
   }
 
-  Future<void> _showMenu(BuildContext context) async {
-    final overlay = Overlay.of(context).context.findRenderObject();
-    final box = context.findRenderObject();
-    if (overlay is! RenderBox || box is! RenderBox) return;
-    final rect = Rect.fromPoints(
-      box.localToGlobal(Offset.zero, ancestor: overlay),
-      box.localToGlobal(box.size.bottomRight(Offset.zero), ancestor: overlay),
-    );
-    final l10n = AppLocalizations.of(context)!;
-    final selected = await showMenu<_TriStateMenuAction>(
-      context: context,
-      position: RelativeRect.fromRect(rect, Offset.zero & overlay.size),
-      initialValue: _actionForValue(widget.currentValue),
-      items: [
-        PopupMenuItem(
-          value: _TriStateMenuAction.auto,
-          child: Text(
-            '${l10n.auto} (${widget.effectiveValue ? l10n.autoOn : l10n.autoOff})',
-          ),
-        ),
-        PopupMenuItem(value: _TriStateMenuAction.on, child: Text(l10n.enabled)),
-        PopupMenuItem(value: _TriStateMenuAction.off, child: Text(l10n.off)),
-      ],
-    );
-    if (!mounted || selected == null) return;
-    widget.onChanged(_valueForAction(selected));
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -903,13 +876,31 @@ class _TriStateSwitchState extends State<_TriStateSwitch> {
               tooltip: l10n.inherit,
               onPressed: () => widget.onChanged(null),
             ),
-          IconButton(
-            icon: const Icon(FleurIcons.dropdown),
-            onPressed: () => _showMenu(context),
+          SizedBox(
+            width: 168,
+            child: FleurSelectField<_TriStateMenuAction>(
+              value: _actionForValue(widget.currentValue),
+              options: [
+                FleurSelectOption(
+                  value: _TriStateMenuAction.auto,
+                  label: Text(
+                    '${l10n.auto} (${widget.effectiveValue ? l10n.autoOn : l10n.autoOff})',
+                  ),
+                ),
+                FleurSelectOption(
+                  value: _TriStateMenuAction.on,
+                  label: Text(l10n.enabled),
+                ),
+                FleurSelectOption(
+                  value: _TriStateMenuAction.off,
+                  label: Text(l10n.off),
+                ),
+              ],
+              onChanged: (action) => widget.onChanged(_valueForAction(action)),
+            ),
           ),
         ],
       ),
-      onTap: () => _showMenu(context),
     );
   }
 }

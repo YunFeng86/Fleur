@@ -27,6 +27,7 @@ import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/settings/app_settings_store.dart';
 import 'package:fleur/services/sync/sync_service.dart';
 import 'package:fleur/theme/app_theme.dart';
+import 'package:fleur/theme/fleur_icons.dart';
 
 import '../test_utils/isar_test_utils.dart';
 
@@ -591,6 +592,62 @@ void main() {
     });
     expect(feed, isNotNull);
     expect(feed!.categoryId, categoryId);
+  });
+
+  testWidgets('category picker filters long local category lists', (
+    tester,
+  ) async {
+    late final int targetCategoryId;
+    await tester.runAsync(() async {
+      for (var index = 1; index <= 10; index++) {
+        final id = await CategoryRepository(
+          isar!,
+        ).upsertByName('Category $index');
+        if (index == 10) targetCategoryId = id;
+      }
+    });
+
+    await _pumpScreen(
+      tester,
+      isar: isar!,
+      discovery: _FakeFeedDiscoveryService(const [
+        DiscoveredFeed(url: 'https://example.com/feed.xml', title: 'Feed'),
+      ]),
+      withRouter: true,
+    );
+    await _pumpFrames(tester);
+
+    await _enterAndDiscover(tester, 'https://example.com/feed.xml');
+    await _tapAddResult(tester, 'https://example.com/feed.xml');
+    await _pumpUntilFound(
+      tester,
+      find.byKey(const Key('add_subscription_category_dropdown')),
+    );
+    await tester.tap(
+      find.byKey(const Key('add_subscription_category_dropdown')),
+    );
+    await tester.pumpAndSettle();
+
+    final searchField = find.widgetWithIcon(TextField, FleurIcons.search);
+    expect(searchField, findsOneWidget);
+    await tester.enterText(searchField, 'Category 10');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Category 10').last);
+    await tester.pumpAndSettle();
+    await _tapConfirmAdd(tester);
+    await _pumpUntilFound(
+      tester,
+      _viewResultButton('https://example.com/feed.xml'),
+    );
+
+    late final Feed? feed;
+    await tester.runAsync(() async {
+      feed = await FeedRepository(
+        isar!,
+      ).getByUrl('https://example.com/feed.xml');
+    });
+    expect(feed, isNotNull);
+    expect(feed!.categoryId, targetCategoryId);
   });
 
   testWidgets('query category id preselects a local category', (tester) async {

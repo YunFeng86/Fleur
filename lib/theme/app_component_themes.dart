@@ -186,6 +186,39 @@ class AppComponentThemes {
         shape: shape,
         textStyle: base.textTheme.bodyMedium?.copyWith(color: scheme.onSurface),
       ),
+      menuTheme: MenuThemeData(
+        style: MenuStyle(
+          backgroundColor: WidgetStatePropertyAll(surfaces.floating),
+          shadowColor: WidgetStatePropertyAll(scheme.shadow.withAlpha(42)),
+          surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+          elevation: const WidgetStatePropertyAll(8),
+          padding: const WidgetStatePropertyAll(
+            EdgeInsets.symmetric(vertical: 4),
+          ),
+          minimumSize: const WidgetStatePropertyAll(Size(156, 0)),
+          side: WidgetStatePropertyAll(
+            BorderSide(color: surfaces.subtleDivider),
+          ),
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        ),
+      ),
+      menuButtonTheme: MenuButtonThemeData(
+        style: ButtonStyle(
+          foregroundColor: WidgetStatePropertyAll(scheme.onSurface),
+          iconColor: WidgetStatePropertyAll(scheme.onSurfaceVariant),
+          iconSize: const WidgetStatePropertyAll(18),
+          minimumSize: const WidgetStatePropertyAll(Size(156, 40)),
+          padding: const WidgetStatePropertyAll(
+            EdgeInsetsDirectional.only(start: 14, end: 16),
+          ),
+          overlayColor: stateLayer(Colors.transparent),
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
+      ),
       dialogTheme: DialogThemeData(
         backgroundColor: surfaces.floating,
         surfaceTintColor: Colors.transparent,

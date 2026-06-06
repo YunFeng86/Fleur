@@ -17,6 +17,7 @@ import '../ui/app_drawer_scope.dart';
 import '../utils/context_extensions.dart';
 import '../utils/platform.dart';
 import '../widgets/app_scrollbar.dart';
+import '../widgets/fleur_select_field.dart';
 import '../widgets/staggered_reveal.dart';
 
 class AddSubscriptionScreen extends ConsumerStatefulWidget {
@@ -1053,10 +1054,10 @@ class _CategorySection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final selectedValue = state.categorySelected
+    final Object? selectedValue = state.categorySelected
         ? state.selectedCategoryId ?? 'uncategorized'
         : null;
-    final optionsByValue = <Object, AddSubscriptionCategoryOption>{
+    final optionsByValue = <Object?, AddSubscriptionCategoryOption>{
       for (final option in state.categories) _categoryValue(option): option,
     };
     return Padding(
@@ -1065,24 +1066,26 @@ class _CategorySection extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          DropdownButtonFormField<Object>(
+          FleurSelectField<Object?>(
             key: const Key('add_subscription_category_dropdown'),
-            initialValue: selectedValue,
-            decoration: InputDecoration(
-              labelText: l10n.selectCategory,
-              prefixIcon: const Icon(FleurIcons.category),
-            ),
+            value: selectedValue,
             hint: Text(l10n.selectCategory),
-            items: [
+            leadingIcon: FleurIcons.category,
+            enableSearch: state.categories.length > 8,
+            searchHint: l10n.search,
+            options: [
               for (final option in state.categories)
-                DropdownMenuItem<Object>(
+                FleurSelectOption<Object?>(
                   key: Key(
                     option.isUncategorized
                         ? 'add_subscription_category_uncategorized'
                         : 'add_subscription_category_${option.id}',
                   ),
                   value: _categoryValue(option),
-                  child: Text(
+                  searchText: option.isUncategorized
+                      ? l10n.uncategorized
+                      : option.title,
+                  label: Text(
                     option.isUncategorized ? l10n.uncategorized : option.title,
                     overflow: TextOverflow.ellipsis,
                   ),

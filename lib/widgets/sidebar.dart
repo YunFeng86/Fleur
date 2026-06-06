@@ -166,7 +166,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
 
     final l10n = AppLocalizations.of(context)!;
     final position = renderObject.localToGlobal(
-      Offset(renderObject.size.width / 2, 8),
+      Offset(renderObject.size.width - 16, -4),
     );
     final action = await AppMenuHost.showAt<_SidebarAccountMenuAction>(
       context,
