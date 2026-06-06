@@ -73,6 +73,7 @@ class _ArticleListState extends ConsumerState<ArticleList> {
   int _pendingTrimmedArticleCount = 0;
   int _pendingArticleCount = 0;
   double? _averageArticleExtent;
+  bool _activeSelectionSyncScheduled = false;
 
   int? _lastContextKey;
   Set<int> _seenArticleIds = <int>{};
@@ -87,6 +88,26 @@ class _ArticleListState extends ConsumerState<ArticleList> {
   void initState() {
     super.initState();
     _controller = ScrollController()..addListener(_handleScroll);
+    _syncActiveSelection();
+  }
+
+  @override
+  void didUpdateWidget(covariant ArticleList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedArticleId != widget.selectedArticleId) {
+      _syncActiveSelection();
+    }
+  }
+
+  void _syncActiveSelection() {
+    if (_activeSelectionSyncScheduled) return;
+    _activeSelectionSyncScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _activeSelectionSyncScheduled = false;
+      if (!mounted) return;
+      ref.read(activeArticleListSelectionProvider.notifier).state =
+          widget.selectedArticleId;
+    });
   }
 
   void _handleScroll() {

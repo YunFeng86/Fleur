@@ -124,6 +124,8 @@ final articleListFilterProvider = StateProvider<ArticleListFilter>(
   (ref) => const ArticleListFilter(),
 );
 
+final activeArticleListSelectionProvider = StateProvider<int?>((ref) => null);
+
 final currentArticleScopeProvider = Provider<ArticleScope>((ref) {
   return ref.watch(articleListFilterProvider.select((filter) => filter.scope));
 });

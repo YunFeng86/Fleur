@@ -10,7 +10,7 @@ import '../providers/unread_providers.dart';
 import '../theme/fleur_icons.dart';
 import '../ui/actions/subscription_object_menus.dart';
 import '../ui/app_drawer_scope.dart';
-import '../ui/hero_tags.dart';
+import '../ui/home/article_reader_workspace_layout.dart';
 import '../ui/home/home_scene_commands.dart';
 import '../ui/home/home_scene_panes.dart';
 import '../ui/home/home_scene_shortcuts.dart';
@@ -187,17 +187,13 @@ class HomeScreen extends ConsumerWidget {
                   )
                 : null,
             floatingActionButton: useCompactTopBar ? markAllReadFab() : null,
-            body: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: _workspacePanes(
-                context: context,
-                ref: ref,
-                contentWidth: width,
-                listWidth: kHomeListWidth,
-                selectedArticleId: selectedArticleId,
-                showSyncCapsule: showSyncCapsule,
-                enableSplitHandle: false,
-              ),
+            body: _buildWorkspaceLayout(
+              ref: ref,
+              contentWidth: width,
+              listWidth: kHomeListWidth,
+              selectedArticleId: selectedArticleId,
+              showSyncCapsule: showSyncCapsule,
+              enableSplitHandle: false,
             ),
           ),
         );
@@ -231,24 +227,24 @@ class HomeScreen extends ConsumerWidget {
     );
 
     final body = switch (mode) {
-      DesktopPaneMode.threePane || DesktopPaneMode.splitListReader => Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: _workspacePanes(
-          context: context,
-          ref: ref,
-          contentWidth: contentWidth,
-          listWidth: listWidth,
-          heroTag: kHeroArticleListPane,
-          selectedArticleId: selectedArticleId,
-          showSyncCapsule: showSyncCapsule,
-          topBar: topBar,
-          enableSplitHandle: true,
-        ),
-      ),
-      DesktopPaneMode.listOnly => HomeArticleListPane(
+      DesktopPaneMode.threePane ||
+      DesktopPaneMode.splitListReader => _buildWorkspaceLayout(
+        ref: ref,
+        contentWidth: contentWidth,
+        listWidth: listWidth,
         selectedArticleId: selectedArticleId,
         showSyncCapsule: showSyncCapsule,
         topBar: topBar,
+        enableSplitHandle: true,
+      ),
+      DesktopPaneMode.listOnly => _buildWorkspaceLayout(
+        ref: ref,
+        contentWidth: contentWidth,
+        listWidth: listWidth,
+        selectedArticleId: selectedArticleId,
+        showSyncCapsule: showSyncCapsule,
+        topBar: topBar,
+        enableSplitHandle: false,
       ),
     };
 
@@ -291,51 +287,38 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  List<Widget> _workspacePanes({
-    required BuildContext context,
+  Widget _buildWorkspaceLayout({
     required WidgetRef ref,
     required double contentWidth,
     required double listWidth,
     required int? selectedArticleId,
     required bool showSyncCapsule,
     required bool enableSplitHandle,
-    Object? heroTag,
     Widget? topBar,
   }) {
-    if (selectedArticleId == null) {
-      return [
-        Expanded(
-          child: HomeArticleListPane(
-            heroTag: heroTag,
-            selectedArticleId: selectedArticleId,
-            showSyncCapsule: showSyncCapsule,
-            topBar: topBar,
-          ),
-        ),
-      ];
-    }
-
-    return [
-      HomeArticleListPane(
-        width: listWidth,
-        heroTag: heroTag,
+    return ArticleReaderWorkspaceLayout(
+      selectedArticleId: selectedArticleId,
+      contentWidth: contentWidth,
+      listWidth: listWidth,
+      listPane: HomeArticleListPane(
         selectedArticleId: selectedArticleId,
         showSyncCapsule: showSyncCapsule,
         topBar: topBar,
       ),
-      if (enableSplitHandle)
-        WorkspaceSplitHandle(
-          key: const Key('workspace_list_split_handle'),
-          onDragDelta: (delta) {
-            final notifier = ref.read(workspaceListWidthProvider.notifier);
-            notifier.state = clampWorkspaceListWidth(
-              notifier.state + delta,
-              contentWidth,
-            );
-          },
-        ),
-      Expanded(child: HomeReaderPane(articleId: selectedArticleId)),
-    ];
+      readerPane: selectedArticleId == null
+          ? null
+          : HomeReaderPane(articleId: selectedArticleId),
+      showSplitHandle: enableSplitHandle && selectedArticleId != null,
+      onResizeList: enableSplitHandle
+          ? (delta) {
+              final notifier = ref.read(workspaceListWidthProvider.notifier);
+              notifier.state = clampWorkspaceListWidth(
+                notifier.state + delta,
+                contentWidth,
+              );
+            }
+          : null,
+    );
   }
 }
 

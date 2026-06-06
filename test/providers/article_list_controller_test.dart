@@ -50,6 +50,7 @@ void main() {
 
   ProviderContainer buildContainer({
     bool unreadOnly = false,
+    int? selectedArticleId,
     AppSettings? settings,
     ArticleListFilter filter = const ArticleListFilter(),
   }) {
@@ -60,6 +61,9 @@ void main() {
           FakeAppSettingsStore(settings ?? AppSettings.defaults()),
         ),
         articleListFilterProvider.overrideWith((ref) => filter),
+        activeArticleListSelectionProvider.overrideWith(
+          (ref) => selectedArticleId,
+        ),
         unreadOnlyProvider.overrideWith((ref) => unreadOnly),
       ],
     );
@@ -178,6 +182,44 @@ void main() {
       expect(state.startOffset, 0);
       expect(state.nextOffset, 100);
       expect(state.hasMore, isTrue);
+    },
+  );
+
+  test(
+    'refresh temporarily keeps the selected article in unread lists',
+    () async {
+      await seedArticles(120);
+      final container = buildContainer(unreadOnly: true, selectedArticleId: 75);
+      keepArticleListAlive(container);
+      await container.read(appSettingsProvider.future);
+
+      await container.read(articleListControllerProvider.future);
+      await container.read(articleListControllerProvider.notifier).loadMore();
+
+      await ArticleRepository(isar!).markRead(75, true);
+      await container.read(articleListControllerProvider.notifier).refresh();
+
+      var state = container.read(articleListControllerProvider).requireValue;
+      expect(
+        articleIds(state),
+        orderedEquals(List.generate(101, (i) => i + 1)),
+      );
+      expect(state.items, hasLength(101));
+      expect(state.startOffset, 0);
+      expect(state.nextOffset, 100);
+      expect(state.hasMore, isTrue);
+
+      container.read(activeArticleListSelectionProvider.notifier).state = null;
+      await container.read(articleListControllerProvider.notifier).refresh();
+
+      state = container.read(articleListControllerProvider).requireValue;
+      final expectedIds = <int>[
+        ...List.generate(74, (i) => i + 1),
+        ...List.generate(26, (i) => i + 76),
+      ];
+      expect(articleIds(state), orderedEquals(expectedIds));
+      expect(state.items, hasLength(100));
+      expect(state.nextOffset, 100);
     },
   );
 

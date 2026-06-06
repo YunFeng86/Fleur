@@ -13,10 +13,10 @@ import '../providers/core_providers.dart';
 import '../providers/query_providers.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
+import '../ui/home/article_reader_workspace_layout.dart';
 import '../ui/layout.dart';
 import '../ui/layout_spec.dart';
 import '../ui/sidebar_layout.dart';
-import '../ui/workspace_layers.dart';
 import '../utils/platform.dart';
 import '../widgets/article_list.dart';
 import '../widgets/fleur_empty_state.dart';
@@ -373,19 +373,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           );
         }
 
-        Widget content;
-        if (!isEmbedded || widget.selectedArticleId == null) {
-          content = listPane();
-        } else {
-          content = Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              RepaintBoundary(
-                child: SizedBox(width: listWidth, child: listPane()),
-              ),
-              WorkspaceSplitHandle(
-                key: const Key('workspace_list_split_handle'),
-                onDragDelta: (delta) {
+        final id = widget.selectedArticleId;
+        final content = !showResults || !isEmbedded
+            ? listPane()
+            : ArticleReaderWorkspaceLayout(
+                selectedArticleId: id,
+                contentWidth: width,
+                listWidth: listWidth,
+                listPane: listPane(),
+                readerPane: id == null ? null : readerPane(embedded: true),
+                showSplitHandle: id != null,
+                onResizeList: (delta) {
                   final notifier = ref.read(
                     workspaceListWidthProvider.notifier,
                   );
@@ -394,11 +392,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     spec.contentWidth,
                   );
                 },
-              ),
-              Expanded(child: readerPane(embedded: true)),
-            ],
-          );
-        }
+              );
 
         if (!useCompactTopBar) {
           return Material(color: surfaces.list, child: content);

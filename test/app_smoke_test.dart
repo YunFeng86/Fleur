@@ -31,6 +31,7 @@ import 'package:fleur/providers/unread_providers.dart';
 import 'package:fleur/repositories/feed_repository.dart';
 import 'package:fleur/screens/add_subscription_screen.dart';
 import 'package:fleur/screens/home_screen.dart';
+import 'package:fleur/screens/saved_screen.dart';
 import 'package:fleur/screens/search_screen.dart';
 import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/services/settings/app_settings.dart';
@@ -3247,7 +3248,7 @@ void main() {
         ),
       ),
     );
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 240));
 
     final surface = tester.widget<DecoratedBox>(
       find
@@ -3286,6 +3287,95 @@ void main() {
     expect(radius.topRight.x, 0);
     expect(shadows, isNotEmpty);
     expect(shadows.first.blurRadius, greaterThan(0));
+  });
+
+  testWidgets('Home workspace preserves article list scroll state on open', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(1200, 800);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    final selectedArticle = _buildArticle(id: 1);
+    final articles = List<Article>.generate(
+      30,
+      (index) => _buildArticle(id: index + 1, title: 'Article ${index + 1}'),
+    );
+    _FixedArticleListController.items = articles;
+    addTearDown(() => _FixedArticleListController.items = <Article>[]);
+
+    final selected = ValueNotifier<int?>(null);
+    addTearDown(selected.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          activeAccountProvider.overrideWithValue(buildTestAccount()),
+          articleListControllerProvider.overrideWith(
+            _FixedArticleListController.new,
+          ),
+          for (final article in articles)
+            articleProvider(
+              article.id,
+            ).overrideWith((ref) => Stream.value(article)),
+          appSettingsStoreProvider.overrideWithValue(
+            FakeAppSettingsStore(AppSettings.defaults()),
+          ),
+          readerSettingsStoreProvider.overrideWithValue(
+            FakeReaderSettingsStore(const ReaderSettings()),
+          ),
+          readerProgressStoreProvider.overrideWithValue(
+            InMemoryReaderProgressStore(),
+          ),
+          imageMetaStoreProvider.overrideWithValue(InMemoryImageMetaStore()),
+          articleActionServiceProvider.overrideWithValue(
+            RecordingArticleActionService(),
+          ),
+          feedsProvider.overrideWith(
+            (ref) => Stream.value([_buildFeed(id: selectedArticle.feedId)]),
+          ),
+          categoriesProvider.overrideWith((ref) => Stream.value(<Category>[])),
+          tagsProvider.overrideWith((ref) => Stream.value(<Tag>[])),
+          allUnreadCountsProvider.overrideWith(
+            (ref) => Stream.value(<int?, int>{null: 0}),
+          ),
+          outboxPendingCountProvider.overrideWith((ref) async => 0),
+        ],
+        child: ValueListenableBuilder<int?>(
+          valueListenable: selected,
+          builder: (context, selectedArticleId, _) {
+            return MaterialApp(
+              theme: AppTheme.light(),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: HomeScreen(selectedArticleId: selectedArticleId),
+            );
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final before = tester
+        .stateList<ScrollableState>(find.byType(Scrollable))
+        .firstWhere((state) => state.position.axis == Axis.vertical);
+    before.position.jumpTo(180);
+    await tester.pump();
+    final pixelsBefore = before.position.pixels;
+
+    selected.value = selectedArticle.id;
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 240));
+
+    final after = tester
+        .stateList<ScrollableState>(find.byType(Scrollable))
+        .firstWhere((state) => state.position.axis == Axis.vertical);
+    expect(identical(before, after), isTrue);
+    expect(after.position.pixels, pixelsBefore);
+    expect(find.byType(ReaderView), findsOneWidget);
   });
 
   testWidgets('Add subscription screen starts as a task page', (tester) async {
@@ -3596,6 +3686,131 @@ void main() {
       expect(find.text('search article 42'), findsOneWidget);
     },
   );
+
+  testWidgets('Search reader route uses the sliding workspace layout', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(1200, 800);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    final article = _buildArticle(id: 42, title: 'Claude Result');
+    final feed = _buildFeed(id: article.feedId);
+    _FixedArticleListController.items = <Article>[article];
+    addTearDown(() => _FixedArticleListController.items = <Article>[]);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          articleListControllerProvider.overrideWith(
+            _FixedArticleListController.new,
+          ),
+          articleProvider(42).overrideWith((ref) => Stream.value(article)),
+          appSettingsStoreProvider.overrideWithValue(
+            FakeAppSettingsStore(AppSettings.defaults()),
+          ),
+          readerSettingsStoreProvider.overrideWithValue(
+            FakeReaderSettingsStore(const ReaderSettings()),
+          ),
+          readerProgressStoreProvider.overrideWithValue(
+            InMemoryReaderProgressStore(),
+          ),
+          imageMetaStoreProvider.overrideWithValue(InMemoryImageMetaStore()),
+          articleActionServiceProvider.overrideWithValue(
+            RecordingArticleActionService(),
+          ),
+          feedsProvider.overrideWith((ref) => Stream.value([feed])),
+          categoriesProvider.overrideWith((ref) => Stream.value(<Category>[])),
+          tagsProvider.overrideWith((ref) => Stream.value(<Tag>[])),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const SearchScreen(
+            selectedArticleId: 42,
+            routeState: SearchRouteState(query: 'claude'),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 240));
+
+    expect(
+      find.byKey(const Key('article_reader_workspace_layout')),
+      findsOneWidget,
+    );
+    expect(tester.getSize(find.byType(ArticleList)).width, kDesktopListWidth);
+    expect(find.byType(ReaderView), findsOneWidget);
+  });
+
+  testWidgets('Saved reader route uses the sliding workspace layout', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(1200, 800);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    final article = _buildArticle(
+      id: 42,
+      title: 'Starred Result',
+      isStarred: true,
+    );
+    final feed = _buildFeed(id: article.feedId);
+    _FixedArticleListController.items = <Article>[article];
+    addTearDown(() => _FixedArticleListController.items = <Article>[]);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          articleListControllerProvider.overrideWith(
+            _FixedArticleListController.new,
+          ),
+          articleProvider(42).overrideWith((ref) => Stream.value(article)),
+          appSettingsStoreProvider.overrideWithValue(
+            FakeAppSettingsStore(AppSettings.defaults()),
+          ),
+          readerSettingsStoreProvider.overrideWithValue(
+            FakeReaderSettingsStore(const ReaderSettings()),
+          ),
+          readerProgressStoreProvider.overrideWithValue(
+            InMemoryReaderProgressStore(),
+          ),
+          imageMetaStoreProvider.overrideWithValue(InMemoryImageMetaStore()),
+          articleActionServiceProvider.overrideWithValue(
+            RecordingArticleActionService(),
+          ),
+          feedsProvider.overrideWith((ref) => Stream.value([feed])),
+          categoriesProvider.overrideWith((ref) => Stream.value(<Category>[])),
+          tagsProvider.overrideWith((ref) => Stream.value(<Tag>[])),
+          starredCountProvider.overrideWith((ref) => Stream.value(1)),
+          readLaterCountProvider.overrideWith((ref) => Stream.value(0)),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const SavedScreen(selectedArticleId: 42),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 240));
+
+    expect(
+      find.byKey(const Key('article_reader_workspace_layout')),
+      findsOneWidget,
+    );
+    expect(tester.getSize(find.byType(ArticleList)).width, kDesktopListWidth);
+    expect(find.byType(ReaderView), findsOneWidget);
+  });
 }
 
 void _noopSelectScope(ArticleScope _) {}

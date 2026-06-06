@@ -4,7 +4,6 @@ import '../../theme/fleur_theme_extensions.dart';
 import '../../widgets/article_list.dart';
 import '../../widgets/reader_view.dart';
 import '../../widgets/sync_status_capsule.dart';
-import '../motion.dart';
 import '../workspace_layers.dart';
 
 class HomeArticleListPane extends StatelessWidget {
@@ -12,34 +11,19 @@ class HomeArticleListPane extends StatelessWidget {
     super.key,
     required this.selectedArticleId,
     required this.showSyncCapsule,
-    this.width,
-    this.heroTag,
     this.topBar,
   });
 
   final int? selectedArticleId;
   final bool showSyncCapsule;
-  final double? width;
-  final Object? heroTag;
   final Widget? topBar;
 
   @override
   Widget build(BuildContext context) {
-    Widget child = SyncStatusCapsuleHost(
+    return SyncStatusCapsuleHost(
       enabled: showSyncCapsule,
       child: ArticleList(selectedArticleId: selectedArticleId, topBar: topBar),
     );
-
-    if (width != null) {
-      child = SizedBox(width: width, child: child);
-    }
-    if (heroTag != null) {
-      child = Hero(
-        tag: heroTag!,
-        child: RepaintBoundary(child: child),
-      );
-    }
-    return child;
   }
 }
 
@@ -55,30 +39,12 @@ class HomeReaderPane extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final child = ReadingPaneSurface(
+    return ReadingPaneSurface(
       child: ReaderView(
         key: ValueKey('home-reader-$articleId'),
         articleId: articleId,
         embedded: embedded,
       ),
-    );
-    if (AppMotion.reduceMotion(context)) return child;
-
-    return TweenAnimationBuilder<double>(
-      key: ValueKey('home-reader-pane-motion-$articleId'),
-      tween: Tween(begin: 0, end: 1),
-      duration: AppMotion.medium,
-      curve: AppMotion.emphasizedDecelerate,
-      builder: (context, t, child) {
-        return Opacity(
-          opacity: t,
-          child: Transform.translate(
-            offset: Offset((1 - t) * 14, 0),
-            child: child,
-          ),
-        );
-      },
-      child: child,
     );
   }
 }

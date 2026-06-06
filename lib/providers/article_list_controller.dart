@@ -127,7 +127,10 @@ class ArticleListController extends AutoDisposeAsyncNotifier<ArticleListState> {
     }
 
     var offset = current.startOffset;
-    var limit = current.items.isEmpty ? _pageSize : current.items.length;
+    var limit = current.nextOffset - current.startOffset;
+    if (limit <= 0) {
+      limit = current.items.isEmpty ? _pageSize : current.items.length;
+    }
     var ids = await repo.fetchPageIds(query, offset: offset, limit: limit + 1);
     var hasMore = ids.length > limit;
     var windowIds = hasMore ? ids.sublist(0, limit) : ids;
@@ -140,8 +143,14 @@ class ArticleListController extends AutoDisposeAsyncNotifier<ArticleListState> {
       windowIds = hasMore ? ids.sublist(0, limit) : ids;
     }
 
+    final retainedWindow = _retainSelectedArticleInUnreadWindow(
+      query: query,
+      currentItems: current.items,
+      windowIds: windowIds,
+    );
+    final displayIds = retainedWindow.ids;
     final nextOffset = offset + windowIds.length;
-    if (_sameIds(current.items, windowIds)) {
+    if (_sameIds(current.items, displayIds)) {
       if (current.hasMore == hasMore &&
           current.nextOffset == nextOffset &&
           current.startOffset == offset &&
@@ -158,9 +167,10 @@ class ArticleListController extends AutoDisposeAsyncNotifier<ArticleListState> {
       );
       return;
     }
-    final items = windowIds.isEmpty
+    final queryItems = windowIds.isEmpty
         ? const <Article>[]
         : await repo.fetchPage(query, offset: offset, limit: windowIds.length);
+    final items = retainedWindow.apply(queryItems);
     state = AsyncValue.data(
       current.copyWith(
         items: items,
@@ -169,6 +179,33 @@ class ArticleListController extends AutoDisposeAsyncNotifier<ArticleListState> {
         startOffset: offset,
         nextOffset: nextOffset,
       ),
+    );
+  }
+
+  _RetainedArticleWindow _retainSelectedArticleInUnreadWindow({
+    required ArticleQuery query,
+    required List<Article> currentItems,
+    required List<int> windowIds,
+  }) {
+    final selectedArticleId = ref.read(activeArticleListSelectionProvider);
+    if (!query.unreadOnly ||
+        selectedArticleId == null ||
+        windowIds.contains(selectedArticleId)) {
+      return _RetainedArticleWindow(windowIds);
+    }
+
+    final previousIndex = currentItems.indexWhere(
+      (article) => article.id == selectedArticleId,
+    );
+    if (previousIndex < 0) return _RetainedArticleWindow(windowIds);
+
+    final ids = windowIds.toList();
+    final insertIndex = previousIndex.clamp(0, ids.length).toInt();
+    ids.insert(insertIndex, selectedArticleId);
+    return _RetainedArticleWindow(
+      ids,
+      retainedArticle: currentItems[previousIndex],
+      retainedIndex: insertIndex,
     );
   }
 
@@ -238,3 +275,25 @@ final articleListControllerProvider =
       ArticleListController.new,
       dependencies: [articleRepositoryProvider],
     );
+
+class _RetainedArticleWindow {
+  const _RetainedArticleWindow(
+    this.ids, {
+    this.retainedArticle,
+    this.retainedIndex,
+  });
+
+  final List<int> ids;
+  final Article? retainedArticle;
+  final int? retainedIndex;
+
+  List<Article> apply(List<Article> queryItems) {
+    final article = retainedArticle;
+    final index = retainedIndex;
+    if (article == null || index == null) return queryItems;
+    if (queryItems.any((item) => item.id == article.id)) return queryItems;
+    final items = queryItems.toList();
+    items.insert(index.clamp(0, items.length).toInt(), article);
+    return items;
+  }
+}

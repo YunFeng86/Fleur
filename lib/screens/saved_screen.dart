@@ -7,14 +7,13 @@ import '../providers/query_providers.dart';
 import '../providers/unread_providers.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
-import '../ui/hero_tags.dart';
+import '../ui/home/article_reader_workspace_layout.dart';
 import '../ui/layout.dart';
 import '../ui/layout_spec.dart';
 import '../utils/platform.dart';
 import '../widgets/article_list.dart';
 import '../widgets/fleur_empty_state.dart';
 import '../widgets/reader_view.dart';
-import '../widgets/sidebar_pane_hero.dart';
 import '../widgets/staggered_reveal.dart';
 import '../widgets/sync_status_capsule.dart';
 import '../ui/app_drawer_scope.dart';
@@ -253,28 +252,23 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
           );
         }
 
-        Widget content;
-        if (!isEmbedded) {
-          // List-only; reader is a secondary route (or shown full page if deep-linked).
-          content = listPane();
-        } else {
-          content = Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SizedBox(width: 0, child: const SidebarPaneHero()),
-              Hero(
-                tag: kHeroArticleListPane,
-                child: RepaintBoundary(
-                  child: SizedBox(width: kDesktopListWidth, child: listPane()),
-                ),
-              ),
-              const SizedBox(width: kPaneGap),
-              Expanded(child: readerPane(embedded: true)),
-            ],
-          );
-        }
+        final id = widget.selectedArticleId;
+        final content = !isEmbedded
+            // List-only; reader is a secondary route (or shown full page if deep-linked).
+            ? listPane()
+            : ArticleReaderWorkspaceLayout(
+                selectedArticleId: id,
+                contentWidth: width,
+                listWidth: kDesktopListWidth,
+                listPane: listPane(),
+                readerPane: id == null ? null : readerPane(embedded: true),
+                showSplitHandle: false,
+                onResizeList: null,
+              );
 
-        if (!useCompactTopBar) return content;
+        if (!useCompactTopBar) {
+          return Material(color: surfaces.list, child: content);
+        }
 
         return Scaffold(
           appBar: AppBar(
