@@ -36,9 +36,7 @@ class SyncStatusCapsuleHost extends ConsumerWidget {
     final reduceMotion = AppMotion.reduceMotion(context);
     final duration = reduceMotion ? Duration.zero : AppMotion.short;
     final resolvedAlignment = alignment.resolve(Directionality.of(context));
-    final capsuleMaxWidth = resolvedAlignment.x < 0
-        ? double.infinity
-        : maxWidth;
+    final shrinkToContent = resolvedAlignment.x < 0;
 
     return Stack(
       fit: StackFit.expand,
@@ -50,25 +48,39 @@ class SyncStatusCapsuleHost extends ConsumerWidget {
           bottom: 0,
           child: Padding(
             padding: padding,
-            child: Align(
-              alignment: alignment,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: capsuleMaxWidth),
-                child: AnimatedSlide(
-                  offset: visible ? Offset.zero : const Offset(0, 1),
-                  duration: duration,
-                  curve: AppMotion.standardCurve,
-                  child: AnimatedOpacity(
-                    opacity: visible ? 1 : 0,
-                    duration: duration,
-                    curve: AppMotion.standardCurve,
-                    child: IgnorePointer(
-                      ignoring: !visible,
-                      child: _SyncStatusCapsule(state: state),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final availableWidth = constraints.hasBoundedWidth
+                    ? constraints.maxWidth
+                    : maxWidth;
+                final capsuleMaxWidth = shrinkToContent
+                    ? availableWidth
+                    : maxWidth;
+
+                return Align(
+                  alignment: alignment,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: capsuleMaxWidth),
+                    child: AnimatedSlide(
+                      offset: visible ? Offset.zero : const Offset(0, 1),
+                      duration: duration,
+                      curve: AppMotion.standardCurve,
+                      child: AnimatedOpacity(
+                        opacity: visible ? 1 : 0,
+                        duration: duration,
+                        curve: AppMotion.standardCurve,
+                        child: IgnorePointer(
+                          ignoring: !visible,
+                          child: _SyncStatusCapsule(
+                            state: state,
+                            shrinkToContent: shrinkToContent,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
           ),
         ),
@@ -78,9 +90,13 @@ class SyncStatusCapsuleHost extends ConsumerWidget {
 }
 
 class _SyncStatusCapsule extends StatelessWidget {
-  const _SyncStatusCapsule({required this.state});
+  const _SyncStatusCapsule({
+    required this.state,
+    required this.shrinkToContent,
+  });
 
   final SyncStatusState state;
+  final bool shrinkToContent;
 
   String _labelText(AppLocalizations l10n, SyncStatusLabel label) {
     // Keep this in one place so UI can stay consistent across panes.
@@ -151,10 +167,12 @@ class _SyncStatusCapsule extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
+          mainAxisSize: shrinkToContent ? MainAxisSize.min : MainAxisSize.max,
           children: [
             indicator,
             const SizedBox(width: 10),
-            Expanded(
+            Flexible(
+              fit: shrinkToContent ? FlexFit.loose : FlexFit.tight,
               child: DefaultTextStyle(
                 style:
                     theme.textTheme.bodySmall?.copyWith(

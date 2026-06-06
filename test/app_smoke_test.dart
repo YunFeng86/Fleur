@@ -2493,11 +2493,15 @@ void main() {
   });
 
   testWidgets(
-    'Sync status capsule fills left alignment and constrains center',
+    'Sync status capsule sizes left alignment to content and constrains center',
     (tester) async {
       Future<({Offset topLeft, Size size})> pumpCapsule(
         double width, {
         AlignmentGeometry alignment = Alignment.bottomLeft,
+        SyncStatusLabel label = SyncStatusLabel.syncing,
+        String? detail,
+        int? current,
+        int? total,
       }) async {
         await tester.pumpWidget(
           ProviderScope(
@@ -2529,9 +2533,10 @@ void main() {
         container
             .read(syncStatusReporterProvider)
             .startTask(
-              label: SyncStatusLabel.syncingFeeds,
-              current: 1,
-              total: 3,
+              label: label,
+              detail: detail,
+              current: current,
+              total: total,
             );
         await tester.pump();
 
@@ -2544,11 +2549,29 @@ void main() {
 
       const wideWidth = 760.0;
 
-      final wideLeft = await pumpCapsule(wideWidth);
-      expect(wideLeft.topLeft.dx, 16);
-      expect(wideLeft.size.width, wideWidth - 32);
+      final shortLeft = await pumpCapsule(wideWidth);
+      expect(shortLeft.topLeft.dx, 16);
+      expect(shortLeft.size.width, lessThan(kSyncStatusCapsuleMaxWidth));
 
-      final narrowLeft = await pumpCapsule(380);
+      final contentLeft = await pumpCapsule(
+        wideWidth,
+        label: SyncStatusLabel.syncingSubscriptions,
+        detail: 'Miniflux2 sync',
+        current: 405,
+        total: 555,
+      );
+      expect(contentLeft.topLeft.dx, 16);
+      expect(contentLeft.size.width, greaterThan(kSyncStatusCapsuleMaxWidth));
+      expect(contentLeft.size.width, lessThan(wideWidth - 32));
+
+      final narrowLeft = await pumpCapsule(
+        380,
+        label: SyncStatusLabel.syncingSubscriptions,
+        detail:
+            'Miniflux2 subscription metadata sync with a very long detail label',
+        current: 405,
+        total: 555,
+      );
       expect(narrowLeft.topLeft.dx, 16);
       expect(narrowLeft.size.width, 348);
 
