@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_community/isar.dart';
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 
 import 'package:fleur/models/article.dart';
 import 'package:fleur/models/category.dart';
@@ -16,12 +17,16 @@ import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/services/accounts/credential_store.dart';
 import 'package:fleur/services/cache/article_cache_service.dart';
 import 'package:fleur/services/cache/image_meta_store.dart';
+import 'package:fleur/services/logging/app_logger.dart';
 import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/sync/google_reader/google_reader_sync_service.dart';
+import 'package:fleur/services/sync/google_reader/google_reader_provider_profile.dart';
 import 'package:fleur/services/sync/outbox/outbox_store.dart';
 import 'package:fleur/services/sync/remote_article_action_executor.dart';
+import 'package:fleur/utils/path_manager.dart';
 
 import '../../test_utils/critical_workflow_test_support.dart';
+import '../../test_utils/fake_path_provider_platform.dart';
 import '../../test_utils/isar_test_utils.dart';
 
 void main() {
@@ -281,6 +286,46 @@ void main() {
       );
     },
   );
+
+  test(
+    'syncAccountSafe failure log includes profileId and sanitized URL',
+    () async {
+      await _withTestLogger(() async {
+        final account = buildTestAccount(
+          type: AccountType.googleReader,
+          baseUrl: 'https://reader.example.com/root?token=query-secret#frag',
+          profileId: GoogleReaderProviderProfiles.freshRssId,
+        );
+        final service = GoogleReaderSyncService(
+          account: account,
+          dio: _failingGoogleReaderDio(),
+          credentials: _FakeCredentialStore(),
+          feeds: FeedRepository(isar!),
+          categories: CategoryRepository(isar!),
+          articles: ArticleRepository(isar!),
+          outbox: _MemoryOutboxStore(),
+          appSettingsStore: FakeAppSettingsStore(
+            AppSettings.defaults().copyWith(remoteEntriesLimit: 10),
+          ),
+          cache: _unusedCache(),
+        );
+
+        await service.syncAccountSafe();
+
+        final log = await _readActiveLog();
+        expect(log, contains('[W] [sync] Google Reader account sync failed'));
+        expect(log, contains('operation=refreshAccount'));
+        expect(log, contains('profileId=freshRss'));
+        expect(log, contains('host=reader.example.com'));
+        expect(
+          log,
+          contains('path=/root/api/greader.php/reader/api/0/subscription/list'),
+        );
+        expect(log, isNot(contains('query-secret')));
+        expect(log, isNot(contains('#frag')));
+      });
+    },
+  );
 }
 
 Dio _googleReaderDio(
@@ -360,6 +405,26 @@ Dio _googleReaderDio(
   return dio;
 }
 
+Dio _failingGoogleReaderDio() {
+  final dio = Dio();
+  dio.interceptors.add(
+    InterceptorsWrapper(
+      onRequest: (options, handler) {
+        handler.reject(
+          DioException(
+            requestOptions: options,
+            response: Response<Object?>(
+              requestOptions: options,
+              statusCode: 500,
+            ),
+          ),
+        );
+      },
+    ),
+  );
+  return dio;
+}
+
 Map<String, Object?> _itemRefsForStreamRequest(
   Map<String, Object?> queryParameters, {
   required List<String> contentIds,
@@ -421,6 +486,52 @@ class _MemoryOutboxStore extends OutboxStore {
 }
 
 class _UnusedCacheManager extends Fake implements BaseCacheManager {}
+
+Future<T> _withTestLogger<T>(Future<T> Function() body) async {
+  final previousPlatform = PathProviderPlatform.instance;
+  final tempDir = await Directory.systemTemp.createTemp(
+    'fleur_google_reader_sync_log_',
+  );
+  try {
+    final documents = await Directory(
+      '${tempDir.path}/documents',
+    ).create(recursive: true);
+    final support = await Directory(
+      '${tempDir.path}/support',
+    ).create(recursive: true);
+    final cache = await Directory(
+      '${tempDir.path}/cache',
+    ).create(recursive: true);
+    final temporary = await Directory(
+      '${tempDir.path}/temporary',
+    ).create(recursive: true);
+    PathProviderPlatform.instance = FakePathProviderPlatform(
+      documentsPath: documents.path,
+      supportPath: support.path,
+      cachePath: cache.path,
+      temporaryPath: temporary.path,
+    );
+    PathManager.resetForTests();
+    await AppLogger.resetForTests();
+    await AppLogger.ensureInitialized();
+    return await body();
+  } finally {
+    await AppLogger.resetForTests();
+    PathManager.resetForTests();
+    PathProviderPlatform.instance = previousPlatform;
+    try {
+      await tempDir.delete(recursive: true);
+    } catch (_) {
+      // ignore: best-effort cleanup
+    }
+  }
+}
+
+Future<String> _readActiveLog() async {
+  final logFile = await AppLogger.getActiveLogFile();
+  await AppLogger.flush();
+  return logFile!.readAsString();
+}
 
 class _RecordedRequest {
   _RecordedRequest({

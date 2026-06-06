@@ -794,6 +794,7 @@ class GoogleReaderSyncService implements SyncServiceBase, OutboxFlushCapable {
       'accountType': 'googleReader',
       'backend': 'googleReader',
       'operation': operation,
+      'profileId': account.profileId,
       if (action != null) ...<String, Object?>{
         'actionType': action.type.wire,
         'remoteEntryKeyPresent': (action.remoteEntryKey ?? '').isNotEmpty,

@@ -17,9 +17,32 @@ class GoogleReaderProbeResult {
 }
 
 class GoogleReaderProbeException implements Exception {
-  const GoogleReaderProbeException(this.message);
+  const GoogleReaderProbeException(
+    this.message, {
+    this.profileId,
+    this.operation,
+    this.host,
+    this.path,
+    this.statusCode,
+    this.dioType,
+  });
 
   final String message;
+  final String? profileId;
+  final String? operation;
+  final String? host;
+  final String? path;
+  final int? statusCode;
+  final String? dioType;
+
+  Map<String, Object?> get logContext => <String, Object?>{
+    'profileId': profileId,
+    'probeOperation': operation,
+    'host': host,
+    'path': path,
+    'statusCode': statusCode,
+    'dioType': dioType,
+  };
 
   @override
   String toString() => 'GoogleReaderProbeException($message)';
@@ -50,6 +73,7 @@ class GoogleReaderConnectionProbe {
         lastError = e;
       }
     }
+    if (lastError is GoogleReaderProbeException) throw lastError;
     throw GoogleReaderProbeException(_sanitizedFailureMessage(lastError));
   }
 
@@ -69,30 +93,56 @@ class GoogleReaderConnectionProbe {
     required String password,
     required GoogleReaderProviderProfile profile,
   }) async {
-    final client = GoogleReaderClient(
-      dio: _dio,
-      baseUrl: baseUrl,
+    late final GoogleReaderClient client;
+    try {
+      client = GoogleReaderClient(
+        dio: _dio,
+        baseUrl: baseUrl,
+        profile: profile,
+        username: username,
+        password: password,
+      );
+    } catch (e) {
+      throw _probeExceptionFrom(e, profile: profile, operation: 'buildClient');
+    }
+    await _runProbeOperation<void>(
       profile: profile,
-      username: username,
-      password: password,
+      operation: 'clientLogin',
+      action: () => client.ensureAuthenticated(),
     );
-    await client.ensureAuthenticated();
 
     Map<String, Object?> userInfo = const <String, Object?>{};
     try {
-      userInfo = await client.userInfo();
-    } catch (_) {
-      final subscriptions = await client.subscriptionList();
+      userInfo = await _runProbeOperation<Map<String, Object?>>(
+        profile: profile,
+        operation: 'userInfo',
+        action: client.userInfo,
+      );
+    } on GoogleReaderProbeException {
+      final subscriptions =
+          await _runProbeOperation<List<Map<String, Object?>>>(
+            profile: profile,
+            operation: 'subscriptionList',
+            action: client.subscriptionList,
+          );
       if (subscriptions.isEmpty) {
         // Empty subscription lists are valid, but reaching the endpoint is enough.
         // The request above would have thrown if the endpoint/auth were invalid.
       }
     }
 
-    await client.token();
-    await client.streamItemIds(
-      streamId: GoogleReaderRemoteArticleActionExecutor.readingListState,
-      count: 1,
+    await _runProbeOperation<String>(
+      profile: profile,
+      operation: 'token',
+      action: client.token,
+    );
+    await _runProbeOperation<GoogleReaderItemIdsPage>(
+      profile: profile,
+      operation: 'streamItemIds',
+      action: () => client.streamItemIds(
+        streamId: GoogleReaderRemoteArticleActionExecutor.readingListState,
+        count: 1,
+      ),
     );
 
     return GoogleReaderProbeResult(
@@ -100,6 +150,18 @@ class GoogleReaderConnectionProbe {
       normalizedBaseUrl: client.normalizedBaseUrl,
       displayName: _displayNameFromUserInfo(userInfo),
     );
+  }
+
+  static Future<T> _runProbeOperation<T>({
+    required GoogleReaderProviderProfile profile,
+    required String operation,
+    required Future<T> Function() action,
+  }) async {
+    try {
+      return await action();
+    } catch (e) {
+      throw _probeExceptionFrom(e, profile: profile, operation: operation);
+    }
   }
 
   static String? _displayNameFromUserInfo(Map<String, Object?> userInfo) {
@@ -122,5 +184,64 @@ class GoogleReaderConnectionProbe {
       }
     }
     return 'Google Reader connection failed.';
+  }
+
+  static GoogleReaderProbeException _probeExceptionFrom(
+    Object error, {
+    required GoogleReaderProviderProfile profile,
+    required String operation,
+  }) {
+    if (error is GoogleReaderProbeException) {
+      return GoogleReaderProbeException(
+        error.message,
+        profileId: error.profileId ?? profile.id,
+        operation: error.operation ?? operation,
+        host: error.host,
+        path: error.path,
+        statusCode: error.statusCode,
+        dioType: error.dioType,
+      );
+    }
+    if (error is DioException) {
+      final request = error.requestOptions;
+      final uri = request.uri;
+      final status = error.response?.statusCode;
+      return GoogleReaderProbeException(
+        _messageForDioFailure(status),
+        profileId: profile.id,
+        operation: operation,
+        host: uri.host.isEmpty ? null : uri.host,
+        path: uri.path.isEmpty ? '/' : uri.path,
+        statusCode: status,
+        dioType: error.type.name,
+      );
+    }
+    if (error is GoogleReaderAuthException) {
+      return GoogleReaderProbeException(
+        'Google Reader authentication failed.',
+        profileId: profile.id,
+        operation: operation,
+      );
+    }
+    if (error is ArgumentError) {
+      return GoogleReaderProbeException(
+        'Google Reader base URL is invalid.',
+        profileId: profile.id,
+        operation: operation,
+      );
+    }
+    return GoogleReaderProbeException(
+      'Google Reader connection failed.',
+      profileId: profile.id,
+      operation: operation,
+    );
+  }
+
+  static String _messageForDioFailure(int? status) {
+    if (status == null) return 'Google Reader connection failed.';
+    if (status == 401 || status == 403) {
+      return 'Google Reader authentication failed with HTTP $status.';
+    }
+    return 'Google Reader connection failed with HTTP $status.';
   }
 }

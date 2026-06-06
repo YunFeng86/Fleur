@@ -8,6 +8,7 @@ import 'package:fleur/l10n/app_localizations.dart';
 
 import '../providers/account_providers.dart';
 import '../services/accounts/account.dart';
+import '../services/sync/google_reader/google_reader_provider_profile.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/dialogs/add_account_dialogs.dart';
@@ -147,6 +148,14 @@ class AccountManagerDialog extends ConsumerWidget {
     context.showSnack(l10n.done);
   }
 
+  Future<void> _editGoogleReaderConnection(
+    BuildContext context,
+    WidgetRef ref,
+    Account account,
+  ) async {
+    await showEditGoogleReaderAccountDialog(context, ref, account);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
@@ -269,9 +278,10 @@ class AccountManagerDialog extends ConsumerWidget {
                                       ? l10n.fever
                                       : a.baseUrl!.trim(),
                                 AccountType.googleReader =>
-                                  (a.baseUrl ?? '').trim().isEmpty
-                                      ? l10n.googleReaderCompatible
-                                      : a.baseUrl!.trim(),
+                                  _googleReaderAccountSubtitle(
+                                    a,
+                                    l10n.googleReaderCompatible,
+                                  ),
                               };
 
                               return AnimatedContainer(
@@ -334,6 +344,19 @@ class AccountManagerDialog extends ConsumerWidget {
                                   trailing: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
+                                      if (a.type == AccountType.googleReader)
+                                        IconButton(
+                                          tooltip: 'Connection',
+                                          onPressed: () =>
+                                              _editGoogleReaderConnection(
+                                                context,
+                                                ref,
+                                                a,
+                                              ),
+                                          icon: const Icon(
+                                            FleurIcons.googleReaderAccount,
+                                          ),
+                                        ),
                                       IconButton(
                                         tooltip: l10n.rename,
                                         onPressed: () =>
@@ -379,6 +402,13 @@ class AccountManagerDialog extends ConsumerWidget {
       ),
     );
   }
+}
+
+String _googleReaderAccountSubtitle(Account account, String fallback) {
+  final profile = GoogleReaderProviderProfiles.forAccount(account).displayName;
+  final baseUrl = account.baseUrl?.trim();
+  if (baseUrl == null || baseUrl.isEmpty) return '$profile - $fallback';
+  return '$profile - $baseUrl';
 }
 
 class _AccountTypeCard extends StatelessWidget {

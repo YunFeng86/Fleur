@@ -78,6 +78,10 @@ Widget _buildLauncher() {
     body: Center(
       child: Consumer(
         builder: (context, ref, _) {
+          final readerAccount = ref
+              .watch(accountsControllerProvider)
+              .valueOrNull
+              ?.findById('reader');
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -87,6 +91,19 @@ Widget _buildLauncher() {
                   await showAddGoogleReaderAccountDialog(context, ref);
                 },
                 child: const Text('open google reader'),
+              ),
+              FilledButton(
+                key: const Key('open_google_reader_edit'),
+                onPressed: readerAccount == null
+                    ? null
+                    : () async {
+                        await showEditGoogleReaderAccountDialog(
+                          context,
+                          ref,
+                          readerAccount,
+                        );
+                      },
+                child: const Text('edit google reader'),
               ),
               FilledButton(
                 key: const Key('open_fever'),
@@ -127,6 +144,14 @@ class _MemoryAccountStore extends AccountStore {
 class _FakeCredentialStore extends CredentialStore {
   final basicAuth = <String, ({String username, String password})>{};
   final deletedApiTokens = <String>{};
+
+  @override
+  Future<({String username, String password})?> getBasicAuth(
+    String accountId,
+    AccountType type,
+  ) async {
+    return basicAuth[accountId];
+  }
 
   @override
   Future<void> setBasicAuth(
@@ -280,6 +305,189 @@ void main() {
     expect(credentials.basicAuth[account.id]?.password, 'reader-password');
     expect(credentials.deletedApiTokens, contains(account.id));
   });
+
+  testWidgets('Google Reader connection dialog tests without persisting', (
+    tester,
+  ) async {
+    final now = DateTime.utc(2026, 1, 1);
+    final reader = Account(
+      id: 'reader',
+      type: AccountType.googleReader,
+      name: 'FreshRSS',
+      baseUrl: 'https://rss.example.com',
+      profileId: GoogleReaderProviderProfiles.freshRssId,
+      createdAt: now,
+      updatedAt: now,
+    );
+    final store = _MemoryAccountStore(
+      AccountsState(
+        version: AccountStore.currentVersion,
+        activeAccountId: reader.id,
+        accounts: [reader],
+      ),
+    );
+    final credentials = _FakeCredentialStore();
+    credentials.basicAuth[reader.id] = (
+      username: 'reader-user',
+      password: 'reader-password',
+    );
+
+    await pumpLocalizedTestApp(
+      tester,
+      home: _buildLauncher(),
+      overrides: [
+        accountStoreProvider.overrideWithValue(store),
+        credentialStoreProvider.overrideWithValue(credentials),
+        dioProvider.overrideWithValue(_googleReaderProbeDio()),
+      ],
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('open_google_reader_edit')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TextButton, 'Test connection'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(find.textContaining('Connected: FreshRSS'), findsOneWidget);
+    expect(store.state.accounts.single.baseUrl, 'https://rss.example.com');
+    expect(credentials.basicAuth[reader.id]?.username, 'reader-user');
+    expect(credentials.deletedApiTokens, isEmpty);
+    await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets(
+    'Google Reader connection dialog saves normalized URL and existing password',
+    (tester) async {
+      final now = DateTime.utc(2026, 1, 1);
+      final reader = Account(
+        id: 'reader',
+        type: AccountType.googleReader,
+        name: 'FreshRSS',
+        baseUrl: 'https://old.example.com',
+        profileId: GoogleReaderProviderProfiles.freshRssId,
+        createdAt: now,
+        updatedAt: now,
+      );
+      final store = _MemoryAccountStore(
+        AccountsState(
+          version: AccountStore.currentVersion,
+          activeAccountId: reader.id,
+          accounts: [reader],
+        ),
+      );
+      final credentials = _FakeCredentialStore();
+      credentials.basicAuth[reader.id] = (
+        username: 'old-user',
+        password: 'old-password',
+      );
+
+      await pumpLocalizedTestApp(
+        tester,
+        home: _buildLauncher(),
+        overrides: [
+          accountStoreProvider.overrideWithValue(store),
+          credentialStoreProvider.overrideWithValue(credentials),
+          dioProvider.overrideWithValue(_googleReaderProbeDio()),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('open_google_reader_edit')));
+      await tester.pumpAndSettle();
+      final usernameField = tester.widget<TextField>(
+        find.byType(TextField).at(1),
+      );
+      expect(usernameField.controller?.text, 'old-user');
+      await tester.enterText(
+        find.byType(TextField).at(0),
+        'https://rss.example.com/api/greader.php/reader/api/0',
+      );
+      await tester.enterText(find.byType(TextField).at(1), 'new-user');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      final updated = store.state.accounts.single;
+      expect(updated.baseUrl, 'https://rss.example.com/');
+      expect(updated.profileId, GoogleReaderProviderProfiles.freshRssId);
+      expect(credentials.basicAuth[reader.id]?.username, 'new-user');
+      expect(credentials.basicAuth[reader.id]?.password, 'old-password');
+      expect(credentials.deletedApiTokens, contains(reader.id));
+    },
+  );
+
+  testWidgets('Google Reader connection failure logs sanitized context', (
+    tester,
+  ) async {
+    await _withTestLogger(tester, () async {
+      final now = DateTime.utc(2026, 1, 1);
+      final reader = Account(
+        id: 'reader',
+        type: AccountType.googleReader,
+        name: 'Reader',
+        baseUrl: 'https://reader.example.com/root',
+        profileId: GoogleReaderProviderProfiles.genericId,
+        createdAt: now,
+        updatedAt: now,
+      );
+      final store = _MemoryAccountStore(
+        AccountsState(
+          version: AccountStore.currentVersion,
+          activeAccountId: reader.id,
+          accounts: [reader],
+        ),
+      );
+      final credentials = _FakeCredentialStore();
+      credentials.basicAuth[reader.id] = (
+        username: 'user-secret',
+        password: 'password-secret',
+      );
+
+      await pumpLocalizedTestApp(
+        tester,
+        home: _buildLauncher(),
+        overrides: [
+          accountStoreProvider.overrideWithValue(store),
+          credentialStoreProvider.overrideWithValue(credentials),
+          dioProvider.overrideWithValue(_failingGoogleReaderProbeDio()),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('open_google_reader_edit')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byType(TextField).at(0),
+        'https://reader.example.com/root?token=query-secret#frag',
+      );
+      await tester.tap(find.widgetWithText(TextButton, 'Test connection'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      final contents = await tester.runAsync(_readActiveLog);
+      final log = contents!;
+      expect(
+        log,
+        contains('[W] [account] Google Reader account connection failed'),
+      );
+      expect(log, contains('operation=testGoogleReaderConnection'));
+      expect(log, contains('probeOperation=clientLogin'));
+      expect(log, contains('profileId=googleReaderGeneric'));
+      expect(log, contains('host=reader.example.com'));
+      expect(log, contains('path=/root/accounts/ClientLogin'));
+      expect(log, isNot(contains('password-secret')));
+      expect(log, isNot(contains('query-secret')));
+      expect(log, isNot(contains('#frag')));
+      expect(
+        store.state.accounts.single.baseUrl,
+        'https://reader.example.com/root',
+      );
+      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      await tester.pumpAndSettle();
+    });
+  });
 }
 
 Dio _googleReaderProbeDio() {
@@ -302,6 +510,26 @@ Dio _googleReaderProbeDio() {
           ),
         };
         handler.resolve(Response<Object?>(requestOptions: options, data: data));
+      },
+    ),
+  );
+  return dio;
+}
+
+Dio _failingGoogleReaderProbeDio() {
+  final dio = Dio();
+  dio.interceptors.add(
+    InterceptorsWrapper(
+      onRequest: (options, handler) {
+        handler.reject(
+          DioException(
+            requestOptions: options,
+            response: Response<Object?>(
+              requestOptions: options,
+              statusCode: 401,
+            ),
+          ),
+        );
       },
     ),
   );

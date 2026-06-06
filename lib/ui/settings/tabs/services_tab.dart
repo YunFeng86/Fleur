@@ -12,6 +12,7 @@ import '../../../providers/backend_sync_semantics_provider.dart';
 import '../../../services/accounts/account.dart';
 import '../../../services/settings/app_settings.dart';
 import '../../../services/sync/backend_capabilities.dart';
+import '../../../services/sync/google_reader/google_reader_provider_profile.dart';
 import '../../../theme/fleur_icons.dart';
 import '../../../utils/context_extensions.dart';
 import '../../../widgets/account_avatar.dart';
@@ -155,10 +156,10 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
           (account.baseUrl ?? '').trim().isEmpty
               ? l10n.fever
               : account.baseUrl!.trim(),
-        AccountType.googleReader =>
-          (account.baseUrl ?? '').trim().isEmpty
-              ? l10n.googleReaderCompatible
-              : account.baseUrl!.trim(),
+        AccountType.googleReader => _googleReaderAccountSubtitle(
+          account,
+          l10n.googleReaderCompatible,
+        ),
       };
     }
 
@@ -254,6 +255,15 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
                                 );
                               },
                         onRename: () => unawaited(renameAccount(account)),
+                        onConnection: account.type == AccountType.googleReader
+                            ? () => unawaited(
+                                showEditGoogleReaderAccountDialog(
+                                  context,
+                                  ref,
+                                  account,
+                                ),
+                              )
+                            : null,
                         onDelete: account.isPrimary
                             ? null
                             : () => unawaited(deleteAccount(account)),
@@ -474,7 +484,14 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
   }
 }
 
-enum _AccountAction { rename, delete }
+String _googleReaderAccountSubtitle(Account account, String fallback) {
+  final profile = GoogleReaderProviderProfiles.forAccount(account).displayName;
+  final baseUrl = account.baseUrl?.trim();
+  if (baseUrl == null || baseUrl.isEmpty) return '$profile - $fallback';
+  return '$profile - $baseUrl';
+}
+
+enum _AccountAction { connection, rename, delete }
 
 class _AccountSettingsTile extends StatelessWidget {
   const _AccountSettingsTile({
@@ -484,6 +501,7 @@ class _AccountSettingsTile extends StatelessWidget {
     required this.isActive,
     required this.onTap,
     required this.onRename,
+    required this.onConnection,
     required this.onDelete,
   });
 
@@ -492,6 +510,7 @@ class _AccountSettingsTile extends StatelessWidget {
   final bool isActive;
   final VoidCallback? onTap;
   final VoidCallback onRename;
+  final VoidCallback? onConnection;
   final VoidCallback? onDelete;
 
   @override
@@ -526,6 +545,13 @@ class _AccountSettingsTile extends StatelessWidget {
             tooltip: l10n.more,
             icon: FleurIcons.moreVertical,
             items: [
+              if (onConnection != null)
+                AppMenuItem(
+                  key: Key('services_account_connection_${account.id}'),
+                  value: _AccountAction.connection,
+                  icon: FleurIcons.googleReaderAccount,
+                  label: 'Connection',
+                ),
               AppMenuItem(
                 key: Key('services_account_rename_${account.id}'),
                 value: _AccountAction.rename,
@@ -542,6 +568,9 @@ class _AccountSettingsTile extends StatelessWidget {
             ],
             onSelected: (action) {
               switch (action) {
+                case _AccountAction.connection:
+                  onConnection?.call();
+                  return;
                 case _AccountAction.rename:
                   onRename();
                   return;

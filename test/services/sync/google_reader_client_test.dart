@@ -148,6 +148,43 @@ void main() {
     expect(client.normalizedBaseUrl, 'https://rss.example.com/');
   });
 
+  test('Miniflux profile keeps standard reader API paths', () async {
+    final requests = <_RecordedRequest>[];
+    final client = GoogleReaderClient(
+      dio: _dio(requests),
+      baseUrl: 'https://miniflux.example.com/reader/api/0',
+      profile: GoogleReaderProviderProfiles.miniflux,
+      username: 'user',
+      password: 'secret',
+    );
+
+    await client.streamItemIds(
+      streamId: GoogleReaderRemoteArticleActionExecutor.readingListState,
+    );
+
+    expect(requests.map((request) => '${request.method} ${request.path}'), [
+      'POST /accounts/ClientLogin',
+      'GET /reader/api/0/stream/items/ids',
+    ]);
+    expect(client.normalizedBaseUrl, 'https://miniflux.example.com/');
+  });
+
+  test('ClientLogin sends output=json for compatible profiles', () async {
+    final requests = <_RecordedRequest>[];
+    final client = GoogleReaderClient(
+      dio: _dio(requests),
+      baseUrl: 'https://reader.example.com',
+      profile: GoogleReaderProviderProfiles.generic,
+      username: 'user',
+      password: 'secret',
+    );
+
+    await client.clientLogin(username: 'user', password: 'secret');
+
+    final payload = requests.single.data as Map<String, Object?>;
+    expect(payload['output'], 'json');
+  });
+
   test(
     'new metadata endpoints and batched edit-tag use profile API path',
     () async {

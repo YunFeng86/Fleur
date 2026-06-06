@@ -87,6 +87,38 @@ class AccountsController extends AsyncNotifier<AccountsState> {
     await ref.read(accountStoreProvider).save(next);
   }
 
+  Future<void> updateAccountConnection({
+    required String accountId,
+    String? baseUrl,
+    String? profileId,
+  }) async {
+    final cur = state.valueOrNull ?? await future;
+    final idx = cur.accounts.indexWhere((a) => a.id == accountId);
+    if (idx < 0) return;
+
+    final current = cur.accounts[idx];
+    final trimmedBaseUrl = baseUrl?.trim();
+    final trimmedProfileId = profileId?.trim();
+    final now = DateTime.now();
+    final nextAccounts = [...cur.accounts];
+    nextAccounts[idx] = current.copyWith(
+      baseUrl: trimmedBaseUrl == null || trimmedBaseUrl.isEmpty
+          ? current.baseUrl
+          : trimmedBaseUrl,
+      profileId: trimmedProfileId == null || trimmedProfileId.isEmpty
+          ? current.profileId
+          : trimmedProfileId,
+      updatedAt: now,
+    );
+    final next = AccountsState(
+      version: cur.version,
+      activeAccountId: cur.activeAccountId,
+      accounts: nextAccounts,
+    );
+    state = AsyncValue.data(next);
+    await ref.read(accountStoreProvider).save(next);
+  }
+
   Future<void> deleteAccount(String accountId) async {
     final cur = state.valueOrNull ?? await future;
     final target = cur.findById(accountId);

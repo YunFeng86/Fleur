@@ -916,6 +916,7 @@ Future<String?> showAddGoogleReaderAccountDialog(
         accountType: AccountType.googleReader,
         authMode: 'basicAuth',
         baseUrl: baseUrl,
+        profileId: profileId,
         error: e,
         stackTrace: s,
       );
@@ -1079,10 +1080,415 @@ Future<String?> showAddGoogleReaderAccountDialog(
   return id;
 }
 
+Future<void> showEditGoogleReaderAccountDialog(
+  BuildContext context,
+  WidgetRef ref,
+  Account account,
+) async {
+  if (account.type != AccountType.googleReader) return;
+  final l10n = AppLocalizations.of(context)!;
+  final store = ref.read(credentialStoreProvider);
+  ({String username, String password})? savedBasicAuth;
+  try {
+    savedBasicAuth = await store.getBasicAuth(
+      account.id,
+      AccountType.googleReader,
+    );
+  } catch (e, s) {
+    _logGoogleReaderAccountConnectionFailure(
+      operation: 'loadGoogleReaderCredentials',
+      accountId: account.id,
+      profileId: account.profileId,
+      baseUrl: account.baseUrl ?? '',
+      error: e,
+      stackTrace: s,
+    );
+  }
+  if (!context.mounted) return;
+
+  final baseUrlCtrl = TextEditingController(text: account.baseUrl ?? '');
+  final usernameCtrl = TextEditingController(text: savedBasicAuth?.username);
+  final passwordCtrl = TextEditingController();
+  var profileId =
+      GoogleReaderProviderProfiles.isKnownProfileId(account.profileId)
+      ? account.profileId!
+      : GoogleReaderProviderProfiles.genericId;
+  var obscurePassword = true;
+  var testing = false;
+  var submitting = false;
+  var saved = false;
+  String? baseUrlError;
+  String? usernameError;
+  String? passwordError;
+  String? statusMessage;
+  bool statusOk = false;
+
+  bool isBusy() => testing || submitting;
+
+  String? effectivePassword() {
+    final entered = passwordCtrl.text;
+    if (entered.isNotEmpty) return entered;
+    return savedBasicAuth?.password;
+  }
+
+  Future<GoogleReaderProbeResult?> probeCurrent({
+    required StateSetter setState,
+    required BuildContext dialogContext,
+    required String operation,
+  }) async {
+    if (isBusy()) return null;
+    final baseUrl = baseUrlCtrl.text.trim();
+    final username = usernameCtrl.text.trim();
+    final password = effectivePassword();
+    final uri = Uri.tryParse(baseUrl);
+    String? nextBaseUrlError;
+    String? nextUsernameError;
+    String? nextPasswordError;
+
+    if (baseUrl.isEmpty) {
+      nextBaseUrlError = l10n.baseUrlRequired;
+    } else if (uri == null ||
+        !(uri.scheme == 'http' || uri.scheme == 'https')) {
+      nextBaseUrlError = l10n.invalidBaseUrl;
+    }
+    if (username.isEmpty) nextUsernameError = l10n.usernameRequired;
+    if (password == null || password.isEmpty) {
+      nextPasswordError = l10n.passwordRequired;
+    }
+
+    if (nextBaseUrlError != null ||
+        nextUsernameError != null ||
+        nextPasswordError != null) {
+      setState(() {
+        baseUrlError = nextBaseUrlError;
+        usernameError = nextUsernameError;
+        passwordError = nextPasswordError;
+        statusMessage = null;
+        statusOk = false;
+      });
+      return null;
+    }
+
+    setState(() {
+      baseUrlError = null;
+      usernameError = null;
+      passwordError = null;
+      statusMessage = null;
+      statusOk = false;
+      if (operation == 'testGoogleReaderConnection') {
+        testing = true;
+      } else {
+        submitting = true;
+      }
+    });
+
+    try {
+      final probe = GoogleReaderConnectionProbe(dio: ref.read(dioProvider));
+      return await probe.probe(
+        baseUrl: baseUrl,
+        username: username,
+        password: password!,
+        profileId: profileId,
+      );
+    } catch (e, s) {
+      _logGoogleReaderAccountConnectionFailure(
+        operation: operation,
+        accountId: account.id,
+        profileId: profileId,
+        baseUrl: baseUrl,
+        error: e,
+        stackTrace: s,
+      );
+      if (!dialogContext.mounted) return null;
+      final message = e is GoogleReaderProbeException
+          ? e.message
+          : 'Google Reader connection failed.';
+      setState(() {
+        if (e is GoogleReaderProbeException) {
+          baseUrlError = e.message;
+        }
+        statusMessage = message;
+        statusOk = false;
+        testing = false;
+        submitting = false;
+      });
+      dialogContext.showSnack(l10n.errorMessage(message));
+      return null;
+    }
+  }
+
+  Future<void> testConnection(
+    StateSetter setState,
+    BuildContext dialogContext,
+  ) async {
+    final result = await probeCurrent(
+      setState: setState,
+      dialogContext: dialogContext,
+      operation: 'testGoogleReaderConnection',
+    );
+    if (result == null || !dialogContext.mounted) return;
+    setState(() {
+      testing = false;
+      statusOk = true;
+      final displayName = result.displayName?.trim();
+      statusMessage =
+          'Connected: ${result.profile.displayName}'
+          '${displayName == null || displayName.isEmpty ? '' : ' - $displayName'}';
+    });
+  }
+
+  Future<void> saveConnection(
+    StateSetter setState,
+    BuildContext dialogContext,
+  ) async {
+    final result = await probeCurrent(
+      setState: setState,
+      dialogContext: dialogContext,
+      operation: 'updateGoogleReaderConnection',
+    );
+    if (result == null) return;
+    try {
+      final username = usernameCtrl.text.trim();
+      final password = effectivePassword()!;
+      await ref
+          .read(accountsControllerProvider.notifier)
+          .updateAccountConnection(
+            accountId: account.id,
+            baseUrl: result.normalizedBaseUrl,
+            profileId: result.profile.id,
+          );
+      await store.setBasicAuth(
+        account.id,
+        AccountType.googleReader,
+        username: username,
+        password: password,
+      );
+      await store.deleteApiToken(account.id, AccountType.googleReader);
+      saved = true;
+      if (!dialogContext.mounted) return;
+      FocusScope.of(dialogContext).unfocus();
+      Navigator.of(dialogContext).pop();
+    } catch (e, s) {
+      _logGoogleReaderAccountConnectionFailure(
+        operation: 'saveGoogleReaderConnection',
+        accountId: account.id,
+        profileId: result.profile.id,
+        baseUrl: result.normalizedBaseUrl,
+        error: e,
+        stackTrace: s,
+      );
+      if (!dialogContext.mounted) return;
+      setState(() {
+        submitting = false;
+        statusMessage = 'Google Reader connection save failed.';
+        statusOk = false;
+      });
+      dialogContext.showSnack(
+        l10n.errorMessage('Google Reader connection save failed.'),
+      );
+    }
+  }
+
+  try {
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (dialogContext, setState) {
+            final busy = isBusy();
+            final scheme = Theme.of(dialogContext).colorScheme;
+            return AlertDialog(
+              scrollable: true,
+              title: const Text('Google Reader connection'),
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DropdownButtonFormField<String>(
+                      initialValue: profileId,
+                      decoration: const InputDecoration(labelText: 'Provider'),
+                      items: [
+                        const DropdownMenuItem(
+                          value: GoogleReaderProviderProfiles.autoId,
+                          child: Text('Auto'),
+                        ),
+                        for (final profile
+                            in GoogleReaderProviderProfiles.values)
+                          DropdownMenuItem(
+                            value: profile.id,
+                            child: Text(profile.displayName),
+                          ),
+                      ],
+                      onChanged: busy
+                          ? null
+                          : (value) => setState(() {
+                              profileId =
+                                  value ?? GoogleReaderProviderProfiles.autoId;
+                              statusMessage = null;
+                              statusOk = false;
+                            }),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: baseUrlCtrl,
+                      enabled: !busy,
+                      textInputAction: TextInputAction.next,
+                      keyboardType: TextInputType.url,
+                      onChanged: (_) {
+                        if (baseUrlError == null && statusMessage == null) {
+                          return;
+                        }
+                        setState(() {
+                          baseUrlError = null;
+                          statusMessage = null;
+                          statusOk = false;
+                        });
+                      },
+                      onSubmitted: (_) =>
+                          FocusScope.of(dialogContext).nextFocus(),
+                      decoration: InputDecoration(
+                        labelText: l10n.baseUrl,
+                        hintText: 'https://example.com/reader/api/0',
+                        errorText: baseUrlError,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: usernameCtrl,
+                      enabled: !busy,
+                      textInputAction: TextInputAction.next,
+                      onChanged: (_) {
+                        if (usernameError == null && statusMessage == null) {
+                          return;
+                        }
+                        setState(() {
+                          usernameError = null;
+                          statusMessage = null;
+                          statusOk = false;
+                        });
+                      },
+                      onSubmitted: (_) =>
+                          FocusScope.of(dialogContext).nextFocus(),
+                      decoration: InputDecoration(
+                        labelText: l10n.username,
+                        errorText: usernameError,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: passwordCtrl,
+                      enabled: !busy,
+                      obscureText: obscurePassword,
+                      textInputAction: TextInputAction.done,
+                      onChanged: (_) {
+                        if (passwordError == null && statusMessage == null) {
+                          return;
+                        }
+                        setState(() {
+                          passwordError = null;
+                          statusMessage = null;
+                          statusOk = false;
+                        });
+                      },
+                      onSubmitted: (_) =>
+                          unawaited(saveConnection(setState, dialogContext)),
+                      decoration: InputDecoration(
+                        labelText: l10n.password,
+                        helperText: savedBasicAuth == null
+                            ? null
+                            : 'Leave blank to keep existing password',
+                        errorText: passwordError,
+                        suffixIcon: IconButton(
+                          tooltip: obscurePassword ? l10n.show : l10n.hide,
+                          icon: Icon(
+                            obscurePassword
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                          ),
+                          onPressed: busy
+                              ? null
+                              : () => setState(
+                                  () => obscurePassword = !obscurePassword,
+                                ),
+                        ),
+                      ),
+                    ),
+                    if (statusMessage != null) ...[
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Text(
+                          statusMessage!,
+                          style: TextStyle(
+                            color: statusOk ? scheme.primary : scheme.error,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: busy
+                      ? null
+                      : () => Navigator.of(dialogContext).pop(),
+                  child: Text(l10n.cancel),
+                ),
+                TextButton(
+                  onPressed: busy
+                      ? null
+                      : () =>
+                            unawaited(testConnection(setState, dialogContext)),
+                  child: testing
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Test connection'),
+                ),
+                FilledButton(
+                  onPressed: busy
+                      ? null
+                      : () =>
+                            unawaited(saveConnection(setState, dialogContext)),
+                  child: submitting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(
+                          MaterialLocalizations.of(
+                            dialogContext,
+                          ).saveButtonLabel,
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  } finally {
+    // The dialog route can keep TextField widgets alive during its pop
+    // animation; disposing these controllers from the launcher closure can race
+    // that animation. A dedicated StatefulWidget can own disposal if this
+    // dialog grows further.
+  }
+
+  if (saved && context.mounted) {
+    context.showSnack(l10n.done);
+  }
+}
+
 void _logAddRemoteAccountFailure({
   required AccountType accountType,
   required String authMode,
   required String baseUrl,
+  String? profileId,
   required Object error,
   required StackTrace stackTrace,
 }) {
@@ -1095,6 +1501,8 @@ void _logAddRemoteAccountFailure({
       accountType: accountType,
       authMode: authMode,
       baseUrl: baseUrl,
+      profileId: profileId,
+      error: error,
     ),
   );
 }
@@ -1103,13 +1511,66 @@ Map<String, Object?> _addRemoteAccountFailureContext({
   required AccountType accountType,
   required String authMode,
   required String baseUrl,
+  String? profileId,
+  Object? error,
 }) {
   final extra = <String, Object?>{
     'operation': 'addRemoteAccount',
     'accountType': accountType.wire,
     'authMode': authMode,
+    if (profileId != null && profileId.trim().isNotEmpty)
+      'profileId': profileId.trim(),
   };
   final uri = Uri.tryParse(baseUrl.trim());
-  if (uri == null) return extra;
-  return logContextForUri(uri, extra: extra);
+  final context = uri == null ? extra : logContextForUri(uri, extra: extra);
+  if (error is GoogleReaderProbeException) {
+    return <String, Object?>{...context, ...error.logContext};
+  }
+  return context;
+}
+
+void _logGoogleReaderAccountConnectionFailure({
+  required String operation,
+  required String accountId,
+  required String? profileId,
+  required String baseUrl,
+  required Object error,
+  required StackTrace stackTrace,
+}) {
+  AppLogger.w(
+    'Google Reader account connection failed',
+    tag: 'account',
+    error: error,
+    stackTrace: stackTrace,
+    context: _googleReaderAccountConnectionFailureContext(
+      operation: operation,
+      accountId: accountId,
+      profileId: profileId,
+      baseUrl: baseUrl,
+      error: error,
+    ),
+  );
+}
+
+Map<String, Object?> _googleReaderAccountConnectionFailureContext({
+  required String operation,
+  required String accountId,
+  required String? profileId,
+  required String baseUrl,
+  required Object error,
+}) {
+  final extra = <String, Object?>{
+    'operation': operation,
+    'accountId': accountId,
+    'accountType': AccountType.googleReader.wire,
+    'authMode': 'basicAuth',
+    if (profileId != null && profileId.trim().isNotEmpty)
+      'profileId': profileId.trim(),
+  };
+  final uri = Uri.tryParse(baseUrl.trim());
+  final context = uri == null ? extra : logContextForUri(uri, extra: extra);
+  if (error is GoogleReaderProbeException) {
+    return <String, Object?>{...context, ...error.logContext};
+  }
+  return context;
 }
