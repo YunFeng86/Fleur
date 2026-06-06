@@ -140,6 +140,14 @@ class WorkspaceHeader extends StatelessWidget {
                 builder: (context, constraints) {
                   final width = constraints.maxWidth;
                   final scope = ShellLayerScope.maybeOf(context);
+                  final metrics =
+                      scope?.macOSWindowChromeMetrics ??
+                      MacOSWindowChromeMetrics.fallback;
+                  final controlTop = isMacOS
+                      ? metrics.shellControlTopInset
+                      : kShellControlTopInset;
+                  final rowCenterY = controlTop + kShellControlSize / 2;
+                  final titleTop = rowCenterY - kWorkspaceHeaderHeight / 2;
                   final leadingInset = math.max(
                     leadingPadding + (scope?.contentLeadingInset ?? 0),
                     scope?.headerLeadingInset ?? leadingPadding,
@@ -158,7 +166,7 @@ class WorkspaceHeader extends StatelessWidget {
                       if (titlePlacement != null)
                         Positioned(
                           left: titlePlacement.left,
-                          top: 0,
+                          top: titleTop,
                           width: titlePlacement.width,
                           height: kWorkspaceHeaderHeight,
                           child: Align(
@@ -178,7 +186,7 @@ class WorkspaceHeader extends StatelessWidget {
                         ),
                       Positioned(
                         right: trailingPadding,
-                        top: (kWorkspaceHeaderHeight - kShellControlSize) / 2,
+                        top: controlTop,
                         width: trailingWidth,
                         height: kShellControlSize,
                         child: Align(

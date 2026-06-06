@@ -70,8 +70,13 @@ void main() {
     final titleCenter = tester.getCenter(
       find.byKey(const Key('workspace_header_title')),
     );
+    final trailingCenter = tester.getCenter(
+      find.byKey(const Key('test_header_trailing')),
+    );
 
     expect((titleCenter.dx - 260).abs(), lessThan(1));
+    expect(titleCenter.dy, closeTo(kWorkspaceHeaderHeight / 2, 0.1));
+    expect(trailingCenter.dy, closeTo(kWorkspaceHeaderHeight / 2, 0.1));
     expect(find.byKey(const Key('workspace_header_title_fade')), findsNothing);
   });
 
@@ -163,6 +168,16 @@ void main() {
           isFullScreen: false,
         ),
       );
+      final headerTitleCenterY = tester
+          .getCenter(find.byKey(const Key('workspace_header_title')))
+          .dy;
+      final headerTrailingCenterY = tester
+          .getCenter(find.byKey(const Key('test_header_trailing')))
+          .dy;
+
+      expect(headerTitleCenterY, closeTo(26, 0.1));
+      expect(headerTrailingCenterY, closeTo(26, 0.1));
+
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light(),
