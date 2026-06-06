@@ -182,6 +182,10 @@
   "@back": {
     "description": "Generic back action label"
   },
+  "forward": "前進",
+  "@forward": {
+    "description": "Generic forward action label"
+  },
   "fontSettings": "字體",
   "@fontSettings": {
     "description": "Appearance font detail page title"
@@ -1506,6 +1510,10 @@
   "shortcutNextPreviousArticle": "J / K：下一篇 / 上一篇文章",
   "@shortcutNextPreviousArticle": {
     "description": "切換上一篇/下一篇文章的快速鍵說明"
+  },
+  "shortcutBackForwardHistory": "Alt + \u2190 / Alt + \u2192；macOS Cmd + [ / ]：返回 / 前進歷史",
+  "@shortcutBackForwardHistory": {
+    "description": "在歷史記錄中返回或前進的快速鍵說明"
   },
   "shortcutRefreshCurrentSelection": "R：重新整理（目前選取項）",
   "@shortcutRefreshCurrentSelection": {

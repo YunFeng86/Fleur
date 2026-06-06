@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fleur/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
@@ -8,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import '../app/article_scope_routes.dart';
 import '../models/article_scope.dart';
 import '../providers/core_providers.dart';
+import '../providers/navigation_history_provider.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../widgets/fleur_capsule_button_group.dart';
@@ -32,6 +34,8 @@ class AppShell extends ConsumerStatefulWidget {
 
 class _AppShellState extends ConsumerState<AppShell> {
   bool _temporarySidebarOpen = false;
+  bool _navigationHistoryBindScheduled = false;
+  GoRouter? _pendingNavigationHistoryRouter;
 
   @override
   void didUpdateWidget(covariant AppShell oldWidget) {
@@ -83,6 +87,21 @@ class _AppShellState extends ConsumerState<AppShell> {
   bool _isSearchRoute(Uri uri) =>
       uri.pathSegments.isNotEmpty && uri.pathSegments.first == 'search';
 
+  void _scheduleNavigationHistoryBind(GoRouter? router) {
+    if (router == null) return;
+    _pendingNavigationHistoryRouter = router;
+    if (_navigationHistoryBindScheduled) return;
+
+    _navigationHistoryBindScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _navigationHistoryBindScheduled = false;
+      if (!mounted) return;
+      final router = _pendingNavigationHistoryRouter;
+      if (router == null) return;
+      ref.read(navigationHistoryControllerProvider.notifier).bindRouter(router);
+    });
+  }
+
   void _closeTemporarySidebar() {
     if (!_temporarySidebarOpen) return;
     setState(() => _temporarySidebarOpen = false);
@@ -98,20 +117,6 @@ class _AppShellState extends ConsumerState<AppShell> {
     notifier.state = notifier.state == SidebarPresentationMode.expanded
         ? SidebarPresentationMode.collapsed
         : SidebarPresentationMode.expanded;
-  }
-
-  void _pop(BuildContext context) {
-    final router = GoRouter.maybeOf(context);
-    if (router != null && router.canPop()) {
-      router.pop();
-      return;
-    }
-    unawaited(Navigator.of(context).maybePop());
-  }
-
-  bool _canPop(BuildContext context) {
-    final router = GoRouter.maybeOf(context);
-    return router?.canPop() ?? Navigator.canPop(context);
   }
 
   Widget _sidebarDrawer(
@@ -163,8 +168,18 @@ class _AppShellState extends ConsumerState<AppShell> {
     required MacOSWindowChromeMetrics macOSWindowChromeMetrics,
     required bool usesTemporarySidebar,
     required bool searchSelected,
+    required NavigationHistoryState history,
   }) {
     if (!isDesktop) return child;
+    final commands = ShellNavigationCommands(
+      context: context,
+      router: GoRouter.maybeOf(context),
+      history: history,
+      historyController: ref.read(navigationHistoryControllerProvider.notifier),
+      onToggleSidebar: () =>
+          _toggleSidebar(ref, usesTemporarySidebar: usesTemporarySidebar),
+      onSearch: () => _goToSearch(context),
+    );
     return Stack(
       children: [
         Positioned.fill(child: child),
@@ -173,11 +188,7 @@ class _AppShellState extends ConsumerState<AppShell> {
           top: _shellControlsTopInset(macOSWindowChromeMetrics),
           child: _InlineShellControlsHost(
             presentationMode: presentationMode,
-            canPop: _canPop(context),
-            onToggleSidebar: () =>
-                _toggleSidebar(ref, usesTemporarySidebar: usesTemporarySidebar),
-            onPop: () => _pop(context),
-            onSearch: () => _goToSearch(context),
+            commands: commands,
             searchSelected: searchSelected,
           ),
         ),
@@ -226,6 +237,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     required FleurSurfaceTheme surfaces,
     required double sidebarWidth,
     required double listWidth,
+    required NavigationHistoryState history,
   }) {
     final sidebarLayoutMode = sidebarLayoutModeForWidth(size.width);
     final hasInlineSidebar = sidebarLayoutMode == SidebarLayoutMode.inline;
@@ -303,6 +315,7 @@ class _AppShellState extends ConsumerState<AppShell> {
             macOSWindowChromeMetrics: macOSWindowChromeMetrics,
             usesTemporarySidebar: !hasInlineSidebar,
             searchSelected: _isSearchRoute(widget.currentUri),
+            history: history,
             child: Stack(
               clipBehavior: Clip.hardEdge,
               children: [
@@ -389,11 +402,21 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   Widget _withDesktopDrawerControlsOverlay({
     required BuildContext context,
+    required WidgetRef ref,
     required Widget child,
     required VoidCallback? openDrawer,
     required MacOSWindowChromeMetrics macOSWindowChromeMetrics,
+    required NavigationHistoryState history,
   }) {
     if (!isDesktop || openDrawer == null) return child;
+    final commands = ShellNavigationCommands(
+      context: context,
+      router: GoRouter.maybeOf(context),
+      history: history,
+      historyController: ref.read(navigationHistoryControllerProvider.notifier),
+      onToggleSidebar: openDrawer,
+      onSearch: () => _goToSearch(context),
+    );
     return Stack(
       children: [
         Positioned.fill(child: child),
@@ -402,10 +425,7 @@ class _AppShellState extends ConsumerState<AppShell> {
           top: 0,
           child: _DrawerControlsHost(
             macOSWindowChromeMetrics: macOSWindowChromeMetrics,
-            canPop: _canPop(context),
-            onPop: () => _pop(context),
-            openDrawer: openDrawer,
-            onSearch: () => _goToSearch(context),
+            commands: commands,
           ),
         ),
       ],
@@ -414,6 +434,17 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    final router = GoRouter.maybeOf(context);
+    _scheduleNavigationHistoryBind(router);
+    final history = ref.watch(navigationHistoryControllerProvider);
+    final shortcutCommands = ShellNavigationCommands(
+      context: context,
+      router: router,
+      history: history,
+      historyController: ref.read(navigationHistoryControllerProvider.notifier),
+      onToggleSidebar: () {},
+      onSearch: () => _goToSearch(context),
+    );
     final size = MediaQuery.sizeOf(context);
     final presentationMode = ref.watch(sidebarPresentationModeProvider);
     final sidebarWidth = clampWorkspaceSidebarWidth(
@@ -460,59 +491,74 @@ class _AppShellState extends ConsumerState<AppShell> {
 
     if (hideNavForReaderPage) {
       if (isDesktop) {
-        return _buildDesktopSecondaryLayer(
-          context: context,
-          size: size,
-          surfaces: surfaces,
-          macOSWindowChromeMetrics: macOSWindowChromeMetrics,
-          sidebarWidth: sidebarWidth,
-          listWidth: listWidth,
+        return _ShellHistoryShortcuts(
+          commands: shortcutCommands,
+          child: _buildDesktopSecondaryLayer(
+            context: context,
+            size: size,
+            surfaces: surfaces,
+            macOSWindowChromeMetrics: macOSWindowChromeMetrics,
+            sidebarWidth: sidebarWidth,
+            listWidth: listWidth,
+          ),
         );
       }
-      return wrapShell(
-        AppDrawerScope(hasAppDrawer: false, child: widget.child),
+      return _ShellHistoryShortcuts(
+        commands: shortcutCommands,
+        child: wrapShell(
+          AppDrawerScope(hasAppDrawer: false, child: widget.child),
+        ),
       );
     }
 
     if (isDesktop) {
-      return _buildDesktopLayeredShell(
-        context: context,
-        ref: ref,
-        size: size,
-        presentationMode: presentationMode,
-        macOSWindowChromeMetrics: macOSWindowChromeMetrics,
-        surfaces: surfaces,
-        sidebarWidth: sidebarWidth,
-        listWidth: listWidth,
+      return _ShellHistoryShortcuts(
+        commands: shortcutCommands,
+        child: _buildDesktopLayeredShell(
+          context: context,
+          ref: ref,
+          size: size,
+          presentationMode: presentationMode,
+          macOSWindowChromeMetrics: macOSWindowChromeMetrics,
+          surfaces: surfaces,
+          sidebarWidth: sidebarWidth,
+          listWidth: listWidth,
+          history: history,
+        ),
       );
     }
 
-    return wrapShell(
-      Scaffold(
-        drawer: _sidebarDrawer(
-          context,
-          showAccountSyncStatus: !spec.showsListSyncStatusCapsule,
-          currentUri: widget.currentUri,
-        ),
-        body: Builder(
-          builder: (scaffoldContext) {
-            void openDrawer() => Scaffold.of(scaffoldContext).openDrawer();
+    return _ShellHistoryShortcuts(
+      commands: shortcutCommands,
+      child: wrapShell(
+        Scaffold(
+          drawer: _sidebarDrawer(
+            context,
+            showAccountSyncStatus: !spec.showsListSyncStatusCapsule,
+            currentUri: widget.currentUri,
+          ),
+          body: Builder(
+            builder: (scaffoldContext) {
+              void openDrawer() => Scaffold.of(scaffoldContext).openDrawer();
 
-            return AppDrawerScope(
-              hasAppDrawer: true,
-              openDrawer: openDrawer,
-              child: _withDesktopDrawerControlsOverlay(
-                context: context,
+              return AppDrawerScope(
+                hasAppDrawer: true,
                 openDrawer: openDrawer,
-                macOSWindowChromeMetrics: macOSWindowChromeMetrics,
-                child: MediaQuery.removePadding(
+                child: _withDesktopDrawerControlsOverlay(
                   context: context,
-                  removeBottom: true,
-                  child: widget.child,
+                  ref: ref,
+                  openDrawer: openDrawer,
+                  macOSWindowChromeMetrics: macOSWindowChromeMetrics,
+                  history: history,
+                  child: MediaQuery.removePadding(
+                    context: context,
+                    removeBottom: true,
+                    child: widget.child,
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );
@@ -613,21 +659,112 @@ class _RailOverlayHostState extends State<_RailOverlayHost> {
   }
 }
 
+class ShellNavigationCommands {
+  const ShellNavigationCommands({
+    required this.context,
+    required this.router,
+    required this.history,
+    required this.historyController,
+    required this.onToggleSidebar,
+    required this.onSearch,
+  });
+
+  final BuildContext context;
+  final GoRouter? router;
+  final NavigationHistoryState history;
+  final NavigationHistoryController historyController;
+  final VoidCallback onToggleSidebar;
+  final VoidCallback onSearch;
+
+  bool get canGoBack => history.canGoBack || _canPopFallback;
+  bool get canGoForward => history.canGoForward;
+
+  bool get _canPopFallback => router?.canPop() ?? Navigator.canPop(context);
+
+  void goBack() {
+    if (history.canGoBack) {
+      historyController.goBack();
+      return;
+    }
+
+    final router = this.router;
+    if (router != null && router.canPop()) {
+      router.pop();
+      return;
+    }
+    unawaited(Navigator.of(context).maybePop());
+  }
+
+  void goForward() {
+    if (!history.canGoForward) return;
+    historyController.goForward();
+  }
+
+  void goToSearch() => onSearch();
+  void toggleSidebar() => onToggleSidebar();
+}
+
+class _ShellHistoryBackIntent extends Intent {
+  const _ShellHistoryBackIntent();
+}
+
+class _ShellHistoryForwardIntent extends Intent {
+  const _ShellHistoryForwardIntent();
+}
+
+class _ShellHistoryShortcuts extends StatelessWidget {
+  const _ShellHistoryShortcuts({required this.commands, required this.child});
+
+  final ShellNavigationCommands commands;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final shortcuts = <ShortcutActivator, Intent>{
+      SingleActivator(LogicalKeyboardKey.arrowLeft, alt: true):
+          _ShellHistoryBackIntent(),
+      SingleActivator(LogicalKeyboardKey.arrowRight, alt: true):
+          _ShellHistoryForwardIntent(),
+      if (isMacOS) ...{
+        SingleActivator(LogicalKeyboardKey.bracketLeft, meta: true):
+            _ShellHistoryBackIntent(),
+        SingleActivator(LogicalKeyboardKey.bracketRight, meta: true):
+            _ShellHistoryForwardIntent(),
+      },
+    };
+    return Shortcuts(
+      shortcuts: shortcuts,
+      child: Actions(
+        actions: {
+          _ShellHistoryBackIntent: CallbackAction<_ShellHistoryBackIntent>(
+            onInvoke: (intent) {
+              commands.goBack();
+              return null;
+            },
+          ),
+          _ShellHistoryForwardIntent:
+              CallbackAction<_ShellHistoryForwardIntent>(
+                onInvoke: (intent) {
+                  commands.goForward();
+                  return null;
+                },
+              ),
+        },
+        child: Focus(autofocus: true, child: child),
+      ),
+    );
+  }
+}
+
 class _InlineShellControlsHost extends StatelessWidget {
   const _InlineShellControlsHost({
     required this.presentationMode,
-    required this.canPop,
-    required this.onToggleSidebar,
-    required this.onPop,
-    required this.onSearch,
+    required this.commands,
     required this.searchSelected,
   });
 
   final SidebarPresentationMode presentationMode;
-  final bool canPop;
-  final VoidCallback onToggleSidebar;
-  final VoidCallback onPop;
-  final VoidCallback onSearch;
+  final ShellNavigationCommands commands;
   final bool searchSelected;
 
   @override
@@ -639,7 +776,7 @@ class _InlineShellControlsHost extends StatelessWidget {
       _ShellControlData(
         key: const Key('shell_sidebar_button'),
         tooltip: sidebarExpanded ? l10n.collapse : l10n.expand,
-        onPressed: onToggleSidebar,
+        onPressed: commands.toggleSidebar,
         icon: sidebarExpanded
             ? FleurIcons.sidebarCollapse
             : FleurIcons.sidebarExpand,
@@ -647,20 +784,20 @@ class _InlineShellControlsHost extends StatelessWidget {
       _ShellControlData(
         key: const Key('shell_back_button'),
         tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-        onPressed: canPop ? onPop : null,
+        onPressed: commands.canGoBack ? commands.goBack : null,
         icon: FleurIcons.back,
       ),
       _ShellControlData(
         key: const Key('shell_forward_button'),
-        tooltip: MaterialLocalizations.of(context).nextPageTooltip,
-        onPressed: null,
+        tooltip: AppLocalizations.of(context)!.forward,
+        onPressed: commands.canGoForward ? commands.goForward : null,
         icon: FleurIcons.forward,
       ),
       if (!sidebarExpanded)
         _ShellControlData(
           key: const Key('shell_search_button'),
           tooltip: l10n.search,
-          onPressed: onSearch,
+          onPressed: commands.goToSearch,
           icon: searchSelected ? FleurIcons.searchSelected : FleurIcons.search,
           selected: searchSelected,
         ),
@@ -720,17 +857,11 @@ class _ShellControlData {
 class _DrawerControlsHost extends StatelessWidget {
   const _DrawerControlsHost({
     required this.macOSWindowChromeMetrics,
-    required this.canPop,
-    required this.onPop,
-    required this.openDrawer,
-    required this.onSearch,
+    required this.commands,
   });
 
   final MacOSWindowChromeMetrics macOSWindowChromeMetrics;
-  final bool canPop;
-  final VoidCallback onPop;
-  final VoidCallback openDrawer;
-  final VoidCallback onSearch;
+  final ShellNavigationCommands commands;
 
   @override
   Widget build(BuildContext context) {
@@ -751,25 +882,25 @@ class _DrawerControlsHost extends StatelessWidget {
             _DrawerControlButton(
               key: const Key('shell_sidebar_button'),
               tooltip: MaterialLocalizations.of(context).openAppDrawerTooltip,
-              onPressed: openDrawer,
+              onPressed: commands.toggleSidebar,
               icon: FleurIcons.sidebarExpand,
             ),
             _DrawerControlButton(
               key: const Key('shell_back_button'),
               tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-              onPressed: canPop ? onPop : null,
+              onPressed: commands.canGoBack ? commands.goBack : null,
               icon: FleurIcons.back,
             ),
             _DrawerControlButton(
               key: const Key('shell_forward_button'),
-              tooltip: MaterialLocalizations.of(context).nextPageTooltip,
-              onPressed: null,
+              tooltip: l10n.forward,
+              onPressed: commands.canGoForward ? commands.goForward : null,
               icon: FleurIcons.forward,
             ),
             _DrawerControlButton(
               key: const Key('shell_search_button'),
               tooltip: l10n.search,
-              onPressed: onSearch,
+              onPressed: commands.goToSearch,
               icon: FleurIcons.search,
             ),
           ],

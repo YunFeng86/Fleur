@@ -182,6 +182,10 @@
   "@back": {
     "description": "Generic back action label"
   },
+  "forward": "Forward",
+  "@forward": {
+    "description": "Generic forward action label"
+  },
   "fontSettings": "Fonts",
   "@fontSettings": {
     "description": "Appearance font detail page title"
@@ -1505,6 +1509,10 @@
   "shortcutNextPreviousArticle": "J / K: Next / previous article",
   "@shortcutNextPreviousArticle": {
     "description": "Keyboard shortcut help text for moving to the next or previous article"
+  },
+  "shortcutBackForwardHistory": "Alt + \u2190 / Alt + \u2192; macOS Cmd + [ / ]: Back / forward history",
+  "@shortcutBackForwardHistory": {
+    "description": "Keyboard shortcut help text for navigating backward or forward through history"
   },
   "shortcutRefreshCurrentSelection": "R: Refresh (current selection)",
   "@shortcutRefreshCurrentSelection": {

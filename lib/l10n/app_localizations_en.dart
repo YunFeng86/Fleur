@@ -149,6 +149,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get back => 'Back';
 
   @override
+  String get forward => 'Forward';
+
+  @override
   String get fontSettings => 'Fonts';
 
   @override
@@ -1172,6 +1175,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shortcutNextPreviousArticle => 'J / K: Next / previous article';
+
+  @override
+  String get shortcutBackForwardHistory =>
+      'Alt + ← / Alt + →; macOS Cmd + [ / ]: Back / forward history';
 
   @override
   String get shortcutRefreshCurrentSelection =>

@@ -363,6 +363,12 @@ abstract class AppLocalizations {
   /// **'Back'**
   String get back;
 
+  /// Generic forward action label
+  ///
+  /// In en, this message translates to:
+  /// **'Forward'**
+  String get forward;
+
   /// Appearance font detail page title
   ///
   /// In en, this message translates to:
@@ -2258,6 +2264,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'J / K: Next / previous article'**
   String get shortcutNextPreviousArticle;
+
+  /// Keyboard shortcut help text for navigating backward or forward through history
+  ///
+  /// In en, this message translates to:
+  /// **'Alt + ← / Alt + →; macOS Cmd + [ / ]: Back / forward history'**
+  String get shortcutBackForwardHistory;
 
   /// Keyboard shortcut help text for refreshing the current selection
   ///

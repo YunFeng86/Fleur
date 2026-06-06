@@ -145,6 +145,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get back => '返回';
 
   @override
+  String get forward => '前进';
+
+  @override
   String get fontSettings => '字体';
 
   @override
@@ -1123,6 +1126,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get shortcutNextPreviousArticle => 'J / K：下一篇 / 上一篇文章';
 
   @override
+  String get shortcutBackForwardHistory =>
+      'Alt + ← / Alt + →；macOS Cmd + [ / ]：返回 / 前进历史';
+
+  @override
   String get shortcutRefreshCurrentSelection => 'R：刷新（当前选中项）';
 
   @override
@@ -1597,6 +1604,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get back => '返回';
+
+  @override
+  String get forward => '前進';
 
   @override
   String get fontSettings => '字體';
@@ -2575,6 +2585,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get shortcutNextPreviousArticle => 'J / K：下一篇 / 上一篇文章';
+
+  @override
+  String get shortcutBackForwardHistory =>
+      'Alt + ← / Alt + →；macOS Cmd + [ / ]：返回 / 前進歷史';
 
   @override
   String get shortcutRefreshCurrentSelection => 'R：重新整理（目前選取項）';

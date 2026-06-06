@@ -10,6 +10,7 @@ import '../models/article_scope.dart';
 import '../models/category.dart';
 import '../models/feed.dart';
 import '../providers/core_providers.dart';
+import '../providers/navigation_history_provider.dart';
 import '../providers/query_providers.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
@@ -120,7 +121,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     context.go(location);
   }
 
-  void _scheduleRouteUpdate(SearchRouteState state, {bool immediate = false}) {
+  void _scheduleRouteUpdate(
+    SearchRouteState state, {
+    bool immediate = false,
+    bool replaceHistory = false,
+  }) {
     _routeDebounce?.cancel();
     if (immediate) {
       _goToSearchState(state);
@@ -128,6 +133,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     }
     _routeDebounce = Timer(_routeDebounceDuration, () {
       if (!mounted) return;
+      if (replaceHistory) {
+        ref
+            .read(navigationHistoryControllerProvider.notifier)
+            .markNextNavigationAsReplacement();
+      }
       _goToSearchState(state);
     });
   }
@@ -168,6 +178,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     _scheduleRouteUpdate(
       _stateFromFilter(nextFilter),
       immediate: immediate || _isSearchArticleRoute(),
+      replaceHistory: query != null && !immediate,
     );
   }
 

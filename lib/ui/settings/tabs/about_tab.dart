@@ -404,6 +404,7 @@ class _AboutTabState extends State<AboutTab> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(l10n.shortcutNextPreviousArticle),
+                      Text(l10n.shortcutBackForwardHistory),
                       Text(l10n.shortcutRefreshCurrentSelection),
                       Text(l10n.shortcutToggleUnreadOnly),
                       Text(l10n.shortcutToggleReadUnreadSelectedArticle),

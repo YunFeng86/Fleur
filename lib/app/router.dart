@@ -8,6 +8,7 @@ import 'search_routes.dart';
 import 'settings_routes.dart';
 import '../models/article_scope.dart';
 import '../providers/core_providers.dart';
+import '../providers/navigation_history_provider.dart';
 import '../screens/add_subscription_screen.dart';
 import '../screens/reading_workspace_screen.dart';
 import '../screens/reader_screen.dart';
@@ -189,7 +190,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     );
   }
 
-  return GoRouter(
+  final router = GoRouter(
     navigatorKey: _rootNavigatorKey,
     errorPageBuilder: (context, state) {
       return const NoTransitionPage(child: _NotFoundScreen());
@@ -466,6 +467,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+  ref.read(navigationHistoryControllerProvider.notifier).bindRouter(router);
+  return router;
 });
 
 class _NotFoundScreen extends StatelessWidget {
