@@ -66,12 +66,14 @@ class WorkspaceLayerSurface extends StatelessWidget {
     this.color,
     this.borderRadius = kWorkspaceLayerRadius,
     this.showShadow = true,
+    this.showLeadingEdge = false,
   });
 
   final Widget child;
   final Color? color;
   final BorderRadius borderRadius;
   final bool showShadow;
+  final bool showLeadingEdge;
 
   @override
   Widget build(BuildContext context) {
@@ -98,9 +100,91 @@ class WorkspaceLayerSurface extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: borderRadius,
-        child: ColoredBox(color: color ?? surfaces.list, child: child),
+        child: Stack(
+          children: [
+            ColoredBox(color: color ?? surfaces.list, child: child),
+            if (showLeadingEdge)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(
+                    key: const Key('workspace_layer_leading_edge'),
+                    painter: _WorkspaceLeadingEdgePainter(
+                      borderRadius: borderRadius,
+                      color: surfaces.subtleDivider.withValues(
+                        alpha: theme.brightness == Brightness.dark
+                            ? 0.44
+                            : 0.58,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
+  }
+}
+
+class _WorkspaceLeadingEdgePainter extends CustomPainter {
+  const _WorkspaceLeadingEdgePainter({
+    required this.borderRadius,
+    required this.color,
+  });
+
+  final BorderRadius borderRadius;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.isEmpty) return;
+
+    final strokeWidth = kSidebarContentDividerWidth;
+    final inset = strokeWidth / 2;
+    final topRadius = math.min(
+      borderRadius.topLeft.x,
+      math.min(size.width, size.height) / 2,
+    );
+    final bottomRadius = math.min(
+      borderRadius.bottomLeft.x,
+      math.min(size.width, size.height) / 2,
+    );
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..isAntiAlias = true;
+    final path = Path();
+
+    if (topRadius > 0) {
+      path
+        ..moveTo(topRadius, inset)
+        ..quadraticBezierTo(inset, inset, inset, topRadius);
+    } else {
+      path.moveTo(inset, inset);
+    }
+
+    final bottomStart = math.max(topRadius, size.height - bottomRadius);
+    path.lineTo(inset, bottomStart);
+
+    if (bottomRadius > 0) {
+      path.quadraticBezierTo(
+        inset,
+        size.height - inset,
+        bottomRadius,
+        size.height - inset,
+      );
+    } else {
+      path.lineTo(inset, size.height - inset);
+    }
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _WorkspaceLeadingEdgePainter oldDelegate) {
+    return oldDelegate.borderRadius != borderRadius ||
+        oldDelegate.color != color;
   }
 }
 
@@ -262,10 +346,12 @@ class WorkspaceSplitHandle extends StatelessWidget {
     super.key,
     required this.onDragDelta,
     this.color,
+    this.showDivider = true,
   });
 
   final ValueChanged<double> onDragDelta;
   final Color? color;
+  final bool showDivider;
 
   @override
   Widget build(BuildContext context) {
@@ -277,13 +363,15 @@ class WorkspaceSplitHandle extends StatelessWidget {
         onHorizontalDragUpdate: (details) => onDragDelta(details.delta.dx),
         child: SizedBox(
           width: kWorkspaceSplitHandleHitWidth,
-          child: Center(
-            child: SizedBox(
-              width: kSidebarContentDividerWidth,
-              height: double.infinity,
-              child: ColoredBox(color: color ?? surfaces.subtleDivider),
-            ),
-          ),
+          child: showDivider
+              ? Center(
+                  child: SizedBox(
+                    width: kSidebarContentDividerWidth,
+                    height: double.infinity,
+                    child: ColoredBox(color: color ?? surfaces.subtleDivider),
+                  ),
+                )
+              : const SizedBox.expand(),
         ),
       ),
     );

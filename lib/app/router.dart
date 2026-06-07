@@ -90,15 +90,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           curve: AppMotion.emphasizedDecelerate,
           reverseCurve: AppMotion.emphasizedAccelerate,
         );
-        return FadeTransition(
-          opacity: curved,
-          child: SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0.035, 0),
-              end: Offset.zero,
-            ).animate(curved),
-            child: child,
-          ),
+        return SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(1, 0),
+            end: Offset.zero,
+          ).animate(curved),
+          child: child,
         );
       },
     );

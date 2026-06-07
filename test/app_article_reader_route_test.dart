@@ -126,6 +126,15 @@ void main() {
       expect(find.text(article.title!), findsOneWidget);
 
       final opened = router.push<void>('/all/article/42');
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 16));
+
+      final readerLeftDuringTransition = tester
+          .getTopLeft(find.byType(ReaderView))
+          .dx;
+      expect(readerLeftDuringTransition, greaterThan(0));
+      expect(readerLeftDuringTransition, lessThan(640));
+
       await tester.pumpAndSettle();
 
       expect(router.canPop(), isTrue);

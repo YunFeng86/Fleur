@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:fleur/ui/home/article_reader_workspace_layout.dart';
+import 'package:fleur/ui/home/home_scene_panes.dart';
 import 'package:fleur/ui/sidebar_layout.dart';
 
 void main() {
@@ -26,7 +27,9 @@ void main() {
                 contentWidth: 1000,
                 listWidth: 600,
                 listPane: const ColoredBox(color: Colors.white),
-                readerPane: _ReaderPaneProbe(onLayout: layoutWidths.add),
+                readerPane: ReadingPaneSurface(
+                  child: _ReaderPaneProbe(onLayout: layoutWidths.add),
+                ),
                 onResizeList: (_) {},
                 showSplitHandle: selectedArticleId != null,
               ),
@@ -47,6 +50,21 @@ void main() {
 
     expect(layoutWidths, isNotEmpty);
     expect(layoutWidths.last, expectedReaderWidth);
+    expect(
+      find.byKey(const Key('workspace_list_split_handle')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('workspace_list_split_handle')),
+        matching: find.byType(ColoredBox),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('workspace_layer_leading_edge')),
+      findsOneWidget,
+    );
     expect(errors, isEmpty);
   });
 }

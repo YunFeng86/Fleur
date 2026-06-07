@@ -8,6 +8,7 @@ import '../providers/unread_providers.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/home/article_reader_workspace_layout.dart';
+import '../ui/home/home_scene_panes.dart';
 import '../ui/layout.dart';
 import '../ui/layout_spec.dart';
 import '../utils/platform.dart';
@@ -240,8 +241,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
               subtitle: l10n.savedReaderEmptySubtitle,
             );
           }
-          return Container(
-            color: surfaces.reader,
+          return ReadingPaneSurface(
             child: ReaderView(
               key: ValueKey('saved-reader-$id'),
               articleId: id,

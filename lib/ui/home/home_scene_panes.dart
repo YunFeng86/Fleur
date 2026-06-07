@@ -59,6 +59,7 @@ class ReadingPaneSurface extends StatelessWidget {
     return WorkspaceLayerSurface(
       key: const Key('reading_pane_surface'),
       color: Theme.of(context).fleurSurface.reader,
+      showLeadingEdge: true,
       child: child,
     );
   }

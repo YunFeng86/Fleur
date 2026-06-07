@@ -125,7 +125,7 @@ class _ArticleReaderWorkspaceLayoutState
           )!;
           final finalReaderWidth = math.max(0.0, contentWidth - readerOpenLeft);
           final revealWidth = math.max(0.0, contentWidth - readerLeft);
-          final readerOpacity = progress.clamp(0.0, 1.0);
+          const readerOpacity = 1.0;
           final readerInteractive = progress > 0.99 && _isOpen;
 
           return Stack(
@@ -153,6 +153,7 @@ class _ArticleReaderWorkspaceLayoutState
                       child: WorkspaceSplitHandle(
                         key: const Key('workspace_list_split_handle'),
                         onDragDelta: widget.onResizeList!,
+                        showDivider: false,
                       ),
                     ),
                   ),

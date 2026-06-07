@@ -3569,6 +3569,13 @@ void main() {
     expect(radius.topRight.x, 0);
     expect(shadows, isNotEmpty);
     expect(shadows.first.blurRadius, greaterThan(0));
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('reading_pane_surface')),
+        matching: find.byKey(const Key('workspace_layer_leading_edge')),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('Home workspace preserves article list scroll state on open', (
@@ -4026,6 +4033,14 @@ void main() {
       find.byKey(const Key('article_reader_workspace_layout')),
       findsOneWidget,
     );
+    expect(find.byKey(const Key('reading_pane_surface')), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('reading_pane_surface')),
+        matching: find.byKey(const Key('workspace_layer_leading_edge')),
+      ),
+      findsOneWidget,
+    );
     expect(tester.getSize(find.byType(ArticleList)).width, kDesktopListWidth);
     expect(find.byType(ReaderView), findsOneWidget);
   });
@@ -4088,6 +4103,14 @@ void main() {
 
     expect(
       find.byKey(const Key('article_reader_workspace_layout')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('reading_pane_surface')), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('reading_pane_surface')),
+        matching: find.byKey(const Key('workspace_layer_leading_edge')),
+      ),
       findsOneWidget,
     );
     expect(tester.getSize(find.byType(ArticleList)).width, kDesktopListWidth);

@@ -15,6 +15,7 @@ import '../providers/query_providers.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/home/article_reader_workspace_layout.dart';
+import '../ui/home/home_scene_panes.dart';
 import '../ui/layout.dart';
 import '../ui/layout_spec.dart';
 import '../ui/sidebar_layout.dart';
@@ -372,8 +373,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               subtitle: l10n.searchReaderEmptySubtitle,
             );
           }
-          return Container(
-            color: surfaces.reader,
+          return ReadingPaneSurface(
             child: ReaderView(
               key: ValueKey('search-reader-$id'),
               articleId: id,
