@@ -386,7 +386,7 @@ class WorkspaceHeader extends StatelessWidget {
   }
 }
 
-class WorkspaceSplitHandle extends StatefulWidget {
+class WorkspaceSplitHandle extends StatelessWidget {
   const WorkspaceSplitHandle({
     super.key,
     required this.onDragDelta,
@@ -399,42 +399,22 @@ class WorkspaceSplitHandle extends StatefulWidget {
   final bool showDivider;
 
   @override
-  State<WorkspaceSplitHandle> createState() => _WorkspaceSplitHandleState();
-}
-
-class _WorkspaceSplitHandleState extends State<WorkspaceSplitHandle> {
-  bool _hovered = false;
-  bool _dragging = false;
-
-  @override
   Widget build(BuildContext context) {
     final surfaces = Theme.of(context).fleurSurface;
-    final showActiveDivider = widget.showDivider || _hovered || _dragging;
-    final dividerColor =
-        widget.color ??
-        (_hovered || _dragging
-            ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.42)
-            : surfaces.subtleDivider);
 
     return MouseRegion(
       cursor: SystemMouseCursors.resizeLeftRight,
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
-        onHorizontalDragStart: (_) => setState(() => _dragging = true),
-        onHorizontalDragUpdate: (details) =>
-            widget.onDragDelta(details.delta.dx),
-        onHorizontalDragEnd: (_) => setState(() => _dragging = false),
-        onHorizontalDragCancel: () => setState(() => _dragging = false),
+        onHorizontalDragUpdate: (details) => onDragDelta(details.delta.dx),
         child: SizedBox(
           width: kWorkspaceSplitHandleHitWidth,
-          child: showActiveDivider
+          child: showDivider
               ? Center(
                   child: SizedBox(
                     width: kSidebarContentDividerWidth,
                     height: double.infinity,
-                    child: ColoredBox(color: dividerColor),
+                    child: ColoredBox(color: color ?? surfaces.subtleDivider),
                   ),
                 )
               : const SizedBox.expand(),
