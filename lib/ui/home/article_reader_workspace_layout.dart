@@ -123,7 +123,8 @@ class _ArticleReaderWorkspaceLayoutState
             readerOpenLeft,
             progress,
           )!;
-          final readerWidth = math.max(0.0, contentWidth - readerLeft);
+          final finalReaderWidth = math.max(0.0, contentWidth - readerOpenLeft);
+          final revealWidth = math.max(0.0, contentWidth - readerLeft);
           final readerOpacity = progress.clamp(0.0, 1.0);
           final readerInteractive = progress > 0.99 && _isOpen;
 
@@ -161,10 +162,25 @@ class _ArticleReaderWorkspaceLayoutState
                 left: readerLeft,
                 top: 0,
                 bottom: 0,
-                width: readerWidth,
+                width: revealWidth,
                 child: IgnorePointer(
                   ignoring: !readerInteractive,
-                  child: Opacity(opacity: readerOpacity, child: readerPane),
+                  child: Opacity(
+                    opacity: readerOpacity,
+                    child: finalReaderWidth <= 0
+                        ? const SizedBox.shrink()
+                        : ClipRect(
+                            child: OverflowBox(
+                              alignment: Alignment.centerRight,
+                              minWidth: finalReaderWidth,
+                              maxWidth: finalReaderWidth,
+                              child: SizedBox(
+                                width: finalReaderWidth,
+                                child: readerPane,
+                              ),
+                            ),
+                          ),
+                  ),
                 ),
               ),
             ],
