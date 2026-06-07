@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
+import '../utils/macos_window_chrome_bridge.dart';
 import '../utils/platform.dart';
 import 'sidebar_layout.dart';
 
@@ -249,6 +250,16 @@ class WorkspaceHeader extends StatelessWidget {
                   final metrics =
                       scope?.macOSWindowChromeMetrics ??
                       MacOSWindowChromeMetrics.fallback;
+                  final dragHeight = math.min(
+                    kWorkspaceHeaderHeight,
+                    math.max(0.0, metrics.titlebarDragHeight),
+                  );
+                  final dragLeft =
+                      isMacOS &&
+                          metrics.trafficLightsVisible &&
+                          (scope?.contentLeft ?? 0) <= 0
+                      ? metrics.safeInset
+                      : 0.0;
                   final controlTop = isMacOS
                       ? metrics.shellControlTopInset
                       : kShellControlTopInset;
@@ -269,23 +280,35 @@ class WorkspaceHeader extends StatelessWidget {
 
                   return Stack(
                     children: [
+                      if (isMacOS && dragHeight > 0 && dragLeft < width)
+                        Positioned(
+                          left: dragLeft,
+                          top: 0,
+                          right: 0,
+                          height: dragHeight,
+                          child: const WindowDragSurface(
+                            key: Key('window_drag_surface'),
+                          ),
+                        ),
                       if (titlePlacement != null)
                         Positioned(
                           left: titlePlacement.left,
                           top: titleTop,
                           width: titlePlacement.width,
                           height: kWorkspaceHeaderHeight,
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: _HeaderTitle(
-                              title: title,
-                              faded: titlePlacement.faded,
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                color: scheme.onSurface,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0,
-                                height: 1.2,
+                          child: IgnorePointer(
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: _HeaderTitle(
+                                title: title,
+                                faded: titlePlacement.faded,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  color: scheme.onSurface,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0,
+                                  height: 1.2,
+                                ),
                               ),
                             ),
                           ),
@@ -363,7 +386,7 @@ class WorkspaceHeader extends StatelessWidget {
   }
 }
 
-class WorkspaceSplitHandle extends StatelessWidget {
+class WorkspaceSplitHandle extends StatefulWidget {
   const WorkspaceSplitHandle({
     super.key,
     required this.onDragDelta,
@@ -376,26 +399,63 @@ class WorkspaceSplitHandle extends StatelessWidget {
   final bool showDivider;
 
   @override
+  State<WorkspaceSplitHandle> createState() => _WorkspaceSplitHandleState();
+}
+
+class _WorkspaceSplitHandleState extends State<WorkspaceSplitHandle> {
+  bool _hovered = false;
+  bool _dragging = false;
+
+  @override
   Widget build(BuildContext context) {
     final surfaces = Theme.of(context).fleurSurface;
+    final showActiveDivider = widget.showDivider || _hovered || _dragging;
+    final dividerColor =
+        widget.color ??
+        (_hovered || _dragging
+            ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.42)
+            : surfaces.subtleDivider);
+
     return MouseRegion(
       cursor: SystemMouseCursors.resizeLeftRight,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
-        onHorizontalDragUpdate: (details) => onDragDelta(details.delta.dx),
+        onHorizontalDragStart: (_) => setState(() => _dragging = true),
+        onHorizontalDragUpdate: (details) =>
+            widget.onDragDelta(details.delta.dx),
+        onHorizontalDragEnd: (_) => setState(() => _dragging = false),
+        onHorizontalDragCancel: () => setState(() => _dragging = false),
         child: SizedBox(
           width: kWorkspaceSplitHandleHitWidth,
-          child: showDivider
+          child: showActiveDivider
               ? Center(
                   child: SizedBox(
                     width: kSidebarContentDividerWidth,
                     height: double.infinity,
-                    child: ColoredBox(color: color ?? surfaces.subtleDivider),
+                    child: ColoredBox(color: dividerColor),
                   ),
                 )
               : const SizedBox.expand(),
         ),
       ),
+    );
+  }
+}
+
+class WindowDragSurface extends StatelessWidget {
+  const WindowDragSurface({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isMacOS) return const SizedBox.expand();
+
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onPanStart: (_) => MacOSWindowChromeBridge.performWindowDrag(),
+      onDoubleTap: () => MacOSWindowChromeBridge.performWindowZoom(),
+      child: const SizedBox.expand(),
     );
   }
 }
@@ -422,16 +482,17 @@ class WorkspacePageHeader extends StatelessWidget {
             MacOSWindowChromeMetrics.fallback;
         final avoidTrafficLights = isMacOS && metrics.trafficLightsVisible;
         final leadingLeft = avoidTrafficLights ? metrics.safeInset : 8.0;
+        final controlTop = isMacOS
+            ? metrics.shellControlTopInset
+            : kShellControlTopInset;
         final minTitleWidth = title.isEmpty ? 0.0 : 96.0;
         final needsSecondRow =
             avoidTrafficLights &&
             constraints.maxWidth <
                 leadingLeft + kShellControlSize + 12 + minTitleWidth;
         final rowTop = needsSecondRow
-            ? kWorkspaceHeaderHeight + kShellControlTopInset
-            : (avoidTrafficLights
-                  ? metrics.shellControlTopInset
-                  : kShellControlTopInset);
+            ? kWorkspaceHeaderHeight + controlTop
+            : controlTop;
         final rowLeft = needsSecondRow ? 8.0 : leadingLeft;
         final height = needsSecondRow
             ? kWorkspaceHeaderHeight * 2
@@ -445,6 +506,19 @@ class WorkspacePageHeader extends StatelessWidget {
             height: height,
             child: Stack(
               children: [
+                if (isMacOS)
+                  Positioned(
+                    left: avoidTrafficLights ? metrics.safeInset : 0,
+                    top: 0,
+                    right: 0,
+                    height: math.min(
+                      height,
+                      math.max(0.0, metrics.titlebarDragHeight),
+                    ),
+                    child: const WindowDragSurface(
+                      key: Key('window_page_drag_surface'),
+                    ),
+                  ),
                 Positioned(
                   left: rowLeft,
                   top: rowTop,
@@ -471,13 +545,15 @@ class WorkspacePageHeader extends StatelessWidget {
                     top: needsSecondRow ? kWorkspaceHeaderHeight : 0,
                     right: 12,
                     height: kWorkspaceHeaderHeight,
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleLarge,
+                    child: IgnorePointer(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleLarge,
+                        ),
                       ),
                     ),
                   ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:fleur/theme/app_theme.dart';
@@ -14,6 +15,7 @@ Future<void> _pumpHeader(
   double contentLeadingInset = 0,
   double trailingWidth = 98,
   MacOSWindowChromeMetrics metrics = MacOSWindowChromeMetrics.fallback,
+  Widget? trailing,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = size;
@@ -43,14 +45,16 @@ Future<void> _pumpHeader(
               child: WorkspaceHeader(
                 title: title,
                 trailingWidth: trailingWidth,
-                trailing: ColoredBox(
-                  key: const Key('test_header_trailing'),
-                  color: Colors.transparent,
-                  child: SizedBox(
-                    width: trailingWidth,
-                    height: kShellControlSize,
-                  ),
-                ),
+                trailing:
+                    trailing ??
+                    ColoredBox(
+                      key: const Key('test_header_trailing'),
+                      color: Colors.transparent,
+                      child: SizedBox(
+                        width: trailingWidth,
+                        height: kShellControlSize,
+                      ),
+                    ),
               ),
             ),
           ),
@@ -241,4 +245,106 @@ void main() {
       );
     },
   );
+
+  testWidgets('macOS fullscreen controls respect the click-safe top inset', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    await _pumpHeader(
+      tester,
+      size: const Size(520, 120),
+      title: 'All',
+      metrics: const MacOSWindowChromeMetrics(
+        trafficLightsVisible: false,
+        centerY: kMacOSTrafficLightTargetCenterY,
+        safeInset: 0,
+        isFullScreen: true,
+        clickSafeTopInset: 12,
+      ),
+    );
+
+    expect(
+      tester.getTopLeft(find.byKey(const Key('test_header_trailing'))).dy,
+      12,
+    );
+    expect(find.byKey(const Key('window_drag_surface')), findsOneWidget);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: ShellLayerScope(
+          totalSize: const Size(520, 120),
+          contentSize: const Size(520, 120),
+          sidebarLayoutMode: SidebarLayoutMode.inline,
+          contentLeft: 0,
+          contentLeadingInset: 0,
+          railOverlayVisible: false,
+          sidebarWidth: kDefaultWorkspaceSidebarWidth,
+          listWidth: kDefaultWorkspaceListWidth,
+          headerLeadingInset: 14,
+          macOSWindowChromeMetrics: const MacOSWindowChromeMetrics(
+            trafficLightsVisible: false,
+            centerY: kMacOSTrafficLightTargetCenterY,
+            safeInset: 0,
+            isFullScreen: true,
+            clickSafeTopInset: 12,
+          ),
+          child: WorkspacePageHeader(title: 'Settings', onBack: () {}),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.getTopLeft(find.byKey(const Key('workspace_page_back_button'))).dy,
+      12,
+    );
+  });
+
+  testWidgets('header buttons stay above the macOS drag and zoom surface', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    final calls = <String>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel('com.cloudwind.fleur/window_controls'),
+          (call) async {
+            calls.add(call.method);
+            return null;
+          },
+        );
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+            const MethodChannel('com.cloudwind.fleur/window_controls'),
+            null,
+          );
+    });
+
+    var buttonTapCount = 0;
+    await _pumpHeader(
+      tester,
+      size: const Size(520, 120),
+      title: 'All',
+      trailingWidth: kShellControlSize,
+      trailing: IconButton(
+        key: const Key('test_header_action_button'),
+        onPressed: () => buttonTapCount++,
+        icon: const Icon(Icons.refresh),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('test_header_action_button')));
+    await tester.tap(find.byKey(const Key('test_header_action_button')));
+    await tester.pump();
+
+    expect(buttonTapCount, 2);
+    expect(calls, isNot(contains('performWindowZoom')));
+    expect(calls, isNot(contains('performWindowDrag')));
+  });
 }

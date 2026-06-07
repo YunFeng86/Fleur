@@ -4,6 +4,9 @@ import FlutterMacOS
 class MainFlutterWindow: NSWindow, NSToolbarDelegate {
   private static let defaultTrafficLightCenterY: CGFloat = 24
   private static let defaultTrafficLightSafeInset: CGFloat = 72
+  private static let defaultClickSafeTopInset: CGFloat = 0
+  private static let defaultFullscreenClickSafeTopInset: CGFloat = 8
+  private static let defaultTitlebarDragHeight: CGFloat = 48
   private static let trafficLightSafeGap: CGFloat = 8
   private static let titlebarToolbarIdentifier = NSToolbar.Identifier("FleurTitlebarToolbar")
 
@@ -86,6 +89,32 @@ class MainFlutterWindow: NSWindow, NSToolbarDelegate {
           return
         }
         result(self.titlebarChromeMetrics())
+      case "performWindowDrag":
+        guard let self else {
+          result(
+            FlutterError(
+              code: "window_unavailable",
+              message: "The macOS window is no longer available.",
+              details: nil
+            )
+          )
+          return
+        }
+        self.performWindowDrag()
+        result(nil)
+      case "performWindowZoom":
+        guard let self else {
+          result(
+            FlutterError(
+              code: "window_unavailable",
+              message: "The macOS window is no longer available.",
+              details: nil
+            )
+          )
+          return
+        }
+        self.performZoom(nil)
+        result(nil)
       default:
         result(FlutterMethodNotImplemented)
       }
@@ -188,7 +217,10 @@ class MainFlutterWindow: NSWindow, NSToolbarDelegate {
         trafficLightsVisible: false,
         centerY: Self.defaultTrafficLightCenterY,
         safeInset: 0,
-        isFullScreen: true
+        isFullScreen: true,
+        clickSafeTopInset: Self.defaultFullscreenClickSafeTopInset,
+        titlebarDragHeight: Self.defaultTitlebarDragHeight,
+        contentLayoutTopInset: 0
       )
     }
 
@@ -222,12 +254,16 @@ class MainFlutterWindow: NSWindow, NSToolbarDelegate {
     let centerY = centers.reduce(0, +) / CGFloat(centers.count)
     let safeInset = (buttonRects.map(\.maxX).max() ?? Self.defaultTrafficLightSafeInset) +
       Self.trafficLightSafeGap
+    let layoutTopInset = contentLayoutTopInset(in: referenceView)
 
     return Self.chromeMetrics(
       trafficLightsVisible: true,
       centerY: centerY,
       safeInset: safeInset,
-      isFullScreen: false
+      isFullScreen: false,
+      clickSafeTopInset: Self.defaultClickSafeTopInset,
+      titlebarDragHeight: max(Self.defaultTitlebarDragHeight, layoutTopInset),
+      contentLayoutTopInset: layoutTopInset
     )
   }
 
@@ -236,21 +272,45 @@ class MainFlutterWindow: NSWindow, NSToolbarDelegate {
       trafficLightsVisible: true,
       centerY: Self.defaultTrafficLightCenterY,
       safeInset: Self.defaultTrafficLightSafeInset,
-      isFullScreen: false
+      isFullScreen: false,
+      clickSafeTopInset: Self.defaultClickSafeTopInset,
+      titlebarDragHeight: Self.defaultTitlebarDragHeight,
+      contentLayoutTopInset: 0
     )
+  }
+
+  private func contentLayoutTopInset(in referenceView: NSView) -> CGFloat {
+    let layoutRect = referenceView.convert(self.contentLayoutRect, from: nil)
+    if referenceView.isFlipped {
+      return max(0, layoutRect.minY)
+    }
+    return max(0, referenceView.bounds.height - layoutRect.maxY)
+  }
+
+  private func performWindowDrag() {
+    guard let event = self.currentEvent else {
+      return
+    }
+    self.performDrag(with: event)
   }
 
   private static func chromeMetrics(
     trafficLightsVisible: Bool,
     centerY: CGFloat,
     safeInset: CGFloat,
-    isFullScreen: Bool
+    isFullScreen: Bool,
+    clickSafeTopInset: CGFloat,
+    titlebarDragHeight: CGFloat,
+    contentLayoutTopInset: CGFloat
   ) -> [String: Any] {
     [
       "trafficLightsVisible": trafficLightsVisible,
       "centerY": Double(centerY),
       "safeInset": Double(safeInset),
       "isFullScreen": isFullScreen,
+      "clickSafeTopInset": Double(clickSafeTopInset),
+      "titlebarDragHeight": Double(titlebarDragHeight),
+      "contentLayoutTopInset": Double(contentLayoutTopInset),
     ]
   }
 

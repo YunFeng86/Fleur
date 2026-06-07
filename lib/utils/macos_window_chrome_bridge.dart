@@ -24,6 +24,24 @@ class MacOSWindowChromeBridge {
     return _invokeMetricsMethod('getTitlebarChromeMetrics');
   }
 
+  static Future<void> performWindowDrag() async {
+    if (!isMacOS) return;
+    try {
+      await _channel.invokeMethod<void>('performWindowDrag');
+    } on MissingPluginException {
+      // Widget tests and non-macOS embedders may not register this channel.
+    }
+  }
+
+  static Future<void> performWindowZoom() async {
+    if (!isMacOS) return;
+    try {
+      await _channel.invokeMethod<void>('performWindowZoom');
+    } on MissingPluginException {
+      // Widget tests and non-macOS embedders may not register this channel.
+    }
+  }
+
   static void setMetricsChangedHandler(
     MacOSWindowChromeMetricsChanged? handler,
   ) {

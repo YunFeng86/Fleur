@@ -15,7 +15,7 @@ const double kSidebarCollapsedWidth = kSidebarRailWidth;
 const double kRailOverlayContentGap = 8;
 const double kSidebarBreakpoint = 900;
 const double kSidebarContentDividerWidth = 1;
-const double kWorkspaceSplitHandleHitWidth = 8;
+const double kWorkspaceSplitHandleHitWidth = 12;
 const double kWorkspaceHeaderHeight = 48;
 const double kShellControlSize = 32;
 const double kShellControlIconSize = 16;
@@ -26,6 +26,7 @@ const double kMacOSTrafficLightTargetCenterY = kWorkspaceHeaderHeight / 2;
 const double kMacOSShellControlTopInset =
     kMacOSTrafficLightTargetCenterY - (kShellControlSize / 2);
 const double kMacOSTrafficLightSafeInset = 72;
+const double kMacOSFullscreenClickSafeTopInset = 8;
 
 class MacOSWindowChromeMetrics {
   const MacOSWindowChromeMetrics({
@@ -33,6 +34,9 @@ class MacOSWindowChromeMetrics {
     required this.centerY,
     required this.safeInset,
     required this.isFullScreen,
+    this.clickSafeTopInset = 0,
+    this.titlebarDragHeight = kWorkspaceHeaderHeight,
+    this.contentLayoutTopInset = 0,
   });
 
   static const fallback = MacOSWindowChromeMetrics(
@@ -40,17 +44,29 @@ class MacOSWindowChromeMetrics {
     centerY: kMacOSTrafficLightTargetCenterY,
     safeInset: kMacOSTrafficLightSafeInset,
     isFullScreen: false,
+    clickSafeTopInset: 0,
+    titlebarDragHeight: kWorkspaceHeaderHeight,
+    contentLayoutTopInset: 0,
   );
 
   final bool trafficLightsVisible;
   final double centerY;
   final double safeInset;
   final bool isFullScreen;
+  final double clickSafeTopInset;
+  final double titlebarDragHeight;
+  final double contentLayoutTopInset;
 
-  double get shellControlTopInset => centerY - (kShellControlSize / 2);
+  double get shellControlTopInset => (centerY - (kShellControlSize / 2))
+      .clamp(clickSafeTopInset, double.infinity)
+      .toDouble();
 
   factory MacOSWindowChromeMetrics.fromMap(Object? value) {
     if (value is! Map) return fallback;
+    final isFullScreen = _boolValue(
+      value['isFullScreen'],
+      fallback.isFullScreen,
+    );
     return MacOSWindowChromeMetrics(
       trafficLightsVisible: _boolValue(
         value['trafficLightsVisible'],
@@ -58,7 +74,19 @@ class MacOSWindowChromeMetrics {
       ),
       centerY: _doubleValue(value['centerY'], fallback.centerY),
       safeInset: _doubleValue(value['safeInset'], fallback.safeInset),
-      isFullScreen: _boolValue(value['isFullScreen'], fallback.isFullScreen),
+      isFullScreen: isFullScreen,
+      clickSafeTopInset: _doubleValue(
+        value['clickSafeTopInset'],
+        isFullScreen ? kMacOSFullscreenClickSafeTopInset : 0,
+      ),
+      titlebarDragHeight: _doubleValue(
+        value['titlebarDragHeight'],
+        fallback.titlebarDragHeight,
+      ),
+      contentLayoutTopInset: _doubleValue(
+        value['contentLayoutTopInset'],
+        fallback.contentLayoutTopInset,
+      ),
     );
   }
 

@@ -811,7 +811,7 @@ class _SettingsSceneHeader extends StatelessWidget {
         isMacOS &&
         metrics.trafficLightsVisible;
     final leadingLeft = avoidTrafficLights ? metrics.safeInset : 8.0;
-    final rowTop = avoidTrafficLights
+    final rowTop = isMacOS
         ? metrics.shellControlTopInset
         : kShellControlTopInset;
 

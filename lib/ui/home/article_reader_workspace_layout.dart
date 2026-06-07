@@ -143,7 +143,7 @@ class _ArticleReaderWorkspaceLayoutState
                 Positioned(
                   key: const Key('article_reader_workspace_split_layer'),
                   left: handleLeft,
-                  top: 0,
+                  top: kWorkspaceHeaderHeight,
                   bottom: 0,
                   width: handleWidth,
                   child: IgnorePointer(

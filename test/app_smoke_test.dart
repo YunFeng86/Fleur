@@ -350,7 +350,7 @@ void main() {
       listWidth: kDefaultWorkspaceListWidth,
     );
 
-    const widths = <double>[1200, 1078, 1000, 899, 818, 817];
+    const widths = <double>[1200, 1078, 1000, 899, 822, 821];
 
     expect(
       widths
@@ -387,14 +387,14 @@ void main() {
     );
     expect(
       canEmbedDesktopReaderForContentWidth(
-        818,
+        822,
         preferredListWidth: kDesktopListWidth,
       ),
       isTrue,
     );
     expect(
       canEmbedDesktopReaderForContentWidth(
-        817,
+        821,
         preferredListWidth: kDesktopListWidth,
       ),
       isFalse,
@@ -1084,6 +1084,20 @@ void main() {
     await tester.pumpWidget(_buildShellHarness());
     await tester.pumpAndSettle();
 
+    final initialContentLeft = tester
+        .getTopLeft(find.byKey(const Key('app_shell_content_layer')))
+        .dx;
+    await tester.dragFrom(
+      Offset(kDefaultWorkspaceSidebarWidth, kWorkspaceHeaderHeight / 2),
+      const Offset(200, 0),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
+      initialContentLeft,
+    );
+
     await tester.drag(
       find.byKey(const Key('app_shell_sidebar_split_handle')),
       const Offset(200, 0),
@@ -1252,6 +1266,43 @@ void main() {
       expect(shellButtonCenter, kMacOSTrafficLightTargetCenterY);
     },
   );
+
+  testWidgets('App shell fullscreen controls respect click-safe top inset', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(1200, 900);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      _buildShellHarness(
+        overrides: [
+          macOSWindowChromeMetricsProvider.overrideWith(
+            (ref) => const MacOSWindowChromeMetrics(
+              trafficLightsVisible: false,
+              centerY: kMacOSTrafficLightTargetCenterY,
+              safeInset: 0,
+              isFullScreen: true,
+              clickSafeTopInset: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.getTopLeft(find.byKey(const Key('shell_sidebar_button'))).dx,
+      12,
+    );
+    expect(
+      tester.getTopLeft(find.byKey(const Key('shell_sidebar_button'))).dy,
+      12,
+    );
+  });
 
   testWidgets(
     'App shell returns narrow layered controls to the leading edge fullscreen',
@@ -3563,6 +3614,22 @@ void main() {
       find.byKey(const Key('workspace_list_split_handle')),
       findsOneWidget,
     );
+    final initialArticleListWidth = tester
+        .getSize(find.byType(ArticleList))
+        .width;
+    final listSplitCenter = tester.getCenter(
+      find.byKey(const Key('workspace_list_split_handle')),
+    );
+    await tester.dragFrom(
+      Offset(listSplitCenter.dx, kWorkspaceHeaderHeight / 2),
+      const Offset(400, 0),
+    );
+    await tester.pump();
+    expect(
+      tester.getSize(find.byType(ArticleList)).width,
+      initialArticleListWidth,
+    );
+
     await tester.drag(
       find.byKey(const Key('workspace_list_split_handle')),
       const Offset(400, 0),

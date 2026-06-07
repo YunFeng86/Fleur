@@ -344,7 +344,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                   Positioned(
                     key: const Key('app_shell_sidebar_split_handle'),
                     left: sidebarWidth - kWorkspaceSplitHandleHitWidth / 2,
-                    top: 0,
+                    top: kWorkspaceHeaderHeight,
                     bottom: 0,
                     width: kWorkspaceSplitHandleHitWidth,
                     child: WorkspaceSplitHandle(
