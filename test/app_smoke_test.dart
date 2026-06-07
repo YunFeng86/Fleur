@@ -753,10 +753,24 @@ void main() {
       find.byKey(const Key('sidebar_collapsed_rail_surface')),
       findsNothing,
     );
-    expect(find.byKey(const Key('app_shell_sidebar_divider')), findsOneWidget);
+    expect(find.byKey(const Key('app_shell_sidebar_divider')), findsNothing);
     expect(
-      tester.getSize(find.byKey(const Key('app_shell_sidebar_divider'))).width,
-      kSidebarContentDividerWidth,
+      find.descendant(
+        of: find.byKey(const Key('app_shell_content_layer')),
+        matching: find.byKey(const Key('workspace_layer_leading_edge')),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('app_shell_sidebar_split_handle')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('app_shell_sidebar_split_handle')),
+        matching: find.byType(ColoredBox),
+      ),
+      findsNothing,
     );
     expect(find.byType(NavigationRail), findsNothing);
     expect(find.byType(NavigationBar), findsNothing);

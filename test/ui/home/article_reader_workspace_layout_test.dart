@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fleur/ui/home/article_reader_workspace_layout.dart';
 import 'package:fleur/ui/home/home_scene_panes.dart';
 import 'package:fleur/ui/sidebar_layout.dart';
+import 'package:fleur/ui/workspace_layers.dart';
 
 void main() {
   testWidgets('reader pane keeps final layout width during reveal animation', (
@@ -66,6 +67,49 @@ void main() {
       findsOneWidget,
     );
     expect(errors, isEmpty);
+  });
+
+  testWidgets('workspace layer edge levels use the same painter slot', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Row(
+          children: const [
+            SizedBox(
+              width: 120,
+              height: 160,
+              child: WorkspaceLayerSurface(
+                leadingEdge: WorkspaceLayerEdge.level1,
+                child: SizedBox.expand(),
+              ),
+            ),
+            SizedBox(
+              width: 120,
+              height: 160,
+              child: WorkspaceLayerSurface(
+                leadingEdge: WorkspaceLayerEdge.level2,
+                child: SizedBox.expand(),
+              ),
+            ),
+            SizedBox(
+              width: 120,
+              height: 160,
+              child: WorkspaceLayerSurface(child: SizedBox.expand()),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    final edges = find.byKey(const Key('workspace_layer_leading_edge'));
+    expect(edges, findsNWidgets(2));
+
+    final painterTypes = tester
+        .widgetList<CustomPaint>(edges)
+        .map((paint) => paint.painter.runtimeType)
+        .toSet();
+    expect(painterTypes, hasLength(1));
   });
 }
 

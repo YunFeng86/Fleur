@@ -13,6 +13,8 @@ const BorderRadius kWorkspaceLayerRadius = BorderRadius.only(
   bottomLeft: Radius.circular(16),
 );
 
+enum WorkspaceLayerEdge { none, level1, level2 }
+
 class ShellLayerScope extends InheritedWidget {
   const ShellLayerScope({
     super.key,
@@ -66,14 +68,14 @@ class WorkspaceLayerSurface extends StatelessWidget {
     this.color,
     this.borderRadius = kWorkspaceLayerRadius,
     this.showShadow = true,
-    this.showLeadingEdge = false,
+    this.leadingEdge = WorkspaceLayerEdge.none,
   });
 
   final Widget child;
   final Color? color;
   final BorderRadius borderRadius;
   final bool showShadow;
-  final bool showLeadingEdge;
+  final WorkspaceLayerEdge leadingEdge;
 
   @override
   Widget build(BuildContext context) {
@@ -103,18 +105,14 @@ class WorkspaceLayerSurface extends StatelessWidget {
         child: Stack(
           children: [
             ColoredBox(color: color ?? surfaces.list, child: child),
-            if (showLeadingEdge)
+            if (leadingEdge != WorkspaceLayerEdge.none)
               Positioned.fill(
                 child: IgnorePointer(
                   child: CustomPaint(
                     key: const Key('workspace_layer_leading_edge'),
                     painter: _WorkspaceLeadingEdgePainter(
                       borderRadius: borderRadius,
-                      color: surfaces.subtleDivider.withValues(
-                        alpha: theme.brightness == Brightness.dark
-                            ? 0.44
-                            : 0.58,
-                      ),
+                      color: _leadingEdgeColor(theme, surfaces, leadingEdge),
                     ),
                   ),
                 ),
@@ -124,6 +122,21 @@ class WorkspaceLayerSurface extends StatelessWidget {
       ),
     );
   }
+}
+
+Color _leadingEdgeColor(
+  ThemeData theme,
+  FleurSurfaceTheme surfaces,
+  WorkspaceLayerEdge edge,
+) {
+  final alpha = switch ((theme.brightness, edge)) {
+    (_, WorkspaceLayerEdge.none) => 0.0,
+    (Brightness.dark, WorkspaceLayerEdge.level1) => 0.58,
+    (Brightness.dark, WorkspaceLayerEdge.level2) => 0.74,
+    (Brightness.light, WorkspaceLayerEdge.level1) => 0.64,
+    (Brightness.light, WorkspaceLayerEdge.level2) => 0.78,
+  };
+  return surfaces.subtleDivider.withValues(alpha: alpha);
 }
 
 class _WorkspaceLeadingEdgePainter extends CustomPainter {

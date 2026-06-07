@@ -292,6 +292,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       child: WorkspaceLayerSurface(
         key: const Key('app_shell_content_layer'),
         color: surfaces.list,
+        leadingEdge: WorkspaceLayerEdge.level1,
         child: Stack(
           children: [
             Positioned.fill(
@@ -341,14 +342,6 @@ class _AppShellState extends ConsumerState<AppShell> {
                 ),
                 if (sidebarExpanded) ...[
                   Positioned(
-                    key: const Key('app_shell_sidebar_divider'),
-                    left: sidebarWidth,
-                    top: 0,
-                    bottom: 0,
-                    width: kSidebarContentDividerWidth,
-                    child: ColoredBox(color: surfaces.subtleDivider),
-                  ),
-                  Positioned(
                     key: const Key('app_shell_sidebar_split_handle'),
                     left: sidebarWidth - kWorkspaceSplitHandleHitWidth / 2,
                     top: 0,
@@ -364,6 +357,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                           size.width,
                         );
                       },
+                      showDivider: false,
                     ),
                   ),
                 ],
