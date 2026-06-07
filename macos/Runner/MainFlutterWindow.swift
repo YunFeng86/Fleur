@@ -1,18 +1,17 @@
 import Cocoa
 import FlutterMacOS
 
-class MainFlutterWindow: NSWindow, NSToolbarDelegate {
+class MainFlutterWindow: NSWindow {
   private static let defaultTrafficLightCenterY: CGFloat = 24
   private static let defaultTrafficLightSafeInset: CGFloat = 72
   private static let defaultClickSafeTopInset: CGFloat = 0
   private static let defaultFullscreenClickSafeTopInset: CGFloat = 8
   private static let defaultTitlebarDragHeight: CGFloat = 48
   private static let trafficLightSafeGap: CGFloat = 8
-  private static let titlebarToolbarIdentifier = NSToolbar.Identifier("FleurTitlebarToolbar")
+  private static let trafficLightVisualLockTolerance: CGFloat = 0.5
 
   private var localeChannel: FlutterMethodChannel?
   private var windowControlsChannel: FlutterMethodChannel?
-  private var titlebarToolbar: NSToolbar?
   private var titlebarMetricsNotificationScheduled = false
 
   override func awakeFromNib() {
@@ -126,25 +125,11 @@ class MainFlutterWindow: NSWindow, NSToolbarDelegate {
     self.styleMask.insert(.fullSizeContentView)
     self.titleVisibility = .hidden
     self.titlebarAppearsTransparent = true
+    self.toolbar = nil
 
-    if #available(macOS 11.0, *) {
-      self.toolbarStyle = .unified
-    }
-
-    let toolbar = titlebarToolbar ?? NSToolbar(identifier: Self.titlebarToolbarIdentifier)
-    toolbar.allowsUserCustomization = false
-    toolbar.autosavesConfiguration = false
-    toolbar.delegate = self
-    toolbar.displayMode = .iconOnly
-    toolbar.sizeMode = .regular
-    toolbar.showsBaselineSeparator = false
-
-    if titlebarToolbar == nil {
-      self.toolbar = toolbar
-      titlebarToolbar = toolbar
-    }
-    updateTitlebarToolbarVisibility(isFullScreen: self.styleMask.contains(.fullScreen))
-    return titlebarChromeMetrics()
+    let metrics = titlebarChromeMetrics()
+    scheduleTitlebarChromeMetricsNotification()
+    return metrics
   }
 
   private func setupTitlebarChromeObservers() {
@@ -161,32 +146,26 @@ class MainFlutterWindow: NSWindow, NSToolbarDelegate {
     for notification in notifications {
       NotificationCenter.default.addObserver(
         self,
-        selector: #selector(windowDidNeedTitlebarToolbarUpdate(_:)),
+        selector: #selector(windowDidNeedTitlebarChromeUpdate(_:)),
         name: notification,
         object: self
       )
     }
   }
 
-  @objc private func windowDidNeedTitlebarToolbarUpdate(_ notification: Notification) {
+  @objc private func windowDidNeedTitlebarChromeUpdate(_ notification: Notification) {
     switch notification.name {
     case NSWindow.willEnterFullScreenNotification,
          NSWindow.didEnterFullScreenNotification:
-      updateTitlebarToolbarVisibility(isFullScreen: true)
       notifyTitlebarChromeMetrics(isFullScreen: true)
     case NSWindow.willExitFullScreenNotification:
-      updateTitlebarToolbarVisibility(isFullScreen: true)
       notifyTitlebarChromeMetrics(isFullScreen: true)
     case NSWindow.didExitFullScreenNotification:
-      updateTitlebarToolbarVisibility(isFullScreen: false)
       notifyTitlebarChromeMetrics(isFullScreen: false)
+      scheduleTitlebarChromeMetricsNotification()
     default:
       scheduleTitlebarChromeMetricsNotification()
     }
-  }
-
-  private func updateTitlebarToolbarVisibility(isFullScreen: Bool) {
-    titlebarToolbar?.isVisible = !isFullScreen
   }
 
   private func scheduleTitlebarChromeMetricsNotification() {
@@ -226,6 +205,9 @@ class MainFlutterWindow: NSWindow, NSToolbarDelegate {
 
     guard let referenceView = self.contentView else {
       return fallbackTitlebarChromeMetrics()
+    }
+    if applyTrafficLightVisualLock(in: referenceView) {
+      scheduleTitlebarChromeMetricsNotification()
     }
 
     let buttonTypes: [NSWindow.ButtonType] = [
@@ -279,6 +261,49 @@ class MainFlutterWindow: NSWindow, NSToolbarDelegate {
     )
   }
 
+  private func applyTrafficLightVisualLock(in referenceView: NSView) -> Bool {
+    if self.styleMask.contains(.fullScreen) {
+      return false
+    }
+
+    let targetCenterYInReference = referenceView.isFlipped
+      ? Self.defaultTrafficLightCenterY
+      : referenceView.bounds.height - Self.defaultTrafficLightCenterY
+    let buttonTypes: [NSWindow.ButtonType] = [
+      .closeButton,
+      .miniaturizeButton,
+      .zoomButton,
+    ]
+    var didUpdate = false
+
+    for buttonType in buttonTypes {
+      guard let button = self.standardWindowButton(buttonType),
+            let buttonSuperview = button.superview,
+            !button.isHidden else {
+        continue
+      }
+
+      let buttonRectInReference = buttonSuperview.convert(button.frame, to: referenceView)
+      let currentCenterY = referenceView.isFlipped
+        ? buttonRectInReference.midY
+        : referenceView.bounds.height - buttonRectInReference.midY
+      if abs(currentCenterY - Self.defaultTrafficLightCenterY) <= Self.trafficLightVisualLockTolerance {
+        continue
+      }
+
+      let targetCenter = referenceView.convert(
+        NSPoint(x: buttonRectInReference.midX, y: targetCenterYInReference),
+        to: buttonSuperview
+      )
+      var frame = button.frame
+      frame.origin.y = targetCenter.y - frame.height / 2
+      button.frame = frame
+      didUpdate = true
+    }
+
+    return didUpdate
+  }
+
   private func contentLayoutTopInset(in referenceView: NSView) -> CGFloat {
     let layoutRect = referenceView.convert(self.contentLayoutRect, from: nil)
     if referenceView.isFlipped {
@@ -312,26 +337,6 @@ class MainFlutterWindow: NSWindow, NSToolbarDelegate {
       "titlebarDragHeight": Double(titlebarDragHeight),
       "contentLayoutTopInset": Double(contentLayoutTopInset),
     ]
-  }
-
-  func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-    [.space]
-  }
-
-  func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-    [.space]
-  }
-
-  func toolbarSelectableItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-    []
-  }
-
-  func toolbar(
-    _ toolbar: NSToolbar,
-    itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier,
-    willBeInsertedIntoToolbar flag: Bool
-  ) -> NSToolbarItem? {
-    nil
   }
 
   private static func normalizeLocaleTag(_ tag: String?) -> String? {
