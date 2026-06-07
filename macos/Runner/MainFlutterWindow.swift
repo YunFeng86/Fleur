@@ -24,14 +24,18 @@ private final class TrafficLightsProxy {
     weak var superview: NSView?
     var left: NSLayoutConstraint?
     var top: NSLayoutConstraint?
+    var previousTranslatesAutoresizingMaskIntoConstraints: Bool?
 
     func reset() {
       NSLayoutConstraint.deactivate([left, top].compactMap { $0 })
-      button?.translatesAutoresizingMaskIntoConstraints = true
+      if let previousTranslatesAutoresizingMaskIntoConstraints {
+        button?.translatesAutoresizingMaskIntoConstraints = previousTranslatesAutoresizingMaskIntoConstraints
+      }
       button = nil
       superview = nil
       left = nil
       top = nil
+      previousTranslatesAutoresizingMaskIntoConstraints = nil
     }
   }
 
@@ -49,6 +53,7 @@ private final class TrafficLightsProxy {
 
   func suspendForFullScreen() {
     suspendedForFullScreen = true
+    resetConstraints()
   }
 
   func resumeAfterFullScreen() {
@@ -146,6 +151,29 @@ private final class TrafficLightsProxy {
     return set
   }
 
+  private func resetConstraints() {
+    var affectedSuperviews = Set<ObjectIdentifier>()
+    var superviewsToLayout: [NSView] = []
+
+    for set in constraintSets.values {
+      if let superview = set.superview {
+        let identifier = ObjectIdentifier(superview)
+        if !affectedSuperviews.contains(identifier) {
+          affectedSuperviews.insert(identifier)
+          superviewsToLayout.append(superview)
+        }
+      }
+      set.reset()
+    }
+    constraintSets.removeAll()
+
+    for superview in superviewsToLayout {
+      superview.needsUpdateConstraints = true
+      superview.needsLayout = true
+      superview.layoutSubtreeIfNeeded()
+    }
+  }
+
   private func updateConstraints(
     role: TrafficLightButtonRole,
     button: NSButton,
@@ -157,6 +185,8 @@ private final class TrafficLightsProxy {
     if set.button !== button || set.superview !== superview ||
         set.left == nil || set.top == nil {
       set.reset()
+      set.previousTranslatesAutoresizingMaskIntoConstraints =
+        button.translatesAutoresizingMaskIntoConstraints
       button.translatesAutoresizingMaskIntoConstraints = false
       let leftConstraint = NSLayoutConstraint(
         item: button,
