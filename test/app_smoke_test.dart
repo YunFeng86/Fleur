@@ -2497,11 +2497,10 @@ void main() {
   });
 
   testWidgets(
-    'Sync status capsule sizes left alignment to content and constrains center',
+    'Sync status capsule adapts between centered edge, centered floating, and left floating',
     (tester) async {
-      Future<({Offset topLeft, Size size})> pumpCapsule(
-        double width, {
-        AlignmentGeometry alignment = Alignment.bottomLeft,
+      Future<Rect> pumpCapsule(
+        double hostWidth, {
         SyncStatusLabel label = SyncStatusLabel.syncing,
         String? detail,
         int? current,
@@ -2517,11 +2516,10 @@ void main() {
                 body: Align(
                   alignment: Alignment.topLeft,
                   child: SizedBox(
-                    width: width,
+                    width: hostWidth,
                     height: 240,
-                    child: SyncStatusCapsuleHost(
-                      alignment: alignment,
-                      child: const SizedBox.expand(),
+                    child: const SyncStatusCapsuleHost(
+                      child: SizedBox.expand(),
                     ),
                   ),
                 ),
@@ -2545,49 +2543,65 @@ void main() {
         await tester.pump();
 
         final capsule = find.byKey(const Key('sync_status_capsule'));
-        return (
-          topLeft: tester.getTopLeft(capsule),
-          size: tester.getSize(capsule),
-        );
+        return tester.getRect(capsule);
       }
 
+      const horizontalPadding = 20.0;
+      const narrowWidth = 380.0;
+      const middleWidth = 480.0;
       const wideWidth = 760.0;
 
-      final shortLeft = await pumpCapsule(wideWidth);
-      expect(shortLeft.topLeft.dx, 16);
-      expect(shortLeft.size.width, lessThan(kSyncStatusCapsuleMaxWidth));
-
-      final contentLeft = await pumpCapsule(
-        wideWidth,
-        label: SyncStatusLabel.syncingSubscriptions,
-        detail: 'Miniflux2 sync',
-        current: 405,
-        total: 555,
-      );
-      expect(contentLeft.topLeft.dx, 16);
-      expect(contentLeft.size.width, greaterThan(kSyncStatusCapsuleMaxWidth));
-      expect(contentLeft.size.width, lessThan(wideWidth - 32));
-
-      final narrowLeft = await pumpCapsule(
-        380,
+      final narrowEdge = await pumpCapsule(
+        narrowWidth,
         label: SyncStatusLabel.syncingSubscriptions,
         detail:
             'Miniflux2 subscription metadata sync with a very long detail label',
         current: 405,
         total: 555,
       );
-      expect(narrowLeft.topLeft.dx, 16);
-      expect(narrowLeft.size.width, 348);
+      expect(narrowEdge.center.dx, moreOrLessEquals(narrowWidth / 2));
+      expect(narrowEdge.width, narrowWidth - horizontalPadding * 2);
 
-      final wideCenter = await pumpCapsule(
+      final middleShort = await pumpCapsule(middleWidth);
+      expect(middleShort.center.dx, moreOrLessEquals(middleWidth / 2));
+      expect(middleShort.width, lessThan(kSyncStatusCapsuleMaxWidth));
+
+      final middleLong = await pumpCapsule(
+        middleWidth,
+        label: SyncStatusLabel.syncingSubscriptions,
+        detail:
+            'Miniflux2 subscription metadata sync with a very long detail label',
+        current: 405,
+        total: 555,
+      );
+      expect(middleLong.center.dx, moreOrLessEquals(middleWidth / 2));
+      expect(middleLong.width, kSyncStatusCapsuleMaxWidth);
+
+      final wideShort = await pumpCapsule(wideWidth);
+      expect(wideShort.left, horizontalPadding);
+      expect(wideShort.width, lessThan(kSyncStatusCapsuleMaxWidth));
+
+      final wideContent = await pumpCapsule(
         wideWidth,
-        alignment: Alignment.bottomCenter,
+        label: SyncStatusLabel.syncingSubscriptions,
+        detail: 'Miniflux2 sync',
+        current: 405,
+        total: 555,
       );
-      expect(wideCenter.size.width, kSyncStatusCapsuleMaxWidth);
-      expect(
-        wideCenter.topLeft.dx,
-        (wideWidth - kSyncStatusCapsuleMaxWidth) / 2,
+      expect(wideContent.left, horizontalPadding);
+      expect(wideContent.width, greaterThan(kSyncStatusCapsuleMaxWidth));
+      expect(wideContent.width, lessThan(wideWidth - horizontalPadding * 2));
+
+      final wideLong = await pumpCapsule(
+        wideWidth,
+        label: SyncStatusLabel.syncingSubscriptions,
+        detail:
+            'Miniflux2 subscription metadata sync with a very long detail label',
+        current: 405,
+        total: 555,
       );
+      expect(wideLong.left, horizontalPadding);
+      expect(wideLong.width, wideWidth - horizontalPadding * 2);
     },
   );
 

@@ -10,20 +10,26 @@ import '../theme/fleur_theme_extensions.dart';
 import '../ui/motion.dart';
 
 const double kSyncStatusCapsuleMaxWidth = 360;
+const double _kSyncStatusCapsuleCenterEdgeMaxWidth = 420;
+const double _kSyncStatusCapsuleLeftMinWidth = 560;
+
+enum _SyncStatusCapsuleLayoutMode {
+  centeredEdge,
+  centeredFloating,
+  leftFloating,
+}
 
 class SyncStatusCapsuleHost extends ConsumerWidget {
   const SyncStatusCapsuleHost({
     super.key,
     required this.child,
     this.enabled = true,
-    this.alignment = Alignment.bottomLeft,
-    this.padding = const EdgeInsets.fromLTRB(16, 0, 16, 12),
+    this.padding = const EdgeInsets.fromLTRB(20, 0, 20, 12),
     this.maxWidth = kSyncStatusCapsuleMaxWidth,
   });
 
   final Widget child;
   final bool enabled;
-  final AlignmentGeometry alignment;
   final EdgeInsets padding;
   final double maxWidth;
 
@@ -35,8 +41,6 @@ class SyncStatusCapsuleHost extends ConsumerWidget {
     final visible = state.visible;
     final reduceMotion = AppMotion.reduceMotion(context);
     final duration = reduceMotion ? Duration.zero : AppMotion.short;
-    final resolvedAlignment = alignment.resolve(Directionality.of(context));
-    final shrinkToContent = resolvedAlignment.x < 0;
 
     return Stack(
       fit: StackFit.expand,
@@ -53,9 +57,16 @@ class SyncStatusCapsuleHost extends ConsumerWidget {
                 final availableWidth = constraints.hasBoundedWidth
                     ? constraints.maxWidth
                     : maxWidth;
-                final capsuleMaxWidth = shrinkToContent
-                    ? availableWidth
-                    : maxWidth;
+                final mode = _layoutModeForWidth(availableWidth);
+                final alignment =
+                    mode == _SyncStatusCapsuleLayoutMode.leftFloating
+                    ? Alignment.bottomLeft
+                    : Alignment.bottomCenter;
+                final capsuleMaxWidth =
+                    mode == _SyncStatusCapsuleLayoutMode.centeredFloating &&
+                        availableWidth > maxWidth
+                    ? maxWidth
+                    : availableWidth;
 
                 return Align(
                   alignment: alignment,
@@ -71,10 +82,7 @@ class SyncStatusCapsuleHost extends ConsumerWidget {
                         curve: AppMotion.standardCurve,
                         child: IgnorePointer(
                           ignoring: !visible,
-                          child: _SyncStatusCapsule(
-                            state: state,
-                            shrinkToContent: shrinkToContent,
-                          ),
+                          child: _SyncStatusCapsule(state: state, mode: mode),
                         ),
                       ),
                     ),
@@ -89,14 +97,21 @@ class SyncStatusCapsuleHost extends ConsumerWidget {
   }
 }
 
+_SyncStatusCapsuleLayoutMode _layoutModeForWidth(double width) {
+  if (width < _kSyncStatusCapsuleCenterEdgeMaxWidth) {
+    return _SyncStatusCapsuleLayoutMode.centeredEdge;
+  }
+  if (width < _kSyncStatusCapsuleLeftMinWidth) {
+    return _SyncStatusCapsuleLayoutMode.centeredFloating;
+  }
+  return _SyncStatusCapsuleLayoutMode.leftFloating;
+}
+
 class _SyncStatusCapsule extends StatelessWidget {
-  const _SyncStatusCapsule({
-    required this.state,
-    required this.shrinkToContent,
-  });
+  const _SyncStatusCapsule({required this.state, required this.mode});
 
   final SyncStatusState state;
-  final bool shrinkToContent;
+  final _SyncStatusCapsuleLayoutMode mode;
 
   String _labelText(AppLocalizations l10n, SyncStatusLabel label) {
     // Keep this in one place so UI can stay consistent across panes.
@@ -167,12 +182,16 @@ class _SyncStatusCapsule extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
-          mainAxisSize: shrinkToContent ? MainAxisSize.min : MainAxisSize.max,
+          mainAxisSize: mode == _SyncStatusCapsuleLayoutMode.centeredEdge
+              ? MainAxisSize.max
+              : MainAxisSize.min,
           children: [
             indicator,
             const SizedBox(width: 10),
             Flexible(
-              fit: shrinkToContent ? FlexFit.loose : FlexFit.tight,
+              fit: mode == _SyncStatusCapsuleLayoutMode.centeredEdge
+                  ? FlexFit.tight
+                  : FlexFit.loose,
               child: DefaultTextStyle(
                 style:
                     theme.textTheme.bodySmall?.copyWith(
