@@ -129,14 +129,23 @@ Color _leadingEdgeColor(
   FleurSurfaceTheme surfaces,
   WorkspaceLayerEdge edge,
 ) {
+  final dark = theme.brightness == Brightness.dark;
+  final baseColor = dark
+      ? Color.alphaBlend(
+          theme.colorScheme.onSurface.withValues(
+            alpha: edge == WorkspaceLayerEdge.level2 ? 0.10 : 0.06,
+          ),
+          surfaces.subtleDivider,
+        )
+      : surfaces.subtleDivider;
   final alpha = switch ((theme.brightness, edge)) {
     (_, WorkspaceLayerEdge.none) => 0.0,
-    (Brightness.dark, WorkspaceLayerEdge.level1) => 0.58,
-    (Brightness.dark, WorkspaceLayerEdge.level2) => 0.74,
-    (Brightness.light, WorkspaceLayerEdge.level1) => 0.64,
-    (Brightness.light, WorkspaceLayerEdge.level2) => 0.78,
+    (Brightness.dark, WorkspaceLayerEdge.level1) => 0.94,
+    (Brightness.dark, WorkspaceLayerEdge.level2) => 1.0,
+    (Brightness.light, WorkspaceLayerEdge.level1) => 0.72,
+    (Brightness.light, WorkspaceLayerEdge.level2) => 0.86,
   };
-  return surfaces.subtleDivider.withValues(alpha: alpha);
+  return baseColor.withValues(alpha: alpha);
 }
 
 class _WorkspaceLeadingEdgePainter extends CustomPainter {
