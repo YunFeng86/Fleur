@@ -238,13 +238,16 @@ class _AppShellState extends ConsumerState<AppShell> {
     required double sidebarWidth,
     required double listWidth,
     required NavigationHistoryState history,
+    bool useTemporarySidebarControls = false,
   }) {
     final sidebarLayoutMode = sidebarLayoutModeForWidth(size.width);
     final hasInlineSidebar = sidebarLayoutMode == SidebarLayoutMode.inline;
     final sidebarExpanded =
         hasInlineSidebar &&
         presentationMode == SidebarPresentationMode.expanded;
-    final temporarySidebarOpen = !hasInlineSidebar && _temporarySidebarOpen;
+    final usesTemporarySidebar =
+        !hasInlineSidebar || useTemporarySidebarControls;
+    final temporarySidebarOpen = usesTemporarySidebar && _temporarySidebarOpen;
     final contentLeft = sidebarExpanded
         ? sidebarWidth + kSidebarContentDividerWidth
         : (temporarySidebarOpen ? sidebarWidth : 0.0);
@@ -313,7 +316,7 @@ class _AppShellState extends ConsumerState<AppShell> {
             ref: ref,
             presentationMode: controlsPresentationMode,
             macOSWindowChromeMetrics: macOSWindowChromeMetrics,
-            usesTemporarySidebar: !hasInlineSidebar,
+            usesTemporarySidebar: usesTemporarySidebar,
             searchSelected: _isSearchRoute(widget.currentUri),
             history: history,
             child: Stack(
@@ -452,10 +455,34 @@ class _AppShellState extends ConsumerState<AppShell> {
       size.width,
     );
     final sidebarLayoutMode = sidebarLayoutModeForWidth(size.width);
-    final effectiveSidebarPresentationMode =
+    final preferredArticleListWidth = _isArticleRoute(widget.currentUri)
+        ? _listWidthForArticleUri(widget.currentUri)
+        : null;
+    final baseSidebarPresentationMode =
         sidebarLayoutMode == SidebarLayoutMode.inline
         ? presentationMode
         : SidebarPresentationMode.collapsed;
+    var effectiveSidebarPresentationMode = baseSidebarPresentationMode;
+    var useTemporarySidebarControls = false;
+
+    if (preferredArticleListWidth != null &&
+        baseSidebarPresentationMode == SidebarPresentationMode.expanded) {
+      final expandedSpec = LayoutSpec.fromTotalSize(
+        totalWidth: size.width,
+        totalHeight: size.height,
+        sidebarPresentationMode: baseSidebarPresentationMode,
+        sidebarWidth: sidebarWidth,
+        listWidth: preferredArticleListWidth,
+      );
+      if (shouldCollapseSidebarForReaderLayout(
+        expandedSpec,
+        preferredListWidth: preferredArticleListWidth,
+      )) {
+        effectiveSidebarPresentationMode = SidebarPresentationMode.collapsed;
+        useTemporarySidebarControls = true;
+      }
+    }
+
     final contentWidthForList = effectiveContentWidth(
       size.width,
       sidebarPresentationMode: effectiveSidebarPresentationMode,
@@ -518,12 +545,13 @@ class _AppShellState extends ConsumerState<AppShell> {
           context: context,
           ref: ref,
           size: size,
-          presentationMode: presentationMode,
+          presentationMode: effectiveSidebarPresentationMode,
           macOSWindowChromeMetrics: macOSWindowChromeMetrics,
           surfaces: surfaces,
           sidebarWidth: sidebarWidth,
           listWidth: listWidth,
           history: history,
+          useTemporarySidebarControls: useTemporarySidebarControls,
         ),
       );
     }

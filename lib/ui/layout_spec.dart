@@ -131,7 +131,49 @@ class LayoutSpec {
 }
 
 bool shouldEmbedReaderForLayout(LayoutSpec spec, {required double listWidth}) {
-  return spec.isDesktopPlatform
-      ? spec.desktopEmbedsReader
-      : spec.canEmbedReader(listWidth: listWidth);
+  if (!spec.isDesktopPlatform) {
+    return spec.canEmbedReader(listWidth: listWidth);
+  }
+
+  return canEmbedDesktopReaderForContentWidth(
+        spec.contentWidth,
+        preferredListWidth: listWidth,
+      ) ||
+      shouldCollapseSidebarForReaderLayout(spec, preferredListWidth: listWidth);
+}
+
+bool canEmbedDesktopReaderForContentWidth(
+  double contentWidth, {
+  required double preferredListWidth,
+  double minReaderWidth = kMinReadingWidth,
+}) {
+  if (contentWidth <= 0) return false;
+  final listWidth = clampWorkspaceListWidth(preferredListWidth, contentWidth);
+  return contentWidth >=
+      (listWidth + minReaderWidth + kPaneGap + kWorkspaceSplitHandleHitWidth);
+}
+
+bool shouldCollapseSidebarForReaderLayout(
+  LayoutSpec spec, {
+  required double preferredListWidth,
+}) {
+  if (!spec.isDesktopPlatform) return false;
+  if (!spec.hasInlineSidebar) return false;
+  if (spec.contentWidth >= spec.totalWidth) return false;
+  if (canEmbedDesktopReaderForContentWidth(
+    spec.contentWidth,
+    preferredListWidth: preferredListWidth,
+  )) {
+    return false;
+  }
+
+  final collapsedContentWidth = effectiveContentWidth(
+    spec.totalWidth,
+    sidebarPresentationMode: SidebarPresentationMode.collapsed,
+    sidebarWidth: spec.sidebarWidth,
+  );
+  return canEmbedDesktopReaderForContentWidth(
+    collapsedContentWidth,
+    preferredListWidth: preferredListWidth,
+  );
 }

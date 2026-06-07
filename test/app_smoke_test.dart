@@ -48,6 +48,7 @@ import 'package:fleur/ui/home/home_scene_commands.dart';
 import 'package:fleur/ui/home/home_scene_panes.dart';
 import 'package:fleur/ui/home/home_scene_shortcuts.dart';
 import 'package:fleur/ui/layout.dart';
+import 'package:fleur/ui/layout_spec.dart';
 import 'package:fleur/ui/sidebar_layout.dart';
 import 'package:fleur/ui/sidebar/sidebar_selection_actions.dart';
 import 'package:fleur/ui/sidebar/sidebar_tree.dart';
@@ -334,6 +335,69 @@ void main() {
         sidebarWidth: kDefaultWorkspaceSidebarWidth,
       ),
       1200 - kDefaultWorkspaceSidebarWidth - kSidebarContentDividerWidth,
+    );
+  });
+
+  test('reader embedding stays monotonic while desktop width narrows', () {
+    debugFleurTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    LayoutSpec specFor(double width) => LayoutSpec.fromTotalSize(
+      totalWidth: width,
+      totalHeight: 800,
+      sidebarPresentationMode: SidebarPresentationMode.expanded,
+      sidebarWidth: kDefaultWorkspaceSidebarWidth,
+      listWidth: kDefaultWorkspaceListWidth,
+    );
+
+    const widths = <double>[1200, 1078, 1000, 899, 818, 817];
+
+    expect(
+      widths
+          .map(
+            (width) => shouldEmbedReaderForLayout(
+              specFor(width),
+              listWidth: kHomeListWidth,
+            ),
+          )
+          .toList(),
+      <bool>[true, true, true, true, true, false],
+    );
+    expect(
+      widths
+          .map(
+            (width) => shouldEmbedReaderForLayout(
+              specFor(width),
+              listWidth: kDesktopListWidth,
+            ),
+          )
+          .toList(),
+      <bool>[true, true, true, true, true, false],
+    );
+    expect(
+      widths
+          .map(
+            (width) => shouldCollapseSidebarForReaderLayout(
+              specFor(width),
+              preferredListWidth: kHomeListWidth,
+            ),
+          )
+          .toList(),
+      <bool>[false, true, true, false, false, false],
+    );
+    expect(
+      canEmbedDesktopReaderForContentWidth(
+        818,
+        preferredListWidth: kDesktopListWidth,
+      ),
+      isTrue,
+    );
+    expect(
+      canEmbedDesktopReaderForContentWidth(
+        817,
+        preferredListWidth: kDesktopListWidth,
+      ),
+      isFalse,
     );
   });
 
@@ -1233,6 +1297,40 @@ void main() {
     expect(find.byType(Sidebar), findsNothing);
     expect(find.byKey(const Key('app_shell_child')), findsOneWidget);
   });
+
+  testWidgets(
+    'App shell temporarily collapses sidebar for middle-width article routes',
+    (tester) async {
+      debugFleurTargetPlatformOverride = TargetPlatform.windows;
+      addTearDown(() => debugFleurTargetPlatformOverride = null);
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = const Size(1000, 900);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(
+        _buildShellHarness(currentUri: Uri(path: '/all/article/42')),
+      );
+      await tester.pump();
+
+      expect(find.byKey(const Key('app_shell_secondary_layer')), findsNothing);
+      expect(find.byKey(const Key('app_shell_sidebar_divider')), findsNothing);
+      expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
+      expect(find.byKey(const Key('shell_drawer_controls')), findsNothing);
+      expect(find.byKey(const Key('shell_sidebar_button')), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
+        0,
+      );
+
+      final element = tester.element(find.byKey(const Key('app_shell_child')));
+      final container = ProviderScope.containerOf(element);
+      expect(
+        container.read(sidebarPresentationModeProvider),
+        SidebarPresentationMode.expanded,
+      );
+    },
+  );
 
   testWidgets('sidebar fixed items and account menu navigate to shell routes', (
     tester,
