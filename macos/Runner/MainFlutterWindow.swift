@@ -1,7 +1,206 @@
 import Cocoa
 import FlutterMacOS
 
+private enum TrafficLightButtonRole: CaseIterable {
+  case close
+  case miniaturize
+  case zoom
+
+  var buttonType: NSWindow.ButtonType {
+    switch self {
+    case .close:
+      return .closeButton
+    case .miniaturize:
+      return .miniaturizeButton
+    case .zoom:
+      return .zoomButton
+    }
+  }
+}
+
+private final class TrafficLightsProxy {
+  private final class ConstraintSet {
+    weak var button: NSButton?
+    weak var superview: NSView?
+    var left: NSLayoutConstraint?
+    var top: NSLayoutConstraint?
+
+    func reset() {
+      NSLayoutConstraint.deactivate([left, top].compactMap { $0 })
+      button?.translatesAutoresizingMaskIntoConstraints = true
+      button = nil
+      superview = nil
+      left = nil
+      top = nil
+    }
+  }
+
+  private let closeButtonCenterX: CGFloat
+  private let centerY: CGFloat
+  private let tolerance: CGFloat
+  private var constraintSets: [TrafficLightButtonRole: ConstraintSet] = [:]
+  private var suspendedForFullScreen = false
+
+  init(closeButtonCenterX: CGFloat, centerY: CGFloat, tolerance: CGFloat) {
+    self.closeButtonCenterX = closeButtonCenterX
+    self.centerY = centerY
+    self.tolerance = tolerance
+  }
+
+  func suspendForFullScreen() {
+    suspendedForFullScreen = true
+  }
+
+  func resumeAfterFullScreen() {
+    suspendedForFullScreen = false
+  }
+
+  @discardableResult
+  func applyIfNeeded(window: NSWindow, referenceView: NSView) -> Bool {
+    if suspendedForFullScreen || window.styleMask.contains(.fullScreen) {
+      return false
+    }
+
+    guard let closeButton = window.standardWindowButton(.closeButton),
+          let closeButtonSuperview = closeButton.superview,
+          !closeButton.isHidden else {
+      return false
+    }
+
+    let closeButtonRectInReference = closeButtonSuperview.convert(
+      closeButton.frame,
+      to: referenceView
+    )
+    let horizontalDelta = closeButtonCenterX - closeButtonRectInReference.midX
+    let targetCenterYInReference = referenceView.isFlipped
+      ? centerY
+      : referenceView.bounds.height - centerY
+    var didUpdate = false
+    var affectedSuperviews = Set<ObjectIdentifier>()
+    var superviewsToLayout: [NSView] = []
+
+    for role in TrafficLightButtonRole.allCases {
+      guard let button = window.standardWindowButton(role.buttonType),
+            let buttonSuperview = button.superview,
+            !button.isHidden,
+            button.frame.width > 0,
+            button.frame.height > 0 else {
+        continue
+      }
+
+      let buttonRectInReference = buttonSuperview.convert(button.frame, to: referenceView)
+      let targetCenterInSuperview = referenceView.convert(
+        NSPoint(
+          x: buttonRectInReference.midX + horizontalDelta,
+          y: targetCenterYInReference
+        ),
+        to: buttonSuperview
+      )
+      let left = targetCenterInSuperview.x - button.frame.width / 2
+      let top = topConstant(
+        for: targetCenterInSuperview,
+        buttonHeight: button.frame.height,
+        in: buttonSuperview
+      )
+
+      if updateConstraints(
+        role: role,
+        button: button,
+        superview: buttonSuperview,
+        left: left,
+        top: top
+      ) {
+        didUpdate = true
+        let identifier = ObjectIdentifier(buttonSuperview)
+        if !affectedSuperviews.contains(identifier) {
+          affectedSuperviews.insert(identifier)
+          superviewsToLayout.append(buttonSuperview)
+        }
+      }
+    }
+
+    for superview in superviewsToLayout {
+      superview.needsLayout = true
+      superview.layoutSubtreeIfNeeded()
+    }
+    return didUpdate
+  }
+
+  private func topConstant(
+    for center: NSPoint,
+    buttonHeight: CGFloat,
+    in superview: NSView
+  ) -> CGFloat {
+    if superview.isFlipped {
+      return center.y - buttonHeight / 2
+    }
+    return superview.bounds.height - (center.y + buttonHeight / 2)
+  }
+
+  private func constraintSet(for role: TrafficLightButtonRole) -> ConstraintSet {
+    if let set = constraintSets[role] {
+      return set
+    }
+    let set = ConstraintSet()
+    constraintSets[role] = set
+    return set
+  }
+
+  private func updateConstraints(
+    role: TrafficLightButtonRole,
+    button: NSButton,
+    superview: NSView,
+    left: CGFloat,
+    top: CGFloat
+  ) -> Bool {
+    let set = constraintSet(for: role)
+    if set.button !== button || set.superview !== superview ||
+        set.left == nil || set.top == nil {
+      set.reset()
+      button.translatesAutoresizingMaskIntoConstraints = false
+      let leftConstraint = NSLayoutConstraint(
+        item: button,
+        attribute: .left,
+        relatedBy: .equal,
+        toItem: superview,
+        attribute: .left,
+        multiplier: 1,
+        constant: left
+      )
+      let topConstraint = NSLayoutConstraint(
+        item: button,
+        attribute: .top,
+        relatedBy: .equal,
+        toItem: superview,
+        attribute: .top,
+        multiplier: 1,
+        constant: top
+      )
+      NSLayoutConstraint.activate([leftConstraint, topConstraint])
+      set.button = button
+      set.superview = superview
+      set.left = leftConstraint
+      set.top = topConstraint
+      return true
+    }
+
+    var didUpdate = false
+    if let leftConstraint = set.left,
+       abs(leftConstraint.constant - left) > tolerance {
+      leftConstraint.constant = left
+      didUpdate = true
+    }
+    if let topConstraint = set.top,
+       abs(topConstraint.constant - top) > tolerance {
+      topConstraint.constant = top
+      didUpdate = true
+    }
+    return didUpdate
+  }
+}
+
 class MainFlutterWindow: NSWindow {
+  private static let defaultTrafficLightCloseButtonCenterX: CGFloat = 23
   private static let defaultTrafficLightCenterY: CGFloat = 24
   private static let defaultTrafficLightSafeInset: CGFloat = 72
   private static let defaultClickSafeTopInset: CGFloat = 0
@@ -13,6 +212,11 @@ class MainFlutterWindow: NSWindow {
   private var localeChannel: FlutterMethodChannel?
   private var windowControlsChannel: FlutterMethodChannel?
   private var titlebarMetricsNotificationScheduled = false
+  private let trafficLightsProxy = TrafficLightsProxy(
+    closeButtonCenterX: MainFlutterWindow.defaultTrafficLightCloseButtonCenterX,
+    centerY: MainFlutterWindow.defaultTrafficLightCenterY,
+    tolerance: MainFlutterWindow.trafficLightVisualLockTolerance
+  )
 
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
@@ -136,10 +340,16 @@ class MainFlutterWindow: NSWindow {
     let notifications: [NSNotification.Name] = [
       NSWindow.didResizeNotification,
       NSWindow.didEndLiveResizeNotification,
+      NSWindow.didMoveNotification,
+      NSWindow.didBecomeMainNotification,
+      NSWindow.didResignMainNotification,
+      NSWindow.didBecomeKeyNotification,
+      NSWindow.didResignKeyNotification,
       NSWindow.willEnterFullScreenNotification,
       NSWindow.didEnterFullScreenNotification,
       NSWindow.willExitFullScreenNotification,
       NSWindow.didExitFullScreenNotification,
+      NSWindow.didDeminiaturizeNotification,
       NSWindow.didChangeScreenNotification,
       NSWindow.didChangeBackingPropertiesNotification,
     ]
@@ -157,15 +367,31 @@ class MainFlutterWindow: NSWindow {
     switch notification.name {
     case NSWindow.willEnterFullScreenNotification,
          NSWindow.didEnterFullScreenNotification:
+      trafficLightsProxy.suspendForFullScreen()
       notifyTitlebarChromeMetrics(isFullScreen: true)
     case NSWindow.willExitFullScreenNotification:
       notifyTitlebarChromeMetrics(isFullScreen: true)
     case NSWindow.didExitFullScreenNotification:
-      notifyTitlebarChromeMetrics(isFullScreen: false)
-      scheduleTitlebarChromeMetricsNotification()
+      DispatchQueue.main.async { [weak self] in
+        guard let self else {
+          return
+        }
+        self.trafficLightsProxy.resumeAfterFullScreen()
+        self.applyTrafficLightsProxyIfNeeded()
+        self.notifyTitlebarChromeMetrics(isFullScreen: false)
+      }
     default:
+      applyTrafficLightsProxyIfNeeded()
       scheduleTitlebarChromeMetricsNotification()
     }
+  }
+
+  @discardableResult
+  private func applyTrafficLightsProxyIfNeeded() -> Bool {
+    guard let referenceView = self.contentView else {
+      return false
+    }
+    return trafficLightsProxy.applyIfNeeded(window: self, referenceView: referenceView)
   }
 
   private func scheduleTitlebarChromeMetricsNotification() {
@@ -206,7 +432,7 @@ class MainFlutterWindow: NSWindow {
     guard let referenceView = self.contentView else {
       return fallbackTitlebarChromeMetrics()
     }
-    if applyTrafficLightVisualLock(in: referenceView) {
+    if trafficLightsProxy.applyIfNeeded(window: self, referenceView: referenceView) {
       scheduleTitlebarChromeMetricsNotification()
     }
 
@@ -259,49 +485,6 @@ class MainFlutterWindow: NSWindow {
       titlebarDragHeight: Self.defaultTitlebarDragHeight,
       contentLayoutTopInset: 0
     )
-  }
-
-  private func applyTrafficLightVisualLock(in referenceView: NSView) -> Bool {
-    if self.styleMask.contains(.fullScreen) {
-      return false
-    }
-
-    let targetCenterYInReference = referenceView.isFlipped
-      ? Self.defaultTrafficLightCenterY
-      : referenceView.bounds.height - Self.defaultTrafficLightCenterY
-    let buttonTypes: [NSWindow.ButtonType] = [
-      .closeButton,
-      .miniaturizeButton,
-      .zoomButton,
-    ]
-    var didUpdate = false
-
-    for buttonType in buttonTypes {
-      guard let button = self.standardWindowButton(buttonType),
-            let buttonSuperview = button.superview,
-            !button.isHidden else {
-        continue
-      }
-
-      let buttonRectInReference = buttonSuperview.convert(button.frame, to: referenceView)
-      let currentCenterY = referenceView.isFlipped
-        ? buttonRectInReference.midY
-        : referenceView.bounds.height - buttonRectInReference.midY
-      if abs(currentCenterY - Self.defaultTrafficLightCenterY) <= Self.trafficLightVisualLockTolerance {
-        continue
-      }
-
-      let targetCenter = referenceView.convert(
-        NSPoint(x: buttonRectInReference.midX, y: targetCenterYInReference),
-        to: buttonSuperview
-      )
-      var frame = button.frame
-      frame.origin.y = targetCenter.y - frame.height / 2
-      button.frame = frame
-      didUpdate = true
-    }
-
-    return didUpdate
   }
 
   private func contentLayoutTopInset(in referenceView: NSView) -> CGFloat {
