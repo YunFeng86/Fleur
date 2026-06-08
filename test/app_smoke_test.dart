@@ -3637,11 +3637,19 @@ void main() {
     await tester.pump();
     final maxListWidthForHarness =
         1200 - kWorkspaceSplitHandleHitWidth - kMinReadingWidth;
+    final expectedReaderWidthForHarness = 1200 - maxListWidthForHarness;
     expect(
       tester.getSize(find.byType(ArticleList)).width,
       maxListWidthForHarness,
     );
-    expect(tester.getSize(find.byType(HomeReaderPane)).width, kMinReadingWidth);
+    expect(
+      tester.getSize(find.byType(HomeReaderPane)).width,
+      expectedReaderWidthForHarness,
+    );
+    expect(
+      tester.getSize(find.byType(HomeReaderPane)).width,
+      greaterThanOrEqualTo(kMinReadingWidth),
+    );
     expect(find.byType(HomeReaderPane), findsOneWidget);
     expect(find.byType(ReaderView), findsOneWidget);
     expect(tester.getSize(find.byType(ReadingPaneSurface)).height, 800);

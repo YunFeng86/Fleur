@@ -14,59 +14,68 @@ void main() {
     final errors = <FlutterErrorDetails>[];
     final oldOnError = FlutterError.onError;
     FlutterError.onError = errors.add;
-    addTearDown(() => FlutterError.onError = oldOnError);
 
-    Future<void> pumpLayout({required int? selectedArticleId}) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SizedBox(
-              width: 1000,
-              height: 600,
-              child: ArticleReaderWorkspaceLayout(
-                selectedArticleId: selectedArticleId,
-                contentWidth: 1000,
-                listWidth: 600,
-                listPane: const ColoredBox(color: Colors.white),
-                readerPane: ReadingPaneSurface(
-                  child: _ReaderPaneProbe(onLayout: layoutWidths.add),
+    try {
+      Future<void> pumpLayout({required int? selectedArticleId}) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: SizedBox(
+                width: 1000,
+                height: 600,
+                child: ArticleReaderWorkspaceLayout(
+                  selectedArticleId: selectedArticleId,
+                  contentWidth: 1000,
+                  listWidth: 600,
+                  listPane: const ColoredBox(color: Colors.white),
+                  readerPane: ReadingPaneSurface(
+                    child: _ReaderPaneProbe(onLayout: layoutWidths.add),
+                  ),
+                  onResizeList: (_) {},
+                  showSplitHandle: selectedArticleId != null,
                 ),
-                onResizeList: (_) {},
-                showSplitHandle: selectedArticleId != null,
               ),
             ),
           ),
-        ),
+        );
+      }
+
+      await pumpLayout(selectedArticleId: null);
+      await tester.pumpAndSettle();
+
+      layoutWidths.clear();
+      await pumpLayout(selectedArticleId: 1);
+      await tester.pump(const Duration(milliseconds: 16));
+
+      const expectedReaderWidth = 1000 - 600.0;
+
+      expect(layoutWidths, isNotEmpty);
+      expect(layoutWidths.last, expectedReaderWidth);
+      expect(
+        find.byKey(const Key('workspace_list_split_handle')),
+        findsOneWidget,
       );
+      await tester.pumpAndSettle();
+      final splitHandleRect = tester.getRect(
+        find.byKey(const Key('article_reader_workspace_split_layer')),
+      );
+      expect(splitHandleRect.center.dx, closeTo(600, 0.1));
+      expect(splitHandleRect.width, kWorkspaceSplitHandleHitWidth);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('workspace_list_split_handle')),
+          matching: find.byType(ColoredBox),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key('workspace_layer_leading_edge')),
+        findsOneWidget,
+      );
+      expect(errors, isEmpty);
+    } finally {
+      FlutterError.onError = oldOnError;
     }
-
-    await pumpLayout(selectedArticleId: null);
-    await tester.pumpAndSettle();
-
-    layoutWidths.clear();
-    await pumpLayout(selectedArticleId: 1);
-    await tester.pump(const Duration(milliseconds: 16));
-
-    final expectedReaderWidth = 1000 - 600 - kWorkspaceSplitHandleHitWidth;
-
-    expect(layoutWidths, isNotEmpty);
-    expect(layoutWidths.last, expectedReaderWidth);
-    expect(
-      find.byKey(const Key('workspace_list_split_handle')),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(
-        of: find.byKey(const Key('workspace_list_split_handle')),
-        matching: find.byType(ColoredBox),
-      ),
-      findsNothing,
-    );
-    expect(
-      find.byKey(const Key('workspace_layer_leading_edge')),
-      findsOneWidget,
-    );
-    expect(errors, isEmpty);
   });
 
   testWidgets('workspace layer edge levels use the same painter slot', (

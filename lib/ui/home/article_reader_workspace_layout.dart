@@ -91,7 +91,7 @@ class _ArticleReaderWorkspaceLayoutState
         widget.onResizeList != null &&
         openListWidth > 0;
     final handleWidth = showHandle ? kWorkspaceSplitHandleHitWidth : 0.0;
-    final readerOpenLeft = math.min(contentWidth, openListWidth + handleWidth);
+    final readerOpenLeft = openListWidth;
     final closedListWidth = contentWidth;
     final duration = AppMotion.reduceMotion(context)
         ? Duration.zero
@@ -113,11 +113,12 @@ class _ArticleReaderWorkspaceLayoutState
             openListWidth,
             progress,
           )!;
-          final handleLeft = ui.lerpDouble(
+          final boundaryLeft = ui.lerpDouble(
             closedListWidth,
             openListWidth,
             progress,
           )!;
+          final handleLeft = boundaryLeft - handleWidth / 2;
           final readerLeft = ui.lerpDouble(
             contentWidth,
             readerOpenLeft,
@@ -139,25 +140,6 @@ class _ArticleReaderWorkspaceLayoutState
                 width: listWidth,
                 child: RepaintBoundary(child: widget.listPane),
               ),
-              if (showHandle)
-                Positioned(
-                  key: const Key('article_reader_workspace_split_layer'),
-                  left: handleLeft,
-                  top: kWorkspaceHeaderHeight,
-                  bottom: 0,
-                  width: handleWidth,
-                  child: IgnorePointer(
-                    ignoring: !readerInteractive,
-                    child: Opacity(
-                      opacity: readerOpacity,
-                      child: WorkspaceSplitHandle(
-                        key: const Key('workspace_list_split_handle'),
-                        onDragDelta: widget.onResizeList!,
-                        showDivider: false,
-                      ),
-                    ),
-                  ),
-                ),
               Positioned(
                 key: const Key('article_reader_workspace_reader_layer'),
                 left: readerLeft,
@@ -184,6 +166,25 @@ class _ArticleReaderWorkspaceLayoutState
                   ),
                 ),
               ),
+              if (showHandle)
+                Positioned(
+                  key: const Key('article_reader_workspace_split_layer'),
+                  left: handleLeft,
+                  top: kWorkspaceHeaderHeight,
+                  bottom: 0,
+                  width: handleWidth,
+                  child: IgnorePointer(
+                    ignoring: !readerInteractive,
+                    child: Opacity(
+                      opacity: readerOpacity,
+                      child: WorkspaceSplitHandle(
+                        key: const Key('workspace_list_split_handle'),
+                        onDragDelta: widget.onResizeList!,
+                        showDivider: false,
+                      ),
+                    ),
+                  ),
+                ),
             ],
           );
         },
