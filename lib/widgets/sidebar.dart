@@ -645,19 +645,15 @@ class _SidebarRailIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color = selected
-        ? theme.colorScheme.primary
-        : theme.colorScheme.onSurfaceVariant;
     return IconButton(
       tooltip: tooltip,
       onPressed: onPressed,
-      icon: Icon(icon, color: color, size: _kSidebarRailIconSize),
-      style: IconButton.styleFrom(
-        fixedSize: const Size.square(_kSidebarRailButtonSize),
-        minimumSize: const Size.square(_kSidebarRailButtonSize),
-        padding: EdgeInsets.zero,
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      icon: Icon(icon),
+      iconSize: _kSidebarRailIconSize,
+      style: FleurCapsuleIconButton.styleFor(
+        context,
+        selected: selected,
+        size: _kSidebarRailButtonSize,
       ),
     );
   }
@@ -840,7 +836,6 @@ class _SidebarPanelFixedItem extends StatelessWidget {
     final states = theme.fleurState;
     final scheme = theme.colorScheme;
     final borderRadius = BorderRadius.circular(8);
-    final iconColor = item.selected ? scheme.primary : scheme.onSurfaceVariant;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -862,14 +857,10 @@ class _SidebarPanelFixedItem extends StatelessWidget {
             leading: SizedBox(
               width: kSidebarRailWidth - 16,
               child: Center(
-                child: SizedBox.square(
+                child: _SidebarFixedIconSurface(
                   key: item.key,
-                  dimension: _kSidebarRailButtonSize,
-                  child: Icon(
-                    item.effectiveIcon,
-                    color: iconColor,
-                    size: _kSidebarRailIconSize,
-                  ),
+                  icon: item.effectiveIcon,
+                  selected: item.selected,
                 ),
               ),
             ),
@@ -890,6 +881,41 @@ class _SidebarPanelFixedItem extends StatelessWidget {
                 : _SidebarFixedCount(item.count!),
             onTap: item.onTap,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SidebarFixedIconSurface extends StatelessWidget {
+  const _SidebarFixedIconSurface({
+    super.key,
+    required this.icon,
+    required this.selected,
+  });
+
+  final IconData icon;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = selected
+        ? theme.colorScheme.primary
+        : theme.colorScheme.onSurfaceVariant;
+    final background = selected
+        ? theme.fleurState.selectionTint
+        : Colors.transparent;
+
+    return SizedBox.square(
+      dimension: _kSidebarRailButtonSize,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(_kSidebarRailButtonSize / 2),
+        ),
+        child: Center(
+          child: Icon(icon, color: color, size: _kSidebarRailIconSize),
         ),
       ),
     );

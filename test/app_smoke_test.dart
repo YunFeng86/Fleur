@@ -730,6 +730,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     await tester.pumpWidget(_buildShellHarness());
     await tester.pumpAndSettle();
+    final theme = AppTheme.light();
 
     expect(find.byType(Sidebar), findsOneWidget);
     expect(
@@ -757,6 +758,18 @@ void main() {
     expect(
       tester.getSize(find.byKey(const Key('sidebar_all_button'))),
       const Size.square(kShellControlSize),
+    );
+    final expandedAllIconSurface = tester.widget<DecoratedBox>(
+      find
+          .descendant(
+            of: find.byKey(const Key('sidebar_all_button')),
+            matching: find.byType(DecoratedBox),
+          )
+          .first,
+    );
+    expect(
+      (expandedAllIconSurface.decoration as BoxDecoration).color,
+      theme.fleurState.selectionTint,
     );
     expect(
       find.byKey(const Key('sidebar_collapsed_rail_surface')),
@@ -893,6 +906,18 @@ void main() {
     Finder railButton(Key key) => find.descendant(
       of: find.byKey(const Key('app_shell_rail_overlay')),
       matching: find.byKey(key),
+    );
+    final collapsedAllButton = tester.widget<IconButton>(
+      find
+          .descendant(
+            of: railButton(const Key('sidebar_all_button')),
+            matching: find.byType(IconButton),
+          )
+          .first,
+    );
+    expect(
+      collapsedAllButton.style?.backgroundColor?.resolve(<WidgetState>{}),
+      theme.fleurState.selectionTint,
     );
     expect(
       tester.getCenter(railButton(const Key('sidebar_all_button'))).dx,
