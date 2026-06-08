@@ -483,6 +483,61 @@ void main() {
     );
   });
 
+  testWidgets('App Preferences language menu uses canonical native order', (
+    tester,
+  ) async {
+    await pumpSettingsScreen(tester, 1000, overrides: servicesOverrides());
+
+    await tester.tap(find.byKey(const Key('app_preferences_language_select')));
+    await tester.pumpAndSettle();
+
+    const expectedLabels = [
+      'System language',
+      '简体中文',
+      '繁體中文',
+      'English',
+      'Deutsch (Beta)',
+      'Español (Beta)',
+      'Français (Beta)',
+      '日本語 (Beta)',
+      '한국어 (Beta)',
+      'Português (Brasil) (Beta)',
+    ];
+
+    double menuLabelTop(String label) {
+      return tester.getTopLeft(find.text(label).last).dy;
+    }
+
+    for (final label in expectedLabels) {
+      expect(find.text(label), findsWidgets);
+    }
+    expect(find.text('Chinese (Simplified)'), findsNothing);
+    expect(find.text('Chinese (Traditional)'), findsNothing);
+
+    for (var i = 1; i < expectedLabels.length; i++) {
+      expect(
+        menuLabelTop(expectedLabels[i]),
+        greaterThan(menuLabelTop(expectedLabels[i - 1])),
+      );
+    }
+  });
+
+  testWidgets(
+    'App Preferences displays legacy zh setting as Simplified Chinese',
+    (tester) async {
+      await pumpSettingsScreen(
+        tester,
+        1000,
+        overrides: servicesOverrides(
+          settingsStore: appSettingsStore(const AppSettings(localeTag: 'zh')),
+        ),
+      );
+
+      expect(find.text('简体中文'), findsOneWidget);
+      expect(find.text('zh'), findsNothing);
+    },
+  );
+
   testWidgets('Appearance theme controls persist mode and seed color', (
     tester,
   ) async {

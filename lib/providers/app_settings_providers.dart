@@ -12,7 +12,8 @@ final appSettingsStoreProvider = Provider<AppSettingsStore>((ref) {
 class AppSettingsController extends AsyncNotifier<AppSettings> {
   @override
   Future<AppSettings> build() async {
-    return ref.read(appSettingsStoreProvider).load();
+    final loaded = await ref.read(appSettingsStoreProvider).load();
+    return loaded.normalized();
   }
 
   Future<void> save(AppSettings next) async {

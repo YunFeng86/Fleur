@@ -513,50 +513,47 @@ void main() {
     },
   );
 
-  test(
-    'falls back to supported UI locale while preserving target identity',
-    () async {
-      final service = buildAiService();
-      final aiClient = FakeAiServiceClient();
-      final container = buildContainer(
-        articleStream: Stream.value(buildArticle()),
-        appSettings: AppSettings.defaults().copyWith(
-          localeTag: 'fr-FR',
-          showAiSummary: true,
-        ),
-        translationSettings: TranslationAiSettings.defaults().copyWith(
-          defaultAiServiceId: service.id,
-          aiServices: [service],
-        ),
-        secrets: FakeTranslationAiSecretStore(
-          aiServiceApiKeys: <String, String>{service.id: 'secret-key'},
-        ),
-        aiClient: aiClient,
-      );
+  test('uses supported UI locale while preserving target identity', () async {
+    final service = buildAiService();
+    final aiClient = FakeAiServiceClient();
+    final container = buildContainer(
+      articleStream: Stream.value(buildArticle()),
+      appSettings: AppSettings.defaults().copyWith(
+        localeTag: 'fr-FR',
+        showAiSummary: true,
+      ),
+      translationSettings: TranslationAiSettings.defaults().copyWith(
+        defaultAiServiceId: service.id,
+        aiServices: [service],
+      ),
+      secrets: FakeTranslationAiSecretStore(
+        aiServiceApiKeys: <String, String>{service.id: 'secret-key'},
+      ),
+      aiClient: aiClient,
+    );
 
-      final sub = container.listen<ArticleAiState>(
-        articleAiControllerProvider(articleId),
-        (previous, next) {},
-        fireImmediately: true,
-      );
-      addTearDown(sub.close);
+    final sub = container.listen<ArticleAiState>(
+      articleAiControllerProvider(articleId),
+      (previous, next) {},
+      fireImmediately: true,
+    );
+    addTearDown(sub.close);
 
-      await container.read(appSettingsProvider.future);
-      await container.read(translationAiSettingsProvider.future);
-      await flushAsync();
+    await container.read(appSettingsProvider.future);
+    await container.read(translationAiSettingsProvider.future);
+    await flushAsync();
 
-      final state = container.read(articleAiControllerProvider(articleId));
-      expect(state.targetLanguageTag, 'fr');
+    final state = container.read(articleAiControllerProvider(articleId));
+    expect(state.targetLanguageTag, 'fr');
 
-      await container
-          .read(articleAiControllerProvider(articleId).notifier)
-          .ensureSummary();
-      await flushAsync();
+    await container
+        .read(articleAiControllerProvider(articleId).notifier)
+        .ensureSummary();
+    await flushAsync();
 
-      expect(aiClient.prompts, isNotEmpty);
-      expect(aiClient.prompts.single, contains('French'));
-    },
-  );
+    expect(aiClient.prompts, isNotEmpty);
+    expect(aiClient.prompts.single, contains('Français'));
+  });
 
   test('logs summary failures without prompt, body, or API key', () async {
     await _withTestLogger(() async {
@@ -1129,7 +1126,7 @@ void main() {
   );
 
   test(
-    'translation service maps canonical chinese identities for providers',
+    'translation service maps canonical provider language identities',
     () async {
       final requests = <RequestOptions>[];
       final dio = Dio();
@@ -1248,6 +1245,13 @@ void main() {
         text: 'hello',
         targetLanguageTag: 'zh-Hant-HK',
       );
+      await service.translateText(
+        provider: const TranslationProviderSelection.deepLApi(),
+        settings: settings,
+        secrets: secrets,
+        text: 'hello',
+        targetLanguageTag: 'pt-BR',
+      );
 
       final googleRequest = requests.firstWhere(
         (request) => request.uri.host == 'translate.googleapis.com',
@@ -1265,12 +1269,16 @@ void main() {
       );
       expect((baiduRequest.data as Map<String, Object?>)['to'], 'zh');
 
-      final deepLRequest = requests.firstWhere(
-        (request) => request.uri.host == 'api.deepl.com',
+      final deepLRequests = requests
+          .where((request) => request.uri.host == 'api.deepl.com')
+          .toList(growable: false);
+      expect(
+        (deepLRequests[0].data as Map<String, Object?>)['target_lang'],
+        'ZH-HANT',
       );
       expect(
-        (deepLRequest.data as Map<String, Object?>)['target_lang'],
-        'ZH-HANT',
+        (deepLRequests[1].data as Map<String, Object?>)['target_lang'],
+        'PT-BR',
       );
     },
   );

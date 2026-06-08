@@ -1,5 +1,5 @@
 {
-  "@@locale": "zh",
+  "@@locale": "zh_Hans",
   "appTitle": "Fleur",
   "@appTitle": {
     "description": "appTitle"
@@ -1511,7 +1511,7 @@
   "@shortcutNextPreviousArticle": {
     "description": "切换上一篇/下一篇文章的快捷键说明"
   },
-  "shortcutBackForwardHistory": "Alt + \u2190 / Alt + \u2192；macOS Cmd + [ / ]：返回 / 前进历史",
+  "shortcutBackForwardHistory": "Alt + ← / Alt + →；macOS Cmd + [ / ]：返回 / 前进历史",
   "@shortcutBackForwardHistory": {
     "description": "在历史记录中返回或前进的快捷键说明"
   },

@@ -145,6 +145,7 @@ class TranslationService {
     return switch (t) {
       'zh-Hans' => 'ZH-HANS',
       'zh-Hant' => 'ZH-HANT',
+      'pt-BR' => 'PT-BR',
       _ => t.split('-').first.toUpperCase(),
     };
   }

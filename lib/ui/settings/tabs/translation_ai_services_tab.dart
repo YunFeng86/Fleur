@@ -532,11 +532,12 @@ class TranslationAiServicesTab extends ConsumerWidget {
             'en',
             'zh-Hans',
             'zh-Hant',
-            'ja',
-            'ko',
-            'fr',
             'de',
             'es',
+            'fr',
+            'ja',
+            'ko',
+            'pt-BR',
             'ru',
           ];
 

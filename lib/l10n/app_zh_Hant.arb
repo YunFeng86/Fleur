@@ -747,7 +747,7 @@
   "@subscriptionPreview": {
     "description": "Section title for the selected subscription source preview"
   },
-  "subscriptionResultsFound": "已找到 {count} 個訂閱源",
+  "subscriptionResultsFound": "{count, plural, =1{已找到 1 個訂閱源} other{已找到 {count} 個訂閱源}}",
   "@subscriptionResultsFound": {
     "description": "Section title for discovered subscription result rows",
     "placeholders": {

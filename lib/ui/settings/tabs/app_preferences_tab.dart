@@ -9,6 +9,7 @@ import '../../../providers/repository_providers.dart';
 import '../../../providers/service_providers.dart';
 import '../../../services/settings/app_settings.dart';
 import '../../../utils/context_extensions.dart';
+import '../../../utils/language_utils.dart';
 import '../../../utils/platform.dart';
 import '../settings_targets.dart';
 import '../widgets/section_header.dart';
@@ -28,6 +29,9 @@ class AppPreferencesTab extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final appSettings =
         ref.watch(appSettingsProvider).valueOrNull ?? AppSettings.defaults();
+    final selectedLocaleTag = appSettings.localeTag == null
+        ? null
+        : normalizeAppLocaleTag(appSettings.localeTag!);
 
     return SettingsPageBody(
       children: [
@@ -46,23 +50,47 @@ class AppPreferencesTab extends ConsumerWidget {
                 title: Text(l10n.systemLanguage),
                 control: SettingsSelectField<String?>(
                   key: const Key('app_preferences_language_select'),
-                  value: appSettings.localeTag,
+                  value: selectedLocaleTag,
                   options: [
                     SettingsSelectOption<String?>(
                       value: null,
                       label: Text(l10n.systemLanguage),
                     ),
                     SettingsSelectOption<String?>(
-                      value: 'en',
-                      label: Text(l10n.english),
-                    ),
-                    SettingsSelectOption<String?>(
-                      value: 'zh',
-                      label: Text(l10n.chineseSimplified),
+                      value: 'zh-Hans',
+                      label: const Text('简体中文'),
                     ),
                     SettingsSelectOption<String?>(
                       value: 'zh-Hant',
-                      label: Text(l10n.chineseTraditional),
+                      label: const Text('繁體中文'),
+                    ),
+                    SettingsSelectOption<String?>(
+                      value: 'en',
+                      label: const Text('English'),
+                    ),
+                    SettingsSelectOption<String?>(
+                      value: 'de',
+                      label: const Text('Deutsch (Beta)'),
+                    ),
+                    SettingsSelectOption<String?>(
+                      value: 'es',
+                      label: const Text('Español (Beta)'),
+                    ),
+                    SettingsSelectOption<String?>(
+                      value: 'fr',
+                      label: const Text('Français (Beta)'),
+                    ),
+                    SettingsSelectOption<String?>(
+                      value: 'ja',
+                      label: const Text('日本語 (Beta)'),
+                    ),
+                    SettingsSelectOption<String?>(
+                      value: 'ko',
+                      label: const Text('한국어 (Beta)'),
+                    ),
+                    SettingsSelectOption<String?>(
+                      value: 'pt-BR',
+                      label: const Text('Português (Brasil) (Beta)'),
                     ),
                   ],
                   onChanged: (v) {

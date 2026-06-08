@@ -1,136 +1,136 @@
 {
-  "@@locale": "zh",
+  "@@locale": "de",
   "appTitle": "Fleur",
   "@appTitle": {
     "description": "appTitle"
   },
-  "notFound": "未找到",
+  "notFound": "Nicht gefunden",
   "@notFound": {
     "description": "notFound"
   },
-  "openFailedGeneral": "无法打开该位置，请检查权限或稍后重试。",
+  "openFailedGeneral": "Dieser Standort konnte nicht geöffnet werden. Überprüfen Sie die Berechtigungen und versuchen Sie es erneut.",
   "@openFailedGeneral": {
     "description": "openFailedGeneral"
   },
-  "macosMenuLanguageRestartHint": "菜单栏语言可能需要重启应用才能完全生效。",
+  "macosMenuLanguageRestartHint": "Um die Sprache der Menüleiste vollständig anzuwenden, ist möglicherweise ein Neustart der App erforderlich.",
   "@macosMenuLanguageRestartHint": {
     "description": "macosMenuLanguageRestartHint"
   },
-  "pathNotFound": "路径不存在：{path}",
+  "pathNotFound": "Pfad existiert nicht: {path}",
   "@pathNotFound": {
     "description": "pathNotFound",
     "placeholders": {
       "path": {}
     }
   },
-  "settings": "设置",
+  "settings": "Einstellungen",
   "@settings": {
     "description": "settings"
   },
-  "settingsSearchHint": "搜索设置",
+  "settingsSearchHint": "Sucheinstellungen",
   "@settingsSearchHint": {
     "description": "Placeholder for the settings page search field"
   },
-  "settingsSearchNoResults": "没有匹配的设置。",
+  "settingsSearchNoResults": "Keine Einstellungen stimmen mit dieser Suche überein.",
   "@settingsSearchNoResults": {
     "description": "Empty state text for the settings page search results"
   },
-  "settingsSearchPageLabel": "页面",
+  "settingsSearchPageLabel": "Seite",
   "@settingsSearchPageLabel": {
     "description": "Settings search result type label for top-level pages"
   },
-  "settingsSearchSectionLabel": "分区",
+  "settingsSearchSectionLabel": "Abschnitt",
   "@settingsSearchSectionLabel": {
     "description": "Settings search result type label for settings sections"
   },
-  "settingsSearchSettingLabel": "设置项",
+  "settingsSearchSettingLabel": "Einstellung",
   "@settingsSearchSettingLabel": {
     "description": "Settings search result type label for individual settings"
   },
-  "settingsSearchResultCount": "{count} 条结果",
+  "settingsSearchResultCount": "{count} Ergebnisse",
   "@settingsSearchResultCount": {
     "description": "Settings search result count badge",
     "placeholders": {
       "count": {}
     }
   },
-  "feeds": "订阅",
+  "feeds": "Abonnements",
   "@feeds": {
     "description": "Global navigation label: feeds"
   },
-  "saved": "收藏",
+  "saved": "Gespeichert",
   "@saved": {
     "description": "Global navigation label: saved"
   },
-  "comingSoon": "敬请期待",
+  "comingSoon": "Kommt bald",
   "@comingSoon": {
     "description": "Placeholder text"
   },
-  "appearance": "外观",
+  "appearance": "Aussehen",
   "@appearance": {
     "description": "appearance"
   },
-  "theme": "主题",
+  "theme": "Thema",
   "@theme": {
     "description": "theme"
   },
-  "themeMode": "主题模式",
+  "themeMode": "Themenmodus",
   "@themeMode": {
     "description": "Theme mode selector label"
   },
-  "system": "跟随系统",
+  "system": "System",
   "@system": {
     "description": "system"
   },
-  "light": "浅色",
+  "light": "Licht",
   "@light": {
     "description": "light"
   },
-  "dark": "深色",
+  "dark": "Dunkel",
   "@dark": {
     "description": "dark"
   },
-  "dynamicColor": "动态取色",
+  "dynamicColor": "Dynamische Farben",
   "@dynamicColor": {
     "description": "Use system dynamic or accent colors when available"
   },
-  "dynamicColorSubtitle": "可用时跟随系统动态色或强调色",
+  "dynamicColorSubtitle": "Folgen Sie den Systemdynamik- oder Akzentfarben, sofern verfügbar",
   "@dynamicColorSubtitle": {
     "description": "Hint for dynamic colors setting"
   },
-  "seedColorPreset": "强调色",
+  "seedColorPreset": "Akzentfarbe",
   "@seedColorPreset": {
     "description": "Seed color preset selector label"
   },
-  "seedColorPresetSubtitle": "动态取色关闭或不可用时生效",
+  "seedColorPresetSubtitle": "Wird verwendet, wenn dynamische Farben deaktiviert/nicht verfügbar sind",
   "@seedColorPresetSubtitle": {
     "description": "Seed color preset selector hint"
   },
-  "seedColorBlue": "蓝色",
+  "seedColorBlue": "Blau",
   "@seedColorBlue": {
     "description": "Seed color preset name"
   },
-  "seedColorGreen": "绿色",
+  "seedColorGreen": "Grün",
   "@seedColorGreen": {
     "description": "Seed color preset name"
   },
-  "seedColorPurple": "紫色",
+  "seedColorPurple": "Lila",
   "@seedColorPurple": {
     "description": "Seed color preset name"
   },
-  "seedColorOrange": "橙色",
+  "seedColorOrange": "Orange",
   "@seedColorOrange": {
     "description": "Seed color preset name"
   },
-  "seedColorPink": "粉色",
+  "seedColorPink": "Rosa",
   "@seedColorPink": {
     "description": "Seed color preset name"
   },
-  "language": "语言",
+  "language": "Sprache",
   "@language": {
     "description": "language"
   },
-  "systemLanguage": "系统语言",
+  "systemLanguage": "Systemsprache",
   "@systemLanguage": {
     "description": "systemLanguage"
   },
@@ -146,171 +146,171 @@
   "@chineseTraditional": {
     "description": "chineseTraditional"
   },
-  "reader": "阅读",
+  "reader": "Lesen",
   "@reader": {
     "description": "reader"
   },
-  "fontSize": "字号",
+  "fontSize": "Schriftgröße",
   "@fontSize": {
     "description": "fontSize"
   },
-  "lineHeight": "行高",
+  "lineHeight": "Zeilenhöhe",
   "@lineHeight": {
     "description": "lineHeight"
   },
-  "horizontalPadding": "左右边距",
+  "horizontalPadding": "Horizontale Polsterung",
   "@horizontalPadding": {
     "description": "horizontalPadding"
   },
-  "applicationAppearance": "应用外观",
+  "applicationAppearance": "App-Erscheinungsbild",
   "@applicationAppearance": {
     "description": "Section title for app-wide appearance settings"
   },
-  "readerAppearance": "阅读外观",
+  "readerAppearance": "Aussehen des Lesers",
   "@readerAppearance": {
     "description": "Section title for reader appearance settings"
   },
-  "codeAppearance": "代码外观",
+  "codeAppearance": "Code-Erscheinungsbild",
   "@codeAppearance": {
     "description": "Section title for code appearance settings"
   },
-  "custom": "自定义",
+  "custom": "Benutzerdefiniert",
   "@custom": {
     "description": "Generic custom option label"
   },
-  "back": "返回",
+  "back": "Zurück",
   "@back": {
     "description": "Generic back action label"
   },
-  "forward": "前进",
+  "forward": "Vorwärts",
   "@forward": {
     "description": "Generic forward action label"
   },
-  "fontSettings": "字体",
+  "fontSettings": "Schriftarten",
   "@fontSettings": {
     "description": "Appearance font detail page title"
   },
-  "advancedFontSettings": "高级字体设置",
+  "advancedFontSettings": "Erweiterte Schriftarteinstellungen",
   "@advancedFontSettings": {
     "description": "Appearance advanced font settings row and detail page title"
   },
-  "fontsAndCode": "字体与代码",
+  "fontsAndCode": "Schriftarten und Code",
   "@fontsAndCode": {
     "description": "Appearance code font detail row label"
   },
-  "customFontStack": "自定义字体栈",
+  "customFontStack": "Benutzerdefinierter Schriftartenstapel",
   "@customFontStack": {
     "description": "Custom font stack option label"
   },
-  "codeTypography": "代码排版",
+  "codeTypography": "Code-Typografie",
   "@codeTypography": {
     "description": "Code typography settings section title"
   },
-  "fontSizeExtraSmall": "特小",
+  "fontSizeExtraSmall": "Extra klein",
   "@fontSizeExtraSmall": {
     "description": "Reader font size preset label"
   },
-  "fontSizeSmall": "小",
+  "fontSizeSmall": "Klein",
   "@fontSizeSmall": {
     "description": "Reader font size preset label"
   },
-  "fontSizeMediumRecommended": "中（推荐）",
+  "fontSizeMediumRecommended": "Mittel (empfohlen)",
   "@fontSizeMediumRecommended": {
     "description": "Reader font size preset label"
   },
-  "fontSizeLarge": "大",
+  "fontSizeLarge": "Groß",
   "@fontSizeLarge": {
     "description": "Reader font size preset label"
   },
-  "fontSizeExtraLarge": "特大",
+  "fontSizeExtraLarge": "Extra groß",
   "@fontSizeExtraLarge": {
     "description": "Reader font size preset label"
   },
-  "minimumFontSize": "最小字号",
+  "minimumFontSize": "Mindestschriftgröße",
   "@minimumFontSize": {
     "description": "Minimum reader body font size setting label"
   },
-  "lineHeightCompact": "紧凑",
+  "lineHeightCompact": "Kompakt",
   "@lineHeightCompact": {
     "description": "Reader line height preset label"
   },
-  "lineHeightStandard": "标准",
+  "lineHeightStandard": "Standard",
   "@lineHeightStandard": {
     "description": "Reader line height preset label"
   },
-  "lineHeightRelaxed": "宽松",
+  "lineHeightRelaxed": "Entspannt",
   "@lineHeightRelaxed": {
     "description": "Reader line height preset label"
   },
-  "appearancePreview": "预览",
+  "appearancePreview": "Vorschau",
   "@appearancePreview": {
     "description": "Appearance settings preview section title"
   },
-  "appearancePreviewTitle": "更安静的阅读界面",
+  "appearancePreviewTitle": "Eine ruhigere Leseoberfläche",
   "@appearancePreviewTitle": {
     "description": "Sample reader preview article title"
   },
-  "appearancePreviewMeta": "预览 · 今天",
+  "appearancePreviewMeta": "Vorschau · Heute",
   "@appearancePreviewMeta": {
     "description": "Sample reader preview metadata"
   },
-  "appearancePreviewBody": "只需要调好一次，之后每篇文章都会以同样舒适的节奏打开。",
+  "appearancePreviewBody": "Stimmen Sie den Leser einmal ein und lassen Sie dann jeden Artikel im gleichen ruhigen Rhythmus beginnen.",
   "@appearancePreviewBody": {
     "description": "Sample reader preview body"
   },
-  "appearancePreviewQuote": "好的阅读设置，应该先被看见，再被配置。",
+  "appearancePreviewQuote": "Lesbare Einstellungen sollten sichtbar sein, bevor sie sich konfigurierbar anfühlen.",
   "@appearancePreviewQuote": {
     "description": "Sample reader preview quote"
   },
-  "appearancePreviewLink": "示例链接",
+  "appearancePreviewLink": "Beispiellink",
   "@appearancePreviewLink": {
     "description": "Sample reader preview link"
   },
-  "appearancePreviewCode": "代码示例",
+  "appearancePreviewCode": "Codebeispiel",
   "@appearancePreviewCode": {
     "description": "Sample reader preview code text"
   },
-  "readerFontFamily": "字体",
+  "readerFontFamily": "Schriftfamilie",
   "@readerFontFamily": {
     "description": "Reader font family setting label"
   },
-  "readerFontSystem": "系统",
+  "readerFontSystem": "System",
   "@readerFontSystem": {
     "description": "Reader system font option"
   },
-  "readerFontSerif": "衬线",
+  "readerFontSerif": "Serife",
   "@readerFontSerif": {
     "description": "Reader serif font option"
   },
-  "readerFontSans": "无衬线",
+  "readerFontSans": "Ohne",
   "@readerFontSans": {
     "description": "Reader sans font option"
   },
-  "readerFontMono": "等宽",
+  "readerFontMono": "Mono",
   "@readerFontMono": {
     "description": "Reader mono font option"
   },
-  "readerFontStack": "阅读字体栈",
+  "readerFontStack": "Schriftstapel lesen",
   "@readerFontStack": {
     "description": "Reader custom font stack setting label"
   },
-  "standardFont": "标准字体",
+  "standardFont": "Standardschriftart",
   "@standardFont": {
     "description": "Standard reader font stack setting label"
   },
-  "serifFont": "Serif 字体",
+  "serifFont": "Serifenschrift",
   "@serifFont": {
     "description": "Serif reader font stack setting label"
   },
-  "sansSerifFont": "Sans-serif 字体",
+  "sansSerifFont": "Serifenlose Schriftart",
   "@sansSerifFont": {
     "description": "Sans-serif reader font stack setting label"
   },
-  "fixedWidthFont": "宽度固定的字体",
+  "fixedWidthFont": "Schriftart mit fester Breite",
   "@fixedWidthFont": {
     "description": "Fixed-width reader and code font stack setting label"
   },
-  "mathFont": "数学字体",
+  "mathFont": "Mathe-Schriftart",
   "@mathFont": {
     "description": "Math font stack setting label"
   },
@@ -326,271 +326,271 @@
   "@mathFontStackExample": {
     "description": "Example helper text for math font stack input"
   },
-  "readerTheme": "阅读质感",
+  "readerTheme": "Textur lesen",
   "@readerTheme": {
     "description": "Reader surface texture preset setting label"
   },
-  "readerThemeDefault": "默认",
+  "readerThemeDefault": "Standard",
   "@readerThemeDefault": {
     "description": "Default reader texture option"
   },
-  "readerThemePaper": "纸张",
+  "readerThemePaper": "Papier",
   "@readerThemePaper": {
     "description": "Paper reader texture option"
   },
-  "readerThemeSepia": "暖色",
+  "readerThemeSepia": "Sepia",
   "@readerThemeSepia": {
     "description": "Sepia reader texture option"
   },
-  "readerThemeDim": "柔灰",
+  "readerThemeDim": "Sanftes Grau",
   "@readerThemeDim": {
     "description": "Soft gray reader texture option"
   },
-  "readingWidth": "阅读宽度",
+  "readingWidth": "Lesebreite",
   "@readingWidth": {
     "description": "Reader content width setting label"
   },
-  "readingWidthNarrow": "窄",
+  "readingWidthNarrow": "Schmal",
   "@readingWidthNarrow": {
     "description": "Narrow reader content width option"
   },
-  "readingWidthStandard": "标准",
+  "readingWidthStandard": "Standard",
   "@readingWidthStandard": {
     "description": "Standard reader content width option"
   },
-  "readingWidthWide": "宽",
+  "readingWidthWide": "Breit",
   "@readingWidthWide": {
     "description": "Wide reader content width option"
   },
-  "codeFontFamily": "代码字体",
+  "codeFontFamily": "Codeschriftart",
   "@codeFontFamily": {
     "description": "Code font family setting label"
   },
-  "codeFontSystemMono": "系统等宽",
+  "codeFontSystemMono": "System-Mono",
   "@codeFontSystemMono": {
     "description": "Code system monospace font option"
   },
-  "codeFontStack": "代码字体栈",
+  "codeFontStack": "Code-Schriftartenstapel",
   "@codeFontStack": {
     "description": "Code custom font stack setting label"
   },
-  "codeFontSize": "代码字号",
+  "codeFontSize": "Code-Schriftgröße",
   "@codeFontSize": {
     "description": "Code font size setting label"
   },
-  "codeFontSizeFollowReader": "跟随正文",
+  "codeFontSizeFollowReader": "Folge dem Körper",
   "@codeFontSizeFollowReader": {
     "description": "Code font size follows reader body option"
   },
-  "codeFontSizeOneStepDown": "小一号",
+  "codeFontSizeOneStepDown": "Einen Schritt nach unten",
   "@codeFontSizeOneStepDown": {
     "description": "Code font size one step smaller than reader body option"
   },
-  "codeLineHeight": "代码行高",
+  "codeLineHeight": "Höhe der Codezeile",
   "@codeLineHeight": {
     "description": "Code line height setting label"
   },
-  "codeSoftWrap": "自动换行",
+  "codeSoftWrap": "Codezeilen umbrechen",
   "@codeSoftWrap": {
     "description": "Code soft wrap setting label"
   },
-  "storage": "存储",
+  "storage": "Lagerung",
   "@storage": {
     "description": "storage"
   },
-  "clearImageCache": "清理图片缓存",
+  "clearImageCache": "Bildcache leeren",
   "@clearImageCache": {
     "description": "clearImageCache"
   },
-  "clearImageCacheSubtitle": "移除离线阅读预取的图片缓存",
+  "clearImageCacheSubtitle": "Entfernen Sie zwischengespeicherte Bilder, die zum Offline-Lesen verwendet werden",
   "@clearImageCacheSubtitle": {
     "description": "clearImageCacheSubtitle"
   },
-  "cacheCleared": "缓存已清理",
+  "cacheCleared": "Cache geleert",
   "@cacheCleared": {
     "description": "cacheCleared"
   },
-  "subscriptions": "订阅源",
+  "subscriptions": "Abonnements",
   "@subscriptions": {
     "description": "subscriptions"
   },
-  "defaultsGroup": "全局",
+  "defaultsGroup": "Global",
   "@defaultsGroup": {
     "description": "Section label for default settings entries"
   },
-  "folders": "订阅源",
+  "folders": "Abonnements",
   "@folders": {
     "description": "Section label for subscription folders"
   },
-  "globalDefaults": "全局默认",
+  "globalDefaults": "Globale Standardwerte",
   "@globalDefaults": {
     "description": "Entry label for subscription-wide default settings"
   },
-  "allSubscriptions": "全部项目",
+  "allSubscriptions": "Alle Abonnements",
   "@allSubscriptions": {
     "description": "Entry label for the full subscription scope"
   },
-  "manage": "管理",
+  "manage": "Verwalten",
   "@manage": {
     "description": "Toolbar label for the management actions menu"
   },
-  "overview": "概览",
+  "overview": "Übersicht",
   "@overview": {
     "description": "Overview section label"
   },
-  "categoriesLabel": "分类数",
+  "categoriesLabel": "Kategorien",
   "@categoriesLabel": {
     "description": "Summary label for categories count"
   },
-  "globalDefaultsDescription": "当文件夹或订阅源未覆盖设置时，会继承这里的默认值。",
+  "globalDefaultsDescription": "Wird angewendet, wenn ein Ordner oder ein Abonnement eine Einstellung nicht überschreibt.",
   "@globalDefaultsDescription": {
     "description": "Description shown for the global defaults pane"
   },
-  "allSubscriptionsDescription": "在这里查看整体订阅结构，并选择具体项目继续编辑。",
+  "allSubscriptionsDescription": "Überprüfen Sie die gesamte Abonnementstruktur und wählen Sie ein Abonnement zum Bearbeiten aus.",
   "@allSubscriptionsDescription": {
     "description": "Description shown for the all subscriptions overview"
   },
-  "uncategorizedDescription": "未分类的订阅源会继承全局默认，直到你为它们单独覆盖设置。",
+  "uncategorizedDescription": "Abonnements ohne Ordner übernehmen die globalen Standardeinstellungen, bis sie überschrieben werden.",
   "@uncategorizedDescription": {
     "description": "Description shown for the uncategorized overview"
   },
-  "tags": "标签",
+  "tags": "Schlagworte",
   "@tags": {
     "description": "tags"
   },
-  "all": "所有文章",
+  "all": "Alle Artikel",
   "@all": {
     "description": "all"
   },
-  "uncategorized": "未分类",
+  "uncategorized": "Nicht kategorisiert",
   "@uncategorized": {
     "description": "uncategorized"
   },
-  "refreshAll": "刷新订阅源",
+  "refreshAll": "Quellen aktualisieren",
   "@refreshAll": {
     "description": "refreshAll"
   },
-  "refreshFeed": "刷新当前订阅源",
+  "refreshFeed": "Feed aktualisieren",
   "@refreshFeed": {
     "description": "Tooltip for refreshing the currently selected feed"
   },
-  "refreshCategory": "刷新当前分类",
+  "refreshCategory": "Kategorie aktualisieren",
   "@refreshCategory": {
     "description": "Tooltip for refreshing the currently selected category"
   },
-  "refreshFeedAndSync": "刷新当前订阅源并同步",
+  "refreshFeedAndSync": "Feed aktualisieren und synchronisieren",
   "@refreshFeedAndSync": {
     "description": "Tooltip for refreshing the selected remote feed source and syncing the account"
   },
-  "refreshCategoryAndSync": "刷新当前分类并同步",
+  "refreshCategoryAndSync": "Kategorie aktualisieren und synchronisieren",
   "@refreshCategoryAndSync": {
     "description": "Tooltip for refreshing selected remote category sources and syncing the account"
   },
-  "refreshSourcesAndSync": "刷新订阅源并同步",
+  "refreshSourcesAndSync": "Quellen aktualisieren und synchronisieren",
   "@refreshSourcesAndSync": {
     "description": "Tooltip for refreshing remote subscription sources and syncing the account"
   },
-  "accountSync": "账号同步",
+  "accountSync": "Kontosynchronisierung",
   "@accountSync": {
     "description": "accountSync"
   },
-  "accountSyncSubtitle": "在后台同步这个远程账号。",
+  "accountSyncSubtitle": "Synchronisieren Sie dieses Remote-Konto im Hintergrund.",
   "@accountSyncSubtitle": {
     "description": "accountSyncSubtitle"
   },
-  "syncAccount": "同步账号",
+  "syncAccount": "Konto synchronisieren",
   "@syncAccount": {
     "description": "syncAccount"
   },
-  "syncingAccount": "正在同步账号...",
+  "syncingAccount": "Konto wird synchronisiert...",
   "@syncingAccount": {
     "description": "syncingAccount"
   },
-  "syncedAccount": "账号已同步",
+  "syncedAccount": "Konto synchronisiert",
   "@syncedAccount": {
     "description": "syncedAccount"
   },
-  "refreshSelected": "刷新当前",
+  "refreshSelected": "Ausgewählte aktualisieren",
   "@refreshSelected": {
     "description": "refreshSelected"
   },
-  "importOpml": "导入 OPML",
+  "importOpml": "Importieren Sie OPML",
   "@importOpml": {
     "description": "importOpml"
   },
-  "opmlParseFailed": "OPML 文件无效",
+  "opmlParseFailed": "Ungültige OPML-Datei",
   "@opmlParseFailed": {
     "description": "opmlParseFailed"
   },
-  "exportOpml": "导出 OPML",
+  "exportOpml": "Exportieren OPML",
   "@exportOpml": {
     "description": "exportOpml"
   },
-  "addSubscription": "添加订阅",
+  "addSubscription": "Abonnement hinzufügen",
   "@addSubscription": {
     "description": "addSubscription"
   },
-  "selectCategory": "选择分类",
+  "selectCategory": "Wählen Sie eine Kategorie aus",
   "@selectCategory": {
     "description": "selectCategory"
   },
-  "loadingCategories": "正在加载分类...",
+  "loadingCategories": "Kategorien werden geladen...",
   "@loadingCategories": {
     "description": "loadingCategories"
   },
-  "creatingCategory": "正在创建分类...",
+  "creatingCategory": "Kategorie wird erstellt...",
   "@creatingCategory": {
     "description": "creatingCategory"
   },
-  "feverAddSubscriptionNotSupported": "Fever 账号不支持添加订阅，请在服务端管理订阅。",
+  "feverAddSubscriptionNotSupported": "Fever-Konten unterstützen das Hinzufügen von Abonnements nicht. Bitte verwalten Sie Abonnements auf dem Server.",
   "@feverAddSubscriptionNotSupported": {
     "description": "feverAddSubscriptionNotSupported"
   },
-  "remoteCommandRequiresConnectivity": "此操作需要连接远程服务后才能完成。",
+  "remoteCommandRequiresConnectivity": "Für diese Aktion ist eine Verbindung zum Remotedienst erforderlich.",
   "@remoteCommandRequiresConnectivity": {
     "description": "Shown when a remote-backed structure command needs online access."
   },
-  "remoteCommandRequiresAuthentication": "远程服务拒绝了当前账号凭据，请检查账号设置后重试。",
+  "remoteCommandRequiresAuthentication": "Der Remote-Dienst hat die Anmeldeinformationen des aktuellen Kontos abgelehnt. Überprüfen Sie die Kontoeinstellungen und versuchen Sie es erneut.",
   "@remoteCommandRequiresAuthentication": {
     "description": "Shown when a remote-backed structure command fails because the current credentials are invalid or missing."
   },
-  "remoteCommandNeedsRefresh": "远程服务无法匹配当前订阅或分类，请先同步后重试。",
+  "remoteCommandNeedsRefresh": "Der Remote-Dienst konnte nicht mit dem aktuellen Feed oder der aktuellen Kategorie übereinstimmen. Synchronisieren Sie und versuchen Sie es erneut.",
   "@remoteCommandNeedsRefresh": {
     "description": "Shown when a remote-backed structure command cannot resolve the current remote target."
   },
-  "remoteCommandRejected": "远程服务拒绝了这次操作，请检查请求内容后重试。",
+  "remoteCommandRejected": "Der Remote-Dienst hat diese Aktion abgelehnt. Überprüfen Sie die Anfrage und versuchen Sie es erneut.",
   "@remoteCommandRejected": {
     "description": "Shown when a remote-backed structure command is rejected by the remote service for request-specific reasons."
   },
-  "remoteCommandUnavailable": "远程服务暂时无法完成此操作，请稍后再试。",
+  "remoteCommandUnavailable": "Der Remotedienst konnte diese Aktion derzeit nicht abschließen. Versuchen Sie es später noch einmal.",
   "@remoteCommandUnavailable": {
     "description": "Shown when a remote-backed structure command fails because the remote service is temporarily unavailable."
   },
-  "remoteCommandNotSupported": "当前远程账号不支持这个操作。",
+  "remoteCommandNotSupported": "Dieses Remote-Konto unterstützt diese Aktion nicht.",
   "@remoteCommandNotSupported": {
     "description": "Shown when the active remote provider cannot perform a structure-management command."
   },
-  "remoteCommandRequiresCategory": "当前远程账号要求订阅必须归属服务端分类。",
+  "remoteCommandRequiresCategory": "Dieses Remote-Konto erfordert eine serverseitige Kategorie für das Abonnement.",
   "@remoteCommandRequiresCategory": {
     "description": "Shown when a remote-backed feed cannot be moved to an uncategorized state."
   },
-  "newCategory": "新建分类",
+  "newCategory": "Neue Kategorie",
   "@newCategory": {
     "description": "newCategory"
   },
-  "articles": "文章",
+  "articles": "Artikel",
   "@articles": {
     "description": "articles"
   },
-  "unread": "未读",
+  "unread": "Ungelesen",
   "@unread": {
     "description": "unread"
   },
-  "refreshConcurrency": "刷新并发数",
+  "refreshConcurrency": "Parallelität aktualisieren",
   "@refreshConcurrency": {
     "description": "refreshConcurrency"
   },
-  "refreshingProgress": "正在刷新 {current}/{total}...",
+  "refreshingProgress": "{current}/{total} wird aktualisiert...",
   "@refreshingProgress": {
     "placeholders": {
       "current": {
@@ -601,63 +601,63 @@
       }
     }
   },
-  "markAllRead": "全部已读",
+  "markAllRead": "Alles als gelesen markieren",
   "@markAllRead": {
     "description": "markAllRead"
   },
-  "fullText": "阅读全文",
+  "fullText": "Volltext",
   "@fullText": {
     "description": "fullText"
   },
-  "fullTextRetry": "获取全文失败，重试",
+  "fullTextRetry": "Volltext konnte nicht abgerufen werden, erneut versuchen",
   "@fullTextRetry": {
     "description": "fullTextRetry"
   },
-  "readerSettings": "阅读设置",
+  "readerSettings": "Reader-Einstellungen",
   "@readerSettings": {
     "description": "readerSettings"
   },
-  "done": "完成",
+  "done": "Fertig",
   "@done": {
     "description": "done"
   },
-  "more": "更多",
+  "more": "Mehr",
   "@more": {
     "description": "more"
   },
-  "showAll": "显示全部",
+  "showAll": "Alle anzeigen",
   "@showAll": {
     "description": "showAll"
   },
-  "unreadOnly": "只看未读",
+  "unreadOnly": "Nur ungelesen",
   "@unreadOnly": {
     "description": "unreadOnly"
   },
-  "selectAnArticle": "请选择一篇文章",
+  "selectAnArticle": "Wählen Sie einen Artikel aus",
   "@selectAnArticle": {
     "description": "selectAnArticle"
   },
-  "readerEmptySubtitle": "从左侧列表打开文章后，会在这里阅读。",
+  "readerEmptySubtitle": "Öffnen Sie einen Artikel aus der Liste, um ihn hier zu lesen.",
   "@readerEmptySubtitle": {
     "description": "Reader pane helper text when no article is selected"
   },
-  "savedReaderEmptyTitle": "选择一篇收藏",
+  "savedReaderEmptyTitle": "Wählen Sie einen gespeicherten Artikel aus",
   "@savedReaderEmptyTitle": {
     "description": "Reader pane title when the saved section has no selected article"
   },
-  "savedReaderEmptySubtitle": "从已收藏或稍后读列表中打开文章。",
+  "savedReaderEmptySubtitle": "Öffnen Sie einen Artikel über „Gespeichert“ oder „Später lesen“.",
   "@savedReaderEmptySubtitle": {
     "description": "Reader pane helper text for the saved section"
   },
-  "searchReaderEmptyTitle": "选择一条搜索结果",
+  "searchReaderEmptyTitle": "Wählen Sie ein Suchergebnis aus",
   "@searchReaderEmptyTitle": {
     "description": "Reader pane title when the search section has no selected article"
   },
-  "searchReaderEmptySubtitle": "输入关键词后，从左侧结果中打开文章。",
+  "searchReaderEmptySubtitle": "Geben Sie ein Schlüsselwort ein und öffnen Sie dann ein Ergebnis aus der Liste.",
   "@searchReaderEmptySubtitle": {
     "description": "Reader pane helper text for the search section"
   },
-  "errorMessage": "错误：{error}",
+  "errorMessage": "Fehler: {error}",
   "@errorMessage": {
     "placeholders": {
       "error": {
@@ -666,7 +666,7 @@
     },
     "description": "errorMessage"
   },
-  "unreadCountError": "未读数获取失败：{error}",
+  "unreadCountError": "Fehler beim Abrufen der Ungelesen-Zahl: {error}",
   "@unreadCountError": {
     "placeholders": {
       "error": {
@@ -675,79 +675,79 @@
     },
     "description": "unreadCountError"
   },
-  "refreshed": "已刷新",
+  "refreshed": "Erfrischt",
   "@refreshed": {
     "description": "refreshed"
   },
-  "refreshedAll": "全部已刷新",
+  "refreshedAll": "Alles aufgefrischt",
   "@refreshedAll": {
     "description": "refreshedAll"
   },
-  "refreshedAndSynced": "已刷新并同步",
+  "refreshedAndSynced": "Aktualisiert und synchronisiert",
   "@refreshedAndSynced": {
     "description": "Shown after refreshing remote sources and syncing the account"
   },
-  "add": "添加",
+  "add": "Hinzufügen",
   "@add": {
     "description": "add"
   },
-  "cancel": "取消",
+  "cancel": "Abbrechen",
   "@cancel": {
     "description": "cancel"
   },
-  "create": "创建",
+  "create": "Erstellen",
   "@create": {
     "description": "create"
   },
-  "delete": "删除",
+  "delete": "Löschen",
   "@delete": {
     "description": "delete"
   },
-  "deleted": "已删除",
+  "deleted": "Gelöscht",
   "@deleted": {
     "description": "deleted"
   },
-  "rssAtomUrl": "RSS/Atom 地址",
+  "rssAtomUrl": "RSS/Atom URL",
   "@rssAtomUrl": {
     "description": "rssAtomUrl"
   },
-  "feedOrWebsiteUrl": "订阅源或网站 URL",
+  "feedOrWebsiteUrl": "Feed- oder Website-URL",
   "@feedOrWebsiteUrl": {
     "description": "feedOrWebsiteUrl"
   },
-  "feedOrWebsiteUrlHint": "粘贴网站地址或 RSS URL",
+  "feedOrWebsiteUrlHint": "Website- oder RSS-URL einfügen",
   "@feedOrWebsiteUrlHint": {
     "description": "Helper text for the add subscription URL field"
   },
-  "findFeeds": "查找订阅源",
+  "findFeeds": "Feeds suchen",
   "@findFeeds": {
     "description": "Button label for discovering RSS/Atom feeds from a URL"
   },
-  "discoveringFeeds": "正在发现订阅源…",
+  "discoveringFeeds": "Feeds werden gesucht...",
   "@discoveringFeeds": {
     "description": "discoveringFeeds"
   },
-  "addingSubscription": "正在添加订阅…",
+  "addingSubscription": "Abonnement wird hinzugefügt...",
   "@addingSubscription": {
     "description": "addingSubscription"
   },
-  "selectFeed": "选择订阅源",
+  "selectFeed": "Feed auswählen",
   "@selectFeed": {
     "description": "selectFeed"
   },
-  "noFeedsFound": "未找到可用的订阅源",
+  "noFeedsFound": "Keine Feeds gefunden",
   "@noFeedsFound": {
     "description": "noFeedsFound"
   },
-  "noFeedsFoundHint": "可以直接粘贴 RSS/Atom 地址，或试试这个网站的其他页面。",
+  "noFeedsFoundHint": "Fügen Sie RSS/Atom URL direkt ein oder versuchen Sie es mit einer anderen Seite der Website.",
   "@noFeedsFoundHint": {
     "description": "Inline hint shown when feed discovery finds no candidates"
   },
-  "subscriptionPreview": "来源预览",
+  "subscriptionPreview": "Quellenvorschau",
   "@subscriptionPreview": {
     "description": "Section title for the selected subscription source preview"
   },
-  "subscriptionResultsFound": "{count, plural, =1{已找到 1 个订阅源} other{已找到 {count} 个订阅源}}",
+  "subscriptionResultsFound": "{count, plural, =1{1 Abonnementquelle gefunden} other{{count} Abonnementquellen gefunden}}",
   "@subscriptionResultsFound": {
     "description": "Section title for discovered subscription result rows",
     "placeholders": {
@@ -757,172 +757,143 @@
       }
     }
   },
-  "subscriptionPreviewUnavailable": "暂无可预览的最近文章",
+  "subscriptionPreviewUnavailable": "Keine aktuellen Vorschauelemente verfügbar",
   "@subscriptionPreviewUnavailable": {
     "description": "Placeholder text when a discovered feed has no preview items"
   },
-  "feedSourceDirect": "RSS/Atom 地址",
+  "feedSourceDirect": "RSS/Atom-URL",
   "@feedSourceDirect": {
     "description": "Label for a feed discovered because the input URL is itself a feed"
   },
-  "feedSourceAlternate": "页面声明",
+  "feedSourceAlternate": "Auf Seite gefunden",
   "@feedSourceAlternate": {
     "description": "Label for a feed discovered from HTML alternate/feed links"
   },
-  "feedSourceCommonPath": "常见订阅路径",
+  "feedSourceCommonPath": "Üblicher Feed-Pfad",
   "@feedSourceCommonPath": {
     "description": "Label for a feed discovered by probing common RSS paths"
   },
-  "name": "名称",
+  "name": "Name",
   "@name": {
     "description": "name"
   },
-  "addedAndSynced": "已添加并同步",
+  "addedAndSynced": "Hinzugefügt und synchronisiert",
   "@addedAndSynced": {
     "description": "addedAndSynced"
   },
-  "subscriptionAddedTitle": "订阅已添加",
+  "subscriptionAddedTitle": "Abonnement hinzugefügt",
   "@subscriptionAddedTitle": {
     "description": "Success panel title after adding a subscription"
   },
-  "subscriptionAddedMessage": "订阅已添加。你可以现在查看，也可以继续添加更多订阅。",
+  "subscriptionAddedMessage": "Das Abonnement wurde hinzugefügt. Sie können es jetzt öffnen oder weitere hinzufügen.",
   "@subscriptionAddedMessage": {
     "description": "Success panel message after adding a subscription"
   },
-  "subscriptionRefreshWarning": "订阅已添加，但首次刷新失败。你可以稍后重新刷新。",
+  "subscriptionRefreshWarning": "Das Abonnement wurde hinzugefügt, aber die erste Aktualisierung ist fehlgeschlagen. Sie können die Aktualisierung später erneut versuchen.",
   "@subscriptionRefreshWarning": {
     "description": "Warning shown when adding a subscription succeeds but the initial refresh fails"
   },
-  "subscriptionAlreadyExistsTitle": "已经订阅",
+  "subscriptionAlreadyExistsTitle": "Bereits abonniert",
   "@subscriptionAlreadyExistsTitle": {
     "description": "Panel title when the feed already exists"
   },
-  "subscriptionAlreadyExistsMessage": "这个订阅源已经在你的订阅列表中，没有改动它的分类。",
+  "subscriptionAlreadyExistsMessage": "Dieser Feed ist bereits in Ihren Abonnements enthalten. Es wurden keine Kategorieänderungen vorgenommen.",
   "@subscriptionAlreadyExistsMessage": {
     "description": "Panel message when the feed already exists"
   },
-  "viewSubscription": "查看订阅",
+  "viewSubscription": "Abonnement ansehen",
   "@viewSubscription": {
     "description": "Button label for opening a newly added or existing subscription"
   },
-  "continueAddingSubscription": "继续添加",
+  "continueAddingSubscription": "Weiter hinzufügen",
   "@continueAddingSubscription": {
     "description": "Button label for resetting the add subscription form"
   },
-  "moveToCurrentCategory": "移到当前分类",
+  "moveToCurrentCategory": "Zur aktuellen Kategorie wechseln",
   "@moveToCurrentCategory": {
     "description": "Button label for moving an existing subscription into the category from which add subscription was opened"
   },
-  "deleteSubscription": "删除订阅",
+  "deleteSubscription": "Abonnement löschen",
   "@deleteSubscription": {
     "description": "deleteSubscription"
   },
-  "deleteSubscriptionConfirmTitle": "删除订阅？",
+  "deleteSubscriptionConfirmTitle": "Abonnement löschen?",
   "@deleteSubscriptionConfirmTitle": {
     "description": "deleteSubscriptionConfirmTitle"
   },
-  "deleteSubscriptionConfirmContent": "确定要删除此订阅源吗？",
+  "deleteSubscriptionConfirmContent": "Dadurch werden auch die zwischengespeicherten Artikel gelöscht.",
   "@deleteSubscriptionConfirmContent": {
     "description": "deleteSubscriptionConfirmContent"
   },
-  "makeAvailableOffline": "离线可用",
+  "makeAvailableOffline": "Offline verfügbar machen",
   "@makeAvailableOffline": {
     "description": "makeAvailableOffline"
   },
-  "cachingArticles": "正在缓存 {count} 篇文章...",
-  "@cachingArticles": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    },
-    "description": "cachingArticles"
-  },
-  "manageTags": "管理标签",
-  "@manageTags": {
-    "description": "manageTags"
-  },
-  "newTag": "新标签",
-  "@newTag": {
-    "description": "newTag"
-  },
-  "tagColor": "标签颜色",
-  "@tagColor": {
-    "description": "tagColor"
-  },
-  "autoColor": "自动",
-  "@autoColor": {
-    "description": "autoColor"
-  },
-  "tagsLoadingError": "加载标签失败",
-  "@tagsLoadingError": {
-    "description": "Error message displayed when tags fail to load in the dialog"
-  },
-  "deleteCategory": "删除分类",
+  "deleteCategory": "Kategorie löschen",
   "@deleteCategory": {
     "description": "deleteCategory"
   },
-  "deleteCategoryConfirmTitle": "删除分类？",
+  "deleteCategoryConfirmTitle": "Kategorie löschen?",
   "@deleteCategoryConfirmTitle": {
     "description": "deleteCategoryConfirmTitle"
   },
-  "deleteCategoryConfirmContent": "该分类下的订阅源将移动到未分类。",
+  "deleteCategoryConfirmContent": "Feeds in dieser Kategorie werden nach „Nicht kategorisiert“ verschoben.",
   "@deleteCategoryConfirmContent": {
     "description": "deleteCategoryConfirmContent"
   },
-  "remoteDeleteCategoryConfirmContent": "将先在远程服务上删除该分类，然后回刷本地镜像。",
+  "remoteDeleteCategoryConfirmContent": "Löschen Sie diese Kategorie im Remotedienst und gleichen Sie dann den lokalen Spiegel ab.",
   "@remoteDeleteCategoryConfirmContent": {
     "description": "Confirmation text for deleting a remote-backed category."
   },
-  "remoteWritableTaxonomyTitle": "远程分类",
+  "remoteWritableTaxonomyTitle": "Remote-Kategorien",
   "@remoteWritableTaxonomyTitle": {
     "description": "Title for writable remote taxonomy/category semantics."
   },
-  "remoteWritableTaxonomyDescription": "分类变更会应用到远程服务，并同步回本地镜像。",
+  "remoteWritableTaxonomyDescription": "Kategorieänderungen werden auf den Remotedienst angewendet und dann lokal gespiegelt.",
   "@remoteWritableTaxonomyDescription": {
     "description": "Description for writable remote taxonomy/category semantics."
   },
-  "remoteReadOnlyTaxonomyTitle": "只读远程分组",
+  "remoteReadOnlyTaxonomyTitle": "Schreibgeschützte Remote-Gruppen",
   "@remoteReadOnlyTaxonomyTitle": {
     "description": "Title for read-only remote taxonomy/group mirror semantics."
   },
-  "remoteReadOnlyTaxonomyDescription": "这些分类来自只读远程分组镜像。重命名、删除或移动请在远程服务中管理。",
+  "remoteReadOnlyTaxonomyDescription": "Diese Kategorien spiegeln schreibgeschützte Remote-Gruppen wider. Benennen, löschen oder verschieben Sie Elemente im Remote-Dienst.",
   "@remoteReadOnlyTaxonomyDescription": {
     "description": "Description for read-only remote taxonomy/group mirror semantics."
   },
-  "feedCategoryReadOnlyTaxonomyTitle": "分类由远程管理",
+  "feedCategoryReadOnlyTaxonomyTitle": "Kategorie wird aus der Ferne verwaltet",
   "@feedCategoryReadOnlyTaxonomyTitle": {
     "description": "Title for a feed whose category assignment is managed by a read-only remote taxonomy mirror."
   },
-  "feedCategoryReadOnlyTaxonomyDescription": "这个订阅源的分类来自只读远程分组镜像。",
+  "feedCategoryReadOnlyTaxonomyDescription": "Die Kategorie dieses Feeds stammt von einem schreibgeschützten Remote-Gruppenspiegel.",
   "@feedCategoryReadOnlyTaxonomyDescription": {
     "description": "Description for a feed whose category assignment is managed by a read-only remote taxonomy mirror."
   },
-  "deleteTagConfirmTitle": "删除标签？",
+  "deleteTagConfirmTitle": "Tag löschen?",
   "@deleteTagConfirmTitle": {
     "description": "deleteTagConfirmTitle"
   },
-  "deleteTagConfirmContent": "这会从所有文章中移除该标签。",
+  "deleteTagConfirmContent": "Dadurch wird es aus allen Artikeln entfernt.",
   "@deleteTagConfirmContent": {
     "description": "deleteTagConfirmContent"
   },
-  "categoryDeleted": "分类已删除",
+  "categoryDeleted": "Kategorie gelöscht",
   "@categoryDeleted": {
     "description": "categoryDeleted"
   },
-  "refresh": "刷新",
+  "refresh": "Aktualisieren",
   "@refresh": {
     "description": "refresh"
   },
-  "moveToCategory": "移动到分类",
+  "moveToCategory": "Zur Kategorie wechseln",
   "@moveToCategory": {
     "description": "moveToCategory"
   },
-  "noFeedsFoundInOpml": "OPML 中未找到订阅",
+  "noFeedsFoundInOpml": "Keine Feeds in OPML gefunden",
   "@noFeedsFoundInOpml": {
     "description": "noFeedsFoundInOpml"
   },
-  "importedFeeds": "已导入 {count} 个订阅",
+  "importedFeeds": "{count} Feeds importiert",
   "@importedFeeds": {
     "placeholders": {
       "count": {
@@ -931,11 +902,11 @@
     },
     "description": "importedFeeds"
   },
-  "exportedOpml": "已导出 OPML",
+  "exportedOpml": "Exportiert OPML",
   "@exportedOpml": {
     "description": "exportedOpml"
   },
-  "fullTextFailed": "获取全文失败：{error}",
+  "fullTextFailed": "Volltext konnte nicht abgerufen werden: {error}",
   "@fullTextFailed": {
     "placeholders": {
       "error": {
@@ -944,214 +915,242 @@
     },
     "description": "fullTextFailed"
   },
-  "scrollToLoadMore": "滚动以加载更多",
+  "scrollToLoadMore": "Scrollen Sie, um mehr zu laden",
   "@scrollToLoadMore": {
     "description": "scrollToLoadMore"
   },
-  "noArticles": "暂无文章",
+  "noArticles": "Keine Artikel",
   "@noArticles": {
     "description": "noArticles"
   },
-  "noStarredArticles": "暂无收藏文章",
+  "noStarredArticles": "Noch keine markierten Artikel",
   "@noStarredArticles": {
     "description": "Empty state message for the starred articles view"
   },
-  "noReadLaterArticles": "暂无稍后读文章",
+  "noReadLaterArticles": "Noch keine Artikel zum späteren Lesen",
   "@noReadLaterArticles": {
     "description": "Empty state message for the read-later articles view"
   },
-  "noUnreadArticles": "暂无未读文章",
+  "noUnreadArticles": "Keine ungelesenen Artikel",
   "@noUnreadArticles": {
     "description": "noUnreadArticles"
   },
-  "articleListEmptySubtitle": "添加订阅或同步后，文章会出现在这里。",
+  "articleListEmptySubtitle": "Fügen Sie ein Abonnement hinzu oder aktualisieren Sie die Quellen. Die Artikel werden hier angezeigt.",
   "@articleListEmptySubtitle": {
     "description": "Article list empty state helper text when there are no articles"
   },
-  "unreadEmptySubtitle": "当前筛选范围内的文章都已读完。",
+  "unreadEmptySubtitle": "Alles im aktuellen Umfang wurde gelesen.",
   "@unreadEmptySubtitle": {
     "description": "Article list empty state helper text when the unread filter has no results"
   },
-  "savedSearchEmptySubtitle": "当前收藏中没有匹配结果。",
+  "savedSearchEmptySubtitle": "Zu dieser Suche passen keine gespeicherten Artikel.",
   "@savedSearchEmptySubtitle": {
     "description": "Saved section empty state helper text when searching saved articles has no results"
   },
-  "star": "收藏",
+  "star": "Markieren",
   "@star": {
     "description": "star"
   },
-  "unstar": "取消收藏",
+  "unstar": "Markierung entfernen",
   "@unstar": {
     "description": "unstar"
   },
-  "starred": "已收藏",
+  "starred": "Markiert",
   "@starred": {
     "description": "starred"
   },
-  "readLater": "稍后读",
+  "readLater": "Leseliste",
   "@readLater": {
     "description": "readLater"
   },
-  "removeReadLater": "移出稍后读",
+  "removeReadLater": "Aus Leseliste entfernen",
   "@removeReadLater": {
     "description": "Action label for removing an article from the read-later list"
   },
-  "openArticle": "打开文章",
+  "openArticle": "Artikel öffnen",
   "@openArticle": {
     "description": "Action label for opening an article from a list"
   },
-  "markRead": "标记为已读",
+  "markRead": "Mark hat gelesen",
   "@markRead": {
     "description": "markRead"
   },
-  "markUnread": "标记为未读",
+  "markUnread": "Als ungelesen markieren",
   "@markUnread": {
     "description": "markUnread"
   },
-  "collapse": "收起",
+  "collapse": "Zusammenbruch",
   "@collapse": {
     "description": "collapse"
   },
-  "expand": "展开",
+  "expand": "Erweitern",
   "@expand": {
     "description": "expand"
   },
-  "openInBrowser": "在浏览器打开",
+  "openInBrowser": "Im Browser öffnen",
   "@openInBrowser": {
     "description": "openInBrowser"
   },
-  "copyLink": "复制链接",
+  "copyLink": "Link kopieren",
   "@copyLink": {
     "description": "copyLink"
   },
-  "copiedToClipboard": "已复制到剪贴板",
+  "copiedToClipboard": "In die Zwischenablage kopiert",
   "@copiedToClipboard": {
     "description": "copiedToClipboard"
   },
-  "share": "分享",
+  "share": "Teilen",
   "@share": {
     "description": "share"
   },
-  "autoMarkRead": "打开时自动标记为已读",
+  "autoMarkRead": "Beim Öffnen automatisch als gelesen markieren",
   "@autoMarkRead": {
     "description": "autoMarkRead"
   },
-  "search": "搜索",
+  "search": "Suchen",
   "@search": {
     "description": "search"
   },
-  "searchInContent": "搜索正文",
+  "searchInContent": "Suche im Inhalt",
   "@searchInContent": {
     "description": "searchInContent"
   },
-  "clearSearch": "清除搜索",
+  "clearSearch": "Suche löschen",
   "@clearSearch": {
     "description": "Action label for clearing article search text"
   },
-  "searchStartTitle": "开始搜索",
+  "searchStartTitle": "Beginnen Sie mit der Suche",
   "@searchStartTitle": {
     "description": "Search page empty state title before the user enters a query"
   },
-  "searchStartSubtitle": "输入关键词查找标题、摘要和正文。",
+  "searchStartSubtitle": "Geben Sie Schlüsselwörter ein, um nach Titeln, Zusammenfassungen und Inhalten zu suchen.",
   "@searchStartSubtitle": {
     "description": "Search page empty state helper text before the user enters a query"
   },
-  "searchNoResultsSubtitle": "没有匹配“{query}”的文章。",
+  "searchNoResultsSubtitle": "Keine Artikel stimmen mit „{query}“ überein.",
   "@searchNoResultsSubtitle": {
     "description": "Search page empty state helper text when a query has no results",
     "placeholders": {
       "query": {}
     }
   },
-  "articleNotFoundSubtitle": "这篇文章可能已被删除，或本地暂时不可用。",
+  "articleNotFoundSubtitle": "Dieser Artikel wurde möglicherweise gelöscht oder ist lokal nicht mehr verfügbar.",
   "@articleNotFoundSubtitle": {
     "description": "Reader helper text when an article id cannot be found"
   },
-  "findInPage": "页面内查找",
+  "findInPage": "Auf der Seite finden",
   "@findInPage": {
     "description": "findInPage"
   },
-  "previousMatch": "上一个匹配",
+  "previousMatch": "Vorheriges Spiel",
   "@previousMatch": {
     "description": "previousMatch"
   },
-  "nextMatch": "下一个匹配",
+  "nextMatch": "Nächstes Spiel",
   "@nextMatch": {
     "description": "nextMatch"
   },
-  "caseSensitive": "区分大小写",
+  "caseSensitive": "Groß- und Kleinschreibung beachten",
   "@caseSensitive": {
     "description": "caseSensitive"
   },
-  "close": "关闭",
+  "close": "Schließen",
   "@close": {
     "description": "close"
   },
-  "groupingAndSorting": "分组与排序",
+  "groupingAndSorting": "Gruppieren und Sortieren",
   "@groupingAndSorting": {
     "description": "groupingAndSorting"
   },
-  "groupBy": "分组方式",
+  "groupBy": "Gruppieren nach",
   "@groupBy": {
     "description": "groupBy"
   },
-  "groupNone": "不分组",
+  "groupNone": "Keine",
   "@groupNone": {
     "description": "groupNone"
   },
-  "groupByDay": "按日期",
+  "groupByDay": "Tag",
   "@groupByDay": {
     "description": "groupByDay"
   },
-  "sortOrder": "排序",
+  "sortOrder": "Sortierreihenfolge",
   "@sortOrder": {
     "description": "sortOrder"
   },
-  "sortNewestFirst": "最新优先",
+  "sortNewestFirst": "Das Neueste zuerst",
   "@sortNewestFirst": {
     "description": "sortNewestFirst"
   },
-  "sortOldestFirst": "最旧优先",
+  "sortOldestFirst": "Älteste zuerst",
   "@sortOldestFirst": {
     "description": "sortOldestFirst"
   },
-  "enabled": "启用",
+  "enabled": "Aktiviert",
   "@enabled": {
     "description": "enabled"
   },
-  "rename": "重命名",
+  "rename": "Umbenennen",
   "@rename": {
     "description": "rename"
   },
-  "edit": "编辑",
+  "edit": "Bearbeiten",
   "@edit": {
     "description": "edit"
   },
-  "nameAlreadyExists": "名称已存在",
+  "nameAlreadyExists": "Name existiert bereits",
   "@nameAlreadyExists": {
     "description": "nameAlreadyExists"
   },
-  "lastChecked": "上次检查",
+  "lastChecked": "Zuletzt überprüft",
   "@lastChecked": {
     "description": "lastChecked"
   },
-  "lastSynced": "上次同步",
+  "lastSynced": "Zuletzt synchronisiert",
   "@lastSynced": {
     "description": "lastSynced"
   },
-  "never": "从未",
+  "never": "Niemals",
   "@never": {
     "description": "never"
   },
-  "cleanupReadArticles": "清理已读文章",
+  "cleanupReadArticles": "Bereinigen Sie gelesene Artikel",
   "@cleanupReadArticles": {
     "description": "cleanupReadArticles"
   },
-  "cleanupNow": "立即清理",
+  "cleanupNow": "Führen Sie die Bereinigung durch",
   "@cleanupNow": {
     "description": "cleanupNow"
   },
-  "cleanedArticles": "已清理 {count} 篇文章",
+  "cachingArticles": "{count} Artikel werden zwischengespeichert...",
+  "@cachingArticles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "manageTags": "Tags verwalten",
+  "@manageTags": {
+    "description": "manageTags"
+  },
+  "newTag": "Neuer Tag",
+  "@newTag": {
+    "description": "newTag"
+  },
+  "tagColor": "Tag-Farbe",
+  "@tagColor": {
+    "description": "tagColor"
+  },
+  "autoColor": "Automatisch",
+  "@autoColor": {
+    "description": "autoColor"
+  },
+  "tagsLoadingError": "Fehler beim Laden der Tags",
+  "@tagsLoadingError": {
+    "description": "Error message displayed when tags fail to load in the dialog"
+  },
+  "cleanedArticles": "{count} Artikel bereinigt",
   "@cleanedArticles": {
     "placeholders": {
       "count": {
@@ -1160,7 +1159,7 @@
     },
     "description": "cleanedArticles"
   },
-  "days": "{days} 天",
+  "days": "{days} Tage",
   "@days": {
     "placeholders": {
       "days": {
@@ -1169,19 +1168,19 @@
     },
     "description": "days"
   },
-  "services": "服务",
+  "services": "Dienstleistungen",
   "@services": {
     "description": "services"
   },
-  "account": "账号",
+  "account": "Konto",
   "@account": {
     "description": "account"
   },
-  "addOrRegisterAccount": "添加或注册账号",
+  "addOrRegisterAccount": "Konto hinzufügen oder registrieren",
   "@addOrRegisterAccount": {
     "description": "Action label for adding or registering an account"
   },
-  "local": "本地",
+  "local": "Lokal",
   "@local": {
     "description": "local"
   },
@@ -1193,19 +1192,19 @@
   "@fever": {
     "description": "fever"
   },
-  "addLocal": "添加本地",
+  "addLocal": "Lokal hinzufügen",
   "@addLocal": {
     "description": "addLocal"
   },
-  "addLocalAccount": "添加本地账号",
+  "addLocalAccount": "Lokales Konto hinzufügen",
   "@addLocalAccount": {
     "description": "addLocalAccount"
   },
-  "addMiniflux": "添加 Miniflux",
+  "addMiniflux": "Miniflux hinzufügen",
   "@addMiniflux": {
     "description": "addMiniflux"
   },
-  "addGoogleReaderApi": "添加 Google Reader API",
+  "addGoogleReaderApi": "Fügen Sie Google Reader API hinzu",
   "@addGoogleReaderApi": {
     "description": "addGoogleReaderApi"
   },
@@ -1213,79 +1212,79 @@
   "@googleReaderApi": {
     "description": "googleReaderApi"
   },
-  "googleReaderCompatible": "Google Reader 兼容服务",
+  "googleReaderCompatible": "Google Reader compatible service",
   "@googleReaderCompatible": {
     "description": "googleReaderCompatible"
   },
-  "addFever": "添加 Fever",
+  "addFever": "Fever hinzufügen",
   "@addFever": {
     "description": "addFever"
   },
-  "minifluxStrategy": "Miniflux 策略",
+  "minifluxStrategy": "Miniflux Strategie",
   "@minifluxStrategy": {
     "description": "minifluxStrategy"
   },
-  "minifluxStrategySubtitle": "控制同步时拉取量与预取行为。",
+  "minifluxStrategySubtitle": "Steuert, wie viele Daten während der Synchronisierung abgerufen/vorab abgerufen werden.",
   "@minifluxStrategySubtitle": {
     "description": "minifluxStrategySubtitle"
   },
-  "remoteSyncStrategy": "远程同步策略",
+  "remoteSyncStrategy": "Remote-Synchronisierungsstrategie",
   "@remoteSyncStrategy": {
     "description": "remoteSyncStrategy"
   },
-  "remoteSyncStrategySubtitle": "控制同步时拉取的远程文章窗口。",
+  "remoteSyncStrategySubtitle": "Steuert das Remote-Artikelfenster, das während der Synchronisierung gezogen wird.",
   "@remoteSyncStrategySubtitle": {
     "description": "remoteSyncStrategySubtitle"
   },
-  "remoteSyncStrategyMinifluxSubtitle": "Miniflux 会分页拉取远程文章，最多到这个每次同步窗口。",
+  "remoteSyncStrategyMinifluxSubtitle": "Miniflux kann bis zu diesem Pro-Sync-Fenster durch Remote-Einträge blättern.",
   "@remoteSyncStrategyMinifluxSubtitle": {
     "description": "remoteSyncStrategyMinifluxSubtitle"
   },
-  "remoteSyncStrategyGoogleReaderSubtitle": "Google Reader 兼容服务会分页拉取远程 stream 文章，最多到这个每次同步窗口。",
+  "remoteSyncStrategyGoogleReaderSubtitle": "Google Reader kompatible Dienste blättern durch Remote-Stream-Einträge bis zu diesem Fenster pro Synchronisierung.",
   "@remoteSyncStrategyGoogleReaderSubtitle": {
     "description": "remoteSyncStrategyGoogleReaderSubtitle"
   },
-  "remoteSyncStrategyFeverSubtitle": "Fever 同步未读和收藏条目，并受这个每次同步窗口限制。",
+  "remoteSyncStrategyFeverSubtitle": "Fever synchronisiert ungelesene und gespeicherte Elemente, begrenzt durch dieses Fenster pro Synchronisierung.",
   "@remoteSyncStrategyFeverSubtitle": {
     "description": "remoteSyncStrategyFeverSubtitle"
   },
-  "remoteEntriesLimit": "每次同步拉取条数",
+  "remoteEntriesLimit": "Einträge pro Synchronisierung",
   "@remoteEntriesLimit": {
     "description": "remoteEntriesLimit"
   },
-  "remoteFetchConcurrency": "远端拉取并发数",
+  "remoteFetchConcurrency": "Parallelität beim Fernabruf",
   "@remoteFetchConcurrency": {
     "description": "remoteFetchConcurrency"
   },
-  "remoteFetchConcurrencySubtitle": "控制账号同步文章批次时的并发请求数。",
+  "remoteFetchConcurrencySubtitle": "Steuert gleichzeitige Remote-Artikel-Batch-Anfragen während der Kontosynchronisierung.",
   "@remoteFetchConcurrencySubtitle": {
     "description": "remoteFetchConcurrencySubtitle"
   },
-  "minifluxWebFetchMode": "网页抓取方式",
+  "minifluxWebFetchMode": "Abrufen einer Webseite",
   "@minifluxWebFetchMode": {
     "description": "minifluxWebFetchMode"
   },
-  "minifluxWebFetchModeSubtitle": "当订阅开启“同步时下载 Web 页面”时生效。",
+  "minifluxWebFetchModeSubtitle": "Wenn „Webseiten während der Synchronisierung herunterladen“ aktiviert ist.",
   "@minifluxWebFetchModeSubtitle": {
     "description": "minifluxWebFetchModeSubtitle"
   },
-  "minifluxWebFetchModeClient": "客户端（Readability）",
+  "minifluxWebFetchModeClient": "Kunde (Readability)",
   "@minifluxWebFetchModeClient": {
     "description": "minifluxWebFetchModeClient"
   },
-  "minifluxWebFetchModeServer": "服务端（Miniflux fetch-content）",
+  "minifluxWebFetchModeServer": "Server (Miniflux fetch-content)",
   "@minifluxWebFetchModeServer": {
     "description": "minifluxWebFetchModeServer"
   },
-  "unlimited": "无限制",
+  "unlimited": "Unbegrenzt",
   "@unlimited": {
     "description": "unlimited"
   },
-  "fieldName": "名称",
+  "fieldName": "Name",
   "@fieldName": {
     "description": "fieldName"
   },
-  "nameRequired": "请输入名称",
+  "nameRequired": "Geben Sie einen Namen ein",
   "@nameRequired": {
     "description": "Validation message shown when the name field is empty"
   },
@@ -1293,7 +1292,7 @@
   "@baseUrl": {
     "description": "baseUrl"
   },
-  "baseUrlRequired": "请输入 Base URL",
+  "baseUrlRequired": "Geben Sie die Basis URL ein",
   "@baseUrlRequired": {
     "description": "Validation message shown when the base URL field is empty"
   },
@@ -1309,7 +1308,7 @@
   "@apiToken": {
     "description": "apiToken"
   },
-  "apiTokenRequired": "请输入 API Token",
+  "apiTokenRequired": "Geben Sie das Token API ein",
   "@apiTokenRequired": {
     "description": "Validation message shown when the API token field is empty"
   },
@@ -1319,106 +1318,106 @@
   },
   "appId": "App ID",
   "@appId": {
-    "description": "App ID 字段标签"
+    "description": "Label for App ID fields"
   },
   "appKey": "App Key",
   "@appKey": {
-    "description": "App Key 字段标签"
+    "description": "Label for App Key fields"
   },
-  "apiKeyRequired": "请输入 API Key",
+  "apiKeyRequired": "Geben Sie die Taste API ein",
   "@apiKeyRequired": {
     "description": "Validation message shown when the API key field is empty"
   },
-  "authenticationMethod": "认证方式",
+  "authenticationMethod": "Authentifizierungsmethode",
   "@authenticationMethod": {
     "description": "authenticationMethod"
   },
-  "usernamePassword": "用户名与密码",
+  "usernamePassword": "Benutzername und Passwort",
   "@usernamePassword": {
     "description": "usernamePassword"
   },
-  "minifluxAuthHint": "可填写 API Token（推荐）或用户名/密码。",
+  "minifluxAuthHint": "Verwenden Sie ein API-Token (empfohlen) oder einen Benutzernamen/ein Passwort.",
   "@minifluxAuthHint": {
     "description": "minifluxAuthHint"
   },
-  "feverAuthHint": "可填写 API Key（推荐）或用户名/密码。",
+  "feverAuthHint": "Verwenden Sie einen API-Schlüssel (empfohlen) oder einen Benutzernamen/ein Passwort.",
   "@feverAuthHint": {
     "description": "feverAuthHint"
   },
-  "username": "用户名",
+  "username": "Benutzername",
   "@username": {
     "description": "username"
   },
-  "usernameRequired": "请输入用户名",
+  "usernameRequired": "Geben Sie den Benutzernamen ein",
   "@usernameRequired": {
     "description": "Validation message shown when the username field is empty"
   },
-  "password": "密码",
+  "password": "Passwort",
   "@password": {
     "description": "password"
   },
-  "passwordRequired": "请输入密码",
+  "passwordRequired": "Passwort eingeben",
   "@passwordRequired": {
     "description": "Validation message shown when the password field is empty"
   },
-  "defaultModel": "默认模型",
+  "defaultModel": "Standardmodell",
   "@defaultModel": {
     "description": "Label for the default model field in the AI service editor"
   },
-  "savedApiKeyClearHint": "留空会清除已保存的 API Key。",
+  "savedApiKeyClearHint": "Lassen Sie das Feld leer, um den gespeicherten Schlüssel API zu löschen.",
   "@savedApiKeyClearHint": {
     "description": "Helper text explaining that an empty API key field clears the saved value"
   },
-  "savedCredentialsClearHint": "留空会清除已保存的凭据。",
+  "savedCredentialsClearHint": "Lassen Sie das Feld leer, um die gespeicherten Anmeldeinformationen zu löschen.",
   "@savedCredentialsClearHint": {
-    "description": "说明留空会清除已保存凭据的辅助文案"
+    "description": "Helper text explaining that empty credential fields clear the saved values"
   },
-  "aiServicesEmptyState": "还没有添加任何 AI 服务。",
+  "aiServicesEmptyState": "Es wurden noch keine AI-Dienste hinzugefügt.",
   "@aiServicesEmptyState": {
-    "description": "尚未配置自定义 AI 服务时的空状态文案"
+    "description": "Empty state shown when no custom AI services have been configured"
   },
-  "modelSummary": "模型：{model}",
+  "modelSummary": "Modell: {model}",
   "@modelSummary": {
-    "description": "展示 AI 服务默认模型的摘要文案",
+    "description": "Summary text showing the configured model for an AI service",
     "placeholders": {
       "model": {
         "type": "String"
       }
     }
   },
-  "show": "显示",
+  "show": "Zeigen",
   "@show": {
     "description": "show"
   },
-  "hide": "隐藏",
+  "hide": "Verstecken",
   "@hide": {
     "description": "hide"
   },
-  "missingRequiredFields": "请填写必填项",
+  "missingRequiredFields": "Fehlende Pflichtfelder",
   "@missingRequiredFields": {
     "description": "missingRequiredFields"
   },
-  "invalidBaseUrl": "Base URL 无效",
+  "invalidBaseUrl": "Ungültige Basis URL",
   "@invalidBaseUrl": {
     "description": "invalidBaseUrl"
   },
-  "onlySupportedInLocalAccount": "仅本地账号支持此操作",
+  "onlySupportedInLocalAccount": "Wird nur im lokalen Konto unterstützt",
   "@onlySupportedInLocalAccount": {
     "description": "onlySupportedInLocalAccount"
   },
-  "autoRefresh": "自动刷新订阅源",
+  "autoRefresh": "Automatische Quellenaktualisierung",
   "@autoRefresh": {
     "description": "autoRefresh"
   },
-  "autoRefreshSubtitle": "按所选周期刷新订阅源；移动端后台刷新由系统调度，通常不会短于 15 分钟，且不保证准点。",
+  "autoRefreshSubtitle": "Aktualisieren Sie die Abonnementquellen im ausgewählten Intervall. Die Aktualisierung des mobilen Hintergrunds ist vom System geplant, normalerweise nicht öfter als alle 15 Minuten, und wird möglicherweise nicht genau pünktlich ausgeführt.",
   "@autoRefreshSubtitle": {
     "description": "autoRefreshSubtitle"
   },
-  "off": "关闭",
+  "off": "Aus",
   "@off": {
     "description": "off"
   },
-  "everyMinutes": "每 {minutes} 分钟",
+  "everyMinutes": "Alle {minutes} Minuten",
   "@everyMinutes": {
     "placeholders": {
       "minutes": {
@@ -1427,191 +1426,191 @@
     },
     "description": "everyMinutes"
   },
-  "appPreferences": "应用偏好",
+  "appPreferences": "App-Einstellungen",
   "@appPreferences": {
     "description": "appPreferences"
   },
-  "about": "关于",
+  "about": "Über",
   "@about": {
     "description": "about"
   },
-  "dataDirectory": "数据目录",
+  "dataDirectory": "Datenverzeichnis",
   "@dataDirectory": {
     "description": "dataDirectory"
   },
-  "copyPath": "复制路径",
+  "copyPath": "Pfad kopieren",
   "@copyPath": {
     "description": "copyPath"
   },
-  "openFolder": "打开文件夹",
+  "openFolder": "Ordner öffnen",
   "@openFolder": {
     "description": "openFolder"
   },
-  "logDirectory": "日志目录",
+  "logDirectory": "Protokollverzeichnis",
   "@logDirectory": {
     "description": "logDirectory"
   },
-  "openLog": "打开日志",
+  "openLog": "Protokoll öffnen",
   "@openLog": {
     "description": "openLog"
   },
-  "openLogFolder": "打开日志文件夹",
+  "openLogFolder": "Log-Ordner öffnen",
   "@openLogFolder": {
     "description": "openLogFolder"
   },
-  "exportLogs": "导出日志",
+  "exportLogs": "Protokolle exportieren",
   "@exportLogs": {
     "description": "exportLogs"
   },
-  "exportedLogs": "日志已导出",
+  "exportedLogs": "Protokolle exportiert",
   "@exportedLogs": {
     "description": "exportedLogs"
   },
-  "noLogsFound": "未找到日志文件",
+  "noLogsFound": "Keine Protokolldateien gefunden",
   "@noLogsFound": {
     "description": "noLogsFound"
   },
-  "keyboardShortcuts": "快捷键",
+  "keyboardShortcuts": "Tastaturkürzel",
   "@keyboardShortcuts": {
     "description": "keyboardShortcuts"
   },
-  "version": "版本号",
+  "version": "Version",
   "@version": {
     "description": "version"
   },
-  "buildNumber": "构建号",
+  "buildNumber": "Build-Nummer",
   "@buildNumber": {
     "description": "buildNumber"
   },
-  "openSourceLicense": "开源许可证",
+  "openSourceLicense": "Open-Source-Lizenz",
   "@openSourceLicense": {
     "description": "openSourceLicense"
   },
-  "viewLicense": "查看许可证",
+  "viewLicense": "Lizenz anzeigen",
   "@viewLicense": {
     "description": "viewLicense"
   },
-  "thirdPartyLicenses": "第三方许可证",
+  "thirdPartyLicenses": "Lizenzen von Drittanbietern",
   "@thirdPartyLicenses": {
     "description": "thirdPartyLicenses"
   },
-  "viewThirdPartyLicenses": "查看所有开源许可证",
+  "viewThirdPartyLicenses": "Alle Open-Source-Lizenzen anzeigen",
   "@viewThirdPartyLicenses": {
     "description": "viewThirdPartyLicenses"
   },
-  "licenseLoadFailed": "加载许可证失败。",
+  "licenseLoadFailed": "Die Lizenz konnte nicht geladen werden.",
   "@licenseLoadFailed": {
-    "description": "加载内置许可证文本失败时的错误提示"
+    "description": "Error shown when the app fails to load the bundled license text"
   },
-  "mitLicenseName": "MIT 许可证",
+  "mitLicenseName": "MIT-Lizenz",
   "@mitLicenseName": {
-    "description": "应用主要许可证名称"
+    "description": "Name of the app's primary license"
   },
-  "shortcutNextPreviousArticle": "J / K：下一篇 / 上一篇文章",
+  "shortcutNextPreviousArticle": "J/K: Nächster/vorheriger Artikel",
   "@shortcutNextPreviousArticle": {
-    "description": "切换上一篇/下一篇文章的快捷键说明"
+    "description": "Keyboard shortcut help text for moving to the next or previous article"
   },
-  "shortcutBackForwardHistory": "Alt + \u2190 / Alt + \u2192；macOS Cmd + [ / ]：返回 / 前进历史",
+  "shortcutBackForwardHistory": "Alt + ← / Alt + →; macOS Cmd + [ / ]: Verlauf zurück/vorwärts",
   "@shortcutBackForwardHistory": {
-    "description": "在历史记录中返回或前进的快捷键说明"
+    "description": "Keyboard shortcut help text for navigating backward or forward through history"
   },
-  "shortcutRefreshCurrentSelection": "R：刷新（当前选中项）",
+  "shortcutRefreshCurrentSelection": "R: Aktualisieren (aktuelle Auswahl)",
   "@shortcutRefreshCurrentSelection": {
-    "description": "刷新当前选中项的快捷键说明"
+    "description": "Keyboard shortcut help text for refreshing the current selection"
   },
-  "shortcutToggleUnreadOnly": "U：切换仅未读",
+  "shortcutToggleUnreadOnly": "U: Schreibgeschützt umschalten",
   "@shortcutToggleUnreadOnly": {
-    "description": "切换仅未读筛选的快捷键说明"
+    "description": "Keyboard shortcut help text for toggling the unread-only filter"
   },
-  "shortcutToggleReadUnreadSelectedArticle": "M：切换所选文章的已读 / 未读",
+  "shortcutToggleReadUnreadSelectedArticle": "M: Gelesen/ungelesen für den ausgewählten Artikel umschalten",
   "@shortcutToggleReadUnreadSelectedArticle": {
-    "description": "切换所选文章已读状态的快捷键说明"
+    "description": "Keyboard shortcut help text for toggling read/unread on the selected article"
   },
-  "shortcutToggleStarSelectedArticle": "S：切换所选文章的星标状态",
+  "shortcutToggleStarSelectedArticle": "S: Stern für ausgewählten Artikel umschalten",
   "@shortcutToggleStarSelectedArticle": {
-    "description": "切换所选文章星标状态的快捷键说明"
+    "description": "Keyboard shortcut help text for toggling the star state on the selected article"
   },
-  "shortcutSearchArticlesAndFindInPage": "Ctrl/Cmd+F：搜索文章（列表）；聚焦页内查找（阅读器）",
+  "shortcutSearchArticlesAndFindInPage": "Strg/Befehl+F: Artikel durchsuchen (Liste); Fokus Auf Seite finden (Leser)",
   "@shortcutSearchArticlesAndFindInPage": {
-    "description": "列表搜索与阅读器页内查找的快捷键说明"
+    "description": "Keyboard shortcut help text for searching articles or focusing find-in-page"
   },
-  "filter": "过滤",
+  "filter": "Filtern",
   "@filter": {
     "description": "filter"
   },
-  "filterKeywordsHint": "添加保留关键字（不同的关键字用“;”分隔，多重条件使用“+”连接）",
+  "filterKeywordsHint": "Reservierte Schlüsselwörter hinzufügen (mit „;“ trennen, mehrere mit „+“ verbinden)",
   "@filterKeywordsHint": {
     "description": "filterKeywordsHint"
   },
-  "sync": "同步",
+  "sync": "Synchronisierung",
   "@sync": {
     "description": "sync"
   },
-  "enableSync": "启用同步",
+  "enableSync": "Aktivieren Sie die Synchronisierung",
   "@enableSync": {
     "description": "enableSync"
   },
-  "enableFilter": "启用过滤",
+  "enableFilter": "Filter aktivieren",
   "@enableFilter": {
     "description": "enableFilter"
   },
-  "syncAlwaysEnabled": "总是启用，因为设置 - 同步 - 同步模式为\"全部\"",
+  "syncAlwaysEnabled": "Immer aktiviert (Einstellungen – Synchronisierung – Synchronisierungsmodus ist „Alle“).",
   "@syncAlwaysEnabled": {
     "description": "syncAlwaysEnabled"
   },
-  "syncImages": "同步时下载图片",
+  "syncImages": "Laden Sie Bilder während der Synchronisierung herunter",
   "@syncImages": {
     "description": "syncImages"
   },
-  "syncWebPages": "同步时下载 Web 页面",
+  "syncWebPages": "Laden Sie Webseiten während der Synchronisierung herunter",
   "@syncWebPages": {
     "description": "syncWebPages"
   },
-  "syncStatusSyncing": "同步中",
+  "syncStatusSyncing": "Synchronisierung",
   "@syncStatusSyncing": {
     "description": "Sync status: syncing (generic)"
   },
-  "syncStatusSyncingFeeds": "同步订阅源",
+  "syncStatusSyncingFeeds": "Feeds synchronisieren",
   "@syncStatusSyncingFeeds": {
     "description": "Sync status: syncing feeds"
   },
-  "syncStatusSyncingSubscriptions": "同步订阅",
+  "syncStatusSyncingSubscriptions": "Abonnements werden synchronisiert",
   "@syncStatusSyncingSubscriptions": {
     "description": "Sync status: syncing subscriptions"
   },
-  "syncStatusSyncingUnreadArticles": "同步未读文章",
+  "syncStatusSyncingUnreadArticles": "Ungelesene Artikel synchronisieren",
   "@syncStatusSyncingUnreadArticles": {
     "description": "Sync status: syncing unread articles"
   },
-  "syncStatusUploadingChanges": "上传更改",
+  "syncStatusUploadingChanges": "Änderungen hochladen",
   "@syncStatusUploadingChanges": {
     "description": "Sync status: uploading local/outbox changes"
   },
-  "syncStatusCompleted": "同步完成",
+  "syncStatusCompleted": "Synchronisierung abgeschlossen",
   "@syncStatusCompleted": {
     "description": "Sync status: completed"
   },
-  "syncStatusFailed": "同步失败",
+  "syncStatusFailed": "Die Synchronisierung ist fehlgeschlagen",
   "@syncStatusFailed": {
     "description": "Sync status: failed"
   },
-  "showAiSummary": "显示摘要",
+  "showAiSummary": "Zusammenfassung anzeigen",
   "@showAiSummary": {
     "description": "showAiSummary"
   },
-  "summary": "摘要",
+  "summary": "Zusammenfassung",
   "@summary": {
     "description": "summary"
   },
-  "showImageTitle": "显示图片标题",
+  "showImageTitle": "Bildtitel anzeigen",
   "@showImageTitle": {
     "description": "showImageTitle"
   },
-  "showAttachedImage": "显示附文图像",
+  "showAttachedImage": "Angehängtes Bild anzeigen",
   "@showAttachedImage": {
     "description": "showAttachedImage"
   },
-  "htmlDecoding": "HTML 转码",
+  "htmlDecoding": "HTML decoding",
   "@htmlDecoding": {
     "description": "htmlDecoding"
   },
@@ -1619,29 +1618,29 @@
   "@mobilizer": {
     "description": "mobilizer"
   },
-  "inherit": "继承",
+  "inherit": "Erben",
   "@inherit": {
     "description": "inherit"
   },
-  "auto": "自动",
+  "auto": "Automatisch",
   "@auto": {
     "description": "auto"
   },
-  "autoOn": "开",
+  "autoOn": "Auto (Ein)",
   "@autoOn": {
     "description": "autoOn"
   },
-  "autoOff": "关",
+  "autoOff": "Aus",
   "@autoOff": {
     "description": "autoOff"
   },
-  "defaultValue": "默认值",
+  "defaultValue": "Standardwert",
   "@defaultValue": {
     "description": "defaultValue"
   },
-  "defaultOption": "默认",
+  "defaultOption": "Standard",
   "@defaultOption": {
-    "description": "通用的“默认”选项标签"
+    "description": "Generic 'Default' option label"
   },
   "userAgent": "User-Agent",
   "@userAgent": {
@@ -1651,310 +1650,310 @@
   "@rssUserAgent": {
     "description": "rssUserAgent"
   },
-  "webUserAgent": "网页 User-Agent",
+  "webUserAgent": "Web User-Agent",
   "@webUserAgent": {
     "description": "webUserAgent"
   },
-  "userAgentRssHint": "用于抓取 RSS/Atom 订阅源。",
+  "userAgentRssHint": "Wird beim Abrufen von RSS/Atom-Feeds verwendet.",
   "@userAgentRssHint": {
     "description": "userAgentRssHint"
   },
-  "userAgentWebHint": "用于抓取网页全文（阅读模式）。",
+  "userAgentWebHint": "Wird beim Abrufen vollständiger Webseiten verwendet (Readability).",
   "@userAgentWebHint": {
     "description": "userAgentWebHint"
   },
-  "resetToDefault": "恢复默认",
+  "resetToDefault": "Auf Standard zurücksetzen",
   "@resetToDefault": {
     "description": "resetToDefault"
   },
-  "notificationNewArticleTitle": "新文章",
+  "notificationNewArticleTitle": "Neuer Artikel",
   "@notificationNewArticleTitle": {
-    "description": "发现 1 篇新文章时的通知标题"
+    "description": "Notification title when exactly one new article is found"
   },
-  "notificationNewArticlesTitle": "新文章",
+  "notificationNewArticlesTitle": "Neue Artikel",
   "@notificationNewArticlesTitle": {
-    "description": "发现多篇新文章时的通知标题"
+    "description": "Notification title when multiple new articles are found"
   },
-  "notificationNewArticlesBody": "发现 {count} 篇新文章",
+  "notificationNewArticlesBody": "{count} neue Artikel gefunden",
   "@notificationNewArticlesBody": {
-    "description": "发现多篇新文章时的通知内容",
+    "description": "Notification body when multiple new articles are found",
     "placeholders": {
       "count": {
         "type": "int"
       }
     }
   },
-  "notificationNewArticlesChannelName": "新文章",
+  "notificationNewArticlesChannelName": "Neue Artikel",
   "@notificationNewArticlesChannelName": {
-    "description": "Android 新文章通知渠道名称"
+    "description": "Android notification channel name for new articles"
   },
-  "notificationNewArticlesChannelDescription": "同步时发现新文章的通知",
+  "notificationNewArticlesChannelDescription": "Benachrichtigungen für neue Artikel, die während der Synchronisierung gefunden wurden",
   "@notificationNewArticlesChannelDescription": {
-    "description": "Android 新文章通知渠道描述"
+    "description": "Android notification channel description for new articles"
   },
-  "windowMinimize": "最小化",
+  "windowMinimize": "Minimieren",
   "@windowMinimize": {
-    "description": "桌面端窗口“最小化”按钮提示"
+    "description": "Tooltip for the window minimize button on desktop"
   },
-  "windowMaximize": "最大化",
+  "windowMaximize": "Maximieren",
   "@windowMaximize": {
-    "description": "桌面端窗口“最大化”按钮提示"
+    "description": "Tooltip for the window maximize button on desktop"
   },
-  "windowRestore": "还原",
+  "windowRestore": "Wiederherstellen",
   "@windowRestore": {
-    "description": "桌面端窗口“还原”按钮提示"
+    "description": "Tooltip for the window restore button on desktop"
   },
-  "windowClose": "关闭",
+  "windowClose": "Schließen",
   "@windowClose": {
-    "description": "桌面端窗口“关闭”按钮提示"
+    "description": "Tooltip for the window close button on desktop"
   },
-  "translationAndAiServices": "翻译与 AI 服务",
+  "translationAndAiServices": "Übersetzung & KI",
   "@translationAndAiServices": {
-    "description": "翻译与 AI 服务设置页标签"
+    "description": "Settings tab for translation and AI services"
   },
-  "translation": "翻译",
+  "translation": "Übersetzung",
   "@translation": {
-    "description": "翻译设置分组标题"
+    "description": "Translation section title"
   },
-  "translationProvider": "翻译提供方",
+  "translationProvider": "Übersetzungsanbieter",
   "@translationProvider": {
-    "description": "选择翻译提供方的设置项标题"
+    "description": "Setting title for selecting translation provider"
   },
-  "aiServices": "AI 服务",
+  "aiServices": "AI Dienstleistungen",
   "@aiServices": {
-    "description": "AI 服务设置分组标题"
+    "description": "AI services section title"
   },
-  "addAiService": "添加 AI 服务",
+  "addAiService": "AI-Dienst hinzufügen",
   "@addAiService": {
-    "description": "添加 AI 服务按钮/标题"
+    "description": "Button/title for adding an AI service"
   },
-  "aiService": "AI 服务",
+  "aiService": "AI Dienst",
   "@aiService": {
-    "description": "AI 服务的通用标签"
+    "description": "Generic label for AI service"
   },
-  "aiSummary": "AI 总结",
+  "aiSummary": "KI-Zusammenfassung",
   "@aiSummary": {
-    "description": "AI 总结分组标题/标签"
+    "description": "AI summary section title/label"
   },
-  "aiSummaryService": "AI 总结服务",
+  "aiSummaryService": "AI zusammenfassender Dienst",
   "@aiSummaryService": {
-    "description": "选择 AI 总结使用的 AI 服务"
+    "description": "Setting title for selecting AI summary service"
   },
-  "targetLanguage": "目标语言",
+  "targetLanguage": "Zielsprache",
   "@targetLanguage": {
-    "description": "选择目标语言的设置项标题"
+    "description": "Setting title for selecting target language"
   },
-  "followAppLanguage": "跟随软件语言",
+  "followAppLanguage": "App-Sprache folgen",
   "@followAppLanguage": {
-    "description": "跟随软件语言的选项标签"
+    "description": "Option label for following the app language"
   },
-  "translationProviderGoogleWeb": "Google 翻译（网页）",
+  "translationProviderGoogleWeb": "Google Translate (web)",
   "@translationProviderGoogleWeb": {
-    "description": "Google 网页翻译提供方显示名称"
+    "description": "Display label for the Google web translation provider"
   },
-  "translationProviderBingWeb": "Bing 翻译（网页）",
+  "translationProviderBingWeb": "Bing Translate (web)",
   "@translationProviderBingWeb": {
-    "description": "Bing 网页翻译提供方显示名称"
+    "description": "Display label for the Bing web translation provider"
   },
-  "translationProviderBaiduApi": "百度翻译（API）",
+  "translationProviderBaiduApi": "Baidu Translate (API)",
   "@translationProviderBaiduApi": {
-    "description": "百度翻译 API 提供方显示名称"
+    "description": "Display label for the Baidu API translation provider"
   },
-  "translationProviderDeepLApi": "DeepL（API）",
+  "translationProviderDeepLApi": "DeepL (API)",
   "@translationProviderDeepLApi": {
-    "description": "DeepL API 提供方显示名称"
+    "description": "Display label for the DeepL API translation provider"
   },
   "translationProviderDeepLX": "DeepLX",
   "@translationProviderDeepLX": {
-    "description": "DeepLX 提供方显示名称"
+    "description": "Display label for the DeepLX translation provider"
   },
-  "translationProviderAiService": "AI：{name}",
+  "translationProviderAiService": "KI: {name}",
   "@translationProviderAiService": {
-    "description": "AI 翻译提供方显示名称",
+    "description": "Display label for an AI-backed translation provider",
     "placeholders": {
       "name": {}
     }
   },
-  "translationProviderBaiduApiSubtitle": "配置 App ID / App Key",
+  "translationProviderBaiduApiSubtitle": "Konfigurieren Sie App ID / App Key",
   "@translationProviderBaiduApiSubtitle": {
-    "description": "百度翻译凭据配置副标题"
+    "description": "Subtitle for configuring Baidu translation credentials"
   },
   "deepLXBaseUrlTitle": "DeepLX Base URL",
   "@deepLXBaseUrlTitle": {
-    "description": "编辑 DeepLX Base URL 的对话框标题"
+    "description": "Dialog title for editing the DeepLX base URL"
   },
   "deepLEndpoint": "Endpoint",
   "@deepLEndpoint": {
-    "description": "DeepL Endpoint 选择项标签"
+    "description": "Label for the DeepL endpoint selection"
   },
-  "deepLEndpointFree": "免费版",
+  "deepLEndpointFree": "Kostenlos",
   "@deepLEndpointFree": {
-    "description": "DeepL 免费版 Endpoint 标签"
+    "description": "Label for the DeepL free endpoint"
   },
-  "deepLEndpointPro": "专业版",
+  "deepLEndpointPro": "Profi",
   "@deepLEndpointPro": {
-    "description": "DeepL 专业版 Endpoint 标签"
+    "description": "Label for the DeepL pro endpoint"
   },
-  "setAsDefault": "设为默认",
+  "setAsDefault": "Als Standard festlegen",
   "@setAsDefault": {
-    "description": "将 AI 服务设为默认项的菜单文案"
+    "description": "Menu action for making an AI service the default one"
   },
-  "defaultAlreadySet": "默认（已设置）",
+  "defaultAlreadySet": "Standard (bereits festgelegt)",
   "@defaultAlreadySet": {
-    "description": "AI 服务已经是默认项时的菜单文案"
+    "description": "Menu label shown when an AI service is already the default one"
   },
-  "aiSummaryPrompt": "AI 总结提示词",
+  "aiSummaryPrompt": "AI Zusammenfassungsaufforderung",
   "@aiSummaryPrompt": {
-    "description": "AI 总结提示词模板设置项标题"
+    "description": "Setting title for AI summary prompt template"
   },
-  "aiTranslationPrompt": "AI 翻译提示词",
+  "aiTranslationPrompt": "KI-Übersetzungsprompt",
   "@aiTranslationPrompt": {
-    "description": "AI 翻译提示词模板设置项标题（仅使用 AI 翻译时生效）"
+    "description": "Setting title for AI translation prompt template"
   },
-  "defaultAiSummaryPromptTemplate": "请用 {language} 总结这篇文章（标题：{title}）：{content}",
+  "defaultAiSummaryPromptTemplate": "Bitte fasse diesen Artikel auf {language} zusammen (Titel: {title}): {content}",
   "@defaultAiSummaryPromptTemplate": {
-    "description": "默认 AI 总结提示词模板",
+    "description": "Default AI summary prompt template",
     "placeholders": {
       "language": {},
       "title": {},
       "content": {}
     }
   },
-  "defaultAiTranslationPromptTemplate": "请将这段文章内容翻译成 {language}（标题：{title}）：{content}",
+  "defaultAiTranslationPromptTemplate": "Bitte übersetze diesen Artikelausschnitt auf {language} (Titel: {title}): {content}",
   "@defaultAiTranslationPromptTemplate": {
-    "description": "默认 AI 翻译提示词模板（仅使用 AI 翻译时生效）",
+    "description": "Default AI translation prompt template (only used for AI translation)",
     "placeholders": {
       "language": {},
       "title": {},
       "content": {}
     }
   },
-  "promptVariables": "可用变量",
+  "promptVariables": "Verfügbare Variablen",
   "@promptVariables": {
-    "description": "提示词模板可用变量列表标题"
+    "description": "Header for listing available prompt template variables"
   },
-  "promptVariableContentDescription": "文章正文",
+  "promptVariableContentDescription": "Artikelinhalt",
   "@promptVariableContentDescription": {
-    "description": "{{content}} 变量的说明文本"
+    "description": "Description text for {{content}} variable"
   },
-  "promptVariableLanguageDescription": "目标语言",
+  "promptVariableLanguageDescription": "Zielsprache",
   "@promptVariableLanguageDescription": {
-    "description": "{{language}} 变量的说明文本"
+    "description": "Description text for {{language}} variable"
   },
-  "promptVariableTitleDescription": "文章标题",
+  "promptVariableTitleDescription": "Titel des Artikels",
   "@promptVariableTitleDescription": {
-    "description": "{{title}} 变量的说明文本"
+    "description": "Description text for {{title}} variable"
   },
-  "tpmLimit": "TPM 限制",
+  "tpmLimit": "TPM limit",
   "@tpmLimit": {
-    "description": "TPM（每分钟 Token）限制设置项标题"
+    "description": "Tokens per minute limit setting"
   },
-  "tpmLimitSubtitle": "0 表示不限制；超出后将进入队列等待。",
+  "tpmLimitSubtitle": "0 bedeutet unbegrenzt; Bei Überschreitung werden Anfragen in die Warteschlange gestellt.",
   "@tpmLimitSubtitle": {
-    "description": "TPM 限制的说明文字"
+    "description": "Subtitle text explaining the TPM limit behavior"
   },
-  "aiSummaryAction": "AI 总结",
+  "aiSummaryAction": "KI-Zusammenfassung",
   "@aiSummaryAction": {
-    "description": "阅读页生成 AI 总结按钮文案"
+    "description": "Action button label for generating AI summary"
   },
-  "translateAction": "翻译",
+  "translateAction": "Übersetzen",
   "@translateAction": {
-    "description": "阅读页翻译按钮文案"
+    "description": "Action button label for translating an article"
   },
-  "translationMode": "翻译模式",
+  "translationMode": "Übersetzungsmodus",
   "@translationMode": {
-    "description": "选择翻译模式的标题"
+    "description": "Title for selecting translation mode"
   },
-  "immersiveTranslation": "沉浸式翻译",
+  "immersiveTranslation": "Immersive Übersetzung",
   "@immersiveTranslation": {
-    "description": "沉浸式翻译模式选项文案"
+    "description": "Option label for immersive (bilingual) translation mode"
   },
-  "traditionalTranslation": "传统翻译",
+  "traditionalTranslation": "Traditionelle Übersetzung",
   "@traditionalTranslation": {
-    "description": "传统翻译模式选项文案"
+    "description": "Option label for traditional (translated-only) translation mode"
   },
-  "generating": "生成中…",
+  "generating": "Generieren…",
   "@generating": {
-    "description": "通用生成中状态文案"
+    "description": "Generic loading state text for generating AI/translation"
   },
-  "queued": "排队中",
+  "queued": "In der Warteschlange",
   "@queued": {
-    "description": "通用排队中状态文案"
+    "description": "Generic queued state text"
   },
-  "regenerate": "重新生成",
+  "regenerate": "Regenerieren",
   "@regenerate": {
-    "description": "重新生成按钮文案"
+    "description": "Action label for regenerating AI/translation output"
   },
-  "cachedPromptOutdated": "Prompt 已更新，请重新生成。",
+  "cachedPromptOutdated": "Prompt aktualisiert; regenerieren, um zu erfrischen.",
   "@cachedPromptOutdated": {
-    "description": "当缓存因 Prompt 变更失效时的提示文案"
+    "description": "Hint shown when cached content is outdated due to prompt changes"
   },
-  "languageMismatchBanner": "检测到内容可能是 {source}，目标语言是 {target}。",
+  "languageMismatchBanner": "Inhalt vermutlich {source}; Zielsprache ist {target}.",
   "@languageMismatchBanner": {
-    "description": "文章语言与目标语言不一致时的提醒文案",
+    "description": "Banner text shown when article language differs from target language",
     "placeholders": {
       "source": {},
       "target": {}
     }
   },
-  "dontRemindThisLanguage": "不再提醒此语言",
+  "dontRemindThisLanguage": "Für diese Sprache nicht erinnern",
   "@dontRemindThisLanguage": {
-    "description": "关闭某个源语言提醒的操作文案"
+    "description": "Action label to disable language mismatch reminders for a source language"
   },
-  "autoAiSummary": "自动 AI 总结",
+  "autoAiSummary": "Automatische AI Zusammenfassung",
   "@autoAiSummary": {
-    "description": "自动 AI 总结设置项标题"
+    "description": "Setting title for auto AI summary"
   },
-  "autoTranslate": "自动翻译",
+  "autoTranslate": "Automatische Übersetzung",
   "@autoTranslate": {
-    "description": "自动翻译设置项标题"
+    "description": "Setting title for auto translation"
   },
-  "aiNotConfigured": "尚未配置 AI 服务。",
+  "aiNotConfigured": "AI Dienst nicht konfiguriert.",
   "@aiNotConfigured": {
-    "description": "未配置 AI 服务时的错误提示"
+    "description": "Error message shown when no AI service is configured/enabled"
   },
-  "translationNotAvailable": "所选翻译提供方暂不支持。",
+  "translationNotAvailable": "Für den ausgewählten Anbieter ist keine Übersetzung verfügbar.",
   "@translationNotAvailable": {
-    "description": "所选翻译提供方未实现时的错误提示"
+    "description": "Error message shown when the selected translation provider is not supported"
   },
-  "clearTranslation": "关闭翻译",
+  "clearTranslation": "Klare Übersetzung",
   "@clearTranslation": {
-    "description": "清除/隐藏翻译视图的操作文案"
+    "description": "Action label to clear/hide the translated view"
   },
-  "dbRecoveryTitle": "数据库恢复",
+  "dbRecoveryTitle": "Datenbankwiederherstellung",
   "@dbRecoveryTitle": {
-    "description": "数据库恢复弹窗标题"
+    "description": "Title for the database recovery dialog"
   },
-  "dbRecoveryDescription": "应用检测到数据库异常，已自动进行恢复。你的数据已在磁盘上保留（备份/已移动的原库文件）。",
+  "dbRecoveryDescription": "Die App hat ein Datenbankproblem erkannt und eine Wiederherstellung durchgeführt. Ihre Daten wurden auf der Festplatte gespeichert (Backup/verschobene Datei).",
   "@dbRecoveryDescription": {
-    "description": "数据库恢复弹窗描述文案"
+    "description": "Description text shown in the database recovery dialog"
   },
-  "dbRecoveryTimeLabel": "时间",
+  "dbRecoveryTimeLabel": "Zeit",
   "@dbRecoveryTimeLabel": {
-    "description": "恢复时间字段标签"
+    "description": "Label for the recovery time field"
   },
-  "dbRecoveryDbNameLabel": "数据库名",
+  "dbRecoveryDbNameLabel": "DB-Name",
   "@dbRecoveryDbNameLabel": {
-    "description": "数据库名称字段标签"
+    "description": "Label for the database name field"
   },
-  "dbRecoveryOpenedAsLabel": "实际打开为",
+  "dbRecoveryOpenedAsLabel": "Geöffnet als",
   "@dbRecoveryOpenedAsLabel": {
-    "description": "回退数据库名称字段标签"
+    "description": "Label for the fallback database name field"
   },
-  "dbRecoveryBackupPathLabel": "备份",
+  "dbRecoveryBackupPathLabel": "Sicherung",
   "@dbRecoveryBackupPathLabel": {
-    "description": "备份路径字段标签"
+    "description": "Label for the backup file path field"
   },
-  "dbRecoveryMovedOriginalPathLabel": "已移动原库",
+  "dbRecoveryMovedOriginalPathLabel": "Original verschoben",
   "@dbRecoveryMovedOriginalPathLabel": {
-    "description": "已移动的原库路径字段标签"
+    "description": "Label for the moved original db file path field"
   },
-  "dbRecoveryErrorLabel": "错误",
+  "dbRecoveryErrorLabel": "Fehler",
   "@dbRecoveryErrorLabel": {
-    "description": "错误信息字段标签"
+    "description": "Label for the error message field"
   },
-  "dbRecoveryDataPreservedHint": "提示：可使用右侧复制按钮复制路径，便于排查或反馈。",
+  "dbRecoveryDataPreservedHint": "Tipp: Verwenden Sie die Kopierschaltflächen, um Pfade zur Fehlerbehebung oder zum Support zu kopieren.",
   "@dbRecoveryDataPreservedHint": {
-    "description": "数据库恢复弹窗底部提示"
+    "description": "Hint shown at the bottom of the recovery dialog"
   }
 }

@@ -199,7 +199,24 @@ void main() {
     final restored = AppSettings.fromJson(<String, Object?>{
       'localeTag': 'zh-Hans-CN',
     });
-    expect(restored.localeTag, 'zh');
+    expect(restored.localeTag, 'zh-Hans');
+
+    expect(
+      AppSettings.fromJson(<String, Object?>{'localeTag': 'zh'}).localeTag,
+      'zh-Hans',
+    );
+    expect(
+      AppSettings.fromJson(<String, Object?>{'localeTag': 'zh-HK'}).localeTag,
+      'zh-Hant',
+    );
+    expect(
+      AppSettings.fromJson(<String, Object?>{'localeTag': 'pt_BR'}).localeTag,
+      'pt-BR',
+    );
+    expect(
+      AppSettings.fromJson(<String, Object?>{'localeTag': 'de-DE'}).localeTag,
+      'de',
+    );
   });
 
   test('LanguageIdentity keeps normalized tag and canonical compare key', () {
@@ -217,10 +234,17 @@ void main() {
 
   test('supportedAppLocaleForTag falls back to supported UI locales', () {
     expect(
+      languageTagForLocale(supportedAppLocaleForTag('zh-Hans-CN')),
+      'zh-Hans',
+    );
+    expect(
       languageTagForLocale(supportedAppLocaleForTag('zh-Hant-HK')),
       'zh-Hant',
     );
-    expect(languageTagForLocale(supportedAppLocaleForTag('fr-FR')), 'en');
+    expect(languageTagForLocale(supportedAppLocaleForTag('pt_BR')), 'pt-BR');
+    expect(languageTagForLocale(supportedAppLocaleForTag('de-DE')), 'de');
+    expect(languageTagForLocale(supportedAppLocaleForTag('fr-FR')), 'fr');
+    expect(languageTagForLocale(supportedAppLocaleForTag('ru-RU')), 'en');
   });
 
   test(
@@ -251,6 +275,10 @@ void main() {
     expect(
       localizedLanguageNameForTag(const Locale('zh'), 'zh-Hant-HK'),
       '繁體中文',
+    );
+    expect(
+      localizedLanguageNameForTag(const Locale('de'), 'pt_BR'),
+      'Portugiesisch (Brasilien)',
     );
   });
 }
