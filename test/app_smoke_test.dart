@@ -338,6 +338,15 @@ void main() {
     );
   });
 
+  test('workspace sidebar width clamps to window and app maximums', () {
+    expect(clampWorkspaceSidebarWidth(999, 1200), kMaxWorkspaceSidebarWidth);
+    expect(
+      clampWorkspaceSidebarWidth(999, 700),
+      700 - kMinWorkspaceContentWidth - kSidebarContentDividerWidth,
+    );
+    expect(clampWorkspaceSidebarWidth(999, 500), kMinWorkspaceSidebarWidth);
+  });
+
   test('reader embedding stays monotonic while desktop width narrows', () {
     debugFleurTargetPlatformOverride = TargetPlatform.windows;
     addTearDown(() => debugFleurTargetPlatformOverride = null);
@@ -1106,7 +1115,7 @@ void main() {
 
     expect(
       tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
-      kDefaultWorkspaceSidebarWidth + 200 + kSidebarContentDividerWidth,
+      kMaxWorkspaceSidebarWidth + kSidebarContentDividerWidth,
     );
   });
 
@@ -1522,6 +1531,56 @@ void main() {
       expect(
         container.read(sidebarPresentationModeProvider),
         SidebarPresentationMode.expanded,
+      );
+    },
+  );
+
+  testWidgets(
+    'App shell temporary sidebar uses fixed width with a wide saved sidebar',
+    (tester) async {
+      debugFleurTargetPlatformOverride = TargetPlatform.windows;
+      addTearDown(() => debugFleurTargetPlatformOverride = null);
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = const Size(1000, 900);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(
+        _buildShellHarness(
+          currentUri: Uri(path: '/all/article/42'),
+          overrides: [
+            workspaceSidebarWidthProvider.overrideWith(
+              (ref) => kMaxWorkspaceSidebarWidth,
+            ),
+          ],
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
+        0,
+      );
+
+      await tester.tap(find.byKey(const Key('shell_sidebar_button')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
+      expect(
+        tester.getSize(find.byType(Sidebar).first).width,
+        kTemporaryWorkspaceSidebarWidth,
+      );
+      expect(
+        tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
+        kTemporaryWorkspaceSidebarWidth,
+      );
+
+      final element = tester.element(find.byKey(const Key('app_shell_child')));
+      final container = ProviderScope.containerOf(element);
+      expect(
+        container.read(workspaceSidebarWidthProvider),
+        kMaxWorkspaceSidebarWidth,
       );
     },
   );

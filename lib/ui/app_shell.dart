@@ -295,9 +295,12 @@ class _AppShellState extends ConsumerState<AppShell> {
     final usesTemporarySidebar =
         !hasInlineSidebar || useTemporarySidebarControls;
     final temporarySidebarOpen = usesTemporarySidebar && _temporarySidebarOpen;
+    final visibleSidebarWidth = temporarySidebarOpen
+        ? kTemporaryWorkspaceSidebarWidth
+        : sidebarWidth;
     final contentLeft = sidebarExpanded
         ? sidebarWidth + kSidebarContentDividerWidth
-        : (temporarySidebarOpen ? sidebarWidth : 0.0);
+        : (temporarySidebarOpen ? visibleSidebarWidth : 0.0);
     final contentWidth = sidebarExpanded
         ? (size.width - contentLeft).clamp(0.0, double.infinity).toDouble()
         : size.width;
@@ -332,7 +335,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       contentLeft: contentLeft,
       contentLeadingInset: contentLeadingInset,
       railOverlayVisible: railOverlayVisible,
-      sidebarWidth: sidebarWidth,
+      sidebarWidth: visibleSidebarWidth,
       listWidth: listWidth,
       headerLeadingInset: headerLeadingInset,
       macOSWindowChromeMetrics: macOSWindowChromeMetrics,
@@ -374,10 +377,10 @@ class _AppShellState extends ConsumerState<AppShell> {
                   left: 0,
                   top: 0,
                   bottom: 0,
-                  width: sidebarWidth,
+                  width: visibleSidebarWidth,
                   child: _desktopSidebar(
                     context: context,
-                    width: sidebarWidth,
+                    width: visibleSidebarWidth,
                     showAccountSyncStatus: showAccountSyncStatus,
                     currentUri: widget.currentUri,
                     macOSWindowChromeMetrics: macOSWindowChromeMetrics,

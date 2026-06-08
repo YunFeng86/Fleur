@@ -6,6 +6,8 @@ import 'layout.dart';
 // sidebar migration does not change the reading workspace's visual rhythm yet.
 const double kDefaultWorkspaceSidebarWidth = kDesktopSidebarWidth;
 const double kMinWorkspaceSidebarWidth = 220;
+const double kMaxWorkspaceSidebarWidth = 360;
+const double kTemporaryWorkspaceSidebarWidth = kDefaultWorkspaceSidebarWidth;
 const double kDefaultWorkspaceListWidth = kDesktopListWidth;
 const double kMinWorkspaceListWidth = 360;
 const double kMinWorkspaceContentWidth = kMinWorkspaceListWidth;
@@ -125,8 +127,11 @@ double sidebarWidthForPresentationMode(SidebarPresentationMode mode) =>
 double maxWorkspaceSidebarWidthForWindow(double totalWidth) {
   final maxWidth =
       totalWidth - kMinWorkspaceContentWidth - kSidebarContentDividerWidth;
-  return maxWidth < kMinWorkspaceSidebarWidth
-      ? kMinWorkspaceSidebarWidth
+  if (maxWidth < kMinWorkspaceSidebarWidth) {
+    return kMinWorkspaceSidebarWidth;
+  }
+  return maxWidth > kMaxWorkspaceSidebarWidth
+      ? kMaxWorkspaceSidebarWidth
       : maxWidth;
 }
 
