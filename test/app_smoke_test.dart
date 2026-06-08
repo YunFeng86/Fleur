@@ -1154,7 +1154,7 @@ void main() {
   );
 
   testWidgets(
-    'App shell sidebar split handle collapses after minimum-width overshoot',
+    'App shell sidebar split handle collapses immediately after minimum-width overshoot',
     (tester) async {
       debugFleurTargetPlatformOverride = TargetPlatform.windows;
       addTearDown(() => debugFleurTargetPlatformOverride = null);
@@ -1166,24 +1166,12 @@ void main() {
       await tester.pumpWidget(_buildShellHarness());
       await tester.pumpAndSettle();
 
-      await tester.drag(
-        find.byKey(const Key('app_shell_sidebar_split_handle')),
-        const Offset(-72, 0),
-      );
-      await tester.pumpAndSettle();
-      await _settleRailOverlayReveal(tester);
+      final handle = find.byKey(const Key('app_shell_sidebar_split_handle'));
+      final gesture = await tester.startGesture(tester.getCenter(handle));
+      await gesture.moveBy(const Offset(-72, 0));
+      await tester.pump();
 
-      expect(
-        find.byKey(const Key('app_shell_sidebar_split_handle')),
-        findsNothing,
-      );
-      expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
-      expect(find.byKey(const Key('app_shell_rail_overlay')), findsOneWidget);
-      expect(
-        tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
-        0,
-      );
-
+      expect(handle, findsNothing);
       final element = tester.element(find.byKey(const Key('app_shell_child')));
       final container = ProviderScope.containerOf(element);
       expect(
@@ -1194,11 +1182,22 @@ void main() {
         container.read(workspaceSidebarWidthProvider),
         kMinWorkspaceSidebarWidth,
       );
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+      await _settleRailOverlayReveal(tester);
+
+      expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
+      expect(find.byKey(const Key('app_shell_rail_overlay')), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
+        0,
+      );
     },
   );
 
   testWidgets(
-    'App shell sidebar split handle keeps sidebar expanded when overshoot is pulled back',
+    'App shell sidebar split handle stays collapsed when overshoot is pulled back',
     (tester) async {
       debugFleurTargetPlatformOverride = TargetPlatform.windows;
       addTearDown(() => debugFleurTargetPlatformOverride = null);
@@ -1217,20 +1216,21 @@ void main() {
       await gesture.moveBy(const Offset(30, 0));
       await gesture.up();
       await tester.pumpAndSettle();
+      await _settleRailOverlayReveal(tester);
 
-      expect(handle, findsOneWidget);
-      expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
-      expect(find.byKey(const Key('app_shell_rail_overlay')), findsNothing);
+      expect(handle, findsNothing);
+      expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
+      expect(find.byKey(const Key('app_shell_rail_overlay')), findsOneWidget);
       expect(
         tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
-        kMinWorkspaceSidebarWidth + kSidebarContentDividerWidth,
+        0,
       );
 
       final element = tester.element(find.byKey(const Key('app_shell_child')));
       final container = ProviderScope.containerOf(element);
       expect(
         container.read(sidebarPresentationModeProvider),
-        SidebarPresentationMode.expanded,
+        SidebarPresentationMode.collapsed,
       );
       expect(
         container.read(workspaceSidebarWidthProvider),

@@ -36,7 +36,6 @@ class _AppShellState extends ConsumerState<AppShell> {
   bool _temporarySidebarOpen = false;
   bool _navigationHistoryBindScheduled = false;
   double? _sidebarResizeVirtualWidth;
-  bool _collapseSidebarOnResizeEnd = false;
   GoRouter? _pendingNavigationHistoryRouter;
 
   @override
@@ -123,7 +122,6 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   void _beginSidebarResize(double sidebarWidth) {
     _sidebarResizeVirtualWidth = sidebarWidth;
-    _collapseSidebarOnResizeEnd = false;
   }
 
   void _updateSidebarResize({
@@ -141,21 +139,23 @@ class _AppShellState extends ConsumerState<AppShell> {
       nextVirtualWidth = maxWidth;
     }
 
-    _sidebarResizeVirtualWidth = nextVirtualWidth;
-    _collapseSidebarOnResizeEnd =
+    final shouldCollapse =
         nextVirtualWidth <=
         kMinWorkspaceSidebarWidth - _kSidebarCollapseOvershoot;
+    if (shouldCollapse) {
+      _collapseSidebarFromResize(ref);
+      return;
+    }
+
+    _sidebarResizeVirtualWidth = nextVirtualWidth;
     widthNotifier.state = clampWorkspaceSidebarWidth(
       nextVirtualWidth,
       totalWidth,
     );
   }
 
-  void _endSidebarResize(WidgetRef ref) {
-    final shouldCollapse = _collapseSidebarOnResizeEnd;
+  void _collapseSidebarFromResize(WidgetRef ref) {
     _clearSidebarResizeState();
-    if (!shouldCollapse) return;
-
     ref.read(workspaceSidebarWidthProvider.notifier).state =
         kMinWorkspaceSidebarWidth;
     ref.read(sidebarPresentationModeProvider.notifier).state =
@@ -164,7 +164,6 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   void _clearSidebarResizeState() {
     _sidebarResizeVirtualWidth = null;
-    _collapseSidebarOnResizeEnd = false;
   }
 
   Widget _sidebarDrawer(
@@ -404,7 +403,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                           totalWidth: size.width,
                         );
                       },
-                      onDragEnd: (_) => _endSidebarResize(ref),
+                      onDragEnd: (_) => _clearSidebarResizeState(),
                       onDragCancel: _clearSidebarResizeState,
                       showDivider: false,
                     ),
