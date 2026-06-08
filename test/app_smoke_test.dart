@@ -1120,6 +1120,48 @@ void main() {
   });
 
   testWidgets(
+    'App shell sidebar split handle preserves max-width overshoot until the pointer returns',
+    (tester) async {
+      debugFleurTargetPlatformOverride = TargetPlatform.windows;
+      addTearDown(() => debugFleurTargetPlatformOverride = null);
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = const Size(1200, 900);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(_buildShellHarness());
+      await tester.pumpAndSettle();
+
+      final handle = find.byKey(const Key('app_shell_sidebar_split_handle'));
+      final gesture = await tester.startGesture(tester.getCenter(handle));
+      await gesture.moveBy(const Offset(200, 0));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
+        kMaxWorkspaceSidebarWidth + kSidebarContentDividerWidth,
+      );
+
+      await gesture.moveBy(const Offset(-50, 0));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
+        kMaxWorkspaceSidebarWidth + kSidebarContentDividerWidth,
+      );
+
+      await gesture.moveBy(const Offset(-60, 0));
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
+        350 + kSidebarContentDividerWidth,
+      );
+    },
+  );
+
+  testWidgets(
     'App shell sidebar split handle clamps at minimum without small-overshoot collapse',
     (tester) async {
       debugFleurTargetPlatformOverride = TargetPlatform.windows;
@@ -1177,7 +1219,7 @@ void main() {
 
       final handle = find.byKey(const Key('app_shell_sidebar_split_handle'));
       final gesture = await tester.startGesture(tester.getCenter(handle));
-      await gesture.moveBy(const Offset(-72, 0));
+      await gesture.moveBy(const Offset(-160, 0));
       await tester.pump();
 
       expect(handle, findsNothing);
@@ -1220,7 +1262,7 @@ void main() {
 
       final handle = find.byKey(const Key('app_shell_sidebar_split_handle'));
       final gesture = await tester.startGesture(tester.getCenter(handle));
-      await gesture.moveBy(const Offset(-72, 0));
+      await gesture.moveBy(const Offset(-160, 0));
       await tester.pump();
       await gesture.moveBy(const Offset(30, 0));
       await gesture.up();

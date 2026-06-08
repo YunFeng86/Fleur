@@ -130,18 +130,12 @@ class _AppShellState extends ConsumerState<AppShell> {
     required double totalWidth,
   }) {
     final widthNotifier = ref.read(workspaceSidebarWidthProvider.notifier);
-    final maxWidth = maxWorkspaceSidebarWidthForWindow(totalWidth);
     final currentVirtualWidth =
         _sidebarResizeVirtualWidth ??
         clampWorkspaceSidebarWidth(widthNotifier.state, totalWidth);
-    var nextVirtualWidth = currentVirtualWidth + delta;
-    if (nextVirtualWidth > maxWidth) {
-      nextVirtualWidth = maxWidth;
-    }
+    final nextVirtualWidth = currentVirtualWidth + delta;
 
-    final shouldCollapse =
-        nextVirtualWidth <=
-        kMinWorkspaceSidebarWidth - _kSidebarCollapseOvershoot;
+    final shouldCollapse = nextVirtualWidth <= _kSidebarCollapseThresholdWidth;
     if (shouldCollapse) {
       _collapseSidebarFromResize(ref);
       return;
@@ -639,7 +633,7 @@ class _AppShellState extends ConsumerState<AppShell> {
 }
 
 const _kContentLayerAnimationDuration = Duration(milliseconds: 180);
-const double _kSidebarCollapseOvershoot = 24;
+const double _kSidebarCollapseThresholdWidth = kMinWorkspaceSidebarWidth / 2;
 
 double _shellControlsGroupWidth(SidebarPresentationMode mode) {
   return kShellControlSize * (mode == SidebarPresentationMode.expanded ? 3 : 4);
