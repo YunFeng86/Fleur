@@ -17,6 +17,8 @@ Fleur 1.0 计划作为优先面向 macOS 的正式版本发布。源码树中仍
 
 如果 macOS 阻止打开应用，请在 Finder 中找到 `Fleur.app`，按住 Control 点击，选择“打开”，然后再次确认“打开”。
 
+如果 macOS 提示应用“已损坏”或“无法打开”，请查看下面的 Q&A。
+
 ## Fleur 可以做什么
 
 - 在围绕文章列表和专注阅读器设计的桌面工作区中阅读 RSS 和 Atom 订阅。
@@ -139,6 +141,25 @@ Fleur 最近的工作主要集中在让桌面阅读体验更贴近 macOS：窗�
 Fleur 是一个独立维护的开源项目。1.0 的 macOS 构建目前不会进行 Apple 代码签名和公证，因为项目暂时没有付费的 Apple Developer Program 账号。Apple 目前标注该计划费用为 [每年 99 美元](https://developer.apple.com/programs/)。
 
 因此，首次打开 Fleur 时，macOS 可能会显示安全提醒。这不代表 Fleur 有意不安全，但未签名构建也确实不提供 Apple 的开发者身份验证。请只从官方 GitHub Releases 下载；如果你更谨慎，也可以从源码自行构建。
+
+### macOS 提示 Fleur 已损坏或无法打开怎么办？
+
+这通常是 Gatekeeper 对从网络下载的未签名应用保留了 quarantine 隔离属性。只有在你确认 Fleur 来自官方 GitHub Releases，或由你自己从源码构建时，才建议继续下面的操作。
+
+建议按顺序尝试：
+
+1. 先把 `Fleur.app` 复制到 `/Applications`。
+2. 在 Finder 中找到 `Fleur.app`，按住 Control 点击，选择“打开”，然后再次确认“打开”。
+3. 打开“系统设置” -> “隐私与安全性”，向下滚动到安全性区域；如果看到 Fleur 的拦截提示，点击“仍要打开”。
+4. 如果 macOS 仍提示应用已损坏，可以移除本地隔离属性：
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Fleur.app
+```
+
+然后再次从 Finder 打开 `Fleur.app`。
+
+这个命令不会给应用签名或公证，只是移除你本机这份应用上的隔离标记。不建议全局关闭 Gatekeeper。
 
 ### Windows 和 Linux 是被放弃了吗？
 

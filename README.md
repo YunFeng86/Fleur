@@ -24,6 +24,8 @@ Download Fleur from [GitHub Releases](https://github.com/YunFeng86/Fleur/release
 If macOS blocks the app, open Finder, locate `Fleur.app`, Control-click it,
 choose `Open`, then confirm `Open`.
 
+If macOS says the app is damaged or cannot be opened, see the Q&A section below.
+
 ## What Fleur Does
 
 - Read RSS and Atom feeds in a desktop workspace designed around article lists
@@ -166,6 +168,31 @@ This means macOS may warn you the first time you open the app. It does not mean
 the app is intentionally unsafe, but unsigned builds also do not provide Apple's
 developer identity verification. Download Fleur only from the official GitHub
 Releases page, or build it from source if you prefer.
+
+### What if macOS says Fleur is damaged or cannot be opened?
+
+This can happen when Gatekeeper keeps a downloaded, unsigned app in quarantine.
+Only continue if you downloaded Fleur from the official GitHub Releases page or
+built it yourself from source.
+
+Try these options in order:
+
+1. Copy `Fleur.app` to `/Applications`.
+2. Open Finder, locate `Fleur.app`, Control-click it, choose `Open`, then confirm
+   `Open`.
+3. Open System Settings -> Privacy & Security, scroll to the Security section,
+   and choose `Open Anyway` for Fleur if macOS shows that option.
+4. If macOS still reports that the app is damaged, remove the quarantine
+   attribute:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Fleur.app
+```
+
+Then open `Fleur.app` again from Finder.
+
+This does not sign or notarize the app; it only removes the local quarantine flag
+from your copy. Avoid disabling Gatekeeper globally.
 
 ### Are Windows and Linux discontinued?
 
