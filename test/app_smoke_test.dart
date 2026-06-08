@@ -1110,6 +1110,135 @@ void main() {
     );
   });
 
+  testWidgets(
+    'App shell sidebar split handle clamps at minimum without small-overshoot collapse',
+    (tester) async {
+      debugFleurTargetPlatformOverride = TargetPlatform.windows;
+      addTearDown(() => debugFleurTargetPlatformOverride = null);
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = const Size(1200, 900);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(_buildShellHarness());
+      await tester.pumpAndSettle();
+
+      await tester.drag(
+        find.byKey(const Key('app_shell_sidebar_split_handle')),
+        const Offset(-52, 0),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('app_shell_sidebar_split_handle')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
+      expect(find.byKey(const Key('app_shell_rail_overlay')), findsNothing);
+      expect(
+        tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
+        kMinWorkspaceSidebarWidth + kSidebarContentDividerWidth,
+      );
+
+      final element = tester.element(find.byKey(const Key('app_shell_child')));
+      final container = ProviderScope.containerOf(element);
+      expect(
+        container.read(sidebarPresentationModeProvider),
+        SidebarPresentationMode.expanded,
+      );
+      expect(
+        container.read(workspaceSidebarWidthProvider),
+        kMinWorkspaceSidebarWidth,
+      );
+    },
+  );
+
+  testWidgets(
+    'App shell sidebar split handle collapses after minimum-width overshoot',
+    (tester) async {
+      debugFleurTargetPlatformOverride = TargetPlatform.windows;
+      addTearDown(() => debugFleurTargetPlatformOverride = null);
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = const Size(1200, 900);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(_buildShellHarness());
+      await tester.pumpAndSettle();
+
+      await tester.drag(
+        find.byKey(const Key('app_shell_sidebar_split_handle')),
+        const Offset(-72, 0),
+      );
+      await tester.pumpAndSettle();
+      await _settleRailOverlayReveal(tester);
+
+      expect(
+        find.byKey(const Key('app_shell_sidebar_split_handle')),
+        findsNothing,
+      );
+      expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
+      expect(find.byKey(const Key('app_shell_rail_overlay')), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
+        0,
+      );
+
+      final element = tester.element(find.byKey(const Key('app_shell_child')));
+      final container = ProviderScope.containerOf(element);
+      expect(
+        container.read(sidebarPresentationModeProvider),
+        SidebarPresentationMode.collapsed,
+      );
+      expect(
+        container.read(workspaceSidebarWidthProvider),
+        kMinWorkspaceSidebarWidth,
+      );
+    },
+  );
+
+  testWidgets(
+    'App shell sidebar split handle keeps sidebar expanded when overshoot is pulled back',
+    (tester) async {
+      debugFleurTargetPlatformOverride = TargetPlatform.windows;
+      addTearDown(() => debugFleurTargetPlatformOverride = null);
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = const Size(1200, 900);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(_buildShellHarness());
+      await tester.pumpAndSettle();
+
+      final handle = find.byKey(const Key('app_shell_sidebar_split_handle'));
+      final gesture = await tester.startGesture(tester.getCenter(handle));
+      await gesture.moveBy(const Offset(-72, 0));
+      await tester.pump();
+      await gesture.moveBy(const Offset(30, 0));
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(handle, findsOneWidget);
+      expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
+      expect(find.byKey(const Key('app_shell_rail_overlay')), findsNothing);
+      expect(
+        tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
+        kMinWorkspaceSidebarWidth + kSidebarContentDividerWidth,
+      );
+
+      final element = tester.element(find.byKey(const Key('app_shell_child')));
+      final container = ProviderScope.containerOf(element);
+      expect(
+        container.read(sidebarPresentationModeProvider),
+        SidebarPresentationMode.expanded,
+      );
+      expect(
+        container.read(workspaceSidebarWidthProvider),
+        kMinWorkspaceSidebarWidth,
+      );
+    },
+  );
+
   testWidgets('App shell rail overlay leaves header content clear', (
     tester,
   ) async {

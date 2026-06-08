@@ -390,11 +390,17 @@ class WorkspaceSplitHandle extends StatelessWidget {
   const WorkspaceSplitHandle({
     super.key,
     required this.onDragDelta,
+    this.onDragStart,
+    this.onDragEnd,
+    this.onDragCancel,
     this.color,
     this.showDivider = true,
   });
 
   final ValueChanged<double> onDragDelta;
+  final GestureDragStartCallback? onDragStart;
+  final GestureDragEndCallback? onDragEnd;
+  final GestureDragCancelCallback? onDragCancel;
   final Color? color;
   final bool showDivider;
 
@@ -406,7 +412,10 @@ class WorkspaceSplitHandle extends StatelessWidget {
       cursor: SystemMouseCursors.resizeLeftRight,
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
+        onHorizontalDragStart: onDragStart,
         onHorizontalDragUpdate: (details) => onDragDelta(details.delta.dx),
+        onHorizontalDragEnd: onDragEnd,
+        onHorizontalDragCancel: onDragCancel,
         child: SizedBox(
           width: kWorkspaceSplitHandleHitWidth,
           child: showDivider

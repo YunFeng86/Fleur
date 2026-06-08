@@ -35,6 +35,8 @@ class AppShell extends ConsumerStatefulWidget {
 class _AppShellState extends ConsumerState<AppShell> {
   bool _temporarySidebarOpen = false;
   bool _navigationHistoryBindScheduled = false;
+  double? _sidebarResizeVirtualWidth;
+  bool _collapseSidebarOnResizeEnd = false;
   GoRouter? _pendingNavigationHistoryRouter;
 
   @override
@@ -117,6 +119,52 @@ class _AppShellState extends ConsumerState<AppShell> {
     notifier.state = notifier.state == SidebarPresentationMode.expanded
         ? SidebarPresentationMode.collapsed
         : SidebarPresentationMode.expanded;
+  }
+
+  void _beginSidebarResize(double sidebarWidth) {
+    _sidebarResizeVirtualWidth = sidebarWidth;
+    _collapseSidebarOnResizeEnd = false;
+  }
+
+  void _updateSidebarResize({
+    required WidgetRef ref,
+    required double delta,
+    required double totalWidth,
+  }) {
+    final widthNotifier = ref.read(workspaceSidebarWidthProvider.notifier);
+    final maxWidth = maxWorkspaceSidebarWidthForWindow(totalWidth);
+    final currentVirtualWidth =
+        _sidebarResizeVirtualWidth ??
+        clampWorkspaceSidebarWidth(widthNotifier.state, totalWidth);
+    var nextVirtualWidth = currentVirtualWidth + delta;
+    if (nextVirtualWidth > maxWidth) {
+      nextVirtualWidth = maxWidth;
+    }
+
+    _sidebarResizeVirtualWidth = nextVirtualWidth;
+    _collapseSidebarOnResizeEnd =
+        nextVirtualWidth <=
+        kMinWorkspaceSidebarWidth - _kSidebarCollapseOvershoot;
+    widthNotifier.state = clampWorkspaceSidebarWidth(
+      nextVirtualWidth,
+      totalWidth,
+    );
+  }
+
+  void _endSidebarResize(WidgetRef ref) {
+    final shouldCollapse = _collapseSidebarOnResizeEnd;
+    _clearSidebarResizeState();
+    if (!shouldCollapse) return;
+
+    ref.read(workspaceSidebarWidthProvider.notifier).state =
+        kMinWorkspaceSidebarWidth;
+    ref.read(sidebarPresentationModeProvider.notifier).state =
+        SidebarPresentationMode.collapsed;
+  }
+
+  void _clearSidebarResizeState() {
+    _sidebarResizeVirtualWidth = null;
+    _collapseSidebarOnResizeEnd = false;
   }
 
   Widget _sidebarDrawer(
@@ -348,15 +396,16 @@ class _AppShellState extends ConsumerState<AppShell> {
                     bottom: 0,
                     width: kWorkspaceSplitHandleHitWidth,
                     child: WorkspaceSplitHandle(
+                      onDragStart: (_) => _beginSidebarResize(sidebarWidth),
                       onDragDelta: (delta) {
-                        final notifier = ref.read(
-                          workspaceSidebarWidthProvider.notifier,
-                        );
-                        notifier.state = clampWorkspaceSidebarWidth(
-                          notifier.state + delta,
-                          size.width,
+                        _updateSidebarResize(
+                          ref: ref,
+                          delta: delta,
+                          totalWidth: size.width,
                         );
                       },
+                      onDragEnd: (_) => _endSidebarResize(ref),
+                      onDragCancel: _clearSidebarResizeState,
                       showDivider: false,
                     ),
                   ),
@@ -588,6 +637,8 @@ class _AppShellState extends ConsumerState<AppShell> {
 }
 
 const _kContentLayerAnimationDuration = Duration(milliseconds: 180);
+const double _kSidebarCollapseOvershoot = 24;
+
 double _shellControlsGroupWidth(SidebarPresentationMode mode) {
   return kShellControlSize * (mode == SidebarPresentationMode.expanded ? 3 : 4);
 }
