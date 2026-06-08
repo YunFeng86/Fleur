@@ -2,7 +2,7 @@
 
 [简体中文](README.zh-CN.md) | English
 
-[![Quality](https://github.com/YunFeng86/Fleur/actions/workflows/quality.yml/badge.svg)](https://github.com/YunFeng86/Fleur/actions/workflows/quality.yml)
+[![Quality](https://github.com/ZeyrMe/Fleur/actions/workflows/quality.yml/badge.svg)](https://github.com/ZeyrMe/Fleur/actions/workflows/quality.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Fleur is a macOS-first RSS reader for following the open web with a quiet,
@@ -14,7 +14,7 @@ be macOS-only.
 
 ## Download
 
-Download Fleur from [GitHub Releases](https://github.com/YunFeng86/Fleur/releases).
+Download Fleur from [GitHub Releases](https://github.com/ZeyrMe/Fleur/releases).
 
 > macOS security note: Fleur 1.0 builds are currently unsigned and not notarized.
 > On first launch, macOS Gatekeeper may show a warning. Download only from the

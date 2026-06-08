@@ -2,7 +2,7 @@
 
 简体中文 | [English](README.md)
 
-[![Quality](https://github.com/YunFeng86/Fleur/actions/workflows/quality.yml/badge.svg)](https://github.com/YunFeng86/Fleur/actions/workflows/quality.yml)
+[![Quality](https://github.com/ZeyrMe/Fleur/actions/workflows/quality.yml/badge.svg)](https://github.com/ZeyrMe/Fleur/actions/workflows/quality.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Fleur 是一个 macOS-first 的 RSS 阅读器，面向开放 Web，提供安静、本地优先的阅读工作流。
@@ -11,7 +11,7 @@ Fleur 1.0 计划作为优先面向 macOS 的正式版本发布。源码树中仍
 
 ## 下载
 
-请从 [GitHub Releases](https://github.com/YunFeng86/Fleur/releases) 下载 Fleur。
+请从 [GitHub Releases](https://github.com/ZeyrMe/Fleur/releases) 下载 Fleur。
 
 > macOS 安全提示：Fleur 1.0 构建目前未签名、未公证。首次打开时，macOS Gatekeeper 可能会显示安全提醒。请只从官方 GitHub Releases 下载；如果你更谨慎，也可以审计源码后自行构建。
 
