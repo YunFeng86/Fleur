@@ -74,6 +74,12 @@ class ReaderBottomBar extends ConsumerWidget {
     final showFull = hasFull && preferExtracted;
     final extractionFailed =
         !hasFull && article.contentSource == ContentSource.extractionFailed;
+    final toolbarBackground = Color.alphaBlend(
+      theme.colorScheme.primary.withValues(
+        alpha: theme.brightness == Brightness.dark ? 0.12 : 0.07,
+      ),
+      reader.toolbarSurface,
+    );
 
     Future<void> openTranslationSheet() async {
       await showModalBottomSheet<void>(
@@ -246,7 +252,7 @@ class ReaderBottomBar extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: reader.toolbarSurface,
+        color: toolbarBackground,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
         boxShadow: [
           BoxShadow(
