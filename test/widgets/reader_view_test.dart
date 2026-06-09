@@ -2223,11 +2223,17 @@ void main() {
       isNot(baseTheme.fleurSurface.reader),
     );
     expect(sceneTheme.cardTheme.color, sceneTheme.fleurReader.summarySurface);
-    expect(bottomBarDecoration?.color, baseTheme.fleurReader.toolbarSurface);
     expect(
       sceneTheme.fleurReader.toolbarSurface,
       baseTheme.fleurReader.toolbarSurface,
     );
+    final expectedBottomBarColor = Color.alphaBlend(
+      sceneTheme.colorScheme.primary.withValues(
+        alpha: sceneTheme.brightness == Brightness.dark ? 0.12 : 0.07,
+      ),
+      sceneTheme.fleurReader.toolbarSurface,
+    );
+    expect(bottomBarDecoration?.color, expectedBottomBarColor);
     expect(searchBarMaterial.color, sceneTheme.fleurReader.searchBarSurface);
     expect(
       sceneTheme.fleurReader.searchBarSurface,
