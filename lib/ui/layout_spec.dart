@@ -1,13 +1,14 @@
 import 'package:flutter/widgets.dart';
 
 import '../utils/platform.dart';
-import 'global_nav.dart';
+import 'sidebar_layout.dart';
 import 'layout.dart';
+import 'workspace_layers.dart';
 
 /// A single source of truth for responsive/layout decisions.
 ///
 /// Important: [contentWidth] is the width available to page content after
-/// subtracting global navigation chrome (e.g. NavigationRail).
+/// subtracting inline app sidebar chrome.
 @immutable
 class LayoutSpec {
   const LayoutSpec._({
@@ -15,41 +16,77 @@ class LayoutSpec {
     required this.totalHeight,
     required this.contentWidth,
     required this.contentHeight,
-    required this.globalNavMode,
+    required this.sidebarLayoutMode,
+    required this.sidebarWidth,
+    required this.listWidth,
   });
 
   factory LayoutSpec.fromTotalSize({
     required double totalWidth,
     required double totalHeight,
+    SidebarPresentationMode sidebarPresentationMode =
+        SidebarPresentationMode.expanded,
+    double sidebarWidth = kDefaultWorkspaceSidebarWidth,
+    double listWidth = kDefaultWorkspaceListWidth,
   }) {
+    final effectiveSidebarWidth = clampWorkspaceSidebarWidth(
+      sidebarWidth,
+      totalWidth,
+    );
+    final contentWidth = effectiveContentWidth(
+      totalWidth,
+      sidebarPresentationMode: sidebarPresentationMode,
+      sidebarWidth: effectiveSidebarWidth,
+    );
     return LayoutSpec._(
       totalWidth: totalWidth,
       totalHeight: totalHeight,
-      contentWidth: effectiveContentWidth(totalWidth),
+      contentWidth: contentWidth,
       contentHeight: totalHeight,
-      globalNavMode: globalNavModeForWidth(totalWidth),
+      sidebarLayoutMode: sidebarLayoutModeForWidth(totalWidth),
+      sidebarWidth: effectiveSidebarWidth,
+      listWidth: clampWorkspaceListWidth(listWidth, contentWidth),
     );
   }
 
   /// Use this when you're already inside the content area (e.g. ShellRoute child
-  /// where NavigationRail has already consumed horizontal space).
+  /// where the app sidebar has already consumed horizontal space).
   ///
-  /// Note: [globalNavMode] is best-effort here and should not be relied on for
+  /// Note: [sidebarLayoutMode] is best-effort here and should not be relied on for
   /// outer-chrome decisions.
   factory LayoutSpec.fromContentSize({
     required double contentWidth,
     required double contentHeight,
+    double listWidth = kDefaultWorkspaceListWidth,
   }) {
     return LayoutSpec._(
       totalWidth: contentWidth,
       totalHeight: contentHeight,
       contentWidth: contentWidth,
       contentHeight: contentHeight,
-      globalNavMode: globalNavModeForWidth(contentWidth),
+      sidebarLayoutMode: sidebarLayoutModeForWidth(contentWidth),
+      sidebarWidth: kDefaultWorkspaceSidebarWidth,
+      listWidth: clampWorkspaceListWidth(listWidth, contentWidth),
     );
   }
 
   factory LayoutSpec.fromContext(BuildContext context) {
+    final shellLayer = ShellLayerScope.maybeOf(context);
+    if (shellLayer != null) {
+      return LayoutSpec._(
+        totalWidth: shellLayer.totalSize.width,
+        totalHeight: shellLayer.totalSize.height,
+        contentWidth: shellLayer.contentSize.width,
+        contentHeight: shellLayer.contentSize.height,
+        sidebarLayoutMode: shellLayer.sidebarLayoutMode,
+        sidebarWidth: shellLayer.sidebarWidth,
+        listWidth: clampWorkspaceListWidth(
+          shellLayer.listWidth,
+          shellLayer.contentSize.width,
+        ),
+      );
+    }
+
     final size = MediaQuery.sizeOf(context);
     return LayoutSpec.fromTotalSize(
       totalWidth: size.width,
@@ -61,11 +98,22 @@ class LayoutSpec {
   final double totalHeight;
   final double contentWidth;
   final double contentHeight;
-  final GlobalNavMode globalNavMode;
+  final SidebarLayoutMode sidebarLayoutMode;
+  final double sidebarWidth;
+  final double listWidth;
 
   bool get isDesktopPlatform => isDesktop;
 
-  DesktopPaneMode get desktopPaneMode => desktopModeForWidth(contentWidth);
+  bool get hasInlineSidebar => sidebarLayoutMode == SidebarLayoutMode.inline;
+
+  bool get usesCompactListActions => contentWidth < kCompactWidth;
+
+  bool get showsListSyncStatusCapsule => !usesCompactListActions;
+
+  DesktopPaneMode get desktopPaneMode => desktopModeForWidth(
+    contentWidth - kWorkspaceSplitHandleHitWidth,
+    listWidth: listWidth,
+  );
 
   bool get desktopEmbedsReader => desktopReaderEmbedded(desktopPaneMode);
 
@@ -73,10 +121,59 @@ class LayoutSpec {
     required double listWidth,
     double minReaderWidth = kMinReadingWidth,
   }) {
-    return contentWidth >= (listWidth + minReaderWidth + kPaneGap);
+    return contentWidth >=
+        (listWidth + minReaderWidth + kPaneGap + kWorkspaceSplitHandleHitWidth);
   }
 
   bool get isCompact => contentWidth < kCompactWidth;
 
   bool get canSwipeToDelete => !isDesktopPlatform;
+}
+
+bool shouldEmbedReaderForLayout(LayoutSpec spec, {required double listWidth}) {
+  if (!spec.isDesktopPlatform) {
+    return spec.canEmbedReader(listWidth: listWidth);
+  }
+
+  return canEmbedDesktopReaderForContentWidth(
+        spec.contentWidth,
+        preferredListWidth: listWidth,
+      ) ||
+      shouldCollapseSidebarForReaderLayout(spec, preferredListWidth: listWidth);
+}
+
+bool canEmbedDesktopReaderForContentWidth(
+  double contentWidth, {
+  required double preferredListWidth,
+  double minReaderWidth = kMinReadingWidth,
+}) {
+  if (contentWidth <= 0) return false;
+  final listWidth = clampWorkspaceListWidth(preferredListWidth, contentWidth);
+  return contentWidth >=
+      (listWidth + minReaderWidth + kPaneGap + kWorkspaceSplitHandleHitWidth);
+}
+
+bool shouldCollapseSidebarForReaderLayout(
+  LayoutSpec spec, {
+  required double preferredListWidth,
+}) {
+  if (!spec.isDesktopPlatform) return false;
+  if (!spec.hasInlineSidebar) return false;
+  if (spec.contentWidth >= spec.totalWidth) return false;
+  if (canEmbedDesktopReaderForContentWidth(
+    spec.contentWidth,
+    preferredListWidth: preferredListWidth,
+  )) {
+    return false;
+  }
+
+  final collapsedContentWidth = effectiveContentWidth(
+    spec.totalWidth,
+    sidebarPresentationMode: SidebarPresentationMode.collapsed,
+    sidebarWidth: spec.sidebarWidth,
+  );
+  return canEmbedDesktopReaderForContentWidth(
+    collapsedContentWidth,
+    preferredListWidth: preferredListWidth,
+  );
 }

@@ -1,4 +1,5 @@
 import 'fever/fever_client.dart';
+import 'google_reader/google_reader_client.dart';
 import 'miniflux/miniflux_client.dart';
 import 'outbox/outbox_store.dart';
 
@@ -19,7 +20,7 @@ class MinifluxRemoteArticleActionExecutor
   Future<bool> apply(OutboxAction action) async {
     switch (action.type) {
       case OutboxActionType.markRead:
-        final entryId = action.remoteEntryId;
+        final entryId = _remoteEntryInt(action);
         final value = action.value;
         if (entryId == null || value == null) return false;
         await _client.setEntriesStatus([
@@ -27,7 +28,7 @@ class MinifluxRemoteArticleActionExecutor
         ], status: value ? 'read' : 'unread');
         return true;
       case OutboxActionType.bookmark:
-        final entryId = action.remoteEntryId;
+        final entryId = _remoteEntryInt(action);
         final value = action.value;
         if (entryId == null || value == null) return false;
         await _client.setBookmarkState(entryId, value);
@@ -121,13 +122,13 @@ class FeverRemoteArticleActionExecutor implements RemoteArticleActionExecutor {
   Future<bool> apply(OutboxAction action) async {
     switch (action.type) {
       case OutboxActionType.markRead:
-        final entryId = action.remoteEntryId;
+        final entryId = _remoteEntryInt(action);
         final value = action.value;
         if (entryId == null || value == null) return false;
         await _client.markItemRead(entryId, read: value);
         return true;
       case OutboxActionType.bookmark:
-        final entryId = action.remoteEntryId;
+        final entryId = _remoteEntryInt(action);
         final value = action.value;
         if (entryId == null || value == null) return false;
         await _client.markItemSaved(entryId, saved: value);
@@ -219,6 +220,121 @@ class FeverRemoteArticleActionExecutor implements RemoteArticleActionExecutor {
   }
 }
 
+class GoogleReaderRemoteArticleActionExecutor
+    implements RemoteArticleActionExecutor {
+  GoogleReaderRemoteArticleActionExecutor(this._client);
+
+  static const readState = 'user/-/state/com.google/read';
+  static const starredState = 'user/-/state/com.google/starred';
+  static const readingListState = 'user/-/state/com.google/reading-list';
+
+  final GoogleReaderClient _client;
+
+  @override
+  Future<bool> apply(OutboxAction action) async {
+    switch (action.type) {
+      case OutboxActionType.markRead:
+        final itemId = action.remoteEntryKey;
+        final value = action.value;
+        if (itemId == null || value == null) return false;
+        await _client.editTag(
+          itemId: itemId,
+          add: value ? const [readState] : const [],
+          remove: value ? const [] : const [readState],
+        );
+        return true;
+      case OutboxActionType.bookmark:
+        final itemId = action.remoteEntryKey;
+        final value = action.value;
+        if (itemId == null || value == null) return false;
+        await _client.editTag(
+          itemId: itemId,
+          add: value ? const [starredState] : const [],
+          remove: value ? const [] : const [starredState],
+        );
+        return true;
+      case OutboxActionType.markAllRead:
+        return _markAllRead(action);
+    }
+  }
+
+  Future<bool> applyBatch(Iterable<OutboxAction> actions) async {
+    final list = actions.toList(growable: false);
+    if (list.isEmpty) return true;
+    final first = list.first;
+    if (!isBatchable(first)) return false;
+    final value = first.value;
+    final ids = <String>[];
+    for (final action in list) {
+      if (!isBatchable(action) ||
+          action.type != first.type ||
+          action.value != value) {
+        return false;
+      }
+      final itemId = action.remoteEntryKey?.trim();
+      if (itemId == null || itemId.isEmpty) return false;
+      ids.add(itemId);
+    }
+    final state = first.type == OutboxActionType.markRead
+        ? readState
+        : starredState;
+    await _client.editTags(
+      itemIds: ids,
+      add: value == true ? [state] : const [],
+      remove: value == true ? const [] : [state],
+    );
+    return true;
+  }
+
+  Future<bool> _markAllRead(OutboxAction action) async {
+    final streamId = _streamIdForMarkAllRead(action);
+    if (streamId == null || streamId.isEmpty) return false;
+    await _client.markAllAsRead(streamId: streamId, before: action.createdAt);
+    if (!_client.profile.verifyMarkAllAsRead) return true;
+    final unread = await _client.streamItemIds(
+      streamId: streamId,
+      count: 1,
+      excludeState: readState,
+    );
+    return unread.itemIds.isEmpty;
+  }
+
+  static bool isBatchable(OutboxAction action) {
+    return switch (action.type) {
+      OutboxActionType.markRead || OutboxActionType.bookmark =>
+        (action.remoteEntryKey ?? '').trim().isNotEmpty && action.value != null,
+      OutboxActionType.markAllRead => false,
+    };
+  }
+
+  static String? _streamIdForMarkAllRead(OutboxAction action) {
+    final explicit = action.streamId?.trim();
+    if (explicit != null && explicit.isNotEmpty) return explicit;
+
+    final feedUrl = action.feedUrl?.trim();
+    if (feedUrl != null && feedUrl.isNotEmpty) {
+      return feedUrl.startsWith('feed/') ? feedUrl : 'feed/$feedUrl';
+    }
+
+    final categoryTitle = action.categoryTitle?.trim();
+    if (categoryTitle != null && categoryTitle.isNotEmpty) {
+      return categoryTitle.startsWith('user/-/')
+          ? categoryTitle
+          : 'user/-/label/$categoryTitle';
+    }
+
+    return readingListState;
+  }
+}
+
 String _normalizeFeedUrl(String url) {
   return url.trim().replaceAll(RegExp(r'/+$'), '');
+}
+
+int? _remoteEntryInt(OutboxAction action) {
+  final legacy = action.remoteEntryId;
+  if (legacy != null) return legacy;
+  final key = action.remoteEntryKey?.trim();
+  if (key == null || key.isEmpty) return null;
+  return int.tryParse(key);
 }

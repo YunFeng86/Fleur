@@ -9,17 +9,29 @@ import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/motion.dart';
 
+const double kSyncStatusCapsuleMaxWidth = 360;
+const double _kSyncStatusCapsuleCenterEdgeMaxWidth = 420;
+const double _kSyncStatusCapsuleLeftMinWidth = 560;
+
+enum _SyncStatusCapsuleLayoutMode {
+  centeredEdge,
+  centeredFloating,
+  leftFloating,
+}
+
 class SyncStatusCapsuleHost extends ConsumerWidget {
   const SyncStatusCapsuleHost({
     super.key,
     required this.child,
     this.enabled = true,
-    this.padding = const EdgeInsets.fromLTRB(12, 0, 12, 12),
+    this.padding = const EdgeInsets.fromLTRB(20, 0, 20, 12),
+    this.maxWidth = kSyncStatusCapsuleMaxWidth,
   });
 
   final Widget child;
   final bool enabled;
   final EdgeInsets padding;
+  final double maxWidth;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -40,19 +52,43 @@ class SyncStatusCapsuleHost extends ConsumerWidget {
           bottom: 0,
           child: Padding(
             padding: padding,
-            child: AnimatedSlide(
-              offset: visible ? Offset.zero : const Offset(0, 1),
-              duration: duration,
-              curve: AppMotion.standardCurve,
-              child: AnimatedOpacity(
-                opacity: visible ? 1 : 0,
-                duration: duration,
-                curve: AppMotion.standardCurve,
-                child: IgnorePointer(
-                  ignoring: !visible,
-                  child: _SyncStatusCapsule(state: state),
-                ),
-              ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final availableWidth = constraints.hasBoundedWidth
+                    ? constraints.maxWidth
+                    : maxWidth;
+                final mode = _layoutModeForWidth(availableWidth);
+                final alignment =
+                    mode == _SyncStatusCapsuleLayoutMode.leftFloating
+                    ? Alignment.bottomLeft
+                    : Alignment.bottomCenter;
+                final capsuleMaxWidth =
+                    mode == _SyncStatusCapsuleLayoutMode.centeredFloating &&
+                        availableWidth > maxWidth
+                    ? maxWidth
+                    : availableWidth;
+
+                return Align(
+                  alignment: alignment,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: capsuleMaxWidth),
+                    child: AnimatedSlide(
+                      offset: visible ? Offset.zero : const Offset(0, 1),
+                      duration: duration,
+                      curve: AppMotion.standardCurve,
+                      child: AnimatedOpacity(
+                        opacity: visible ? 1 : 0,
+                        duration: duration,
+                        curve: AppMotion.standardCurve,
+                        child: IgnorePointer(
+                          ignoring: !visible,
+                          child: _SyncStatusCapsule(state: state, mode: mode),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
         ),
@@ -61,10 +97,21 @@ class SyncStatusCapsuleHost extends ConsumerWidget {
   }
 }
 
+_SyncStatusCapsuleLayoutMode _layoutModeForWidth(double width) {
+  if (width < _kSyncStatusCapsuleCenterEdgeMaxWidth) {
+    return _SyncStatusCapsuleLayoutMode.centeredEdge;
+  }
+  if (width < _kSyncStatusCapsuleLeftMinWidth) {
+    return _SyncStatusCapsuleLayoutMode.centeredFloating;
+  }
+  return _SyncStatusCapsuleLayoutMode.leftFloating;
+}
+
 class _SyncStatusCapsule extends StatelessWidget {
-  const _SyncStatusCapsule({required this.state});
+  const _SyncStatusCapsule({required this.state, required this.mode});
 
   final SyncStatusState state;
+  final _SyncStatusCapsuleLayoutMode mode;
 
   String _labelText(AppLocalizations l10n, SyncStatusLabel label) {
     // Keep this in one place so UI can stay consistent across panes.
@@ -127,6 +174,7 @@ class _SyncStatusCapsule extends StatelessWidget {
           );
 
     return Material(
+      key: const Key('sync_status_capsule'),
       elevation: 6,
       color: surfaces.floating,
       shape: const StadiumBorder(),
@@ -134,10 +182,16 @@ class _SyncStatusCapsule extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
+          mainAxisSize: mode == _SyncStatusCapsuleLayoutMode.centeredEdge
+              ? MainAxisSize.max
+              : MainAxisSize.min,
           children: [
             indicator,
             const SizedBox(width: 10),
-            Expanded(
+            Flexible(
+              fit: mode == _SyncStatusCapsuleLayoutMode.centeredEdge
+                  ? FlexFit.tight
+                  : FlexFit.loose,
               child: DefaultTextStyle(
                 style:
                     theme.textTheme.bodySmall?.copyWith(

@@ -1,21 +1,74 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
 
 import '../network/user_agents.dart';
+import 'feed_parser.dart';
+
+enum DiscoveredFeedSource { direct, alternateLink, commonPath }
+
+class DiscoveredFeedPreviewItem {
+  const DiscoveredFeedPreviewItem({required this.title, this.url});
+
+  final String title;
+  final String? url;
+}
 
 class DiscoveredFeed {
-  const DiscoveredFeed({required this.url, this.title, this.type});
+  const DiscoveredFeed({
+    required this.url,
+    this.title,
+    this.type,
+    this.siteUrl,
+    this.siteTitle,
+    this.source = DiscoveredFeedSource.alternateLink,
+    this.previewItems = const <DiscoveredFeedPreviewItem>[],
+  });
 
   final String url;
   final String? title;
   final String? type;
+  final String? siteUrl;
+  final String? siteTitle;
+  final DiscoveredFeedSource source;
+  final List<DiscoveredFeedPreviewItem> previewItems;
+
+  DiscoveredFeed copyWith({
+    String? url,
+    String? title,
+    String? type,
+    String? siteUrl,
+    String? siteTitle,
+    DiscoveredFeedSource? source,
+    List<DiscoveredFeedPreviewItem>? previewItems,
+  }) {
+    return DiscoveredFeed(
+      url: url ?? this.url,
+      title: title ?? this.title,
+      type: type ?? this.type,
+      siteUrl: siteUrl ?? this.siteUrl,
+      siteTitle: siteTitle ?? this.siteTitle,
+      source: source ?? this.source,
+      previewItems: previewItems ?? this.previewItems,
+    );
+  }
 }
 
 class FeedDiscoveryService {
-  FeedDiscoveryService(this._dio);
+  FeedDiscoveryService(this._dio, {FeedParser? parser})
+    : _parser = parser ?? FeedParser();
 
   final Dio _dio;
+  final FeedParser _parser;
+
+  static const _rootFeedPaths = <String>[
+    '/feed',
+    '/feed.xml',
+    '/rss.xml',
+    '/atom.xml',
+  ];
+  static const _relativeFeedPaths = <String>['feed', 'rss.xml', 'atom.xml'];
 
   Uri _normalizeInput(String input) {
     final trimmed = input.trim();
@@ -48,6 +101,15 @@ class FeedDiscoveryService {
     return false;
   }
 
+  bool _looksLikeHtml(String contentType, String body) {
+    final ct = contentType.toLowerCase();
+    if (ct.contains('text/html') || ct.contains('application/xhtml+xml')) {
+      return true;
+    }
+    final head = body.length > 800 ? body.substring(0, 800) : body;
+    return head.toLowerCase().contains('<html');
+  }
+
   bool _isPotentialFeedMime(String type) {
     final t = type.toLowerCase();
     if (t.contains('application/rss+xml')) return true;
@@ -60,6 +122,43 @@ class FeedDiscoveryService {
   String? _trimOrNull(String? v) {
     final s = v?.trim();
     return (s == null || s.isEmpty) ? null : s;
+  }
+
+  String? _htmlTitle(dom.Document doc) {
+    return _trimOrNull(doc.querySelector('title')?.text);
+  }
+
+  DiscoveredFeed _directFeedCandidate({
+    required Uri url,
+    required String contentType,
+    required String body,
+  }) {
+    try {
+      final parsed = _parser.parse(body);
+      final previewItems = parsed.items
+          .map((item) {
+            final title = _trimOrNull(item.title);
+            if (title == null) return null;
+            return DiscoveredFeedPreviewItem(title: title, url: item.link);
+          })
+          .whereType<DiscoveredFeedPreviewItem>()
+          .take(3)
+          .toList(growable: false);
+      return DiscoveredFeed(
+        url: url.toString(),
+        title: _trimOrNull(parsed.title),
+        type: _trimOrNull(contentType),
+        siteUrl: _trimOrNull(parsed.siteUrl),
+        source: DiscoveredFeedSource.direct,
+        previewItems: previewItems,
+      );
+    } catch (_) {
+      return DiscoveredFeed(
+        url: url.toString(),
+        type: _trimOrNull(contentType),
+        source: DiscoveredFeedSource.direct,
+      );
+    }
   }
 
   /// Discover RSS/Atom feeds from a user-provided URL.
@@ -101,7 +200,11 @@ class FeedDiscoveryService {
 
     if (_looksLikeFeed(contentType, body)) {
       return [
-        DiscoveredFeed(url: realUri.toString(), type: _trimOrNull(contentType)),
+        _directFeedCandidate(
+          url: realUri,
+          contentType: contentType,
+          body: body,
+        ),
       ];
     }
 
@@ -111,6 +214,7 @@ class FeedDiscoveryService {
     final baseHref = _trimOrNull(doc.querySelector('base')?.attributes['href']);
     final baseUri = baseHref == null ? realUri : realUri.resolve(baseHref);
 
+    final siteTitle = _htmlTitle(doc);
     final feeds = <DiscoveredFeed>[];
     final seen = <String>{};
 
@@ -144,9 +248,174 @@ class FeedDiscoveryService {
 
       final url = resolved.toString();
       if (!seen.add(url)) continue;
-      feeds.add(DiscoveredFeed(url: url, title: title, type: type));
+      feeds.add(
+        DiscoveredFeed(
+          url: url,
+          title: title,
+          type: type,
+          siteUrl: realUri.toString(),
+          siteTitle: siteTitle,
+          source: DiscoveredFeedSource.alternateLink,
+        ),
+      );
     }
 
+    if (feeds.isNotEmpty || !_looksLikeHtml(contentType, body)) {
+      return _withAlternateFeedPreviews(feeds, userAgent: ua);
+    }
+
+    return _discoverCommonFeedPaths(
+      pageUri: realUri,
+      userAgent: ua,
+      siteTitle: siteTitle,
+    );
+  }
+
+  Future<List<DiscoveredFeed>> _discoverCommonFeedPaths({
+    required Uri pageUri,
+    required String userAgent,
+    required String? siteTitle,
+  }) async {
+    final probes = <Uri>[];
+    final seenProbe = <String>{};
+
+    void addProbe(Uri uri) {
+      if (!(uri.scheme == 'http' || uri.scheme == 'https')) return;
+      final key = uri.toString();
+      if (seenProbe.add(key)) probes.add(uri);
+    }
+
+    for (final path in _rootFeedPaths) {
+      addProbe(_replacePathWithoutQueryOrFragment(pageUri, path));
+    }
+    if (pageUri.pathSegments
+        .where((segment) => segment.isNotEmpty)
+        .isNotEmpty) {
+      for (final path in _relativeFeedPaths) {
+        addProbe(pageUri.resolve(path));
+      }
+    }
+
+    final feeds = <DiscoveredFeed>[];
+    final seenFeed = <String>{};
+    for (final probe in probes) {
+      final candidate = await _tryCommonFeedPath(
+        probe,
+        userAgent: userAgent,
+        siteUrl: pageUri.toString(),
+        siteTitle: siteTitle,
+      );
+      if (candidate == null) continue;
+      if (!seenFeed.add(candidate.url)) continue;
+      feeds.add(candidate);
+    }
     return feeds;
+  }
+
+  Uri _replacePathWithoutQueryOrFragment(Uri uri, String path) {
+    return Uri(
+      scheme: uri.scheme,
+      userInfo: uri.userInfo,
+      host: uri.host,
+      port: uri.hasPort ? uri.port : null,
+      path: path,
+    );
+  }
+
+  Future<DiscoveredFeed?> _tryCommonFeedPath(
+    Uri uri, {
+    required String userAgent,
+    required String siteUrl,
+    required String? siteTitle,
+  }) async {
+    try {
+      final resp = await _dio.getUri<String>(
+        uri,
+        options: Options(
+          responseType: ResponseType.plain,
+          validateStatus: (s) => s != null && s >= 200 && s < 400,
+          headers: <String, String>{
+            'Accept':
+                'application/rss+xml,application/atom+xml,application/xml,text/xml;q=0.9,*/*;q=0.8',
+            if (!kIsWeb) 'User-Agent': userAgent,
+          },
+        ),
+      );
+      final contentType = resp.headers.value('content-type') ?? '';
+      final body = (resp.data ?? '').trim();
+      if (!_looksLikeFeed(contentType, body)) return null;
+      final direct = _directFeedCandidate(
+        url: resp.realUri,
+        contentType: contentType,
+        body: body,
+      );
+      return DiscoveredFeed(
+        url: direct.url,
+        title: direct.title,
+        type: direct.type,
+        siteUrl: direct.siteUrl ?? siteUrl,
+        siteTitle: siteTitle,
+        source: DiscoveredFeedSource.commonPath,
+        previewItems: direct.previewItems,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<List<DiscoveredFeed>> _withAlternateFeedPreviews(
+    List<DiscoveredFeed> feeds, {
+    required String userAgent,
+  }) async {
+    final result = <DiscoveredFeed>[];
+    for (var i = 0; i < feeds.length; i++) {
+      final feed = feeds[i];
+      if (i >= 5 || feed.source != DiscoveredFeedSource.alternateLink) {
+        result.add(feed);
+        continue;
+      }
+      result.add(await _withPreview(feed, userAgent: userAgent));
+    }
+    return result;
+  }
+
+  Future<DiscoveredFeed> _withPreview(
+    DiscoveredFeed feed, {
+    required String userAgent,
+  }) async {
+    if (feed.previewItems.isNotEmpty) return feed;
+    final uri = Uri.tryParse(feed.url);
+    if (uri == null) return feed;
+
+    try {
+      final resp = await _dio.getUri<String>(
+        uri,
+        options: Options(
+          responseType: ResponseType.plain,
+          validateStatus: (s) => s != null && s >= 200 && s < 400,
+          headers: <String, String>{
+            'Accept':
+                'application/rss+xml,application/atom+xml,application/xml,text/xml;q=0.9,*/*;q=0.8',
+            if (!kIsWeb) 'User-Agent': userAgent,
+          },
+        ),
+      );
+      final contentType = resp.headers.value('content-type') ?? '';
+      final body = (resp.data ?? '').trim();
+      if (!_looksLikeFeed(contentType, body)) return feed;
+      final direct = _directFeedCandidate(
+        url: resp.realUri,
+        contentType: contentType,
+        body: body,
+      );
+      return feed.copyWith(
+        title: feed.title ?? direct.title,
+        type: feed.type ?? direct.type,
+        siteUrl: feed.siteUrl ?? direct.siteUrl,
+        previewItems: direct.previewItems,
+      );
+    } catch (_) {
+      return feed;
+    }
   }
 }

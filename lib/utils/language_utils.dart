@@ -117,6 +117,10 @@ String canonicalLanguageIdentityTag(String tag) {
     return 'zh-Hans';
   }
 
+  if (languageCode == 'pt' && countryCode == 'BR') {
+    return 'pt-BR';
+  }
+
   return languageCode;
 }
 
@@ -125,8 +129,15 @@ String normalizeAppLocaleTag(String tag) {
   if (normalized.isEmpty) return '';
   return switch (canonicalLanguageIdentityTag(normalized)) {
     'zh-Hant' => 'zh-Hant',
-    'zh-Hans' => 'zh',
+    'zh-Hans' => 'zh-Hans',
     'en' => 'en',
+    'de' => 'de',
+    'es' => 'es',
+    'fr' => 'fr',
+    'ja' => 'ja',
+    'ko' => 'ko',
+    'pt' => 'pt-BR',
+    'pt-BR' => 'pt-BR',
     _ => normalized,
   };
 }
@@ -151,13 +162,23 @@ String defaultTargetLanguageTagForAppLocale(
 }
 
 Locale supportedAppLocaleForTag(String? languageTag) {
-  final compareKey = canonicalLanguageIdentityTag(languageTag ?? '');
-  return switch (compareKey) {
+  final appLocaleTag = normalizeAppLocaleTag(languageTag ?? '');
+  return switch (appLocaleTag) {
     'zh-Hant' => const Locale.fromSubtags(
       languageCode: 'zh',
       scriptCode: 'Hant',
     ),
-    'zh-Hans' => const Locale('zh'),
+    'zh-Hans' => const Locale.fromSubtags(
+      languageCode: 'zh',
+      scriptCode: 'Hans',
+    ),
+    'de' => const Locale('de'),
+    'es' => const Locale('es'),
+    'fr' => const Locale('fr'),
+    'ja' => const Locale('ja'),
+    'ko' => const Locale('ko'),
+    'pt-BR' => const Locale.fromSubtags(languageCode: 'pt', countryCode: 'BR'),
+    'en' => const Locale('en'),
     _ => const Locale('en'),
   };
 }
@@ -188,70 +209,136 @@ String languageTagForLocale(Locale locale) {
 }
 
 String localizedLanguageNameForTag(Locale uiLocale, String languageTag) {
-  final ui = languageTagForLocale(
+  final uiTag = languageTagForLocale(
     supportedAppLocaleForTag(languageTagForLocale(uiLocale)),
   );
+  final ui = canonicalLanguageIdentityTag(uiTag);
   final tag = canonicalLanguageIdentityTag(languageTag);
 
-  final isUiZh = ui.startsWith('zh');
-  final isUiZhHant = ui.startsWith('zh-Hant');
+  final names = _localizedLanguageNames[ui] ?? _localizedLanguageNames['en']!;
+  final name = names[tag];
+  if (name != null) return name;
 
-  if (!isUiZh) {
-    return switch (tag) {
-      'en' => 'English',
-      'zh-Hans' => 'Chinese (Simplified)',
-      'zh-Hant' => 'Chinese (Traditional)',
-      'zh' => 'Chinese',
-      'ja' => 'Japanese',
-      'ko' => 'Korean',
-      'fr' => 'French',
-      'de' => 'German',
-      'es' => 'Spanish',
-      'ru' => 'Russian',
-      unknownLanguageTag => normalizeLanguageTag(languageTag),
-      _ =>
-        normalizeLanguageTag(languageTag).isEmpty
-            ? languageTag
-            : normalizeLanguageTag(languageTag),
-    };
-  }
-
-  if (isUiZhHant) {
-    return switch (tag) {
-      'en' => '英文',
-      'zh-Hans' => '简体中文',
-      'zh-Hant' => '繁體中文',
-      'zh' => '中文',
-      'ja' => '日文',
-      'ko' => '韓文',
-      'fr' => '法文',
-      'de' => '德文',
-      'es' => '西班牙文',
-      'ru' => '俄文',
-      unknownLanguageTag => normalizeLanguageTag(languageTag),
-      _ =>
-        normalizeLanguageTag(languageTag).isEmpty
-            ? languageTag
-            : normalizeLanguageTag(languageTag),
-    };
-  }
-
-  // zh (Simplified)
-  return switch (tag) {
-    'en' => '英文',
-    'zh-Hans' => '简体中文',
-    'zh-Hant' => '繁體中文',
-    'zh' => '中文',
-    'ja' => '日文',
-    'ko' => '韩文',
-    'fr' => '法文',
-    'de' => '德文',
-    'es' => '西班牙文',
-    'ru' => '俄文',
-    unknownLanguageTag => normalizeLanguageTag(languageTag),
-    _ =>
-      normalizeLanguageTag(languageTag).isEmpty
-          ? languageTag
-          : normalizeLanguageTag(languageTag),
-  };
+  final normalized = normalizeLanguageTag(languageTag);
+  return normalized.isEmpty ? languageTag : normalized;
 }
+
+const Map<String, Map<String, String>> _localizedLanguageNames = {
+  'en': {
+    'en': 'English',
+    'zh-Hans': 'Chinese (Simplified)',
+    'zh-Hant': 'Chinese (Traditional)',
+    'ja': 'Japanese',
+    'ko': 'Korean',
+    'fr': 'French',
+    'de': 'German',
+    'es': 'Spanish',
+    'ru': 'Russian',
+    'pt': 'Portuguese',
+    'pt-BR': 'Portuguese (Brazil)',
+  },
+  'zh-Hans': {
+    'en': '英文',
+    'zh-Hans': '简体中文',
+    'zh-Hant': '繁體中文',
+    'ja': '日文',
+    'ko': '韩文',
+    'fr': '法文',
+    'de': '德文',
+    'es': '西班牙文',
+    'ru': '俄文',
+    'pt': '葡萄牙文',
+    'pt-BR': '葡萄牙文（巴西）',
+  },
+  'zh-Hant': {
+    'en': '英文',
+    'zh-Hans': '简体中文',
+    'zh-Hant': '繁體中文',
+    'ja': '日文',
+    'ko': '韓文',
+    'fr': '法文',
+    'de': '德文',
+    'es': '西班牙文',
+    'ru': '俄文',
+    'pt': '葡萄牙文',
+    'pt-BR': '葡萄牙文（巴西）',
+  },
+  'de': {
+    'en': 'Englisch',
+    'zh-Hans': 'Chinesisch (vereinfacht)',
+    'zh-Hant': 'Chinesisch (traditionell)',
+    'ja': 'Japanisch',
+    'ko': 'Koreanisch',
+    'fr': 'Französisch',
+    'de': 'Deutsch',
+    'es': 'Spanisch',
+    'ru': 'Russisch',
+    'pt': 'Portugiesisch',
+    'pt-BR': 'Portugiesisch (Brasilien)',
+  },
+  'es': {
+    'en': 'Inglés',
+    'zh-Hans': 'Chino (simplificado)',
+    'zh-Hant': 'Chino (tradicional)',
+    'ja': 'Japonés',
+    'ko': 'Coreano',
+    'fr': 'Francés',
+    'de': 'Alemán',
+    'es': 'Español',
+    'ru': 'Ruso',
+    'pt': 'Portugués',
+    'pt-BR': 'Portugués (Brasil)',
+  },
+  'fr': {
+    'en': 'Anglais',
+    'zh-Hans': 'Chinois (simplifié)',
+    'zh-Hant': 'Chinois (traditionnel)',
+    'ja': 'Japonais',
+    'ko': 'Coréen',
+    'fr': 'Français',
+    'de': 'Allemand',
+    'es': 'Espagnol',
+    'ru': 'Russe',
+    'pt': 'Portugais',
+    'pt-BR': 'Portugais (Brésil)',
+  },
+  'ja': {
+    'en': '英語',
+    'zh-Hans': '簡体字中国語',
+    'zh-Hant': '繁体字中国語',
+    'ja': '日本語',
+    'ko': '韓国語',
+    'fr': 'フランス語',
+    'de': 'ドイツ語',
+    'es': 'スペイン語',
+    'ru': 'ロシア語',
+    'pt': 'ポルトガル語',
+    'pt-BR': 'ポルトガル語（ブラジル）',
+  },
+  'ko': {
+    'en': '영어',
+    'zh-Hans': '중국어(간체)',
+    'zh-Hant': '중국어(번체)',
+    'ja': '일본어',
+    'ko': '한국어',
+    'fr': '프랑스어',
+    'de': '독일어',
+    'es': '스페인어',
+    'ru': '러시아어',
+    'pt': '포르투갈어',
+    'pt-BR': '포르투갈어(브라질)',
+  },
+  'pt-BR': {
+    'en': 'Inglês',
+    'zh-Hans': 'Chinês (simplificado)',
+    'zh-Hant': 'Chinês (tradicional)',
+    'ja': 'Japonês',
+    'ko': 'Coreano',
+    'fr': 'Francês',
+    'de': 'Alemão',
+    'es': 'Espanhol',
+    'ru': 'Russo',
+    'pt': 'Português',
+    'pt-BR': 'Português (Brasil)',
+  },
+};

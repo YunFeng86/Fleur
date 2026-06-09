@@ -26,11 +26,19 @@ void main() {
     BackendContentFeature.webFetchUserAgent: FeatureAvailability.localOnly,
   };
 
+  const googleReaderMatrix = <BackendContentFeature, FeatureAvailability>{
+    BackendContentFeature.clientWebPageFetch: FeatureAvailability.hidden,
+    BackendContentFeature.serverArticleContentFetch: FeatureAvailability.hidden,
+    BackendContentFeature.syncImagePrefetch: FeatureAvailability.hidden,
+    BackendContentFeature.webFetchUserAgent: FeatureAvailability.hidden,
+  };
+
   test('matches the declared content capability matrix for every backend', () {
     final matrices = {
       AccountType.local: localMatrix,
       AccountType.miniflux: minifluxMatrix,
       AccountType.fever: feverMatrix,
+      AccountType.googleReader: googleReaderMatrix,
     };
 
     for (final entry in matrices.entries) {
@@ -59,6 +67,9 @@ void main() {
       AccountType.miniflux,
     );
     final fever = BackendContentCapabilities.forAccountType(AccountType.fever);
+    final googleReader = BackendContentCapabilities.forAccountType(
+      AccountType.googleReader,
+    );
 
     expect(local.canFetchWebPages, isTrue);
     expect(local.canPrefetchImages, isTrue);
@@ -74,5 +85,10 @@ void main() {
     expect(fever.canPrefetchImages, isTrue);
     expect(fever.canChooseServerArticleContentFetchMode, isFalse);
     expect(fever.isWebFetchUserAgentApplicable, isTrue);
+
+    expect(googleReader.canFetchWebPages, isFalse);
+    expect(googleReader.canPrefetchImages, isFalse);
+    expect(googleReader.canChooseServerArticleContentFetchMode, isFalse);
+    expect(googleReader.isWebFetchUserAgentApplicable, isFalse);
   });
 }

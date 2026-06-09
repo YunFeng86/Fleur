@@ -47,7 +47,7 @@ class TranslationAiSettings {
   /// Target language for translation/summary.
   ///
   /// - `null` means following the current app/system language.
-  /// - Otherwise uses a BCP-47 language tag (e.g. "en", "zh", "zh-Hant").
+  /// - Otherwise uses a BCP-47 language tag (e.g. "en", "zh-Hans", "zh-Hant").
   final String? targetLanguageTag;
 
   /// Custom AI summary prompt template. When empty/null, uses built-in defaults.

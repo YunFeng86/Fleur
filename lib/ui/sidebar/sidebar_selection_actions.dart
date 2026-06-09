@@ -1,63 +1,60 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../models/article_scope.dart';
 import '../../providers/query_providers.dart';
 
-typedef SidebarFeedSelectionCallback = void Function(int? feedId);
+typedef SidebarScopeSelectionCallback = void Function(ArticleScope scope);
 
 class SidebarSelectionActions {
   const SidebarSelectionActions({
     required WidgetRef ref,
-    required SidebarFeedSelectionCallback onSelectFeed,
+    required SidebarScopeSelectionCallback onSelectScope,
     required VoidCallback closeSidebar,
   }) : _ref = ref,
-       _onSelectFeed = onSelectFeed,
+       _onSelectScope = onSelectScope,
        _closeSidebar = closeSidebar;
 
   final WidgetRef _ref;
-  final SidebarFeedSelectionCallback _onSelectFeed;
+  final SidebarScopeSelectionCallback _onSelectScope;
   final VoidCallback _closeSidebar;
 
   void _updateFilter(ArticleListFilter Function(ArticleListFilter) update) {
     _ref.read(articleListFilterProvider.notifier).update(update);
   }
 
-  void selectFeed(int feedId) {
-    if (_ref.read(selectedFeedIdProvider) == feedId) {
-      selectAll();
-      return;
-    }
-
-    _updateFilter((filter) => filter.selectFeed(feedId));
-    _onSelectFeed(feedId);
+  void _selectScope(ArticleScope scope) {
+    final next = _ref.read(currentArticleScopeProvider) == scope
+        ? ArticleScope.all
+        : scope;
+    _updateFilter((filter) => filter.selectScope(next));
+    _onSelectScope(next);
     _closeSidebar();
+  }
+
+  void selectFeed(int feedId) {
+    _selectScope(ArticleScope.feed(feedId));
   }
 
   void selectAll() {
     _updateFilter((filter) => filter.selectAll());
-    _onSelectFeed(null);
+    _onSelectScope(ArticleScope.all);
     _closeSidebar();
+  }
+
+  void selectStarred() {
+    _selectScope(ArticleScope.starred);
+  }
+
+  void selectReadLater() {
+    _selectScope(ArticleScope.readLater);
   }
 
   void selectCategory(int categoryId) {
-    if (_ref.read(selectedCategoryIdProvider) == categoryId) {
-      selectAll();
-      return;
-    }
-
-    _updateFilter((filter) => filter.selectCategory(categoryId));
-    _onSelectFeed(null);
-    _closeSidebar();
+    _selectScope(ArticleScope.category(categoryId));
   }
 
   void selectTag(int tagId) {
-    if (_ref.read(selectedTagIdProvider) == tagId) {
-      selectAll();
-      return;
-    }
-
-    _updateFilter((filter) => filter.selectTag(tagId));
-    _onSelectFeed(null);
-    _closeSidebar();
+    _selectScope(ArticleScope.tag(tagId));
   }
 }

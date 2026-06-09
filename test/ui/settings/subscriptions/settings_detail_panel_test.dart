@@ -19,6 +19,7 @@ import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/ui/settings/subscriptions/subscription_layout_manager.dart';
 import 'package:fleur/ui/settings/subscriptions/settings_detail_panel.dart';
+import 'package:fleur/ui/settings/widgets/section_header.dart';
 
 import '../../../test_utils/critical_workflow_test_support.dart';
 
@@ -72,6 +73,18 @@ void main() {
       ..title = 'Example Feed'
       ..categoryId = 1
       ..autoTranslate = null;
+  }
+
+  Finder settingsSwitchControlWithText(String label) {
+    return find.descendant(
+      of: find
+          .ancestor(
+            of: find.text(label),
+            matching: find.byType(SettingsSwitchTile),
+          )
+          .first,
+      matching: find.byType(SettingsCompactSwitch),
+    );
   }
 
   Future<void> pumpPanel(
@@ -165,7 +178,7 @@ void main() {
       expect(find.text('Global defaults'), findsOneWidget);
       expect(find.text('Auto translate'), findsOneWidget);
 
-      await tester.tap(find.widgetWithText(SwitchListTile, 'Auto translate'));
+      await tester.tap(settingsSwitchControlWithText('Auto translate'));
       await tester.pumpAndSettle();
 
       expect(appStore.settings.autoTranslate, isTrue);
@@ -276,7 +289,7 @@ void main() {
       expect(find.text('Example Feed'), findsOneWidget);
       final tile = find.ancestor(
         of: find.text('Auto translate'),
-        matching: find.byType(ListTile),
+        matching: find.byType(SettingsTile),
       );
       expect(
         find.descendant(of: tile, matching: find.byIcon(FleurIcons.inherit)),
@@ -487,13 +500,13 @@ void main() {
     expect(find.text('Download Web Pages during Sync'), findsOneWidget);
 
     await tester.tap(
-      find.widgetWithText(SwitchListTile, 'Download Images during Sync'),
+      settingsSwitchControlWithText('Download Images during Sync'),
     );
     await tester.pumpAndSettle();
     expect(appStore.settings.syncImages, isFalse);
 
     await tester.tap(
-      find.widgetWithText(SwitchListTile, 'Download Web Pages during Sync'),
+      settingsSwitchControlWithText('Download Web Pages during Sync'),
     );
     await tester.pumpAndSettle();
     expect(appStore.settings.syncWebPages, isTrue);

@@ -15,6 +15,7 @@ analyzer:
     - "**/*.g.dart"
     - "**/*.freezed.dart"
     - "**/generated/**"
+    - "build/**"
 
 linter:
   rules:

@@ -30,6 +30,15 @@ void main() {
       taxonomySemantics: BackendTaxonomySemantics.remoteReadOnlyMirror,
       notificationGranularity: BackendNotificationGranularity.summaryOnly,
     ),
+    AccountType.googleReader: _ExpectedSyncSemantics(
+      refreshScope: BackendRefreshScope.account,
+      historyCoverage: BackendHistoryCoverage.remotePaginatedEntries,
+      entrySyncLimitScope: BackendEntrySyncLimitScope.remoteAccountWindow,
+      remoteFetchConcurrencyScope:
+          BackendRemoteFetchConcurrencyScope.remoteArticleBatches,
+      taxonomySemantics: BackendTaxonomySemantics.remoteReadOnlyMirror,
+      notificationGranularity: BackendNotificationGranularity.none,
+    ),
   };
 
   test('matches the declared sync semantics for every backend', () {
@@ -56,6 +65,9 @@ void main() {
     final local = BackendSyncSemantics.forAccountType(AccountType.local);
     final miniflux = BackendSyncSemantics.forAccountType(AccountType.miniflux);
     final fever = BackendSyncSemantics.forAccountType(AccountType.fever);
+    final googleReader = BackendSyncSemantics.forAccountType(
+      AccountType.googleReader,
+    );
 
     expect(local.isFeedScopedRefresh, isTrue);
     expect(local.isAccountWideRefresh, isFalse);
@@ -89,6 +101,14 @@ void main() {
     expect(fever.isRemoteReadOnlyTaxonomy, isTrue);
     expect(fever.canWriteRemoteTaxonomy, isFalse);
     expect(fever.usesSummaryNotifications, isTrue);
+
+    expect(googleReader.isAccountWideRefresh, isTrue);
+    expect(googleReader.supportsEntrySyncLimit, isTrue);
+    expect(googleReader.supportsRemoteFetchConcurrency, isTrue);
+    expect(googleReader.mirrorsRemoteTaxonomy, isTrue);
+    expect(googleReader.isRemoteReadOnlyTaxonomy, isTrue);
+    expect(googleReader.canWriteRemoteTaxonomy, isFalse);
+    expect(googleReader.usesSummaryNotifications, isFalse);
   });
 }
 

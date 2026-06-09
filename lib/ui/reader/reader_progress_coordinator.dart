@@ -14,21 +14,22 @@ final class _ReaderViewportCoordinator {
   final _ReaderInteractionController _interactionController;
 
   final ScrollController _scrollController = ScrollController();
-  final GlobalKey<HtmlWidgetState> _fullHtmlKey = GlobalKey<HtmlWidgetState>();
+  GlobalKey<HtmlWidgetState> _fullHtmlKey = GlobalKey<HtmlWidgetState>();
   final GlobalKey<ReaderSearchBarState> _searchBarKey =
       GlobalKey<ReaderSearchBarState>();
   final GlobalKey _listViewKey = GlobalKey();
   final Map<int, GlobalKey> _chunkKeys = {};
   final Map<int, GlobalKey<HtmlWidgetState>> _chunkHtmlKeys = {};
+  final Map<int, String> _chunkHtmlSources = {};
+  final Map<String, GlobalKey> _codeSearchAnchorKeys = {};
   final Set<int> _prefetchedChunks = <int>{};
 
   Timer? _progressSaveTimer;
   ReaderProgress? _pendingProgress;
+  ReaderDocumentKey? _currentDocumentKey;
+  ReaderDocumentSnapshot? _currentDocumentSnapshot;
+  ReaderDocumentHandle? _currentDocumentHandle;
   String? _currentContentHash;
-  String? _resolvedContentHash;
-  String? _hashSourceHtml;
-  bool _hashSourceExtracted = false;
-  int _hashRequestId = 0;
   int _restoreAttempts = 0;
   bool _restoredScrollPosition = false;
   bool _isRestoring = false;
@@ -43,14 +44,12 @@ final class _ReaderViewportCoordinator {
   ReaderSettings? _lastViewportSettings;
   bool _usingChunkedLayout = false;
   Timer? _prefetchTimer;
-  List<String>? _currentChunks;
+  String? _fullHtmlSource;
   Uri? _currentImageBaseUrl;
   int? _pendingSaveArticleId;
   String? _pendingSaveContentHash;
   double? _pendingSavePixels;
   double? _pendingSaveProgress;
-  int? _pendingSaveAnchorIndex;
-  double? _pendingSaveAnchorFraction;
   double? _lastSavedPixels;
   double? _lastSavedProgress;
 
@@ -86,11 +85,10 @@ final class _ReaderViewportCoordinator {
     _prefetchTimer?.cancel();
     _prefetchTimer = null;
     _pendingProgress = null;
+    _currentDocumentKey = null;
+    _currentDocumentSnapshot = null;
+    _currentDocumentHandle = null;
     _currentContentHash = null;
-    _resolvedContentHash = null;
-    _hashSourceHtml = null;
-    _hashSourceExtracted = false;
-    _hashRequestId = 0;
     _restoredScrollPosition = false;
     _isRestoring = false;
     _isResizing = false;
@@ -102,16 +100,17 @@ final class _ReaderViewportCoordinator {
     _usingChunkedLayout = false;
     _chunkKeys.clear();
     _chunkHtmlKeys.clear();
+    _chunkHtmlSources.clear();
+    _codeSearchAnchorKeys.clear();
     _prefetchedChunks.clear();
-    _currentChunks = null;
+    _fullHtmlKey = GlobalKey<HtmlWidgetState>();
+    _fullHtmlSource = null;
     _currentImageBaseUrl = null;
     _restoreAttempts = 0;
     _pendingSaveArticleId = null;
     _pendingSaveContentHash = null;
     _pendingSavePixels = null;
     _pendingSaveProgress = null;
-    _pendingSaveAnchorIndex = null;
-    _pendingSaveAnchorFraction = null;
     _lastSavedPixels = null;
     _lastSavedProgress = null;
   }
@@ -127,68 +126,21 @@ final class _ReaderViewportCoordinator {
     unawaited(_saveProgressNow());
   }
 
-  void requestContentHashUpdate({
-    required Article article,
-    required bool showExtracted,
-  }) {
-    final html =
-        ((showExtracted ? article.extractedContentHtml : null) ??
-                article.contentHtml ??
-                '')
-            .trim();
+  void setDocumentSnapshot(ReaderDocumentSnapshot snapshot) {
+    _currentDocumentSnapshot = snapshot;
+    final documentChanged = _currentDocumentKey != snapshot.documentKey;
     final contentChanged =
-        _hashSourceHtml != html || _hashSourceExtracted != showExtracted;
+        documentChanged || _currentContentHash != snapshot.contentHash;
     if (contentChanged) {
+      _currentDocumentKey = snapshot.documentKey;
       _currentContentHash = null;
       _pendingProgress = null;
       _restoredScrollPosition = false;
       _restoreAttempts = 0;
-      _resolvedContentHash = null;
+      _prefetchedChunks.clear();
+      _lastAnchor = null;
     }
-
-    if (!showExtracted) {
-      final storedHash = article.contentHash?.trim();
-      if (storedHash != null && storedHash.isNotEmpty) {
-        _hashSourceHtml = html;
-        _hashSourceExtracted = false;
-        _setResolvedContentHash(storedHash);
-        return;
-      }
-    }
-
-    if (!contentChanged && _resolvedContentHash != null) {
-      _setResolvedContentHash(_resolvedContentHash!);
-      return;
-    }
-
-    _hashSourceHtml = html;
-    _hashSourceExtracted = showExtracted;
-
-    if (html.isEmpty) {
-      _setResolvedContentHash('');
-      return;
-    }
-
-    final requestId = ++_hashRequestId;
-    unawaited(_computeContentHashAsync(html, requestId));
-  }
-
-  void _setResolvedContentHash(String hash) {
-    if (_resolvedContentHash == hash) {
-      _syncProgressForContent(hash);
-      return;
-    }
-    _resolvedContentHash = hash;
-    _syncProgressForContent(hash);
-  }
-
-  Future<void> _computeContentHashAsync(String html, int requestId) async {
-    final hash = html.length >= _ReaderViewState._chunkThreshold
-        ? await compute(_computeContentHashInIsolate, html)
-        : ContentHash.compute(html);
-    if (!mounted) return;
-    if (requestId != _hashRequestId) return;
-    _setResolvedContentHash(hash);
+    _syncProgressForContent(snapshot.contentHash);
   }
 
   void _syncProgressForContent(String contentHash) {
@@ -300,7 +252,7 @@ final class _ReaderViewportCoordinator {
     final progress = maxExtent > 0
         ? (pixels / maxExtent).clamp(0.0, 1.0).toDouble()
         : 0.0;
-    final anchor = _findChunkAnchor();
+    _interactionController.suspendHoverForScroll();
 
     final lastPixels = _lastSavedPixels;
     final lastProgress = _lastSavedProgress;
@@ -314,7 +266,6 @@ final class _ReaderViewportCoordinator {
       contentHash: contentHash,
       pixels: pixels,
       progress: progress,
-      anchor: anchor,
     );
     _maybePrefetchNextChunks();
   }
@@ -324,14 +275,11 @@ final class _ReaderViewportCoordinator {
     required String contentHash,
     required double pixels,
     required double progress,
-    _ChunkAnchor? anchor,
   }) {
     _pendingSaveArticleId = articleId;
     _pendingSaveContentHash = contentHash;
     _pendingSavePixels = pixels;
     _pendingSaveProgress = progress;
-    _pendingSaveAnchorIndex = anchor?.index;
-    _pendingSaveAnchorFraction = anchor?.fraction;
     _progressSaveTimer?.cancel();
     _progressSaveTimer = Timer(const Duration(milliseconds: 500), () {
       unawaited(_saveProgressNow());
@@ -343,8 +291,9 @@ final class _ReaderViewportCoordinator {
     final contentHash = _pendingSaveContentHash;
     final pixels = _pendingSavePixels;
     final progress = _pendingSaveProgress;
-    final anchorIndex = _pendingSaveAnchorIndex;
-    final anchorFraction = _pendingSaveAnchorFraction;
+    final anchor = _findChunkAnchor() ?? _lastAnchor;
+    final anchorIndex = anchor?.index;
+    final anchorFraction = anchor?.fraction;
     if (articleId == null ||
         contentHash == null ||
         pixels == null ||
@@ -355,8 +304,6 @@ final class _ReaderViewportCoordinator {
     _pendingSaveContentHash = null;
     _pendingSavePixels = null;
     _pendingSaveProgress = null;
-    _pendingSaveAnchorIndex = null;
-    _pendingSaveAnchorFraction = null;
 
     final entry = ReaderProgress(
       articleId: articleId,
@@ -370,21 +317,6 @@ final class _ReaderViewportCoordinator {
     await _progressStore.saveProgress(entry);
     _lastSavedPixels = pixels;
     _lastSavedProgress = progress;
-  }
-
-  void _syncSearchDocumentHtml(int articleId) {
-    final article = ref.read(articleProvider(articleId)).valueOrNull;
-    if (article == null) return;
-    final originalHtml = _selectActiveHtmlForArticle(article);
-    final translatedHtml =
-        (ref.read(articleAiControllerProvider(articleId)).translationHtml ?? '')
-            .trim();
-    final displayHtml = translatedHtml.isNotEmpty
-        ? translatedHtml
-        : originalHtml;
-    ref
-        .read(readerSearchControllerProvider(articleId).notifier)
-        .setDocumentHtml(displayHtml);
   }
 
   void _handleSelectionChanged(SelectedContent? selection) {
@@ -410,6 +342,18 @@ final class _ReaderViewportCoordinator {
       context,
       element,
       loadingProgress,
+    );
+  }
+
+  Widget? _buildImageErrorPlaceholder(
+    BuildContext context,
+    dom.Element element,
+    dynamic error,
+  ) {
+    return _interactionController._buildImageErrorPlaceholder(
+      context,
+      element,
+      error,
     );
   }
 

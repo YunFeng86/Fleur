@@ -26,12 +26,14 @@ import 'package:fleur/services/settings/translation_ai_settings_store.dart';
 import 'package:fleur/services/sync/outbox/outbox_store.dart';
 import 'package:fleur/services/sync/sync_service.dart';
 import 'package:fleur/services/translation/translation_service.dart';
+import 'package:fleur/theme/app_theme.dart';
 
 Account buildTestAccount({
   String id = 'account-test',
   AccountType type = AccountType.local,
   String name = 'Test Account',
   String? baseUrl,
+  String? profileId,
   String? dbName,
   bool isPrimary = false,
 }) {
@@ -41,6 +43,7 @@ Account buildTestAccount({
     type: type,
     name: name,
     baseUrl: baseUrl,
+    profileId: profileId,
     dbName: dbName,
     isPrimary: isPrimary,
     createdAt: now,
@@ -66,6 +69,7 @@ Future<void> pumpLocalizedTestApp(
     ProviderScope(
       overrides: overrides,
       child: MaterialApp(
+        theme: AppTheme.light(),
         locale: locale,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -331,8 +335,25 @@ class RecordingArticleActionService implements ArticleActionService {
       <({int articleId, bool isRead})>[];
   final List<int> toggleStarCalls = <int>[];
   final List<int> toggleReadLaterCalls = <int>[];
-  final List<({int? feedId, int? categoryId})> markAllReadCalls =
-      <({int? feedId, int? categoryId})>[];
+  final List<
+    ({
+      int? feedId,
+      int? categoryId,
+      bool starredOnly,
+      bool readLaterOnly,
+      int? tagId,
+    })
+  >
+  markAllReadCalls =
+      <
+        ({
+          int? feedId,
+          int? categoryId,
+          bool starredOnly,
+          bool readLaterOnly,
+          int? tagId,
+        })
+      >[];
 
   @override
   Future<void> markRead(int articleId, bool isRead) async {
@@ -350,13 +371,27 @@ class RecordingArticleActionService implements ArticleActionService {
   }
 
   @override
-  Future<void> markAllRead({int? feedId, int? categoryId}) async {
-    markAllReadCalls.add((feedId: feedId, categoryId: categoryId));
+  Future<void> markAllRead({
+    int? feedId,
+    int? categoryId,
+    bool starredOnly = false,
+    bool readLaterOnly = false,
+    int? tagId,
+  }) async {
+    markAllReadCalls.add((
+      feedId: feedId,
+      categoryId: categoryId,
+      starredOnly: starredOnly,
+      readLaterOnly: readLaterOnly,
+      tagId: tagId,
+    ));
   }
 }
 
 class InMemoryReaderProgressStore extends ReaderProgressStore {
   final Map<String, ReaderProgress> _entries = <String, ReaderProgress>{};
+
+  List<ReaderProgress> get entries => _entries.values.toList(growable: false);
 
   String _key(int articleId, String contentHash) => '$articleId:$contentHash';
 
@@ -481,9 +516,11 @@ class FakeOutboxStore extends OutboxStore {
     final index = next.indexWhere(
       (candidate) =>
           candidate.type == action.type &&
+          candidate.remoteEntryKey == action.remoteEntryKey &&
           candidate.remoteEntryId == action.remoteEntryId &&
           candidate.feedUrl == action.feedUrl &&
           candidate.categoryTitle == action.categoryTitle &&
+          candidate.streamId == action.streamId &&
           candidate.value == action.value &&
           candidate.createdAt == action.createdAt,
     );
@@ -533,6 +570,23 @@ class FakeSyncService implements SyncServiceBase, OutboxFlushCapable {
     bool notify = true,
   }) async {
     final ids = feedIds.toList(growable: false);
+    refreshCalls.add(ids);
+    onProgress?.call(ids.length, ids.length);
+    final callback = onRefresh;
+    if (callback != null) {
+      return callback(ids);
+    }
+    return refreshResult;
+  }
+
+  @override
+  Future<BatchRefreshResult> syncAccountSafe({
+    int maxConcurrent = 2,
+    void Function(int current, int total)? onProgress,
+    bool notify = true,
+    Iterable<int>? feedIds,
+  }) async {
+    final ids = feedIds?.toList(growable: false) ?? const <int>[];
     refreshCalls.add(ids);
     onProgress?.call(ids.length, ids.length);
     final callback = onRefresh;

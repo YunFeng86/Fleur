@@ -7,6 +7,7 @@ import 'package:fleur/providers/translation_ai_settings_providers.dart';
 import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/settings/translation_ai_settings.dart';
 import 'package:fleur/theme/fleur_icons.dart';
+import 'package:fleur/ui/settings/settings_targets.dart';
 import 'package:fleur/ui/settings/translation_ai/ai_service_editor_dialog.dart';
 import 'package:fleur/ui/settings/translation_ai/ai_service_templates.dart';
 import 'package:fleur/ui/settings/tabs/translation_ai_services_tab.dart';
@@ -25,7 +26,11 @@ void main() {
   }) async {
     await pumpLocalizedTestApp(
       tester,
-      home: const Scaffold(body: TranslationAiServicesTab()),
+      home: Scaffold(
+        body: TranslationAiServicesTab(
+          targetController: SettingsTargetController(),
+        ),
+      ),
       overrides: [
         appSettingsStoreProvider.overrideWithValue(
           FakeAppSettingsStore(appSettings ?? AppSettings.defaults()),

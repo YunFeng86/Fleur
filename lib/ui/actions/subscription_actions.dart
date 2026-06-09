@@ -5,12 +5,15 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../models/article_scope.dart';
 import '../../providers/account_providers.dart';
 import '../../providers/app_settings_providers.dart';
 import '../../providers/backend_capabilities_provider.dart';
+import '../../providers/backend_sync_semantics_provider.dart';
 import '../../providers/opml_providers.dart';
 import '../../providers/query_providers.dart';
 import '../../providers/refresh_all_providers.dart';
@@ -23,8 +26,8 @@ import '../../services/sync/backend_capabilities.dart';
 import '../../services/sync/refresh_all_coordinator.dart';
 import '../../services/sync/remote_subscription_structure_executor.dart';
 import '../../services/sync/subscription_mirror_service.dart';
+import '../../screens/add_subscription_screen.dart';
 import '../../ui/actions/remote_structure_feedback.dart' as remote_feedback;
-import '../../ui/dialogs/add_subscription_dialog.dart';
 import '../../utils/context_extensions.dart';
 import '../../utils/platform.dart';
 import 'root_sync_action.dart';
@@ -50,31 +53,12 @@ class SubscriptionActions {
         FeatureAvailability.onlineRequired;
   }
 
-  static String _normalizeFeedUrl(String url) {
-    return url.trim().replaceAll(RegExp(r'/+$'), '');
-  }
-
-  static int? _remoteIdAsInt(String? remoteId) {
-    final trimmed = remoteId?.trim();
-    if (trimmed == null || trimmed.isEmpty) return null;
-    final value = int.tryParse(trimmed);
-    return value != null && value > 0 ? value : null;
-  }
-
   @visibleForTesting
   static String remoteStructureFailureMessageForTest(
     AppLocalizations l10n,
     Object error,
   ) {
     return remote_feedback.remoteStructureFailureMessage(l10n, error);
-  }
-
-  static Future<MinifluxRemoteSubscriptionStructureExecutor>
-  _buildMinifluxStructureExecutor(WidgetRef ref, Account account) async {
-    final client = await ref
-        .read(remoteClientFactoryProvider)
-        .miniflux(account);
-    return MinifluxRemoteSubscriptionStructureExecutor(client);
   }
 
   static Future<MinifluxRemoteSubscriptionStructureExecutor>
@@ -124,33 +108,6 @@ class SubscriptionActions {
       buildExecutor: () =>
           _buildMinifluxStructureExecutorFromRead(read, account),
     );
-  }
-
-  static Future<String> _localFeedUrlFromRead(
-    ProviderReadCallback read,
-    int localFeedId,
-  ) async {
-    final feed = await read(feedRepositoryProvider).getById(localFeedId);
-    if (feed == null) {
-      throw StateError('Local feed not found: $localFeedId');
-    }
-
-    final target = _normalizeFeedUrl(feed.url);
-    if (target.isEmpty) {
-      throw StateError('Local feed url is empty: $localFeedId');
-    }
-    return feed.url;
-  }
-
-  static Future<int?> _localFeedRemoteIdFromRead(
-    ProviderReadCallback read,
-    int localFeedId,
-  ) async {
-    final feed = await read(feedRepositoryProvider).getById(localFeedId);
-    if (feed == null) {
-      throw StateError('Local feed not found: $localFeedId');
-    }
-    return _remoteIdAsInt(feed.remoteId);
   }
 
   static Future<T?> _presentDialog<T>(
@@ -241,13 +198,7 @@ class SubscriptionActions {
     }
     ref
         .read(articleListFilterProvider.notifier)
-        .update(
-          (filter) => filter.copyWith(
-            selectedFeedId: feedId,
-            selectedCategoryId: null,
-            selectedTagId: null,
-          ),
-        );
+        .update((filter) => filter.copyWith(scope: ArticleScope.feed(feedId)));
   }
 
   static Future<int?> addFeed(
@@ -255,22 +206,40 @@ class SubscriptionActions {
     WidgetRef ref, {
     NavigatorState? navigator,
     int? initialCategoryId,
-  }) {
-    return showAddSubscriptionDialog(
-      context,
-      ref,
-      navigator: navigator,
+  }) async {
+    final capabilities = _capabilities(ref);
+    if (!capabilities.isVisible(BackendFeature.addSubscription)) {
+      final l10n = AppLocalizations.of(context)!;
+      remote_feedback.showUnsupportedRemoteCommand(context, l10n);
+      return null;
+    }
+
+    final location = _addSubscriptionLocation(
       initialCategoryId: initialCategoryId,
     );
+    final router = GoRouter.maybeOf(context);
+    if (router != null) {
+      router.go(location);
+      return null;
+    }
+
+    await (navigator ?? Navigator.of(context)).push<void>(
+      MaterialPageRoute<void>(
+        builder: (context) =>
+            AddSubscriptionScreen(initialCategoryId: initialCategoryId),
+      ),
+    );
+    return null;
   }
 
-  // Back-compat alias for old call sites.
-  static Future<void> showAddFeedDialog(
-    BuildContext context,
-    WidgetRef ref, {
-    NavigatorState? navigator,
-  }) async {
-    await addFeed(context, ref, navigator: navigator);
+  static String _addSubscriptionLocation({int? initialCategoryId}) {
+    if (initialCategoryId == null) return '/add-subscription';
+    return Uri(
+      path: '/add-subscription',
+      queryParameters: <String, String>{
+        'categoryId': initialCategoryId.toString(),
+      },
+    ).toString();
   }
 
   static Future<int?> addCategory(
@@ -696,31 +665,28 @@ class SubscriptionActions {
       return;
     }
 
-    if (!_isOnlineRequired(capabilities, feature)) {
-      final r = await ref.read(syncServiceProvider).refreshFeedSafe(feedId);
-      if (!context.mounted) return;
-      context.showSnack(
-        r.ok ? l10n.refreshed : l10n.errorMessage(r.error.toString()),
-      );
-      return;
-    }
-
     try {
-      final account = ref.read(activeAccountProvider);
-      final executor = await _buildMinifluxStructureExecutor(ref, account);
-      final feedRemoteId = await _localFeedRemoteIdFromRead(ref.read, feedId);
-      if (feedRemoteId == null) {
-        final feedUrl = await _localFeedUrlFromRead(ref.read, feedId);
-        await executor.refreshFeedByUrl(feedUrl);
-      } else {
-        await executor.refreshFeedById(feedRemoteId);
-      }
       final result = await ref
-          .read(syncServiceProvider)
-          .refreshFeedSafe(feedId, notify: false);
+          .read(scopedRefreshCoordinatorProvider)
+          .refreshScope(scope: FeedRefreshScope(feedId));
       if (!context.mounted) return;
+      final err = result.firstError;
+      if (result.error != null) {
+        _logSubscriptionFailure(
+          ref,
+          'refreshFeed',
+          result.error!,
+          result.stackTrace,
+        );
+        remote_feedback.showRemoteStructureFailure(
+          context,
+          l10n,
+          result.error!,
+        );
+        return;
+      }
       context.showSnack(
-        result.ok ? l10n.refreshed : l10n.errorMessage(result.error.toString()),
+        err == null ? l10n.refreshed : l10n.errorMessage(err.toString()),
       );
     } catch (error, stackTrace) {
       _logSubscriptionFailure(ref, 'refreshFeed', error, stackTrace);
@@ -745,53 +711,36 @@ class SubscriptionActions {
     final appSettings = ref.read(appSettingsProvider).valueOrNull;
     final concurrency = appSettings?.autoRefreshConcurrency ?? 2;
     final capabilities = _capabilities(ref);
-    final mode = resolveSubscriptionRootSyncMode(capabilities);
-
-    switch (mode) {
-      case SubscriptionRootSyncMode.refreshSources:
-        final result = await ref
-            .read(refreshSourcesCoordinatorProvider)
-            .refreshSources(
-              trigger: RefreshSourcesTrigger.manual,
-              maxConcurrent: concurrency,
-            );
-        if (!context.mounted) return;
-        final err = result.firstError;
-        if (result.error != null) {
-          _logSubscriptionFailure(
-            ref,
-            'refreshAllFeeds',
-            result.error!,
-            result.stackTrace,
-          );
-          remote_feedback.showRemoteStructureFailure(
-            context,
-            l10n,
-            result.error!,
-          );
-          return;
-        }
-        context.showSnack(
-          err == null ? l10n.refreshedAll : l10n.errorMessage(err.toString()),
-        );
-        return;
-      case SubscriptionRootSyncMode.syncAccount:
-        final result = await ref
-            .read(accountSyncCoordinatorProvider)
-            .syncAccount(
-              trigger: AccountSyncTrigger.manual,
-              maxConcurrent: concurrency,
-            );
-        if (!context.mounted) return;
-        final err = result.firstError;
-        context.showSnack(
-          err == null ? l10n.syncedAccount : l10n.errorMessage(err.toString()),
-        );
-        return;
-      case null:
-        remote_feedback.showUnsupportedRemoteCommand(context, l10n);
-        return;
+    final syncSemantics = ref.read(backendSyncSemanticsProvider);
+    final mode = resolveSubscriptionRootSyncMode(capabilities, syncSemantics);
+    if (mode == null) {
+      remote_feedback.showUnsupportedRemoteCommand(context, l10n);
+      return;
     }
+
+    final result = await ref
+        .read(scopedRefreshCoordinatorProvider)
+        .refreshScope(
+          scope: const AllRefreshScope(),
+          maxConcurrent: concurrency,
+        );
+    if (!context.mounted) return;
+    final err = result.firstError;
+    if (result.error != null) {
+      _logSubscriptionFailure(
+        ref,
+        'refreshAllFeeds',
+        result.error!,
+        result.stackTrace,
+      );
+      remote_feedback.showRemoteStructureFailure(context, l10n, result.error!);
+      return;
+    }
+    context.showSnack(
+      err == null
+          ? subscriptionRootSyncSuccessLabel(l10n, mode)
+          : l10n.errorMessage(err.toString()),
+    );
   }
 
   static Future<void> moveFeedToCategory(

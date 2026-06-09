@@ -6,6 +6,8 @@ import 'package:dio/dio.dart';
 import '../accounts/account.dart';
 import '../accounts/credential_store.dart';
 import 'fever/fever_client.dart';
+import 'google_reader/google_reader_client.dart';
+import 'google_reader/google_reader_provider_profile.dart';
 import 'miniflux/miniflux_client.dart';
 
 class RemoteClientFactory {
@@ -84,6 +86,50 @@ class RemoteClientFactory {
       dio: _dio,
       baseUrl: baseUrl,
       apiKey: _feverApiKeyFromBasicAuth(basic),
+    );
+  }
+
+  Future<GoogleReaderClient> googleReader(Account account) async {
+    final baseUrl = _requireBaseUrl(account, backendName: 'Google Reader API');
+    final client = await _googleReaderClientOrNull(account, baseUrl);
+    if (client == null) {
+      throw StateError('Google Reader API credentials are missing');
+    }
+    return client;
+  }
+
+  Future<GoogleReaderClient?> googleReaderOrNull(Account account) async {
+    final baseUrl = _trimmedBaseUrl(account);
+    if (baseUrl.isEmpty) return null;
+    return _googleReaderClientOrNull(account, baseUrl);
+  }
+
+  Future<GoogleReaderClient?> _googleReaderClientOrNull(
+    Account account,
+    String baseUrl,
+  ) async {
+    final token = await _apiTokenOrNull(account, AccountType.googleReader);
+    final profile = GoogleReaderProviderProfiles.forAccount(account);
+    if (token != null) {
+      return GoogleReaderClient(
+        dio: _dio,
+        baseUrl: baseUrl,
+        profile: profile,
+        authToken: token,
+      );
+    }
+
+    final basic = await _credentials.getBasicAuth(
+      account.id,
+      AccountType.googleReader,
+    );
+    if (basic == null) return null;
+    return GoogleReaderClient(
+      dio: _dio,
+      baseUrl: baseUrl,
+      profile: profile,
+      username: basic.username,
+      password: basic.password,
     );
   }
 

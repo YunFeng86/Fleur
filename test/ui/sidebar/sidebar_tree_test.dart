@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fleur/l10n/app_localizations.dart';
+import 'package:fleur/models/article_scope.dart';
 import 'package:fleur/models/category.dart';
 import 'package:fleur/models/feed.dart';
-import 'package:fleur/models/tag.dart';
 import 'package:fleur/providers/query_providers.dart';
 import 'package:fleur/providers/service_providers.dart';
 import 'package:fleur/services/accounts/account.dart';
@@ -14,10 +14,12 @@ import 'package:fleur/services/sync/backend_sync_semantics.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/ui/app_menu.dart';
+import 'package:fleur/ui/sidebar_layout.dart';
 import 'package:fleur/ui/sidebar/sidebar_management_actions.dart';
 import 'package:fleur/ui/sidebar/sidebar_selection_actions.dart';
 import 'package:fleur/ui/sidebar/sidebar_tree.dart';
 import 'package:fleur/utils/platform.dart';
+import 'package:fleur/widgets/favicon_circle.dart';
 import 'package:fleur/widgets/tree_disclosure_button.dart';
 
 import '../../test_utils/critical_workflow_test_support.dart';
@@ -27,7 +29,6 @@ class _SidebarHarness extends ConsumerStatefulWidget {
     required this.categories,
     required this.feeds,
     required this.unreadCounts,
-    this.tags = const <Tag>[],
     this.accountType = AccountType.local,
     this.onAddFeed,
     this.onAddCategory,
@@ -35,7 +36,6 @@ class _SidebarHarness extends ConsumerStatefulWidget {
 
   final List<Category> categories;
   final List<Feed> feeds;
-  final List<Tag> tags;
   final Map<int?, int> unreadCounts;
   final AccountType accountType;
   final Future<void> Function()? onAddFeed;
@@ -59,7 +59,7 @@ class _SidebarHarnessState extends ConsumerState<_SidebarHarness> {
   Widget build(BuildContext context) {
     final selectionActions = SidebarSelectionActions(
       ref: ref,
-      onSelectFeed: (_) {},
+      onSelectScope: (ArticleScope _) {},
       closeSidebar: () {},
     );
     final managementActions = SidebarManagementActions(
@@ -72,15 +72,13 @@ class _SidebarHarnessState extends ConsumerState<_SidebarHarness> {
 
     return AppMenuHost(
       child: SidebarNavigationTree(
+        presentationMode: SidebarPresentationMode.expanded,
         scrollController: _scrollController,
-        searchText: '',
         feeds: AsyncValue.data(widget.feeds),
         categories: AsyncValue.data(widget.categories),
-        tags: AsyncValue.data(widget.tags),
         allUnreadCounts: AsyncValue.data(widget.unreadCounts),
         selectedFeedId: ref.watch(selectedFeedIdProvider),
         selectedCategoryId: ref.watch(selectedCategoryIdProvider),
-        selectedTagId: ref.watch(selectedTagIdProvider),
         starredOnly: ref.watch(starredOnlyProvider),
         readLaterOnly: ref.watch(readLaterOnlyProvider),
         expandedCategoryId: _expandedCategoryId,
@@ -159,7 +157,10 @@ void main() {
         tester.getSize(find.byType(TreeDisclosureButton).first),
         const Size(40, 48),
       );
-      expect(tester.getCenter(find.byIcon(FleurIcons.expand)).dx, lessThan(32));
+      expect(
+        tester.getCenter(find.byIcon(FleurIcons.expand)).dx,
+        closeTo(kSidebarRailWidth / 2, 0.1),
+      );
       expect(
         tester.getCenter(find.byIcon(FleurIcons.expand)).dx,
         lessThan(tester.getCenter(find.text('Tech')).dx),
@@ -188,6 +189,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Tech News'), findsOneWidget);
+      expect(
+        tester.getCenter(find.byType(FaviconCircle).first).dx,
+        closeTo(kSidebarRailWidth / 2 + 16, 0.1),
+      );
       expect(container.read(selectedCategoryIdProvider), isNull);
       final expandedSemantics = tester.widget<Semantics>(semanticsFinder.first);
       expect(expandedSemantics.properties.expanded, isTrue);
@@ -287,7 +292,15 @@ void main() {
     await selectedCategoryHover.removePointer();
     await tester.pumpAndSettle();
 
-    expect(actionService.markAllReadCalls, [(feedId: null, categoryId: 1)]);
+    expect(actionService.markAllReadCalls, [
+      (
+        feedId: null,
+        categoryId: 1,
+        starredOnly: false,
+        readLaterOnly: false,
+        tagId: null,
+      ),
+    ]);
 
     await tester.tap(find.byIcon(FleurIcons.expand));
     await tester.pumpAndSettle();
@@ -319,8 +332,20 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(actionService.markAllReadCalls, [
-      (feedId: null, categoryId: 1),
-      (feedId: 101, categoryId: null),
+      (
+        feedId: null,
+        categoryId: 1,
+        starredOnly: false,
+        readLaterOnly: false,
+        tagId: null,
+      ),
+      (
+        feedId: 101,
+        categoryId: null,
+        starredOnly: false,
+        readLaterOnly: false,
+        tagId: null,
+      ),
     ]);
   });
 
@@ -484,18 +509,6 @@ void main() {
     expect(find.text('Export OPML'), findsOneWidget);
     expect(find.text('Sync account'), findsOneWidget);
     expect(find.text('Refresh sources'), findsNothing);
-
-    await tester.tapAt(const Offset(5, 5));
-    await tester.pumpAndSettle();
-
-    await _openContextMenuOnText(tester, 'All Articles');
-
-    expect(_popupMenuText('Sync account'), findsOneWidget);
-    expect(_popupMenuText('Export OPML'), findsOneWidget);
-    expect(_popupMenuText('Add subscription'), findsNothing);
-    expect(_popupMenuText('New category'), findsNothing);
-    expect(_popupMenuText('Import OPML'), findsNothing);
-    expect(_popupMenuText('Refresh sources'), findsNothing);
 
     await tester.tapAt(const Offset(5, 5));
     await tester.pumpAndSettle();
@@ -664,7 +677,7 @@ void main() {
     expect(container.read(selectedFeedIdProvider), isNull);
   });
 
-  testWidgets('desktop context menu shows root and header actions', (
+  testWidgets('desktop context menu shows subscription header actions', (
     tester,
   ) async {
     debugFleurTargetPlatformOverride = TargetPlatform.macOS;
@@ -704,23 +717,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(container.read(selectedCategoryIdProvider), 1);
 
-    await _openContextMenuOnText(tester, 'All Articles');
-
-    expect(_popupMenuText('Show all'), findsOneWidget);
-    expect(_popupMenuText('Refresh sources'), findsOneWidget);
-    expect(_popupMenuText('Add subscription'), findsOneWidget);
-    expect(_popupMenuText('New category'), findsOneWidget);
-    expect(_popupMenuText('Import OPML'), findsOneWidget);
-    expect(_popupMenuText('Export OPML'), findsOneWidget);
-    expect(_popupMenuText('Settings'), findsOneWidget);
-    expect(container.read(selectedCategoryIdProvider), 1);
-    expect(container.read(selectedFeedIdProvider), isNull);
-
-    await tester.tapAt(const Offset(5, 5));
-    await tester.pumpAndSettle();
-
-    expect(container.read(selectedCategoryIdProvider), 1);
-
     await _openContextMenuOnText(tester, 'Subscriptions');
 
     expect(_popupMenuText('Show all'), findsNothing);
@@ -734,11 +730,6 @@ void main() {
 
     await tester.tapAt(const Offset(5, 5));
     await tester.pumpAndSettle();
-
-    await _openContextMenuOnText(tester, 'All Articles');
-    await tester.tap(_popupMenuText('Show all'));
-    await tester.pumpAndSettle();
-    expect(container.read(selectedCategoryIdProvider), isNull);
   });
 
   testWidgets('sidebar header keeps only folder action visible', (
@@ -802,9 +793,7 @@ void main() {
     expect(_popupMenuText('Settings'), findsNothing);
   });
 
-  testWidgets('sidebar root and header context menus are desktop only', (
-    tester,
-  ) async {
+  testWidgets('sidebar header context menu is desktop only', (tester) async {
     debugFleurTargetPlatformOverride = TargetPlatform.iOS;
     addTearDown(() => debugFleurTargetPlatformOverride = null);
 
@@ -826,114 +815,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await _openContextMenuOnText(tester, 'All Articles');
-    expect(_popupMenuText('Show all'), findsNothing);
-    expect(_popupMenuText('Refresh sources'), findsNothing);
-
     await _openContextMenuOnText(tester, 'Subscriptions');
     expect(_popupMenuText('Refresh sources'), findsNothing);
     expect(_popupMenuText('Add subscription'), findsNothing);
-  });
-
-  testWidgets('mobile sidebar shows bottom add subscription CTA', (
-    tester,
-  ) async {
-    debugFleurTargetPlatformOverride = TargetPlatform.android;
-    addTearDown(() => debugFleurTargetPlatformOverride = null);
-
-    var addFeedCount = 0;
-
-    await tester.pumpWidget(
-      ProviderScope(
-        child: MaterialApp(
-          locale: const Locale('en'),
-          theme: AppTheme.light(),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(
-            body: _SidebarHarness(
-              categories: const <Category>[],
-              feeds: const <Feed>[],
-              unreadCounts: const {null: 0},
-              onAddFeed: () async => addFeedCount++,
-            ),
-          ),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    final addSubscriptionCta = find.byKey(
-      const Key('sidebar_add_subscription_cta'),
-    );
-    expect(addSubscriptionCta, findsOneWidget);
-    expect(find.text('Add subscription'), findsOneWidget);
-    expect(tester.getSize(addSubscriptionCta).height, greaterThanOrEqualTo(48));
-
-    await tester.tap(addSubscriptionCta);
-    await tester.pumpAndSettle();
-
-    expect(addFeedCount, 1);
-  });
-
-  testWidgets(
-    'mobile sidebar hides bottom CTA when subscriptions cannot be added',
-    (tester) async {
-      debugFleurTargetPlatformOverride = TargetPlatform.android;
-      addTearDown(() => debugFleurTargetPlatformOverride = null);
-
-      await tester.pumpWidget(
-        ProviderScope(
-          child: MaterialApp(
-            theme: AppTheme.light(),
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            home: const Scaffold(
-              body: _SidebarHarness(
-                categories: <Category>[],
-                feeds: <Feed>[],
-                unreadCounts: {null: 0},
-                accountType: AccountType.fever,
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(
-        find.byKey(const Key('sidebar_add_subscription_cta')),
-        findsNothing,
-      );
-      expect(find.text('Add subscription'), findsNothing);
-    },
-  );
-
-  testWidgets('desktop sidebar does not show bottom add subscription CTA', (
-    tester,
-  ) async {
-    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
-    addTearDown(() => debugFleurTargetPlatformOverride = null);
-
-    await tester.pumpWidget(
-      ProviderScope(
-        child: MaterialApp(
-          theme: AppTheme.light(),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: const Scaffold(
-            body: _SidebarHarness(
-              categories: <Category>[],
-              feeds: <Feed>[],
-              unreadCounts: {null: 0},
-            ),
-          ),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('sidebar_add_subscription_cta')), findsNothing);
   });
 
   testWidgets('Fever desktop context menu keeps only local feed actions', (
@@ -1032,15 +916,12 @@ void main() {
     await tester.pump();
 
     final viewportTop = tester.getTopLeft(find.byType(ListView)).dy;
-    Finder categoryRow(String label) => find
-        .ancestor(
-          of: find.text(label),
-          matching: find.byWidgetPredicate(
-            (widget) =>
-                widget is Semantics && widget.properties.expanded != null,
-          ),
-        )
-        .first;
+    Finder categoryRow(String label) => find.ancestor(
+      of: find.text(label),
+      matching: find.byWidgetPredicate(
+        (widget) => widget is Semantics && widget.properties.expanded != null,
+      ),
+    );
     final anchorRowFinder =
         List<Finder>.generate(
           7,
@@ -1073,111 +954,6 @@ void main() {
     expect(scrollable.position.maxScrollExtent, greaterThan(beforeMaxExtent));
     expect(scrollable.position.viewportDimension, beforeViewportDimension);
     expect(tester.getTopLeft(anchorRowFinder).dy, closeTo(beforeTop, 1));
-  });
-
-  testWidgets('expanding tags above the viewport preserves visible row', (
-    tester,
-  ) async {
-    final tags = List<Tag>.generate(
-      5,
-      (index) => Tag()
-        ..id = index + 1
-        ..name = 'Tag ${index + 1}',
-    );
-    final categories = List<Category>.generate(
-      8,
-      (index) => Category()
-        ..id = index + 1
-        ..name = 'Category ${index + 1}',
-    );
-
-    await tester.pumpWidget(
-      ProviderScope(
-        child: MaterialApp(
-          theme: AppTheme.light(),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(
-            body: SizedBox(
-              height: 260,
-              child: _SidebarHarness(
-                categories: categories,
-                feeds: const <Feed>[],
-                tags: tags,
-                unreadCounts: const {null: 1},
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    final tagSectionFinder = find
-        .ancestor(
-          of: find.text('Tags'),
-          matching: find.byWidgetPredicate(
-            (widget) =>
-                widget is Semantics && widget.properties.expanded != null,
-          ),
-        )
-        .first;
-    final tagDisclosure = tester.widget<TreeDisclosureButton>(
-      find.descendant(
-        of: tagSectionFinder,
-        matching: find.byType(TreeDisclosureButton),
-      ),
-    );
-    final scrollable = tester
-        .stateList<ScrollableState>(find.byType(Scrollable))
-        .firstWhere((state) => state.position.maxScrollExtent > 0);
-    scrollable.position.jumpTo(100);
-    await tester.pump();
-
-    final viewportTop = tester.getTopLeft(find.byType(ListView)).dy;
-    Finder categoryRow(String label) => find
-        .ancestor(
-          of: find.text(label),
-          matching: find.byWidgetPredicate(
-            (widget) =>
-                widget is Semantics && widget.properties.expanded != null,
-          ),
-        )
-        .first;
-    final anchorRowFinder =
-        List<Finder>.generate(
-          7,
-          (index) => categoryRow('Category ${index + 2}'),
-        ).firstWhere(
-          (finder) =>
-              finder.evaluate().isNotEmpty &&
-              tester.getTopLeft(finder).dy >= viewportTop,
-        );
-    expect(anchorRowFinder, findsOneWidget);
-    final beforeTop = tester.getTopLeft(anchorRowFinder).dy;
-    final beforePixels = scrollable.position.pixels;
-    final beforeMaxExtent = scrollable.position.maxScrollExtent;
-    final beforeViewportDimension = scrollable.position.viewportDimension;
-
-    tagDisclosure.onPressed();
-    await tester.pump();
-
-    expect(scrollable.position.maxScrollExtent, greaterThan(beforeMaxExtent));
-    expect(scrollable.position.viewportDimension, beforeViewportDimension);
-    await tester.pump();
-
-    expect(scrollable.position.pixels, greaterThan(beforePixels));
-    expect(tester.getTopLeft(anchorRowFinder).dy, closeTo(beforeTop, 1));
-
-    await tester.pumpAndSettle();
-    expect(scrollable.position.maxScrollExtent, greaterThan(beforeMaxExtent));
-    expect(scrollable.position.viewportDimension, beforeViewportDimension);
-    expect(tester.getTopLeft(anchorRowFinder).dy, closeTo(beforeTop, 1));
-
-    final container = ProviderScope.containerOf(
-      tester.element(find.byType(SidebarNavigationTree)),
-    );
-    expect(container.read(selectedTagIdProvider), isNull);
   });
 
   testWidgets(

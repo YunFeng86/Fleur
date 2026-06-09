@@ -59,7 +59,7 @@ class AppSettings {
 
   final ThemeMode themeMode;
 
-  /// Whether to use Material You dynamic colors when available (Android 12+).
+  /// Whether to use system dynamic/accent colors when available.
   ///
   /// When unsupported, the app falls back to the seeded color scheme.
   final bool useDynamicColor;

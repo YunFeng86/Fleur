@@ -7,17 +7,17 @@ import '../providers/query_providers.dart';
 import '../providers/unread_providers.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
-import '../ui/hero_tags.dart';
+import '../ui/home/article_reader_workspace_layout.dart';
+import '../ui/home/home_scene_panes.dart';
 import '../ui/layout.dart';
 import '../ui/layout_spec.dart';
 import '../utils/platform.dart';
 import '../widgets/article_list.dart';
 import '../widgets/fleur_empty_state.dart';
 import '../widgets/reader_view.dart';
-import '../widgets/sidebar_pane_hero.dart';
 import '../widgets/staggered_reveal.dart';
 import '../widgets/sync_status_capsule.dart';
-import '../ui/global_nav.dart';
+import '../ui/app_drawer_scope.dart';
 
 enum _SavedMode { starred, readLater }
 
@@ -38,6 +38,13 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
   String _labelWithCount(String label, int? count) {
     if (count == null) return label;
     return '$label ($count)';
+  }
+
+  String _locationForMode(_SavedMode mode) {
+    return switch (mode) {
+      _SavedMode.starred => '/starred',
+      _SavedMode.readLater => '/read-later',
+    };
   }
 
   @override
@@ -84,34 +91,40 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
     final starredCount = ref.watch(starredCountProvider).valueOrNull;
     final readLaterCount = ref.watch(readLaterCountProvider).valueOrNull;
     final searchQuery = ref.watch(articleSearchQueryProvider);
-    // Desktop has a top title bar provided by App chrome; avoid in-page AppBar.
+    // Desktop stays chrome-less here; future shell controls live outside the
+    // page instead of as an in-page AppBar.
     final useCompactTopBar = !isDesktop;
 
     if (!_initialized) {
       final loading = Container(
-        color: Theme.of(context).colorScheme.surface,
+        color: surfaces.list,
         alignment: Alignment.center,
         child: const CircularProgressIndicator(),
       );
       if (!useCompactTopBar) return loading;
       return Scaffold(
-        appBar: AppBar(title: Text(l10n.saved)),
+        appBar: AppBar(
+          leading: AppDrawerScope.drawerLeading(context),
+          title: Text(l10n.saved),
+        ),
         body: loading,
       );
     }
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final showSyncCapsule =
-            LayoutSpec.fromContext(context).globalNavMode == GlobalNavMode.rail;
+        final showSyncCapsule = LayoutSpec.fromContext(
+          context,
+        ).showsListSyncStatusCapsule;
         final width = constraints.maxWidth;
         final spec = LayoutSpec.fromContentSize(
           contentWidth: width,
           contentHeight: MediaQuery.sizeOf(context).height,
         );
-        final isEmbedded = isDesktop
-            ? spec.desktopEmbedsReader
-            : spec.canEmbedReader(listWidth: kDesktopListWidth);
+        final isEmbedded = shouldEmbedReaderForLayout(
+          spec,
+          listWidth: kDesktopListWidth,
+        );
 
         final searchField = TextField(
           controller: _searchController,
@@ -167,7 +180,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
                         setState(() => _mode = next);
                         _applyMode(next);
                         // Deselect the current article when switching mode.
-                        if (context.mounted) context.go('/saved');
+                        if (context.mounted) context.go(_locationForMode(next));
                       },
                     );
 
@@ -197,6 +210,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
         );
 
         Widget listPane() {
+          final modeLocation = _locationForMode(_mode);
           return Column(
             children: [
               header,
@@ -206,8 +220,8 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
                   enabled: showSyncCapsule,
                   child: ArticleList(
                     selectedArticleId: widget.selectedArticleId,
-                    baseLocation: '/saved',
-                    articleRoutePrefix: '/saved',
+                    baseLocation: modeLocation,
+                    articleRoutePrefix: modeLocation,
                     emptyBuilder: (context, state) =>
                         _buildEmptyState(context, l10n, state),
                   ),
@@ -227,43 +241,40 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
               subtitle: l10n.savedReaderEmptySubtitle,
             );
           }
-          return Container(
-            color: surfaces.reader,
+          return ReadingPaneSurface(
             child: ReaderView(
               key: ValueKey('saved-reader-$id'),
               articleId: id,
               embedded: embedded,
               showBack: !embedded,
-              fallbackBackLocation: '/saved',
+              fallbackBackLocation: _locationForMode(_mode),
             ),
           );
         }
 
-        Widget content;
-        if (!isEmbedded) {
-          // List-only; reader is a secondary route (or shown full page if deep-linked).
-          content = listPane();
-        } else {
-          content = Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SizedBox(width: 0, child: const SidebarPaneHero()),
-              Hero(
-                tag: kHeroArticleListPane,
-                child: RepaintBoundary(
-                  child: SizedBox(width: kDesktopListWidth, child: listPane()),
-                ),
-              ),
-              const SizedBox(width: kPaneGap),
-              Expanded(child: readerPane(embedded: true)),
-            ],
-          );
+        final id = widget.selectedArticleId;
+        final content = !isEmbedded
+            // List-only; reader is a secondary route (or shown full page if deep-linked).
+            ? listPane()
+            : ArticleReaderWorkspaceLayout(
+                selectedArticleId: id,
+                contentWidth: width,
+                listWidth: kDesktopListWidth,
+                listPane: listPane(),
+                readerPane: id == null ? null : readerPane(embedded: true),
+                showSplitHandle: false,
+                onResizeList: null,
+              );
+
+        if (!useCompactTopBar) {
+          return Material(color: surfaces.list, child: content);
         }
 
-        if (!useCompactTopBar) return content;
-
         return Scaffold(
-          appBar: AppBar(title: Text(l10n.saved)),
+          appBar: AppBar(
+            leading: AppDrawerScope.drawerLeading(context),
+            title: Text(l10n.saved),
+          ),
           body: content,
         );
       },
@@ -300,7 +311,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
           ]
         : <Widget>[
             FilledButton.tonalIcon(
-              onPressed: () => context.go('/'),
+              onPressed: () => context.go('/all'),
               icon: const Icon(FleurIcons.feed),
               label: Text(l10n.feeds),
             ),

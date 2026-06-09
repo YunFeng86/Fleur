@@ -80,6 +80,8 @@ void main() {
   ) async {
     final account = buildTestAccount(type: AccountType.fever);
     final syncService = FakeSyncService();
+    final capabilities = BackendCapabilities.forAccountType(account.type);
+    final feeds = _FakeFeedRepository();
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -87,11 +89,16 @@ void main() {
           appSettingsStoreProvider.overrideWithValue(
             FakeAppSettingsStore(AppSettings.defaults()),
           ),
-          accountSyncCoordinatorProvider.overrideWithValue(
-            AccountSyncCoordinator(
-              capabilities: BackendCapabilities.forAccountType(account.type),
-              feeds: _FakeFeedRepository(),
+          scopedRefreshCoordinatorProvider.overrideWithValue(
+            ScopedRefreshCoordinator(
+              capabilities: capabilities,
+              feeds: feeds,
               syncService: syncService,
+              refreshSources: RefreshSourcesCoordinator(
+                capabilities: capabilities,
+                feeds: feeds,
+                syncService: syncService,
+              ),
             ),
           ),
         ],

@@ -9,14 +9,17 @@ import '../providers/query_providers.dart';
 import '../providers/unread_providers.dart';
 import '../theme/fleur_icons.dart';
 import '../ui/actions/subscription_object_menus.dart';
-import '../ui/global_nav.dart';
-import '../ui/hero_tags.dart';
+import '../ui/app_drawer_scope.dart';
+import '../ui/home/article_reader_workspace_layout.dart';
 import '../ui/home/home_scene_commands.dart';
 import '../ui/home/home_scene_panes.dart';
 import '../ui/home/home_scene_shortcuts.dart';
 import '../ui/layout.dart';
 import '../ui/layout_spec.dart';
+import '../ui/sidebar_layout.dart';
+import '../ui/workspace_layers.dart';
 import '../utils/platform.dart';
+import '../widgets/fleur_capsule_button_group.dart';
 import '../widgets/outbox_status_action.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -27,15 +30,18 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    // Desktop has a top title bar provided by App chrome; avoid in-page AppBar.
+    // Desktop stays chrome-less here; future shell controls live outside the
+    // page instead of as an in-page AppBar.
     final useCompactTopBar = !isDesktop;
-    final showSyncCapsule =
-        LayoutSpec.fromContext(context).globalNavMode == GlobalNavMode.rail;
+    final showSyncCapsule = LayoutSpec.fromContext(
+      context,
+    ).showsListSyncStatusCapsule;
     final capabilities = ref.watch(backendCapabilitiesProvider);
+    final syncSemantics = ref.watch(backendSyncSemanticsProvider);
     final showRootRefresh = SubscriptionObjectMenus.showsRootRefresh(
       capabilities,
+      syncSemantics,
     );
-    final syncSemantics = ref.watch(backendSyncSemanticsProvider);
     final selectedFeedId = ref.watch(selectedFeedIdProvider);
     final selectedCategoryId = ref.watch(selectedCategoryIdProvider);
     final refreshActionLabel = resolveHomeRefreshIntent(
@@ -84,10 +90,17 @@ class HomeScreen extends ConsumerWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
+        final listWidth = clampWorkspaceListWidth(
+          ref.watch(workspaceListWidthProvider),
+          width,
+        );
         final columns = homeColumnsForWidth(width);
 
         if (isDesktop) {
-          final mode = desktopModeForWidth(width);
+          final mode = desktopModeForWidth(
+            width - kWorkspaceSplitHandleHitWidth,
+            listWidth: listWidth,
+          );
           return _buildDesktop(
             context,
             ref,
@@ -99,6 +112,8 @@ class HomeScreen extends ConsumerWidget {
             showRootRefresh,
             refreshActionLabel,
             markAllRead,
+            listWidth,
+            width,
           );
         }
 
@@ -107,6 +122,7 @@ class HomeScreen extends ConsumerWidget {
           final unreadOnly = ref.watch(unreadOnlyProvider);
           return Scaffold(
             appBar: AppBar(
+              leading: AppDrawerScope.drawerLeading(context),
               title: Text(l10n.feeds),
               actions: [
                 if (showRootRefresh)
@@ -115,10 +131,8 @@ class HomeScreen extends ConsumerWidget {
                     onPressed: refreshAll,
                     icon: const Icon(FleurIcons.refresh),
                   ),
-                // On mobile we have dedicated Saved/Search tabs in the
-                // global bottom navigation. Avoid duplicating those
-                // shortcuts here to keep the AppBar focused on feed-only
-                // actions.
+                // The mobile AppBar stays focused on feed-only actions while
+                // shell-level navigation lives in the drawer/sidebar model.
                 IconButton(
                   tooltip: unreadOnly ? l10n.showAll : l10n.unreadOnly,
                   onPressed: commands.toggleUnreadOnly,
@@ -129,7 +143,6 @@ class HomeScreen extends ConsumerWidget {
                 const OutboxStatusAction(),
               ],
             ),
-            drawer: const HomeSidebarDrawer(),
             floatingActionButton: useCompactTopBar ? markAllReadFab() : null,
             body: HomeArticleListPane(
               selectedArticleId: selectedArticleId,
@@ -144,6 +157,7 @@ class HomeScreen extends ConsumerWidget {
           child: Scaffold(
             appBar: useCompactTopBar
                 ? AppBar(
+                    leading: AppDrawerScope.drawerLeading(context),
                     title: Text(l10n.feeds),
                     actions: [
                       if (showRootRefresh)
@@ -173,31 +187,13 @@ class HomeScreen extends ConsumerWidget {
                   )
                 : null,
             floatingActionButton: useCompactTopBar ? markAllReadFab() : null,
-            drawer: columns == 2 ? const HomeSidebarDrawer() : null,
-            body: Row(
-              children: [
-                if (columns == 3) ...[
-                  HomeSidebarRouteAwarePane(
-                    width: kHomeSidebarWidth,
-                    showSyncCapsule: showSyncCapsule,
-                    selectedArticleId: selectedArticleId,
-                  ),
-                  const SizedBox(width: kPaneGap),
-                ],
-                HomeArticleListPane(
-                  width: kHomeListWidth,
-                  selectedArticleId: selectedArticleId,
-                  showSyncCapsule: showSyncCapsule && columns != 3,
-                ),
-                const SizedBox(width: kPaneGap),
-                Expanded(
-                  child: HomeReaderPane(
-                    selectedArticleId: selectedArticleId,
-                    placeholderText: l10n.selectAnArticle,
-                    placeholderSubtitle: l10n.readerEmptySubtitle,
-                  ),
-                ),
-              ],
+            body: _buildWorkspaceLayout(
+              ref: ref,
+              contentWidth: width,
+              listWidth: kHomeListWidth,
+              selectedArticleId: selectedArticleId,
+              showSyncCapsule: showSyncCapsule,
+              enableSplitHandle: false,
             ),
           ),
         );
@@ -216,62 +212,39 @@ class HomeScreen extends ConsumerWidget {
     bool showRootRefresh,
     String refreshActionLabel,
     Future<void> Function() markAllRead,
+    double listWidth,
+    double contentWidth,
   ) {
-    final showSyncCapsule =
-        LayoutSpec.fromContext(context).globalNavMode == GlobalNavMode.rail;
-    final sidebarVisible = ref.watch(sidebarVisibleProvider);
+    final showSyncCapsule = LayoutSpec.fromContext(
+      context,
+    ).showsListSyncStatusCapsule;
+    final topBar = _HomeArticleListToolbar(
+      showRefresh: showRootRefresh,
+      refreshTooltip: refreshActionLabel,
+      onRefresh: refreshAll,
+      onToggleUnreadOnly: commands.toggleUnreadOnly,
+      onMarkAllRead: markAllRead,
+    );
 
     final body = switch (mode) {
-      DesktopPaneMode.threePane => Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (sidebarVisible) ...[
-            HomeSidebarRouteAwarePane(
-              width: kDesktopSidebarWidth,
-              showSyncCapsule: showSyncCapsule,
-              selectedArticleId: selectedArticleId,
-              hero: true,
-            ),
-            const SizedBox(width: kPaneGap),
-          ],
-          HomeArticleListPane(
-            width: kDesktopListWidth,
-            heroTag: kHeroArticleListPane,
-            selectedArticleId: selectedArticleId,
-            showSyncCapsule: showSyncCapsule && !sidebarVisible,
-          ),
-          const SizedBox(width: kPaneGap),
-          Expanded(
-            child: HomeReaderPane(
-              selectedArticleId: selectedArticleId,
-              placeholderText: l10n.selectAnArticle,
-              placeholderSubtitle: l10n.readerEmptySubtitle,
-            ),
-          ),
-        ],
-      ),
-      DesktopPaneMode.splitListReader => Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          HomeArticleListPane(
-            width: kDesktopListWidth,
-            heroTag: kHeroArticleListPane,
-            selectedArticleId: selectedArticleId,
-            showSyncCapsule: showSyncCapsule,
-          ),
-          const SizedBox(width: kPaneGap),
-          Expanded(
-            child: HomeReaderPane(
-              selectedArticleId: selectedArticleId,
-              placeholderText: l10n.selectAnArticle,
-              placeholderSubtitle: l10n.readerEmptySubtitle,
-            ),
-          ),
-        ],
-      ),
-      DesktopPaneMode.listOnly => HomeArticleListPane(
+      DesktopPaneMode.threePane ||
+      DesktopPaneMode.splitListReader => _buildWorkspaceLayout(
+        ref: ref,
+        contentWidth: contentWidth,
+        listWidth: listWidth,
         selectedArticleId: selectedArticleId,
         showSyncCapsule: showSyncCapsule,
+        topBar: topBar,
+        enableSplitHandle: true,
+      ),
+      DesktopPaneMode.listOnly => _buildWorkspaceLayout(
+        ref: ref,
+        contentWidth: contentWidth,
+        listWidth: listWidth,
+        selectedArticleId: selectedArticleId,
+        showSyncCapsule: showSyncCapsule,
+        topBar: topBar,
+        enableSplitHandle: false,
       ),
     };
 
@@ -279,10 +252,9 @@ class HomeScreen extends ConsumerWidget {
 
     if (!useCompactTopBar) return content;
 
-    final drawerEnabled = sidebarVisible && desktopSidebarInDrawer(mode);
-
     return Scaffold(
       appBar: AppBar(
+        leading: AppDrawerScope.drawerLeading(context),
         title: Text(l10n.feeds),
         actions: [
           if (showRootRefresh)
@@ -311,8 +283,138 @@ class HomeScreen extends ConsumerWidget {
         tooltip: l10n.markAllRead,
         child: const Icon(FleurIcons.markAllRead),
       ),
-      drawer: drawerEnabled ? const HomeSidebarDrawer() : null,
       body: content,
     );
+  }
+
+  Widget _buildWorkspaceLayout({
+    required WidgetRef ref,
+    required double contentWidth,
+    required double listWidth,
+    required int? selectedArticleId,
+    required bool showSyncCapsule,
+    required bool enableSplitHandle,
+    Widget? topBar,
+  }) {
+    return ArticleReaderWorkspaceLayout(
+      selectedArticleId: selectedArticleId,
+      contentWidth: contentWidth,
+      listWidth: listWidth,
+      listPane: HomeArticleListPane(
+        selectedArticleId: selectedArticleId,
+        showSyncCapsule: showSyncCapsule,
+        topBar: topBar,
+      ),
+      readerPane: selectedArticleId == null
+          ? null
+          : HomeReaderPane(articleId: selectedArticleId),
+      showSplitHandle: enableSplitHandle && selectedArticleId != null,
+      onResizeList: enableSplitHandle
+          ? (delta) {
+              final notifier = ref.read(workspaceListWidthProvider.notifier);
+              notifier.state = clampWorkspaceListWidth(
+                notifier.state + delta,
+                contentWidth,
+              );
+            }
+          : null,
+    );
+  }
+}
+
+class _HomeArticleListToolbar extends ConsumerWidget {
+  const _HomeArticleListToolbar({
+    required this.showRefresh,
+    required this.refreshTooltip,
+    required this.onRefresh,
+    required this.onToggleUnreadOnly,
+    required this.onMarkAllRead,
+  });
+
+  final bool showRefresh;
+  final String refreshTooltip;
+  final Future<void> Function() onRefresh;
+  final VoidCallback onToggleUnreadOnly;
+  final Future<void> Function() onMarkAllRead;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final unreadOnly = ref.watch(unreadOnlyProvider);
+    final title = _scopeTitle(ref, l10n);
+    final actionCount = (showRefresh ? 1 : 0) + 2;
+    final trailingWidth = actionCount * kShellControlSize + 2;
+
+    return WorkspaceHeader(
+      title: title,
+      trailingWidth: trailingWidth,
+      trailing: FleurCapsuleButtonGroup(
+        key: const Key('home_scope_actions'),
+        children: [
+          if (showRefresh)
+            FleurCapsuleIconButton(
+              key: const Key('scope_refresh_button'),
+              tooltip: refreshTooltip,
+              onPressed: onRefresh,
+              icon: FleurIcons.refresh,
+            ),
+          FleurCapsuleIconButton(
+            key: const Key('scope_unread_filter_button'),
+            tooltip: unreadOnly ? l10n.showAll : l10n.unreadOnly,
+            onPressed: onToggleUnreadOnly,
+            selected: unreadOnly,
+            icon: unreadOnly ? FleurIcons.filterActive : FleurIcons.filter,
+          ),
+          FleurCapsuleIconButton(
+            key: const Key('scope_mark_all_read_button'),
+            tooltip: l10n.markAllRead,
+            onPressed: onMarkAllRead,
+            icon: FleurIcons.markAllRead,
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _scopeTitle(WidgetRef ref, AppLocalizations l10n) {
+    final starredOnly = ref.watch(starredOnlyProvider);
+    if (starredOnly) return l10n.starred;
+
+    final readLaterOnly = ref.watch(readLaterOnlyProvider);
+    if (readLaterOnly) return l10n.readLater;
+
+    final tagId = ref.watch(selectedTagIdProvider);
+    if (tagId != null) {
+      final tags = ref.watch(tagsProvider).valueOrNull;
+      if (tags != null) {
+        for (final tag in tags) {
+          if (tag.id == tagId) return tag.name;
+        }
+      }
+      return l10n.feeds;
+    }
+
+    final feedId = ref.watch(selectedFeedIdProvider);
+    if (feedId != null) {
+      final feed = ref.watch(feedProvider(feedId)).valueOrNull;
+      if (feed != null) {
+        final userTitle = feed.userTitle?.trim();
+        if (userTitle != null && userTitle.isNotEmpty) return userTitle;
+
+        final title = feed.title?.trim();
+        if (title != null && title.isNotEmpty) return title;
+
+        return feed.url;
+      }
+      return l10n.feeds;
+    }
+
+    final categoryId = ref.watch(selectedCategoryIdProvider);
+    if (categoryId != null) {
+      final category = ref.watch(categoryProvider(categoryId)).valueOrNull;
+      return category?.name ?? l10n.feeds;
+    }
+
+    return l10n.all;
   }
 }

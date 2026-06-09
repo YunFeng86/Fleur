@@ -12,6 +12,10 @@ abstract final class FleurIcons {
   static const IconData searchSelected = LucideIcons.search500;
   static const IconData settings = LucideIcons.settings;
   static const IconData settingsSelected = LucideIcons.settings500;
+  static const IconData back = LucideIcons.arrowLeft;
+  static const IconData forward = LucideIcons.arrowRight;
+  static const IconData sidebarCollapse = LucideIcons.panelLeftClose;
+  static const IconData sidebarExpand = LucideIcons.panelLeftOpen;
 
   static const IconData translate = LucideIcons.languages;
   static const IconData fullText = LucideIcons.fileText;
@@ -71,6 +75,7 @@ abstract final class FleurIcons {
   static const IconData localAccount = LucideIcons.rss;
   static const IconData minifluxAccount = LucideIcons.cloud;
   static const IconData feverAccount = LucideIcons.flame;
+  static const IconData googleReaderAccount = LucideIcons.cloudCog;
   static const IconData activeAccount = LucideIcons.circleCheck;
   static const IconData themeSystem = LucideIcons.monitor;
   static const IconData themeLight = LucideIcons.sun;
@@ -81,6 +86,8 @@ abstract final class FleurIcons {
 
   static const IconData appPreferences = LucideIcons.settings;
   static const IconData appPreferencesSelected = LucideIcons.settings500;
+  static const IconData appearance = LucideIcons.palette;
+  static const IconData appearanceSelected = LucideIcons.palette500;
   static const IconData grouping = LucideIcons.list;
   static const IconData groupingSelected = LucideIcons.list500;
   static const IconData services = LucideIcons.cloud;

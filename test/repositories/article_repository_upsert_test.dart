@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 import 'package:fleur/models/article.dart';
 import 'package:fleur/models/category.dart';
@@ -342,4 +342,80 @@ void main() {
     expect(existing!.publishedAt.isAtSameMomentAs(existingPublishedAt), isTrue);
     expect(created!.publishedAt.millisecondsSinceEpoch, isNot(0));
   });
+
+  test(
+    'complete remote state reconciliation clears absent read and star states',
+    () async {
+      final feedId = await insertFeed();
+      final unreadId = await insertArticle(
+        feedId: feedId,
+        remoteId: 'item-unread',
+        link: 'https://example.com/articles/unread',
+        isRead: true,
+        isStarred: false,
+      );
+      final staleStarId = await insertArticle(
+        feedId: feedId,
+        remoteId: 'item-stale-star',
+        link: 'https://example.com/articles/stale-star',
+        isRead: false,
+        isStarred: true,
+      );
+
+      final repo = ArticleRepository(isar!);
+      await repo.reconcileRemoteReadStates(
+        unreadRemoteIds: {'item-unread'},
+        complete: true,
+      );
+      await repo.reconcileRemoteStarredStates(
+        starredRemoteIds: const <String>{},
+        complete: true,
+      );
+
+      final unread = await isar!.articles.get(unreadId);
+      final staleStar = await isar!.articles.get(staleStarId);
+      expect(unread!.isRead, isFalse);
+      expect(unread.isStarred, isFalse);
+      expect(staleStar!.isRead, isTrue);
+      expect(staleStar.isStarred, isFalse);
+    },
+  );
+
+  test(
+    'partial remote state reconciliation only applies positive state',
+    () async {
+      final feedId = await insertFeed();
+      final oldUnreadId = await insertArticle(
+        feedId: feedId,
+        remoteId: 'item-old-unread',
+        link: 'https://example.com/articles/old-unread',
+        isRead: false,
+        isStarred: true,
+      );
+      final newUnreadId = await insertArticle(
+        feedId: feedId,
+        remoteId: 'item-new-unread',
+        link: 'https://example.com/articles/new-unread',
+        isRead: true,
+        isStarred: false,
+      );
+
+      final repo = ArticleRepository(isar!);
+      await repo.reconcileRemoteReadStates(
+        unreadRemoteIds: {'item-new-unread'},
+        complete: false,
+      );
+      await repo.reconcileRemoteStarredStates(
+        starredRemoteIds: const <String>{},
+        complete: false,
+      );
+
+      final oldUnread = await isar!.articles.get(oldUnreadId);
+      final newUnread = await isar!.articles.get(newUnreadId);
+      expect(oldUnread!.isRead, isFalse);
+      expect(oldUnread.isStarred, isTrue);
+      expect(newUnread!.isRead, isFalse);
+      expect(newUnread.isStarred, isFalse);
+    },
+  );
 }

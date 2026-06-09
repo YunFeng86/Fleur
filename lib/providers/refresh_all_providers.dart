@@ -112,3 +112,30 @@ final refreshSourcesCoordinatorProvider = Provider<RefreshSourcesCoordinator>(
     minifluxSourceRefreshProvider,
   ],
 );
+
+final scopedRefreshCoordinatorProvider = Provider<ScopedRefreshCoordinator>(
+  (ref) {
+    final capabilities = ref.watch(backendCapabilitiesProvider);
+    RefreshScopedRemoteFeeds? refreshRemoteFeeds;
+    if (capabilities.refreshesRemoteSourcesUpstream) {
+      final minifluxSourceRefresh = ref.watch(minifluxSourceRefreshProvider);
+      refreshRemoteFeeds = minifluxSourceRefresh.refreshFeeds;
+    }
+
+    return ScopedRefreshCoordinator(
+      capabilities: capabilities,
+      feeds: ref.watch(feedRepositoryProvider),
+      syncService: ref.watch(syncServiceProvider),
+      refreshSources: ref.watch(refreshSourcesCoordinatorProvider),
+      refreshRemoteFeeds: refreshRemoteFeeds,
+    );
+  },
+  dependencies: [
+    activeAccountProvider,
+    backendCapabilitiesProvider,
+    feedRepositoryProvider,
+    syncServiceProvider,
+    refreshSourcesCoordinatorProvider,
+    minifluxSourceRefreshProvider,
+  ],
+);

@@ -6,6 +6,6 @@ import 'account_providers.dart';
 final backendContentCapabilitiesProvider = Provider<BackendContentCapabilities>(
   (ref) {
     final account = ref.watch(activeAccountProvider);
-    return BackendContentCapabilities.forAccountType(account.type);
+    return BackendContentCapabilities.forAccount(account);
   },
 );

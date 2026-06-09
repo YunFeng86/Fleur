@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 const _rawBackendTypePattern =
-    r'AccountType\.(?:local|miniflux|fever)|'
+    r'AccountType\.(?:local|miniflux|fever|googleReader)|'
     r'\b(?:_?account|activeAccount)\.type\b';
 
 final _rawBackendTypeRegex = RegExp(_rawBackendTypePattern);
@@ -13,12 +13,8 @@ const _allowedRawBackendTypeUses = <String, String>{
       'logs account database open failures for diagnostics only',
   'lib/providers/account_providers.dart':
       'creates the default local account state',
-  'lib/providers/backend_capabilities_provider.dart':
-      'derives capabilities from the active account',
-  'lib/providers/backend_content_capabilities_provider.dart':
-      'derives content capabilities from the active account',
-  'lib/providers/backend_sync_semantics_provider.dart':
-      'derives sync semantics from the active account',
+  'lib/providers/add_subscription_controller.dart':
+      'logs add-subscription failures with concrete account type metadata',
   'lib/providers/service_providers.dart':
       'selects the concrete sync service implementation',
   'lib/services/accounts/account.dart': 'defines AccountType serialization',
@@ -28,16 +24,20 @@ const _allowedRawBackendTypeUses = <String, String>{
       'creates and normalizes local account records',
   'lib/services/actions/article_action_service.dart':
       'uses concrete remote clients after capability gating',
-  'lib/services/background/background_sync_service.dart':
-      'derives background capabilities from the active account',
+  'lib/services/subscriptions/add_subscription_workflow.dart':
+      'constructs the Miniflux add-subscription executor after capability gating',
   'lib/services/sync/backend_capabilities.dart':
       'declares the backend capability matrix',
   'lib/services/sync/backend_content_capabilities.dart':
       'declares the backend content capability matrix',
   'lib/services/sync/backend_sync_semantics.dart':
       'declares the backend sync semantics matrix',
+  'lib/services/sync/google_reader/google_reader_provider_profile.dart':
+      'maps Google Reader account profiles without splitting AccountType',
   'lib/services/sync/remote_client_factory.dart':
       'centralizes remote credential lookup and client construction',
+  'lib/services/sync/refresh_all_coordinator.dart':
+      'keeps Google Reader account-wide refresh semantics explicit',
   'lib/ui/dialogs/add_account_dialogs.dart': 'creates concrete account types',
   'lib/ui/settings/tabs/services_tab.dart':
       'renders account creation and account type labels',
@@ -53,7 +53,6 @@ const _operationalCapabilityFiles = <String, String>{
   'lib/widgets/outbox_status_action.dart': 'backendCapabilitiesProvider',
   'lib/ui/home/home_scene_commands.dart': 'backendCapabilitiesProvider',
   'lib/ui/actions/subscription_actions.dart': 'backendCapabilitiesProvider',
-  'lib/ui/dialogs/add_subscription_dialog.dart': 'backendCapabilitiesProvider',
   'lib/ui/settings/subscriptions/subscription_toolbar.dart':
       'backendCapabilitiesProvider',
   'lib/ui/sidebar/sidebar_tree.dart': 'BackendCapabilities',
@@ -70,7 +69,6 @@ const _contentCapabilityFiles = <String, String>{
 };
 
 const _syncSemanticsFiles = <String, String>{
-  'lib/app/app.dart': 'backendSyncSemanticsProvider',
   'lib/screens/home_screen.dart': 'backendSyncSemanticsProvider',
   'lib/ui/home/home_scene_commands.dart': 'backendSyncSemanticsProvider',
   'lib/ui/settings/subscriptions/subscription_toolbar.dart':
@@ -177,42 +175,39 @@ void main() {
     }
   });
 
-  test('background sync only derives capabilities from raw account type', () {
+  test('background sync derives capabilities from the active account', () {
     const path = 'lib/services/background/background_sync_service.dart';
     final contents = File(path).readAsStringSync();
-    final withoutAllowedDerivations = contents.replaceAll(
-      RegExp(
-        r'BackendCapabilities\.forAccountType\(\s*'
-        r'(?:activeAccount|account)\.type\s*,?\s*\)',
-        multiLine: true,
-      ),
-      '',
-    );
 
     expect(
-      withoutAllowedDerivations,
+      contents,
+      contains('BackendCapabilities.forAccount(activeAccount)'),
+      reason:
+          '$path should derive background capabilities from the full account.',
+    );
+    expect(
+      contents,
       isNot(contains(RegExp(_rawBackendTypePattern))),
       reason:
-          '$path may read raw account type only when deriving '
-          'BackendCapabilities.',
+          '$path should not read raw account type for capability decisions.',
     );
   });
 
   test(
-    'add subscription dialog keeps operation dispatch capability-driven',
+    'add subscription controller keeps operation dispatch capability-driven',
     () {
-      const path = 'lib/ui/dialogs/add_subscription_dialog.dart';
+      const path = 'lib/providers/add_subscription_controller.dart';
       final contents = File(path).readAsStringSync();
 
       expect(
         contents,
-        isNot(contains(RegExp(r'\b(?:_?account|activeAccount)\.type\b'))),
+        contains('backendCapabilitiesProvider'),
         reason:
             '$path must use BackendCapabilities/backendCapabilitiesProvider '
             'for add-subscription operation dispatch.',
       );
       expect(contents, contains('BackendFeature.addSubscription'));
-      expect(contents, contains('FeatureAvailability.onlineRequired'));
+      expect(contents, contains('isOnlineRequired'));
     },
   );
 }

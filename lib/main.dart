@@ -12,7 +12,23 @@ import 'app/app.dart';
 import 'services/background/background_sync_service.dart';
 import 'services/logging/app_logger.dart';
 import 'services/logging/app_provider_observer.dart';
+import 'utils/macos_window_chrome_bridge.dart';
 import 'utils/platform.dart';
+
+Future<void> _configureMacOSTitlebarChrome() async {
+  if (!isMacOS) return;
+
+  try {
+    await MacOSWindowChromeBridge.configureTitlebarChrome();
+  } catch (error, stackTrace) {
+    AppLogger.w(
+      'Failed to configure macOS titlebar chrome',
+      tag: 'platform',
+      error: error,
+      stackTrace: stackTrace,
+    );
+  }
+}
 
 Future<void> main() async {
   await runZonedGuarded(
@@ -53,13 +69,14 @@ Future<void> main() async {
         const options = WindowOptions(
           size: Size(1200, 800),
           center: true,
-          minimumSize: Size(360, 520),
+          minimumSize: Size(420, 520),
           titleBarStyle: TitleBarStyle.hidden,
         );
         await windowManager.waitUntilReadyToShow(options, () async {
           await windowManager.show();
           await windowManager.focus();
         });
+        await _configureMacOSTitlebarChrome();
       }
 
       runApp(

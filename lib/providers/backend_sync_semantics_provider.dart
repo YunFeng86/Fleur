@@ -5,5 +5,5 @@ import 'account_providers.dart';
 
 final backendSyncSemanticsProvider = Provider<BackendSyncSemantics>((ref) {
   final account = ref.watch(activeAccountProvider);
-  return BackendSyncSemantics.forAccountType(account.type);
+  return BackendSyncSemantics.forAccount(account);
 });

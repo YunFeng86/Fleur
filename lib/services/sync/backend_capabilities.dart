@@ -35,6 +35,10 @@ enum FeatureAvailability {
 class BackendCapabilities {
   const BackendCapabilities._(this.accountType);
 
+  factory BackendCapabilities.forAccount(Account account) {
+    return BackendCapabilities._(account.type);
+  }
+
   factory BackendCapabilities.forAccountType(AccountType type) {
     return BackendCapabilities._(type);
   }
@@ -56,6 +60,7 @@ class BackendCapabilities {
       AccountType.local => _localAvailability(feature),
       AccountType.miniflux => _minifluxAvailability(feature),
       AccountType.fever => _feverAvailability(feature),
+      AccountType.googleReader => _googleReaderAvailability(feature),
     };
   }
 
@@ -116,6 +121,30 @@ class BackendCapabilities {
   }
 
   static FeatureAvailability _feverAvailability(BackendFeature feature) {
+    return switch (feature) {
+      BackendFeature.addSubscription ||
+      BackendFeature.deleteSubscription ||
+      BackendFeature.addCategory ||
+      BackendFeature.renameCategory ||
+      BackendFeature.deleteCategory ||
+      BackendFeature.moveSubscriptionToCategory ||
+      BackendFeature.moveSubscriptionToUncategorized ||
+      BackendFeature.refreshSubscriptionSource ||
+      BackendFeature.refreshAllSources ||
+      BackendFeature.importOpml => FeatureAvailability.hidden,
+      BackendFeature.exportOpml ||
+      BackendFeature.articleReadLater ||
+      BackendFeature.clientFeedSettings ||
+      BackendFeature.clientCategorySettings ||
+      BackendFeature.offlineCache => FeatureAvailability.localOnly,
+      BackendFeature.articleReadState ||
+      BackendFeature.articleStarState ||
+      BackendFeature.outboxFlush => FeatureAvailability.deferredRemote,
+      BackendFeature.syncNow => FeatureAvailability.onlineRequired,
+    };
+  }
+
+  static FeatureAvailability _googleReaderAvailability(BackendFeature feature) {
     return switch (feature) {
       BackendFeature.addSubscription ||
       BackendFeature.deleteSubscription ||

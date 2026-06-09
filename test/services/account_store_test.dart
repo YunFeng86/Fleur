@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/services/accounts/account_store.dart';
 import 'package:fleur/utils/path_manager.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
@@ -79,6 +80,32 @@ void main() {
     expect(state.accounts, hasLength(1));
     expect(state.accounts.single.id, 'valid-account');
     expect(state.activeAccountId, 'valid-account');
+  });
+
+  test('Google Reader profileId defaults and round trips', () {
+    final now = DateTime.utc(2026, 1, 1).toIso8601String();
+
+    final legacy = Account.fromJson(<String, Object?>{
+      'id': 'reader',
+      'type': 'googleReader',
+      'name': 'Reader',
+      'baseUrl': 'https://reader.example.com',
+      'createdAt': now,
+      'updatedAt': now,
+    });
+    expect(legacy.profileId, Account.googleReaderGenericProfileId);
+
+    final freshRss = Account.fromJson(<String, Object?>{
+      'id': 'reader',
+      'type': 'googleReader',
+      'name': 'FreshRSS',
+      'baseUrl': 'https://rss.example.com',
+      'profileId': 'freshRss',
+      'createdAt': now,
+      'updatedAt': now,
+    });
+    expect(freshRss.profileId, 'freshRss');
+    expect(freshRss.toJson()['profileId'], 'freshRss');
   });
 
   test(

@@ -11,22 +11,24 @@ extension _ReaderSceneScaffold on _ReaderViewState {
     required FleurReaderTheme readerTokens,
   }) {
     final sceneStates = sceneTheme.fleurState;
-    final hasExtracted = (article.extractedContentHtml ?? '').trim().isNotEmpty;
-    final showExtracted =
-        hasExtracted &&
-        article.preferredContentView == ArticleContentView.extracted;
-    final originalHtml =
-        ((showExtracted ? article.extractedContentHtml : null) ??
-                article.contentHtml ??
-                '')
-            .trim();
-    final translatedHtml = (aiState.translationHtml ?? '').trim();
-    final html = translatedHtml.isNotEmpty ? translatedHtml : originalHtml;
+    final documentRequest = _sessionCoordinator.buildDocumentRequest(
+      article: article,
+      settings: settings,
+      aiState: aiState,
+    );
+    final documentHandle = ref.watch(readerDocumentProvider(documentRequest));
+    final snapshot = documentHandle.snapshot;
 
-    final isChunked = html.length >= _ReaderViewState._chunkThreshold;
+    _viewportCoordinator.setDocumentSnapshot(snapshot);
+    _scheduleSearchDocumentSync(documentHandle);
+    _sessionCoordinator.maybePrefetchImages(
+      article: article,
+      snapshot: snapshot,
+    );
+
     _viewportCoordinator._handleViewportSizeChange(
       MediaQuery.sizeOf(context),
-      isChunked: isChunked,
+      isChunked: snapshot.isChunked,
       settings: settings,
     );
     final title = article.title?.trim().isNotEmpty == true
@@ -65,21 +67,16 @@ extension _ReaderSceneScaffold on _ReaderViewState {
       },
     );
 
-    final displayChunks = html.isEmpty
-        ? const <String>[]
-        : isChunked
-        ? (searchState.highlight?.highlightedChunks ??
-              ReaderSearchService.splitHtmlIntoChunks(html))
-        : (searchState.highlight?.highlightedChunks ?? <String>[html]);
-
-    final contentWidget = html.isEmpty
+    final contentWidget = snapshot.displayHtml.isEmpty
         ? Center(child: Text(article.link, style: readerTokens.bodyStyle))
         : _viewportCoordinator._buildContentWidget(
             context,
-            displayChunks,
-            isChunked,
+            documentHandle,
+            snapshot,
+            searchState.highlight?.highlightedChunks,
             article,
             settings,
+            sceneTheme,
             inlineHeader,
             searchState.currentAnchorId,
           );
@@ -98,11 +95,19 @@ extension _ReaderSceneScaffold on _ReaderViewState {
         ? (!widget.embedded || widget.showBack)
         : widget.showBack;
 
+    final paddedContentWidget = widget.embedded
+        ? Padding(padding: const EdgeInsets.only(top: 10), child: contentWidget)
+        : contentWidget;
+
     final body = _viewportCoordinator._wrapSearchShortcuts(
       child: Stack(
         fit: StackFit.expand,
         children: [
-          contentWidget,
+          ColoredBox(
+            key: const Key('reader_scene_background'),
+            color: sceneTheme.fleurSurface.reader,
+          ),
+          paddedContentWidget,
           ReaderSearchBar(
             key: _viewportCoordinator.searchBarKey,
             articleId: widget.articleId,
@@ -112,7 +117,31 @@ extension _ReaderSceneScaffold on _ReaderViewState {
       ),
     );
 
+    void handleBack() {
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go(widget.fallbackBackLocation);
+      }
+    }
+
     if (showAppBar) {
+      if (isDesktop && widget.showBack) {
+        return Theme(
+          data: sceneTheme,
+          child: Column(
+            children: [
+              WorkspacePageHeader(
+                title: '',
+                onBack: handleBack,
+                backgroundColor: sceneTheme.fleurSurface.reader,
+              ),
+              Expanded(child: body),
+            ],
+          ),
+        );
+      }
+
       return Theme(
         data: sceneTheme,
         child: Scaffold(
@@ -125,13 +154,7 @@ extension _ReaderSceneScaffold on _ReaderViewState {
                     tooltip: MaterialLocalizations.of(
                       context,
                     ).backButtonTooltip,
-                    onPressed: () {
-                      if (context.canPop()) {
-                        context.pop();
-                      } else {
-                        context.go(widget.fallbackBackLocation);
-                      }
-                    },
+                    onPressed: handleBack,
                   )
                 : null,
             actions: const [],
@@ -300,6 +323,32 @@ extension _ReaderSceneScaffold on _ReaderViewState {
                 constraints: BoxConstraints(maxWidth: readerTokens.maxWidth),
                 child: translationOutdatedBanner,
               ),
+            ),
+          // Link URL preview (like browser's bottom-left status bar)
+          if (isDesktop)
+            ValueListenableBuilder<String?>(
+              valueListenable: _interactionController.hoveredUrl,
+              builder: (context, url, _) {
+                if (url == null || url.isEmpty) return const SizedBox.shrink();
+                return Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: readerTokens.maxWidth,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        url,
+                        style: sceneTheme.textTheme.labelSmall?.copyWith(
+                          color: sceneTheme.colorScheme.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           Center(
             child: ConstrainedBox(

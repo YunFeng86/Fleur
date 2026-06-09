@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:fleur/services/sync/fever/fever_client.dart';
+import 'package:fleur/services/sync/google_reader/google_reader_client.dart';
 import 'package:fleur/services/sync/miniflux/miniflux_client.dart';
 import 'package:fleur/services/sync/outbox/outbox_store.dart';
 import 'package:fleur/services/sync/remote_article_action_executor.dart';
@@ -32,6 +33,48 @@ void main() {
       final payload = requests.single.data as Map<String, Object?>;
       expect(payload['entry_ids'], [42]);
       expect(payload['status'], 'read');
+    });
+
+    test(
+      'parses numeric string entry keys for legacy integer endpoint',
+      () async {
+        final requests = <_RecordedRequest>[];
+        final executor = MinifluxRemoteArticleActionExecutor(
+          _minifluxClient(_minifluxDio(requests)),
+        );
+
+        final applied = await executor.apply(
+          OutboxAction(
+            type: OutboxActionType.markRead,
+            remoteEntryKey: '42',
+            value: true,
+            createdAt: now,
+          ),
+        );
+
+        expect(applied, isTrue);
+        final payload = requests.single.data as Map<String, Object?>;
+        expect(payload['entry_ids'], [42]);
+      },
+    );
+
+    test('rejects nonnumeric string entry keys', () async {
+      final requests = <_RecordedRequest>[];
+      final executor = MinifluxRemoteArticleActionExecutor(
+        _minifluxClient(_minifluxDio(requests)),
+      );
+
+      final applied = await executor.apply(
+        OutboxAction(
+          type: OutboxActionType.bookmark,
+          remoteEntryKey: 'tag:google.com,2005:reader/item/a',
+          value: true,
+          createdAt: now,
+        ),
+      );
+
+      expect(applied, isFalse);
+      expect(requests, isEmpty);
     });
 
     test('applies bookmark through idempotent bookmark state', () async {
@@ -157,6 +200,31 @@ void main() {
       expect(requests[1].query, contains('as=unsaved'));
       expect(requests[1].query, contains('id=99'));
     });
+
+    test(
+      'parses numeric string entry keys for Fever item mark queries',
+      () async {
+        final requests = <_RecordedRequest>[];
+        final executor = FeverRemoteArticleActionExecutor(
+          _feverClient(_feverDio(requests)),
+        );
+
+        expect(
+          await executor.apply(
+            OutboxAction(
+              type: OutboxActionType.markRead,
+              remoteEntryKey: '42',
+              value: true,
+              createdAt: now,
+            ),
+          ),
+          isTrue,
+        );
+
+        expect(requests.single.query, contains('mark=item'));
+        expect(requests.single.query, contains('id=42'));
+      },
+    );
 
     test(
       'applies feed and group scoped markAllRead with action timestamp',
@@ -288,6 +356,92 @@ void main() {
       },
     );
   });
+
+  group('GoogleReaderRemoteArticleActionExecutor', () {
+    test('applies compatible read actions as one batched edit-tag', () async {
+      final requests = <_RecordedRequest>[];
+      final executor = GoogleReaderRemoteArticleActionExecutor(
+        _googleReaderClient(_googleReaderDio(requests)),
+      );
+
+      final applied = await executor.applyBatch([
+        OutboxAction(
+          type: OutboxActionType.markRead,
+          remoteEntryKey: 'item-1',
+          value: true,
+          createdAt: now,
+        ),
+        OutboxAction(
+          type: OutboxActionType.markRead,
+          remoteEntryKey: 'item-2',
+          value: true,
+          createdAt: now,
+        ),
+      ]);
+
+      expect(applied, isTrue);
+      expect(requests.map((request) => '${request.method} ${request.path}'), [
+        'GET /reader/api/0/token',
+        'POST /reader/api/0/edit-tag',
+      ]);
+      final payload = requests.last.data as Map<String, Object?>;
+      expect(payload['i'], ['item-1', 'item-2']);
+      expect(payload['a'], [GoogleReaderRemoteArticleActionExecutor.readState]);
+    });
+
+    test(
+      'markAllRead returns false when verification still finds unread ids',
+      () async {
+        final requests = <_RecordedRequest>[];
+        final executor = GoogleReaderRemoteArticleActionExecutor(
+          _googleReaderClient(
+            _googleReaderDio(requests, verificationUnreadIds: ['item-1']),
+          ),
+        );
+
+        final applied = await executor.apply(
+          OutboxAction(
+            type: OutboxActionType.markAllRead,
+            streamId: GoogleReaderRemoteArticleActionExecutor.readingListState,
+            value: true,
+            createdAt: now,
+          ),
+        );
+
+        expect(applied, isFalse);
+        expect(requests.map((request) => '${request.method} ${request.path}'), [
+          'GET /reader/api/0/token',
+          'POST /reader/api/0/mark-all-as-read',
+          'GET /reader/api/0/stream/items/ids',
+        ]);
+      },
+    );
+
+    test('rejects mixed batch actions', () async {
+      final requests = <_RecordedRequest>[];
+      final executor = GoogleReaderRemoteArticleActionExecutor(
+        _googleReaderClient(_googleReaderDio(requests)),
+      );
+
+      final applied = await executor.applyBatch([
+        OutboxAction(
+          type: OutboxActionType.markRead,
+          remoteEntryKey: 'item-1',
+          value: true,
+          createdAt: now,
+        ),
+        OutboxAction(
+          type: OutboxActionType.bookmark,
+          remoteEntryKey: 'item-2',
+          value: true,
+          createdAt: now,
+        ),
+      ]);
+
+      expect(applied, isFalse);
+      expect(requests, isEmpty);
+    });
+  });
 }
 
 MinifluxClient _minifluxClient(Dio dio) {
@@ -347,6 +501,43 @@ Dio _feverDio(
           'api&feeds' => <String, Object?>{'auth': 1, 'feeds': feeds},
           'api&groups' => <String, Object?>{'auth': 1, 'groups': groups},
           _ => <String, Object?>{'auth': 1},
+        };
+        handler.resolve(Response<Object?>(requestOptions: options, data: data));
+      },
+    ),
+  );
+  return dio;
+}
+
+GoogleReaderClient _googleReaderClient(Dio dio) {
+  return GoogleReaderClient(
+    dio: dio,
+    baseUrl: 'https://reader.example.com',
+    authToken: 'auth-token',
+  );
+}
+
+Dio _googleReaderDio(
+  List<_RecordedRequest> requests, {
+  List<String> verificationUnreadIds = const [],
+}) {
+  final dio = Dio();
+  dio.interceptors.add(
+    InterceptorsWrapper(
+      onRequest: (options, handler) {
+        requests.add(_RecordedRequest.fromOptions(options));
+        final data = switch ((options.method, options.uri.path)) {
+          ('GET', '/reader/api/0/token') => 'write-token',
+          ('POST', '/reader/api/0/edit-tag') => <String, Object?>{},
+          ('POST', '/reader/api/0/mark-all-as-read') => <String, Object?>{},
+          ('GET', '/reader/api/0/stream/items/ids') => {
+            'itemRefs': [
+              for (final id in verificationUnreadIds) {'id': id},
+            ],
+          },
+          _ => throw StateError(
+            'Unexpected request: ${options.method} ${options.uri}',
+          ),
         };
         handler.resolve(Response<Object?>(requestOptions: options, data: data));
       },

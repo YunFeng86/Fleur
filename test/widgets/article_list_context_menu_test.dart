@@ -5,8 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:fleur/app/search_routes.dart';
 import 'package:fleur/l10n/app_localizations.dart';
 import 'package:fleur/models/article.dart';
+import 'package:fleur/models/article_scope.dart';
 import 'package:fleur/models/feed.dart';
 import 'package:fleur/providers/article_list_controller.dart';
 import 'package:fleur/providers/app_settings_providers.dart';
@@ -65,17 +67,26 @@ Future<GoRouter> _pumpArticleList(
   required Article article,
   RecordingArticleActionService? actionService,
   int? selectedArticleId,
-  String initialLocation = '/',
+  String initialLocation = '/all',
+  ArticleScope initialScope = ArticleScope.all,
+  String Function(Article article)? articleLocationBuilder,
+  Size? surfaceSize,
 }) async {
   debugFleurTargetPlatformOverride = TargetPlatform.macOS;
   addTearDown(() => debugFleurTargetPlatformOverride = null);
+  if (surfaceSize != null) {
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = surfaceSize;
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+  }
   _FixedArticleListController.items = [article];
   addTearDown(() => _FixedArticleListController.items = <Article>[]);
 
   Widget list({
     required int? selectedArticleId,
-    String baseLocation = '/',
-    String articleRoutePrefix = '',
+    String? baseLocation,
+    String? articleRoutePrefix,
   }) {
     return AppMenuHost(
       child: Scaffold(
@@ -83,6 +94,7 @@ Future<GoRouter> _pumpArticleList(
           selectedArticleId: selectedArticleId,
           baseLocation: baseLocation,
           articleRoutePrefix: articleRoutePrefix,
+          articleLocationBuilder: articleLocationBuilder,
         ),
       ),
     );
@@ -92,13 +104,31 @@ Future<GoRouter> _pumpArticleList(
     initialLocation: initialLocation,
     routes: [
       GoRoute(
-        path: '/',
+        path: '/all',
         builder: (context, state) => list(selectedArticleId: selectedArticleId),
       ),
       GoRoute(
-        path: '/article/:id',
+        path: '/all/article/:id',
         builder: (context, state) =>
-            Scaffold(body: Text('article:${state.pathParameters['id']}')),
+            Scaffold(body: Text('all:${state.pathParameters['id']}')),
+      ),
+      GoRoute(
+        path: '/feed/:id',
+        builder: (context, state) => list(selectedArticleId: selectedArticleId),
+      ),
+      GoRoute(
+        path: '/feed/:feedId/article/:id',
+        builder: (context, state) =>
+            Scaffold(body: Text('feed:${state.pathParameters['id']}')),
+      ),
+      GoRoute(
+        path: '/starred',
+        builder: (context, state) => list(selectedArticleId: selectedArticleId),
+      ),
+      GoRoute(
+        path: '/starred/article/:id',
+        builder: (context, state) =>
+            Scaffold(body: Text('starred:${state.pathParameters['id']}')),
       ),
       GoRoute(
         path: '/search',
@@ -110,33 +140,30 @@ Future<GoRouter> _pumpArticleList(
       ),
       GoRoute(
         path: '/search/article/:id',
-        builder: (context, state) =>
-            Scaffold(body: Text('search:${state.pathParameters['id']}')),
-      ),
-      GoRoute(
-        path: '/saved',
-        builder: (context, state) => list(
-          selectedArticleId: selectedArticleId,
-          baseLocation: '/saved',
-          articleRoutePrefix: '/saved',
-        ),
-      ),
-      GoRoute(
-        path: '/saved/article/:id',
-        builder: (context, state) =>
-            Scaffold(body: Text('saved:${state.pathParameters['id']}')),
+        builder: (context, state) {
+          final query = state.uri.query;
+          final id = state.pathParameters['id'];
+          return Scaffold(
+            body: Text(query.isEmpty ? 'search:$id' : 'search:$id?$query'),
+          );
+        },
       ),
     ],
   );
+  addTearDown(router.dispose);
 
   await tester.pumpWidget(
     ProviderScope(
+      key: ValueKey('article-list-${initialLocation}_$initialScope'),
       overrides: [
         appSettingsStoreProvider.overrideWithValue(
           FakeAppSettingsStore(AppSettings.defaults()),
         ),
         articleListControllerProvider.overrideWith(
           _FixedArticleListController.new,
+        ),
+        articleListFilterProvider.overrideWith(
+          (ref) => ArticleListFilter(scope: initialScope),
         ),
         articleProvider(
           article.id,
@@ -180,7 +207,7 @@ void main() {
 
     await _openContextMenu(tester, article);
 
-    expect(router.routerDelegate.currentConfiguration.uri.toString(), '/');
+    expect(router.routerDelegate.currentConfiguration.uri.toString(), '/all');
     expect(find.text('Open article'), findsOneWidget);
     expect(find.text('Mark read'), findsOneWidget);
     expect(find.text('Star'), findsOneWidget);
@@ -256,6 +283,40 @@ void main() {
     expect(find.text('Copied to clipboard'), findsOneWidget);
   });
 
+  testWidgets('tap article replaces route when reader can be embedded', (
+    tester,
+  ) async {
+    final article = _buildArticle();
+    final router = await _pumpArticleList(
+      tester,
+      article: article,
+      surfaceSize: const Size(1200, 800),
+    );
+
+    await tester.tap(find.text(article.title!));
+    await tester.pumpAndSettle();
+
+    expect(find.text('all:${article.id}'), findsOneWidget);
+    expect(router.canPop(), isFalse);
+  });
+
+  testWidgets('tap article pushes secondary route when too narrow', (
+    tester,
+  ) async {
+    final article = _buildArticle();
+    final router = await _pumpArticleList(
+      tester,
+      article: article,
+      surfaceSize: const Size(800, 600),
+    );
+
+    await tester.tap(find.text(article.title!));
+    await tester.pumpAndSettle();
+
+    expect(find.text('all:${article.id}'), findsOneWidget);
+    expect(router.canPop(), isTrue);
+  });
+
   testWidgets('open article context action navigates to default route', (
     tester,
   ) async {
@@ -266,35 +327,62 @@ void main() {
     await tester.tap(find.text('Open article'));
     await tester.pumpAndSettle();
 
-    expect(
-      router.routerDelegate.currentConfiguration.uri.toString(),
-      '/article/${article.id}',
-    );
+    expect(find.text('all:${article.id}'), findsOneWidget);
+    expect(router.canPop(), isTrue);
   });
 
-  testWidgets('open article context action respects route prefixes', (
+  testWidgets('open article context action respects scoped routes', (
     tester,
   ) async {
     for (final scenario in [
-      (start: '/search', expected: '/search/article/42'),
-      (start: '/saved', expected: '/saved/article/42'),
+      (
+        start: '/feed/10',
+        scope: const ArticleScope.feed(10),
+        expected: 'feed:42',
+      ),
+      (start: '/starred', scope: ArticleScope.starred, expected: 'starred:42'),
+      (start: '/search', scope: ArticleScope.all, expected: 'search:42'),
     ]) {
       final article = _buildArticle();
       final router = await _pumpArticleList(
         tester,
         article: article,
         initialLocation: scenario.start,
+        initialScope: scenario.scope,
       );
 
       await _openContextMenu(tester, article);
       await tester.tap(find.text('Open article'));
       await tester.pumpAndSettle();
 
-      expect(
-        router.routerDelegate.currentConfiguration.uri.toString(),
-        scenario.expected,
-      );
+      expect(find.text(scenario.expected), findsOneWidget);
+      expect(router.canPop(), isTrue);
     }
+  });
+
+  testWidgets('open article context action can preserve search query routes', (
+    tester,
+  ) async {
+    final article = _buildArticle();
+    const routeState = SearchRouteState(
+      query: 'claude',
+      scope: ArticleScope.starred,
+    );
+    final router = await _pumpArticleList(
+      tester,
+      article: article,
+      initialLocation: searchLocation(routeState),
+      initialScope: ArticleScope.starred,
+      articleLocationBuilder: (article) =>
+          searchArticleLocation(routeState, article.id),
+    );
+
+    await _openContextMenu(tester, article);
+    await tester.tap(find.text('Open article'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('search:42?q=claude&scope=starred'), findsOneWidget);
+    expect(router.canPop(), isTrue);
   });
 
   testWidgets('open article context action does not close selected article', (
@@ -311,6 +399,6 @@ void main() {
     await tester.tap(find.text('Open article'));
     await tester.pumpAndSettle();
 
-    expect(router.routerDelegate.currentConfiguration.uri.toString(), '/');
+    expect(router.routerDelegate.currentConfiguration.uri.toString(), '/all');
   });
 }

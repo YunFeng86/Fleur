@@ -8,6 +8,7 @@ import 'package:path_provider_platform_interface/path_provider_platform_interfac
 
 import 'package:fleur/l10n/app_localizations.dart';
 import 'package:fleur/screens/settings_screen.dart';
+import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/ui/dialogs/add_account_dialogs.dart';
 import 'package:fleur/ui/settings/tabs/about_tab.dart';
 import 'package:fleur/utils/path_manager.dart';
@@ -50,6 +51,7 @@ Future<void> _pumpTestApp(
   await tester.pumpWidget(
     ProviderScope(
       child: MaterialApp(
+        theme: AppTheme.light(),
         locale: locale,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -314,9 +316,8 @@ void main() {
           home: const Scaffold(body: AboutTab()),
         );
 
-        final viewLicenseButton = find.widgetWithText(
-          OutlinedButton,
-          'View license',
+        final viewLicenseButton = find.byKey(
+          const Key('about_view_license_button'),
         );
         await tester.scrollUntilVisible(
           viewLicenseButton,
@@ -334,6 +335,31 @@ void main() {
 
       expect(tester.takeException(), isNull);
       expect(errors, isEmpty);
+    });
+
+    testWidgets('About actions align to the right on wide screens', (
+      tester,
+    ) async {
+      await _pumpTestApp(
+        tester,
+        size: const Size(900, 760),
+        textScale: 1.0,
+        home: const Scaffold(body: AboutTab()),
+      );
+
+      final licenseTitle = find.text('MIT License');
+      final viewLicenseButton = find.byKey(
+        const Key('about_view_license_button'),
+      );
+      await tester.scrollUntilVisible(
+        viewLicenseButton,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+
+      final titleRight = tester.getTopRight(licenseTitle).dx;
+      final buttonLeft = tester.getTopLeft(viewLicenseButton).dx;
+      expect(buttonLeft, greaterThan(titleRight));
     });
 
     testWidgets('localizes AboutTab license and shortcuts in zh', (

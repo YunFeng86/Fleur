@@ -5,37 +5,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fleur/l10n/app_localizations.dart';
-import 'package:go_router/go_router.dart';
 
+import 'article_scope_routes.dart';
 import 'router.dart';
+import '../models/article_scope.dart';
+import '../providers/core_providers.dart';
 import '../providers/app_settings_providers.dart';
+import '../providers/app_update_providers.dart';
 import '../providers/auto_refresh_providers.dart';
 import '../providers/background_sync_providers.dart';
-import '../providers/backend_capabilities_provider.dart';
-import '../providers/backend_sync_semantics_provider.dart';
-import '../providers/core_providers.dart';
 import '../providers/outbox_flush_providers.dart';
-import '../providers/outbox_status_providers.dart';
-import '../providers/query_providers.dart';
 import '../providers/service_providers.dart';
-import '../providers/unread_providers.dart';
 import '../services/logging/app_logger.dart';
 import '../services/notifications/notification_service.dart';
 import '../services/settings/app_settings.dart';
-import '../ui/actions/subscription_object_menus.dart';
-import '../ui/app_menu.dart';
-import '../ui/global_nav.dart';
-import '../ui/home/home_scene_commands.dart';
-import '../ui/layout.dart';
 import '../theme/app_theme.dart';
-import '../theme/fleur_icons.dart';
 import '../theme/seed_color_presets.dart';
+import '../ui/sidebar_layout.dart';
 import '../utils/macos_locale_bridge.dart';
+import '../utils/macos_window_chrome_bridge.dart';
 import '../utils/platform.dart';
 import '../widgets/db_recovery_notice.dart';
-import '../widgets/desktop_title_bar.dart';
-import '../widgets/outbox_status_action.dart';
-import '../widgets/sidebar.dart';
 
 typedef PreferredLanguageApplier = Future<void> Function(String? localeTag);
 
@@ -99,35 +89,24 @@ class App extends ConsumerWidget {
     return AppControllerHost(
       child: DynamicColorBuilder(
         builder: (lightDynamic, darkDynamic) {
+          final hasDynamicColor = lightDynamic != null || darkDynamic != null;
           return MaterialApp.router(
             debugShowCheckedModeBanner: false,
             onGenerateTitle: (context) =>
                 AppLocalizations.of(context)!.appTitle,
             builder: (context, child) {
               final content = child ?? const SizedBox.shrink();
-              final wrapped = DbRecoveryNoticeOverlay(child: content);
-              if (!isDesktop) return wrapped;
-
-              // Tooltips need an Overlay ancestor; since the title bar sits above the
-              // Router/Navigator, we provide a top-level Overlay for desktop.
-              return Overlay(
-                initialEntries: [
-                  OverlayEntry(
-                    opaque: true,
-                    builder: (_) => AppMenuHost(
-                      child: _DesktopChrome(router: router, content: wrapped),
-                    ),
-                  ),
-                ],
-              );
+              return DbRecoveryNoticeOverlay(child: content);
             },
             theme: AppTheme.light(
               scheme: useDynamicColor ? lightDynamic : null,
               seedColorPreset: seedColorPreset,
+              dynamicColorAvailable: hasDynamicColor,
             ),
             darkTheme: AppTheme.dark(
               scheme: useDynamicColor ? darkDynamic : null,
               seedColorPreset: seedColorPreset,
+              dynamicColorAvailable: hasDynamicColor,
             ),
             themeMode: appSettings?.themeMode ?? ThemeMode.system,
             locale: (localeTag == null) ? null : _localeFromTag(localeTag),
@@ -155,12 +134,16 @@ class _AppRuntimeHostState extends ConsumerState<AppRuntimeHost> {
 
   NotificationService? _notificationService;
   String? _lastPreferredLanguageTag;
+  MacOSWindowChromeMetrics? _pendingMacOSWindowChromeMetrics;
+  bool _macOSWindowChromeMetricsUpdateScheduled = false;
 
   @override
   void initState() {
     super.initState();
     _notificationService = ref.read(notificationServiceProvider);
+    _bindMacOSWindowChromeMetrics();
     _bindNotificationTapHandler();
+    unawaited(_syncMacOSWindowChromeMetrics());
     unawaited(_initializeNotifications());
     unawaited(_requestNotificationPermissions());
     _appSettingsSubscription = ref.listenManual<AsyncValue<AppSettings>>(
@@ -172,8 +155,38 @@ class _AppRuntimeHostState extends ConsumerState<AppRuntimeHost> {
 
   @override
   void dispose() {
+    if (isMacOS) {
+      MacOSWindowChromeBridge.setMetricsChangedHandler(null);
+    }
     _appSettingsSubscription?.close();
     super.dispose();
+  }
+
+  void _bindMacOSWindowChromeMetrics() {
+    if (!isMacOS) return;
+    _scheduleMacOSWindowChromeMetricsUpdate(
+      MacOSWindowChromeBridge.latestMetrics,
+    );
+    MacOSWindowChromeBridge.setMetricsChangedHandler((metrics) {
+      if (!mounted) return;
+      _scheduleMacOSWindowChromeMetricsUpdate(metrics);
+    });
+  }
+
+  void _scheduleMacOSWindowChromeMetricsUpdate(
+    MacOSWindowChromeMetrics metrics,
+  ) {
+    _pendingMacOSWindowChromeMetrics = metrics;
+    if (_macOSWindowChromeMetricsUpdateScheduled) return;
+    _macOSWindowChromeMetricsUpdateScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _macOSWindowChromeMetricsUpdateScheduled = false;
+      if (!mounted) return;
+      final metrics = _pendingMacOSWindowChromeMetrics;
+      if (metrics == null) return;
+      _pendingMacOSWindowChromeMetrics = null;
+      ref.read(macOSWindowChromeMetricsProvider.notifier).state = metrics;
+    });
   }
 
   void _bindNotificationTapHandler() {
@@ -186,7 +199,7 @@ class _AppRuntimeHostState extends ConsumerState<AppRuntimeHost> {
             router.go('/');
             return;
           case NotificationTapArticle(articleId: final articleId):
-            router.go('/article/$articleId');
+            router.go(scopedArticleLocation(ArticleScope.all, articleId));
             return;
         }
       });
@@ -232,6 +245,23 @@ class _AppRuntimeHostState extends ConsumerState<AppRuntimeHost> {
     }
   }
 
+  Future<void> _syncMacOSWindowChromeMetrics() async {
+    if (!isMacOS) return;
+    try {
+      final metrics = await MacOSWindowChromeBridge.getTitlebarChromeMetrics();
+      if (!mounted) return;
+      _scheduleMacOSWindowChromeMetricsUpdate(metrics);
+    } on MissingPluginException {
+      // Widget tests and non-macOS embedders may not register this channel.
+    } catch (e) {
+      AppLogger.w(
+        'macOS window chrome metrics sync failed',
+        tag: 'runtime',
+        error: e,
+      );
+    }
+  }
+
   Future<void> _syncPreferredLanguage(String? localeTag) async {
     final applyPreferredLanguage = ref.read(preferredLanguageApplierProvider);
     try {
@@ -258,6 +288,8 @@ class _AppControllerHostState extends ConsumerState<AppControllerHost> {
   ProviderSubscription<void>? _autoRefreshSubscription;
   ProviderSubscription<void>? _outboxFlushSubscription;
   ProviderSubscription<void>? _backgroundSyncSubscription;
+  ProviderSubscription<AppUpdateState>? _appUpdateSubscription;
+  AppUpdateController? _appUpdateController;
 
   @override
   void initState() {
@@ -277,223 +309,25 @@ class _AppControllerHostState extends ConsumerState<AppControllerHost> {
       (previous, next) {},
       fireImmediately: true,
     );
+    _appUpdateSubscription = ref.listenManual<AppUpdateState>(
+      appUpdateControllerProvider,
+      (previous, next) {},
+      fireImmediately: true,
+    );
+    _appUpdateController = ref.read(appUpdateControllerProvider.notifier);
+    _appUpdateController?.scheduleStartupCheck();
   }
 
   @override
   void dispose() {
+    _appUpdateController?.cancelStartupCheck();
     _autoRefreshSubscription?.close();
     _outboxFlushSubscription?.close();
     _backgroundSyncSubscription?.close();
+    _appUpdateSubscription?.close();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) => widget.child;
-}
-
-class _DesktopChrome extends ConsumerStatefulWidget {
-  const _DesktopChrome({required this.router, required this.content});
-
-  final GoRouter router;
-  final Widget content;
-
-  @override
-  ConsumerState<_DesktopChrome> createState() => _DesktopChromeState();
-}
-
-class _DesktopChromeState extends ConsumerState<_DesktopChrome> {
-  final _routerVersion = ValueNotifier<int>(0);
-  bool _routerChangeScheduled = false;
-
-  @override
-  void initState() {
-    super.initState();
-    widget.router.routerDelegate.addListener(_handleRouterChange);
-  }
-
-  @override
-  void didUpdateWidget(covariant _DesktopChrome oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.router != widget.router) {
-      oldWidget.router.routerDelegate.removeListener(_handleRouterChange);
-      widget.router.routerDelegate.addListener(_handleRouterChange);
-    }
-  }
-
-  @override
-  void dispose() {
-    widget.router.routerDelegate.removeListener(_handleRouterChange);
-    _routerVersion.dispose();
-    super.dispose();
-  }
-
-  void _handleRouterChange() {
-    if (!mounted) return;
-    if (_routerChangeScheduled) return;
-    _routerChangeScheduled = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _routerChangeScheduled = false;
-      if (!mounted) return;
-      _routerVersion.value++;
-    });
-  }
-
-  String _sectionTitleForUri(AppLocalizations l10n, Uri uri) {
-    final seg = uri.pathSegments.isEmpty ? '' : uri.pathSegments.first;
-    return switch (seg) {
-      'saved' => l10n.saved,
-      'search' => l10n.search,
-      'settings' => l10n.settings,
-      '' || 'article' => l10n.feeds,
-      _ => l10n.feeds,
-    };
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ValueListenableBuilder<int>(
-      valueListenable: _routerVersion,
-      builder: (context, _, child) {
-        final l10n = AppLocalizations.of(context)!;
-        final totalWidth = MediaQuery.sizeOf(context).width;
-        final width = effectiveContentWidth(totalWidth);
-        final uri = widget.router.routerDelegate.currentConfiguration.uri;
-        final sectionTitle = _sectionTitleForUri(l10n, uri);
-        // Desktop always has a top chrome (DesktopTitleBar), so avoid creating
-        // a second in-page "compact" app bar even when the window is narrow.
-        final title = sectionTitle;
-        final isArticleRoute =
-            uri.pathSegments.isNotEmpty && uri.pathSegments.first == 'article';
-        final isFeedsSection = uri.pathSegments.isEmpty || isArticleRoute;
-        final mode = desktopModeForWidth(width);
-        final isArticleSeparatePage =
-            isArticleRoute && !desktopReaderEmbedded(mode);
-        final sidebarVisible = ref.watch(sidebarVisibleProvider);
-        final drawerEnabled =
-            isFeedsSection &&
-            sidebarVisible &&
-            desktopSidebarInDrawer(mode) &&
-            !isArticleSeparatePage;
-        final canPop = widget.router.canPop();
-        final outboxPending =
-            ref.watch(outboxPendingCountProvider).valueOrNull ?? 0;
-        final showOutboxAction = outboxPending > 0;
-        final commands = HomeSceneCommands(
-          context: context,
-          ref: ref,
-          selectedArticleId: null,
-        );
-        final capabilities = ref.watch(backendCapabilitiesProvider);
-        final showRootRefresh = SubscriptionObjectMenus.showsRootRefresh(
-          capabilities,
-        );
-        final syncSemantics = ref.watch(backendSyncSemanticsProvider);
-        final selectedFeedId = ref.watch(selectedFeedIdProvider);
-        final selectedCategoryId = ref.watch(selectedCategoryIdProvider);
-        final refreshActionLabel = resolveHomeRefreshIntent(
-          capabilities: capabilities,
-          syncSemantics: syncSemantics,
-          selectedFeedId: selectedFeedId,
-          selectedCategoryId: selectedCategoryId,
-        ).label(l10n);
-        final leading = canPop
-            ? IconButton(
-                tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-                onPressed: () => widget.router.pop(),
-                icon: const Icon(Icons.arrow_back),
-              )
-            : (drawerEnabled
-                  ? Builder(
-                      builder: (context) {
-                        return IconButton(
-                          tooltip: MaterialLocalizations.of(
-                            context,
-                          ).openAppDrawerTooltip,
-                          onPressed: () => Scaffold.of(context).openDrawer(),
-                          icon: const Icon(Icons.menu),
-                        );
-                      },
-                    )
-                  : null);
-
-        return Scaffold(
-          drawer: drawerEnabled
-              ? Drawer(
-                  child: SafeArea(
-                    child: Padding(
-                      // On macOS (hidden title bar), the drawer can overlap the
-                      // system traffic lights and our custom title bar.
-                      padding: EdgeInsets.only(
-                        top: isMacOS ? AppTheme.desktopTitleBarHeight : 0,
-                      ),
-                      child: Sidebar(
-                        onSelectFeed: (_) {},
-                        router: widget.router,
-                      ),
-                    ),
-                  ),
-                )
-              : null,
-          body: Column(
-            children: [
-              DesktopTitleBar(
-                title: title,
-                leading: leading,
-                actions: [
-                  if (isFeedsSection) ...[
-                    if (showRootRefresh)
-                      IconButton(
-                        tooltip: refreshActionLabel,
-                        onPressed: () async {
-                          final outcome = await commands.refreshAll();
-                          if (!context.mounted) return;
-                          final err = outcome.batch.firstError?.error;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                err == null
-                                    ? outcome.successLabel(l10n)
-                                    : l10n.errorMessage(err.toString()),
-                              ),
-                            ),
-                          );
-                        },
-                        icon: const Icon(FleurIcons.refresh),
-                      ),
-                    Consumer(
-                      builder: (context, ref, _) {
-                        final unreadOnly = ref.watch(unreadOnlyProvider);
-                        return IconButton(
-                          tooltip: unreadOnly ? l10n.showAll : l10n.unreadOnly,
-                          onPressed: commands.toggleUnreadOnly,
-                          icon: Icon(
-                            unreadOnly
-                                ? FleurIcons.filterActive
-                                : FleurIcons.filter,
-                          ),
-                        );
-                      },
-                    ),
-                    IconButton(
-                      tooltip: l10n.markAllRead,
-                      onPressed: () async {
-                        await commands.markAllRead();
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(
-                          context,
-                        ).showSnackBar(SnackBar(content: Text(l10n.done)));
-                      },
-                      icon: const Icon(FleurIcons.markAllRead),
-                    ),
-                  ],
-                  if (showOutboxAction) const OutboxStatusAction(),
-                ],
-              ),
-              Expanded(child: widget.content),
-            ],
-          ),
-        );
-      },
-    );
-  }
 }

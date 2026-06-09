@@ -27,6 +27,33 @@
   "@settings": {
     "description": "settings"
   },
+  "settingsSearchHint": "Search settings",
+  "@settingsSearchHint": {
+    "description": "Placeholder for the settings page search field"
+  },
+  "settingsSearchNoResults": "No settings match this search.",
+  "@settingsSearchNoResults": {
+    "description": "Empty state text for the settings page search results"
+  },
+  "settingsSearchPageLabel": "Page",
+  "@settingsSearchPageLabel": {
+    "description": "Settings search result type label for top-level pages"
+  },
+  "settingsSearchSectionLabel": "Section",
+  "@settingsSearchSectionLabel": {
+    "description": "Settings search result type label for settings sections"
+  },
+  "settingsSearchSettingLabel": "Setting",
+  "@settingsSearchSettingLabel": {
+    "description": "Settings search result type label for individual settings"
+  },
+  "settingsSearchResultCount": "{count} results",
+  "@settingsSearchResultCount": {
+    "description": "Settings search result count badge",
+    "placeholders": {
+      "count": {}
+    }
+  },
   "feeds": "Feeds",
   "@feeds": {
     "description": "Global navigation label: feeds"
@@ -65,13 +92,13 @@
   },
   "dynamicColor": "Dynamic colors",
   "@dynamicColor": {
-    "description": "Use Material You dynamic colors when available"
+    "description": "Use system dynamic or accent colors when available"
   },
-  "dynamicColorSubtitle": "Use Material You colors (Android 12+)",
+  "dynamicColorSubtitle": "Follow system dynamic or accent colors when available",
   "@dynamicColorSubtitle": {
     "description": "Hint for dynamic colors setting"
   },
-  "seedColorPreset": "Theme colors",
+  "seedColorPreset": "Accent color",
   "@seedColorPreset": {
     "description": "Seed color preset selector label"
   },
@@ -134,6 +161,238 @@
   "horizontalPadding": "Horizontal padding",
   "@horizontalPadding": {
     "description": "horizontalPadding"
+  },
+  "applicationAppearance": "App appearance",
+  "@applicationAppearance": {
+    "description": "Section title for app-wide appearance settings"
+  },
+  "readerAppearance": "Reader appearance",
+  "@readerAppearance": {
+    "description": "Section title for reader appearance settings"
+  },
+  "codeAppearance": "Code appearance",
+  "@codeAppearance": {
+    "description": "Section title for code appearance settings"
+  },
+  "custom": "Custom",
+  "@custom": {
+    "description": "Generic custom option label"
+  },
+  "back": "Back",
+  "@back": {
+    "description": "Generic back action label"
+  },
+  "forward": "Forward",
+  "@forward": {
+    "description": "Generic forward action label"
+  },
+  "fontSettings": "Fonts",
+  "@fontSettings": {
+    "description": "Appearance font detail page title"
+  },
+  "advancedFontSettings": "Advanced font settings",
+  "@advancedFontSettings": {
+    "description": "Appearance advanced font settings row and detail page title"
+  },
+  "fontsAndCode": "Fonts and code",
+  "@fontsAndCode": {
+    "description": "Appearance code font detail row label"
+  },
+  "customFontStack": "Custom font stack",
+  "@customFontStack": {
+    "description": "Custom font stack option label"
+  },
+  "codeTypography": "Code typography",
+  "@codeTypography": {
+    "description": "Code typography settings section title"
+  },
+  "fontSizeExtraSmall": "Extra small",
+  "@fontSizeExtraSmall": {
+    "description": "Reader font size preset label"
+  },
+  "fontSizeSmall": "Small",
+  "@fontSizeSmall": {
+    "description": "Reader font size preset label"
+  },
+  "fontSizeMediumRecommended": "Medium (recommended)",
+  "@fontSizeMediumRecommended": {
+    "description": "Reader font size preset label"
+  },
+  "fontSizeLarge": "Large",
+  "@fontSizeLarge": {
+    "description": "Reader font size preset label"
+  },
+  "fontSizeExtraLarge": "Extra large",
+  "@fontSizeExtraLarge": {
+    "description": "Reader font size preset label"
+  },
+  "minimumFontSize": "Minimum font size",
+  "@minimumFontSize": {
+    "description": "Minimum reader body font size setting label"
+  },
+  "lineHeightCompact": "Compact",
+  "@lineHeightCompact": {
+    "description": "Reader line height preset label"
+  },
+  "lineHeightStandard": "Standard",
+  "@lineHeightStandard": {
+    "description": "Reader line height preset label"
+  },
+  "lineHeightRelaxed": "Relaxed",
+  "@lineHeightRelaxed": {
+    "description": "Reader line height preset label"
+  },
+  "appearancePreview": "Preview",
+  "@appearancePreview": {
+    "description": "Appearance settings preview section title"
+  },
+  "appearancePreviewTitle": "A quieter reading surface",
+  "@appearancePreviewTitle": {
+    "description": "Sample reader preview article title"
+  },
+  "appearancePreviewMeta": "Preview · Today",
+  "@appearancePreviewMeta": {
+    "description": "Sample reader preview metadata"
+  },
+  "appearancePreviewBody": "Tune the reader once, then let every article open with the same calm rhythm.",
+  "@appearancePreviewBody": {
+    "description": "Sample reader preview body"
+  },
+  "appearancePreviewQuote": "Readable settings should feel visible before they feel configurable.",
+  "@appearancePreviewQuote": {
+    "description": "Sample reader preview quote"
+  },
+  "appearancePreviewLink": "Sample link",
+  "@appearancePreviewLink": {
+    "description": "Sample reader preview link"
+  },
+  "appearancePreviewCode": "code sample",
+  "@appearancePreviewCode": {
+    "description": "Sample reader preview code text"
+  },
+  "readerFontFamily": "Font family",
+  "@readerFontFamily": {
+    "description": "Reader font family setting label"
+  },
+  "readerFontSystem": "System",
+  "@readerFontSystem": {
+    "description": "Reader system font option"
+  },
+  "readerFontSerif": "Serif",
+  "@readerFontSerif": {
+    "description": "Reader serif font option"
+  },
+  "readerFontSans": "Sans",
+  "@readerFontSans": {
+    "description": "Reader sans font option"
+  },
+  "readerFontMono": "Mono",
+  "@readerFontMono": {
+    "description": "Reader mono font option"
+  },
+  "readerFontStack": "Reading font stack",
+  "@readerFontStack": {
+    "description": "Reader custom font stack setting label"
+  },
+  "standardFont": "Standard font",
+  "@standardFont": {
+    "description": "Standard reader font stack setting label"
+  },
+  "serifFont": "Serif font",
+  "@serifFont": {
+    "description": "Serif reader font stack setting label"
+  },
+  "sansSerifFont": "Sans-serif font",
+  "@sansSerifFont": {
+    "description": "Sans-serif reader font stack setting label"
+  },
+  "fixedWidthFont": "Fixed-width font",
+  "@fixedWidthFont": {
+    "description": "Fixed-width reader and code font stack setting label"
+  },
+  "mathFont": "Math font",
+  "@mathFont": {
+    "description": "Math font stack setting label"
+  },
+  "fontStackExample": "\"PingFang SC\", \"Noto Sans CJK SC\", system-ui, sans-serif",
+  "@fontStackExample": {
+    "description": "Example helper text for custom font stack input"
+  },
+  "monoFontStackExample": "\"SF Mono\", Menlo, Consolas, monospace",
+  "@monoFontStackExample": {
+    "description": "Example helper text for monospace font stack input"
+  },
+  "mathFontStackExample": "\"STIX Two Math\", \"Cambria Math\", serif",
+  "@mathFontStackExample": {
+    "description": "Example helper text for math font stack input"
+  },
+  "readerTheme": "Reading texture",
+  "@readerTheme": {
+    "description": "Reader surface texture preset setting label"
+  },
+  "readerThemeDefault": "Default",
+  "@readerThemeDefault": {
+    "description": "Default reader texture option"
+  },
+  "readerThemePaper": "Paper",
+  "@readerThemePaper": {
+    "description": "Paper reader texture option"
+  },
+  "readerThemeSepia": "Sepia",
+  "@readerThemeSepia": {
+    "description": "Sepia reader texture option"
+  },
+  "readerThemeDim": "Soft gray",
+  "@readerThemeDim": {
+    "description": "Soft gray reader texture option"
+  },
+  "readingWidth": "Reading width",
+  "@readingWidth": {
+    "description": "Reader content width setting label"
+  },
+  "readingWidthNarrow": "Narrow",
+  "@readingWidthNarrow": {
+    "description": "Narrow reader content width option"
+  },
+  "readingWidthStandard": "Standard",
+  "@readingWidthStandard": {
+    "description": "Standard reader content width option"
+  },
+  "readingWidthWide": "Wide",
+  "@readingWidthWide": {
+    "description": "Wide reader content width option"
+  },
+  "codeFontFamily": "Code font",
+  "@codeFontFamily": {
+    "description": "Code font family setting label"
+  },
+  "codeFontSystemMono": "System mono",
+  "@codeFontSystemMono": {
+    "description": "Code system monospace font option"
+  },
+  "codeFontStack": "Code font stack",
+  "@codeFontStack": {
+    "description": "Code custom font stack setting label"
+  },
+  "codeFontSize": "Code font size",
+  "@codeFontSize": {
+    "description": "Code font size setting label"
+  },
+  "codeFontSizeFollowReader": "Follow body",
+  "@codeFontSizeFollowReader": {
+    "description": "Code font size follows reader body option"
+  },
+  "codeFontSizeOneStepDown": "One step down",
+  "@codeFontSizeOneStepDown": {
+    "description": "Code font size one step smaller than reader body option"
+  },
+  "codeLineHeight": "Code line height",
+  "@codeLineHeight": {
+    "description": "Code line height setting label"
+  },
+  "codeSoftWrap": "Wrap code lines",
+  "@codeSoftWrap": {
+    "description": "Code soft wrap setting label"
   },
   "storage": "Storage",
   "@storage": {
@@ -456,6 +715,14 @@
   "@feedOrWebsiteUrl": {
     "description": "feedOrWebsiteUrl"
   },
+  "feedOrWebsiteUrlHint": "Paste a website or RSS URL",
+  "@feedOrWebsiteUrlHint": {
+    "description": "Helper text for the add subscription URL field"
+  },
+  "findFeeds": "Find feeds",
+  "@findFeeds": {
+    "description": "Button label for discovering RSS/Atom feeds from a URL"
+  },
   "discoveringFeeds": "Discovering feeds...",
   "@discoveringFeeds": {
     "description": "discoveringFeeds"
@@ -472,6 +739,40 @@
   "@noFeedsFound": {
     "description": "noFeedsFound"
   },
+  "noFeedsFoundHint": "Paste the RSS/Atom URL directly or try another page from the site.",
+  "@noFeedsFoundHint": {
+    "description": "Inline hint shown when feed discovery finds no candidates"
+  },
+  "subscriptionPreview": "Source preview",
+  "@subscriptionPreview": {
+    "description": "Section title for the selected subscription source preview"
+  },
+  "subscriptionResultsFound": "{count, plural, =1{Found 1 subscription source} other{Found {count} subscription sources}}",
+  "@subscriptionResultsFound": {
+    "description": "Section title for discovered subscription result rows",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "subscriptionPreviewUnavailable": "No recent preview items available",
+  "@subscriptionPreviewUnavailable": {
+    "description": "Placeholder text when a discovered feed has no preview items"
+  },
+  "feedSourceDirect": "RSS/Atom URL",
+  "@feedSourceDirect": {
+    "description": "Label for a feed discovered because the input URL is itself a feed"
+  },
+  "feedSourceAlternate": "Discovered on page",
+  "@feedSourceAlternate": {
+    "description": "Label for a feed discovered from HTML alternate/feed links"
+  },
+  "feedSourceCommonPath": "Common feed path",
+  "@feedSourceCommonPath": {
+    "description": "Label for a feed discovered by probing common RSS paths"
+  },
   "name": "Name",
   "@name": {
     "description": "name"
@@ -479,6 +780,38 @@
   "addedAndSynced": "Added & synced",
   "@addedAndSynced": {
     "description": "addedAndSynced"
+  },
+  "subscriptionAddedTitle": "Subscription added",
+  "@subscriptionAddedTitle": {
+    "description": "Success panel title after adding a subscription"
+  },
+  "subscriptionAddedMessage": "The subscription was added. You can open it now or keep adding more.",
+  "@subscriptionAddedMessage": {
+    "description": "Success panel message after adding a subscription"
+  },
+  "subscriptionRefreshWarning": "The subscription was added, but the first refresh failed. You can retry refresh later.",
+  "@subscriptionRefreshWarning": {
+    "description": "Warning shown when adding a subscription succeeds but the initial refresh fails"
+  },
+  "subscriptionAlreadyExistsTitle": "Already subscribed",
+  "@subscriptionAlreadyExistsTitle": {
+    "description": "Panel title when the feed already exists"
+  },
+  "subscriptionAlreadyExistsMessage": "This feed is already in your subscriptions. No category changes were made.",
+  "@subscriptionAlreadyExistsMessage": {
+    "description": "Panel message when the feed already exists"
+  },
+  "viewSubscription": "View subscription",
+  "@viewSubscription": {
+    "description": "Button label for opening a newly added or existing subscription"
+  },
+  "continueAddingSubscription": "Continue adding",
+  "@continueAddingSubscription": {
+    "description": "Button label for resetting the add subscription form"
+  },
+  "moveToCurrentCategory": "Move to current category",
+  "@moveToCurrentCategory": {
+    "description": "Button label for moving an existing subscription into the category from which add subscription was opened"
   },
   "deleteSubscription": "Delete subscription",
   "@deleteSubscription": {
@@ -871,6 +1204,18 @@
   "@addMiniflux": {
     "description": "addMiniflux"
   },
+  "addGoogleReaderApi": "Add Google Reader API",
+  "@addGoogleReaderApi": {
+    "description": "addGoogleReaderApi"
+  },
+  "googleReaderApi": "Google Reader API",
+  "@googleReaderApi": {
+    "description": "googleReaderApi"
+  },
+  "googleReaderCompatible": "Google Reader compatible",
+  "@googleReaderCompatible": {
+    "description": "googleReaderCompatible"
+  },
   "addFever": "Add Fever",
   "@addFever": {
     "description": "addFever"
@@ -894,6 +1239,10 @@
   "remoteSyncStrategyMinifluxSubtitle": "Miniflux can page through remote entries up to this per-sync window.",
   "@remoteSyncStrategyMinifluxSubtitle": {
     "description": "remoteSyncStrategyMinifluxSubtitle"
+  },
+  "remoteSyncStrategyGoogleReaderSubtitle": "Google Reader compatible services page through remote stream entries up to this per-sync window.",
+  "@remoteSyncStrategyGoogleReaderSubtitle": {
+    "description": "remoteSyncStrategyGoogleReaderSubtitle"
   },
   "remoteSyncStrategyFeverSubtitle": "Fever syncs unread and saved items, capped by this per-sync window.",
   "@remoteSyncStrategyFeverSubtitle": {
@@ -1133,6 +1482,49 @@
   "@buildNumber": {
     "description": "buildNumber"
   },
+  "versionAndBuild": "Version {version} · Build {buildNumber}",
+  "@versionAndBuild": {
+    "description": "Compact about-page app version and build label",
+    "placeholders": {
+      "version": {},
+      "buildNumber": {}
+    }
+  },
+  "checkForUpdates": "Check for updates",
+  "@checkForUpdates": {
+    "description": "Action label for manually checking app updates"
+  },
+  "checkingForUpdates": "Checking...",
+  "@checkingForUpdates": {
+    "description": "Disabled action label while app update check is running"
+  },
+  "updateAvailable": "Update",
+  "@updateAvailable": {
+    "description": "Short app update entry label shown when a new version is available"
+  },
+  "upToDate": "You're up to date",
+  "@upToDate": {
+    "description": "Status text shown after checking app updates"
+  },
+  "updateCheckFailed": "Couldn't check for updates.",
+  "@updateCheckFailed": {
+    "description": "Error shown when checking app updates fails"
+  },
+  "newVersionAvailable": "New version {version} available",
+  "@newVersionAvailable": {
+    "description": "Title for the app update dialog",
+    "placeholders": {
+      "version": {}
+    }
+  },
+  "releaseNotes": "Release notes",
+  "@releaseNotes": {
+    "description": "Heading for release notes in the app update dialog"
+  },
+  "goToOfficialUpdate": "Open release page",
+  "@goToOfficialUpdate": {
+    "description": "Action label to open the official GitHub release page"
+  },
   "openSourceLicense": "Open source license",
   "@openSourceLicense": {
     "description": "openSourceLicense"
@@ -1160,6 +1552,10 @@
   "shortcutNextPreviousArticle": "J / K: Next / previous article",
   "@shortcutNextPreviousArticle": {
     "description": "Keyboard shortcut help text for moving to the next or previous article"
+  },
+  "shortcutBackForwardHistory": "Alt + \u2190 / Alt + \u2192; macOS Cmd + [ / ]: Back / forward history",
+  "@shortcutBackForwardHistory": {
+    "description": "Keyboard shortcut help text for navigating backward or forward through history"
   },
   "shortcutRefreshCurrentSelection": "R: Refresh (current selection)",
   "@shortcutRefreshCurrentSelection": {

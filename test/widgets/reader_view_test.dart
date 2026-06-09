@@ -1,3 +1,6 @@
+@Tags(['global_logger'])
+library;
+
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
@@ -5,10 +8,11 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 
 import 'package:fleur/l10n/app_localizations.dart';
@@ -28,14 +32,19 @@ import 'package:fleur/providers/translation_ai_settings_providers.dart';
 import 'package:fleur/repositories/article_repository.dart';
 import 'package:fleur/repositories/tag_repository.dart';
 import 'package:fleur/services/logging/app_logger.dart';
+import 'package:fleur/services/reader_chunk_policy.dart';
 import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/settings/reader_progress_store.dart';
 import 'package:fleur/services/settings/reader_settings.dart';
 import 'package:fleur/services/settings/translation_ai_settings.dart';
+import 'package:fleur/services/feed_html_normalizer.dart';
+import 'package:fleur/services/html_sanitizer.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
 import 'package:fleur/ui/reader/reader_selectable_rich_text.dart';
+import 'package:fleur/ui/reader/code_rendering/reader_code_rendering.dart';
+import 'package:fleur/utils/content_hash.dart';
 import 'package:fleur/utils/path_manager.dart';
 import 'package:fleur/utils/tag_colors.dart';
 import 'package:fleur/widgets/reader_bottom_bar.dart';
@@ -63,6 +72,16 @@ class _FakeFullTextController extends FullTextController {
       return handler(this, articleId);
     }
     return false;
+  }
+}
+
+class _TranslatedArticleAiController extends ArticleAiController {
+  @override
+  ArticleAiState build(int articleId) {
+    return ArticleAiState.initial(articleId).copyWith(
+      translationHtml: '<p>Translated body</p>',
+      translationStatus: ArticleAiTaskStatus.ready,
+    );
   }
 }
 
@@ -116,10 +135,40 @@ class _FakePathProviderPlatform extends PathProviderPlatform {
 void main() {
   const articleId = 7;
 
+  tearDown(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, null);
+  });
+
   Future<void> settleReader(WidgetTester tester, {int rounds = 20}) async {
     for (var i = 0; i < rounds; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }
+  }
+
+  Future<void> pumpUntil(
+    WidgetTester tester,
+    bool Function() condition, {
+    int attempts = 50,
+  }) async {
+    for (var i = 0; i < attempts; i++) {
+      await tester.runAsync(() async {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      });
+      await tester.pump(const Duration(milliseconds: 100));
+      if (condition()) return;
+    }
+    expect(condition(), isTrue);
+  }
+
+  ScrollableState verticalReaderScrollable(WidgetTester tester) {
+    return tester
+        .stateList<ScrollableState>(find.byType(Scrollable))
+        .firstWhere(
+          (state) =>
+              state.position.axis == Axis.vertical &&
+              state.position.maxScrollExtent > 0,
+        );
   }
 
   Feed buildFeed() {
@@ -223,7 +272,10 @@ void main() {
     ReaderSettings settings,
   ) {
     final readerElement = tester.element(find.byType(ReaderView));
-    final sceneTheme = AppTheme.readerScene(Theme.of(readerElement));
+    final sceneTheme = AppTheme.readerScene(
+      Theme.of(readerElement),
+      settings: settings,
+    );
     final reader = sceneTheme.fleurReader;
     final readerViewWidth = tester.getSize(find.byType(ReaderView)).width;
     final readingWidth = math.min(readerViewWidth, reader.maxWidth);
@@ -232,6 +284,69 @@ void main() {
       reader.contentPaddingHorizontal,
     );
     return (readerViewWidth - readingWidth) / 2 + horizontalPadding;
+  }
+
+  String displayedContentHash(String html) {
+    return ContentHash.compute(
+      HtmlSanitizer.sanitize(
+        normalizeReaderHtmlForDisplay(
+          FeedHtmlNormalizer.normalize(
+            html,
+            baseUrl: Uri.parse('https://example.com/article'),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String readerPlainText(WidgetTester tester) {
+    return tester
+        .widgetList<ReaderSelectableRichText>(
+          find.descendant(
+            of: find.byType(HtmlWidget),
+            matching: find.byType(ReaderSelectableRichText),
+          ),
+        )
+        .map((widget) => widget.text.toPlainText())
+        .join('\n');
+  }
+
+  List<TextSpan> flattenTextSpans(TextSpan span) {
+    return [
+      span,
+      for (final child in span.children ?? const <InlineSpan>[])
+        if (child is TextSpan) ...flattenTextSpans(child),
+    ];
+  }
+
+  List<List<ReaderSelectableRichText>> readerCodeLines(WidgetTester tester) {
+    return [
+      for (final block in find.byKey(const Key('reader_code_block')).evaluate())
+        tester
+            .widgetList<ReaderSelectableRichText>(
+              find.descendant(
+                of: find.byElementPredicate((element) => element == block),
+                matching: find.byKey(const Key('reader_code_line_code')),
+              ),
+            )
+            .toList(growable: false),
+    ];
+  }
+
+  List<String> readerCodePlainTexts(WidgetTester tester) {
+    return [
+      for (final lines in readerCodeLines(tester))
+        lines.map((widget) => widget.text.toPlainText()).join('\n'),
+    ];
+  }
+
+  List<TextSpan> readerCodeTextSpans(WidgetTester tester) {
+    return [
+      for (final lines in readerCodeLines(tester))
+        for (final widget in lines)
+          if (widget.text is TextSpan)
+            ...flattenTextSpans(widget.text as TextSpan),
+    ];
   }
 
   testWidgets('marks article as read when opening the reader', (tester) async {
@@ -315,6 +430,1216 @@ void main() {
     },
   );
 
+  testWidgets('reader body defaults to compact long-form typography', (
+    tester,
+  ) async {
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html: '<p>Long form body copy should stay quiet and readable.</p>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 12);
+
+    final bodyFinder = find.descendant(
+      of: find.byType(HtmlWidget),
+      matching: find.byType(ReaderSelectableRichText),
+    );
+    expect(bodyFinder, findsWidgets);
+
+    final bodyText = tester.widget<ReaderSelectableRichText>(bodyFinder.first);
+    final span = bodyText.text as TextSpan;
+    final style = span.style!;
+
+    expect(style.fontSize, ReaderSettings.defaultFontSize);
+    expect(style.height, ReaderSettings.defaultLineHeight);
+    expect(style.fontWeight, FontWeight.w400);
+
+    final readerElement = tester.element(find.byType(ReaderView));
+    final reader = AppTheme.readerScene(Theme.of(readerElement)).fleurReader;
+    expect(style.color, reader.bodyStyle.color);
+  });
+
+  testWidgets('reader body applies selected category font stack', (
+    tester,
+  ) async {
+    const settings = ReaderSettings(
+      fontFamily: ReaderFontFamily.serif,
+      serifFontStack: '"Georgia", "Times New Roman", serif',
+    );
+
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html: '<p>Long form body copy should use the custom stack.</p>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      readerSettings: settings,
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 12);
+
+    final bodyText = tester.widget<ReaderSelectableRichText>(
+      find
+          .descendant(
+            of: find.byType(HtmlWidget),
+            matching: find.byType(ReaderSelectableRichText),
+          )
+          .first,
+    );
+    final style = (bodyText.text as TextSpan).style!;
+
+    expect(style.fontFamily, 'Georgia');
+    expect(style.fontFamilyFallback, ['Times New Roman', 'serif']);
+  });
+
+  testWidgets('reader minimum font size clamps tiny html body text', (
+    tester,
+  ) async {
+    const settings = ReaderSettings(minimumFontSize: 18);
+
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html: '<p><span style="font-size: 8px">Tiny body text</span></p>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      readerSettings: settings,
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 12);
+
+    final spans = tester
+        .widgetList<ReaderSelectableRichText>(
+          find.descendant(
+            of: find.byType(HtmlWidget),
+            matching: find.byType(ReaderSelectableRichText),
+          ),
+        )
+        .where((widget) => widget.text is TextSpan)
+        .expand((widget) => flattenTextSpans(widget.text as TextSpan));
+    final tinySpan = spans.firstWhere(
+      (span) => span.text?.contains('Tiny body text') ?? false,
+    );
+
+    expect(tinySpan.style?.fontSize, 18);
+  });
+
+  testWidgets('reader sanitizes feed html before rendering and search', (
+    tester,
+  ) async {
+    final rawHtml =
+        '<p onclick="evil()">Visible safe text</p>'
+        '<script>needleUnsafe()</script>'
+        '<p>Searchable clean text</p>';
+
+    await pumpReader(
+      tester,
+      article: buildArticle(title: 'A', html: rawHtml),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 12);
+
+    final plainText = readerPlainText(tester);
+    expect(plainText, contains('Visible safe text'));
+    expect(plainText, isNot(contains('needleUnsafe')));
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(ReaderView)),
+    );
+    container.read(readerSearchControllerProvider(articleId).notifier).open();
+    container
+        .read(readerSearchControllerProvider(articleId).notifier)
+        .setQuery('needleUnsafe');
+    await settleReader(tester, rounds: 5);
+
+    expect(
+      container.read(readerSearchControllerProvider(articleId)).totalMatches,
+      0,
+    );
+
+    container
+        .read(readerSearchControllerProvider(articleId).notifier)
+        .setQuery('Searchable clean text');
+    await settleReader(tester, rounds: 5);
+
+    expect(
+      container.read(readerSearchControllerProvider(articleId)).totalMatches,
+      1,
+    );
+  });
+
+  testWidgets('reader display html uses extracted content when preferred', (
+    tester,
+  ) async {
+    final article = buildArticle(title: 'A', html: '<p>Feed body</p>')
+      ..extractedContentHtml = '<p>Extracted body</p>'
+      ..preferredContentView = ArticleContentView.extracted;
+
+    await pumpReader(
+      tester,
+      article: article,
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 12);
+
+    final plainText = readerPlainText(tester);
+    expect(plainText, contains('Extracted body'));
+    expect(plainText, isNot(contains('Feed body')));
+  });
+
+  testWidgets('reader display html honors feed content preference', (
+    tester,
+  ) async {
+    final article = buildArticle(title: 'A', html: '<p>Feed body</p>')
+      ..extractedContentHtml = '<p>Extracted body</p>'
+      ..preferredContentView = ArticleContentView.feed;
+
+    await pumpReader(
+      tester,
+      article: article,
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 12);
+
+    final plainText = readerPlainText(tester);
+    expect(plainText, contains('Feed body'));
+    expect(plainText, isNot(contains('Extracted body')));
+  });
+
+  testWidgets(
+    'reader display html prefers translation over extracted content',
+    (tester) async {
+      final article = buildArticle(title: 'A', html: '<p>Feed body</p>')
+        ..extractedContentHtml = '<p>Extracted body</p>';
+
+      await pumpReader(
+        tester,
+        article: article,
+        appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+        extraOverrides: [
+          articleAiControllerProvider.overrideWith(
+            _TranslatedArticleAiController.new,
+          ),
+        ],
+      );
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 500)),
+      );
+      await settleReader(tester, rounds: 12);
+
+      final plainText = readerPlainText(tester);
+      expect(plainText, contains('Translated body'));
+      expect(plainText, isNot(contains('Extracted body')));
+    },
+  );
+
+  testWidgets('reader applies theme styles to rich html elements', (
+    tester,
+  ) async {
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html:
+            '<blockquote><p>Quoted body</p></blockquote>'
+            '<pre><code>final answer = 42;</code></pre>'
+            '<table><tr><th>Name</th><td>Fleur</td></tr></table>'
+            '<ul><li>Item one</li></ul>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 12);
+
+    final readerElement = tester.element(find.byType(ReaderView));
+    final reader = AppTheme.readerScene(Theme.of(readerElement)).fleurReader;
+
+    final decoratedBoxes = tester
+        .widgetList<DecoratedBox>(find.byType(DecoratedBox))
+        .toList(growable: false);
+    final hasBlockquoteAccent = decoratedBoxes.any((widget) {
+      final decoration = widget.decoration;
+      if (decoration is! BoxDecoration) return false;
+      final border = decoration.border;
+      if (border is! Border) return false;
+      return border.left.color == reader.blockquoteAccent &&
+          border.left.width == 4;
+    });
+    final hasCodeSurface = decoratedBoxes.any((widget) {
+      final decoration = widget.decoration;
+      return decoration is BoxDecoration &&
+          decoration.color == reader.codeBlockSurface;
+    });
+
+    expect(hasBlockquoteAccent, isTrue);
+    expect(hasCodeSurface, isTrue);
+    expect(
+      find.textContaining('Quoted body', findRichText: true),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('final answer', findRichText: true),
+      findsOneWidget,
+    );
+    final plainText = readerPlainText(tester);
+    expect(plainText, contains('Name'));
+    expect(plainText, contains('Item one'));
+  });
+
+  testWidgets('reader renders math nodes and skips code and links', (
+    tester,
+  ) async {
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html:
+            r'<p>Inline $a^2+b^2=c^2$ math.</p>'
+            r'<p>Block $$E = mc^2$$ math.</p>'
+            r'<pre><code>$not_math$</code></pre>'
+            r'<p><a href="https://example.com">$link_math$</a></p>'
+            r'<p>Broken $\notACommand{$ formula.</p>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 16);
+
+    expect(find.byKey(const Key('reader_math_node')), findsWidgets);
+    expect(find.byKey(const Key('reader_math_block')), findsOneWidget);
+    expect(find.byKey(const Key('reader_math_fallback')), findsOneWidget);
+    expect(
+      find.textContaining(r'$not_math$', findRichText: true),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining(r'$link_math$', findRichText: true),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+    'reader renders code block with language marker and fallback text',
+    (tester) async {
+      await pumpReader(
+        tester,
+        article: buildArticle(
+          title: 'A',
+          html:
+              '<pre>&lt;div class="box"&gt;\n'
+              '  &lt;p id="p"&gt;我的对齐是？&lt;/p&gt;\n'
+              '&lt;/div&gt;</pre>'
+              '<pre><code class="language-css">'
+              '@container excel-scroller scroll-state(scrolled: right) {\n'
+              '/* first sticky column right border */\n'
+              ':where(td, th):first-child {\n'
+              '  border-right: 1px solid var(--ui-border);\n'
+              '}\n'
+              '}'
+              '</code></pre>'
+              '<pre><code class="language-typescript">'
+              "import { createLogger } from 'vite'\n"
+              'const logger = createLogger()'
+              '</code></pre>'
+              '<pre><code class="language-diff-plain language-diff diff-highlight">'
+              '+added line\n'
+              '-removed line\n'
+              ' unchanged'
+              '</code></pre>'
+              '<pre><code class="language-unknown">plain fallback</code></pre>',
+        ),
+        appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      );
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 500)),
+      );
+      await settleReader(tester, rounds: 20);
+
+      expect(find.byKey(const Key('reader_code_block')), findsNWidgets(5));
+      expect(
+        find.textContaining('@container excel-scroller', findRichText: true),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('createLogger', findRichText: true),
+        findsWidgets,
+      );
+      expect(
+        find.textContaining('+added line', findRichText: true),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('<div class="box">', findRichText: true),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('plain fallback', findRichText: true),
+        findsOneWidget,
+      );
+
+      final spans = readerCodeTextSpans(tester);
+      final baseCodeColor = Theme.of(
+        tester.element(find.byType(ReaderView)),
+      ).colorScheme.onSurface;
+      expect(
+        spans.any(
+          (span) =>
+              (span.text?.contains('import') ?? false) &&
+              span.style?.color != null &&
+              span.style?.color != baseCodeColor,
+        ),
+        isTrue,
+      );
+      final addedDiffSpan = spans.firstWhere(
+        (span) => span.text?.startsWith('+added line') ?? false,
+      );
+      final removedDiffSpan = spans.firstWhere(
+        (span) => span.text?.startsWith('-removed line') ?? false,
+      );
+      expect(addedDiffSpan.style?.backgroundColor, isNotNull);
+      expect(addedDiffSpan.style?.color, isNot(baseCodeColor));
+      expect(removedDiffSpan.style?.backgroundColor, isNotNull);
+      expect(removedDiffSpan.style?.color, isNot(baseCodeColor));
+      expect(
+        spans
+            .map((span) => span.style)
+            .whereType<TextStyle>()
+            .where(
+              (style) =>
+                  style.decoration != null ||
+                  style.fontStyle != null ||
+                  style.fontWeight != null,
+            ),
+        everyElement(
+          predicate<TextStyle>(
+            (style) =>
+                style.decoration == TextDecoration.none &&
+                style.fontStyle == FontStyle.normal &&
+                style.fontWeight == FontWeight.w400,
+          ),
+        ),
+      );
+    },
+  );
+
+  testWidgets('reader code blocks apply code appearance settings', (
+    tester,
+  ) async {
+    const settings = ReaderSettings(
+      fontSize: 18,
+      monoFontStack: '"JetBrains Mono", "SF Mono", monospace',
+      codeFontSizeMode: CodeFontSizeMode.custom,
+      codeFontSize: 16,
+      codeLineHeight: 1.7,
+      codeSoftWrap: true,
+    );
+
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html: '<pre><code class="language-js">const value = 1;</code></pre>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      readerSettings: settings,
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 12);
+
+    final codeLine = readerCodeLines(tester).single.single;
+    final style = (codeLine.text as TextSpan).style!;
+    final languageLabel = tester.widget<Text>(
+      find.byKey(const Key('reader_code_language_label')),
+    );
+
+    expect(style.fontFamily, 'JetBrains Mono');
+    expect(style.fontFamilyFallback, ['SF Mono', 'monospace']);
+    expect(style.fontSize, 16);
+    expect(style.height, 1.7);
+    expect(codeLine.softWrap, isTrue);
+    expect(languageLabel.style?.fontFamily, 'JetBrains Mono');
+    expect(languageLabel.style?.fontFamilyFallback, ['SF Mono', 'monospace']);
+  });
+
+  testWidgets('reader code font size modes derive effective code size', (
+    tester,
+  ) async {
+    Future<double?> codeSizeFor(ReaderSettings settings) async {
+      await pumpReader(
+        tester,
+        article: buildArticle(
+          title: 'A',
+          html: '<pre><code>const value = 1;</code></pre>',
+        ),
+        appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+        readerSettings: settings,
+      );
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 500)),
+      );
+      await settleReader(tester, rounds: 12);
+
+      final codeLine = readerCodeLines(tester).single.single;
+      return (codeLine.text as TextSpan).style?.fontSize;
+    }
+
+    expect(
+      await codeSizeFor(
+        const ReaderSettings(
+          fontSize: 18,
+          codeFontSizeMode: CodeFontSizeMode.followReader,
+        ),
+      ),
+      18,
+    );
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+
+    expect(
+      await codeSizeFor(
+        const ReaderSettings(
+          fontSize: 18,
+          codeFontSizeMode: CodeFontSizeMode.oneStepDown,
+        ),
+      ),
+      17,
+    );
+  });
+
+  testWidgets('reader code soft wrap toggles horizontal scrolling', (
+    tester,
+  ) async {
+    const html =
+        '<pre><code>const veryLongValueName = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";</code></pre>';
+
+    await pumpReader(
+      tester,
+      article: buildArticle(title: 'A', html: html),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      readerSettings: const ReaderSettings(codeSoftWrap: false),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 12);
+    expect(readerCodeLines(tester).single.single.softWrap, isFalse);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('reader_code_block')),
+        matching: find.byWidgetPredicate(
+          (widget) =>
+              widget is SingleChildScrollView &&
+              widget.scrollDirection == Axis.horizontal,
+        ),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+
+    await pumpReader(
+      tester,
+      article: buildArticle(title: 'A', html: html),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      readerSettings: const ReaderSettings(codeSoftWrap: true),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 12);
+    expect(readerCodeLines(tester).single.single.softWrap, isTrue);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('reader_code_block')),
+        matching: find.byWidgetPredicate(
+          (widget) =>
+              widget is SingleChildScrollView &&
+              widget.scrollDirection == Axis.horizontal,
+        ),
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets('reader preserves structured code line breaks and language candidates', (
+    tester,
+  ) async {
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html:
+            '<pre class="prism-code language-jsx"><code class="codeBlockLines_e6Vv">'
+            '<span class="token-line"><span>import</span><span> React;</span><br></span>'
+            '<span class="token-line"><span style="display: inline-block;"></span><br></span>'
+            '<span class="token-line"><span>export default App;</span><br></span>'
+            '</code></pre>'
+            '<pre><code>a<br>b</code></pre>'
+            '<pre><code><div>first line</div><div>second line</div></code></pre>'
+            '<pre><code class="language-text language-jsx">'
+            'const value = 1;\n'
+            'function demo() { return value; }'
+            '</code></pre>'
+            '<pre><code class="language-jsx">'
+            '<span class="token keyword">import</span>'
+            '<span class="token plain"> </span>'
+            '<span class="token function">demo</span>'
+            '<span class="token punctuation">()</span>'
+            '</code></pre>'
+            '<pre><code class="language-js">'
+            '<span class="hljs-keyword">const</span>'
+            '<span> value = </span>'
+            '<span class="hljs-string">"ok"</span>'
+            '</code></pre>'
+            '<pre><code class="language-tsx">'
+            '<span style="color:#ff0000">inlineRed</span>'
+            '<span style="color: rgb(0, 128, 0)">inlineGreen</span>'
+            '</code></pre>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 20);
+
+    final codeTexts = readerCodePlainTexts(tester);
+    expect(codeTexts, hasLength(7));
+    expect(codeTexts[0], "import React;\n\nexport default App;");
+    expect(codeTexts[0], isNot(contains(';export')));
+    expect(codeTexts[1], 'a\nb');
+    expect(codeTexts[2], 'first line\nsecond line');
+    expect(codeTexts[3], 'const value = 1;\nfunction demo() { return value; }');
+    final lineNumbers = tester
+        .widgetList<Text>(find.byKey(const Key('reader_code_line_number')))
+        .map((widget) => widget.data)
+        .toList(growable: false);
+    expect(lineNumbers.take(3), ['1', '2', '3']);
+    expect(lineNumbers.skip(3).take(2), ['1', '2']);
+    expect(lineNumbers.skip(5).take(2), ['1', '2']);
+
+    await pumpUntil(tester, () {
+      final lines = readerCodeLines(tester)[3];
+      return lines
+          .where((line) => line.text is TextSpan)
+          .expand((line) => flattenTextSpans(line.text as TextSpan))
+          .any(
+            (span) =>
+                (span.text?.contains('const') ?? false) &&
+                span.style?.color != null,
+          );
+    }, attempts: 80);
+
+    await pumpUntil(tester, () {
+      final spans = readerCodeTextSpans(tester);
+      return spans.any(
+            (span) => span.text == 'import' && span.style?.color != null,
+          ) &&
+          spans.any(
+            (span) => span.text == '"ok"' && span.style?.color != null,
+          ) &&
+          spans.any(
+            (span) =>
+                span.text == 'inlineRed' &&
+                span.style?.color == const Color(0xFFFF0000),
+          );
+    }, attempts: 80);
+
+    final spans = readerCodeTextSpans(tester);
+    expect(
+      spans.any((span) => span.text == 'import' && span.style?.color != null),
+      isTrue,
+    );
+    expect(
+      spans.any((span) => span.text == '"ok"' && span.style?.color != null),
+      isTrue,
+    );
+    expect(
+      spans.any(
+        (span) =>
+            span.text == 'inlineRed' &&
+            span.style?.color == const Color(0xFFFF0000),
+      ),
+      isTrue,
+    );
+  });
+
+  testWidgets(
+    'reader code block header copies text and line numbers stay separate',
+    (tester) async {
+      String? clipboardText;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+            if (call.method == 'Clipboard.setData') {
+              clipboardText =
+                  (call.arguments as Map<Object?, Object?>)['text'] as String?;
+            }
+            return null;
+          });
+
+      await pumpReader(
+        tester,
+        article: buildArticle(
+          title: 'A',
+          html:
+              '<pre><code class="language-text language-jsx">const value = 1;\n\nreturn value;</code></pre>'
+              '<pre><code class="language-plain">plain text</code></pre>',
+        ),
+        appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      );
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 500)),
+      );
+      await settleReader(tester, rounds: 12);
+
+      expect(find.byKey(const Key('reader_code_block')), findsNWidgets(2));
+      expect(find.byKey(const Key('reader_code_header')), findsNWidgets(2));
+      expect(find.text('jsx'), findsOneWidget);
+      expect(find.text('plain'), findsNothing);
+      expect(
+        find.byTooltip(
+          MaterialLocalizations.of(
+            tester.element(find.byType(ReaderView)),
+          ).copyButtonLabel,
+        ),
+        findsNWidgets(2),
+      );
+
+      final lineNumbers = tester
+          .widgetList<Text>(find.byKey(const Key('reader_code_line_number')))
+          .map((widget) => widget.data)
+          .toList(growable: false);
+      expect(lineNumbers, ['1', '2', '3', '1']);
+      expect(readerCodePlainTexts(tester), [
+        'const value = 1;\n\nreturn value;',
+        'plain text',
+      ]);
+
+      await tester.tap(find.byKey(const Key('reader_code_copy_button')).first);
+      await tester.pump();
+
+      expect(clipboardText, 'const value = 1;\n\nreturn value;');
+      expect(clipboardText, isNot(contains('jsx')));
+      expect(clipboardText, isNot(contains('1\n2\n3')));
+      expect(
+        find.byKey(const Key('reader_code_copy_success_icon')),
+        findsOneWidget,
+      );
+      expect(
+        find.byTooltip(
+          AppLocalizations.of(
+            tester.element(find.byType(ReaderView)),
+          )!.copiedToClipboard,
+        ),
+        findsOneWidget,
+      );
+
+      await tester.pump(ReaderCodeBlockChrome.copyFeedbackDuration);
+      await tester.pump();
+
+      expect(find.byKey(const Key('reader_code_copy_icon')), findsNWidgets(2));
+    },
+  );
+
+  testWidgets(
+    'reader labels high-confidence code guesses and hides low-confidence labels',
+    (tester) async {
+      await pumpReader(
+        tester,
+        article: buildArticle(
+          title: 'A',
+          html:
+              '<pre>const ref = new WeakRef({ data: "heavy resource" });\n'
+              'console.log(ref.deref()?.data);</pre>'
+              '<pre>echo hi</pre>',
+        ),
+        appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      );
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 500)),
+      );
+      await settleReader(tester, rounds: 12);
+
+      expect(find.byKey(const Key('reader_code_block')), findsNWidgets(2));
+      expect(find.text('javascript'), findsOneWidget);
+      expect(find.text('shell'), findsNothing);
+      expect(readerCodePlainTexts(tester), [
+        'const ref = new WeakRef({ data: "heavy resource" });\nconsole.log(ref.deref()?.data);',
+        'echo hi',
+      ]);
+
+      await pumpUntil(tester, () {
+        final firstBlockLines = readerCodeLines(tester).first;
+        return firstBlockLines
+            .where((line) => line.text is TextSpan)
+            .expand((line) => flattenTextSpans(line.text as TextSpan))
+            .any((span) => span.text == 'const' && span.style?.color != null);
+      }, attempts: 80);
+
+      final lowConfidenceChildSpans = readerCodeLines(tester).last.expand((
+        line,
+      ) {
+        final text = line.text;
+        return text is TextSpan
+            ? (text.children ?? const <InlineSpan>[]).whereType<TextSpan>()
+            : const <TextSpan>[];
+      });
+      expect(
+        lowConfidenceChildSpans.any((span) => span.style?.color != null),
+        isFalse,
+      );
+    },
+  );
+
+  testWidgets(
+    'reader code line gutter shares text metrics and sizes to line digits',
+    (tester) async {
+      final shortCode = List<String>.generate(
+        9,
+        (index) => 'shortLine${index + 1};',
+      ).join('\n');
+      final longCode = List<String>.generate(
+        120,
+        (index) => 'longLine${index + 1};',
+      ).join('\n');
+
+      await pumpReader(
+        tester,
+        article: buildArticle(
+          title: 'A',
+          html:
+              '<pre><code class="language-js">$shortCode</code></pre>'
+              '<pre><code class="language-js">$longCode</code></pre>',
+        ),
+        appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      );
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 500)),
+      );
+      await settleReader(tester, rounds: 12);
+
+      final codeLines = readerCodeLines(tester);
+      final lineNumbers = tester
+          .widgetList<Text>(find.byKey(const Key('reader_code_line_number')))
+          .toList(growable: false);
+      expect(codeLines, hasLength(2));
+      expect(codeLines[0], hasLength(9));
+      expect(codeLines[1], hasLength(120));
+      expect(lineNumbers, hasLength(129));
+      for (var i = 0; i < lineNumbers.length; i++) {
+        final codeLine = i < 9 ? codeLines[0][i] : codeLines[1][i - 9];
+        expect(lineNumbers[i].strutStyle, codeLine.strutStyle);
+        expect(lineNumbers[i].textHeightBehavior, codeLine.textHeightBehavior);
+      }
+      expect(codeLines.first.first.strutStyle?.forceStrutHeight, isTrue);
+      expect(
+        codeLines.first.first.textHeightBehavior?.applyHeightToFirstAscent,
+        isFalse,
+      );
+      expect(
+        codeLines.first.first.textHeightBehavior?.applyHeightToLastDescent,
+        isFalse,
+      );
+
+      final gutterSizes = tester
+          .widgetList<Container>(
+            find.byKey(const Key('reader_code_line_gutter')),
+          )
+          .map((widget) => widget.constraints!.maxWidth)
+          .toList(growable: false);
+      expect(gutterSizes, hasLength(2));
+      expect(gutterSizes[1], greaterThan(gutterSizes[0]));
+      expect(lineNumbers.last.data, '120');
+
+      final firstBlock = find.byKey(const Key('reader_code_block')).first;
+      final firstBlockNumbers = tester
+          .widgetList<Text>(
+            find.descendant(
+              of: firstBlock,
+              matching: find.byKey(const Key('reader_code_line_number')),
+            ),
+          )
+          .toList(growable: false);
+      final firstBlockLines = tester
+          .widgetList<ReaderSelectableRichText>(
+            find.descendant(
+              of: firstBlock,
+              matching: find.byKey(const Key('reader_code_line_code')),
+            ),
+          )
+          .toList(growable: false);
+      for (var i = 0; i < firstBlockLines.length; i++) {
+        final numberBox = tester.getRect(find.byWidget(firstBlockNumbers[i]));
+        final codeBox = tester.getRect(find.byWidget(firstBlockLines[i]));
+        expect(numberBox.top, moreOrLessEquals(codeBox.top, epsilon: 0.01));
+        expect(
+          numberBox.bottom,
+          moreOrLessEquals(codeBox.bottom, epsilon: 0.01),
+        );
+      }
+
+      final gutter = tester.widget<Container>(
+        find.byKey(const Key('reader_code_line_gutter')).first,
+      );
+      final decoration = gutter.decoration! as BoxDecoration;
+      final border = decoration.border! as BorderDirectional;
+      expect(border.end.width, 1);
+    },
+  );
+
+  testWidgets('reader highlights and scrolls to code search matches', (
+    tester,
+  ) async {
+    final leadingHtml = List<String>.generate(
+      18,
+      (index) => '<p>Intro paragraph ${index + 1} ${'content ' * 24}</p>',
+    ).join();
+
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html:
+            '$leadingHtml'
+            '<pre class="language-jsx"><code>'
+            '<span class="token-line"><span>const targetAlpha = 1;</span><br></span>'
+            '<span class="token-line"><span>const targetBeta = 2;</span><br></span>'
+            '</code></pre>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      size: const Size(560, 320),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 20);
+
+    expect(find.byKey(const Key('reader_code_block')), findsOneWidget);
+    final readerScrollable = verticalReaderScrollable(tester);
+    expect(readerScrollable.position.pixels, 0);
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(ReaderView)),
+    );
+    final controller = container.read(
+      readerSearchControllerProvider(articleId).notifier,
+    );
+    controller.open();
+    controller.setQuery('target');
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 6);
+    await pumpUntil(
+      tester,
+      () => find.byKey(const Key('reader_code_block')).evaluate().isNotEmpty,
+    );
+
+    expect(find.byKey(const Key('reader_code_block')), findsOneWidget);
+    expect(
+      container.read(readerSearchControllerProvider(articleId)).totalMatches,
+      2,
+    );
+    await pumpUntil(
+      tester,
+      () => readerCodeTextSpans(tester).any(
+        (span) =>
+            (span.text?.contains('target') ?? false) &&
+            span.style?.backgroundColor != null,
+      ),
+      attempts: 80,
+    );
+    await pumpUntil(
+      tester,
+      () => readerScrollable.position.pixels > 0,
+      attempts: 80,
+    );
+
+    final firstCurrent = readerCodeTextSpans(tester).firstWhere(
+      (span) =>
+          (span.text?.contains('target') ?? false) &&
+          span.style?.backgroundColor != null,
+    );
+    expect(firstCurrent.style?.backgroundColor, isNotNull);
+
+    controller.nextMatch();
+    await settleReader(tester, rounds: 8);
+
+    final targetSpans = readerCodeTextSpans(tester)
+        .where(
+          (span) =>
+              (span.text?.contains('target') ?? false) &&
+              span.style?.backgroundColor != null,
+        )
+        .toList(growable: false);
+    expect(targetSpans, hasLength(2));
+    expect(
+      targetSpans.map((span) => span.style?.backgroundColor).toSet(),
+      hasLength(2),
+    );
+  });
+
+  testWidgets('reader handles many code block fallbacks during search', (
+    tester,
+  ) async {
+    final codeBlocks = List<String>.generate(
+      30,
+      (index) =>
+          '<pre><code class="language-js">const target$index = $index; ${'payload ' * 18}</code></pre>',
+    ).join();
+
+    await pumpReader(
+      tester,
+      article: buildArticle(title: 'A', html: codeBlocks),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      size: const Size(560, 320),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 20);
+
+    for (
+      var i = 0;
+      i < 8 && find.byKey(const Key('reader_code_block')).evaluate().isEmpty;
+      i++
+    ) {
+      final scrollables = tester
+          .stateList<ScrollableState>(find.byType(Scrollable))
+          .where(
+            (state) =>
+                state.position.axis == Axis.vertical &&
+                state.position.maxScrollExtent > 0,
+          );
+      if (scrollables.isEmpty) break;
+      final scrollable = scrollables.first;
+      final next = (scrollable.position.pixels + 600).clamp(
+        scrollable.position.minScrollExtent,
+        scrollable.position.maxScrollExtent,
+      );
+      scrollable.position.jumpTo(next);
+      await settleReader(tester, rounds: 4);
+    }
+
+    expect(find.byKey(const Key('reader_code_block')), findsWidgets);
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(ReaderView)),
+    );
+    final controller = container.read(
+      readerSearchControllerProvider(articleId).notifier,
+    );
+    controller.open();
+    controller.setQuery('target');
+    await pumpUntil(
+      tester,
+      () =>
+          container
+              .read(readerSearchControllerProvider(articleId))
+              .totalMatches ==
+          30,
+      attempts: 80,
+    );
+
+    controller.nextMatch();
+    await pumpUntil(
+      tester,
+      () => readerCodeTextSpans(tester).any(
+        (span) =>
+            (span.text?.contains('target') ?? false) &&
+            span.style?.backgroundColor != null,
+      ),
+      attempts: 80,
+    );
+  });
+
+  testWidgets('reader renders media tags as cards', (tester) async {
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html:
+            '<iframe src="https://www.youtube.com/embed/abc"></iframe>'
+            '<video><source src="https://cdn.example.com/movie.mp4" type="video/mp4"></video>'
+            '<audio src="https://cdn.example.com/sound.mp3"></audio>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 12);
+
+    expect(find.byKey(const Key('reader_media_embed_card')), findsNWidgets(3));
+    expect(find.text('Embedded media'), findsOneWidget);
+    expect(find.text('Video media'), findsOneWidget);
+    expect(find.text('Audio media'), findsOneWidget);
+    expect(find.text('www.youtube.com'), findsOneWidget);
+    expect(find.text('cdn.example.com'), findsNWidgets(2));
+  });
+
+  testWidgets('reader renders normalized feed demo content as static UI', (
+    tester,
+  ) async {
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html:
+            '<p>CSS contrast-color()函数是专为无障碍访问设计的。</p>'
+            '<pre>contrast-color(red)\ncontrast-color(var(--backgroundColor))</pre>'
+            '<div class="contrast-x">'
+            '<style>.contrast-x { button { color: contrast-color(red); } }</style>'
+            '<p>请改变背景色：<input type="color" value="#336699" oninput="bad()"></p>'
+            '<p><button onclick="bad()">我是按钮</button></p>'
+            '</div>'
+            '<p><img src="//image.zhangxinxu.com/image/blog/demo.gif" width="228" height="225" alt="自动配色按钮示意"></p>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 20);
+
+    expect(
+      find.textContaining('CSS contrast-color()', findRichText: true),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('reader_code_block')), findsNWidgets(2));
+    expect(readerCodePlainTexts(tester), [
+      'contrast-color(red)\ncontrast-color(var(--backgroundColor))',
+      '.contrast-x { button { color: contrast-color(red); } }',
+    ]);
+    expect(find.text('css'), findsNWidgets(2));
+    expect(find.byKey(const Key('reader_inert_color_input')), findsOneWidget);
+    expect(find.byKey(const Key('reader_inert_button')), findsOneWidget);
+    expect(find.text('我是按钮'), findsOneWidget);
+    expect(readerPlainText(tester), isNot(contains('bad()')));
+  });
+
+  testWidgets('reader renders table caption and footer with theme styling', (
+    tester,
+  ) async {
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html:
+            '<table><caption>Metrics</caption><thead><tr><th>Name</th></tr></thead>'
+            '<tbody><tr><td>Fleur</td></tr></tbody><tfoot><tr><td>Total</td></tr></tfoot></table>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 12);
+
+    final plainText = readerPlainText(tester);
+    expect(plainText, contains('Metrics'));
+    expect(plainText, contains('Total'));
+    expect(find.byType(HtmlWidget), findsOneWidget);
+  });
+
+  testWidgets('reader shows image error placeholder when image fails', (
+    tester,
+  ) async {
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html:
+            '<p><img src="https://example.invalid/missing.png" '
+            'alt="Missing diagram" width="240" height="120"></p>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 12);
+
+    expect(
+      find.byKey(const Key('reader_image_error_placeholder')),
+      findsOneWidget,
+    );
+    expect(find.text('Missing diagram'), findsOneWidget);
+    expect(find.byIcon(FleurIcons.brokenImage), findsOneWidget);
+  });
+
+  testWidgets('reader renders trusted iframe as media card only', (
+    tester,
+  ) async {
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html:
+            '<iframe src="https://www.youtube.com/embed/abc"></iframe>'
+            '<iframe src="https://evil.example/embed/abc"></iframe>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 12);
+
+    expect(find.byKey(const Key('reader_media_embed_card')), findsOneWidget);
+    expect(find.text('Embedded media'), findsOneWidget);
+    expect(find.text('www.youtube.com'), findsOneWidget);
+    expect(find.textContaining('evil.example'), findsNothing);
+  });
+
+  testWidgets('reader timestamp stays small metadata', (tester) async {
+    await pumpReader(
+      tester,
+      article: buildArticle(title: 'A', html: '<p>B</p>'),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+    );
+
+    final dateText = find.textContaining('2026/01/02');
+    expect(dateText, findsOneWidget);
+
+    final timestamp = tester.widget<Text>(dateText);
+    final style = timestamp.style!;
+
+    expect(style.fontSize, 12);
+    expect(style.fontWeight, FontWeight.w500);
+    expect(style.letterSpacing, 0);
+    expect(style.height, 1.2);
+  });
+
   testWidgets('short reader content starts at the left edge of the measure', (
     tester,
   ) async {
@@ -336,6 +1661,116 @@ void main() {
     expect(bodyFinder, findsOneWidget);
     expect(tester.getTopLeft(titleFinder).dx, closeTo(expectedLeft, 1));
     expect(tester.getTopLeft(bodyFinder).dx, closeTo(expectedLeft, 1));
+  });
+
+  testWidgets('reader width preset changes the reading measure', (
+    tester,
+  ) async {
+    const settings = ReaderSettings(
+      horizontalPadding: 20,
+      contentWidthPreset: ReaderContentWidthPreset.wide,
+    );
+
+    await pumpReader(
+      tester,
+      article: buildArticle(title: 'A', html: '<p>B</p>'),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      readerSettings: settings,
+      size: const Size(1000, 800),
+    );
+
+    final expectedLeft = expectedReaderContentLeft(tester, settings);
+
+    expect(tester.getTopLeft(find.text('A')).dx, closeTo(expectedLeft, 1));
+    expect(expectedLeft, closeTo(90, 1));
+  });
+
+  testWidgets('reader applies selected reader theme surface', (tester) async {
+    const settings = ReaderSettings(readerTheme: ReaderThemePreset.sepia);
+
+    await pumpReader(
+      tester,
+      article: buildArticle(title: 'A', html: '<p>B</p>'),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      readerSettings: settings,
+    );
+
+    final htmlElement = tester.element(find.byType(HtmlWidget));
+    final theme = Theme.of(htmlElement);
+    final baseTheme = AppTheme.light();
+    final defaultReaderScene = AppTheme.readerScene(baseTheme);
+
+    expect(theme.colorScheme.brightness, Brightness.light);
+    expect(theme.colorScheme.primary, baseTheme.colorScheme.primary);
+    expect(
+      theme.fleurSurface.reader,
+      isNot(defaultReaderScene.fleurSurface.reader),
+    );
+    expect(theme.fleurReader.bodyStyle.color, isNotNull);
+    expect(
+      theme.fleurReader.bodyStyle.color,
+      isNot(AppTheme.light().colorScheme.onSurface),
+    );
+  });
+
+  test('reader texture preserves dark mode brightness', () {
+    final baseTheme = AppTheme.dark();
+    final sceneTheme = AppTheme.readerScene(
+      baseTheme,
+      settings: const ReaderSettings(readerTheme: ReaderThemePreset.paper),
+    );
+    final defaultSceneTheme = AppTheme.readerScene(baseTheme);
+
+    expect(sceneTheme.colorScheme.brightness, Brightness.dark);
+    expect(sceneTheme.colorScheme.primary, baseTheme.colorScheme.primary);
+    expect(
+      sceneTheme.fleurSurface.reader,
+      isNot(defaultSceneTheme.fleurSurface.reader),
+    );
+    expect(sceneTheme.fleurSurface.card, defaultSceneTheme.fleurSurface.card);
+    expect(
+      sceneTheme.fleurSurface.floating,
+      defaultSceneTheme.fleurSurface.floating,
+    );
+    expect(
+      sceneTheme.fleurReader.toolbarSurface,
+      defaultSceneTheme.fleurReader.toolbarSurface,
+    );
+    expect(
+      sceneTheme.fleurReader.searchBarSurface,
+      defaultSceneTheme.fleurReader.searchBarSurface,
+    );
+  });
+
+  testWidgets('reader math fallback uses math font stack', (tester) async {
+    const settings = ReaderSettings(
+      mathFontStack: '"STIX Two Math", serif',
+      codeFontSizeMode: CodeFontSizeMode.custom,
+      codeFontSize: 13,
+      codeLineHeight: 1.4,
+    );
+
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html: r'<p>Broken $\notACommand{$ formula.</p>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      readerSettings: settings,
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 16);
+
+    final fallback = tester.widget<Text>(
+      find.byKey(const Key('reader_math_fallback')).first,
+    );
+    expect(fallback.style?.fontFamily, 'STIX Two Math');
+    expect(fallback.style?.fontFamilyFallback, ['serif']);
+    expect(fallback.style?.fontSize, 13);
+    expect(fallback.style?.height, 1.4);
   });
 
   testWidgets(
@@ -415,6 +1850,65 @@ void main() {
     expect(titleFinder, findsOneWidget);
     expect(tester.getTopLeft(titleFinder).dx, closeTo(expectedLeft, 1));
     expect(find.byType(ListView), findsOneWidget);
+  });
+
+  testWidgets('reader chunks structurally dense short articles', (
+    tester,
+  ) async {
+    final denseHtml = List<String>.generate(
+      150,
+      (index) => '<p>Dense paragraph ${index + 1} ${'content ' * 34}</p>',
+    ).join();
+    expect(
+      denseHtml.length,
+      lessThan(ReaderChunkPolicy.defaultPolicy.lengthThreshold),
+    );
+
+    await pumpReader(
+      tester,
+      article: buildArticle(title: 'A', html: denseHtml),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      size: const Size(1000, 800),
+    );
+    await settleReader(tester, rounds: 20);
+
+    expect(find.byType(ListView), findsOneWidget);
+  });
+
+  testWidgets('reader chunks image-heavy short articles', (tester) async {
+    final imageHtml = List<String>.generate(
+      21,
+      (index) => '<p><img alt="Image ${index + 1}"></p>',
+    ).join();
+    expect(
+      imageHtml.length,
+      lessThan(ReaderChunkPolicy.defaultPolicy.lengthThreshold),
+    );
+
+    await pumpReader(
+      tester,
+      article: buildArticle(title: 'A', html: imageHtml),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      size: const Size(1000, 800),
+    );
+    await settleReader(tester, rounds: 20);
+
+    expect(find.byType(ListView), findsOneWidget);
+  });
+
+  testWidgets('reader keeps simple short articles unchunked', (tester) async {
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html: '<p>Short readable body.</p><p>Still small.</p>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      size: const Size(1000, 800),
+    );
+    await settleReader(tester, rounds: 12);
+
+    expect(find.byType(ListView), findsNothing);
   });
 
   testWidgets('full-text button triggers fetch from reader action', (
@@ -637,12 +2131,11 @@ void main() {
     final firstScrollPosition = scrollableState.position.pixels;
     expect(firstScrollPosition, greaterThan(0));
     await settleReader(tester, rounds: 15);
-    final saved = await progressStore.getProgress(
-      articleId: articleId,
-      contentHash: 'reader-hash',
-    );
+    expect(progressStore.entries, hasLength(1));
+    final saved = progressStore.entries.single;
+    expect(saved.contentHash, displayedContentHash(longHtml));
     expect(saved, isNotNull);
-    expect(saved!.pixels, greaterThan(0));
+    expect(saved.pixels, greaterThan(0));
   });
 
   testWidgets('saves chunk anchor with reading progress', (tester) async {
@@ -670,23 +2163,24 @@ void main() {
     );
     await settleReader(tester, rounds: 20);
 
-    final saved = await progressStore.getProgress(
-      articleId: articleId,
-      contentHash: 'reader-hash',
-    );
+    expect(progressStore.entries, hasLength(1));
+    final saved = progressStore.entries.single;
+    expect(saved.contentHash, displayedContentHash(chunkedHtml));
     expect(saved, isNotNull);
-    expect(saved!.pixels, greaterThan(0));
+    expect(saved.pixels, greaterThan(0));
     expect(saved.anchorIndex, isNotNull);
     expect(saved.anchorFraction, isNotNull);
   });
 
-  testWidgets('reader scene applies themed search and toolbar surfaces', (
+  testWidgets('reader scene applies reader surfaces without tinting chrome', (
     tester,
   ) async {
+    const settings = ReaderSettings(readerTheme: ReaderThemePreset.sepia);
     await pumpReader(
       tester,
       article: buildArticle(),
       appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      readerSettings: settings,
     );
 
     final container = ProviderScope.containerOf(
@@ -706,6 +2200,9 @@ void main() {
           .first,
     );
     final bottomBarDecoration = bottomBarContainer.decoration as BoxDecoration?;
+    final background = tester.widget<ColoredBox>(
+      find.byKey(const Key('reader_scene_background')),
+    );
 
     final searchBarMaterial = tester.widget<Material>(
       find
@@ -718,10 +2215,34 @@ void main() {
           .first,
     );
 
+    final baseTheme = AppTheme.readerScene(AppTheme.light());
     expect(sceneTheme.scaffoldBackgroundColor, sceneTheme.fleurSurface.reader);
+    expect(background.color, sceneTheme.fleurSurface.reader);
+    expect(
+      sceneTheme.fleurSurface.reader,
+      isNot(baseTheme.fleurSurface.reader),
+    );
     expect(sceneTheme.cardTheme.color, sceneTheme.fleurReader.summarySurface);
-    expect(bottomBarDecoration?.color, sceneTheme.fleurReader.toolbarSurface);
+    expect(
+      sceneTheme.fleurReader.toolbarSurface,
+      baseTheme.fleurReader.toolbarSurface,
+    );
+    final expectedBottomBarColor = Color.alphaBlend(
+      sceneTheme.colorScheme.primary.withValues(
+        alpha: sceneTheme.brightness == Brightness.dark ? 0.12 : 0.07,
+      ),
+      sceneTheme.fleurReader.toolbarSurface,
+    );
+    expect(bottomBarDecoration?.color, expectedBottomBarColor);
     expect(searchBarMaterial.color, sceneTheme.fleurReader.searchBarSurface);
+    expect(
+      sceneTheme.fleurReader.searchBarSurface,
+      baseTheme.fleurReader.searchBarSurface,
+    );
+    expect(
+      tester.getSize(find.byKey(const Key('reader_feed_icon'))),
+      const Size(32, 32),
+    );
     expect(find.text('Find in page'), findsOneWidget);
   });
 
@@ -737,7 +2258,7 @@ void main() {
     await progressStore.saveProgress(
       ReaderProgress(
         articleId: articleId,
-        contentHash: 'reader-hash',
+        contentHash: displayedContentHash(longHtml),
         pixels: 900,
         progress: 0.45,
         updatedAt: DateTime.utc(2026, 1, 1),

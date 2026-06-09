@@ -123,25 +123,41 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
     void Function(int current, int total)? onProgress,
     bool notify = true,
   }) async {
+    return syncAccountSafe(
+      maxConcurrent: maxConcurrent,
+      onProgress: onProgress,
+      notify: notify,
+      feedIds: feedIds,
+    );
+  }
+
+  @override
+  Future<BatchRefreshResult> syncAccountSafe({
+    int maxConcurrent = 2,
+    void Function(int current, int total)? onProgress,
+    bool notify = true,
+    Iterable<int>? feedIds,
+  }) async {
     return SyncMutex.instance.run('sync', () async {
+      final ids = feedIds?.toList(growable: false) ?? const <int>[];
       final status = _statusReporter.startTask(
         label: SyncStatusLabel.syncing,
         detail: account.name.trim().isEmpty ? null : account.name.trim(),
       );
       try {
         await syncNow(status: status, notify: notify);
-        final total = feedIds.length;
+        final total = ids.length;
         onProgress?.call(total, total);
         status.complete(success: true);
         return BatchRefreshResult([
           FeedRefreshResult(
-            feedId: feedIds.isEmpty ? -1 : feedIds.first,
+            feedId: ids.isEmpty ? -1 : ids.first,
             incomingCount: 0,
             newCount: 0,
           ),
         ]);
       } catch (e, s) {
-        final total = feedIds.length;
+        final total = ids.length;
         onProgress?.call(total, total);
         status.complete(success: false);
         AppLogger.w(
@@ -157,7 +173,7 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
         );
         return BatchRefreshResult([
           FeedRefreshResult(
-            feedId: feedIds.isEmpty ? -1 : feedIds.first,
+            feedId: ids.isEmpty ? -1 : ids.first,
             incomingCount: 0,
             newCount: 0,
             error: e,

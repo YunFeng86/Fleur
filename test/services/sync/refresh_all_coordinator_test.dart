@@ -16,6 +16,14 @@ class _FakeFeedRepository extends Fake implements FeedRepository {
 
   @override
   Future<List<Feed>> getAll() async => feeds;
+
+  @override
+  Future<Feed?> getById(int id) async {
+    for (final feed in feeds) {
+      if (feed.id == id) return feed;
+    }
+    return null;
+  }
 }
 
 Feed _feed(int id) {
@@ -138,6 +146,26 @@ void main() {
     ]);
   });
 
+  test(
+    'google reader account sync lets the service choose remote streams',
+    () async {
+      final syncService = FakeSyncService();
+      final account = buildTestAccount(type: AccountType.googleReader);
+      final coordinator = AccountSyncCoordinator(
+        capabilities: BackendCapabilities.forAccountType(account.type),
+        feeds: _FakeFeedRepository([_feed(1)]),
+        syncService: syncService,
+      );
+
+      final result = await coordinator.syncAccount(
+        trigger: AccountSyncTrigger.manual,
+      );
+
+      expect(result.ok, isTrue);
+      expect(syncService.refreshCalls, [<int>[]]);
+    },
+  );
+
   test('fever source refresh reports unsupported without syncing', () async {
     final syncService = FakeSyncService();
     final account = buildTestAccount(type: AccountType.fever);
@@ -155,4 +183,99 @@ void main() {
     expect(result.error, isA<RefreshSourcesUnsupportedException>());
     expect(syncService.refreshCalls, isEmpty);
   });
+
+  test('scoped miniflux feed refresh syncs only that feed', () async {
+    final refreshedRemoteFeedIds = <int>[];
+    final syncService = FakeSyncService();
+    final account = buildTestAccount(type: AccountType.miniflux);
+    final refreshSources = RefreshSourcesCoordinator(
+      capabilities: BackendCapabilities.forAccountType(account.type),
+      feeds: _FakeFeedRepository([_feed(1), _feed(2)]),
+      syncService: syncService,
+      refreshAllRemoteFeeds: () async {},
+    );
+    final coordinator = ScopedRefreshCoordinator(
+      capabilities: BackendCapabilities.forAccountType(account.type),
+      feeds: _FakeFeedRepository([_feed(1), _feed(2)]),
+      syncService: syncService,
+      refreshSources: refreshSources,
+      refreshRemoteFeeds: (feeds, {int maxConcurrent = 2}) async {
+        refreshedRemoteFeedIds.addAll(feeds.map((feed) => feed.id));
+      },
+    );
+
+    final result = await coordinator.refreshScope(
+      scope: const FeedRefreshScope(1),
+    );
+
+    expect(result.ok, isTrue);
+    expect(refreshedRemoteFeedIds, [1]);
+    expect(syncService.refreshCalls, [
+      [1],
+    ]);
+  });
+
+  test('scoped miniflux category refresh syncs only category feeds', () async {
+    final refreshedRemoteFeedIds = <int>[];
+    final syncService = FakeSyncService();
+    final account = buildTestAccount(type: AccountType.miniflux);
+    final feeds = [
+      _feed(1)..categoryId = 7,
+      _feed(2)..categoryId = 7,
+      _feed(3)..categoryId = 9,
+    ];
+    final feedRepository = _FakeFeedRepository(feeds);
+    final refreshSources = RefreshSourcesCoordinator(
+      capabilities: BackendCapabilities.forAccountType(account.type),
+      feeds: feedRepository,
+      syncService: syncService,
+      refreshAllRemoteFeeds: () async {},
+    );
+    final coordinator = ScopedRefreshCoordinator(
+      capabilities: BackendCapabilities.forAccountType(account.type),
+      feeds: feedRepository,
+      syncService: syncService,
+      refreshSources: refreshSources,
+      refreshRemoteFeeds: (feeds, {int maxConcurrent = 2}) async {
+        refreshedRemoteFeedIds.addAll(feeds.map((feed) => feed.id));
+      },
+    );
+
+    final result = await coordinator.refreshScope(
+      scope: const CategoryRefreshScope(7),
+    );
+
+    expect(result.ok, isTrue);
+    expect(refreshedRemoteFeedIds, [1, 2]);
+    expect(syncService.refreshCalls, [
+      [1, 2],
+    ]);
+  });
+
+  test(
+    'scoped google reader all refresh does not reuse stale local feed ids',
+    () async {
+      final syncService = FakeSyncService();
+      final account = buildTestAccount(type: AccountType.googleReader);
+      final feedRepository = _FakeFeedRepository([_feed(1)]);
+      final refreshSources = RefreshSourcesCoordinator(
+        capabilities: BackendCapabilities.forAccountType(account.type),
+        feeds: feedRepository,
+        syncService: syncService,
+      );
+      final coordinator = ScopedRefreshCoordinator(
+        capabilities: BackendCapabilities.forAccountType(account.type),
+        feeds: feedRepository,
+        syncService: syncService,
+        refreshSources: refreshSources,
+      );
+
+      final result = await coordinator.refreshScope(
+        scope: const AllRefreshScope(),
+      );
+
+      expect(result.ok, isTrue);
+      expect(syncService.refreshCalls, [<int>[]]);
+    },
+  );
 }

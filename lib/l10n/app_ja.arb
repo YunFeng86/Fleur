@@ -1,0 +1,2002 @@
+{
+  "@@locale": "ja",
+  "appTitle": "Fleur",
+  "@appTitle": {
+    "description": "appTitle"
+  },
+  "notFound": "見つかりません",
+  "@notFound": {
+    "description": "notFound"
+  },
+  "openFailedGeneral": "この場所を開けませんでした。権限を確認して、再試行してください。",
+  "@openFailedGeneral": {
+    "description": "openFailedGeneral"
+  },
+  "macosMenuLanguageRestartHint": "メニュー バーの言語を完全に適用するには、アプリの再起動が必要な場合があります。",
+  "@macosMenuLanguageRestartHint": {
+    "description": "macosMenuLanguageRestartHint"
+  },
+  "pathNotFound": "パスが存在しません: {path}",
+  "@pathNotFound": {
+    "description": "pathNotFound",
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "settings": "設定",
+  "@settings": {
+    "description": "settings"
+  },
+  "settingsSearchHint": "検索設定",
+  "@settingsSearchHint": {
+    "description": "Placeholder for the settings page search field"
+  },
+  "settingsSearchNoResults": "この検索に一致する設定はありません。",
+  "@settingsSearchNoResults": {
+    "description": "Empty state text for the settings page search results"
+  },
+  "settingsSearchPageLabel": "ページ",
+  "@settingsSearchPageLabel": {
+    "description": "Settings search result type label for top-level pages"
+  },
+  "settingsSearchSectionLabel": "セクション",
+  "@settingsSearchSectionLabel": {
+    "description": "Settings search result type label for settings sections"
+  },
+  "settingsSearchSettingLabel": "設定",
+  "@settingsSearchSettingLabel": {
+    "description": "Settings search result type label for individual settings"
+  },
+  "settingsSearchResultCount": "{count}件の結果",
+  "@settingsSearchResultCount": {
+    "description": "Settings search result count badge",
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "feeds": "購読",
+  "@feeds": {
+    "description": "Global navigation label: feeds"
+  },
+  "saved": "保存済み",
+  "@saved": {
+    "description": "Global navigation label: saved"
+  },
+  "comingSoon": "近日公開予定",
+  "@comingSoon": {
+    "description": "Placeholder text"
+  },
+  "appearance": "外観",
+  "@appearance": {
+    "description": "appearance"
+  },
+  "theme": "テーマ",
+  "@theme": {
+    "description": "theme"
+  },
+  "themeMode": "テーマモード",
+  "@themeMode": {
+    "description": "Theme mode selector label"
+  },
+  "system": "システム",
+  "@system": {
+    "description": "system"
+  },
+  "light": "ライト",
+  "@light": {
+    "description": "light"
+  },
+  "dark": "暗い",
+  "@dark": {
+    "description": "dark"
+  },
+  "dynamicColor": "ダイナミックなカラー",
+  "@dynamicColor": {
+    "description": "Use system dynamic or accent colors when available"
+  },
+  "dynamicColorSubtitle": "利用可能な場合はシステムの動的カラーまたはアクセントカラーに従います",
+  "@dynamicColorSubtitle": {
+    "description": "Hint for dynamic colors setting"
+  },
+  "seedColorPreset": "アクセントカラー",
+  "@seedColorPreset": {
+    "description": "Seed color preset selector label"
+  },
+  "seedColorPresetSubtitle": "ダイナミックカラーがオフまたは使用できない場合に使用されます。",
+  "@seedColorPresetSubtitle": {
+    "description": "Seed color preset selector hint"
+  },
+  "seedColorBlue": "ブルー",
+  "@seedColorBlue": {
+    "description": "Seed color preset name"
+  },
+  "seedColorGreen": "緑",
+  "@seedColorGreen": {
+    "description": "Seed color preset name"
+  },
+  "seedColorPurple": "紫",
+  "@seedColorPurple": {
+    "description": "Seed color preset name"
+  },
+  "seedColorOrange": "オレンジ",
+  "@seedColorOrange": {
+    "description": "Seed color preset name"
+  },
+  "seedColorPink": "ピンク",
+  "@seedColorPink": {
+    "description": "Seed color preset name"
+  },
+  "language": "言語",
+  "@language": {
+    "description": "language"
+  },
+  "systemLanguage": "システムの言語",
+  "@systemLanguage": {
+    "description": "systemLanguage"
+  },
+  "english": "English",
+  "@english": {
+    "description": "english"
+  },
+  "chineseSimplified": "简体中文",
+  "@chineseSimplified": {
+    "description": "chineseSimplified"
+  },
+  "chineseTraditional": "繁體中文",
+  "@chineseTraditional": {
+    "description": "chineseTraditional"
+  },
+  "reader": "読む",
+  "@reader": {
+    "description": "reader"
+  },
+  "fontSize": "フォントサイズ",
+  "@fontSize": {
+    "description": "fontSize"
+  },
+  "lineHeight": "行の高さ",
+  "@lineHeight": {
+    "description": "lineHeight"
+  },
+  "horizontalPadding": "水平方向のパディング",
+  "@horizontalPadding": {
+    "description": "horizontalPadding"
+  },
+  "applicationAppearance": "アプリの外観",
+  "@applicationAppearance": {
+    "description": "Section title for app-wide appearance settings"
+  },
+  "readerAppearance": "読者登場",
+  "@readerAppearance": {
+    "description": "Section title for reader appearance settings"
+  },
+  "codeAppearance": "コードの外観",
+  "@codeAppearance": {
+    "description": "Section title for code appearance settings"
+  },
+  "custom": "カスタム",
+  "@custom": {
+    "description": "Generic custom option label"
+  },
+  "back": "戻る",
+  "@back": {
+    "description": "Generic back action label"
+  },
+  "forward": "進む",
+  "@forward": {
+    "description": "Generic forward action label"
+  },
+  "fontSettings": "フォント",
+  "@fontSettings": {
+    "description": "Appearance font detail page title"
+  },
+  "advancedFontSettings": "高度なフォント設定",
+  "@advancedFontSettings": {
+    "description": "Appearance advanced font settings row and detail page title"
+  },
+  "fontsAndCode": "フォントとコード",
+  "@fontsAndCode": {
+    "description": "Appearance code font detail row label"
+  },
+  "customFontStack": "カスタムフォントスタック",
+  "@customFontStack": {
+    "description": "Custom font stack option label"
+  },
+  "codeTypography": "コードのタイポグラフィー",
+  "@codeTypography": {
+    "description": "Code typography settings section title"
+  },
+  "fontSizeExtraSmall": "極小",
+  "@fontSizeExtraSmall": {
+    "description": "Reader font size preset label"
+  },
+  "fontSizeSmall": "小",
+  "@fontSizeSmall": {
+    "description": "Reader font size preset label"
+  },
+  "fontSizeMediumRecommended": "中 (推奨)",
+  "@fontSizeMediumRecommended": {
+    "description": "Reader font size preset label"
+  },
+  "fontSizeLarge": "大",
+  "@fontSizeLarge": {
+    "description": "Reader font size preset label"
+  },
+  "fontSizeExtraLarge": "特大",
+  "@fontSizeExtraLarge": {
+    "description": "Reader font size preset label"
+  },
+  "minimumFontSize": "最小フォントサイズ",
+  "@minimumFontSize": {
+    "description": "Minimum reader body font size setting label"
+  },
+  "lineHeightCompact": "コンパクト",
+  "@lineHeightCompact": {
+    "description": "Reader line height preset label"
+  },
+  "lineHeightStandard": "標準",
+  "@lineHeightStandard": {
+    "description": "Reader line height preset label"
+  },
+  "lineHeightRelaxed": "リラックスした",
+  "@lineHeightRelaxed": {
+    "description": "Reader line height preset label"
+  },
+  "appearancePreview": "プレビュー",
+  "@appearancePreview": {
+    "description": "Appearance settings preview section title"
+  },
+  "appearancePreviewTitle": "より静かな読書面",
+  "@appearancePreviewTitle": {
+    "description": "Sample reader preview article title"
+  },
+  "appearancePreviewMeta": "プレビュー · 今日",
+  "@appearancePreviewMeta": {
+    "description": "Sample reader preview metadata"
+  },
+  "appearancePreviewBody": "読者を一度チューニングしてから、すべての記事を同じ穏やかなリズムで開きます。",
+  "@appearancePreviewBody": {
+    "description": "Sample reader preview body"
+  },
+  "appearancePreviewQuote": "読み取り可能な設定は、構成可能であると感じる前に、目に見えるように感じられる必要があります。",
+  "@appearancePreviewQuote": {
+    "description": "Sample reader preview quote"
+  },
+  "appearancePreviewLink": "サンプルリンク",
+  "@appearancePreviewLink": {
+    "description": "Sample reader preview link"
+  },
+  "appearancePreviewCode": "コードサンプル",
+  "@appearancePreviewCode": {
+    "description": "Sample reader preview code text"
+  },
+  "readerFontFamily": "フォントファミリー",
+  "@readerFontFamily": {
+    "description": "Reader font family setting label"
+  },
+  "readerFontSystem": "システム",
+  "@readerFontSystem": {
+    "description": "Reader system font option"
+  },
+  "readerFontSerif": "セリフ",
+  "@readerFontSerif": {
+    "description": "Reader serif font option"
+  },
+  "readerFontSans": "サンズ",
+  "@readerFontSans": {
+    "description": "Reader sans font option"
+  },
+  "readerFontMono": "モノラル",
+  "@readerFontMono": {
+    "description": "Reader mono font option"
+  },
+  "readerFontStack": "フォントスタックの読み取り",
+  "@readerFontStack": {
+    "description": "Reader custom font stack setting label"
+  },
+  "standardFont": "標準フォント",
+  "@standardFont": {
+    "description": "Standard reader font stack setting label"
+  },
+  "serifFont": "セリフフォント",
+  "@serifFont": {
+    "description": "Serif reader font stack setting label"
+  },
+  "sansSerifFont": "サンセリフフォント",
+  "@sansSerifFont": {
+    "description": "Sans-serif reader font stack setting label"
+  },
+  "fixedWidthFont": "固定幅フォント",
+  "@fixedWidthFont": {
+    "description": "Fixed-width reader and code font stack setting label"
+  },
+  "mathFont": "数学フォント",
+  "@mathFont": {
+    "description": "Math font stack setting label"
+  },
+  "fontStackExample": "\"PingFang SC\", \"Noto Sans CJK SC\", system-ui, sans-serif",
+  "@fontStackExample": {
+    "description": "Example helper text for custom font stack input"
+  },
+  "monoFontStackExample": "\"SF Mono\", Menlo, Consolas, monospace",
+  "@monoFontStackExample": {
+    "description": "Example helper text for monospace font stack input"
+  },
+  "mathFontStackExample": "\"STIX Two Math\", \"Cambria Math\", serif",
+  "@mathFontStackExample": {
+    "description": "Example helper text for math font stack input"
+  },
+  "readerTheme": "テクスチャの読み取り",
+  "@readerTheme": {
+    "description": "Reader surface texture preset setting label"
+  },
+  "readerThemeDefault": "デフォルト",
+  "@readerThemeDefault": {
+    "description": "Default reader texture option"
+  },
+  "readerThemePaper": "紙",
+  "@readerThemePaper": {
+    "description": "Paper reader texture option"
+  },
+  "readerThemeSepia": "セピア",
+  "@readerThemeSepia": {
+    "description": "Sepia reader texture option"
+  },
+  "readerThemeDim": "ソフトグレー",
+  "@readerThemeDim": {
+    "description": "Soft gray reader texture option"
+  },
+  "readingWidth": "読み取り幅",
+  "@readingWidth": {
+    "description": "Reader content width setting label"
+  },
+  "readingWidthNarrow": "狭い",
+  "@readingWidthNarrow": {
+    "description": "Narrow reader content width option"
+  },
+  "readingWidthStandard": "標準",
+  "@readingWidthStandard": {
+    "description": "Standard reader content width option"
+  },
+  "readingWidthWide": "ワイド",
+  "@readingWidthWide": {
+    "description": "Wide reader content width option"
+  },
+  "codeFontFamily": "コードフォント",
+  "@codeFontFamily": {
+    "description": "Code font family setting label"
+  },
+  "codeFontSystemMono": "システムモノラル",
+  "@codeFontSystemMono": {
+    "description": "Code system monospace font option"
+  },
+  "codeFontStack": "コードフォントスタック",
+  "@codeFontStack": {
+    "description": "Code custom font stack setting label"
+  },
+  "codeFontSize": "コードのフォントサイズ",
+  "@codeFontSize": {
+    "description": "Code font size setting label"
+  },
+  "codeFontSizeFollowReader": "本文に従う",
+  "@codeFontSizeFollowReader": {
+    "description": "Code font size follows reader body option"
+  },
+  "codeFontSizeOneStepDown": "一歩下がって",
+  "@codeFontSizeOneStepDown": {
+    "description": "Code font size one step smaller than reader body option"
+  },
+  "codeLineHeight": "コード行の高さ",
+  "@codeLineHeight": {
+    "description": "Code line height setting label"
+  },
+  "codeSoftWrap": "コード行を折り返す",
+  "@codeSoftWrap": {
+    "description": "Code soft wrap setting label"
+  },
+  "storage": "ストレージ",
+  "@storage": {
+    "description": "storage"
+  },
+  "clearImageCache": "画像キャッシュをクリア",
+  "@clearImageCache": {
+    "description": "clearImageCache"
+  },
+  "clearImageCacheSubtitle": "オフライン読み取りに使用されるキャッシュされた画像を削除する",
+  "@clearImageCacheSubtitle": {
+    "description": "clearImageCacheSubtitle"
+  },
+  "cacheCleared": "キャッシュをクリアしました",
+  "@cacheCleared": {
+    "description": "cacheCleared"
+  },
+  "subscriptions": "購読フィード",
+  "@subscriptions": {
+    "description": "subscriptions"
+  },
+  "defaultsGroup": "グローバル",
+  "@defaultsGroup": {
+    "description": "Section label for default settings entries"
+  },
+  "folders": "定期購入",
+  "@folders": {
+    "description": "Section label for subscription folders"
+  },
+  "globalDefaults": "グローバルデフォルト",
+  "@globalDefaults": {
+    "description": "Entry label for subscription-wide default settings"
+  },
+  "allSubscriptions": "すべてのサブスクリプション",
+  "@allSubscriptions": {
+    "description": "Entry label for the full subscription scope"
+  },
+  "manage": "管理する",
+  "@manage": {
+    "description": "Toolbar label for the management actions menu"
+  },
+  "overview": "概要",
+  "@overview": {
+    "description": "Overview section label"
+  },
+  "categoriesLabel": "カテゴリー",
+  "@categoriesLabel": {
+    "description": "Summary label for categories count"
+  },
+  "globalDefaultsDescription": "フォルダーまたはサブスクリプションが設定をオーバーライドしない場合に適用されます。",
+  "@globalDefaultsDescription": {
+    "description": "Description shown for the global defaults pane"
+  },
+  "allSubscriptionsDescription": "全体的なサブスクリプション構造を確認し、編集するサブスクリプションを選択します。",
+  "@allSubscriptionsDescription": {
+    "description": "Description shown for the all subscriptions overview"
+  },
+  "uncategorizedDescription": "フォルダーのないサブスクリプションは、上書きされるまでグローバルなデフォルトを継承します。",
+  "@uncategorizedDescription": {
+    "description": "Description shown for the uncategorized overview"
+  },
+  "tags": "タグ",
+  "@tags": {
+    "description": "tags"
+  },
+  "all": "すべての記事",
+  "@all": {
+    "description": "all"
+  },
+  "uncategorized": "未分類",
+  "@uncategorized": {
+    "description": "uncategorized"
+  },
+  "refreshAll": "ソースを更新する",
+  "@refreshAll": {
+    "description": "refreshAll"
+  },
+  "refreshFeed": "フィードを更新する",
+  "@refreshFeed": {
+    "description": "Tooltip for refreshing the currently selected feed"
+  },
+  "refreshCategory": "カテゴリを更新",
+  "@refreshCategory": {
+    "description": "Tooltip for refreshing the currently selected category"
+  },
+  "refreshFeedAndSync": "フィードを更新して同期する",
+  "@refreshFeedAndSync": {
+    "description": "Tooltip for refreshing the selected remote feed source and syncing the account"
+  },
+  "refreshCategoryAndSync": "カテゴリを更新して同期する",
+  "@refreshCategoryAndSync": {
+    "description": "Tooltip for refreshing selected remote category sources and syncing the account"
+  },
+  "refreshSourcesAndSync": "ソースを更新して同期する",
+  "@refreshSourcesAndSync": {
+    "description": "Tooltip for refreshing remote subscription sources and syncing the account"
+  },
+  "accountSync": "アカウントの同期",
+  "@accountSync": {
+    "description": "accountSync"
+  },
+  "accountSyncSubtitle": "このリモート アカウントをバックグラウンドで同期します。",
+  "@accountSyncSubtitle": {
+    "description": "accountSyncSubtitle"
+  },
+  "syncAccount": "アカウントを同期",
+  "@syncAccount": {
+    "description": "syncAccount"
+  },
+  "syncingAccount": "アカウントを同期中...",
+  "@syncingAccount": {
+    "description": "syncingAccount"
+  },
+  "syncedAccount": "アカウントを同期しました",
+  "@syncedAccount": {
+    "description": "syncedAccount"
+  },
+  "refreshSelected": "選択したものを更新",
+  "@refreshSelected": {
+    "description": "refreshSelected"
+  },
+  "importOpml": "OPML をインポートします",
+  "@importOpml": {
+    "description": "importOpml"
+  },
+  "opmlParseFailed": "無効な OPML ファイル",
+  "@opmlParseFailed": {
+    "description": "opmlParseFailed"
+  },
+  "exportOpml": "OPML をエクスポート",
+  "@exportOpml": {
+    "description": "exportOpml"
+  },
+  "addSubscription": "サブスクリプションの追加",
+  "@addSubscription": {
+    "description": "addSubscription"
+  },
+  "selectCategory": "カテゴリを選択してください",
+  "@selectCategory": {
+    "description": "selectCategory"
+  },
+  "loadingCategories": "カテゴリを読み込んでいます...",
+  "@loadingCategories": {
+    "description": "loadingCategories"
+  },
+  "creatingCategory": "カテゴリを作成中...",
+  "@creatingCategory": {
+    "description": "creatingCategory"
+  },
+  "feverAddSubscriptionNotSupported": "Fever アカウントはサブスクリプションの追加をサポートしていません。サブスクリプションはサーバー上で管理してください。",
+  "@feverAddSubscriptionNotSupported": {
+    "description": "feverAddSubscriptionNotSupported"
+  },
+  "remoteCommandRequiresConnectivity": "このアクションには、リモート サービスへの接続が必要です。",
+  "@remoteCommandRequiresConnectivity": {
+    "description": "Shown when a remote-backed structure command needs online access."
+  },
+  "remoteCommandRequiresAuthentication": "リモート サービスは現在のアカウントの資格情報を拒否しました。アカウント設定を確認して、再試行してください。",
+  "@remoteCommandRequiresAuthentication": {
+    "description": "Shown when a remote-backed structure command fails because the current credentials are invalid or missing."
+  },
+  "remoteCommandNeedsRefresh": "リモート サービスは現在のフィードまたはカテゴリと一致しませんでした。同期して再試行してください。",
+  "@remoteCommandNeedsRefresh": {
+    "description": "Shown when a remote-backed structure command cannot resolve the current remote target."
+  },
+  "remoteCommandRejected": "リモート サービスはこのアクションを拒否しました。リクエストを確認して、再試行してください。",
+  "@remoteCommandRejected": {
+    "description": "Shown when a remote-backed structure command is rejected by the remote service for request-specific reasons."
+  },
+  "remoteCommandUnavailable": "リモート サービスは現在このアクションを完了できませんでした。後でもう一度試してください。",
+  "@remoteCommandUnavailable": {
+    "description": "Shown when a remote-backed structure command fails because the remote service is temporarily unavailable."
+  },
+  "remoteCommandNotSupported": "このリモート アカウントはこのアクションをサポートしていません。",
+  "@remoteCommandNotSupported": {
+    "description": "Shown when the active remote provider cannot perform a structure-management command."
+  },
+  "remoteCommandRequiresCategory": "このリモート アカウントには、サブスクリプションのサーバー側カテゴリが必要です。",
+  "@remoteCommandRequiresCategory": {
+    "description": "Shown when a remote-backed feed cannot be moved to an uncategorized state."
+  },
+  "newCategory": "新しいカテゴリー",
+  "@newCategory": {
+    "description": "newCategory"
+  },
+  "articles": "記事",
+  "@articles": {
+    "description": "articles"
+  },
+  "unread": "未読",
+  "@unread": {
+    "description": "unread"
+  },
+  "refreshConcurrency": "同時リフレッシュ",
+  "@refreshConcurrency": {
+    "description": "refreshConcurrency"
+  },
+  "refreshingProgress": "{current}/{total}を更新中...",
+  "@refreshingProgress": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "markAllRead": "すべて既読としてマークする",
+  "@markAllRead": {
+    "description": "markAllRead"
+  },
+  "fullText": "全文",
+  "@fullText": {
+    "description": "fullText"
+  },
+  "fullTextRetry": "全文を取得できませんでした。再試行",
+  "@fullTextRetry": {
+    "description": "fullTextRetry"
+  },
+  "readerSettings": "リーダーの設定",
+  "@readerSettings": {
+    "description": "readerSettings"
+  },
+  "done": "完了",
+  "@done": {
+    "description": "done"
+  },
+  "more": "もっと見る",
+  "@more": {
+    "description": "more"
+  },
+  "showAll": "すべて表示",
+  "@showAll": {
+    "description": "showAll"
+  },
+  "unreadOnly": "未読のみ",
+  "@unreadOnly": {
+    "description": "unreadOnly"
+  },
+  "selectAnArticle": "記事を選択してください",
+  "@selectAnArticle": {
+    "description": "selectAnArticle"
+  },
+  "readerEmptySubtitle": "リストから記事を開いて、ここで読んでください。",
+  "@readerEmptySubtitle": {
+    "description": "Reader pane helper text when no article is selected"
+  },
+  "savedReaderEmptyTitle": "保存した記事を選択する",
+  "@savedReaderEmptyTitle": {
+    "description": "Reader pane title when the saved section has no selected article"
+  },
+  "savedReaderEmptySubtitle": "[保存] または [後で読む] から記事を開きます。",
+  "@savedReaderEmptySubtitle": {
+    "description": "Reader pane helper text for the saved section"
+  },
+  "searchReaderEmptyTitle": "検索結果を選択してください",
+  "@searchReaderEmptyTitle": {
+    "description": "Reader pane title when the search section has no selected article"
+  },
+  "searchReaderEmptySubtitle": "キーワードを入力し、リストから結果を開きます。",
+  "@searchReaderEmptySubtitle": {
+    "description": "Reader pane helper text for the search section"
+  },
+  "errorMessage": "エラー: {error}",
+  "@errorMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    },
+    "description": "errorMessage"
+  },
+  "unreadCountError": "未読数の取得に失敗しました: {error}",
+  "@unreadCountError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    },
+    "description": "unreadCountError"
+  },
+  "refreshed": "リフレッシュされた",
+  "@refreshed": {
+    "description": "refreshed"
+  },
+  "refreshedAll": "すべて更新しました",
+  "@refreshedAll": {
+    "description": "refreshedAll"
+  },
+  "refreshedAndSynced": "更新され同期されました",
+  "@refreshedAndSynced": {
+    "description": "Shown after refreshing remote sources and syncing the account"
+  },
+  "add": "追加",
+  "@add": {
+    "description": "add"
+  },
+  "cancel": "キャンセル",
+  "@cancel": {
+    "description": "cancel"
+  },
+  "create": "作成",
+  "@create": {
+    "description": "create"
+  },
+  "delete": "削除",
+  "@delete": {
+    "description": "delete"
+  },
+  "deleted": "削除されました",
+  "@deleted": {
+    "description": "deleted"
+  },
+  "rssAtomUrl": "RSS/Atom URL",
+  "@rssAtomUrl": {
+    "description": "rssAtomUrl"
+  },
+  "feedOrWebsiteUrl": "フィードまたはWebサイトのURL",
+  "@feedOrWebsiteUrl": {
+    "description": "feedOrWebsiteUrl"
+  },
+  "feedOrWebsiteUrlHint": "WebサイトまたはRSS URLを貼り付け",
+  "@feedOrWebsiteUrlHint": {
+    "description": "Helper text for the add subscription URL field"
+  },
+  "findFeeds": "フィードを検索",
+  "@findFeeds": {
+    "description": "Button label for discovering RSS/Atom feeds from a URL"
+  },
+  "discoveringFeeds": "フィードを検索中...",
+  "@discoveringFeeds": {
+    "description": "discoveringFeeds"
+  },
+  "addingSubscription": "サブスクリプションを追加しています...",
+  "@addingSubscription": {
+    "description": "addingSubscription"
+  },
+  "selectFeed": "フィードを選択",
+  "@selectFeed": {
+    "description": "selectFeed"
+  },
+  "noFeedsFound": "フィードが見つかりません",
+  "@noFeedsFound": {
+    "description": "noFeedsFound"
+  },
+  "noFeedsFoundHint": "RSS/Atom URL を直接貼り付けるか、サイトの別のページを試してください。",
+  "@noFeedsFoundHint": {
+    "description": "Inline hint shown when feed discovery finds no candidates"
+  },
+  "subscriptionPreview": "ソースプレビュー",
+  "@subscriptionPreview": {
+    "description": "Section title for the selected subscription source preview"
+  },
+  "subscriptionResultsFound": "{count, plural, =1{1件の購読元が見つかりました} other{{count}件の購読元が見つかりました}}",
+  "@subscriptionResultsFound": {
+    "description": "Section title for discovered subscription result rows",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "subscriptionPreviewUnavailable": "利用可能な最近のプレビュー アイテムはありません",
+  "@subscriptionPreviewUnavailable": {
+    "description": "Placeholder text when a discovered feed has no preview items"
+  },
+  "feedSourceDirect": "RSS/Atom URL",
+  "@feedSourceDirect": {
+    "description": "Label for a feed discovered because the input URL is itself a feed"
+  },
+  "feedSourceAlternate": "ページで検出",
+  "@feedSourceAlternate": {
+    "description": "Label for a feed discovered from HTML alternate/feed links"
+  },
+  "feedSourceCommonPath": "一般的なフィードパス",
+  "@feedSourceCommonPath": {
+    "description": "Label for a feed discovered by probing common RSS paths"
+  },
+  "name": "名前",
+  "@name": {
+    "description": "name"
+  },
+  "addedAndSynced": "追加して同期しました",
+  "@addedAndSynced": {
+    "description": "addedAndSynced"
+  },
+  "subscriptionAddedTitle": "サブスクリプションが追加されました",
+  "@subscriptionAddedTitle": {
+    "description": "Success panel title after adding a subscription"
+  },
+  "subscriptionAddedMessage": "サブスクリプションが追加されました。今すぐ開くことも、さらに追加し続けることもできます。",
+  "@subscriptionAddedMessage": {
+    "description": "Success panel message after adding a subscription"
+  },
+  "subscriptionRefreshWarning": "サブスクリプションが追加されましたが、最初の更新に失敗しました。後で更新を再試行できます。",
+  "@subscriptionRefreshWarning": {
+    "description": "Warning shown when adding a subscription succeeds but the initial refresh fails"
+  },
+  "subscriptionAlreadyExistsTitle": "すでに購読しています",
+  "@subscriptionAlreadyExistsTitle": {
+    "description": "Panel title when the feed already exists"
+  },
+  "subscriptionAlreadyExistsMessage": "このフィードはすでにサブスクリプションに含まれています。カテゴリの変更は行われませんでした。",
+  "@subscriptionAlreadyExistsMessage": {
+    "description": "Panel message when the feed already exists"
+  },
+  "viewSubscription": "サブスクリプションを表示する",
+  "@viewSubscription": {
+    "description": "Button label for opening a newly added or existing subscription"
+  },
+  "continueAddingSubscription": "追加を続ける",
+  "@continueAddingSubscription": {
+    "description": "Button label for resetting the add subscription form"
+  },
+  "moveToCurrentCategory": "現在のカテゴリに移動",
+  "@moveToCurrentCategory": {
+    "description": "Button label for moving an existing subscription into the category from which add subscription was opened"
+  },
+  "deleteSubscription": "サブスクリプションの削除",
+  "@deleteSubscription": {
+    "description": "deleteSubscription"
+  },
+  "deleteSubscriptionConfirmTitle": "サブスクリプションを削除しますか?",
+  "@deleteSubscriptionConfirmTitle": {
+    "description": "deleteSubscriptionConfirmTitle"
+  },
+  "deleteSubscriptionConfirmContent": "これにより、キャッシュされた記事も削除されます。",
+  "@deleteSubscriptionConfirmContent": {
+    "description": "deleteSubscriptionConfirmContent"
+  },
+  "makeAvailableOffline": "オフラインでも利用できるようにする",
+  "@makeAvailableOffline": {
+    "description": "makeAvailableOffline"
+  },
+  "deleteCategory": "カテゴリの削除",
+  "@deleteCategory": {
+    "description": "deleteCategory"
+  },
+  "deleteCategoryConfirmTitle": "カテゴリを削除しますか?",
+  "@deleteCategoryConfirmTitle": {
+    "description": "deleteCategoryConfirmTitle"
+  },
+  "deleteCategoryConfirmContent": "このカテゴリのフィードは未分類に移動されます。",
+  "@deleteCategoryConfirmContent": {
+    "description": "deleteCategoryConfirmContent"
+  },
+  "remoteDeleteCategoryConfirmContent": "リモート サービスでこのカテゴリを削除し、ローカル ミラーを調整します。",
+  "@remoteDeleteCategoryConfirmContent": {
+    "description": "Confirmation text for deleting a remote-backed category."
+  },
+  "remoteWritableTaxonomyTitle": "リモートカテゴリ",
+  "@remoteWritableTaxonomyTitle": {
+    "description": "Title for writable remote taxonomy/category semantics."
+  },
+  "remoteWritableTaxonomyDescription": "カテゴリの変更はリモート サービスに適用され、ローカルにミラーリングされます。",
+  "@remoteWritableTaxonomyDescription": {
+    "description": "Description for writable remote taxonomy/category semantics."
+  },
+  "remoteReadOnlyTaxonomyTitle": "読み取り専用のリモート グループ",
+  "@remoteReadOnlyTaxonomyTitle": {
+    "description": "Title for read-only remote taxonomy/group mirror semantics."
+  },
+  "remoteReadOnlyTaxonomyDescription": "これらのカテゴリは、読み取り専用のリモート グループを反映しています。リモート サービス内のアイテムの名前変更、削除、または移動を行います。",
+  "@remoteReadOnlyTaxonomyDescription": {
+    "description": "Description for read-only remote taxonomy/group mirror semantics."
+  },
+  "feedCategoryReadOnlyTaxonomyTitle": "リモートで管理されるカテゴリ",
+  "@feedCategoryReadOnlyTaxonomyTitle": {
+    "description": "Title for a feed whose category assignment is managed by a read-only remote taxonomy mirror."
+  },
+  "feedCategoryReadOnlyTaxonomyDescription": "このフィードのカテゴリは、読み取り専用のリモート グループ ミラーから取得されます。",
+  "@feedCategoryReadOnlyTaxonomyDescription": {
+    "description": "Description for a feed whose category assignment is managed by a read-only remote taxonomy mirror."
+  },
+  "deleteTagConfirmTitle": "タグを削除しますか?",
+  "@deleteTagConfirmTitle": {
+    "description": "deleteTagConfirmTitle"
+  },
+  "deleteTagConfirmContent": "これにより、すべての記事から削除されます。",
+  "@deleteTagConfirmContent": {
+    "description": "deleteTagConfirmContent"
+  },
+  "categoryDeleted": "カテゴリが削除されました",
+  "@categoryDeleted": {
+    "description": "categoryDeleted"
+  },
+  "refresh": "リフレッシュ",
+  "@refresh": {
+    "description": "refresh"
+  },
+  "moveToCategory": "カテゴリに移動",
+  "@moveToCategory": {
+    "description": "moveToCategory"
+  },
+  "noFeedsFoundInOpml": "OPML にフィードが見つかりません",
+  "@noFeedsFoundInOpml": {
+    "description": "noFeedsFoundInOpml"
+  },
+  "importedFeeds": "{count}件のフィードをインポートしました",
+  "@importedFeeds": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    },
+    "description": "importedFeeds"
+  },
+  "exportedOpml": "エクスポート済み OPML",
+  "@exportedOpml": {
+    "description": "exportedOpml"
+  },
+  "fullTextFailed": "全文の取得に失敗しました: {error}",
+  "@fullTextFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    },
+    "description": "fullTextFailed"
+  },
+  "scrollToLoadMore": "スクロールしてさらに読み込む",
+  "@scrollToLoadMore": {
+    "description": "scrollToLoadMore"
+  },
+  "noArticles": "記事がありません",
+  "@noArticles": {
+    "description": "noArticles"
+  },
+  "noStarredArticles": "スター付きの記事はまだありません",
+  "@noStarredArticles": {
+    "description": "Empty state message for the starred articles view"
+  },
+  "noReadLaterArticles": "後で読む記事はまだありません",
+  "@noReadLaterArticles": {
+    "description": "Empty state message for the read-later articles view"
+  },
+  "noUnreadArticles": "未読の記事はありません",
+  "@noUnreadArticles": {
+    "description": "noUnreadArticles"
+  },
+  "articleListEmptySubtitle": "サブスクリプションを追加するか、ソースを更新すると、記事がここに表示されます。",
+  "@articleListEmptySubtitle": {
+    "description": "Article list empty state helper text when there are no articles"
+  },
+  "unreadEmptySubtitle": "現在のスコープ内のすべてが読み取られています。",
+  "@unreadEmptySubtitle": {
+    "description": "Article list empty state helper text when the unread filter has no results"
+  },
+  "savedSearchEmptySubtitle": "この検索に一致する保存済み記事はありません。",
+  "@savedSearchEmptySubtitle": {
+    "description": "Saved section empty state helper text when searching saved articles has no results"
+  },
+  "star": "スターを付ける",
+  "@star": {
+    "description": "star"
+  },
+  "unstar": "スターを外す",
+  "@unstar": {
+    "description": "unstar"
+  },
+  "starred": "スター付き",
+  "@starred": {
+    "description": "starred"
+  },
+  "readLater": "あとで読む",
+  "@readLater": {
+    "description": "readLater"
+  },
+  "removeReadLater": "あとで読むから削除",
+  "@removeReadLater": {
+    "description": "Action label for removing an article from the read-later list"
+  },
+  "openArticle": "記事を開く",
+  "@openArticle": {
+    "description": "Action label for opening an article from a list"
+  },
+  "markRead": "既読マークを付ける",
+  "@markRead": {
+    "description": "markRead"
+  },
+  "markUnread": "未読としてマークする",
+  "@markUnread": {
+    "description": "markUnread"
+  },
+  "collapse": "崩壊する",
+  "@collapse": {
+    "description": "collapse"
+  },
+  "expand": "拡大する",
+  "@expand": {
+    "description": "expand"
+  },
+  "openInBrowser": "ブラウザで開く",
+  "@openInBrowser": {
+    "description": "openInBrowser"
+  },
+  "copyLink": "リンクをコピー",
+  "@copyLink": {
+    "description": "copyLink"
+  },
+  "copiedToClipboard": "クリップボードにコピーされました",
+  "@copiedToClipboard": {
+    "description": "copiedToClipboard"
+  },
+  "share": "シェアする",
+  "@share": {
+    "description": "share"
+  },
+  "autoMarkRead": "開いたときに自動的に既読マークを付ける",
+  "@autoMarkRead": {
+    "description": "autoMarkRead"
+  },
+  "search": "検索",
+  "@search": {
+    "description": "search"
+  },
+  "searchInContent": "コンテンツ内を検索する",
+  "@searchInContent": {
+    "description": "searchInContent"
+  },
+  "clearSearch": "検索をクリア",
+  "@clearSearch": {
+    "description": "Action label for clearing article search text"
+  },
+  "searchStartTitle": "検索を開始する",
+  "@searchStartTitle": {
+    "description": "Search page empty state title before the user enters a query"
+  },
+  "searchStartSubtitle": "キーワードを入力してタイトル、概要、内容を検索します。",
+  "@searchStartSubtitle": {
+    "description": "Search page empty state helper text before the user enters a query"
+  },
+  "searchNoResultsSubtitle": "「{query}」に一致する記事はありません。",
+  "@searchNoResultsSubtitle": {
+    "description": "Search page empty state helper text when a query has no results",
+    "placeholders": {
+      "query": {}
+    }
+  },
+  "articleNotFoundSubtitle": "この記事は削除されたか、ローカルで入手できなくなった可能性があります。",
+  "@articleNotFoundSubtitle": {
+    "description": "Reader helper text when an article id cannot be found"
+  },
+  "findInPage": "ページ内で検索",
+  "@findInPage": {
+    "description": "findInPage"
+  },
+  "previousMatch": "前回の試合",
+  "@previousMatch": {
+    "description": "previousMatch"
+  },
+  "nextMatch": "次の試合",
+  "@nextMatch": {
+    "description": "nextMatch"
+  },
+  "caseSensitive": "大文字と小文字を区別する",
+  "@caseSensitive": {
+    "description": "caseSensitive"
+  },
+  "close": "閉じる",
+  "@close": {
+    "description": "close"
+  },
+  "groupingAndSorting": "グループ化と並べ替え",
+  "@groupingAndSorting": {
+    "description": "groupingAndSorting"
+  },
+  "groupBy": "グループ化",
+  "@groupBy": {
+    "description": "groupBy"
+  },
+  "groupNone": "なし",
+  "@groupNone": {
+    "description": "groupNone"
+  },
+  "groupByDay": "日",
+  "@groupByDay": {
+    "description": "groupByDay"
+  },
+  "sortOrder": "並べ替え順序",
+  "@sortOrder": {
+    "description": "sortOrder"
+  },
+  "sortNewestFirst": "新しい順",
+  "@sortNewestFirst": {
+    "description": "sortNewestFirst"
+  },
+  "sortOldestFirst": "古い順",
+  "@sortOldestFirst": {
+    "description": "sortOldestFirst"
+  },
+  "enabled": "有効",
+  "@enabled": {
+    "description": "enabled"
+  },
+  "rename": "名前の変更",
+  "@rename": {
+    "description": "rename"
+  },
+  "edit": "編集",
+  "@edit": {
+    "description": "edit"
+  },
+  "nameAlreadyExists": "名前はすでに存在します",
+  "@nameAlreadyExists": {
+    "description": "nameAlreadyExists"
+  },
+  "lastChecked": "最後にチェックした",
+  "@lastChecked": {
+    "description": "lastChecked"
+  },
+  "lastSynced": "最後に同期しました",
+  "@lastSynced": {
+    "description": "lastSynced"
+  },
+  "never": "決してしない",
+  "@never": {
+    "description": "never"
+  },
+  "cleanupReadArticles": "読んだ記事をクリーンアップする",
+  "@cleanupReadArticles": {
+    "description": "cleanupReadArticles"
+  },
+  "cleanupNow": "クリーンアップを実行する",
+  "@cleanupNow": {
+    "description": "cleanupNow"
+  },
+  "cachingArticles": "{count}件の記事をキャッシュしています...",
+  "@cachingArticles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "manageTags": "タグの管理",
+  "@manageTags": {
+    "description": "manageTags"
+  },
+  "newTag": "新しいタグ",
+  "@newTag": {
+    "description": "newTag"
+  },
+  "tagColor": "タグの色",
+  "@tagColor": {
+    "description": "tagColor"
+  },
+  "autoColor": "自動",
+  "@autoColor": {
+    "description": "autoColor"
+  },
+  "tagsLoadingError": "タグの読み込みエラー",
+  "@tagsLoadingError": {
+    "description": "Error message displayed when tags fail to load in the dialog"
+  },
+  "cleanedArticles": "{count}件の記事をクリーンアップしました",
+  "@cleanedArticles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    },
+    "description": "cleanedArticles"
+  },
+  "days": "{days}日",
+  "@days": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    },
+    "description": "days"
+  },
+  "services": "サービス",
+  "@services": {
+    "description": "services"
+  },
+  "account": "アカウント",
+  "@account": {
+    "description": "account"
+  },
+  "addOrRegisterAccount": "アカウントの追加または登録",
+  "@addOrRegisterAccount": {
+    "description": "Action label for adding or registering an account"
+  },
+  "local": "ローカル",
+  "@local": {
+    "description": "local"
+  },
+  "miniflux": "Miniflux",
+  "@miniflux": {
+    "description": "miniflux"
+  },
+  "fever": "Fever",
+  "@fever": {
+    "description": "fever"
+  },
+  "addLocal": "ローカルの追加",
+  "@addLocal": {
+    "description": "addLocal"
+  },
+  "addLocalAccount": "ローカルアカウントの追加",
+  "@addLocalAccount": {
+    "description": "addLocalAccount"
+  },
+  "addMiniflux": "Miniflux を追加",
+  "@addMiniflux": {
+    "description": "addMiniflux"
+  },
+  "addGoogleReaderApi": "Google Reader API を追加",
+  "@addGoogleReaderApi": {
+    "description": "addGoogleReaderApi"
+  },
+  "googleReaderApi": "Google Reader API",
+  "@googleReaderApi": {
+    "description": "googleReaderApi"
+  },
+  "googleReaderCompatible": "Google Reader compatible service",
+  "@googleReaderCompatible": {
+    "description": "googleReaderCompatible"
+  },
+  "addFever": "Fever を追加",
+  "@addFever": {
+    "description": "addFever"
+  },
+  "minifluxStrategy": "Miniflux 戦略",
+  "@minifluxStrategy": {
+    "description": "minifluxStrategy"
+  },
+  "minifluxStrategySubtitle": "同期中にフェッチ/プリフェッチされるデータの量を制御します。",
+  "@minifluxStrategySubtitle": {
+    "description": "minifluxStrategySubtitle"
+  },
+  "remoteSyncStrategy": "リモート同期戦略",
+  "@remoteSyncStrategy": {
+    "description": "remoteSyncStrategy"
+  },
+  "remoteSyncStrategySubtitle": "同期中に取得されるリモート記事ウィンドウを制御します。",
+  "@remoteSyncStrategySubtitle": {
+    "description": "remoteSyncStrategySubtitle"
+  },
+  "remoteSyncStrategyMinifluxSubtitle": "Miniflux は、この同期ごとのウィンドウまでリモート エントリをページングできます。",
+  "@remoteSyncStrategyMinifluxSubtitle": {
+    "description": "remoteSyncStrategyMinifluxSubtitle"
+  },
+  "remoteSyncStrategyGoogleReaderSubtitle": "Google Reader 互換サービス ページは、この同期ごとのウィンドウまでのリモート ストリーム エントリを介して表示されます。",
+  "@remoteSyncStrategyGoogleReaderSubtitle": {
+    "description": "remoteSyncStrategyGoogleReaderSubtitle"
+  },
+  "remoteSyncStrategyFeverSubtitle": "Fever は、この同期ごとのウィンドウを上限として、未読アイテムと保存済みアイテムを同期します。",
+  "@remoteSyncStrategyFeverSubtitle": {
+    "description": "remoteSyncStrategyFeverSubtitle"
+  },
+  "remoteEntriesLimit": "同期ごとのエントリ数",
+  "@remoteEntriesLimit": {
+    "description": "remoteEntriesLimit"
+  },
+  "remoteFetchConcurrency": "リモートフェッチの同時実行",
+  "@remoteFetchConcurrency": {
+    "description": "remoteFetchConcurrency"
+  },
+  "remoteFetchConcurrencySubtitle": "アカウント同期中の同時リモート記事バッチリクエストを制御します。",
+  "@remoteFetchConcurrencySubtitle": {
+    "description": "remoteFetchConcurrencySubtitle"
+  },
+  "minifluxWebFetchMode": "Webページの取得",
+  "@minifluxWebFetchMode": {
+    "description": "minifluxWebFetchMode"
+  },
+  "minifluxWebFetchModeSubtitle": "「同期中にWebページをダウンロード」が有効な場合。",
+  "@minifluxWebFetchModeSubtitle": {
+    "description": "minifluxWebFetchModeSubtitle"
+  },
+  "minifluxWebFetchModeClient": "クライアント (Readability)",
+  "@minifluxWebFetchModeClient": {
+    "description": "minifluxWebFetchModeClient"
+  },
+  "minifluxWebFetchModeServer": "サーバー (Miniflux コンテンツの取得)",
+  "@minifluxWebFetchModeServer": {
+    "description": "minifluxWebFetchModeServer"
+  },
+  "unlimited": "無制限",
+  "@unlimited": {
+    "description": "unlimited"
+  },
+  "fieldName": "名前",
+  "@fieldName": {
+    "description": "fieldName"
+  },
+  "nameRequired": "名前を入力してください",
+  "@nameRequired": {
+    "description": "Validation message shown when the name field is empty"
+  },
+  "baseUrl": "Base URL",
+  "@baseUrl": {
+    "description": "baseUrl"
+  },
+  "baseUrlRequired": "ベース URL を入力してください",
+  "@baseUrlRequired": {
+    "description": "Validation message shown when the base URL field is empty"
+  },
+  "minifluxBaseUrlHint": "https://miniflux.example.com",
+  "@minifluxBaseUrlHint": {
+    "description": "minifluxBaseUrlHint"
+  },
+  "feverBaseUrlHint": "https://example.com/fever/",
+  "@feverBaseUrlHint": {
+    "description": "feverBaseUrlHint"
+  },
+  "apiToken": "API Token",
+  "@apiToken": {
+    "description": "apiToken"
+  },
+  "apiTokenRequired": "API トークンを入力してください",
+  "@apiTokenRequired": {
+    "description": "Validation message shown when the API token field is empty"
+  },
+  "apiKey": "API Key",
+  "@apiKey": {
+    "description": "apiKey"
+  },
+  "appId": "App ID",
+  "@appId": {
+    "description": "Label for App ID fields"
+  },
+  "appKey": "App Key",
+  "@appKey": {
+    "description": "Label for App Key fields"
+  },
+  "apiKeyRequired": "API キーを入力してください",
+  "@apiKeyRequired": {
+    "description": "Validation message shown when the API key field is empty"
+  },
+  "authenticationMethod": "認証方式",
+  "@authenticationMethod": {
+    "description": "authenticationMethod"
+  },
+  "usernamePassword": "ユーザー名とパスワード",
+  "@usernamePassword": {
+    "description": "usernamePassword"
+  },
+  "minifluxAuthHint": "API トークン (推奨) またはユーザー名/パスワードを使用します。",
+  "@minifluxAuthHint": {
+    "description": "minifluxAuthHint"
+  },
+  "feverAuthHint": "API キー (推奨) またはユーザー名/パスワードを使用します。",
+  "@feverAuthHint": {
+    "description": "feverAuthHint"
+  },
+  "username": "ユーザー名",
+  "@username": {
+    "description": "username"
+  },
+  "usernameRequired": "ユーザー名を入力してください",
+  "@usernameRequired": {
+    "description": "Validation message shown when the username field is empty"
+  },
+  "password": "パスワード",
+  "@password": {
+    "description": "password"
+  },
+  "passwordRequired": "パスワードを入力してください",
+  "@passwordRequired": {
+    "description": "Validation message shown when the password field is empty"
+  },
+  "defaultModel": "デフォルトモデル",
+  "@defaultModel": {
+    "description": "Label for the default model field in the AI service editor"
+  },
+  "savedApiKeyClearHint": "保存された API キーをクリアするには、空白のままにします。",
+  "@savedApiKeyClearHint": {
+    "description": "Helper text explaining that an empty API key field clears the saved value"
+  },
+  "savedCredentialsClearHint": "保存された資格情報をクリアするには、空白のままにします。",
+  "@savedCredentialsClearHint": {
+    "description": "Helper text explaining that empty credential fields clear the saved values"
+  },
+  "aiServicesEmptyState": "AI サービスはまだ追加されていません。",
+  "@aiServicesEmptyState": {
+    "description": "Empty state shown when no custom AI services have been configured"
+  },
+  "modelSummary": "モデル: {model}",
+  "@modelSummary": {
+    "description": "Summary text showing the configured model for an AI service",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "show": "表示する",
+  "@show": {
+    "description": "show"
+  },
+  "hide": "隠す",
+  "@hide": {
+    "description": "hide"
+  },
+  "missingRequiredFields": "必須フィールドが欠落しています",
+  "@missingRequiredFields": {
+    "description": "missingRequiredFields"
+  },
+  "invalidBaseUrl": "無効なベース URL",
+  "@invalidBaseUrl": {
+    "description": "invalidBaseUrl"
+  },
+  "onlySupportedInLocalAccount": "ローカルアカウントでのみサポートされています",
+  "@onlySupportedInLocalAccount": {
+    "description": "onlySupportedInLocalAccount"
+  },
+  "autoRefresh": "自動ソースリフレッシュ",
+  "@autoRefresh": {
+    "description": "autoRefresh"
+  },
+  "autoRefreshSubtitle": "選択した間隔でサブスクリプション ソースを更新します。モバイルのバックグラウンド更新はシステムによってスケジュールされており、通常は 15 分ごとに行われるため、時間どおりに実行されない場合があります。",
+  "@autoRefreshSubtitle": {
+    "description": "autoRefreshSubtitle"
+  },
+  "off": "オフ",
+  "@off": {
+    "description": "off"
+  },
+  "everyMinutes": "{minutes}分ごと",
+  "@everyMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    },
+    "description": "everyMinutes"
+  },
+  "appPreferences": "アプリ設定",
+  "@appPreferences": {
+    "description": "appPreferences"
+  },
+  "about": "について",
+  "@about": {
+    "description": "about"
+  },
+  "dataDirectory": "データディレクトリ",
+  "@dataDirectory": {
+    "description": "dataDirectory"
+  },
+  "copyPath": "パスをコピーする",
+  "@copyPath": {
+    "description": "copyPath"
+  },
+  "openFolder": "フォルダーを開く",
+  "@openFolder": {
+    "description": "openFolder"
+  },
+  "logDirectory": "ログディレクトリ",
+  "@logDirectory": {
+    "description": "logDirectory"
+  },
+  "openLog": "ログを開く",
+  "@openLog": {
+    "description": "openLog"
+  },
+  "openLogFolder": "ログフォルダを開く",
+  "@openLogFolder": {
+    "description": "openLogFolder"
+  },
+  "exportLogs": "ログのエクスポート",
+  "@exportLogs": {
+    "description": "exportLogs"
+  },
+  "exportedLogs": "エクスポートされたログ",
+  "@exportedLogs": {
+    "description": "exportedLogs"
+  },
+  "noLogsFound": "ログファイルが見つかりません",
+  "@noLogsFound": {
+    "description": "noLogsFound"
+  },
+  "keyboardShortcuts": "キーボードショートカット",
+  "@keyboardShortcuts": {
+    "description": "keyboardShortcuts"
+  },
+  "version": "バージョン",
+  "@version": {
+    "description": "version"
+  },
+  "buildNumber": "ビルド番号",
+  "@buildNumber": {
+    "description": "buildNumber"
+  },
+  "versionAndBuild": "バージョン {version} · ビルド {buildNumber}",
+  "@versionAndBuild": {
+    "description": "Compact about-page app version and build label",
+    "placeholders": {
+      "version": {},
+      "buildNumber": {}
+    }
+  },
+  "checkForUpdates": "アップデートを確認",
+  "@checkForUpdates": {
+    "description": "Action label for manually checking app updates"
+  },
+  "checkingForUpdates": "確認中...",
+  "@checkingForUpdates": {
+    "description": "Disabled action label while app update check is running"
+  },
+  "updateAvailable": "アップデート",
+  "@updateAvailable": {
+    "description": "Short app update entry label shown when a new version is available"
+  },
+  "upToDate": "最新バージョンです",
+  "@upToDate": {
+    "description": "Status text shown after checking app updates"
+  },
+  "updateCheckFailed": "アップデートを確認できませんでした。",
+  "@updateCheckFailed": {
+    "description": "Error shown when checking app updates fails"
+  },
+  "newVersionAvailable": "新しいバージョン {version} が利用可能です",
+  "@newVersionAvailable": {
+    "description": "Title for the app update dialog",
+    "placeholders": {
+      "version": {}
+    }
+  },
+  "releaseNotes": "リリースノート",
+  "@releaseNotes": {
+    "description": "Heading for release notes in the app update dialog"
+  },
+  "goToOfficialUpdate": "リリースページを開く",
+  "@goToOfficialUpdate": {
+    "description": "Action label to open the official GitHub release page"
+  },
+  "openSourceLicense": "オープンソースライセンス",
+  "@openSourceLicense": {
+    "description": "openSourceLicense"
+  },
+  "viewLicense": "ライセンスを表示する",
+  "@viewLicense": {
+    "description": "viewLicense"
+  },
+  "thirdPartyLicenses": "サードパーティライセンス",
+  "@thirdPartyLicenses": {
+    "description": "thirdPartyLicenses"
+  },
+  "viewThirdPartyLicenses": "すべてのオープンソース ライセンスを表示する",
+  "@viewThirdPartyLicenses": {
+    "description": "viewThirdPartyLicenses"
+  },
+  "licenseLoadFailed": "ライセンスのロードに失敗しました。",
+  "@licenseLoadFailed": {
+    "description": "Error shown when the app fails to load the bundled license text"
+  },
+  "mitLicenseName": "MITライセンス",
+  "@mitLicenseName": {
+    "description": "Name of the app's primary license"
+  },
+  "shortcutNextPreviousArticle": "J / K: 次の記事 / 前の記事",
+  "@shortcutNextPreviousArticle": {
+    "description": "Keyboard shortcut help text for moving to the next or previous article"
+  },
+  "shortcutBackForwardHistory": "Alt + ← / Alt + →; macOS Cmd + [ / ]: 履歴を戻る/進む",
+  "@shortcutBackForwardHistory": {
+    "description": "Keyboard shortcut help text for navigating backward or forward through history"
+  },
+  "shortcutRefreshCurrentSelection": "R: リフレッシュ (現在の選択)",
+  "@shortcutRefreshCurrentSelection": {
+    "description": "Keyboard shortcut help text for refreshing the current selection"
+  },
+  "shortcutToggleUnreadOnly": "U: 読み取り専用に切り替えます",
+  "@shortcutToggleUnreadOnly": {
+    "description": "Keyboard shortcut help text for toggling the unread-only filter"
+  },
+  "shortcutToggleReadUnreadSelectedArticle": "M: 選択した記事の既読/未読を切り替えます",
+  "@shortcutToggleReadUnreadSelectedArticle": {
+    "description": "Keyboard shortcut help text for toggling read/unread on the selected article"
+  },
+  "shortcutToggleStarSelectedArticle": "S: 選択した記事のスターを切り替えます",
+  "@shortcutToggleStarSelectedArticle": {
+    "description": "Keyboard shortcut help text for toggling the star state on the selected article"
+  },
+  "shortcutSearchArticlesAndFindInPage": "Ctrl/Cmd+F: 記事 (リスト) を検索します。フォーカス ページ内検索 (リーダー)",
+  "@shortcutSearchArticlesAndFindInPage": {
+    "description": "Keyboard shortcut help text for searching articles or focusing find-in-page"
+  },
+  "filter": "フィルター",
+  "@filter": {
+    "description": "filter"
+  },
+  "filterKeywordsHint": "予約キーワードを追加（「;」で区切って複数を「+」で連結）",
+  "@filterKeywordsHint": {
+    "description": "filterKeywordsHint"
+  },
+  "sync": "同期",
+  "@sync": {
+    "description": "sync"
+  },
+  "enableSync": "同期を有効にする",
+  "@enableSync": {
+    "description": "enableSync"
+  },
+  "enableFilter": "フィルターを有効にする",
+  "@enableFilter": {
+    "description": "enableFilter"
+  },
+  "syncAlwaysEnabled": "常に有効 (設定 - 同期 - 同期モードが「すべて」)",
+  "@syncAlwaysEnabled": {
+    "description": "syncAlwaysEnabled"
+  },
+  "syncImages": "同期中に画像をダウンロードする",
+  "@syncImages": {
+    "description": "syncImages"
+  },
+  "syncWebPages": "同期中に Web ページをダウンロードする",
+  "@syncWebPages": {
+    "description": "syncWebPages"
+  },
+  "syncStatusSyncing": "同期中",
+  "@syncStatusSyncing": {
+    "description": "Sync status: syncing (generic)"
+  },
+  "syncStatusSyncingFeeds": "フィードを同期しています",
+  "@syncStatusSyncingFeeds": {
+    "description": "Sync status: syncing feeds"
+  },
+  "syncStatusSyncingSubscriptions": "サブスクリプションの同期",
+  "@syncStatusSyncingSubscriptions": {
+    "description": "Sync status: syncing subscriptions"
+  },
+  "syncStatusSyncingUnreadArticles": "未読記事を同期する",
+  "@syncStatusSyncingUnreadArticles": {
+    "description": "Sync status: syncing unread articles"
+  },
+  "syncStatusUploadingChanges": "変更のアップロード",
+  "@syncStatusUploadingChanges": {
+    "description": "Sync status: uploading local/outbox changes"
+  },
+  "syncStatusCompleted": "同期が完了しました",
+  "@syncStatusCompleted": {
+    "description": "Sync status: completed"
+  },
+  "syncStatusFailed": "同期に失敗しました",
+  "@syncStatusFailed": {
+    "description": "Sync status: failed"
+  },
+  "showAiSummary": "概要を表示",
+  "@showAiSummary": {
+    "description": "showAiSummary"
+  },
+  "summary": "概要",
+  "@summary": {
+    "description": "summary"
+  },
+  "showImageTitle": "画像のタイトルを表示",
+  "@showImageTitle": {
+    "description": "showImageTitle"
+  },
+  "showAttachedImage": "添付画像を表示",
+  "@showAttachedImage": {
+    "description": "showAttachedImage"
+  },
+  "htmlDecoding": "HTML decoding",
+  "@htmlDecoding": {
+    "description": "htmlDecoding"
+  },
+  "mobilizer": "Mobilizer",
+  "@mobilizer": {
+    "description": "mobilizer"
+  },
+  "inherit": "継承する",
+  "@inherit": {
+    "description": "inherit"
+  },
+  "auto": "自動",
+  "@auto": {
+    "description": "auto"
+  },
+  "autoOn": "自動(オン)",
+  "@autoOn": {
+    "description": "autoOn"
+  },
+  "autoOff": "オフ",
+  "@autoOff": {
+    "description": "autoOff"
+  },
+  "defaultValue": "デフォルト値",
+  "@defaultValue": {
+    "description": "defaultValue"
+  },
+  "defaultOption": "デフォルト",
+  "@defaultOption": {
+    "description": "Generic 'Default' option label"
+  },
+  "userAgent": "User-Agent",
+  "@userAgent": {
+    "description": "userAgent"
+  },
+  "rssUserAgent": "RSS/Atom User-Agent",
+  "@rssUserAgent": {
+    "description": "rssUserAgent"
+  },
+  "webUserAgent": "Web User-Agent",
+  "@webUserAgent": {
+    "description": "webUserAgent"
+  },
+  "userAgentRssHint": "RSS/Atom フィードを取得するときに使用されます。",
+  "@userAgentRssHint": {
+    "description": "userAgentRssHint"
+  },
+  "userAgentWebHint": "完全な Web ページ (Readability) を取得するときに使用されます。",
+  "@userAgentWebHint": {
+    "description": "userAgentWebHint"
+  },
+  "resetToDefault": "デフォルトにリセットする",
+  "@resetToDefault": {
+    "description": "resetToDefault"
+  },
+  "notificationNewArticleTitle": "新しい記事",
+  "@notificationNewArticleTitle": {
+    "description": "Notification title when exactly one new article is found"
+  },
+  "notificationNewArticlesTitle": "新しい記事",
+  "@notificationNewArticlesTitle": {
+    "description": "Notification title when multiple new articles are found"
+  },
+  "notificationNewArticlesBody": "{count}件の新しい記事が見つかりました",
+  "@notificationNewArticlesBody": {
+    "description": "Notification body when multiple new articles are found",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationNewArticlesChannelName": "新しい記事",
+  "@notificationNewArticlesChannelName": {
+    "description": "Android notification channel name for new articles"
+  },
+  "notificationNewArticlesChannelDescription": "同期中に見つかった新しい記事の通知",
+  "@notificationNewArticlesChannelDescription": {
+    "description": "Android notification channel description for new articles"
+  },
+  "windowMinimize": "最小化する",
+  "@windowMinimize": {
+    "description": "Tooltip for the window minimize button on desktop"
+  },
+  "windowMaximize": "最大化する",
+  "@windowMaximize": {
+    "description": "Tooltip for the window maximize button on desktop"
+  },
+  "windowRestore": "復元",
+  "@windowRestore": {
+    "description": "Tooltip for the window restore button on desktop"
+  },
+  "windowClose": "閉じる",
+  "@windowClose": {
+    "description": "Tooltip for the window close button on desktop"
+  },
+  "translationAndAiServices": "翻訳とAI",
+  "@translationAndAiServices": {
+    "description": "Settings tab for translation and AI services"
+  },
+  "translation": "翻訳",
+  "@translation": {
+    "description": "Translation section title"
+  },
+  "translationProvider": "翻訳プロバイダー",
+  "@translationProvider": {
+    "description": "Setting title for selecting translation provider"
+  },
+  "aiServices": "AI サービス",
+  "@aiServices": {
+    "description": "AI services section title"
+  },
+  "addAiService": "AI サービスを追加",
+  "@addAiService": {
+    "description": "Button/title for adding an AI service"
+  },
+  "aiService": "AI サービス",
+  "@aiService": {
+    "description": "Generic label for AI service"
+  },
+  "aiSummary": "AI要約",
+  "@aiSummary": {
+    "description": "AI summary section title/label"
+  },
+  "aiSummaryService": "AI おまとめサービス",
+  "@aiSummaryService": {
+    "description": "Setting title for selecting AI summary service"
+  },
+  "targetLanguage": "ターゲット言語",
+  "@targetLanguage": {
+    "description": "Setting title for selecting target language"
+  },
+  "followAppLanguage": "アプリの言語に従う",
+  "@followAppLanguage": {
+    "description": "Option label for following the app language"
+  },
+  "translationProviderGoogleWeb": "Google Translate (web)",
+  "@translationProviderGoogleWeb": {
+    "description": "Display label for the Google web translation provider"
+  },
+  "translationProviderBingWeb": "Bing Translate (web)",
+  "@translationProviderBingWeb": {
+    "description": "Display label for the Bing web translation provider"
+  },
+  "translationProviderBaiduApi": "Baidu Translate (API)",
+  "@translationProviderBaiduApi": {
+    "description": "Display label for the Baidu API translation provider"
+  },
+  "translationProviderDeepLApi": "DeepL (API)",
+  "@translationProviderDeepLApi": {
+    "description": "Display label for the DeepL API translation provider"
+  },
+  "translationProviderDeepLX": "DeepLX",
+  "@translationProviderDeepLX": {
+    "description": "Display label for the DeepLX translation provider"
+  },
+  "translationProviderAiService": "AI: {name}",
+  "@translationProviderAiService": {
+    "description": "Display label for an AI-backed translation provider",
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "translationProviderBaiduApiSubtitle": "App ID / App Key を設定します",
+  "@translationProviderBaiduApiSubtitle": {
+    "description": "Subtitle for configuring Baidu translation credentials"
+  },
+  "deepLXBaseUrlTitle": "DeepLX Base URL",
+  "@deepLXBaseUrlTitle": {
+    "description": "Dialog title for editing the DeepLX base URL"
+  },
+  "deepLEndpoint": "Endpoint",
+  "@deepLEndpoint": {
+    "description": "Label for the DeepL endpoint selection"
+  },
+  "deepLEndpointFree": "無料",
+  "@deepLEndpointFree": {
+    "description": "Label for the DeepL free endpoint"
+  },
+  "deepLEndpointPro": "プロ",
+  "@deepLEndpointPro": {
+    "description": "Label for the DeepL pro endpoint"
+  },
+  "setAsDefault": "デフォルトとして設定",
+  "@setAsDefault": {
+    "description": "Menu action for making an AI service the default one"
+  },
+  "defaultAlreadySet": "デフォルト（設定済み）",
+  "@defaultAlreadySet": {
+    "description": "Menu label shown when an AI service is already the default one"
+  },
+  "aiSummaryPrompt": "AI 概要プロンプト",
+  "@aiSummaryPrompt": {
+    "description": "Setting title for AI summary prompt template"
+  },
+  "aiTranslationPrompt": "AI翻訳プロンプト",
+  "@aiTranslationPrompt": {
+    "description": "Setting title for AI translation prompt template"
+  },
+  "defaultAiSummaryPromptTemplate": "この記事を{language}で要約してください（タイトル: {title}）: {content}",
+  "@defaultAiSummaryPromptTemplate": {
+    "description": "Default AI summary prompt template",
+    "placeholders": {
+      "language": {},
+      "title": {},
+      "content": {}
+    }
+  },
+  "defaultAiTranslationPromptTemplate": "この記事の一部を{language}に翻訳してください（タイトル: {title}）: {content}",
+  "@defaultAiTranslationPromptTemplate": {
+    "description": "Default AI translation prompt template (only used for AI translation)",
+    "placeholders": {
+      "language": {},
+      "title": {},
+      "content": {}
+    }
+  },
+  "promptVariables": "利用可能な変数",
+  "@promptVariables": {
+    "description": "Header for listing available prompt template variables"
+  },
+  "promptVariableContentDescription": "記事の内容",
+  "@promptVariableContentDescription": {
+    "description": "Description text for {{content}} variable"
+  },
+  "promptVariableLanguageDescription": "対象言語",
+  "@promptVariableLanguageDescription": {
+    "description": "Description text for {{language}} variable"
+  },
+  "promptVariableTitleDescription": "記事タイトル",
+  "@promptVariableTitleDescription": {
+    "description": "Description text for {{title}} variable"
+  },
+  "tpmLimit": "TPM limit",
+  "@tpmLimit": {
+    "description": "Tokens per minute limit setting"
+  },
+  "tpmLimitSubtitle": "0 は無制限を意味します。リクエストは超過するとキューに入れられます。",
+  "@tpmLimitSubtitle": {
+    "description": "Subtitle text explaining the TPM limit behavior"
+  },
+  "aiSummaryAction": "AI要約",
+  "@aiSummaryAction": {
+    "description": "Action button label for generating AI summary"
+  },
+  "translateAction": "翻訳する",
+  "@translateAction": {
+    "description": "Action button label for translating an article"
+  },
+  "translationMode": "翻訳モード",
+  "@translationMode": {
+    "description": "Title for selecting translation mode"
+  },
+  "immersiveTranslation": "没入型翻訳",
+  "@immersiveTranslation": {
+    "description": "Option label for immersive (bilingual) translation mode"
+  },
+  "traditionalTranslation": "従来の翻訳",
+  "@traditionalTranslation": {
+    "description": "Option label for traditional (translated-only) translation mode"
+  },
+  "generating": "生成中…",
+  "@generating": {
+    "description": "Generic loading state text for generating AI/translation"
+  },
+  "queued": "キューに入れられました",
+  "@queued": {
+    "description": "Generic queued state text"
+  },
+  "regenerate": "再生する",
+  "@regenerate": {
+    "description": "Action label for regenerating AI/translation output"
+  },
+  "cachedPromptOutdated": "Prompt が更新されました。再生成してリフレッシュします。",
+  "@cachedPromptOutdated": {
+    "description": "Hint shown when cached content is outdated due to prompt changes"
+  },
+  "languageMismatchBanner": "コンテンツは{source}の可能性があります。ターゲット言語は{target}です。",
+  "@languageMismatchBanner": {
+    "description": "Banner text shown when article language differs from target language",
+    "placeholders": {
+      "source": {},
+      "target": {}
+    }
+  },
+  "dontRemindThisLanguage": "この言語ではリマインダーを表示しない",
+  "@dontRemindThisLanguage": {
+    "description": "Action label to disable language mismatch reminders for a source language"
+  },
+  "autoAiSummary": "自動 AI サマリー",
+  "@autoAiSummary": {
+    "description": "Setting title for auto AI summary"
+  },
+  "autoTranslate": "自動翻訳",
+  "@autoTranslate": {
+    "description": "Setting title for auto translation"
+  },
+  "aiNotConfigured": "AI サービスが構成されていません。",
+  "@aiNotConfigured": {
+    "description": "Error message shown when no AI service is configured/enabled"
+  },
+  "translationNotAvailable": "選択したプロバイダーでは翻訳を利用できません。",
+  "@translationNotAvailable": {
+    "description": "Error message shown when the selected translation provider is not supported"
+  },
+  "clearTranslation": "明確な翻訳",
+  "@clearTranslation": {
+    "description": "Action label to clear/hide the translated view"
+  },
+  "dbRecoveryTitle": "データベースの回復",
+  "@dbRecoveryTitle": {
+    "description": "Title for the database recovery dialog"
+  },
+  "dbRecoveryDescription": "アプリはデータベースの問題を検出し、回復を実行しました。データはディスク上に保存されました (バックアップ/ファイルの移動)。",
+  "@dbRecoveryDescription": {
+    "description": "Description text shown in the database recovery dialog"
+  },
+  "dbRecoveryTimeLabel": "時間",
+  "@dbRecoveryTimeLabel": {
+    "description": "Label for the recovery time field"
+  },
+  "dbRecoveryDbNameLabel": "DB名",
+  "@dbRecoveryDbNameLabel": {
+    "description": "Label for the database name field"
+  },
+  "dbRecoveryOpenedAsLabel": "としてオープン",
+  "@dbRecoveryOpenedAsLabel": {
+    "description": "Label for the fallback database name field"
+  },
+  "dbRecoveryBackupPathLabel": "バックアップ",
+  "@dbRecoveryBackupPathLabel": {
+    "description": "Label for the backup file path field"
+  },
+  "dbRecoveryMovedOriginalPathLabel": "オリジナルを移動しました",
+  "@dbRecoveryMovedOriginalPathLabel": {
+    "description": "Label for the moved original db file path field"
+  },
+  "dbRecoveryErrorLabel": "エラー",
+  "@dbRecoveryErrorLabel": {
+    "description": "Label for the error message field"
+  },
+  "dbRecoveryDataPreservedHint": "ヒント: コピー ボタンを使用して、トラブルシューティングまたはサポート用のパスをコピーします。",
+  "@dbRecoveryDataPreservedHint": {
+    "description": "Hint shown at the bottom of the recovery dialog"
+  }
+}

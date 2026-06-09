@@ -31,6 +31,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settings => 'Settings';
 
   @override
+  String get settingsSearchHint => 'Search settings';
+
+  @override
+  String get settingsSearchNoResults => 'No settings match this search.';
+
+  @override
+  String get settingsSearchPageLabel => 'Page';
+
+  @override
+  String get settingsSearchSectionLabel => 'Section';
+
+  @override
+  String get settingsSearchSettingLabel => 'Setting';
+
+  @override
+  String settingsSearchResultCount(Object count) {
+    return '$count results';
+  }
+
+  @override
   String get feeds => 'Feeds';
 
   @override
@@ -61,10 +81,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dynamicColor => 'Dynamic colors';
 
   @override
-  String get dynamicColorSubtitle => 'Use Material You colors (Android 12+)';
+  String get dynamicColorSubtitle =>
+      'Follow system dynamic or accent colors when available';
 
   @override
-  String get seedColorPreset => 'Theme colors';
+  String get seedColorPreset => 'Accent color';
 
   @override
   String get seedColorPresetSubtitle =>
@@ -111,6 +132,184 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get horizontalPadding => 'Horizontal padding';
+
+  @override
+  String get applicationAppearance => 'App appearance';
+
+  @override
+  String get readerAppearance => 'Reader appearance';
+
+  @override
+  String get codeAppearance => 'Code appearance';
+
+  @override
+  String get custom => 'Custom';
+
+  @override
+  String get back => 'Back';
+
+  @override
+  String get forward => 'Forward';
+
+  @override
+  String get fontSettings => 'Fonts';
+
+  @override
+  String get advancedFontSettings => 'Advanced font settings';
+
+  @override
+  String get fontsAndCode => 'Fonts and code';
+
+  @override
+  String get customFontStack => 'Custom font stack';
+
+  @override
+  String get codeTypography => 'Code typography';
+
+  @override
+  String get fontSizeExtraSmall => 'Extra small';
+
+  @override
+  String get fontSizeSmall => 'Small';
+
+  @override
+  String get fontSizeMediumRecommended => 'Medium (recommended)';
+
+  @override
+  String get fontSizeLarge => 'Large';
+
+  @override
+  String get fontSizeExtraLarge => 'Extra large';
+
+  @override
+  String get minimumFontSize => 'Minimum font size';
+
+  @override
+  String get lineHeightCompact => 'Compact';
+
+  @override
+  String get lineHeightStandard => 'Standard';
+
+  @override
+  String get lineHeightRelaxed => 'Relaxed';
+
+  @override
+  String get appearancePreview => 'Preview';
+
+  @override
+  String get appearancePreviewTitle => 'A quieter reading surface';
+
+  @override
+  String get appearancePreviewMeta => 'Preview · Today';
+
+  @override
+  String get appearancePreviewBody =>
+      'Tune the reader once, then let every article open with the same calm rhythm.';
+
+  @override
+  String get appearancePreviewQuote =>
+      'Readable settings should feel visible before they feel configurable.';
+
+  @override
+  String get appearancePreviewLink => 'Sample link';
+
+  @override
+  String get appearancePreviewCode => 'code sample';
+
+  @override
+  String get readerFontFamily => 'Font family';
+
+  @override
+  String get readerFontSystem => 'System';
+
+  @override
+  String get readerFontSerif => 'Serif';
+
+  @override
+  String get readerFontSans => 'Sans';
+
+  @override
+  String get readerFontMono => 'Mono';
+
+  @override
+  String get readerFontStack => 'Reading font stack';
+
+  @override
+  String get standardFont => 'Standard font';
+
+  @override
+  String get serifFont => 'Serif font';
+
+  @override
+  String get sansSerifFont => 'Sans-serif font';
+
+  @override
+  String get fixedWidthFont => 'Fixed-width font';
+
+  @override
+  String get mathFont => 'Math font';
+
+  @override
+  String get fontStackExample =>
+      '\"PingFang SC\", \"Noto Sans CJK SC\", system-ui, sans-serif';
+
+  @override
+  String get monoFontStackExample => '\"SF Mono\", Menlo, Consolas, monospace';
+
+  @override
+  String get mathFontStackExample =>
+      '\"STIX Two Math\", \"Cambria Math\", serif';
+
+  @override
+  String get readerTheme => 'Reading texture';
+
+  @override
+  String get readerThemeDefault => 'Default';
+
+  @override
+  String get readerThemePaper => 'Paper';
+
+  @override
+  String get readerThemeSepia => 'Sepia';
+
+  @override
+  String get readerThemeDim => 'Soft gray';
+
+  @override
+  String get readingWidth => 'Reading width';
+
+  @override
+  String get readingWidthNarrow => 'Narrow';
+
+  @override
+  String get readingWidthStandard => 'Standard';
+
+  @override
+  String get readingWidthWide => 'Wide';
+
+  @override
+  String get codeFontFamily => 'Code font';
+
+  @override
+  String get codeFontSystemMono => 'System mono';
+
+  @override
+  String get codeFontStack => 'Code font stack';
+
+  @override
+  String get codeFontSize => 'Code font size';
+
+  @override
+  String get codeFontSizeFollowReader => 'Follow body';
+
+  @override
+  String get codeFontSizeOneStepDown => 'One step down';
+
+  @override
+  String get codeLineHeight => 'Code line height';
+
+  @override
+  String get codeSoftWrap => 'Wrap code lines';
 
   @override
   String get storage => 'Storage';
@@ -363,6 +562,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get feedOrWebsiteUrl => 'Feed / website URL';
 
   @override
+  String get feedOrWebsiteUrlHint => 'Paste a website or RSS URL';
+
+  @override
+  String get findFeeds => 'Find feeds';
+
+  @override
   String get discoveringFeeds => 'Discovering feeds...';
 
   @override
@@ -375,10 +580,68 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noFeedsFound => 'No feeds found';
 
   @override
+  String get noFeedsFoundHint =>
+      'Paste the RSS/Atom URL directly or try another page from the site.';
+
+  @override
+  String get subscriptionPreview => 'Source preview';
+
+  @override
+  String subscriptionResultsFound(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Found $count subscription sources',
+      one: 'Found 1 subscription source',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get subscriptionPreviewUnavailable =>
+      'No recent preview items available';
+
+  @override
+  String get feedSourceDirect => 'RSS/Atom URL';
+
+  @override
+  String get feedSourceAlternate => 'Discovered on page';
+
+  @override
+  String get feedSourceCommonPath => 'Common feed path';
+
+  @override
   String get name => 'Name';
 
   @override
   String get addedAndSynced => 'Added & synced';
+
+  @override
+  String get subscriptionAddedTitle => 'Subscription added';
+
+  @override
+  String get subscriptionAddedMessage =>
+      'The subscription was added. You can open it now or keep adding more.';
+
+  @override
+  String get subscriptionRefreshWarning =>
+      'The subscription was added, but the first refresh failed. You can retry refresh later.';
+
+  @override
+  String get subscriptionAlreadyExistsTitle => 'Already subscribed';
+
+  @override
+  String get subscriptionAlreadyExistsMessage =>
+      'This feed is already in your subscriptions. No category changes were made.';
+
+  @override
+  String get viewSubscription => 'View subscription';
+
+  @override
+  String get continueAddingSubscription => 'Continue adding';
+
+  @override
+  String get moveToCurrentCategory => 'Move to current category';
 
   @override
   String get deleteSubscription => 'Delete subscription';
@@ -677,6 +940,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addMiniflux => 'Add Miniflux';
 
   @override
+  String get addGoogleReaderApi => 'Add Google Reader API';
+
+  @override
+  String get googleReaderApi => 'Google Reader API';
+
+  @override
+  String get googleReaderCompatible => 'Google Reader compatible';
+
+  @override
   String get addFever => 'Add Fever';
 
   @override
@@ -696,6 +968,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get remoteSyncStrategyMinifluxSubtitle =>
       'Miniflux can page through remote entries up to this per-sync window.';
+
+  @override
+  String get remoteSyncStrategyGoogleReaderSubtitle =>
+      'Google Reader compatible services page through remote stream entries up to this per-sync window.';
 
   @override
   String get remoteSyncStrategyFeverSubtitle =>
@@ -880,6 +1156,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String get buildNumber => 'Build number';
 
   @override
+  String versionAndBuild(Object version, Object buildNumber) {
+    return 'Version $version · Build $buildNumber';
+  }
+
+  @override
+  String get checkForUpdates => 'Check for updates';
+
+  @override
+  String get checkingForUpdates => 'Checking...';
+
+  @override
+  String get updateAvailable => 'Update';
+
+  @override
+  String get upToDate => 'You\'re up to date';
+
+  @override
+  String get updateCheckFailed => 'Couldn\'t check for updates.';
+
+  @override
+  String newVersionAvailable(Object version) {
+    return 'New version $version available';
+  }
+
+  @override
+  String get releaseNotes => 'Release notes';
+
+  @override
+  String get goToOfficialUpdate => 'Open release page';
+
+  @override
   String get openSourceLicense => 'Open source license';
 
   @override
@@ -899,6 +1206,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shortcutNextPreviousArticle => 'J / K: Next / previous article';
+
+  @override
+  String get shortcutBackForwardHistory =>
+      'Alt + ← / Alt + →; macOS Cmd + [ / ]: Back / forward history';
 
   @override
   String get shortcutRefreshCurrentSelection =>

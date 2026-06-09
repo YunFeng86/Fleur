@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/article.dart';
+import '../models/article_scope.dart';
 import '../models/category.dart';
 import '../models/feed.dart';
 import '../models/tag.dart';
@@ -30,110 +31,88 @@ const _unchanged = Object();
 
 class ArticleListFilter {
   const ArticleListFilter({
-    this.selectedFeedId,
-    this.selectedCategoryId,
-    this.selectedTagId,
+    this.scope = ArticleScope.all,
     this.unreadOnly = false,
-    this.starredOnly = false,
-    this.readLaterOnly = false,
     this.searchQuery = '',
+    this.searchInContentOverride,
   });
 
-  final int? selectedFeedId;
-  final int? selectedCategoryId;
-  final int? selectedTagId;
+  final ArticleScope scope;
   final bool unreadOnly;
-  final bool starredOnly;
-  final bool readLaterOnly;
   final String searchQuery;
+  final bool? searchInContentOverride;
+
+  int? get selectedFeedId => scope.feedId;
+  int? get selectedCategoryId => scope.categoryId;
+  int? get selectedTagId => scope.tagId;
+  bool get starredOnly => scope.starredOnly;
+  bool get readLaterOnly => scope.readLaterOnly;
 
   ArticleListFilter copyWith({
-    Object? selectedFeedId = _unchanged,
-    Object? selectedCategoryId = _unchanged,
-    Object? selectedTagId = _unchanged,
+    Object? scope = _unchanged,
     bool? unreadOnly,
-    bool? starredOnly,
-    bool? readLaterOnly,
     String? searchQuery,
+    Object? searchInContentOverride = _unchanged,
   }) {
     return ArticleListFilter(
-      selectedFeedId: identical(selectedFeedId, _unchanged)
-          ? this.selectedFeedId
-          : selectedFeedId as int?,
-      selectedCategoryId: identical(selectedCategoryId, _unchanged)
-          ? this.selectedCategoryId
-          : selectedCategoryId as int?,
-      selectedTagId: identical(selectedTagId, _unchanged)
-          ? this.selectedTagId
-          : selectedTagId as int?,
+      scope: identical(scope, _unchanged) ? this.scope : scope as ArticleScope,
       unreadOnly: unreadOnly ?? this.unreadOnly,
-      starredOnly: starredOnly ?? this.starredOnly,
-      readLaterOnly: readLaterOnly ?? this.readLaterOnly,
       searchQuery: searchQuery ?? this.searchQuery,
+      searchInContentOverride: identical(searchInContentOverride, _unchanged)
+          ? this.searchInContentOverride
+          : searchInContentOverride as bool?,
     );
   }
 
   ArticleListFilter clearBrowseFilters() {
-    return copyWith(starredOnly: false, readLaterOnly: false, searchQuery: '');
+    return copyWith(searchQuery: '', searchInContentOverride: null);
+  }
+
+  ArticleListFilter selectScope(ArticleScope scope) {
+    if (scope.isSavedScope) {
+      return clearBrowseFilters().copyWith(scope: scope, unreadOnly: false);
+    }
+    return clearBrowseFilters().copyWith(scope: scope);
   }
 
   ArticleListFilter selectAll() {
-    return clearBrowseFilters().copyWith(
-      selectedFeedId: null,
-      selectedCategoryId: null,
-      selectedTagId: null,
-    );
+    return selectScope(ArticleScope.all);
   }
 
   ArticleListFilter selectFeed(int feedId) {
-    return clearBrowseFilters().copyWith(
-      selectedFeedId: feedId,
-      selectedCategoryId: null,
-      selectedTagId: null,
-    );
+    return selectScope(ArticleScope.feed(feedId));
   }
 
   ArticleListFilter selectCategory(int categoryId) {
-    return clearBrowseFilters().copyWith(
-      selectedFeedId: null,
-      selectedCategoryId: categoryId,
-      selectedTagId: null,
-    );
+    return selectScope(ArticleScope.category(categoryId));
   }
 
   ArticleListFilter selectTag(int tagId) {
-    return clearBrowseFilters().copyWith(
-      selectedFeedId: null,
-      selectedCategoryId: null,
-      selectedTagId: tagId,
-    );
+    return selectScope(ArticleScope.tag(tagId));
+  }
+
+  ArticleListFilter selectStarred() {
+    return selectScope(ArticleScope.starred);
+  }
+
+  ArticleListFilter selectReadLater() {
+    return selectScope(ArticleScope.readLater);
   }
 
   ArticleListFilter enterFeedsSection() {
-    return clearBrowseFilters();
+    return selectAll();
   }
 
   ArticleListFilter enterSearchSection() {
     return copyWith(
-      selectedFeedId: null,
-      selectedCategoryId: null,
-      selectedTagId: null,
+      scope: ArticleScope.all,
       unreadOnly: false,
-      starredOnly: false,
-      readLaterOnly: false,
+      searchInContentOverride: true,
     );
   }
 
   ArticleListFilter savedOnly({required bool starred}) {
-    return copyWith(
-      selectedFeedId: null,
-      selectedCategoryId: null,
-      selectedTagId: null,
-      unreadOnly: false,
-      starredOnly: starred,
-      readLaterOnly: !starred,
-      searchQuery: '',
-    );
+    return selectScope(starred ? ArticleScope.starred : ArticleScope.readLater);
   }
 
   ArticleListFilter toggleUnreadOnly() {
@@ -144,6 +123,12 @@ class ArticleListFilter {
 final articleListFilterProvider = StateProvider<ArticleListFilter>(
   (ref) => const ArticleListFilter(),
 );
+
+final activeArticleListSelectionProvider = StateProvider<int?>((ref) => null);
+
+final currentArticleScopeProvider = Provider<ArticleScope>((ref) {
+  return ref.watch(articleListFilterProvider.select((filter) => filter.scope));
+});
 
 final selectedFeedIdProvider = Provider<int?>((ref) {
   return ref.watch(

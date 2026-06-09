@@ -74,6 +74,12 @@ class ReaderBottomBar extends ConsumerWidget {
     final showFull = hasFull && preferExtracted;
     final extractionFailed =
         !hasFull && article.contentSource == ContentSource.extractionFailed;
+    final toolbarBackground = Color.alphaBlend(
+      theme.colorScheme.primary.withValues(
+        alpha: theme.brightness == Brightness.dark ? 0.12 : 0.07,
+      ),
+      reader.toolbarSurface,
+    );
 
     Future<void> openTranslationSheet() async {
       await showModalBottomSheet<void>(
@@ -246,7 +252,7 @@ class ReaderBottomBar extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: reader.toolbarSurface,
+        color: toolbarBackground,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
         boxShadow: [
           BoxShadow(
@@ -269,8 +275,9 @@ class ReaderBottomBar extends ConsumerWidget {
                       ? Row(
                           children: [
                             Container(
-                              width: 24,
-                              height: 24,
+                              key: const Key('reader_feed_icon'),
+                              width: 32,
+                              height: 32,
                               decoration: BoxDecoration(
                                 color: surfaces.card,
                                 shape: BoxShape.circle,
@@ -278,7 +285,7 @@ class ReaderBottomBar extends ConsumerWidget {
                               alignment: Alignment.center,
                               child: FaviconAvatar(
                                 siteUri: siteUri,
-                                size: 16,
+                                size: 20,
                                 fallbackIcon: FleurIcons.feed,
                                 fallbackColor:
                                     theme.colorScheme.onSurfaceVariant,

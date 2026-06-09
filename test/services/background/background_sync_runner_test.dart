@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:fleur/db/isar_db.dart';
 import 'package:fleur/models/feed.dart';
 import 'package:fleur/providers/service_providers.dart';
 import 'package:fleur/repositories/article_repository.dart';
@@ -15,6 +16,7 @@ import 'package:fleur/services/background/background_sync_service.dart';
 import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/settings/app_settings_store.dart';
 import 'package:fleur/services/sync/fever/fever_sync_service.dart';
+import 'package:fleur/services/sync/google_reader/google_reader_sync_service.dart';
 import 'package:fleur/services/sync/miniflux/miniflux_sync_service.dart';
 import 'package:fleur/services/sync/sync_service.dart';
 import 'package:fleur/services/sync/outbox/outbox_store.dart';
@@ -31,6 +33,20 @@ class _FakeIsar extends Fake implements Isar {
   Future<bool> close({bool deleteFromDisk = false}) async {
     closeCalls++;
     return true;
+  }
+}
+
+class _FakeIsarLease implements IsarLease {
+  _FakeIsarLease(this.isar);
+
+  var releaseCalls = 0;
+
+  @override
+  final Isar isar;
+
+  @override
+  Future<void> release() async {
+    releaseCalls++;
   }
 }
 
@@ -157,6 +173,64 @@ void main() {
     expect(syncService.refreshCalls, isEmpty);
     expect(isar.closeCalls, 1);
   });
+
+  testWidgets(
+    'default DB session path releases lease instead of closing Isar',
+    (tester) async {
+      debugFleurTargetPlatformOverride = TargetPlatform.iOS;
+      addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+      final outbox = FakeOutboxStore();
+      final accountId = buildAccountsState().activeAccountId;
+      await outbox.save(accountId, [
+        OutboxAction(
+          type: OutboxActionType.markRead,
+          remoteEntryId: 1,
+          value: true,
+          createdAt: DateTime.utc(2026, 1, 1),
+        ),
+      ]);
+      final syncService = FakeSyncService();
+      final isar = _FakeIsar();
+      final lease = _FakeIsarLease(isar);
+
+      final runner = BackgroundSyncRunner(
+        accounts: buildAccountsState(),
+        appSettingsStore: buildAppSettingsStore(
+          AppSettings.defaults().copyWith(
+            sourceRefreshMinutes: null,
+            syncEnabled: false,
+          ),
+        ),
+        outboxStore: outbox,
+        runWithMutex: _runWithoutMutex,
+        refreshAllRemoteFeeds: (_) async {},
+        acquireIsarLeaseForAccountFn:
+            ({required accountId, required dbName, required isPrimary}) async =>
+                lease,
+        syncServiceBuilder:
+            ({
+              required account,
+              required feeds,
+              required categories,
+              required articles,
+              required outbox,
+              required appSettingsStore,
+            }) {
+              return syncService;
+            },
+      );
+
+      await runner.run(
+        taskName: kBackgroundSyncTaskName,
+        inputData: const <String, dynamic>{},
+      );
+
+      expect(syncService.flushCalls, 1);
+      expect(lease.releaseCalls, 1);
+      expect(isar.closeCalls, 0);
+    },
+  );
 
   testWidgets(
     'local accounts ignore outbox-only background work and keep DB closed',
@@ -689,10 +763,27 @@ void main() {
         cache: cache,
         extractor: extractor,
       );
+      final googleReaderService = buildSyncServiceForAccount(
+        account: buildTestAccount(
+          type: AccountType.googleReader,
+          baseUrl: 'https://example.com',
+        ),
+        feeds: feeds,
+        categories: categories,
+        articles: articles,
+        outbox: outbox,
+        appSettingsStore: appSettingsStore,
+        dio: dio,
+        credentials: createCredentialStore(),
+        notifications: notifications,
+        cache: cache,
+        extractor: extractor,
+      );
 
       expect(localService, isA<SyncService>());
       expect(minifluxService, isA<MinifluxSyncService>());
       expect(feverService, isA<FeverSyncService>());
+      expect(googleReaderService, isA<GoogleReaderSyncService>());
     },
   );
 }

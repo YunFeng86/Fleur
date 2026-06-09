@@ -38,6 +38,7 @@ class AccountsController extends AsyncNotifier<AccountsState> {
     required AccountType type,
     required String name,
     String? baseUrl,
+    String? profileId,
     String? dbName,
   }) async {
     final cur = state.valueOrNull ?? await future;
@@ -48,6 +49,7 @@ class AccountsController extends AsyncNotifier<AccountsState> {
       type: type,
       name: name.trim().isEmpty ? type.wire : name.trim(),
       baseUrl: baseUrl?.trim(),
+      profileId: profileId?.trim(),
       dbName: dbName,
       createdAt: now,
       updatedAt: now,
@@ -74,6 +76,38 @@ class AccountsController extends AsyncNotifier<AccountsState> {
     final nextAccounts = [...cur.accounts];
     nextAccounts[idx] = nextAccounts[idx].copyWith(
       name: trimmed,
+      updatedAt: now,
+    );
+    final next = AccountsState(
+      version: cur.version,
+      activeAccountId: cur.activeAccountId,
+      accounts: nextAccounts,
+    );
+    state = AsyncValue.data(next);
+    await ref.read(accountStoreProvider).save(next);
+  }
+
+  Future<void> updateAccountConnection({
+    required String accountId,
+    String? baseUrl,
+    String? profileId,
+  }) async {
+    final cur = state.valueOrNull ?? await future;
+    final idx = cur.accounts.indexWhere((a) => a.id == accountId);
+    if (idx < 0) return;
+
+    final current = cur.accounts[idx];
+    final trimmedBaseUrl = baseUrl?.trim();
+    final trimmedProfileId = profileId?.trim();
+    final now = DateTime.now();
+    final nextAccounts = [...cur.accounts];
+    nextAccounts[idx] = current.copyWith(
+      baseUrl: trimmedBaseUrl == null || trimmedBaseUrl.isEmpty
+          ? current.baseUrl
+          : trimmedBaseUrl,
+      profileId: trimmedProfileId == null || trimmedProfileId.isEmpty
+          ? current.profileId
+          : trimmedProfileId,
       updatedAt: now,
     );
     final next = AccountsState(

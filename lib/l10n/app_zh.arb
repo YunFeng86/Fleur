@@ -27,6 +27,33 @@
   "@settings": {
     "description": "settings"
   },
+  "settingsSearchHint": "搜索设置",
+  "@settingsSearchHint": {
+    "description": "Placeholder for the settings page search field"
+  },
+  "settingsSearchNoResults": "没有匹配的设置。",
+  "@settingsSearchNoResults": {
+    "description": "Empty state text for the settings page search results"
+  },
+  "settingsSearchPageLabel": "页面",
+  "@settingsSearchPageLabel": {
+    "description": "Settings search result type label for top-level pages"
+  },
+  "settingsSearchSectionLabel": "分区",
+  "@settingsSearchSectionLabel": {
+    "description": "Settings search result type label for settings sections"
+  },
+  "settingsSearchSettingLabel": "设置项",
+  "@settingsSearchSettingLabel": {
+    "description": "Settings search result type label for individual settings"
+  },
+  "settingsSearchResultCount": "{count} 条结果",
+  "@settingsSearchResultCount": {
+    "description": "Settings search result count badge",
+    "placeholders": {
+      "count": {}
+    }
+  },
   "feeds": "订阅",
   "@feeds": {
     "description": "Global navigation label: feeds"
@@ -65,13 +92,13 @@
   },
   "dynamicColor": "动态取色",
   "@dynamicColor": {
-    "description": "Use Material You dynamic colors when available"
+    "description": "Use system dynamic or accent colors when available"
   },
-  "dynamicColorSubtitle": "使用 Material You 动态配色（仅 Android 12+）",
+  "dynamicColorSubtitle": "可用时跟随系统动态色或强调色",
   "@dynamicColorSubtitle": {
     "description": "Hint for dynamic colors setting"
   },
-  "seedColorPreset": "主题配色",
+  "seedColorPreset": "强调色",
   "@seedColorPreset": {
     "description": "Seed color preset selector label"
   },
@@ -134,6 +161,238 @@
   "horizontalPadding": "左右边距",
   "@horizontalPadding": {
     "description": "horizontalPadding"
+  },
+  "applicationAppearance": "应用外观",
+  "@applicationAppearance": {
+    "description": "Section title for app-wide appearance settings"
+  },
+  "readerAppearance": "阅读外观",
+  "@readerAppearance": {
+    "description": "Section title for reader appearance settings"
+  },
+  "codeAppearance": "代码外观",
+  "@codeAppearance": {
+    "description": "Section title for code appearance settings"
+  },
+  "custom": "自定义",
+  "@custom": {
+    "description": "Generic custom option label"
+  },
+  "back": "返回",
+  "@back": {
+    "description": "Generic back action label"
+  },
+  "forward": "前进",
+  "@forward": {
+    "description": "Generic forward action label"
+  },
+  "fontSettings": "字体",
+  "@fontSettings": {
+    "description": "Appearance font detail page title"
+  },
+  "advancedFontSettings": "高级字体设置",
+  "@advancedFontSettings": {
+    "description": "Appearance advanced font settings row and detail page title"
+  },
+  "fontsAndCode": "字体与代码",
+  "@fontsAndCode": {
+    "description": "Appearance code font detail row label"
+  },
+  "customFontStack": "自定义字体栈",
+  "@customFontStack": {
+    "description": "Custom font stack option label"
+  },
+  "codeTypography": "代码排版",
+  "@codeTypography": {
+    "description": "Code typography settings section title"
+  },
+  "fontSizeExtraSmall": "特小",
+  "@fontSizeExtraSmall": {
+    "description": "Reader font size preset label"
+  },
+  "fontSizeSmall": "小",
+  "@fontSizeSmall": {
+    "description": "Reader font size preset label"
+  },
+  "fontSizeMediumRecommended": "中（推荐）",
+  "@fontSizeMediumRecommended": {
+    "description": "Reader font size preset label"
+  },
+  "fontSizeLarge": "大",
+  "@fontSizeLarge": {
+    "description": "Reader font size preset label"
+  },
+  "fontSizeExtraLarge": "特大",
+  "@fontSizeExtraLarge": {
+    "description": "Reader font size preset label"
+  },
+  "minimumFontSize": "最小字号",
+  "@minimumFontSize": {
+    "description": "Minimum reader body font size setting label"
+  },
+  "lineHeightCompact": "紧凑",
+  "@lineHeightCompact": {
+    "description": "Reader line height preset label"
+  },
+  "lineHeightStandard": "标准",
+  "@lineHeightStandard": {
+    "description": "Reader line height preset label"
+  },
+  "lineHeightRelaxed": "宽松",
+  "@lineHeightRelaxed": {
+    "description": "Reader line height preset label"
+  },
+  "appearancePreview": "预览",
+  "@appearancePreview": {
+    "description": "Appearance settings preview section title"
+  },
+  "appearancePreviewTitle": "更安静的阅读界面",
+  "@appearancePreviewTitle": {
+    "description": "Sample reader preview article title"
+  },
+  "appearancePreviewMeta": "预览 · 今天",
+  "@appearancePreviewMeta": {
+    "description": "Sample reader preview metadata"
+  },
+  "appearancePreviewBody": "只需要调好一次，之后每篇文章都会以同样舒适的节奏打开。",
+  "@appearancePreviewBody": {
+    "description": "Sample reader preview body"
+  },
+  "appearancePreviewQuote": "好的阅读设置，应该先被看见，再被配置。",
+  "@appearancePreviewQuote": {
+    "description": "Sample reader preview quote"
+  },
+  "appearancePreviewLink": "示例链接",
+  "@appearancePreviewLink": {
+    "description": "Sample reader preview link"
+  },
+  "appearancePreviewCode": "代码示例",
+  "@appearancePreviewCode": {
+    "description": "Sample reader preview code text"
+  },
+  "readerFontFamily": "字体",
+  "@readerFontFamily": {
+    "description": "Reader font family setting label"
+  },
+  "readerFontSystem": "系统",
+  "@readerFontSystem": {
+    "description": "Reader system font option"
+  },
+  "readerFontSerif": "衬线",
+  "@readerFontSerif": {
+    "description": "Reader serif font option"
+  },
+  "readerFontSans": "无衬线",
+  "@readerFontSans": {
+    "description": "Reader sans font option"
+  },
+  "readerFontMono": "等宽",
+  "@readerFontMono": {
+    "description": "Reader mono font option"
+  },
+  "readerFontStack": "阅读字体栈",
+  "@readerFontStack": {
+    "description": "Reader custom font stack setting label"
+  },
+  "standardFont": "标准字体",
+  "@standardFont": {
+    "description": "Standard reader font stack setting label"
+  },
+  "serifFont": "Serif 字体",
+  "@serifFont": {
+    "description": "Serif reader font stack setting label"
+  },
+  "sansSerifFont": "Sans-serif 字体",
+  "@sansSerifFont": {
+    "description": "Sans-serif reader font stack setting label"
+  },
+  "fixedWidthFont": "宽度固定的字体",
+  "@fixedWidthFont": {
+    "description": "Fixed-width reader and code font stack setting label"
+  },
+  "mathFont": "数学字体",
+  "@mathFont": {
+    "description": "Math font stack setting label"
+  },
+  "fontStackExample": "\"PingFang SC\", \"Noto Sans CJK SC\", system-ui, sans-serif",
+  "@fontStackExample": {
+    "description": "Example helper text for custom font stack input"
+  },
+  "monoFontStackExample": "\"SF Mono\", Menlo, Consolas, monospace",
+  "@monoFontStackExample": {
+    "description": "Example helper text for monospace font stack input"
+  },
+  "mathFontStackExample": "\"STIX Two Math\", \"Cambria Math\", serif",
+  "@mathFontStackExample": {
+    "description": "Example helper text for math font stack input"
+  },
+  "readerTheme": "阅读质感",
+  "@readerTheme": {
+    "description": "Reader surface texture preset setting label"
+  },
+  "readerThemeDefault": "默认",
+  "@readerThemeDefault": {
+    "description": "Default reader texture option"
+  },
+  "readerThemePaper": "纸张",
+  "@readerThemePaper": {
+    "description": "Paper reader texture option"
+  },
+  "readerThemeSepia": "暖色",
+  "@readerThemeSepia": {
+    "description": "Sepia reader texture option"
+  },
+  "readerThemeDim": "柔灰",
+  "@readerThemeDim": {
+    "description": "Soft gray reader texture option"
+  },
+  "readingWidth": "阅读宽度",
+  "@readingWidth": {
+    "description": "Reader content width setting label"
+  },
+  "readingWidthNarrow": "窄",
+  "@readingWidthNarrow": {
+    "description": "Narrow reader content width option"
+  },
+  "readingWidthStandard": "标准",
+  "@readingWidthStandard": {
+    "description": "Standard reader content width option"
+  },
+  "readingWidthWide": "宽",
+  "@readingWidthWide": {
+    "description": "Wide reader content width option"
+  },
+  "codeFontFamily": "代码字体",
+  "@codeFontFamily": {
+    "description": "Code font family setting label"
+  },
+  "codeFontSystemMono": "系统等宽",
+  "@codeFontSystemMono": {
+    "description": "Code system monospace font option"
+  },
+  "codeFontStack": "代码字体栈",
+  "@codeFontStack": {
+    "description": "Code custom font stack setting label"
+  },
+  "codeFontSize": "代码字号",
+  "@codeFontSize": {
+    "description": "Code font size setting label"
+  },
+  "codeFontSizeFollowReader": "跟随正文",
+  "@codeFontSizeFollowReader": {
+    "description": "Code font size follows reader body option"
+  },
+  "codeFontSizeOneStepDown": "小一号",
+  "@codeFontSizeOneStepDown": {
+    "description": "Code font size one step smaller than reader body option"
+  },
+  "codeLineHeight": "代码行高",
+  "@codeLineHeight": {
+    "description": "Code line height setting label"
+  },
+  "codeSoftWrap": "自动换行",
+  "@codeSoftWrap": {
+    "description": "Code soft wrap setting label"
   },
   "storage": "存储",
   "@storage": {
@@ -456,6 +715,14 @@
   "@feedOrWebsiteUrl": {
     "description": "feedOrWebsiteUrl"
   },
+  "feedOrWebsiteUrlHint": "粘贴网站地址或 RSS URL",
+  "@feedOrWebsiteUrlHint": {
+    "description": "Helper text for the add subscription URL field"
+  },
+  "findFeeds": "查找订阅源",
+  "@findFeeds": {
+    "description": "Button label for discovering RSS/Atom feeds from a URL"
+  },
   "discoveringFeeds": "正在发现订阅源…",
   "@discoveringFeeds": {
     "description": "discoveringFeeds"
@@ -472,6 +739,40 @@
   "@noFeedsFound": {
     "description": "noFeedsFound"
   },
+  "noFeedsFoundHint": "可以直接粘贴 RSS/Atom 地址，或试试这个网站的其他页面。",
+  "@noFeedsFoundHint": {
+    "description": "Inline hint shown when feed discovery finds no candidates"
+  },
+  "subscriptionPreview": "来源预览",
+  "@subscriptionPreview": {
+    "description": "Section title for the selected subscription source preview"
+  },
+  "subscriptionResultsFound": "{count, plural, =1{已找到 1 个订阅源} other{已找到 {count} 个订阅源}}",
+  "@subscriptionResultsFound": {
+    "description": "Section title for discovered subscription result rows",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "subscriptionPreviewUnavailable": "暂无可预览的最近文章",
+  "@subscriptionPreviewUnavailable": {
+    "description": "Placeholder text when a discovered feed has no preview items"
+  },
+  "feedSourceDirect": "RSS/Atom 地址",
+  "@feedSourceDirect": {
+    "description": "Label for a feed discovered because the input URL is itself a feed"
+  },
+  "feedSourceAlternate": "页面声明",
+  "@feedSourceAlternate": {
+    "description": "Label for a feed discovered from HTML alternate/feed links"
+  },
+  "feedSourceCommonPath": "常见订阅路径",
+  "@feedSourceCommonPath": {
+    "description": "Label for a feed discovered by probing common RSS paths"
+  },
   "name": "名称",
   "@name": {
     "description": "name"
@@ -479,6 +780,38 @@
   "addedAndSynced": "已添加并同步",
   "@addedAndSynced": {
     "description": "addedAndSynced"
+  },
+  "subscriptionAddedTitle": "订阅已添加",
+  "@subscriptionAddedTitle": {
+    "description": "Success panel title after adding a subscription"
+  },
+  "subscriptionAddedMessage": "订阅已添加。你可以现在查看，也可以继续添加更多订阅。",
+  "@subscriptionAddedMessage": {
+    "description": "Success panel message after adding a subscription"
+  },
+  "subscriptionRefreshWarning": "订阅已添加，但首次刷新失败。你可以稍后重新刷新。",
+  "@subscriptionRefreshWarning": {
+    "description": "Warning shown when adding a subscription succeeds but the initial refresh fails"
+  },
+  "subscriptionAlreadyExistsTitle": "已经订阅",
+  "@subscriptionAlreadyExistsTitle": {
+    "description": "Panel title when the feed already exists"
+  },
+  "subscriptionAlreadyExistsMessage": "这个订阅源已经在你的订阅列表中，没有改动它的分类。",
+  "@subscriptionAlreadyExistsMessage": {
+    "description": "Panel message when the feed already exists"
+  },
+  "viewSubscription": "查看订阅",
+  "@viewSubscription": {
+    "description": "Button label for opening a newly added or existing subscription"
+  },
+  "continueAddingSubscription": "继续添加",
+  "@continueAddingSubscription": {
+    "description": "Button label for resetting the add subscription form"
+  },
+  "moveToCurrentCategory": "移到当前分类",
+  "@moveToCurrentCategory": {
+    "description": "Button label for moving an existing subscription into the category from which add subscription was opened"
   },
   "deleteSubscription": "删除订阅",
   "@deleteSubscription": {
@@ -872,6 +1205,18 @@
   "@addMiniflux": {
     "description": "addMiniflux"
   },
+  "addGoogleReaderApi": "添加 Google Reader API",
+  "@addGoogleReaderApi": {
+    "description": "addGoogleReaderApi"
+  },
+  "googleReaderApi": "Google Reader API",
+  "@googleReaderApi": {
+    "description": "googleReaderApi"
+  },
+  "googleReaderCompatible": "Google Reader 兼容服务",
+  "@googleReaderCompatible": {
+    "description": "googleReaderCompatible"
+  },
   "addFever": "添加 Fever",
   "@addFever": {
     "description": "addFever"
@@ -895,6 +1240,10 @@
   "remoteSyncStrategyMinifluxSubtitle": "Miniflux 会分页拉取远程文章，最多到这个每次同步窗口。",
   "@remoteSyncStrategyMinifluxSubtitle": {
     "description": "remoteSyncStrategyMinifluxSubtitle"
+  },
+  "remoteSyncStrategyGoogleReaderSubtitle": "Google Reader 兼容服务会分页拉取远程 stream 文章，最多到这个每次同步窗口。",
+  "@remoteSyncStrategyGoogleReaderSubtitle": {
+    "description": "remoteSyncStrategyGoogleReaderSubtitle"
   },
   "remoteSyncStrategyFeverSubtitle": "Fever 同步未读和收藏条目，并受这个每次同步窗口限制。",
   "@remoteSyncStrategyFeverSubtitle": {
@@ -1134,6 +1483,49 @@
   "@buildNumber": {
     "description": "buildNumber"
   },
+  "versionAndBuild": "版本 {version} · 构建 {buildNumber}",
+  "@versionAndBuild": {
+    "description": "关于页紧凑展示版本和构建号的文案",
+    "placeholders": {
+      "version": {},
+      "buildNumber": {}
+    }
+  },
+  "checkForUpdates": "检查更新",
+  "@checkForUpdates": {
+    "description": "手动检查应用更新的按钮文案"
+  },
+  "checkingForUpdates": "正在检查...",
+  "@checkingForUpdates": {
+    "description": "应用更新检查中禁用态按钮文案"
+  },
+  "updateAvailable": "更新",
+  "@updateAvailable": {
+    "description": "发现新版本后显示的短更新入口文案"
+  },
+  "upToDate": "已是最新版本",
+  "@upToDate": {
+    "description": "应用更新检查完成且无更新时的状态文案"
+  },
+  "updateCheckFailed": "检查更新失败。",
+  "@updateCheckFailed": {
+    "description": "应用更新检查失败时的错误提示"
+  },
+  "newVersionAvailable": "发现新版本 {version}",
+  "@newVersionAvailable": {
+    "description": "应用更新弹窗标题",
+    "placeholders": {
+      "version": {}
+    }
+  },
+  "releaseNotes": "更新日志",
+  "@releaseNotes": {
+    "description": "应用更新弹窗中的更新日志标题"
+  },
+  "goToOfficialUpdate": "去官网更新",
+  "@goToOfficialUpdate": {
+    "description": "打开官方 GitHub Release 页面的按钮文案"
+  },
   "openSourceLicense": "开源许可证",
   "@openSourceLicense": {
     "description": "openSourceLicense"
@@ -1161,6 +1553,10 @@
   "shortcutNextPreviousArticle": "J / K：下一篇 / 上一篇文章",
   "@shortcutNextPreviousArticle": {
     "description": "切换上一篇/下一篇文章的快捷键说明"
+  },
+  "shortcutBackForwardHistory": "Alt + \u2190 / Alt + \u2192；macOS Cmd + [ / ]：返回 / 前进历史",
+  "@shortcutBackForwardHistory": {
+    "description": "在历史记录中返回或前进的快捷键说明"
   },
   "shortcutRefreshCurrentSelection": "R：刷新（当前选中项）",
   "@shortcutRefreshCurrentSelection": {

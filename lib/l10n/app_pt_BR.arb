@@ -1,0 +1,2002 @@
+{
+  "@@locale": "pt_BR",
+  "appTitle": "Fleur",
+  "@appTitle": {
+    "description": "appTitle"
+  },
+  "notFound": "Não encontrado",
+  "@notFound": {
+    "description": "notFound"
+  },
+  "openFailedGeneral": "Não foi possível abrir este local. Verifique as permissões e tente novamente.",
+  "@openFailedGeneral": {
+    "description": "openFailedGeneral"
+  },
+  "macosMenuLanguageRestartHint": "O idioma da barra de menu pode exigir a reinicialização do aplicativo para ser totalmente aplicado.",
+  "@macosMenuLanguageRestartHint": {
+    "description": "macosMenuLanguageRestartHint"
+  },
+  "pathNotFound": "O caminho não existe: {path}",
+  "@pathNotFound": {
+    "description": "pathNotFound",
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "settings": "Configurações",
+  "@settings": {
+    "description": "settings"
+  },
+  "settingsSearchHint": "Configurações de pesquisa",
+  "@settingsSearchHint": {
+    "description": "Placeholder for the settings page search field"
+  },
+  "settingsSearchNoResults": "Nenhuma configuração corresponde a esta pesquisa.",
+  "@settingsSearchNoResults": {
+    "description": "Empty state text for the settings page search results"
+  },
+  "settingsSearchPageLabel": "Página",
+  "@settingsSearchPageLabel": {
+    "description": "Settings search result type label for top-level pages"
+  },
+  "settingsSearchSectionLabel": "Seção",
+  "@settingsSearchSectionLabel": {
+    "description": "Settings search result type label for settings sections"
+  },
+  "settingsSearchSettingLabel": "Configuração",
+  "@settingsSearchSettingLabel": {
+    "description": "Settings search result type label for individual settings"
+  },
+  "settingsSearchResultCount": "{count} resultados",
+  "@settingsSearchResultCount": {
+    "description": "Settings search result count badge",
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "feeds": "Feeds",
+  "@feeds": {
+    "description": "Global navigation label: feeds"
+  },
+  "saved": "Salvos",
+  "@saved": {
+    "description": "Global navigation label: saved"
+  },
+  "comingSoon": "Em breve",
+  "@comingSoon": {
+    "description": "Placeholder text"
+  },
+  "appearance": "Aparência",
+  "@appearance": {
+    "description": "appearance"
+  },
+  "theme": "Tema",
+  "@theme": {
+    "description": "theme"
+  },
+  "themeMode": "Modo tema",
+  "@themeMode": {
+    "description": "Theme mode selector label"
+  },
+  "system": "Sistema",
+  "@system": {
+    "description": "system"
+  },
+  "light": "Luz",
+  "@light": {
+    "description": "light"
+  },
+  "dark": "Escuro",
+  "@dark": {
+    "description": "dark"
+  },
+  "dynamicColor": "Cores dinâmicas",
+  "@dynamicColor": {
+    "description": "Use system dynamic or accent colors when available"
+  },
+  "dynamicColorSubtitle": "Siga as cores dinâmicas ou de destaque do sistema quando disponíveis",
+  "@dynamicColorSubtitle": {
+    "description": "Hint for dynamic colors setting"
+  },
+  "seedColorPreset": "Cor de destaque",
+  "@seedColorPreset": {
+    "description": "Seed color preset selector label"
+  },
+  "seedColorPresetSubtitle": "Usado quando as cores dinâmicas estão desativadas/indisponíveis",
+  "@seedColorPresetSubtitle": {
+    "description": "Seed color preset selector hint"
+  },
+  "seedColorBlue": "Azul",
+  "@seedColorBlue": {
+    "description": "Seed color preset name"
+  },
+  "seedColorGreen": "Verde",
+  "@seedColorGreen": {
+    "description": "Seed color preset name"
+  },
+  "seedColorPurple": "Roxo",
+  "@seedColorPurple": {
+    "description": "Seed color preset name"
+  },
+  "seedColorOrange": "Laranja",
+  "@seedColorOrange": {
+    "description": "Seed color preset name"
+  },
+  "seedColorPink": "Rosa",
+  "@seedColorPink": {
+    "description": "Seed color preset name"
+  },
+  "language": "Idioma",
+  "@language": {
+    "description": "language"
+  },
+  "systemLanguage": "Idioma do sistema",
+  "@systemLanguage": {
+    "description": "systemLanguage"
+  },
+  "english": "English",
+  "@english": {
+    "description": "english"
+  },
+  "chineseSimplified": "简体中文",
+  "@chineseSimplified": {
+    "description": "chineseSimplified"
+  },
+  "chineseTraditional": "繁體中文",
+  "@chineseTraditional": {
+    "description": "chineseTraditional"
+  },
+  "reader": "Leitura",
+  "@reader": {
+    "description": "reader"
+  },
+  "fontSize": "Tamanho da fonte",
+  "@fontSize": {
+    "description": "fontSize"
+  },
+  "lineHeight": "Altura da linha",
+  "@lineHeight": {
+    "description": "lineHeight"
+  },
+  "horizontalPadding": "Preenchimento horizontal",
+  "@horizontalPadding": {
+    "description": "horizontalPadding"
+  },
+  "applicationAppearance": "Aparência do aplicativo",
+  "@applicationAppearance": {
+    "description": "Section title for app-wide appearance settings"
+  },
+  "readerAppearance": "Aparência do leitor",
+  "@readerAppearance": {
+    "description": "Section title for reader appearance settings"
+  },
+  "codeAppearance": "Aparência do código",
+  "@codeAppearance": {
+    "description": "Section title for code appearance settings"
+  },
+  "custom": "Personalizado",
+  "@custom": {
+    "description": "Generic custom option label"
+  },
+  "back": "Voltar",
+  "@back": {
+    "description": "Generic back action label"
+  },
+  "forward": "Avançar",
+  "@forward": {
+    "description": "Generic forward action label"
+  },
+  "fontSettings": "Fontes",
+  "@fontSettings": {
+    "description": "Appearance font detail page title"
+  },
+  "advancedFontSettings": "Configurações avançadas de fonte",
+  "@advancedFontSettings": {
+    "description": "Appearance advanced font settings row and detail page title"
+  },
+  "fontsAndCode": "Fontes e código",
+  "@fontsAndCode": {
+    "description": "Appearance code font detail row label"
+  },
+  "customFontStack": "Pilha de fontes personalizadas",
+  "@customFontStack": {
+    "description": "Custom font stack option label"
+  },
+  "codeTypography": "Tipografia de código",
+  "@codeTypography": {
+    "description": "Code typography settings section title"
+  },
+  "fontSizeExtraSmall": "Extra pequeno",
+  "@fontSizeExtraSmall": {
+    "description": "Reader font size preset label"
+  },
+  "fontSizeSmall": "Pequeno",
+  "@fontSizeSmall": {
+    "description": "Reader font size preset label"
+  },
+  "fontSizeMediumRecommended": "Médio (recomendado)",
+  "@fontSizeMediumRecommended": {
+    "description": "Reader font size preset label"
+  },
+  "fontSizeLarge": "Grande",
+  "@fontSizeLarge": {
+    "description": "Reader font size preset label"
+  },
+  "fontSizeExtraLarge": "Extra grande",
+  "@fontSizeExtraLarge": {
+    "description": "Reader font size preset label"
+  },
+  "minimumFontSize": "Tamanho mínimo da fonte",
+  "@minimumFontSize": {
+    "description": "Minimum reader body font size setting label"
+  },
+  "lineHeightCompact": "Compacto",
+  "@lineHeightCompact": {
+    "description": "Reader line height preset label"
+  },
+  "lineHeightStandard": "Padrão",
+  "@lineHeightStandard": {
+    "description": "Reader line height preset label"
+  },
+  "lineHeightRelaxed": "Descontraído",
+  "@lineHeightRelaxed": {
+    "description": "Reader line height preset label"
+  },
+  "appearancePreview": "Visualização",
+  "@appearancePreview": {
+    "description": "Appearance settings preview section title"
+  },
+  "appearancePreviewTitle": "Uma superfície de leitura mais silenciosa",
+  "@appearancePreviewTitle": {
+    "description": "Sample reader preview article title"
+  },
+  "appearancePreviewMeta": "Visualização · Hoje",
+  "@appearancePreviewMeta": {
+    "description": "Sample reader preview metadata"
+  },
+  "appearancePreviewBody": "Sintonize o leitor uma vez e deixe cada artigo abrir com o mesmo ritmo calmo.",
+  "@appearancePreviewBody": {
+    "description": "Sample reader preview body"
+  },
+  "appearancePreviewQuote": "As configurações legíveis devem parecer visíveis antes de parecerem configuráveis.",
+  "@appearancePreviewQuote": {
+    "description": "Sample reader preview quote"
+  },
+  "appearancePreviewLink": "Link de amostra",
+  "@appearancePreviewLink": {
+    "description": "Sample reader preview link"
+  },
+  "appearancePreviewCode": "exemplo de código",
+  "@appearancePreviewCode": {
+    "description": "Sample reader preview code text"
+  },
+  "readerFontFamily": "Família de fontes",
+  "@readerFontFamily": {
+    "description": "Reader font family setting label"
+  },
+  "readerFontSystem": "Sistema",
+  "@readerFontSystem": {
+    "description": "Reader system font option"
+  },
+  "readerFontSerif": "Serif",
+  "@readerFontSerif": {
+    "description": "Reader serif font option"
+  },
+  "readerFontSans": "Sem",
+  "@readerFontSans": {
+    "description": "Reader sans font option"
+  },
+  "readerFontMono": "Mono",
+  "@readerFontMono": {
+    "description": "Reader mono font option"
+  },
+  "readerFontStack": "Lendo pilha de fontes",
+  "@readerFontStack": {
+    "description": "Reader custom font stack setting label"
+  },
+  "standardFont": "Fonte padrão",
+  "@standardFont": {
+    "description": "Standard reader font stack setting label"
+  },
+  "serifFont": "Fonte serifada",
+  "@serifFont": {
+    "description": "Serif reader font stack setting label"
+  },
+  "sansSerifFont": "Fonte sem serifa",
+  "@sansSerifFont": {
+    "description": "Sans-serif reader font stack setting label"
+  },
+  "fixedWidthFont": "Fonte de largura fixa",
+  "@fixedWidthFont": {
+    "description": "Fixed-width reader and code font stack setting label"
+  },
+  "mathFont": "Fonte matemática",
+  "@mathFont": {
+    "description": "Math font stack setting label"
+  },
+  "fontStackExample": "\"PingFang SC\", \"Noto Sans CJK SC\", system-ui, sans-serif",
+  "@fontStackExample": {
+    "description": "Example helper text for custom font stack input"
+  },
+  "monoFontStackExample": "\"SF Mono\", Menlo, Consolas, monospace",
+  "@monoFontStackExample": {
+    "description": "Example helper text for monospace font stack input"
+  },
+  "mathFontStackExample": "\"STIX Two Math\", \"Cambria Math\", serif",
+  "@mathFontStackExample": {
+    "description": "Example helper text for math font stack input"
+  },
+  "readerTheme": "Textura de leitura",
+  "@readerTheme": {
+    "description": "Reader surface texture preset setting label"
+  },
+  "readerThemeDefault": "Padrão",
+  "@readerThemeDefault": {
+    "description": "Default reader texture option"
+  },
+  "readerThemePaper": "Papel",
+  "@readerThemePaper": {
+    "description": "Paper reader texture option"
+  },
+  "readerThemeSepia": "Sépia",
+  "@readerThemeSepia": {
+    "description": "Sepia reader texture option"
+  },
+  "readerThemeDim": "Cinza suave",
+  "@readerThemeDim": {
+    "description": "Soft gray reader texture option"
+  },
+  "readingWidth": "Largura de leitura",
+  "@readingWidth": {
+    "description": "Reader content width setting label"
+  },
+  "readingWidthNarrow": "Estreito",
+  "@readingWidthNarrow": {
+    "description": "Narrow reader content width option"
+  },
+  "readingWidthStandard": "Padrão",
+  "@readingWidthStandard": {
+    "description": "Standard reader content width option"
+  },
+  "readingWidthWide": "Largo",
+  "@readingWidthWide": {
+    "description": "Wide reader content width option"
+  },
+  "codeFontFamily": "Fonte do código",
+  "@codeFontFamily": {
+    "description": "Code font family setting label"
+  },
+  "codeFontSystemMono": "Sistema mono",
+  "@codeFontSystemMono": {
+    "description": "Code system monospace font option"
+  },
+  "codeFontStack": "Pilha de fontes de código",
+  "@codeFontStack": {
+    "description": "Code custom font stack setting label"
+  },
+  "codeFontSize": "Tamanho da fonte do código",
+  "@codeFontSize": {
+    "description": "Code font size setting label"
+  },
+  "codeFontSizeFollowReader": "Siga o corpo",
+  "@codeFontSizeFollowReader": {
+    "description": "Code font size follows reader body option"
+  },
+  "codeFontSizeOneStepDown": "Um passo para baixo",
+  "@codeFontSizeOneStepDown": {
+    "description": "Code font size one step smaller than reader body option"
+  },
+  "codeLineHeight": "Altura da linha de código",
+  "@codeLineHeight": {
+    "description": "Code line height setting label"
+  },
+  "codeSoftWrap": "Quebrar linhas de código",
+  "@codeSoftWrap": {
+    "description": "Code soft wrap setting label"
+  },
+  "storage": "Armazenamento",
+  "@storage": {
+    "description": "storage"
+  },
+  "clearImageCache": "Limpar cache de imagens",
+  "@clearImageCache": {
+    "description": "clearImageCache"
+  },
+  "clearImageCacheSubtitle": "Remover imagens em cache usadas para leitura offline",
+  "@clearImageCacheSubtitle": {
+    "description": "clearImageCacheSubtitle"
+  },
+  "cacheCleared": "Cache limpo",
+  "@cacheCleared": {
+    "description": "cacheCleared"
+  },
+  "subscriptions": "Feeds",
+  "@subscriptions": {
+    "description": "subscriptions"
+  },
+  "defaultsGroup": "Globais",
+  "@defaultsGroup": {
+    "description": "Section label for default settings entries"
+  },
+  "folders": "Assinaturas",
+  "@folders": {
+    "description": "Section label for subscription folders"
+  },
+  "globalDefaults": "Padrões globais",
+  "@globalDefaults": {
+    "description": "Entry label for subscription-wide default settings"
+  },
+  "allSubscriptions": "Todas as assinaturas",
+  "@allSubscriptions": {
+    "description": "Entry label for the full subscription scope"
+  },
+  "manage": "Gerenciar",
+  "@manage": {
+    "description": "Toolbar label for the management actions menu"
+  },
+  "overview": "Visão geral",
+  "@overview": {
+    "description": "Overview section label"
+  },
+  "categoriesLabel": "Categorias",
+  "@categoriesLabel": {
+    "description": "Summary label for categories count"
+  },
+  "globalDefaultsDescription": "Aplicado quando uma pasta ou assinatura não substitui uma configuração.",
+  "@globalDefaultsDescription": {
+    "description": "Description shown for the global defaults pane"
+  },
+  "allSubscriptionsDescription": "Revise a estrutura geral da assinatura e escolha uma assinatura para editar.",
+  "@allSubscriptionsDescription": {
+    "description": "Description shown for the all subscriptions overview"
+  },
+  "uncategorizedDescription": "As assinaturas sem uma pasta herdam os padrões globais até serem substituídas.",
+  "@uncategorizedDescription": {
+    "description": "Description shown for the uncategorized overview"
+  },
+  "tags": "Etiquetas",
+  "@tags": {
+    "description": "tags"
+  },
+  "all": "Todos os artigos",
+  "@all": {
+    "description": "all"
+  },
+  "uncategorized": "Sem categoria",
+  "@uncategorized": {
+    "description": "uncategorized"
+  },
+  "refreshAll": "Atualizar fontes",
+  "@refreshAll": {
+    "description": "refreshAll"
+  },
+  "refreshFeed": "Atualizar feed",
+  "@refreshFeed": {
+    "description": "Tooltip for refreshing the currently selected feed"
+  },
+  "refreshCategory": "Atualizar categoria",
+  "@refreshCategory": {
+    "description": "Tooltip for refreshing the currently selected category"
+  },
+  "refreshFeedAndSync": "Atualizar feed e sincronizar",
+  "@refreshFeedAndSync": {
+    "description": "Tooltip for refreshing the selected remote feed source and syncing the account"
+  },
+  "refreshCategoryAndSync": "Atualizar categoria e sincronizar",
+  "@refreshCategoryAndSync": {
+    "description": "Tooltip for refreshing selected remote category sources and syncing the account"
+  },
+  "refreshSourcesAndSync": "Atualizar fontes e sincronizar",
+  "@refreshSourcesAndSync": {
+    "description": "Tooltip for refreshing remote subscription sources and syncing the account"
+  },
+  "accountSync": "Sincronização de conta",
+  "@accountSync": {
+    "description": "accountSync"
+  },
+  "accountSyncSubtitle": "Sincronize esta conta remota em segundo plano.",
+  "@accountSyncSubtitle": {
+    "description": "accountSyncSubtitle"
+  },
+  "syncAccount": "Sincronizar conta",
+  "@syncAccount": {
+    "description": "syncAccount"
+  },
+  "syncingAccount": "Sincronizando conta...",
+  "@syncingAccount": {
+    "description": "syncingAccount"
+  },
+  "syncedAccount": "Conta sincronizada",
+  "@syncedAccount": {
+    "description": "syncedAccount"
+  },
+  "refreshSelected": "Atualizar selecionado",
+  "@refreshSelected": {
+    "description": "refreshSelected"
+  },
+  "importOpml": "Importar OPML",
+  "@importOpml": {
+    "description": "importOpml"
+  },
+  "opmlParseFailed": "Arquivo OPML inválido",
+  "@opmlParseFailed": {
+    "description": "opmlParseFailed"
+  },
+  "exportOpml": "Exportar OPML",
+  "@exportOpml": {
+    "description": "exportOpml"
+  },
+  "addSubscription": "Adicionar assinatura",
+  "@addSubscription": {
+    "description": "addSubscription"
+  },
+  "selectCategory": "Selecione uma categoria",
+  "@selectCategory": {
+    "description": "selectCategory"
+  },
+  "loadingCategories": "Carregando categorias...",
+  "@loadingCategories": {
+    "description": "loadingCategories"
+  },
+  "creatingCategory": "Criando categoria...",
+  "@creatingCategory": {
+    "description": "creatingCategory"
+  },
+  "feverAddSubscriptionNotSupported": "As contas Fever não suportam a adição de assinaturas. Gerencie assinaturas no servidor.",
+  "@feverAddSubscriptionNotSupported": {
+    "description": "feverAddSubscriptionNotSupported"
+  },
+  "remoteCommandRequiresConnectivity": "Esta ação requer conectividade com o serviço remoto.",
+  "@remoteCommandRequiresConnectivity": {
+    "description": "Shown when a remote-backed structure command needs online access."
+  },
+  "remoteCommandRequiresAuthentication": "O serviço remoto rejeitou as credenciais da conta atual. Verifique as configurações da conta e tente novamente.",
+  "@remoteCommandRequiresAuthentication": {
+    "description": "Shown when a remote-backed structure command fails because the current credentials are invalid or missing."
+  },
+  "remoteCommandNeedsRefresh": "O serviço remoto não correspondeu ao feed ou categoria atual. Sincronize e tente novamente.",
+  "@remoteCommandNeedsRefresh": {
+    "description": "Shown when a remote-backed structure command cannot resolve the current remote target."
+  },
+  "remoteCommandRejected": "O serviço remoto rejeitou esta ação. Revise a solicitação e tente novamente.",
+  "@remoteCommandRejected": {
+    "description": "Shown when a remote-backed structure command is rejected by the remote service for request-specific reasons."
+  },
+  "remoteCommandUnavailable": "O serviço remoto não conseguiu concluir esta ação neste momento. Tente novamente mais tarde.",
+  "@remoteCommandUnavailable": {
+    "description": "Shown when a remote-backed structure command fails because the remote service is temporarily unavailable."
+  },
+  "remoteCommandNotSupported": "Esta conta remota não suporta esta ação.",
+  "@remoteCommandNotSupported": {
+    "description": "Shown when the active remote provider cannot perform a structure-management command."
+  },
+  "remoteCommandRequiresCategory": "Esta conta remota requer uma categoria do lado do servidor para a assinatura.",
+  "@remoteCommandRequiresCategory": {
+    "description": "Shown when a remote-backed feed cannot be moved to an uncategorized state."
+  },
+  "newCategory": "Nova categoria",
+  "@newCategory": {
+    "description": "newCategory"
+  },
+  "articles": "Artigos",
+  "@articles": {
+    "description": "articles"
+  },
+  "unread": "Não lido",
+  "@unread": {
+    "description": "unread"
+  },
+  "refreshConcurrency": "Atualizar simultaneidade",
+  "@refreshConcurrency": {
+    "description": "refreshConcurrency"
+  },
+  "refreshingProgress": "Atualizando {current}/{total}...",
+  "@refreshingProgress": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "markAllRead": "Marcar tudo como lido",
+  "@markAllRead": {
+    "description": "markAllRead"
+  },
+  "fullText": "Texto completo",
+  "@fullText": {
+    "description": "fullText"
+  },
+  "fullTextRetry": "Falha ao buscar texto completo. Tentar novamente",
+  "@fullTextRetry": {
+    "description": "fullTextRetry"
+  },
+  "readerSettings": "Configurações do leitor",
+  "@readerSettings": {
+    "description": "readerSettings"
+  },
+  "done": "Concluído",
+  "@done": {
+    "description": "done"
+  },
+  "more": "Mais",
+  "@more": {
+    "description": "more"
+  },
+  "showAll": "Mostrar tudo",
+  "@showAll": {
+    "description": "showAll"
+  },
+  "unreadOnly": "Somente não lido",
+  "@unreadOnly": {
+    "description": "unreadOnly"
+  },
+  "selectAnArticle": "Selecione um artigo",
+  "@selectAnArticle": {
+    "description": "selectAnArticle"
+  },
+  "readerEmptySubtitle": "Abra um artigo da lista para lê-lo aqui.",
+  "@readerEmptySubtitle": {
+    "description": "Reader pane helper text when no article is selected"
+  },
+  "savedReaderEmptyTitle": "Selecione um artigo salvo",
+  "@savedReaderEmptyTitle": {
+    "description": "Reader pane title when the saved section has no selected article"
+  },
+  "savedReaderEmptySubtitle": "Abra um artigo em Salvo ou Ler mais tarde.",
+  "@savedReaderEmptySubtitle": {
+    "description": "Reader pane helper text for the saved section"
+  },
+  "searchReaderEmptyTitle": "Selecione um resultado de pesquisa",
+  "@searchReaderEmptyTitle": {
+    "description": "Reader pane title when the search section has no selected article"
+  },
+  "searchReaderEmptySubtitle": "Insira uma palavra-chave e abra um resultado da lista.",
+  "@searchReaderEmptySubtitle": {
+    "description": "Reader pane helper text for the search section"
+  },
+  "errorMessage": "Erro: {error}",
+  "@errorMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    },
+    "description": "errorMessage"
+  },
+  "unreadCountError": "Falha ao obter contagem de não lidos: {error}",
+  "@unreadCountError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    },
+    "description": "unreadCountError"
+  },
+  "refreshed": "Atualizado",
+  "@refreshed": {
+    "description": "refreshed"
+  },
+  "refreshedAll": "Atualizado tudo",
+  "@refreshedAll": {
+    "description": "refreshedAll"
+  },
+  "refreshedAndSynced": "Atualizado e sincronizado",
+  "@refreshedAndSynced": {
+    "description": "Shown after refreshing remote sources and syncing the account"
+  },
+  "add": "Adicionar",
+  "@add": {
+    "description": "add"
+  },
+  "cancel": "Cancelar",
+  "@cancel": {
+    "description": "cancel"
+  },
+  "create": "Criar",
+  "@create": {
+    "description": "create"
+  },
+  "delete": "Excluir",
+  "@delete": {
+    "description": "delete"
+  },
+  "deleted": "Excluído",
+  "@deleted": {
+    "description": "deleted"
+  },
+  "rssAtomUrl": "RSS/Atom URL",
+  "@rssAtomUrl": {
+    "description": "rssAtomUrl"
+  },
+  "feedOrWebsiteUrl": "URL do feed ou site",
+  "@feedOrWebsiteUrl": {
+    "description": "feedOrWebsiteUrl"
+  },
+  "feedOrWebsiteUrlHint": "Cole um site ou URL RSS",
+  "@feedOrWebsiteUrlHint": {
+    "description": "Helper text for the add subscription URL field"
+  },
+  "findFeeds": "Encontrar feeds",
+  "@findFeeds": {
+    "description": "Button label for discovering RSS/Atom feeds from a URL"
+  },
+  "discoveringFeeds": "Procurando feeds...",
+  "@discoveringFeeds": {
+    "description": "discoveringFeeds"
+  },
+  "addingSubscription": "Adicionando assinatura...",
+  "@addingSubscription": {
+    "description": "addingSubscription"
+  },
+  "selectFeed": "Selecionar feed",
+  "@selectFeed": {
+    "description": "selectFeed"
+  },
+  "noFeedsFound": "Nenhum feed encontrado",
+  "@noFeedsFound": {
+    "description": "noFeedsFound"
+  },
+  "noFeedsFoundHint": "Cole o RSS/Atom URL diretamente ou tente outra página do site.",
+  "@noFeedsFoundHint": {
+    "description": "Inline hint shown when feed discovery finds no candidates"
+  },
+  "subscriptionPreview": "Visualização da fonte",
+  "@subscriptionPreview": {
+    "description": "Section title for the selected subscription source preview"
+  },
+  "subscriptionResultsFound": "{count, plural, =1{1 fonte de assinatura encontrada} other{{count} fontes de assinatura encontradas}}",
+  "@subscriptionResultsFound": {
+    "description": "Section title for discovered subscription result rows",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "subscriptionPreviewUnavailable": "Nenhum item de visualização recente disponível",
+  "@subscriptionPreviewUnavailable": {
+    "description": "Placeholder text when a discovered feed has no preview items"
+  },
+  "feedSourceDirect": "URL RSS/Atom",
+  "@feedSourceDirect": {
+    "description": "Label for a feed discovered because the input URL is itself a feed"
+  },
+  "feedSourceAlternate": "Descoberto na página",
+  "@feedSourceAlternate": {
+    "description": "Label for a feed discovered from HTML alternate/feed links"
+  },
+  "feedSourceCommonPath": "Caminho comum de feed",
+  "@feedSourceCommonPath": {
+    "description": "Label for a feed discovered by probing common RSS paths"
+  },
+  "name": "Nome",
+  "@name": {
+    "description": "name"
+  },
+  "addedAndSynced": "Adicionado e sincronizado",
+  "@addedAndSynced": {
+    "description": "addedAndSynced"
+  },
+  "subscriptionAddedTitle": "Assinatura adicionada",
+  "@subscriptionAddedTitle": {
+    "description": "Success panel title after adding a subscription"
+  },
+  "subscriptionAddedMessage": "A assinatura foi adicionada. Você pode abri-lo agora ou continuar adicionando mais.",
+  "@subscriptionAddedMessage": {
+    "description": "Success panel message after adding a subscription"
+  },
+  "subscriptionRefreshWarning": "A assinatura foi adicionada, mas a primeira atualização falhou. Você pode tentar atualizar novamente mais tarde.",
+  "@subscriptionRefreshWarning": {
+    "description": "Warning shown when adding a subscription succeeds but the initial refresh fails"
+  },
+  "subscriptionAlreadyExistsTitle": "Já inscrito",
+  "@subscriptionAlreadyExistsTitle": {
+    "description": "Panel title when the feed already exists"
+  },
+  "subscriptionAlreadyExistsMessage": "Este feed já está em suas assinaturas. Nenhuma alteração de categoria foi feita.",
+  "@subscriptionAlreadyExistsMessage": {
+    "description": "Panel message when the feed already exists"
+  },
+  "viewSubscription": "Ver assinatura",
+  "@viewSubscription": {
+    "description": "Button label for opening a newly added or existing subscription"
+  },
+  "continueAddingSubscription": "Continuar adicionando",
+  "@continueAddingSubscription": {
+    "description": "Button label for resetting the add subscription form"
+  },
+  "moveToCurrentCategory": "Mover para a categoria atual",
+  "@moveToCurrentCategory": {
+    "description": "Button label for moving an existing subscription into the category from which add subscription was opened"
+  },
+  "deleteSubscription": "Excluir assinatura",
+  "@deleteSubscription": {
+    "description": "deleteSubscription"
+  },
+  "deleteSubscriptionConfirmTitle": "Excluir assinatura?",
+  "@deleteSubscriptionConfirmTitle": {
+    "description": "deleteSubscriptionConfirmTitle"
+  },
+  "deleteSubscriptionConfirmContent": "Isso também excluirá os artigos armazenados em cache.",
+  "@deleteSubscriptionConfirmContent": {
+    "description": "deleteSubscriptionConfirmContent"
+  },
+  "makeAvailableOffline": "Disponibilizar off-line",
+  "@makeAvailableOffline": {
+    "description": "makeAvailableOffline"
+  },
+  "deleteCategory": "Excluir categoria",
+  "@deleteCategory": {
+    "description": "deleteCategory"
+  },
+  "deleteCategoryConfirmTitle": "Excluir categoria?",
+  "@deleteCategoryConfirmTitle": {
+    "description": "deleteCategoryConfirmTitle"
+  },
+  "deleteCategoryConfirmContent": "Os feeds nesta categoria serão movidos para Sem categoria.",
+  "@deleteCategoryConfirmContent": {
+    "description": "deleteCategoryConfirmContent"
+  },
+  "remoteDeleteCategoryConfirmContent": "Exclua esta categoria no serviço remoto e reconcilie o espelho local.",
+  "@remoteDeleteCategoryConfirmContent": {
+    "description": "Confirmation text for deleting a remote-backed category."
+  },
+  "remoteWritableTaxonomyTitle": "Categorias remotas",
+  "@remoteWritableTaxonomyTitle": {
+    "description": "Title for writable remote taxonomy/category semantics."
+  },
+  "remoteWritableTaxonomyDescription": "As alterações de categoria são aplicadas no serviço remoto e depois espelhadas localmente.",
+  "@remoteWritableTaxonomyDescription": {
+    "description": "Description for writable remote taxonomy/category semantics."
+  },
+  "remoteReadOnlyTaxonomyTitle": "Grupos remotos somente leitura",
+  "@remoteReadOnlyTaxonomyTitle": {
+    "description": "Title for read-only remote taxonomy/group mirror semantics."
+  },
+  "remoteReadOnlyTaxonomyDescription": "Essas categorias refletem grupos remotos somente leitura. Renomeie, exclua ou mova itens no serviço remoto.",
+  "@remoteReadOnlyTaxonomyDescription": {
+    "description": "Description for read-only remote taxonomy/group mirror semantics."
+  },
+  "feedCategoryReadOnlyTaxonomyTitle": "Categoria gerenciada remotamente",
+  "@feedCategoryReadOnlyTaxonomyTitle": {
+    "description": "Title for a feed whose category assignment is managed by a read-only remote taxonomy mirror."
+  },
+  "feedCategoryReadOnlyTaxonomyDescription": "A categoria deste feed vem de um espelho de grupo remoto somente leitura.",
+  "@feedCategoryReadOnlyTaxonomyDescription": {
+    "description": "Description for a feed whose category assignment is managed by a read-only remote taxonomy mirror."
+  },
+  "deleteTagConfirmTitle": "Excluir etiqueta?",
+  "@deleteTagConfirmTitle": {
+    "description": "deleteTagConfirmTitle"
+  },
+  "deleteTagConfirmContent": "Isso o removerá de todos os artigos.",
+  "@deleteTagConfirmContent": {
+    "description": "deleteTagConfirmContent"
+  },
+  "categoryDeleted": "Categoria excluída",
+  "@categoryDeleted": {
+    "description": "categoryDeleted"
+  },
+  "refresh": "Atualizar",
+  "@refresh": {
+    "description": "refresh"
+  },
+  "moveToCategory": "Mover para categoria",
+  "@moveToCategory": {
+    "description": "moveToCategory"
+  },
+  "noFeedsFoundInOpml": "Nenhum feed encontrado em OPML",
+  "@noFeedsFoundInOpml": {
+    "description": "noFeedsFoundInOpml"
+  },
+  "importedFeeds": "{count} feeds importados",
+  "@importedFeeds": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    },
+    "description": "importedFeeds"
+  },
+  "exportedOpml": "Exportado OPML",
+  "@exportedOpml": {
+    "description": "exportedOpml"
+  },
+  "fullTextFailed": "Falha ao buscar texto completo: {error}",
+  "@fullTextFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    },
+    "description": "fullTextFailed"
+  },
+  "scrollToLoadMore": "Role para carregar mais",
+  "@scrollToLoadMore": {
+    "description": "scrollToLoadMore"
+  },
+  "noArticles": "Nenhum artigo",
+  "@noArticles": {
+    "description": "noArticles"
+  },
+  "noStarredArticles": "Ainda não há artigos marcados com estrela",
+  "@noStarredArticles": {
+    "description": "Empty state message for the starred articles view"
+  },
+  "noReadLaterArticles": "Ainda não há artigos para ler mais tarde",
+  "@noReadLaterArticles": {
+    "description": "Empty state message for the read-later articles view"
+  },
+  "noUnreadArticles": "Nenhum artigo não lido",
+  "@noUnreadArticles": {
+    "description": "noUnreadArticles"
+  },
+  "articleListEmptySubtitle": "Adicione uma assinatura ou atualize fontes e os artigos aparecerão aqui.",
+  "@articleListEmptySubtitle": {
+    "description": "Article list empty state helper text when there are no articles"
+  },
+  "unreadEmptySubtitle": "Tudo no escopo atual foi lido.",
+  "@unreadEmptySubtitle": {
+    "description": "Article list empty state helper text when the unread filter has no results"
+  },
+  "savedSearchEmptySubtitle": "Nenhum artigo salvo corresponde a esta pesquisa.",
+  "@savedSearchEmptySubtitle": {
+    "description": "Saved section empty state helper text when searching saved articles has no results"
+  },
+  "star": "Marcar como favorito",
+  "@star": {
+    "description": "star"
+  },
+  "unstar": "Remover dos favoritos",
+  "@unstar": {
+    "description": "unstar"
+  },
+  "starred": "Favoritos",
+  "@starred": {
+    "description": "starred"
+  },
+  "readLater": "Lista de leitura",
+  "@readLater": {
+    "description": "readLater"
+  },
+  "removeReadLater": "Remover da lista de leitura",
+  "@removeReadLater": {
+    "description": "Action label for removing an article from the read-later list"
+  },
+  "openArticle": "Artigo aberto",
+  "@openArticle": {
+    "description": "Action label for opening an article from a list"
+  },
+  "markRead": "Marcar como lido",
+  "@markRead": {
+    "description": "markRead"
+  },
+  "markUnread": "Marcar como não lido",
+  "@markUnread": {
+    "description": "markUnread"
+  },
+  "collapse": "Recolher",
+  "@collapse": {
+    "description": "collapse"
+  },
+  "expand": "Expandir",
+  "@expand": {
+    "description": "expand"
+  },
+  "openInBrowser": "Abrir no navegador",
+  "@openInBrowser": {
+    "description": "openInBrowser"
+  },
+  "copyLink": "Copiar link",
+  "@copyLink": {
+    "description": "copyLink"
+  },
+  "copiedToClipboard": "Copiado para a área de transferência",
+  "@copiedToClipboard": {
+    "description": "copiedToClipboard"
+  },
+  "share": "Compartilhar",
+  "@share": {
+    "description": "share"
+  },
+  "autoMarkRead": "Marcar automaticamente como lido quando aberto",
+  "@autoMarkRead": {
+    "description": "autoMarkRead"
+  },
+  "search": "Pesquisar",
+  "@search": {
+    "description": "search"
+  },
+  "searchInContent": "Pesquisar no conteúdo",
+  "@searchInContent": {
+    "description": "searchInContent"
+  },
+  "clearSearch": "Limpar pesquisa",
+  "@clearSearch": {
+    "description": "Action label for clearing article search text"
+  },
+  "searchStartTitle": "Comece a pesquisar",
+  "@searchStartTitle": {
+    "description": "Search page empty state title before the user enters a query"
+  },
+  "searchStartSubtitle": "Insira palavras-chave para pesquisar títulos, resumos e conteúdo.",
+  "@searchStartSubtitle": {
+    "description": "Search page empty state helper text before the user enters a query"
+  },
+  "searchNoResultsSubtitle": "Nenhum artigo corresponde a “{query}”.",
+  "@searchNoResultsSubtitle": {
+    "description": "Search page empty state helper text when a query has no results",
+    "placeholders": {
+      "query": {}
+    }
+  },
+  "articleNotFoundSubtitle": "Este artigo pode ter sido excluído ou não está mais disponível localmente.",
+  "@articleNotFoundSubtitle": {
+    "description": "Reader helper text when an article id cannot be found"
+  },
+  "findInPage": "Encontrar na página",
+  "@findInPage": {
+    "description": "findInPage"
+  },
+  "previousMatch": "Partida anterior",
+  "@previousMatch": {
+    "description": "previousMatch"
+  },
+  "nextMatch": "Próxima partida",
+  "@nextMatch": {
+    "description": "nextMatch"
+  },
+  "caseSensitive": "Diferencia maiúsculas de minúsculas",
+  "@caseSensitive": {
+    "description": "caseSensitive"
+  },
+  "close": "Fechar",
+  "@close": {
+    "description": "close"
+  },
+  "groupingAndSorting": "Agrupamento e classificação",
+  "@groupingAndSorting": {
+    "description": "groupingAndSorting"
+  },
+  "groupBy": "Agrupar por",
+  "@groupBy": {
+    "description": "groupBy"
+  },
+  "groupNone": "Nenhum",
+  "@groupNone": {
+    "description": "groupNone"
+  },
+  "groupByDay": "Dia",
+  "@groupByDay": {
+    "description": "groupByDay"
+  },
+  "sortOrder": "Ordem de classificação",
+  "@sortOrder": {
+    "description": "sortOrder"
+  },
+  "sortNewestFirst": "O mais novo primeiro",
+  "@sortNewestFirst": {
+    "description": "sortNewestFirst"
+  },
+  "sortOldestFirst": "Mais antigo primeiro",
+  "@sortOldestFirst": {
+    "description": "sortOldestFirst"
+  },
+  "enabled": "Habilitado",
+  "@enabled": {
+    "description": "enabled"
+  },
+  "rename": "Renomear",
+  "@rename": {
+    "description": "rename"
+  },
+  "edit": "Editar",
+  "@edit": {
+    "description": "edit"
+  },
+  "nameAlreadyExists": "O nome já existe",
+  "@nameAlreadyExists": {
+    "description": "nameAlreadyExists"
+  },
+  "lastChecked": "Última verificação",
+  "@lastChecked": {
+    "description": "lastChecked"
+  },
+  "lastSynced": "Última sincronização",
+  "@lastSynced": {
+    "description": "lastSynced"
+  },
+  "never": "Nunca",
+  "@never": {
+    "description": "never"
+  },
+  "cleanupReadArticles": "Artigos de leitura de limpeza",
+  "@cleanupReadArticles": {
+    "description": "cleanupReadArticles"
+  },
+  "cleanupNow": "Execute a limpeza",
+  "@cleanupNow": {
+    "description": "cleanupNow"
+  },
+  "cachingArticles": "Armazenando {count} artigos em cache...",
+  "@cachingArticles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "manageTags": "Gerenciar tags",
+  "@manageTags": {
+    "description": "manageTags"
+  },
+  "newTag": "Nova etiqueta",
+  "@newTag": {
+    "description": "newTag"
+  },
+  "tagColor": "Cor da etiqueta",
+  "@tagColor": {
+    "description": "tagColor"
+  },
+  "autoColor": "Automático",
+  "@autoColor": {
+    "description": "autoColor"
+  },
+  "tagsLoadingError": "Erro ao carregar tags",
+  "@tagsLoadingError": {
+    "description": "Error message displayed when tags fail to load in the dialog"
+  },
+  "cleanedArticles": "{count} artigos limpos",
+  "@cleanedArticles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    },
+    "description": "cleanedArticles"
+  },
+  "days": "{days} dias",
+  "@days": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    },
+    "description": "days"
+  },
+  "services": "Serviços",
+  "@services": {
+    "description": "services"
+  },
+  "account": "Conta",
+  "@account": {
+    "description": "account"
+  },
+  "addOrRegisterAccount": "Adicionar ou registrar conta",
+  "@addOrRegisterAccount": {
+    "description": "Action label for adding or registering an account"
+  },
+  "local": "locais",
+  "@local": {
+    "description": "local"
+  },
+  "miniflux": "Miniflux",
+  "@miniflux": {
+    "description": "miniflux"
+  },
+  "fever": "Fever",
+  "@fever": {
+    "description": "fever"
+  },
+  "addLocal": "Adicionar Local",
+  "@addLocal": {
+    "description": "addLocal"
+  },
+  "addLocalAccount": "Adicionar conta local",
+  "@addLocalAccount": {
+    "description": "addLocalAccount"
+  },
+  "addMiniflux": "Adicionar Miniflux",
+  "@addMiniflux": {
+    "description": "addMiniflux"
+  },
+  "addGoogleReaderApi": "Adicionar Google Reader API",
+  "@addGoogleReaderApi": {
+    "description": "addGoogleReaderApi"
+  },
+  "googleReaderApi": "Google Reader API",
+  "@googleReaderApi": {
+    "description": "googleReaderApi"
+  },
+  "googleReaderCompatible": "Google Reader compatible service",
+  "@googleReaderCompatible": {
+    "description": "googleReaderCompatible"
+  },
+  "addFever": "Adicionar Fever",
+  "@addFever": {
+    "description": "addFever"
+  },
+  "minifluxStrategy": "Miniflux estratégia",
+  "@minifluxStrategy": {
+    "description": "minifluxStrategy"
+  },
+  "minifluxStrategySubtitle": "Controla a quantidade de dados buscados/pré-buscados durante a sincronização.",
+  "@minifluxStrategySubtitle": {
+    "description": "minifluxStrategySubtitle"
+  },
+  "remoteSyncStrategy": "Estratégia de sincronização remota",
+  "@remoteSyncStrategy": {
+    "description": "remoteSyncStrategy"
+  },
+  "remoteSyncStrategySubtitle": "Controla a janela remota do artigo puxada durante a sincronização.",
+  "@remoteSyncStrategySubtitle": {
+    "description": "remoteSyncStrategySubtitle"
+  },
+  "remoteSyncStrategyMinifluxSubtitle": "Miniflux pode percorrer entradas remotas até esta janela por sincronização.",
+  "@remoteSyncStrategyMinifluxSubtitle": {
+    "description": "remoteSyncStrategyMinifluxSubtitle"
+  },
+  "remoteSyncStrategyGoogleReaderSubtitle": "Google Reader página de serviços compatíveis através de entradas de fluxo remoto até esta janela por sincronização.",
+  "@remoteSyncStrategyGoogleReaderSubtitle": {
+    "description": "remoteSyncStrategyGoogleReaderSubtitle"
+  },
+  "remoteSyncStrategyFeverSubtitle": "Fever sincroniza itens não lidos e salvos, limitados por esta janela por sincronização.",
+  "@remoteSyncStrategyFeverSubtitle": {
+    "description": "remoteSyncStrategyFeverSubtitle"
+  },
+  "remoteEntriesLimit": "Entradas por sincronização",
+  "@remoteEntriesLimit": {
+    "description": "remoteEntriesLimit"
+  },
+  "remoteFetchConcurrency": "Simultaneidade de busca remota",
+  "@remoteFetchConcurrency": {
+    "description": "remoteFetchConcurrency"
+  },
+  "remoteFetchConcurrencySubtitle": "Controla solicitações simultâneas em lote de artigos remotos durante a sincronização da conta.",
+  "@remoteFetchConcurrencySubtitle": {
+    "description": "remoteFetchConcurrencySubtitle"
+  },
+  "minifluxWebFetchMode": "Busca de página da web",
+  "@minifluxWebFetchMode": {
+    "description": "minifluxWebFetchMode"
+  },
+  "minifluxWebFetchModeSubtitle": "Quando \"Baixar páginas da Web durante a sincronização\" estiver ativado.",
+  "@minifluxWebFetchModeSubtitle": {
+    "description": "minifluxWebFetchModeSubtitle"
+  },
+  "minifluxWebFetchModeClient": "Cliente (Readability)",
+  "@minifluxWebFetchModeClient": {
+    "description": "minifluxWebFetchModeClient"
+  },
+  "minifluxWebFetchModeServer": "Servidor (Miniflux conteúdo de busca)",
+  "@minifluxWebFetchModeServer": {
+    "description": "minifluxWebFetchModeServer"
+  },
+  "unlimited": "Ilimitado",
+  "@unlimited": {
+    "description": "unlimited"
+  },
+  "fieldName": "Nome",
+  "@fieldName": {
+    "description": "fieldName"
+  },
+  "nameRequired": "Digite um nome",
+  "@nameRequired": {
+    "description": "Validation message shown when the name field is empty"
+  },
+  "baseUrl": "Base URL",
+  "@baseUrl": {
+    "description": "baseUrl"
+  },
+  "baseUrlRequired": "Insira a base URL",
+  "@baseUrlRequired": {
+    "description": "Validation message shown when the base URL field is empty"
+  },
+  "minifluxBaseUrlHint": "https://miniflux.example.com",
+  "@minifluxBaseUrlHint": {
+    "description": "minifluxBaseUrlHint"
+  },
+  "feverBaseUrlHint": "https://example.com/fever/",
+  "@feverBaseUrlHint": {
+    "description": "feverBaseUrlHint"
+  },
+  "apiToken": "API Token",
+  "@apiToken": {
+    "description": "apiToken"
+  },
+  "apiTokenRequired": "Insira o token API",
+  "@apiTokenRequired": {
+    "description": "Validation message shown when the API token field is empty"
+  },
+  "apiKey": "API Key",
+  "@apiKey": {
+    "description": "apiKey"
+  },
+  "appId": "App ID",
+  "@appId": {
+    "description": "Label for App ID fields"
+  },
+  "appKey": "App Key",
+  "@appKey": {
+    "description": "Label for App Key fields"
+  },
+  "apiKeyRequired": "Insira a tecla API",
+  "@apiKeyRequired": {
+    "description": "Validation message shown when the API key field is empty"
+  },
+  "authenticationMethod": "Método de autenticação",
+  "@authenticationMethod": {
+    "description": "authenticationMethod"
+  },
+  "usernamePassword": "Nome de usuário e senha",
+  "@usernamePassword": {
+    "description": "usernamePassword"
+  },
+  "minifluxAuthHint": "Use um token API (recomendado) ou nome de usuário/senha.",
+  "@minifluxAuthHint": {
+    "description": "minifluxAuthHint"
+  },
+  "feverAuthHint": "Use uma chave API (recomendado) ou nome de usuário/senha.",
+  "@feverAuthHint": {
+    "description": "feverAuthHint"
+  },
+  "username": "Nome de usuário",
+  "@username": {
+    "description": "username"
+  },
+  "usernameRequired": "Digite o nome de usuário",
+  "@usernameRequired": {
+    "description": "Validation message shown when the username field is empty"
+  },
+  "password": "Senha",
+  "@password": {
+    "description": "password"
+  },
+  "passwordRequired": "Digite a senha",
+  "@passwordRequired": {
+    "description": "Validation message shown when the password field is empty"
+  },
+  "defaultModel": "Modelo padrão",
+  "@defaultModel": {
+    "description": "Label for the default model field in the AI service editor"
+  },
+  "savedApiKeyClearHint": "Deixe em branco para limpar a chave API salva.",
+  "@savedApiKeyClearHint": {
+    "description": "Helper text explaining that an empty API key field clears the saved value"
+  },
+  "savedCredentialsClearHint": "Deixe em branco para limpar as credenciais salvas.",
+  "@savedCredentialsClearHint": {
+    "description": "Helper text explaining that empty credential fields clear the saved values"
+  },
+  "aiServicesEmptyState": "Nenhum serviço AI adicionado ainda.",
+  "@aiServicesEmptyState": {
+    "description": "Empty state shown when no custom AI services have been configured"
+  },
+  "modelSummary": "Modelo: {model}",
+  "@modelSummary": {
+    "description": "Summary text showing the configured model for an AI service",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "show": "Mostrar",
+  "@show": {
+    "description": "show"
+  },
+  "hide": "Esconder",
+  "@hide": {
+    "description": "hide"
+  },
+  "missingRequiredFields": "Campos obrigatórios ausentes",
+  "@missingRequiredFields": {
+    "description": "missingRequiredFields"
+  },
+  "invalidBaseUrl": "Base inválida URL",
+  "@invalidBaseUrl": {
+    "description": "invalidBaseUrl"
+  },
+  "onlySupportedInLocalAccount": "Suportado apenas na conta local",
+  "@onlySupportedInLocalAccount": {
+    "description": "onlySupportedInLocalAccount"
+  },
+  "autoRefresh": "Atualização automática da fonte",
+  "@autoRefresh": {
+    "description": "autoRefresh"
+  },
+  "autoRefreshSubtitle": "Atualize as fontes de assinatura no intervalo selecionado. A atualização em segundo plano do celular é agendada pelo sistema, geralmente não mais do que a cada 15 minutos, e pode não ser executada exatamente na hora certa.",
+  "@autoRefreshSubtitle": {
+    "description": "autoRefreshSubtitle"
+  },
+  "off": "Desligado",
+  "@off": {
+    "description": "off"
+  },
+  "everyMinutes": "A cada {minutes} min",
+  "@everyMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    },
+    "description": "everyMinutes"
+  },
+  "appPreferences": "Preferências do app",
+  "@appPreferences": {
+    "description": "appPreferences"
+  },
+  "about": "Sobre",
+  "@about": {
+    "description": "about"
+  },
+  "dataDirectory": "Diretório de dados",
+  "@dataDirectory": {
+    "description": "dataDirectory"
+  },
+  "copyPath": "Copiar caminho",
+  "@copyPath": {
+    "description": "copyPath"
+  },
+  "openFolder": "Abrir pasta",
+  "@openFolder": {
+    "description": "openFolder"
+  },
+  "logDirectory": "Diretório de registros",
+  "@logDirectory": {
+    "description": "logDirectory"
+  },
+  "openLog": "Abrir registro",
+  "@openLog": {
+    "description": "openLog"
+  },
+  "openLogFolder": "Abra a pasta de registros",
+  "@openLogFolder": {
+    "description": "openLogFolder"
+  },
+  "exportLogs": "Exportar registros",
+  "@exportLogs": {
+    "description": "exportLogs"
+  },
+  "exportedLogs": "Registros exportados",
+  "@exportedLogs": {
+    "description": "exportedLogs"
+  },
+  "noLogsFound": "Nenhum arquivo de log encontrado",
+  "@noLogsFound": {
+    "description": "noLogsFound"
+  },
+  "keyboardShortcuts": "Atalhos de teclado",
+  "@keyboardShortcuts": {
+    "description": "keyboardShortcuts"
+  },
+  "version": "Versão",
+  "@version": {
+    "description": "version"
+  },
+  "buildNumber": "Número da versão",
+  "@buildNumber": {
+    "description": "buildNumber"
+  },
+  "versionAndBuild": "Versão {version} · Compilação {buildNumber}",
+  "@versionAndBuild": {
+    "description": "Compact about-page app version and build label",
+    "placeholders": {
+      "version": {},
+      "buildNumber": {}
+    }
+  },
+  "checkForUpdates": "Verificar atualizações",
+  "@checkForUpdates": {
+    "description": "Action label for manually checking app updates"
+  },
+  "checkingForUpdates": "Verificando...",
+  "@checkingForUpdates": {
+    "description": "Disabled action label while app update check is running"
+  },
+  "updateAvailable": "Atualização",
+  "@updateAvailable": {
+    "description": "Short app update entry label shown when a new version is available"
+  },
+  "upToDate": "Você está na versão mais recente",
+  "@upToDate": {
+    "description": "Status text shown after checking app updates"
+  },
+  "updateCheckFailed": "Não foi possível verificar atualizações.",
+  "@updateCheckFailed": {
+    "description": "Error shown when checking app updates fails"
+  },
+  "newVersionAvailable": "Nova versão {version} disponível",
+  "@newVersionAvailable": {
+    "description": "Title for the app update dialog",
+    "placeholders": {
+      "version": {}
+    }
+  },
+  "releaseNotes": "Notas da versão",
+  "@releaseNotes": {
+    "description": "Heading for release notes in the app update dialog"
+  },
+  "goToOfficialUpdate": "Abrir a página da versão",
+  "@goToOfficialUpdate": {
+    "description": "Action label to open the official GitHub release page"
+  },
+  "openSourceLicense": "Licença de código aberto",
+  "@openSourceLicense": {
+    "description": "openSourceLicense"
+  },
+  "viewLicense": "Ver licença",
+  "@viewLicense": {
+    "description": "viewLicense"
+  },
+  "thirdPartyLicenses": "Licenças de terceiros",
+  "@thirdPartyLicenses": {
+    "description": "thirdPartyLicenses"
+  },
+  "viewThirdPartyLicenses": "Veja todas as licenças de código aberto",
+  "@viewThirdPartyLicenses": {
+    "description": "viewThirdPartyLicenses"
+  },
+  "licenseLoadFailed": "Falha ao carregar a licença.",
+  "@licenseLoadFailed": {
+    "description": "Error shown when the app fails to load the bundled license text"
+  },
+  "mitLicenseName": "Licença MIT",
+  "@mitLicenseName": {
+    "description": "Name of the app's primary license"
+  },
+  "shortcutNextPreviousArticle": "J/K: Artigo seguinte/anterior",
+  "@shortcutNextPreviousArticle": {
+    "description": "Keyboard shortcut help text for moving to the next or previous article"
+  },
+  "shortcutBackForwardHistory": "Alt + ← / Alt + →; macOS Cmd + [ / ]: histórico de retrocesso/avançamento",
+  "@shortcutBackForwardHistory": {
+    "description": "Keyboard shortcut help text for navigating backward or forward through history"
+  },
+  "shortcutRefreshCurrentSelection": "R: Atualizar (seleção atual)",
+  "@shortcutRefreshCurrentSelection": {
+    "description": "Keyboard shortcut help text for refreshing the current selection"
+  },
+  "shortcutToggleUnreadOnly": "U: Alternar somente não lido",
+  "@shortcutToggleUnreadOnly": {
+    "description": "Keyboard shortcut help text for toggling the unread-only filter"
+  },
+  "shortcutToggleReadUnreadSelectedArticle": "M: Alternar entre lido/não lido para o artigo selecionado",
+  "@shortcutToggleReadUnreadSelectedArticle": {
+    "description": "Keyboard shortcut help text for toggling read/unread on the selected article"
+  },
+  "shortcutToggleStarSelectedArticle": "S: Alternar estrela para artigo selecionado",
+  "@shortcutToggleStarSelectedArticle": {
+    "description": "Keyboard shortcut help text for toggling the star state on the selected article"
+  },
+  "shortcutSearchArticlesAndFindInPage": "Ctrl/Cmd+F: Pesquisa artigos (lista); foco Encontrar na página (leitor)",
+  "@shortcutSearchArticlesAndFindInPage": {
+    "description": "Keyboard shortcut help text for searching articles or focusing find-in-page"
+  },
+  "filter": "Filtro",
+  "@filter": {
+    "description": "filter"
+  },
+  "filterKeywordsHint": "Adicione palavras-chave reservadas (separe com \";\", conecte múltiplas com \"+\")",
+  "@filterKeywordsHint": {
+    "description": "filterKeywordsHint"
+  },
+  "sync": "Sincronização",
+  "@sync": {
+    "description": "sync"
+  },
+  "enableSync": "Ativar sincronização",
+  "@enableSync": {
+    "description": "enableSync"
+  },
+  "enableFilter": "Ativar filtro",
+  "@enableFilter": {
+    "description": "enableFilter"
+  },
+  "syncAlwaysEnabled": "Sempre ativado (Configurações - Sincronização - Modo de sincronização é \"Todos\")",
+  "@syncAlwaysEnabled": {
+    "description": "syncAlwaysEnabled"
+  },
+  "syncImages": "Baixar imagens durante a sincronização",
+  "@syncImages": {
+    "description": "syncImages"
+  },
+  "syncWebPages": "Baixe páginas da web durante a sincronização",
+  "@syncWebPages": {
+    "description": "syncWebPages"
+  },
+  "syncStatusSyncing": "Sincronizando",
+  "@syncStatusSyncing": {
+    "description": "Sync status: syncing (generic)"
+  },
+  "syncStatusSyncingFeeds": "Sincronizando feeds",
+  "@syncStatusSyncingFeeds": {
+    "description": "Sync status: syncing feeds"
+  },
+  "syncStatusSyncingSubscriptions": "Sincronizando assinaturas",
+  "@syncStatusSyncingSubscriptions": {
+    "description": "Sync status: syncing subscriptions"
+  },
+  "syncStatusSyncingUnreadArticles": "Sincronizando artigos não lidos",
+  "@syncStatusSyncingUnreadArticles": {
+    "description": "Sync status: syncing unread articles"
+  },
+  "syncStatusUploadingChanges": "Fazendo upload de alterações",
+  "@syncStatusUploadingChanges": {
+    "description": "Sync status: uploading local/outbox changes"
+  },
+  "syncStatusCompleted": "Sincronização concluída",
+  "@syncStatusCompleted": {
+    "description": "Sync status: completed"
+  },
+  "syncStatusFailed": "Falha na sincronização",
+  "@syncStatusFailed": {
+    "description": "Sync status: failed"
+  },
+  "showAiSummary": "Mostrar resumo",
+  "@showAiSummary": {
+    "description": "showAiSummary"
+  },
+  "summary": "Resumo",
+  "@summary": {
+    "description": "summary"
+  },
+  "showImageTitle": "Mostrar título da imagem",
+  "@showImageTitle": {
+    "description": "showImageTitle"
+  },
+  "showAttachedImage": "Mostrar imagem anexada",
+  "@showAttachedImage": {
+    "description": "showAttachedImage"
+  },
+  "htmlDecoding": "HTML decoding",
+  "@htmlDecoding": {
+    "description": "htmlDecoding"
+  },
+  "mobilizer": "Mobilizer",
+  "@mobilizer": {
+    "description": "mobilizer"
+  },
+  "inherit": "Herdar",
+  "@inherit": {
+    "description": "inherit"
+  },
+  "auto": "Automático",
+  "@auto": {
+    "description": "auto"
+  },
+  "autoOn": "Automático (ligado)",
+  "@autoOn": {
+    "description": "autoOn"
+  },
+  "autoOff": "Desligado",
+  "@autoOff": {
+    "description": "autoOff"
+  },
+  "defaultValue": "Valor padrão",
+  "@defaultValue": {
+    "description": "defaultValue"
+  },
+  "defaultOption": "Padrão",
+  "@defaultOption": {
+    "description": "Generic 'Default' option label"
+  },
+  "userAgent": "User-Agent",
+  "@userAgent": {
+    "description": "userAgent"
+  },
+  "rssUserAgent": "RSS/Atom User-Agent",
+  "@rssUserAgent": {
+    "description": "rssUserAgent"
+  },
+  "webUserAgent": "Web User-Agent",
+  "@webUserAgent": {
+    "description": "webUserAgent"
+  },
+  "userAgentRssHint": "Usado ao buscar feeds RSS/Atom.",
+  "@userAgentRssHint": {
+    "description": "userAgentRssHint"
+  },
+  "userAgentWebHint": "Usado ao buscar páginas da web completas (Readability).",
+  "@userAgentWebHint": {
+    "description": "userAgentWebHint"
+  },
+  "resetToDefault": "Redefinir para o padrão",
+  "@resetToDefault": {
+    "description": "resetToDefault"
+  },
+  "notificationNewArticleTitle": "Novo artigo",
+  "@notificationNewArticleTitle": {
+    "description": "Notification title when exactly one new article is found"
+  },
+  "notificationNewArticlesTitle": "Novos artigos",
+  "@notificationNewArticlesTitle": {
+    "description": "Notification title when multiple new articles are found"
+  },
+  "notificationNewArticlesBody": "{count} novos artigos encontrados",
+  "@notificationNewArticlesBody": {
+    "description": "Notification body when multiple new articles are found",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationNewArticlesChannelName": "Novos artigos",
+  "@notificationNewArticlesChannelName": {
+    "description": "Android notification channel name for new articles"
+  },
+  "notificationNewArticlesChannelDescription": "Notificações para novos artigos encontrados durante a sincronização",
+  "@notificationNewArticlesChannelDescription": {
+    "description": "Android notification channel description for new articles"
+  },
+  "windowMinimize": "Minimizar",
+  "@windowMinimize": {
+    "description": "Tooltip for the window minimize button on desktop"
+  },
+  "windowMaximize": "Maximizar",
+  "@windowMaximize": {
+    "description": "Tooltip for the window maximize button on desktop"
+  },
+  "windowRestore": "Restaurar",
+  "@windowRestore": {
+    "description": "Tooltip for the window restore button on desktop"
+  },
+  "windowClose": "Fechar",
+  "@windowClose": {
+    "description": "Tooltip for the window close button on desktop"
+  },
+  "translationAndAiServices": "Tradução e IA",
+  "@translationAndAiServices": {
+    "description": "Settings tab for translation and AI services"
+  },
+  "translation": "Tradução",
+  "@translation": {
+    "description": "Translation section title"
+  },
+  "translationProvider": "Provedor de tradução",
+  "@translationProvider": {
+    "description": "Setting title for selecting translation provider"
+  },
+  "aiServices": "AI serviços",
+  "@aiServices": {
+    "description": "AI services section title"
+  },
+  "addAiService": "Adicionar serviço AI",
+  "@addAiService": {
+    "description": "Button/title for adding an AI service"
+  },
+  "aiService": "AI serviço",
+  "@aiService": {
+    "description": "Generic label for AI service"
+  },
+  "aiSummary": "Resumo com IA",
+  "@aiSummary": {
+    "description": "AI summary section title/label"
+  },
+  "aiSummaryService": "AI serviço resumido",
+  "@aiSummaryService": {
+    "description": "Setting title for selecting AI summary service"
+  },
+  "targetLanguage": "Idioma de destino",
+  "@targetLanguage": {
+    "description": "Setting title for selecting target language"
+  },
+  "followAppLanguage": "Seguir idioma do app",
+  "@followAppLanguage": {
+    "description": "Option label for following the app language"
+  },
+  "translationProviderGoogleWeb": "Google Translate (web)",
+  "@translationProviderGoogleWeb": {
+    "description": "Display label for the Google web translation provider"
+  },
+  "translationProviderBingWeb": "Bing Translate (web)",
+  "@translationProviderBingWeb": {
+    "description": "Display label for the Bing web translation provider"
+  },
+  "translationProviderBaiduApi": "Baidu Translate (API)",
+  "@translationProviderBaiduApi": {
+    "description": "Display label for the Baidu API translation provider"
+  },
+  "translationProviderDeepLApi": "DeepL (API)",
+  "@translationProviderDeepLApi": {
+    "description": "Display label for the DeepL API translation provider"
+  },
+  "translationProviderDeepLX": "DeepLX",
+  "@translationProviderDeepLX": {
+    "description": "Display label for the DeepLX translation provider"
+  },
+  "translationProviderAiService": "IA: {name}",
+  "@translationProviderAiService": {
+    "description": "Display label for an AI-backed translation provider",
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "translationProviderBaiduApiSubtitle": "Configurar App ID / App Key",
+  "@translationProviderBaiduApiSubtitle": {
+    "description": "Subtitle for configuring Baidu translation credentials"
+  },
+  "deepLXBaseUrlTitle": "DeepLX Base URL",
+  "@deepLXBaseUrlTitle": {
+    "description": "Dialog title for editing the DeepLX base URL"
+  },
+  "deepLEndpoint": "Endpoint",
+  "@deepLEndpoint": {
+    "description": "Label for the DeepL endpoint selection"
+  },
+  "deepLEndpointFree": "Grátis",
+  "@deepLEndpointFree": {
+    "description": "Label for the DeepL free endpoint"
+  },
+  "deepLEndpointPro": "Pró",
+  "@deepLEndpointPro": {
+    "description": "Label for the DeepL pro endpoint"
+  },
+  "setAsDefault": "Definir como padrão",
+  "@setAsDefault": {
+    "description": "Menu action for making an AI service the default one"
+  },
+  "defaultAlreadySet": "Padrão (já definido)",
+  "@defaultAlreadySet": {
+    "description": "Menu label shown when an AI service is already the default one"
+  },
+  "aiSummaryPrompt": "AI prompt de resumo",
+  "@aiSummaryPrompt": {
+    "description": "Setting title for AI summary prompt template"
+  },
+  "aiTranslationPrompt": "Prompt de tradução com IA",
+  "@aiTranslationPrompt": {
+    "description": "Setting title for AI translation prompt template"
+  },
+  "defaultAiSummaryPromptTemplate": "Resuma este artigo em {language} (título: {title}): {content}",
+  "@defaultAiSummaryPromptTemplate": {
+    "description": "Default AI summary prompt template",
+    "placeholders": {
+      "language": {},
+      "title": {},
+      "content": {}
+    }
+  },
+  "defaultAiTranslationPromptTemplate": "Traduza este trecho do artigo para {language} (título: {title}): {content}",
+  "@defaultAiTranslationPromptTemplate": {
+    "description": "Default AI translation prompt template (only used for AI translation)",
+    "placeholders": {
+      "language": {},
+      "title": {},
+      "content": {}
+    }
+  },
+  "promptVariables": "Variáveis disponíveis",
+  "@promptVariables": {
+    "description": "Header for listing available prompt template variables"
+  },
+  "promptVariableContentDescription": "Conteúdo do artigo",
+  "@promptVariableContentDescription": {
+    "description": "Description text for {{content}} variable"
+  },
+  "promptVariableLanguageDescription": "Idioma alvo",
+  "@promptVariableLanguageDescription": {
+    "description": "Description text for {{language}} variable"
+  },
+  "promptVariableTitleDescription": "Título do artigo",
+  "@promptVariableTitleDescription": {
+    "description": "Description text for {{title}} variable"
+  },
+  "tpmLimit": "TPM limit",
+  "@tpmLimit": {
+    "description": "Tokens per minute limit setting"
+  },
+  "tpmLimitSubtitle": "0 significa ilimitado; as solicitações serão enfileiradas quando excedidas.",
+  "@tpmLimitSubtitle": {
+    "description": "Subtitle text explaining the TPM limit behavior"
+  },
+  "aiSummaryAction": "Resumo com IA",
+  "@aiSummaryAction": {
+    "description": "Action button label for generating AI summary"
+  },
+  "translateAction": "Traduzir",
+  "@translateAction": {
+    "description": "Action button label for translating an article"
+  },
+  "translationMode": "Modo de tradução",
+  "@translationMode": {
+    "description": "Title for selecting translation mode"
+  },
+  "immersiveTranslation": "Tradução imersiva",
+  "@immersiveTranslation": {
+    "description": "Option label for immersive (bilingual) translation mode"
+  },
+  "traditionalTranslation": "Tradução tradicional",
+  "@traditionalTranslation": {
+    "description": "Option label for traditional (translated-only) translation mode"
+  },
+  "generating": "Gerando…",
+  "@generating": {
+    "description": "Generic loading state text for generating AI/translation"
+  },
+  "queued": "Na fila",
+  "@queued": {
+    "description": "Generic queued state text"
+  },
+  "regenerate": "Regenerar",
+  "@regenerate": {
+    "description": "Action label for regenerating AI/translation output"
+  },
+  "cachedPromptOutdated": "Prompt atualizado; regenerar para atualizar.",
+  "@cachedPromptOutdated": {
+    "description": "Hint shown when cached content is outdated due to prompt changes"
+  },
+  "languageMismatchBanner": "Conteúdo possivelmente em {source}; o idioma de destino é {target}.",
+  "@languageMismatchBanner": {
+    "description": "Banner text shown when article language differs from target language",
+    "placeholders": {
+      "source": {},
+      "target": {}
+    }
+  },
+  "dontRemindThisLanguage": "Não lembre deste idioma",
+  "@dontRemindThisLanguage": {
+    "description": "Action label to disable language mismatch reminders for a source language"
+  },
+  "autoAiSummary": "Resumo automático AI",
+  "@autoAiSummary": {
+    "description": "Setting title for auto AI summary"
+  },
+  "autoTranslate": "Tradução automática",
+  "@autoTranslate": {
+    "description": "Setting title for auto translation"
+  },
+  "aiNotConfigured": "AI serviço não configurado.",
+  "@aiNotConfigured": {
+    "description": "Error message shown when no AI service is configured/enabled"
+  },
+  "translationNotAvailable": "A tradução não está disponível para o provedor selecionado.",
+  "@translationNotAvailable": {
+    "description": "Error message shown when the selected translation provider is not supported"
+  },
+  "clearTranslation": "Tradução clara",
+  "@clearTranslation": {
+    "description": "Action label to clear/hide the translated view"
+  },
+  "dbRecoveryTitle": "Recuperação de banco de dados",
+  "@dbRecoveryTitle": {
+    "description": "Title for the database recovery dialog"
+  },
+  "dbRecoveryDescription": "O aplicativo detectou um problema no banco de dados e executou a recuperação. Seus dados foram preservados em disco (backup/arquivo movido).",
+  "@dbRecoveryDescription": {
+    "description": "Description text shown in the database recovery dialog"
+  },
+  "dbRecoveryTimeLabel": "Hora",
+  "@dbRecoveryTimeLabel": {
+    "description": "Label for the recovery time field"
+  },
+  "dbRecoveryDbNameLabel": "Nome do banco de dados",
+  "@dbRecoveryDbNameLabel": {
+    "description": "Label for the database name field"
+  },
+  "dbRecoveryOpenedAsLabel": "Aberto como",
+  "@dbRecoveryOpenedAsLabel": {
+    "description": "Label for the fallback database name field"
+  },
+  "dbRecoveryBackupPathLabel": "Cópia de segurança",
+  "@dbRecoveryBackupPathLabel": {
+    "description": "Label for the backup file path field"
+  },
+  "dbRecoveryMovedOriginalPathLabel": "Original movido",
+  "@dbRecoveryMovedOriginalPathLabel": {
+    "description": "Label for the moved original db file path field"
+  },
+  "dbRecoveryErrorLabel": "Erro",
+  "@dbRecoveryErrorLabel": {
+    "description": "Label for the error message field"
+  },
+  "dbRecoveryDataPreservedHint": "Dica: Use os botões de cópia para copiar caminhos para solução de problemas ou suporte.",
+  "@dbRecoveryDataPreservedHint": {
+    "description": "Hint shown at the bottom of the recovery dialog"
+  }
+}

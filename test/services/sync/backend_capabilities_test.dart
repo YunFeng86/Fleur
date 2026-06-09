@@ -71,11 +71,34 @@ void main() {
     BackendFeature.outboxFlush: FeatureAvailability.deferredRemote,
   };
 
+  const googleReaderMatrix = <BackendFeature, FeatureAvailability>{
+    BackendFeature.syncNow: FeatureAvailability.onlineRequired,
+    BackendFeature.addSubscription: FeatureAvailability.hidden,
+    BackendFeature.deleteSubscription: FeatureAvailability.hidden,
+    BackendFeature.addCategory: FeatureAvailability.hidden,
+    BackendFeature.renameCategory: FeatureAvailability.hidden,
+    BackendFeature.deleteCategory: FeatureAvailability.hidden,
+    BackendFeature.moveSubscriptionToCategory: FeatureAvailability.hidden,
+    BackendFeature.moveSubscriptionToUncategorized: FeatureAvailability.hidden,
+    BackendFeature.refreshSubscriptionSource: FeatureAvailability.hidden,
+    BackendFeature.refreshAllSources: FeatureAvailability.hidden,
+    BackendFeature.importOpml: FeatureAvailability.hidden,
+    BackendFeature.exportOpml: FeatureAvailability.localOnly,
+    BackendFeature.articleReadState: FeatureAvailability.deferredRemote,
+    BackendFeature.articleStarState: FeatureAvailability.deferredRemote,
+    BackendFeature.articleReadLater: FeatureAvailability.localOnly,
+    BackendFeature.clientFeedSettings: FeatureAvailability.localOnly,
+    BackendFeature.clientCategorySettings: FeatureAvailability.localOnly,
+    BackendFeature.offlineCache: FeatureAvailability.localOnly,
+    BackendFeature.outboxFlush: FeatureAvailability.deferredRemote,
+  };
+
   test('matches the declared capability matrix for every backend', () {
     final matrices = {
       AccountType.local: localMatrix,
       AccountType.miniflux: minifluxMatrix,
       AccountType.fever: feverMatrix,
+      AccountType.googleReader: googleReaderMatrix,
     };
 
     for (final entry in matrices.entries) {
@@ -102,18 +125,25 @@ void main() {
     final local = BackendCapabilities.forAccountType(AccountType.local);
     final miniflux = BackendCapabilities.forAccountType(AccountType.miniflux);
     final fever = BackendCapabilities.forAccountType(AccountType.fever);
+    final googleReader = BackendCapabilities.forAccountType(
+      AccountType.googleReader,
+    );
 
     expect(local.isRemoteBacked, isFalse);
     expect(miniflux.isRemoteBacked, isTrue);
     expect(fever.isRemoteBacked, isTrue);
+    expect(googleReader.isRemoteBacked, isTrue);
 
     expect(local.isOutboxCapable, isFalse);
     expect(miniflux.isOutboxCapable, isTrue);
     expect(fever.isOutboxCapable, isTrue);
+    expect(googleReader.isOutboxCapable, isTrue);
 
     expect(fever.isVisible(BackendFeature.addSubscription), isFalse);
+    expect(googleReader.isVisible(BackendFeature.addSubscription), isFalse);
     expect(fever.isVisible(BackendFeature.exportOpml), isTrue);
     expect(miniflux.isOnlineRequired(BackendFeature.addCategory), isTrue);
+    expect(googleReader.isOnlineRequired(BackendFeature.syncNow), isTrue);
     expect(local.isOnlineRequired(BackendFeature.addCategory), isFalse);
   });
 }

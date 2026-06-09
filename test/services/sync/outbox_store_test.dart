@@ -1,3 +1,6 @@
+@Tags(['global_logger'])
+library;
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -82,6 +85,51 @@ void main() {
     expect(loaded[0].type, OutboxActionType.markRead);
     expect(loaded[1].type, OutboxActionType.bookmark);
   });
+
+  test(
+    'OutboxStore roundtrips string entry keys and compacts by stream',
+    () async {
+      final store = OutboxStore();
+      const accountId = 'acc_string_keys';
+      final ts = DateTime.utc(2026, 2, 9, 12, 0, 0);
+
+      await store.save(accountId, [
+        OutboxAction(
+          type: OutboxActionType.markRead,
+          remoteEntryKey: 'tag:google.com,2005:reader/item/a',
+          value: true,
+          createdAt: ts,
+        ),
+        OutboxAction(
+          type: OutboxActionType.markRead,
+          remoteEntryKey: 'tag:google.com,2005:reader/item/a',
+          value: false,
+          createdAt: ts.add(const Duration(seconds: 1)),
+        ),
+        OutboxAction(
+          type: OutboxActionType.markAllRead,
+          streamId: 'user/-/label/News',
+          value: true,
+          createdAt: ts,
+        ),
+        OutboxAction(
+          type: OutboxActionType.markAllRead,
+          streamId: 'user/-/label/News',
+          value: true,
+          createdAt: ts.add(const Duration(seconds: 2)),
+        ),
+      ]);
+
+      final loaded = await store.load(accountId);
+      expect(loaded, hasLength(2));
+      expect(loaded[0].type, OutboxActionType.markRead);
+      expect(loaded[0].remoteEntryId, isNull);
+      expect(loaded[0].remoteEntryKey, 'tag:google.com,2005:reader/item/a');
+      expect(loaded[0].value, isFalse);
+      expect(loaded[1].type, OutboxActionType.markAllRead);
+      expect(loaded[1].streamId, 'user/-/label/News');
+    },
+  );
 
   test('OutboxStore recovers from .bak when primary is corrupted', () async {
     final store = OutboxStore();

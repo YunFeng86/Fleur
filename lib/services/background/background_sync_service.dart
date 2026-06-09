@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 
@@ -128,6 +128,12 @@ class BackgroundSyncRunner {
       required bool isPrimary,
     })?
     openIsarForAccountFn,
+    Future<IsarLease> Function({
+      required String accountId,
+      required String? dbName,
+      required bool isPrimary,
+    })?
+    acquireIsarLeaseForAccountFn,
     Future<T> Function<T>(String key, Future<T> Function() op)? runWithMutex,
     Future<void> Function(Account account)? refreshAllRemoteFeeds,
     Future<List<Feed>> Function(FeedRepository feeds, Account account)?
@@ -149,7 +155,10 @@ class BackgroundSyncRunner {
        _sharedPreferencesLoader =
            sharedPreferencesLoader ?? SharedPreferences.getInstance,
        _nowProvider = nowProvider ?? DateTime.now,
-       _openIsarForAccountFn = openIsarForAccountFn ?? openIsarForAccount,
+       _openIsarForAccountFn = openIsarForAccountFn,
+       _acquireIsarLeaseForAccountFn =
+           acquireIsarLeaseForAccountFn ??
+           AccountDbSessionManager.instance.acquireForAccount,
        _runWithMutex = runWithMutex ?? SyncMutex.instance.run,
        _refreshAllRemoteFeeds = refreshAllRemoteFeeds,
        _loadAllFeeds = loadAllFeeds,
@@ -166,8 +175,14 @@ class BackgroundSyncRunner {
     required String accountId,
     required String? dbName,
     required bool isPrimary,
-  })
+  })?
   _openIsarForAccountFn;
+  final Future<IsarLease> Function({
+    required String accountId,
+    required String? dbName,
+    required bool isPrimary,
+  })
+  _acquireIsarLeaseForAccountFn;
   final Future<T> Function<T>(String key, Future<T> Function() op)
   _runWithMutex;
   final Future<void> Function(Account account)? _refreshAllRemoteFeeds;
@@ -204,9 +219,7 @@ class BackgroundSyncRunner {
       final activeAccount =
           accounts.findById(accounts.activeAccountId) ??
           accounts.accounts.first;
-      final capabilities = BackendCapabilities.forAccountType(
-        activeAccount.type,
-      );
+      final capabilities = BackendCapabilities.forAccount(activeAccount);
       final appSettings = _appSettings ?? await _appSettingsStore.load();
 
       final sourceRefreshMinutes = appSettings.sourceRefreshMinutes ?? 0;
@@ -249,12 +262,23 @@ class BackgroundSyncRunner {
       }
 
       late final Isar isar;
+      IsarLease? lease;
       try {
-        isar = await _openIsarForAccountFn(
-          accountId: activeAccount.id,
-          dbName: activeAccount.dbName,
-          isPrimary: activeAccount.isPrimary,
-        );
+        final openIsarForAccountFn = _openIsarForAccountFn;
+        if (openIsarForAccountFn == null) {
+          lease = await _acquireIsarLeaseForAccountFn(
+            accountId: activeAccount.id,
+            dbName: activeAccount.dbName,
+            isPrimary: activeAccount.isPrimary,
+          );
+          isar = lease.isar;
+        } else {
+          isar = await openIsarForAccountFn(
+            accountId: activeAccount.id,
+            dbName: activeAccount.dbName,
+            isPrimary: activeAccount.isPrimary,
+          );
+        }
       } on DbOpenFailure catch (e) {
         AppLogger.w(
           'Background sync skipped: failed to open DB (${e.kind})',
@@ -371,7 +395,12 @@ class BackgroundSyncRunner {
           );
         }
       } finally {
-        await isar.close();
+        final dbLease = lease;
+        if (dbLease != null) {
+          await dbLease.release();
+        } else {
+          await isar.close();
+        }
       }
     });
   }
@@ -401,7 +430,7 @@ class BackgroundSyncRunner {
   }
 
   Future<void> _flushOutboxSafe(Account account, SyncServiceBase svc) async {
-    if (!BackendCapabilities.forAccountType(account.type).isOutboxCapable) {
+    if (!BackendCapabilities.forAccount(account).isOutboxCapable) {
       return;
     }
     final OutboxFlushCapable? flushCapable = switch (svc) {

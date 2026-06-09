@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'app_theme_profile.dart';
-import 'app_typography.dart';
 import 'fleur_theme_extensions.dart';
 
 class AppComponentThemes {
@@ -13,6 +12,7 @@ class AppComponentThemes {
     required FleurSurfaceTheme surfaces,
     required FleurStateTheme states,
     required FleurReaderTheme reader,
+    required FleurDynamicColorTheme dynamicColor,
   }) {
     final scheme = base.colorScheme;
     final panelBorder = surfaces.subtleDivider.withAlpha(
@@ -35,7 +35,12 @@ class AppComponentThemes {
     }
 
     return base.copyWith(
-      extensions: <ThemeExtension<dynamic>>[surfaces, states, reader],
+      extensions: <ThemeExtension<dynamic>>[
+        surfaces,
+        states,
+        reader,
+        dynamicColor,
+      ],
       scaffoldBackgroundColor: surfaces.chrome,
       dividerTheme: DividerThemeData(
         color: surfaces.subtleDivider,
@@ -49,46 +54,6 @@ class AppComponentThemes {
         surfaceTintColor: Colors.transparent,
         backgroundColor: surfaces.chrome,
         foregroundColor: scheme.onSurface,
-      ),
-      navigationRailTheme: NavigationRailThemeData(
-        backgroundColor: surfaces.nav,
-        useIndicator: true,
-        indicatorColor: states.selectionTint,
-        labelType: NavigationRailLabelType.all,
-        selectedIconTheme: IconThemeData(color: scheme.primary, size: 22),
-        unselectedIconTheme: IconThemeData(
-          color: scheme.onSurfaceVariant,
-          size: 22,
-        ),
-        selectedLabelTextStyle: base.textTheme.labelSmall?.copyWith(
-          color: scheme.onSurface,
-        ),
-        unselectedLabelTextStyle: base.textTheme.labelSmall?.copyWith(
-          color: scheme.onSurfaceVariant,
-        ),
-      ),
-      navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: surfaces.nav,
-        elevation: 0,
-        indicatorColor: states.selectionTint,
-        surfaceTintColor: Colors.transparent,
-        height: profile.isDesktop ? 70 : 76,
-        labelTextStyle: WidgetStateProperty.resolveWith((statesSet) {
-          final selected = statesSet.contains(WidgetState.selected);
-          return base.textTheme.labelMedium?.copyWith(
-            color: selected ? scheme.onSurface : scheme.onSurfaceVariant,
-            fontWeight: AppTypography.platformWeight(
-              selected ? FontWeight.w700 : FontWeight.w600,
-            ),
-          );
-        }),
-        iconTheme: WidgetStateProperty.resolveWith((statesSet) {
-          final selected = statesSet.contains(WidgetState.selected);
-          return IconThemeData(
-            color: selected ? scheme.primary : scheme.onSurfaceVariant,
-            size: 22,
-          );
-        }),
       ),
       cardTheme: CardThemeData(
         elevation: 0,
@@ -207,14 +172,12 @@ class AppComponentThemes {
         thickness: WidgetStatePropertyAll(profile.isDesktop ? 6 : 8),
         thumbColor: WidgetStateProperty.resolveWith((statesSet) {
           if (statesSet.contains(WidgetState.dragged)) {
-            return scheme.primary.withAlpha(profile.isDesktop ? 148 : 176);
+            return states.scrollbarDrag;
           }
           if (statesSet.contains(WidgetState.hovered)) {
-            return scheme.onSurfaceVariant.withAlpha(
-              profile.isDesktop ? 112 : 140,
-            );
+            return states.scrollbarHover;
           }
-          return scheme.outlineVariant.withAlpha(profile.isDesktop ? 72 : 84);
+          return states.scrollbarIdle;
         }),
       ),
       popupMenuTheme: PopupMenuThemeData(
@@ -222,6 +185,39 @@ class AppComponentThemes {
         surfaceTintColor: Colors.transparent,
         shape: shape,
         textStyle: base.textTheme.bodyMedium?.copyWith(color: scheme.onSurface),
+      ),
+      menuTheme: MenuThemeData(
+        style: MenuStyle(
+          backgroundColor: WidgetStatePropertyAll(surfaces.floating),
+          shadowColor: WidgetStatePropertyAll(scheme.shadow.withAlpha(42)),
+          surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+          elevation: const WidgetStatePropertyAll(8),
+          padding: const WidgetStatePropertyAll(
+            EdgeInsets.symmetric(vertical: 4),
+          ),
+          minimumSize: const WidgetStatePropertyAll(Size(156, 0)),
+          side: WidgetStatePropertyAll(
+            BorderSide(color: surfaces.subtleDivider),
+          ),
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        ),
+      ),
+      menuButtonTheme: MenuButtonThemeData(
+        style: ButtonStyle(
+          foregroundColor: WidgetStatePropertyAll(scheme.onSurface),
+          iconColor: WidgetStatePropertyAll(scheme.onSurfaceVariant),
+          iconSize: const WidgetStatePropertyAll(18),
+          minimumSize: const WidgetStatePropertyAll(Size(156, 40)),
+          padding: const WidgetStatePropertyAll(
+            EdgeInsetsDirectional.only(start: 14, end: 16),
+          ),
+          overlayColor: stateLayer(Colors.transparent),
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: surfaces.floating,

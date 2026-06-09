@@ -1,0 +1,2002 @@
+{
+  "@@locale": "ko",
+  "appTitle": "Fleur",
+  "@appTitle": {
+    "description": "appTitle"
+  },
+  "notFound": "찾을 수 없음",
+  "@notFound": {
+    "description": "notFound"
+  },
+  "openFailedGeneral": "이 위치를 열 수 없습니다. 권한을 확인하고 다시 시도하세요.",
+  "@openFailedGeneral": {
+    "description": "openFailedGeneral"
+  },
+  "macosMenuLanguageRestartHint": "메뉴 표시줄 언어를 완전히 적용하려면 앱을 다시 시작해야 할 수도 있습니다.",
+  "@macosMenuLanguageRestartHint": {
+    "description": "macosMenuLanguageRestartHint"
+  },
+  "pathNotFound": "경로가 없습니다: {path}",
+  "@pathNotFound": {
+    "description": "pathNotFound",
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "settings": "설정",
+  "@settings": {
+    "description": "settings"
+  },
+  "settingsSearchHint": "검색 설정",
+  "@settingsSearchHint": {
+    "description": "Placeholder for the settings page search field"
+  },
+  "settingsSearchNoResults": "이 검색과 일치하는 설정이 없습니다.",
+  "@settingsSearchNoResults": {
+    "description": "Empty state text for the settings page search results"
+  },
+  "settingsSearchPageLabel": "페이지",
+  "@settingsSearchPageLabel": {
+    "description": "Settings search result type label for top-level pages"
+  },
+  "settingsSearchSectionLabel": "섹션",
+  "@settingsSearchSectionLabel": {
+    "description": "Settings search result type label for settings sections"
+  },
+  "settingsSearchSettingLabel": "설정",
+  "@settingsSearchSettingLabel": {
+    "description": "Settings search result type label for individual settings"
+  },
+  "settingsSearchResultCount": "결과 {count}개",
+  "@settingsSearchResultCount": {
+    "description": "Settings search result count badge",
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "feeds": "구독",
+  "@feeds": {
+    "description": "Global navigation label: feeds"
+  },
+  "saved": "저장됨",
+  "@saved": {
+    "description": "Global navigation label: saved"
+  },
+  "comingSoon": "곧 출시 예정",
+  "@comingSoon": {
+    "description": "Placeholder text"
+  },
+  "appearance": "외관",
+  "@appearance": {
+    "description": "appearance"
+  },
+  "theme": "테마",
+  "@theme": {
+    "description": "theme"
+  },
+  "themeMode": "테마 모드",
+  "@themeMode": {
+    "description": "Theme mode selector label"
+  },
+  "system": "시스템",
+  "@system": {
+    "description": "system"
+  },
+  "light": "빛",
+  "@light": {
+    "description": "light"
+  },
+  "dark": "어둠",
+  "@dark": {
+    "description": "dark"
+  },
+  "dynamicColor": "동적 색상",
+  "@dynamicColor": {
+    "description": "Use system dynamic or accent colors when available"
+  },
+  "dynamicColorSubtitle": "가능한 경우 시스템 동적 또는 강조 색상을 따르십시오.",
+  "@dynamicColorSubtitle": {
+    "description": "Hint for dynamic colors setting"
+  },
+  "seedColorPreset": "악센트 색상",
+  "@seedColorPreset": {
+    "description": "Seed color preset selector label"
+  },
+  "seedColorPresetSubtitle": "동적 색상이 꺼져 있거나 사용할 수 없을 때 사용됩니다.",
+  "@seedColorPresetSubtitle": {
+    "description": "Seed color preset selector hint"
+  },
+  "seedColorBlue": "블루",
+  "@seedColorBlue": {
+    "description": "Seed color preset name"
+  },
+  "seedColorGreen": "녹색",
+  "@seedColorGreen": {
+    "description": "Seed color preset name"
+  },
+  "seedColorPurple": "보라색",
+  "@seedColorPurple": {
+    "description": "Seed color preset name"
+  },
+  "seedColorOrange": "오렌지",
+  "@seedColorOrange": {
+    "description": "Seed color preset name"
+  },
+  "seedColorPink": "핑크",
+  "@seedColorPink": {
+    "description": "Seed color preset name"
+  },
+  "language": "언어",
+  "@language": {
+    "description": "language"
+  },
+  "systemLanguage": "시스템 언어",
+  "@systemLanguage": {
+    "description": "systemLanguage"
+  },
+  "english": "English",
+  "@english": {
+    "description": "english"
+  },
+  "chineseSimplified": "简体中文",
+  "@chineseSimplified": {
+    "description": "chineseSimplified"
+  },
+  "chineseTraditional": "繁體中文",
+  "@chineseTraditional": {
+    "description": "chineseTraditional"
+  },
+  "reader": "읽기",
+  "@reader": {
+    "description": "reader"
+  },
+  "fontSize": "글꼴 크기",
+  "@fontSize": {
+    "description": "fontSize"
+  },
+  "lineHeight": "줄 높이",
+  "@lineHeight": {
+    "description": "lineHeight"
+  },
+  "horizontalPadding": "수평 패딩",
+  "@horizontalPadding": {
+    "description": "horizontalPadding"
+  },
+  "applicationAppearance": "앱 외관",
+  "@applicationAppearance": {
+    "description": "Section title for app-wide appearance settings"
+  },
+  "readerAppearance": "리더의 모습",
+  "@readerAppearance": {
+    "description": "Section title for reader appearance settings"
+  },
+  "codeAppearance": "코드 모양",
+  "@codeAppearance": {
+    "description": "Section title for code appearance settings"
+  },
+  "custom": "맞춤",
+  "@custom": {
+    "description": "Generic custom option label"
+  },
+  "back": "뒤로",
+  "@back": {
+    "description": "Generic back action label"
+  },
+  "forward": "앞으로",
+  "@forward": {
+    "description": "Generic forward action label"
+  },
+  "fontSettings": "글꼴",
+  "@fontSettings": {
+    "description": "Appearance font detail page title"
+  },
+  "advancedFontSettings": "고급 글꼴 설정",
+  "@advancedFontSettings": {
+    "description": "Appearance advanced font settings row and detail page title"
+  },
+  "fontsAndCode": "글꼴 및 코드",
+  "@fontsAndCode": {
+    "description": "Appearance code font detail row label"
+  },
+  "customFontStack": "맞춤 글꼴 스택",
+  "@customFontStack": {
+    "description": "Custom font stack option label"
+  },
+  "codeTypography": "코드 타이포그래피",
+  "@codeTypography": {
+    "description": "Code typography settings section title"
+  },
+  "fontSizeExtraSmall": "아주 작은",
+  "@fontSizeExtraSmall": {
+    "description": "Reader font size preset label"
+  },
+  "fontSizeSmall": "작은",
+  "@fontSizeSmall": {
+    "description": "Reader font size preset label"
+  },
+  "fontSizeMediumRecommended": "중간(권장)",
+  "@fontSizeMediumRecommended": {
+    "description": "Reader font size preset label"
+  },
+  "fontSizeLarge": "대형",
+  "@fontSizeLarge": {
+    "description": "Reader font size preset label"
+  },
+  "fontSizeExtraLarge": "특대형",
+  "@fontSizeExtraLarge": {
+    "description": "Reader font size preset label"
+  },
+  "minimumFontSize": "최소 글꼴 크기",
+  "@minimumFontSize": {
+    "description": "Minimum reader body font size setting label"
+  },
+  "lineHeightCompact": "콤팩트",
+  "@lineHeightCompact": {
+    "description": "Reader line height preset label"
+  },
+  "lineHeightStandard": "표준",
+  "@lineHeightStandard": {
+    "description": "Reader line height preset label"
+  },
+  "lineHeightRelaxed": "편안한",
+  "@lineHeightRelaxed": {
+    "description": "Reader line height preset label"
+  },
+  "appearancePreview": "미리보기",
+  "@appearancePreview": {
+    "description": "Appearance settings preview section title"
+  },
+  "appearancePreviewTitle": "더 조용한 독서 표면",
+  "@appearancePreviewTitle": {
+    "description": "Sample reader preview article title"
+  },
+  "appearancePreviewMeta": "미리보기 · 오늘",
+  "@appearancePreviewMeta": {
+    "description": "Sample reader preview metadata"
+  },
+  "appearancePreviewBody": "독자를 한 번 조정한 다음 모든 기사를 동일한 차분한 리듬으로 시작하십시오.",
+  "@appearancePreviewBody": {
+    "description": "Sample reader preview body"
+  },
+  "appearancePreviewQuote": "읽을 수 있는 설정은 구성 가능하다고 느끼기 전에 눈에 보이는 것처럼 느껴져야 합니다.",
+  "@appearancePreviewQuote": {
+    "description": "Sample reader preview quote"
+  },
+  "appearancePreviewLink": "샘플 링크",
+  "@appearancePreviewLink": {
+    "description": "Sample reader preview link"
+  },
+  "appearancePreviewCode": "코드 샘플",
+  "@appearancePreviewCode": {
+    "description": "Sample reader preview code text"
+  },
+  "readerFontFamily": "글꼴 계열",
+  "@readerFontFamily": {
+    "description": "Reader font family setting label"
+  },
+  "readerFontSystem": "시스템",
+  "@readerFontSystem": {
+    "description": "Reader system font option"
+  },
+  "readerFontSerif": "세리프",
+  "@readerFontSerif": {
+    "description": "Reader serif font option"
+  },
+  "readerFontSans": "샌즈",
+  "@readerFontSans": {
+    "description": "Reader sans font option"
+  },
+  "readerFontMono": "모노",
+  "@readerFontMono": {
+    "description": "Reader mono font option"
+  },
+  "readerFontStack": "글꼴 스택 읽기",
+  "@readerFontStack": {
+    "description": "Reader custom font stack setting label"
+  },
+  "standardFont": "표준 글꼴",
+  "@standardFont": {
+    "description": "Standard reader font stack setting label"
+  },
+  "serifFont": "세리프 글꼴",
+  "@serifFont": {
+    "description": "Serif reader font stack setting label"
+  },
+  "sansSerifFont": "산세리프 글꼴",
+  "@sansSerifFont": {
+    "description": "Sans-serif reader font stack setting label"
+  },
+  "fixedWidthFont": "고정폭 글꼴",
+  "@fixedWidthFont": {
+    "description": "Fixed-width reader and code font stack setting label"
+  },
+  "mathFont": "수학 글꼴",
+  "@mathFont": {
+    "description": "Math font stack setting label"
+  },
+  "fontStackExample": "\"PingFang SC\", \"Noto Sans CJK SC\", system-ui, sans-serif",
+  "@fontStackExample": {
+    "description": "Example helper text for custom font stack input"
+  },
+  "monoFontStackExample": "\"SF Mono\", Menlo, Consolas, monospace",
+  "@monoFontStackExample": {
+    "description": "Example helper text for monospace font stack input"
+  },
+  "mathFontStackExample": "\"STIX Two Math\", \"Cambria Math\", serif",
+  "@mathFontStackExample": {
+    "description": "Example helper text for math font stack input"
+  },
+  "readerTheme": "질감 읽기",
+  "@readerTheme": {
+    "description": "Reader surface texture preset setting label"
+  },
+  "readerThemeDefault": "기본값",
+  "@readerThemeDefault": {
+    "description": "Default reader texture option"
+  },
+  "readerThemePaper": "종이",
+  "@readerThemePaper": {
+    "description": "Paper reader texture option"
+  },
+  "readerThemeSepia": "세피아",
+  "@readerThemeSepia": {
+    "description": "Sepia reader texture option"
+  },
+  "readerThemeDim": "소프트 그레이",
+  "@readerThemeDim": {
+    "description": "Soft gray reader texture option"
+  },
+  "readingWidth": "독서 폭",
+  "@readingWidth": {
+    "description": "Reader content width setting label"
+  },
+  "readingWidthNarrow": "좁다",
+  "@readingWidthNarrow": {
+    "description": "Narrow reader content width option"
+  },
+  "readingWidthStandard": "표준",
+  "@readingWidthStandard": {
+    "description": "Standard reader content width option"
+  },
+  "readingWidthWide": "와이드",
+  "@readingWidthWide": {
+    "description": "Wide reader content width option"
+  },
+  "codeFontFamily": "코드 글꼴",
+  "@codeFontFamily": {
+    "description": "Code font family setting label"
+  },
+  "codeFontSystemMono": "시스템 모노",
+  "@codeFontSystemMono": {
+    "description": "Code system monospace font option"
+  },
+  "codeFontStack": "코드 글꼴 스택",
+  "@codeFontStack": {
+    "description": "Code custom font stack setting label"
+  },
+  "codeFontSize": "코드 글꼴 크기",
+  "@codeFontSize": {
+    "description": "Code font size setting label"
+  },
+  "codeFontSizeFollowReader": "신체 따르기",
+  "@codeFontSizeFollowReader": {
+    "description": "Code font size follows reader body option"
+  },
+  "codeFontSizeOneStepDown": "한 단계 아래로",
+  "@codeFontSizeOneStepDown": {
+    "description": "Code font size one step smaller than reader body option"
+  },
+  "codeLineHeight": "코드 줄 높이",
+  "@codeLineHeight": {
+    "description": "Code line height setting label"
+  },
+  "codeSoftWrap": "코드 줄 바꿈",
+  "@codeSoftWrap": {
+    "description": "Code soft wrap setting label"
+  },
+  "storage": "저장",
+  "@storage": {
+    "description": "storage"
+  },
+  "clearImageCache": "이미지 캐시 지우기",
+  "@clearImageCache": {
+    "description": "clearImageCache"
+  },
+  "clearImageCacheSubtitle": "오프라인 읽기에 사용되는 캐시된 이미지 제거",
+  "@clearImageCacheSubtitle": {
+    "description": "clearImageCacheSubtitle"
+  },
+  "cacheCleared": "캐시를 지웠습니다",
+  "@cacheCleared": {
+    "description": "cacheCleared"
+  },
+  "subscriptions": "구독 피드",
+  "@subscriptions": {
+    "description": "subscriptions"
+  },
+  "defaultsGroup": "글로벌",
+  "@defaultsGroup": {
+    "description": "Section label for default settings entries"
+  },
+  "folders": "구독",
+  "@folders": {
+    "description": "Section label for subscription folders"
+  },
+  "globalDefaults": "전역 기본값",
+  "@globalDefaults": {
+    "description": "Entry label for subscription-wide default settings"
+  },
+  "allSubscriptions": "모든 구독",
+  "@allSubscriptions": {
+    "description": "Entry label for the full subscription scope"
+  },
+  "manage": "관리하다",
+  "@manage": {
+    "description": "Toolbar label for the management actions menu"
+  },
+  "overview": "개요",
+  "@overview": {
+    "description": "Overview section label"
+  },
+  "categoriesLabel": "카테고리",
+  "@categoriesLabel": {
+    "description": "Summary label for categories count"
+  },
+  "globalDefaultsDescription": "폴더 또는 구독이 설정을 재정의하지 않을 때 적용됩니다.",
+  "@globalDefaultsDescription": {
+    "description": "Description shown for the global defaults pane"
+  },
+  "allSubscriptionsDescription": "전체 구독 구조를 검토하고 편집할 구독을 선택하세요.",
+  "@allSubscriptionsDescription": {
+    "description": "Description shown for the all subscriptions overview"
+  },
+  "uncategorizedDescription": "폴더가 없는 구독은 재정의될 때까지 전역 기본값을 상속합니다.",
+  "@uncategorizedDescription": {
+    "description": "Description shown for the uncategorized overview"
+  },
+  "tags": "태그",
+  "@tags": {
+    "description": "tags"
+  },
+  "all": "모든 기사",
+  "@all": {
+    "description": "all"
+  },
+  "uncategorized": "분류되지 않음",
+  "@uncategorized": {
+    "description": "uncategorized"
+  },
+  "refreshAll": "소스 새로 고침",
+  "@refreshAll": {
+    "description": "refreshAll"
+  },
+  "refreshFeed": "피드 새로 고침",
+  "@refreshFeed": {
+    "description": "Tooltip for refreshing the currently selected feed"
+  },
+  "refreshCategory": "카테고리 새로고침",
+  "@refreshCategory": {
+    "description": "Tooltip for refreshing the currently selected category"
+  },
+  "refreshFeedAndSync": "피드 새로 고침 및 동기화",
+  "@refreshFeedAndSync": {
+    "description": "Tooltip for refreshing the selected remote feed source and syncing the account"
+  },
+  "refreshCategoryAndSync": "카테고리 새로고침 및 동기화",
+  "@refreshCategoryAndSync": {
+    "description": "Tooltip for refreshing selected remote category sources and syncing the account"
+  },
+  "refreshSourcesAndSync": "소스 새로고침 및 동기화",
+  "@refreshSourcesAndSync": {
+    "description": "Tooltip for refreshing remote subscription sources and syncing the account"
+  },
+  "accountSync": "계정 동기화",
+  "@accountSync": {
+    "description": "accountSync"
+  },
+  "accountSyncSubtitle": "이 원격 계정을 백그라운드에서 동기화하세요.",
+  "@accountSyncSubtitle": {
+    "description": "accountSyncSubtitle"
+  },
+  "syncAccount": "계정 동기화",
+  "@syncAccount": {
+    "description": "syncAccount"
+  },
+  "syncingAccount": "계정 동기화 중...",
+  "@syncingAccount": {
+    "description": "syncingAccount"
+  },
+  "syncedAccount": "계정 동기화됨",
+  "@syncedAccount": {
+    "description": "syncedAccount"
+  },
+  "refreshSelected": "새로고침 선택됨",
+  "@refreshSelected": {
+    "description": "refreshSelected"
+  },
+  "importOpml": "OPML 가져오기",
+  "@importOpml": {
+    "description": "importOpml"
+  },
+  "opmlParseFailed": "잘못된 OPML 파일",
+  "@opmlParseFailed": {
+    "description": "opmlParseFailed"
+  },
+  "exportOpml": "OPML 내보내기",
+  "@exportOpml": {
+    "description": "exportOpml"
+  },
+  "addSubscription": "구독 추가",
+  "@addSubscription": {
+    "description": "addSubscription"
+  },
+  "selectCategory": "카테고리를 선택하세요",
+  "@selectCategory": {
+    "description": "selectCategory"
+  },
+  "loadingCategories": "카테고리 로드 중...",
+  "@loadingCategories": {
+    "description": "loadingCategories"
+  },
+  "creatingCategory": "카테고리 생성 중...",
+  "@creatingCategory": {
+    "description": "creatingCategory"
+  },
+  "feverAddSubscriptionNotSupported": "Fever 계정은 구독 추가를 지원하지 않습니다. 서버에서 구독을 관리하세요.",
+  "@feverAddSubscriptionNotSupported": {
+    "description": "feverAddSubscriptionNotSupported"
+  },
+  "remoteCommandRequiresConnectivity": "이 작업을 수행하려면 원격 서비스에 연결해야 합니다.",
+  "@remoteCommandRequiresConnectivity": {
+    "description": "Shown when a remote-backed structure command needs online access."
+  },
+  "remoteCommandRequiresAuthentication": "원격 서비스가 현재 계정 자격 증명을 거부했습니다. 계정 설정을 확인하고 다시 시도하세요.",
+  "@remoteCommandRequiresAuthentication": {
+    "description": "Shown when a remote-backed structure command fails because the current credentials are invalid or missing."
+  },
+  "remoteCommandNeedsRefresh": "원격 서비스가 현재 피드 또는 카테고리와 일치하지 않습니다. 동기화하고 다시 시도하세요.",
+  "@remoteCommandNeedsRefresh": {
+    "description": "Shown when a remote-backed structure command cannot resolve the current remote target."
+  },
+  "remoteCommandRejected": "원격 서비스가 이 작업을 거부했습니다. 요청을 검토한 후 다시 시도하세요.",
+  "@remoteCommandRejected": {
+    "description": "Shown when a remote-backed structure command is rejected by the remote service for request-specific reasons."
+  },
+  "remoteCommandUnavailable": "원격 서비스가 지금은 이 작업을 완료할 수 없습니다. 나중에 다시 시도하세요.",
+  "@remoteCommandUnavailable": {
+    "description": "Shown when a remote-backed structure command fails because the remote service is temporarily unavailable."
+  },
+  "remoteCommandNotSupported": "이 원격 계정은 이 작업을 지원하지 않습니다.",
+  "@remoteCommandNotSupported": {
+    "description": "Shown when the active remote provider cannot perform a structure-management command."
+  },
+  "remoteCommandRequiresCategory": "이 원격 계정에는 구독을 위한 서버 측 범주가 필요합니다.",
+  "@remoteCommandRequiresCategory": {
+    "description": "Shown when a remote-backed feed cannot be moved to an uncategorized state."
+  },
+  "newCategory": "새로운 카테고리",
+  "@newCategory": {
+    "description": "newCategory"
+  },
+  "articles": "기사",
+  "@articles": {
+    "description": "articles"
+  },
+  "unread": "읽지 않음",
+  "@unread": {
+    "description": "unread"
+  },
+  "refreshConcurrency": "동시성 새로 고침",
+  "@refreshConcurrency": {
+    "description": "refreshConcurrency"
+  },
+  "refreshingProgress": "{current}/{total} 새로 고치는 중...",
+  "@refreshingProgress": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "markAllRead": "모두 읽은 것으로 표시",
+  "@markAllRead": {
+    "description": "markAllRead"
+  },
+  "fullText": "본문",
+  "@fullText": {
+    "description": "fullText"
+  },
+  "fullTextRetry": "본문을 가져오지 못했습니다. 다시 시도",
+  "@fullTextRetry": {
+    "description": "fullTextRetry"
+  },
+  "readerSettings": "리더 설정",
+  "@readerSettings": {
+    "description": "readerSettings"
+  },
+  "done": "완료",
+  "@done": {
+    "description": "done"
+  },
+  "more": "더보기",
+  "@more": {
+    "description": "more"
+  },
+  "showAll": "모두 표시",
+  "@showAll": {
+    "description": "showAll"
+  },
+  "unreadOnly": "읽지 않은 것만",
+  "@unreadOnly": {
+    "description": "unreadOnly"
+  },
+  "selectAnArticle": "기사를 선택하세요",
+  "@selectAnArticle": {
+    "description": "selectAnArticle"
+  },
+  "readerEmptySubtitle": "여기에서 읽으려면 목록에서 기사를 엽니다.",
+  "@readerEmptySubtitle": {
+    "description": "Reader pane helper text when no article is selected"
+  },
+  "savedReaderEmptyTitle": "저장된 기사 선택",
+  "@savedReaderEmptyTitle": {
+    "description": "Reader pane title when the saved section has no selected article"
+  },
+  "savedReaderEmptySubtitle": "저장됨 또는 나중에 읽기에서 기사를 엽니다.",
+  "@savedReaderEmptySubtitle": {
+    "description": "Reader pane helper text for the saved section"
+  },
+  "searchReaderEmptyTitle": "검색결과를 선택하세요",
+  "@searchReaderEmptyTitle": {
+    "description": "Reader pane title when the search section has no selected article"
+  },
+  "searchReaderEmptySubtitle": "키워드를 입력한 다음 목록에서 결과를 엽니다.",
+  "@searchReaderEmptySubtitle": {
+    "description": "Reader pane helper text for the search section"
+  },
+  "errorMessage": "오류: {error}",
+  "@errorMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    },
+    "description": "errorMessage"
+  },
+  "unreadCountError": "읽지 않은 수를 가져오지 못했습니다: {error}",
+  "@unreadCountError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    },
+    "description": "unreadCountError"
+  },
+  "refreshed": "새로 고침",
+  "@refreshed": {
+    "description": "refreshed"
+  },
+  "refreshedAll": "모두 새로고침",
+  "@refreshedAll": {
+    "description": "refreshedAll"
+  },
+  "refreshedAndSynced": "새로고침 및 동기화됨",
+  "@refreshedAndSynced": {
+    "description": "Shown after refreshing remote sources and syncing the account"
+  },
+  "add": "추가",
+  "@add": {
+    "description": "add"
+  },
+  "cancel": "취소",
+  "@cancel": {
+    "description": "cancel"
+  },
+  "create": "만들기",
+  "@create": {
+    "description": "create"
+  },
+  "delete": "삭제",
+  "@delete": {
+    "description": "delete"
+  },
+  "deleted": "삭제됨",
+  "@deleted": {
+    "description": "deleted"
+  },
+  "rssAtomUrl": "RSS/Atom URL",
+  "@rssAtomUrl": {
+    "description": "rssAtomUrl"
+  },
+  "feedOrWebsiteUrl": "피드 또는 웹사이트 URL",
+  "@feedOrWebsiteUrl": {
+    "description": "feedOrWebsiteUrl"
+  },
+  "feedOrWebsiteUrlHint": "웹사이트 또는 RSS URL 붙여넣기",
+  "@feedOrWebsiteUrlHint": {
+    "description": "Helper text for the add subscription URL field"
+  },
+  "findFeeds": "피드 찾기",
+  "@findFeeds": {
+    "description": "Button label for discovering RSS/Atom feeds from a URL"
+  },
+  "discoveringFeeds": "피드 찾는 중...",
+  "@discoveringFeeds": {
+    "description": "discoveringFeeds"
+  },
+  "addingSubscription": "구독 추가 중...",
+  "@addingSubscription": {
+    "description": "addingSubscription"
+  },
+  "selectFeed": "피드 선택",
+  "@selectFeed": {
+    "description": "selectFeed"
+  },
+  "noFeedsFound": "피드를 찾을 수 없음",
+  "@noFeedsFound": {
+    "description": "noFeedsFound"
+  },
+  "noFeedsFoundHint": "RSS/Atom URL을 직접 붙여넣거나 사이트의 다른 페이지를 시도해 보세요.",
+  "@noFeedsFoundHint": {
+    "description": "Inline hint shown when feed discovery finds no candidates"
+  },
+  "subscriptionPreview": "소스 미리보기",
+  "@subscriptionPreview": {
+    "description": "Section title for the selected subscription source preview"
+  },
+  "subscriptionResultsFound": "{count, plural, =1{구독 소스 1개 발견} other{구독 소스 {count}개 발견}}",
+  "@subscriptionResultsFound": {
+    "description": "Section title for discovered subscription result rows",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "subscriptionPreviewUnavailable": "사용 가능한 최근 미리보기 항목이 없습니다.",
+  "@subscriptionPreviewUnavailable": {
+    "description": "Placeholder text when a discovered feed has no preview items"
+  },
+  "feedSourceDirect": "RSS/Atom URL",
+  "@feedSourceDirect": {
+    "description": "Label for a feed discovered because the input URL is itself a feed"
+  },
+  "feedSourceAlternate": "페이지에서 발견됨",
+  "@feedSourceAlternate": {
+    "description": "Label for a feed discovered from HTML alternate/feed links"
+  },
+  "feedSourceCommonPath": "일반 피드 경로",
+  "@feedSourceCommonPath": {
+    "description": "Label for a feed discovered by probing common RSS paths"
+  },
+  "name": "이름",
+  "@name": {
+    "description": "name"
+  },
+  "addedAndSynced": "추가 및 동기화됨",
+  "@addedAndSynced": {
+    "description": "addedAndSynced"
+  },
+  "subscriptionAddedTitle": "구독이 추가되었습니다",
+  "@subscriptionAddedTitle": {
+    "description": "Success panel title after adding a subscription"
+  },
+  "subscriptionAddedMessage": "구독이 추가되었습니다. 지금 열거나 계속 추가할 수 있습니다.",
+  "@subscriptionAddedMessage": {
+    "description": "Success panel message after adding a subscription"
+  },
+  "subscriptionRefreshWarning": "구독이 추가되었지만 첫 번째 새로 고침이 실패했습니다. 나중에 새로고침을 다시 시도할 수 있습니다.",
+  "@subscriptionRefreshWarning": {
+    "description": "Warning shown when adding a subscription succeeds but the initial refresh fails"
+  },
+  "subscriptionAlreadyExistsTitle": "이미 구독 중입니다",
+  "@subscriptionAlreadyExistsTitle": {
+    "description": "Panel title when the feed already exists"
+  },
+  "subscriptionAlreadyExistsMessage": "이 피드는 이미 구독정보에 있습니다. 카테고리가 변경되지 않았습니다.",
+  "@subscriptionAlreadyExistsMessage": {
+    "description": "Panel message when the feed already exists"
+  },
+  "viewSubscription": "구독 보기",
+  "@viewSubscription": {
+    "description": "Button label for opening a newly added or existing subscription"
+  },
+  "continueAddingSubscription": "계속 추가",
+  "@continueAddingSubscription": {
+    "description": "Button label for resetting the add subscription form"
+  },
+  "moveToCurrentCategory": "현재 카테고리로 이동",
+  "@moveToCurrentCategory": {
+    "description": "Button label for moving an existing subscription into the category from which add subscription was opened"
+  },
+  "deleteSubscription": "구독 삭제",
+  "@deleteSubscription": {
+    "description": "deleteSubscription"
+  },
+  "deleteSubscriptionConfirmTitle": "구독을 삭제하시겠습니까?",
+  "@deleteSubscriptionConfirmTitle": {
+    "description": "deleteSubscriptionConfirmTitle"
+  },
+  "deleteSubscriptionConfirmContent": "캐시된 기사도 삭제됩니다.",
+  "@deleteSubscriptionConfirmContent": {
+    "description": "deleteSubscriptionConfirmContent"
+  },
+  "makeAvailableOffline": "오프라인에서 사용 가능",
+  "@makeAvailableOffline": {
+    "description": "makeAvailableOffline"
+  },
+  "deleteCategory": "카테고리 삭제",
+  "@deleteCategory": {
+    "description": "deleteCategory"
+  },
+  "deleteCategoryConfirmTitle": "카테고리를 삭제하시겠습니까?",
+  "@deleteCategoryConfirmTitle": {
+    "description": "deleteCategoryConfirmTitle"
+  },
+  "deleteCategoryConfirmContent": "이 카테고리의 피드는 분류되지 않음으로 이동됩니다.",
+  "@deleteCategoryConfirmContent": {
+    "description": "deleteCategoryConfirmContent"
+  },
+  "remoteDeleteCategoryConfirmContent": "원격 서비스에서 이 범주를 삭제한 다음 로컬 미러를 조정하십시오.",
+  "@remoteDeleteCategoryConfirmContent": {
+    "description": "Confirmation text for deleting a remote-backed category."
+  },
+  "remoteWritableTaxonomyTitle": "원격 카테고리",
+  "@remoteWritableTaxonomyTitle": {
+    "description": "Title for writable remote taxonomy/category semantics."
+  },
+  "remoteWritableTaxonomyDescription": "범주 변경 사항은 원격 서비스에 적용된 다음 로컬로 미러링됩니다.",
+  "@remoteWritableTaxonomyDescription": {
+    "description": "Description for writable remote taxonomy/category semantics."
+  },
+  "remoteReadOnlyTaxonomyTitle": "읽기 전용 원격 그룹",
+  "@remoteReadOnlyTaxonomyTitle": {
+    "description": "Title for read-only remote taxonomy/group mirror semantics."
+  },
+  "remoteReadOnlyTaxonomyDescription": "이러한 범주는 읽기 전용 원격 그룹을 미러링합니다. 원격 서비스의 항목 이름을 바꾸거나 삭제하거나 이동합니다.",
+  "@remoteReadOnlyTaxonomyDescription": {
+    "description": "Description for read-only remote taxonomy/group mirror semantics."
+  },
+  "feedCategoryReadOnlyTaxonomyTitle": "원격으로 관리되는 카테고리",
+  "@feedCategoryReadOnlyTaxonomyTitle": {
+    "description": "Title for a feed whose category assignment is managed by a read-only remote taxonomy mirror."
+  },
+  "feedCategoryReadOnlyTaxonomyDescription": "이 피드의 카테고리는 읽기 전용 원격 그룹 미러에서 제공됩니다.",
+  "@feedCategoryReadOnlyTaxonomyDescription": {
+    "description": "Description for a feed whose category assignment is managed by a read-only remote taxonomy mirror."
+  },
+  "deleteTagConfirmTitle": "태그를 삭제하시겠습니까?",
+  "@deleteTagConfirmTitle": {
+    "description": "deleteTagConfirmTitle"
+  },
+  "deleteTagConfirmContent": "그러면 모든 기사에서 해당 내용이 제거됩니다.",
+  "@deleteTagConfirmContent": {
+    "description": "deleteTagConfirmContent"
+  },
+  "categoryDeleted": "카테고리가 삭제되었습니다.",
+  "@categoryDeleted": {
+    "description": "categoryDeleted"
+  },
+  "refresh": "새로고침",
+  "@refresh": {
+    "description": "refresh"
+  },
+  "moveToCategory": "카테고리로 이동",
+  "@moveToCategory": {
+    "description": "moveToCategory"
+  },
+  "noFeedsFoundInOpml": "OPML에 피드가 없습니다.",
+  "@noFeedsFoundInOpml": {
+    "description": "noFeedsFoundInOpml"
+  },
+  "importedFeeds": "피드 {count}개를 가져왔습니다",
+  "@importedFeeds": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    },
+    "description": "importedFeeds"
+  },
+  "exportedOpml": "OPML을(를) 내보냈습니다.",
+  "@exportedOpml": {
+    "description": "exportedOpml"
+  },
+  "fullTextFailed": "본문을 가져오지 못했습니다: {error}",
+  "@fullTextFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    },
+    "description": "fullTextFailed"
+  },
+  "scrollToLoadMore": "더 로드하려면 스크롤하세요.",
+  "@scrollToLoadMore": {
+    "description": "scrollToLoadMore"
+  },
+  "noArticles": "기사 없음",
+  "@noArticles": {
+    "description": "noArticles"
+  },
+  "noStarredArticles": "아직 별표표시된 기사가 없습니다.",
+  "@noStarredArticles": {
+    "description": "Empty state message for the starred articles view"
+  },
+  "noReadLaterArticles": "아직 나중에 읽을 기사가 없습니다.",
+  "@noReadLaterArticles": {
+    "description": "Empty state message for the read-later articles view"
+  },
+  "noUnreadArticles": "읽지 않은 기사 없음",
+  "@noUnreadArticles": {
+    "description": "noUnreadArticles"
+  },
+  "articleListEmptySubtitle": "구독을 추가하거나 소스를 새로 고치면 여기에 기사가 표시됩니다.",
+  "@articleListEmptySubtitle": {
+    "description": "Article list empty state helper text when there are no articles"
+  },
+  "unreadEmptySubtitle": "현재 범위의 모든 내용을 읽었습니다.",
+  "@unreadEmptySubtitle": {
+    "description": "Article list empty state helper text when the unread filter has no results"
+  },
+  "savedSearchEmptySubtitle": "이 검색과 일치하는 저장된 기사가 없습니다.",
+  "@savedSearchEmptySubtitle": {
+    "description": "Saved section empty state helper text when searching saved articles has no results"
+  },
+  "star": "별표 표시",
+  "@star": {
+    "description": "star"
+  },
+  "unstar": "별표 해제",
+  "@unstar": {
+    "description": "unstar"
+  },
+  "starred": "별표",
+  "@starred": {
+    "description": "starred"
+  },
+  "readLater": "나중에 읽기",
+  "@readLater": {
+    "description": "readLater"
+  },
+  "removeReadLater": "나중에 읽기에서 제거",
+  "@removeReadLater": {
+    "description": "Action label for removing an article from the read-later list"
+  },
+  "openArticle": "기사 열기",
+  "@openArticle": {
+    "description": "Action label for opening an article from a list"
+  },
+  "markRead": "읽은 것으로 표시",
+  "@markRead": {
+    "description": "markRead"
+  },
+  "markUnread": "읽지 않은 것으로 표시",
+  "@markUnread": {
+    "description": "markUnread"
+  },
+  "collapse": "접기",
+  "@collapse": {
+    "description": "collapse"
+  },
+  "expand": "펼치기",
+  "@expand": {
+    "description": "expand"
+  },
+  "openInBrowser": "브라우저에서 열기",
+  "@openInBrowser": {
+    "description": "openInBrowser"
+  },
+  "copyLink": "링크 복사",
+  "@copyLink": {
+    "description": "copyLink"
+  },
+  "copiedToClipboard": "클립보드에 복사됨",
+  "@copiedToClipboard": {
+    "description": "copiedToClipboard"
+  },
+  "share": "공유",
+  "@share": {
+    "description": "share"
+  },
+  "autoMarkRead": "열면 읽음으로 자동 표시",
+  "@autoMarkRead": {
+    "description": "autoMarkRead"
+  },
+  "search": "검색",
+  "@search": {
+    "description": "search"
+  },
+  "searchInContent": "콘텐츠에서 검색",
+  "@searchInContent": {
+    "description": "searchInContent"
+  },
+  "clearSearch": "검색 지우기",
+  "@clearSearch": {
+    "description": "Action label for clearing article search text"
+  },
+  "searchStartTitle": "검색 시작",
+  "@searchStartTitle": {
+    "description": "Search page empty state title before the user enters a query"
+  },
+  "searchStartSubtitle": "제목, 요약, 내용을 검색하려면 키워드를 입력하세요.",
+  "@searchStartSubtitle": {
+    "description": "Search page empty state helper text before the user enters a query"
+  },
+  "searchNoResultsSubtitle": "“{query}”과(와) 일치하는 기사가 없습니다.",
+  "@searchNoResultsSubtitle": {
+    "description": "Search page empty state helper text when a query has no results",
+    "placeholders": {
+      "query": {}
+    }
+  },
+  "articleNotFoundSubtitle": "이 기사는 삭제되었거나 더 이상 로컬에서 사용할 수 없습니다.",
+  "@articleNotFoundSubtitle": {
+    "description": "Reader helper text when an article id cannot be found"
+  },
+  "findInPage": "페이지에서 찾기",
+  "@findInPage": {
+    "description": "findInPage"
+  },
+  "previousMatch": "이전 경기",
+  "@previousMatch": {
+    "description": "previousMatch"
+  },
+  "nextMatch": "다음 경기",
+  "@nextMatch": {
+    "description": "nextMatch"
+  },
+  "caseSensitive": "대소문자 구분",
+  "@caseSensitive": {
+    "description": "caseSensitive"
+  },
+  "close": "닫기",
+  "@close": {
+    "description": "close"
+  },
+  "groupingAndSorting": "그룹화 및 정렬",
+  "@groupingAndSorting": {
+    "description": "groupingAndSorting"
+  },
+  "groupBy": "그룹화 기준",
+  "@groupBy": {
+    "description": "groupBy"
+  },
+  "groupNone": "없음",
+  "@groupNone": {
+    "description": "groupNone"
+  },
+  "groupByDay": "일",
+  "@groupByDay": {
+    "description": "groupByDay"
+  },
+  "sortOrder": "정렬 순서",
+  "@sortOrder": {
+    "description": "sortOrder"
+  },
+  "sortNewestFirst": "최신순",
+  "@sortNewestFirst": {
+    "description": "sortNewestFirst"
+  },
+  "sortOldestFirst": "오래된 것부터",
+  "@sortOldestFirst": {
+    "description": "sortOldestFirst"
+  },
+  "enabled": "활성화됨",
+  "@enabled": {
+    "description": "enabled"
+  },
+  "rename": "이름 바꾸기",
+  "@rename": {
+    "description": "rename"
+  },
+  "edit": "편집",
+  "@edit": {
+    "description": "edit"
+  },
+  "nameAlreadyExists": "이름이 이미 존재합니다.",
+  "@nameAlreadyExists": {
+    "description": "nameAlreadyExists"
+  },
+  "lastChecked": "마지막 확인",
+  "@lastChecked": {
+    "description": "lastChecked"
+  },
+  "lastSynced": "마지막 동기화",
+  "@lastSynced": {
+    "description": "lastSynced"
+  },
+  "never": "절대로",
+  "@never": {
+    "description": "never"
+  },
+  "cleanupReadArticles": "읽기 기사 정리",
+  "@cleanupReadArticles": {
+    "description": "cleanupReadArticles"
+  },
+  "cleanupNow": "정리 실행",
+  "@cleanupNow": {
+    "description": "cleanupNow"
+  },
+  "cachingArticles": "기사 {count}개를 캐시하는 중...",
+  "@cachingArticles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "manageTags": "태그 관리",
+  "@manageTags": {
+    "description": "manageTags"
+  },
+  "newTag": "새 태그",
+  "@newTag": {
+    "description": "newTag"
+  },
+  "tagColor": "태그 색상",
+  "@tagColor": {
+    "description": "tagColor"
+  },
+  "autoColor": "자동",
+  "@autoColor": {
+    "description": "autoColor"
+  },
+  "tagsLoadingError": "태그를 로드하는 중에 오류가 발생했습니다.",
+  "@tagsLoadingError": {
+    "description": "Error message displayed when tags fail to load in the dialog"
+  },
+  "cleanedArticles": "기사 {count}개를 정리했습니다",
+  "@cleanedArticles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    },
+    "description": "cleanedArticles"
+  },
+  "days": "{days}일",
+  "@days": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    },
+    "description": "days"
+  },
+  "services": "서비스",
+  "@services": {
+    "description": "services"
+  },
+  "account": "계정",
+  "@account": {
+    "description": "account"
+  },
+  "addOrRegisterAccount": "계정 추가 또는 등록",
+  "@addOrRegisterAccount": {
+    "description": "Action label for adding or registering an account"
+  },
+  "local": "지역",
+  "@local": {
+    "description": "local"
+  },
+  "miniflux": "Miniflux",
+  "@miniflux": {
+    "description": "miniflux"
+  },
+  "fever": "Fever",
+  "@fever": {
+    "description": "fever"
+  },
+  "addLocal": "로컬 추가",
+  "@addLocal": {
+    "description": "addLocal"
+  },
+  "addLocalAccount": "로컬 계정 추가",
+  "@addLocalAccount": {
+    "description": "addLocalAccount"
+  },
+  "addMiniflux": "Miniflux 추가",
+  "@addMiniflux": {
+    "description": "addMiniflux"
+  },
+  "addGoogleReaderApi": "Google Reader API 추가",
+  "@addGoogleReaderApi": {
+    "description": "addGoogleReaderApi"
+  },
+  "googleReaderApi": "Google Reader API",
+  "@googleReaderApi": {
+    "description": "googleReaderApi"
+  },
+  "googleReaderCompatible": "Google Reader compatible service",
+  "@googleReaderCompatible": {
+    "description": "googleReaderCompatible"
+  },
+  "addFever": "Fever 추가",
+  "@addFever": {
+    "description": "addFever"
+  },
+  "minifluxStrategy": "Miniflux 전략",
+  "@minifluxStrategy": {
+    "description": "minifluxStrategy"
+  },
+  "minifluxStrategySubtitle": "동기화 중에 가져오거나 미리 가져오는 데이터의 양을 제어합니다.",
+  "@minifluxStrategySubtitle": {
+    "description": "minifluxStrategySubtitle"
+  },
+  "remoteSyncStrategy": "원격 동기화 전략",
+  "@remoteSyncStrategy": {
+    "description": "remoteSyncStrategy"
+  },
+  "remoteSyncStrategySubtitle": "동기화 중에 끌어온 원격 기사 창을 제어합니다.",
+  "@remoteSyncStrategySubtitle": {
+    "description": "remoteSyncStrategySubtitle"
+  },
+  "remoteSyncStrategyMinifluxSubtitle": "Miniflux은 이 동기화별 창까지 원격 항목을 통해 페이징할 수 있습니다.",
+  "@remoteSyncStrategyMinifluxSubtitle": {
+    "description": "remoteSyncStrategyMinifluxSubtitle"
+  },
+  "remoteSyncStrategyGoogleReaderSubtitle": "이 동기화 창까지 원격 스트림 항목을 통해 Google Reader 호환 서비스 페이지를 표시합니다.",
+  "@remoteSyncStrategyGoogleReaderSubtitle": {
+    "description": "remoteSyncStrategyGoogleReaderSubtitle"
+  },
+  "remoteSyncStrategyFeverSubtitle": "Fever은 읽지 않은 항목과 저장된 항목을 동기화하며 이 동기화별 창으로 제한됩니다.",
+  "@remoteSyncStrategyFeverSubtitle": {
+    "description": "remoteSyncStrategyFeverSubtitle"
+  },
+  "remoteEntriesLimit": "동기화당 항목",
+  "@remoteEntriesLimit": {
+    "description": "remoteEntriesLimit"
+  },
+  "remoteFetchConcurrency": "원격 가져오기 동시성",
+  "@remoteFetchConcurrency": {
+    "description": "remoteFetchConcurrency"
+  },
+  "remoteFetchConcurrencySubtitle": "계정 동기화 중 동시 원격 기사 일괄 요청을 제어합니다.",
+  "@remoteFetchConcurrencySubtitle": {
+    "description": "remoteFetchConcurrencySubtitle"
+  },
+  "minifluxWebFetchMode": "웹페이지 가져오기",
+  "@minifluxWebFetchMode": {
+    "description": "minifluxWebFetchMode"
+  },
+  "minifluxWebFetchModeSubtitle": "\"동기화 중 웹 페이지 다운로드\"가 활성화된 경우.",
+  "@minifluxWebFetchModeSubtitle": {
+    "description": "minifluxWebFetchModeSubtitle"
+  },
+  "minifluxWebFetchModeClient": "클라이언트(Readability)",
+  "@minifluxWebFetchModeClient": {
+    "description": "minifluxWebFetchModeClient"
+  },
+  "minifluxWebFetchModeServer": "서버(Miniflux 가져오기 콘텐츠)",
+  "@minifluxWebFetchModeServer": {
+    "description": "minifluxWebFetchModeServer"
+  },
+  "unlimited": "무제한",
+  "@unlimited": {
+    "description": "unlimited"
+  },
+  "fieldName": "이름",
+  "@fieldName": {
+    "description": "fieldName"
+  },
+  "nameRequired": "이름을 입력하세요",
+  "@nameRequired": {
+    "description": "Validation message shown when the name field is empty"
+  },
+  "baseUrl": "Base URL",
+  "@baseUrl": {
+    "description": "baseUrl"
+  },
+  "baseUrlRequired": "베이스 URL 입력",
+  "@baseUrlRequired": {
+    "description": "Validation message shown when the base URL field is empty"
+  },
+  "minifluxBaseUrlHint": "https://miniflux.example.com",
+  "@minifluxBaseUrlHint": {
+    "description": "minifluxBaseUrlHint"
+  },
+  "feverBaseUrlHint": "https://example.com/fever/",
+  "@feverBaseUrlHint": {
+    "description": "feverBaseUrlHint"
+  },
+  "apiToken": "API Token",
+  "@apiToken": {
+    "description": "apiToken"
+  },
+  "apiTokenRequired": "API 토큰을 입력하세요.",
+  "@apiTokenRequired": {
+    "description": "Validation message shown when the API token field is empty"
+  },
+  "apiKey": "API Key",
+  "@apiKey": {
+    "description": "apiKey"
+  },
+  "appId": "App ID",
+  "@appId": {
+    "description": "Label for App ID fields"
+  },
+  "appKey": "App Key",
+  "@appKey": {
+    "description": "Label for App Key fields"
+  },
+  "apiKeyRequired": "API 키를 입력하세요.",
+  "@apiKeyRequired": {
+    "description": "Validation message shown when the API key field is empty"
+  },
+  "authenticationMethod": "인증방법",
+  "@authenticationMethod": {
+    "description": "authenticationMethod"
+  },
+  "usernamePassword": "사용자 이름 및 비밀번호",
+  "@usernamePassword": {
+    "description": "usernamePassword"
+  },
+  "minifluxAuthHint": "API 토큰(권장) 또는 사용자 이름/비밀번호를 사용하세요.",
+  "@minifluxAuthHint": {
+    "description": "minifluxAuthHint"
+  },
+  "feverAuthHint": "API 키(권장) 또는 사용자 이름/비밀번호를 사용하세요.",
+  "@feverAuthHint": {
+    "description": "feverAuthHint"
+  },
+  "username": "사용자 이름",
+  "@username": {
+    "description": "username"
+  },
+  "usernameRequired": "사용자 이름을 입력하세요",
+  "@usernameRequired": {
+    "description": "Validation message shown when the username field is empty"
+  },
+  "password": "비밀번호",
+  "@password": {
+    "description": "password"
+  },
+  "passwordRequired": "비밀번호를 입력하세요",
+  "@passwordRequired": {
+    "description": "Validation message shown when the password field is empty"
+  },
+  "defaultModel": "기본 모델",
+  "@defaultModel": {
+    "description": "Label for the default model field in the AI service editor"
+  },
+  "savedApiKeyClearHint": "저장된 API 키를 지우려면 공백으로 남겨두세요.",
+  "@savedApiKeyClearHint": {
+    "description": "Helper text explaining that an empty API key field clears the saved value"
+  },
+  "savedCredentialsClearHint": "저장된 자격 증명을 지우려면 비워 두세요.",
+  "@savedCredentialsClearHint": {
+    "description": "Helper text explaining that empty credential fields clear the saved values"
+  },
+  "aiServicesEmptyState": "아직 AI 서비스가 추가되지 않았습니다.",
+  "@aiServicesEmptyState": {
+    "description": "Empty state shown when no custom AI services have been configured"
+  },
+  "modelSummary": "모델: {model}",
+  "@modelSummary": {
+    "description": "Summary text showing the configured model for an AI service",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "show": "쇼",
+  "@show": {
+    "description": "show"
+  },
+  "hide": "숨기기",
+  "@hide": {
+    "description": "hide"
+  },
+  "missingRequiredFields": "필수 입력란이 누락되었습니다.",
+  "@missingRequiredFields": {
+    "description": "missingRequiredFields"
+  },
+  "invalidBaseUrl": "잘못된 베이스 URL",
+  "@invalidBaseUrl": {
+    "description": "invalidBaseUrl"
+  },
+  "onlySupportedInLocalAccount": "로컬 계정에서만 지원됩니다.",
+  "@onlySupportedInLocalAccount": {
+    "description": "onlySupportedInLocalAccount"
+  },
+  "autoRefresh": "자동 소스 새로 고침",
+  "@autoRefresh": {
+    "description": "autoRefresh"
+  },
+  "autoRefreshSubtitle": "선택한 간격으로 구독 소스를 새로 고칩니다. 모바일 백그라운드 새로 고침은 시스템에 예약되어 있으며 일반적으로 15분 간격으로 이루어지며 정확한 시간에 실행되지 않을 수도 있습니다.",
+  "@autoRefreshSubtitle": {
+    "description": "autoRefreshSubtitle"
+  },
+  "off": "끄기",
+  "@off": {
+    "description": "off"
+  },
+  "everyMinutes": "{minutes}분마다",
+  "@everyMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    },
+    "description": "everyMinutes"
+  },
+  "appPreferences": "앱 설정",
+  "@appPreferences": {
+    "description": "appPreferences"
+  },
+  "about": "소개",
+  "@about": {
+    "description": "about"
+  },
+  "dataDirectory": "데이터 디렉토리",
+  "@dataDirectory": {
+    "description": "dataDirectory"
+  },
+  "copyPath": "경로 복사",
+  "@copyPath": {
+    "description": "copyPath"
+  },
+  "openFolder": "폴더 열기",
+  "@openFolder": {
+    "description": "openFolder"
+  },
+  "logDirectory": "로그 디렉터리",
+  "@logDirectory": {
+    "description": "logDirectory"
+  },
+  "openLog": "로그 열기",
+  "@openLog": {
+    "description": "openLog"
+  },
+  "openLogFolder": "로그 폴더 열기",
+  "@openLogFolder": {
+    "description": "openLogFolder"
+  },
+  "exportLogs": "로그 내보내기",
+  "@exportLogs": {
+    "description": "exportLogs"
+  },
+  "exportedLogs": "내보낸 로그",
+  "@exportedLogs": {
+    "description": "exportedLogs"
+  },
+  "noLogsFound": "로그 파일을 찾을 수 없습니다.",
+  "@noLogsFound": {
+    "description": "noLogsFound"
+  },
+  "keyboardShortcuts": "키보드 단축키",
+  "@keyboardShortcuts": {
+    "description": "keyboardShortcuts"
+  },
+  "version": "버전",
+  "@version": {
+    "description": "version"
+  },
+  "buildNumber": "빌드 번호",
+  "@buildNumber": {
+    "description": "buildNumber"
+  },
+  "versionAndBuild": "버전 {version} · 빌드 {buildNumber}",
+  "@versionAndBuild": {
+    "description": "Compact about-page app version and build label",
+    "placeholders": {
+      "version": {},
+      "buildNumber": {}
+    }
+  },
+  "checkForUpdates": "업데이트 확인",
+  "@checkForUpdates": {
+    "description": "Action label for manually checking app updates"
+  },
+  "checkingForUpdates": "확인 중...",
+  "@checkingForUpdates": {
+    "description": "Disabled action label while app update check is running"
+  },
+  "updateAvailable": "업데이트",
+  "@updateAvailable": {
+    "description": "Short app update entry label shown when a new version is available"
+  },
+  "upToDate": "최신 버전입니다",
+  "@upToDate": {
+    "description": "Status text shown after checking app updates"
+  },
+  "updateCheckFailed": "업데이트를 확인할 수 없습니다.",
+  "@updateCheckFailed": {
+    "description": "Error shown when checking app updates fails"
+  },
+  "newVersionAvailable": "새 버전 {version}을 사용할 수 있습니다",
+  "@newVersionAvailable": {
+    "description": "Title for the app update dialog",
+    "placeholders": {
+      "version": {}
+    }
+  },
+  "releaseNotes": "릴리스 노트",
+  "@releaseNotes": {
+    "description": "Heading for release notes in the app update dialog"
+  },
+  "goToOfficialUpdate": "릴리스 페이지 열기",
+  "@goToOfficialUpdate": {
+    "description": "Action label to open the official GitHub release page"
+  },
+  "openSourceLicense": "오픈소스 라이선스",
+  "@openSourceLicense": {
+    "description": "openSourceLicense"
+  },
+  "viewLicense": "라이선스 보기",
+  "@viewLicense": {
+    "description": "viewLicense"
+  },
+  "thirdPartyLicenses": "타사 라이센스",
+  "@thirdPartyLicenses": {
+    "description": "thirdPartyLicenses"
+  },
+  "viewThirdPartyLicenses": "모든 오픈소스 라이선스 보기",
+  "@viewThirdPartyLicenses": {
+    "description": "viewThirdPartyLicenses"
+  },
+  "licenseLoadFailed": "라이센스를 로드하지 못했습니다.",
+  "@licenseLoadFailed": {
+    "description": "Error shown when the app fails to load the bundled license text"
+  },
+  "mitLicenseName": "MIT 라이센스",
+  "@mitLicenseName": {
+    "description": "Name of the app's primary license"
+  },
+  "shortcutNextPreviousArticle": "J/K: 다음/이전 기사",
+  "@shortcutNextPreviousArticle": {
+    "description": "Keyboard shortcut help text for moving to the next or previous article"
+  },
+  "shortcutBackForwardHistory": "Alt + ← / Alt + →; macOS Cmd + [ / ]: 뒤로/앞으로 기록",
+  "@shortcutBackForwardHistory": {
+    "description": "Keyboard shortcut help text for navigating backward or forward through history"
+  },
+  "shortcutRefreshCurrentSelection": "R: 새로 고침(현재 선택)",
+  "@shortcutRefreshCurrentSelection": {
+    "description": "Keyboard shortcut help text for refreshing the current selection"
+  },
+  "shortcutToggleUnreadOnly": "U: 읽지 않은 상태로 전환",
+  "@shortcutToggleUnreadOnly": {
+    "description": "Keyboard shortcut help text for toggling the unread-only filter"
+  },
+  "shortcutToggleReadUnreadSelectedArticle": "M: 선택한 기사에 대해 읽음/읽지 않음을 전환합니다.",
+  "@shortcutToggleReadUnreadSelectedArticle": {
+    "description": "Keyboard shortcut help text for toggling read/unread on the selected article"
+  },
+  "shortcutToggleStarSelectedArticle": "S: 선택한 기사의 별표를 전환합니다.",
+  "@shortcutToggleStarSelectedArticle": {
+    "description": "Keyboard shortcut help text for toggling the star state on the selected article"
+  },
+  "shortcutSearchArticlesAndFindInPage": "Ctrl/Cmd+F: 기사 검색(목록); focus 페이지에서 찾기(리더)",
+  "@shortcutSearchArticlesAndFindInPage": {
+    "description": "Keyboard shortcut help text for searching articles or focusing find-in-page"
+  },
+  "filter": "필터",
+  "@filter": {
+    "description": "filter"
+  },
+  "filterKeywordsHint": "예약된 키워드 추가(\";\"로 구분, 여러 개는 \"+\"로 연결)",
+  "@filterKeywordsHint": {
+    "description": "filterKeywordsHint"
+  },
+  "sync": "동기화",
+  "@sync": {
+    "description": "sync"
+  },
+  "enableSync": "동기화 활성화",
+  "@enableSync": {
+    "description": "enableSync"
+  },
+  "enableFilter": "필터 활성화",
+  "@enableFilter": {
+    "description": "enableFilter"
+  },
+  "syncAlwaysEnabled": "항상 활성화됨(설정 - 동기화 - 동기화 모드는 \"모두\"임)",
+  "@syncAlwaysEnabled": {
+    "description": "syncAlwaysEnabled"
+  },
+  "syncImages": "동기화 중 이미지 다운로드",
+  "@syncImages": {
+    "description": "syncImages"
+  },
+  "syncWebPages": "동기화 중 웹 페이지 다운로드",
+  "@syncWebPages": {
+    "description": "syncWebPages"
+  },
+  "syncStatusSyncing": "동기화 중",
+  "@syncStatusSyncing": {
+    "description": "Sync status: syncing (generic)"
+  },
+  "syncStatusSyncingFeeds": "피드 동기화 중",
+  "@syncStatusSyncingFeeds": {
+    "description": "Sync status: syncing feeds"
+  },
+  "syncStatusSyncingSubscriptions": "구독 동기화 중",
+  "@syncStatusSyncingSubscriptions": {
+    "description": "Sync status: syncing subscriptions"
+  },
+  "syncStatusSyncingUnreadArticles": "읽지 않은 기사 동기화 중",
+  "@syncStatusSyncingUnreadArticles": {
+    "description": "Sync status: syncing unread articles"
+  },
+  "syncStatusUploadingChanges": "변경사항 업로드 중",
+  "@syncStatusUploadingChanges": {
+    "description": "Sync status: uploading local/outbox changes"
+  },
+  "syncStatusCompleted": "동기화 완료",
+  "@syncStatusCompleted": {
+    "description": "Sync status: completed"
+  },
+  "syncStatusFailed": "동기화 실패",
+  "@syncStatusFailed": {
+    "description": "Sync status: failed"
+  },
+  "showAiSummary": "요약 표시",
+  "@showAiSummary": {
+    "description": "showAiSummary"
+  },
+  "summary": "요약",
+  "@summary": {
+    "description": "summary"
+  },
+  "showImageTitle": "이미지 제목 표시",
+  "@showImageTitle": {
+    "description": "showImageTitle"
+  },
+  "showAttachedImage": "첨부된 이미지 표시",
+  "@showAttachedImage": {
+    "description": "showAttachedImage"
+  },
+  "htmlDecoding": "HTML decoding",
+  "@htmlDecoding": {
+    "description": "htmlDecoding"
+  },
+  "mobilizer": "Mobilizer",
+  "@mobilizer": {
+    "description": "mobilizer"
+  },
+  "inherit": "상속",
+  "@inherit": {
+    "description": "inherit"
+  },
+  "auto": "자동",
+  "@auto": {
+    "description": "auto"
+  },
+  "autoOn": "자동(켜짐)",
+  "@autoOn": {
+    "description": "autoOn"
+  },
+  "autoOff": "끄기",
+  "@autoOff": {
+    "description": "autoOff"
+  },
+  "defaultValue": "기본값",
+  "@defaultValue": {
+    "description": "defaultValue"
+  },
+  "defaultOption": "기본값",
+  "@defaultOption": {
+    "description": "Generic 'Default' option label"
+  },
+  "userAgent": "User-Agent",
+  "@userAgent": {
+    "description": "userAgent"
+  },
+  "rssUserAgent": "RSS/Atom User-Agent",
+  "@rssUserAgent": {
+    "description": "rssUserAgent"
+  },
+  "webUserAgent": "Web User-Agent",
+  "@webUserAgent": {
+    "description": "webUserAgent"
+  },
+  "userAgentRssHint": "RSS/Atom 피드를 가져올 때 사용됩니다.",
+  "@userAgentRssHint": {
+    "description": "userAgentRssHint"
+  },
+  "userAgentWebHint": "전체 웹페이지(Readability)를 가져올 때 사용됩니다.",
+  "@userAgentWebHint": {
+    "description": "userAgentWebHint"
+  },
+  "resetToDefault": "기본값으로 재설정",
+  "@resetToDefault": {
+    "description": "resetToDefault"
+  },
+  "notificationNewArticleTitle": "새 기사",
+  "@notificationNewArticleTitle": {
+    "description": "Notification title when exactly one new article is found"
+  },
+  "notificationNewArticlesTitle": "새로운 기사",
+  "@notificationNewArticlesTitle": {
+    "description": "Notification title when multiple new articles are found"
+  },
+  "notificationNewArticlesBody": "새 기사 {count}개를 찾았습니다",
+  "@notificationNewArticlesBody": {
+    "description": "Notification body when multiple new articles are found",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationNewArticlesChannelName": "새로운 기사",
+  "@notificationNewArticlesChannelName": {
+    "description": "Android notification channel name for new articles"
+  },
+  "notificationNewArticlesChannelDescription": "동기화 중에 발견된 새 기사에 대한 알림",
+  "@notificationNewArticlesChannelDescription": {
+    "description": "Android notification channel description for new articles"
+  },
+  "windowMinimize": "최소화",
+  "@windowMinimize": {
+    "description": "Tooltip for the window minimize button on desktop"
+  },
+  "windowMaximize": "최대화",
+  "@windowMaximize": {
+    "description": "Tooltip for the window maximize button on desktop"
+  },
+  "windowRestore": "복원",
+  "@windowRestore": {
+    "description": "Tooltip for the window restore button on desktop"
+  },
+  "windowClose": "닫기",
+  "@windowClose": {
+    "description": "Tooltip for the window close button on desktop"
+  },
+  "translationAndAiServices": "번역 및 AI",
+  "@translationAndAiServices": {
+    "description": "Settings tab for translation and AI services"
+  },
+  "translation": "번역",
+  "@translation": {
+    "description": "Translation section title"
+  },
+  "translationProvider": "번역 제공업체",
+  "@translationProvider": {
+    "description": "Setting title for selecting translation provider"
+  },
+  "aiServices": "AI 서비스",
+  "@aiServices": {
+    "description": "AI services section title"
+  },
+  "addAiService": "AI 서비스 추가",
+  "@addAiService": {
+    "description": "Button/title for adding an AI service"
+  },
+  "aiService": "AI 서비스",
+  "@aiService": {
+    "description": "Generic label for AI service"
+  },
+  "aiSummary": "AI 요약",
+  "@aiSummary": {
+    "description": "AI summary section title/label"
+  },
+  "aiSummaryService": "AI 요약 서비스",
+  "@aiSummaryService": {
+    "description": "Setting title for selecting AI summary service"
+  },
+  "targetLanguage": "대상 언어",
+  "@targetLanguage": {
+    "description": "Setting title for selecting target language"
+  },
+  "followAppLanguage": "앱 언어 따르기",
+  "@followAppLanguage": {
+    "description": "Option label for following the app language"
+  },
+  "translationProviderGoogleWeb": "Google Translate (web)",
+  "@translationProviderGoogleWeb": {
+    "description": "Display label for the Google web translation provider"
+  },
+  "translationProviderBingWeb": "Bing Translate (web)",
+  "@translationProviderBingWeb": {
+    "description": "Display label for the Bing web translation provider"
+  },
+  "translationProviderBaiduApi": "Baidu Translate (API)",
+  "@translationProviderBaiduApi": {
+    "description": "Display label for the Baidu API translation provider"
+  },
+  "translationProviderDeepLApi": "DeepL (API)",
+  "@translationProviderDeepLApi": {
+    "description": "Display label for the DeepL API translation provider"
+  },
+  "translationProviderDeepLX": "DeepLX",
+  "@translationProviderDeepLX": {
+    "description": "Display label for the DeepLX translation provider"
+  },
+  "translationProviderAiService": "AI: {name}",
+  "@translationProviderAiService": {
+    "description": "Display label for an AI-backed translation provider",
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "translationProviderBaiduApiSubtitle": "App ID / App Key 구성",
+  "@translationProviderBaiduApiSubtitle": {
+    "description": "Subtitle for configuring Baidu translation credentials"
+  },
+  "deepLXBaseUrlTitle": "DeepLX Base URL",
+  "@deepLXBaseUrlTitle": {
+    "description": "Dialog title for editing the DeepLX base URL"
+  },
+  "deepLEndpoint": "Endpoint",
+  "@deepLEndpoint": {
+    "description": "Label for the DeepL endpoint selection"
+  },
+  "deepLEndpointFree": "무료",
+  "@deepLEndpointFree": {
+    "description": "Label for the DeepL free endpoint"
+  },
+  "deepLEndpointPro": "프로",
+  "@deepLEndpointPro": {
+    "description": "Label for the DeepL pro endpoint"
+  },
+  "setAsDefault": "기본값으로 설정",
+  "@setAsDefault": {
+    "description": "Menu action for making an AI service the default one"
+  },
+  "defaultAlreadySet": "기본값(이미 설정됨)",
+  "@defaultAlreadySet": {
+    "description": "Menu label shown when an AI service is already the default one"
+  },
+  "aiSummaryPrompt": "AI 요약 프롬프트",
+  "@aiSummaryPrompt": {
+    "description": "Setting title for AI summary prompt template"
+  },
+  "aiTranslationPrompt": "AI 번역 프롬프트",
+  "@aiTranslationPrompt": {
+    "description": "Setting title for AI translation prompt template"
+  },
+  "defaultAiSummaryPromptTemplate": "이 기사를 {language}로 요약해 주세요(제목: {title}): {content}",
+  "@defaultAiSummaryPromptTemplate": {
+    "description": "Default AI summary prompt template",
+    "placeholders": {
+      "language": {},
+      "title": {},
+      "content": {}
+    }
+  },
+  "defaultAiTranslationPromptTemplate": "이 기사 일부를 {language}로 번역해 주세요(제목: {title}): {content}",
+  "@defaultAiTranslationPromptTemplate": {
+    "description": "Default AI translation prompt template (only used for AI translation)",
+    "placeholders": {
+      "language": {},
+      "title": {},
+      "content": {}
+    }
+  },
+  "promptVariables": "사용 가능한 변수",
+  "@promptVariables": {
+    "description": "Header for listing available prompt template variables"
+  },
+  "promptVariableContentDescription": "기사 내용",
+  "@promptVariableContentDescription": {
+    "description": "Description text for {{content}} variable"
+  },
+  "promptVariableLanguageDescription": "대상 언어",
+  "@promptVariableLanguageDescription": {
+    "description": "Description text for {{language}} variable"
+  },
+  "promptVariableTitleDescription": "기사 제목",
+  "@promptVariableTitleDescription": {
+    "description": "Description text for {{title}} variable"
+  },
+  "tpmLimit": "TPM limit",
+  "@tpmLimit": {
+    "description": "Tokens per minute limit setting"
+  },
+  "tpmLimitSubtitle": "0은 무제한을 의미합니다. 요청이 초과되면 대기열에 추가됩니다.",
+  "@tpmLimitSubtitle": {
+    "description": "Subtitle text explaining the TPM limit behavior"
+  },
+  "aiSummaryAction": "AI 요약",
+  "@aiSummaryAction": {
+    "description": "Action button label for generating AI summary"
+  },
+  "translateAction": "번역하다",
+  "@translateAction": {
+    "description": "Action button label for translating an article"
+  },
+  "translationMode": "번역 모드",
+  "@translationMode": {
+    "description": "Title for selecting translation mode"
+  },
+  "immersiveTranslation": "몰입형 번역",
+  "@immersiveTranslation": {
+    "description": "Option label for immersive (bilingual) translation mode"
+  },
+  "traditionalTranslation": "전통적인 번역",
+  "@traditionalTranslation": {
+    "description": "Option label for traditional (translated-only) translation mode"
+  },
+  "generating": "생성 중…",
+  "@generating": {
+    "description": "Generic loading state text for generating AI/translation"
+  },
+  "queued": "대기 중",
+  "@queued": {
+    "description": "Generic queued state text"
+  },
+  "regenerate": "재생성",
+  "@regenerate": {
+    "description": "Action label for regenerating AI/translation output"
+  },
+  "cachedPromptOutdated": "Prompt 업데이트됨; 새로 고치려면 재생성하세요.",
+  "@cachedPromptOutdated": {
+    "description": "Hint shown when cached content is outdated due to prompt changes"
+  },
+  "languageMismatchBanner": "콘텐츠가 {source}일 수 있습니다. 대상 언어는 {target}입니다.",
+  "@languageMismatchBanner": {
+    "description": "Banner text shown when article language differs from target language",
+    "placeholders": {
+      "source": {},
+      "target": {}
+    }
+  },
+  "dontRemindThisLanguage": "이 언어에 대해 알림 안 함",
+  "@dontRemindThisLanguage": {
+    "description": "Action label to disable language mismatch reminders for a source language"
+  },
+  "autoAiSummary": "자동 AI 요약",
+  "@autoAiSummary": {
+    "description": "Setting title for auto AI summary"
+  },
+  "autoTranslate": "자동 번역",
+  "@autoTranslate": {
+    "description": "Setting title for auto translation"
+  },
+  "aiNotConfigured": "AI 서비스가 구성되지 않았습니다.",
+  "@aiNotConfigured": {
+    "description": "Error message shown when no AI service is configured/enabled"
+  },
+  "translationNotAvailable": "선택한 제공업체에 대해서는 번역이 제공되지 않습니다.",
+  "@translationNotAvailable": {
+    "description": "Error message shown when the selected translation provider is not supported"
+  },
+  "clearTranslation": "명확한 번역",
+  "@clearTranslation": {
+    "description": "Action label to clear/hide the translated view"
+  },
+  "dbRecoveryTitle": "데이터베이스 복구",
+  "@dbRecoveryTitle": {
+    "description": "Title for the database recovery dialog"
+  },
+  "dbRecoveryDescription": "앱이 데이터베이스 문제를 감지하고 복구를 수행했습니다. 귀하의 데이터는 디스크에 보존되었습니다(백업/이동된 파일).",
+  "@dbRecoveryDescription": {
+    "description": "Description text shown in the database recovery dialog"
+  },
+  "dbRecoveryTimeLabel": "시간",
+  "@dbRecoveryTimeLabel": {
+    "description": "Label for the recovery time field"
+  },
+  "dbRecoveryDbNameLabel": "DB 이름",
+  "@dbRecoveryDbNameLabel": {
+    "description": "Label for the database name field"
+  },
+  "dbRecoveryOpenedAsLabel": "다음으로 열림",
+  "@dbRecoveryOpenedAsLabel": {
+    "description": "Label for the fallback database name field"
+  },
+  "dbRecoveryBackupPathLabel": "백업",
+  "@dbRecoveryBackupPathLabel": {
+    "description": "Label for the backup file path field"
+  },
+  "dbRecoveryMovedOriginalPathLabel": "원본을 옮겼습니다.",
+  "@dbRecoveryMovedOriginalPathLabel": {
+    "description": "Label for the moved original db file path field"
+  },
+  "dbRecoveryErrorLabel": "오류",
+  "@dbRecoveryErrorLabel": {
+    "description": "Label for the error message field"
+  },
+  "dbRecoveryDataPreservedHint": "팁: 문제 해결이나 지원을 위해 경로를 복사하려면 복사 버튼을 사용하세요.",
+  "@dbRecoveryDataPreservedHint": {
+    "description": "Hint shown at the bottom of the recovery dialog"
+  }
+}

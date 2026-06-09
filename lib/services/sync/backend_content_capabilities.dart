@@ -13,6 +13,10 @@ enum BackendContentFeature {
 class BackendContentCapabilities {
   const BackendContentCapabilities._(this.accountType);
 
+  factory BackendContentCapabilities.forAccount(Account account) {
+    return BackendContentCapabilities._(account.type);
+  }
+
   factory BackendContentCapabilities.forAccountType(AccountType type) {
     return BackendContentCapabilities._(type);
   }
@@ -24,6 +28,7 @@ class BackendContentCapabilities {
       AccountType.local => _localAvailability(feature),
       AccountType.miniflux => _minifluxAvailability(feature),
       AccountType.fever => _feverAvailability(feature),
+      AccountType.googleReader => _googleReaderAvailability(feature),
     };
   }
 
@@ -73,6 +78,17 @@ class BackendContentCapabilities {
       BackendContentFeature.clientWebPageFetch ||
       BackendContentFeature.syncImagePrefetch ||
       BackendContentFeature.webFetchUserAgent => FeatureAvailability.localOnly,
+    };
+  }
+
+  static FeatureAvailability _googleReaderAvailability(
+    BackendContentFeature feature,
+  ) {
+    return switch (feature) {
+      BackendContentFeature.clientWebPageFetch ||
+      BackendContentFeature.serverArticleContentFetch ||
+      BackendContentFeature.syncImagePrefetch ||
+      BackendContentFeature.webFetchUserAgent => FeatureAvailability.hidden,
     };
   }
 }

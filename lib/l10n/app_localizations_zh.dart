@@ -29,6 +29,26 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settings => '设置';
 
   @override
+  String get settingsSearchHint => '搜索设置';
+
+  @override
+  String get settingsSearchNoResults => '没有匹配的设置。';
+
+  @override
+  String get settingsSearchPageLabel => '页面';
+
+  @override
+  String get settingsSearchSectionLabel => '分区';
+
+  @override
+  String get settingsSearchSettingLabel => '设置项';
+
+  @override
+  String settingsSearchResultCount(Object count) {
+    return '$count 条结果';
+  }
+
+  @override
   String get feeds => '订阅';
 
   @override
@@ -59,10 +79,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get dynamicColor => '动态取色';
 
   @override
-  String get dynamicColorSubtitle => '使用 Material You 动态配色（仅 Android 12+）';
+  String get dynamicColorSubtitle => '可用时跟随系统动态色或强调色';
 
   @override
-  String get seedColorPreset => '主题配色';
+  String get seedColorPreset => '强调色';
 
   @override
   String get seedColorPresetSubtitle => '动态取色关闭或不可用时生效';
@@ -108,6 +128,182 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get horizontalPadding => '左右边距';
+
+  @override
+  String get applicationAppearance => '应用外观';
+
+  @override
+  String get readerAppearance => '阅读外观';
+
+  @override
+  String get codeAppearance => '代码外观';
+
+  @override
+  String get custom => '自定义';
+
+  @override
+  String get back => '返回';
+
+  @override
+  String get forward => '前进';
+
+  @override
+  String get fontSettings => '字体';
+
+  @override
+  String get advancedFontSettings => '高级字体设置';
+
+  @override
+  String get fontsAndCode => '字体与代码';
+
+  @override
+  String get customFontStack => '自定义字体栈';
+
+  @override
+  String get codeTypography => '代码排版';
+
+  @override
+  String get fontSizeExtraSmall => '特小';
+
+  @override
+  String get fontSizeSmall => '小';
+
+  @override
+  String get fontSizeMediumRecommended => '中（推荐）';
+
+  @override
+  String get fontSizeLarge => '大';
+
+  @override
+  String get fontSizeExtraLarge => '特大';
+
+  @override
+  String get minimumFontSize => '最小字号';
+
+  @override
+  String get lineHeightCompact => '紧凑';
+
+  @override
+  String get lineHeightStandard => '标准';
+
+  @override
+  String get lineHeightRelaxed => '宽松';
+
+  @override
+  String get appearancePreview => '预览';
+
+  @override
+  String get appearancePreviewTitle => '更安静的阅读界面';
+
+  @override
+  String get appearancePreviewMeta => '预览 · 今天';
+
+  @override
+  String get appearancePreviewBody => '只需要调好一次，之后每篇文章都会以同样舒适的节奏打开。';
+
+  @override
+  String get appearancePreviewQuote => '好的阅读设置，应该先被看见，再被配置。';
+
+  @override
+  String get appearancePreviewLink => '示例链接';
+
+  @override
+  String get appearancePreviewCode => '代码示例';
+
+  @override
+  String get readerFontFamily => '字体';
+
+  @override
+  String get readerFontSystem => '系统';
+
+  @override
+  String get readerFontSerif => '衬线';
+
+  @override
+  String get readerFontSans => '无衬线';
+
+  @override
+  String get readerFontMono => '等宽';
+
+  @override
+  String get readerFontStack => '阅读字体栈';
+
+  @override
+  String get standardFont => '标准字体';
+
+  @override
+  String get serifFont => 'Serif 字体';
+
+  @override
+  String get sansSerifFont => 'Sans-serif 字体';
+
+  @override
+  String get fixedWidthFont => '宽度固定的字体';
+
+  @override
+  String get mathFont => '数学字体';
+
+  @override
+  String get fontStackExample =>
+      '\"PingFang SC\", \"Noto Sans CJK SC\", system-ui, sans-serif';
+
+  @override
+  String get monoFontStackExample => '\"SF Mono\", Menlo, Consolas, monospace';
+
+  @override
+  String get mathFontStackExample =>
+      '\"STIX Two Math\", \"Cambria Math\", serif';
+
+  @override
+  String get readerTheme => '阅读质感';
+
+  @override
+  String get readerThemeDefault => '默认';
+
+  @override
+  String get readerThemePaper => '纸张';
+
+  @override
+  String get readerThemeSepia => '暖色';
+
+  @override
+  String get readerThemeDim => '柔灰';
+
+  @override
+  String get readingWidth => '阅读宽度';
+
+  @override
+  String get readingWidthNarrow => '窄';
+
+  @override
+  String get readingWidthStandard => '标准';
+
+  @override
+  String get readingWidthWide => '宽';
+
+  @override
+  String get codeFontFamily => '代码字体';
+
+  @override
+  String get codeFontSystemMono => '系统等宽';
+
+  @override
+  String get codeFontStack => '代码字体栈';
+
+  @override
+  String get codeFontSize => '代码字号';
+
+  @override
+  String get codeFontSizeFollowReader => '跟随正文';
+
+  @override
+  String get codeFontSizeOneStepDown => '小一号';
+
+  @override
+  String get codeLineHeight => '代码行高';
+
+  @override
+  String get codeSoftWrap => '自动换行';
 
   @override
   String get storage => '存储';
@@ -344,6 +540,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get feedOrWebsiteUrl => '订阅源或网站 URL';
 
   @override
+  String get feedOrWebsiteUrlHint => '粘贴网站地址或 RSS URL';
+
+  @override
+  String get findFeeds => '查找订阅源';
+
+  @override
   String get discoveringFeeds => '正在发现订阅源…';
 
   @override
@@ -356,10 +558,63 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noFeedsFound => '未找到可用的订阅源';
 
   @override
+  String get noFeedsFoundHint => '可以直接粘贴 RSS/Atom 地址，或试试这个网站的其他页面。';
+
+  @override
+  String get subscriptionPreview => '来源预览';
+
+  @override
+  String subscriptionResultsFound(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '已找到 $count 个订阅源',
+      one: '已找到 1 个订阅源',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get subscriptionPreviewUnavailable => '暂无可预览的最近文章';
+
+  @override
+  String get feedSourceDirect => 'RSS/Atom 地址';
+
+  @override
+  String get feedSourceAlternate => '页面声明';
+
+  @override
+  String get feedSourceCommonPath => '常见订阅路径';
+
+  @override
   String get name => '名称';
 
   @override
   String get addedAndSynced => '已添加并同步';
+
+  @override
+  String get subscriptionAddedTitle => '订阅已添加';
+
+  @override
+  String get subscriptionAddedMessage => '订阅已添加。你可以现在查看，也可以继续添加更多订阅。';
+
+  @override
+  String get subscriptionRefreshWarning => '订阅已添加，但首次刷新失败。你可以稍后重新刷新。';
+
+  @override
+  String get subscriptionAlreadyExistsTitle => '已经订阅';
+
+  @override
+  String get subscriptionAlreadyExistsMessage => '这个订阅源已经在你的订阅列表中，没有改动它的分类。';
+
+  @override
+  String get viewSubscription => '查看订阅';
+
+  @override
+  String get continueAddingSubscription => '继续添加';
+
+  @override
+  String get moveToCurrentCategory => '移到当前分类';
 
   @override
   String get deleteSubscription => '删除订阅';
@@ -648,6 +903,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get addMiniflux => '添加 Miniflux';
 
   @override
+  String get addGoogleReaderApi => '添加 Google Reader API';
+
+  @override
+  String get googleReaderApi => 'Google Reader API';
+
+  @override
+  String get googleReaderCompatible => 'Google Reader 兼容服务';
+
+  @override
   String get addFever => '添加 Fever';
 
   @override
@@ -665,6 +929,10 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get remoteSyncStrategyMinifluxSubtitle =>
       'Miniflux 会分页拉取远程文章，最多到这个每次同步窗口。';
+
+  @override
+  String get remoteSyncStrategyGoogleReaderSubtitle =>
+      'Google Reader 兼容服务会分页拉取远程 stream 文章，最多到这个每次同步窗口。';
 
   @override
   String get remoteSyncStrategyFeverSubtitle => 'Fever 同步未读和收藏条目，并受这个每次同步窗口限制。';
@@ -843,6 +1111,37 @@ class AppLocalizationsZh extends AppLocalizations {
   String get buildNumber => '构建号';
 
   @override
+  String versionAndBuild(Object version, Object buildNumber) {
+    return '版本 $version · 构建 $buildNumber';
+  }
+
+  @override
+  String get checkForUpdates => '检查更新';
+
+  @override
+  String get checkingForUpdates => '正在检查...';
+
+  @override
+  String get updateAvailable => '更新';
+
+  @override
+  String get upToDate => '已是最新版本';
+
+  @override
+  String get updateCheckFailed => '检查更新失败。';
+
+  @override
+  String newVersionAvailable(Object version) {
+    return '发现新版本 $version';
+  }
+
+  @override
+  String get releaseNotes => '更新日志';
+
+  @override
+  String get goToOfficialUpdate => '去官网更新';
+
+  @override
   String get openSourceLicense => '开源许可证';
 
   @override
@@ -862,6 +1161,1508 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get shortcutNextPreviousArticle => 'J / K：下一篇 / 上一篇文章';
+
+  @override
+  String get shortcutBackForwardHistory =>
+      'Alt + ← / Alt + →；macOS Cmd + [ / ]：返回 / 前进历史';
+
+  @override
+  String get shortcutRefreshCurrentSelection => 'R：刷新（当前选中项）';
+
+  @override
+  String get shortcutToggleUnreadOnly => 'U：切换仅未读';
+
+  @override
+  String get shortcutToggleReadUnreadSelectedArticle => 'M：切换所选文章的已读 / 未读';
+
+  @override
+  String get shortcutToggleStarSelectedArticle => 'S：切换所选文章的星标状态';
+
+  @override
+  String get shortcutSearchArticlesAndFindInPage =>
+      'Ctrl/Cmd+F：搜索文章（列表）；聚焦页内查找（阅读器）';
+
+  @override
+  String get filter => '过滤';
+
+  @override
+  String get filterKeywordsHint => '添加保留关键字（不同的关键字用“;”分隔，多重条件使用“+”连接）';
+
+  @override
+  String get sync => '同步';
+
+  @override
+  String get enableSync => '启用同步';
+
+  @override
+  String get enableFilter => '启用过滤';
+
+  @override
+  String get syncAlwaysEnabled => '总是启用，因为设置 - 同步 - 同步模式为\"全部\"';
+
+  @override
+  String get syncImages => '同步时下载图片';
+
+  @override
+  String get syncWebPages => '同步时下载 Web 页面';
+
+  @override
+  String get syncStatusSyncing => '同步中';
+
+  @override
+  String get syncStatusSyncingFeeds => '同步订阅源';
+
+  @override
+  String get syncStatusSyncingSubscriptions => '同步订阅';
+
+  @override
+  String get syncStatusSyncingUnreadArticles => '同步未读文章';
+
+  @override
+  String get syncStatusUploadingChanges => '上传更改';
+
+  @override
+  String get syncStatusCompleted => '同步完成';
+
+  @override
+  String get syncStatusFailed => '同步失败';
+
+  @override
+  String get showAiSummary => '显示摘要';
+
+  @override
+  String get summary => '摘要';
+
+  @override
+  String get showImageTitle => '显示图片标题';
+
+  @override
+  String get showAttachedImage => '显示附文图像';
+
+  @override
+  String get htmlDecoding => 'HTML 转码';
+
+  @override
+  String get mobilizer => 'Mobilizer';
+
+  @override
+  String get inherit => '继承';
+
+  @override
+  String get auto => '自动';
+
+  @override
+  String get autoOn => '开';
+
+  @override
+  String get autoOff => '关';
+
+  @override
+  String get defaultValue => '默认值';
+
+  @override
+  String get defaultOption => '默认';
+
+  @override
+  String get userAgent => 'User-Agent';
+
+  @override
+  String get rssUserAgent => 'RSS/Atom User-Agent';
+
+  @override
+  String get webUserAgent => '网页 User-Agent';
+
+  @override
+  String get userAgentRssHint => '用于抓取 RSS/Atom 订阅源。';
+
+  @override
+  String get userAgentWebHint => '用于抓取网页全文（阅读模式）。';
+
+  @override
+  String get resetToDefault => '恢复默认';
+
+  @override
+  String get notificationNewArticleTitle => '新文章';
+
+  @override
+  String get notificationNewArticlesTitle => '新文章';
+
+  @override
+  String notificationNewArticlesBody(int count) {
+    return '发现 $count 篇新文章';
+  }
+
+  @override
+  String get notificationNewArticlesChannelName => '新文章';
+
+  @override
+  String get notificationNewArticlesChannelDescription => '同步时发现新文章的通知';
+
+  @override
+  String get windowMinimize => '最小化';
+
+  @override
+  String get windowMaximize => '最大化';
+
+  @override
+  String get windowRestore => '还原';
+
+  @override
+  String get windowClose => '关闭';
+
+  @override
+  String get translationAndAiServices => '翻译与 AI 服务';
+
+  @override
+  String get translation => '翻译';
+
+  @override
+  String get translationProvider => '翻译提供方';
+
+  @override
+  String get aiServices => 'AI 服务';
+
+  @override
+  String get addAiService => '添加 AI 服务';
+
+  @override
+  String get aiService => 'AI 服务';
+
+  @override
+  String get aiSummary => 'AI 总结';
+
+  @override
+  String get aiSummaryService => 'AI 总结服务';
+
+  @override
+  String get targetLanguage => '目标语言';
+
+  @override
+  String get followAppLanguage => '跟随软件语言';
+
+  @override
+  String get translationProviderGoogleWeb => 'Google 翻译（网页）';
+
+  @override
+  String get translationProviderBingWeb => 'Bing 翻译（网页）';
+
+  @override
+  String get translationProviderBaiduApi => '百度翻译（API）';
+
+  @override
+  String get translationProviderDeepLApi => 'DeepL（API）';
+
+  @override
+  String get translationProviderDeepLX => 'DeepLX';
+
+  @override
+  String translationProviderAiService(Object name) {
+    return 'AI：$name';
+  }
+
+  @override
+  String get translationProviderBaiduApiSubtitle => '配置 App ID / App Key';
+
+  @override
+  String get deepLXBaseUrlTitle => 'DeepLX Base URL';
+
+  @override
+  String get deepLEndpoint => 'Endpoint';
+
+  @override
+  String get deepLEndpointFree => '免费版';
+
+  @override
+  String get deepLEndpointPro => '专业版';
+
+  @override
+  String get setAsDefault => '设为默认';
+
+  @override
+  String get defaultAlreadySet => '默认（已设置）';
+
+  @override
+  String get aiSummaryPrompt => 'AI 总结提示词';
+
+  @override
+  String get aiTranslationPrompt => 'AI 翻译提示词';
+
+  @override
+  String defaultAiSummaryPromptTemplate(
+    Object language,
+    Object title,
+    Object content,
+  ) {
+    return '请用 $language 总结这篇文章（标题：$title）：$content';
+  }
+
+  @override
+  String defaultAiTranslationPromptTemplate(
+    Object language,
+    Object title,
+    Object content,
+  ) {
+    return '请将这段文章内容翻译成 $language（标题：$title）：$content';
+  }
+
+  @override
+  String get promptVariables => '可用变量';
+
+  @override
+  String get promptVariableContentDescription => '文章正文';
+
+  @override
+  String get promptVariableLanguageDescription => '目标语言';
+
+  @override
+  String get promptVariableTitleDescription => '文章标题';
+
+  @override
+  String get tpmLimit => 'TPM 限制';
+
+  @override
+  String get tpmLimitSubtitle => '0 表示不限制；超出后将进入队列等待。';
+
+  @override
+  String get aiSummaryAction => 'AI 总结';
+
+  @override
+  String get translateAction => '翻译';
+
+  @override
+  String get translationMode => '翻译模式';
+
+  @override
+  String get immersiveTranslation => '沉浸式翻译';
+
+  @override
+  String get traditionalTranslation => '传统翻译';
+
+  @override
+  String get generating => '生成中…';
+
+  @override
+  String get queued => '排队中';
+
+  @override
+  String get regenerate => '重新生成';
+
+  @override
+  String get cachedPromptOutdated => 'Prompt 已更新，请重新生成。';
+
+  @override
+  String languageMismatchBanner(Object source, Object target) {
+    return '检测到内容可能是 $source，目标语言是 $target。';
+  }
+
+  @override
+  String get dontRemindThisLanguage => '不再提醒此语言';
+
+  @override
+  String get autoAiSummary => '自动 AI 总结';
+
+  @override
+  String get autoTranslate => '自动翻译';
+
+  @override
+  String get aiNotConfigured => '尚未配置 AI 服务。';
+
+  @override
+  String get translationNotAvailable => '所选翻译提供方暂不支持。';
+
+  @override
+  String get clearTranslation => '关闭翻译';
+
+  @override
+  String get dbRecoveryTitle => '数据库恢复';
+
+  @override
+  String get dbRecoveryDescription =>
+      '应用检测到数据库异常，已自动进行恢复。你的数据已在磁盘上保留（备份/已移动的原库文件）。';
+
+  @override
+  String get dbRecoveryTimeLabel => '时间';
+
+  @override
+  String get dbRecoveryDbNameLabel => '数据库名';
+
+  @override
+  String get dbRecoveryOpenedAsLabel => '实际打开为';
+
+  @override
+  String get dbRecoveryBackupPathLabel => '备份';
+
+  @override
+  String get dbRecoveryMovedOriginalPathLabel => '已移动原库';
+
+  @override
+  String get dbRecoveryErrorLabel => '错误';
+
+  @override
+  String get dbRecoveryDataPreservedHint => '提示：可使用右侧复制按钮复制路径，便于排查或反馈。';
+}
+
+/// The translations for Chinese, using the Han script (`zh_Hans`).
+class AppLocalizationsZhHans extends AppLocalizationsZh {
+  AppLocalizationsZhHans() : super('zh_Hans');
+
+  @override
+  String get appTitle => 'Fleur';
+
+  @override
+  String get notFound => '未找到';
+
+  @override
+  String get openFailedGeneral => '无法打开该位置，请检查权限或稍后重试。';
+
+  @override
+  String get macosMenuLanguageRestartHint => '菜单栏语言可能需要重启应用才能完全生效。';
+
+  @override
+  String pathNotFound(Object path) {
+    return '路径不存在：$path';
+  }
+
+  @override
+  String get settings => '设置';
+
+  @override
+  String get settingsSearchHint => '搜索设置';
+
+  @override
+  String get settingsSearchNoResults => '没有匹配的设置。';
+
+  @override
+  String get settingsSearchPageLabel => '页面';
+
+  @override
+  String get settingsSearchSectionLabel => '分区';
+
+  @override
+  String get settingsSearchSettingLabel => '设置项';
+
+  @override
+  String settingsSearchResultCount(Object count) {
+    return '$count 条结果';
+  }
+
+  @override
+  String get feeds => '订阅';
+
+  @override
+  String get saved => '收藏';
+
+  @override
+  String get comingSoon => '敬请期待';
+
+  @override
+  String get appearance => '外观';
+
+  @override
+  String get theme => '主题';
+
+  @override
+  String get themeMode => '主题模式';
+
+  @override
+  String get system => '跟随系统';
+
+  @override
+  String get light => '浅色';
+
+  @override
+  String get dark => '深色';
+
+  @override
+  String get dynamicColor => '动态取色';
+
+  @override
+  String get dynamicColorSubtitle => '可用时跟随系统动态色或强调色';
+
+  @override
+  String get seedColorPreset => '强调色';
+
+  @override
+  String get seedColorPresetSubtitle => '动态取色关闭或不可用时生效';
+
+  @override
+  String get seedColorBlue => '蓝色';
+
+  @override
+  String get seedColorGreen => '绿色';
+
+  @override
+  String get seedColorPurple => '紫色';
+
+  @override
+  String get seedColorOrange => '橙色';
+
+  @override
+  String get seedColorPink => '粉色';
+
+  @override
+  String get language => '语言';
+
+  @override
+  String get systemLanguage => '系统语言';
+
+  @override
+  String get english => 'English';
+
+  @override
+  String get chineseSimplified => '简体中文';
+
+  @override
+  String get chineseTraditional => '繁體中文';
+
+  @override
+  String get reader => '阅读';
+
+  @override
+  String get fontSize => '字号';
+
+  @override
+  String get lineHeight => '行高';
+
+  @override
+  String get horizontalPadding => '左右边距';
+
+  @override
+  String get applicationAppearance => '应用外观';
+
+  @override
+  String get readerAppearance => '阅读外观';
+
+  @override
+  String get codeAppearance => '代码外观';
+
+  @override
+  String get custom => '自定义';
+
+  @override
+  String get back => '返回';
+
+  @override
+  String get forward => '前进';
+
+  @override
+  String get fontSettings => '字体';
+
+  @override
+  String get advancedFontSettings => '高级字体设置';
+
+  @override
+  String get fontsAndCode => '字体与代码';
+
+  @override
+  String get customFontStack => '自定义字体栈';
+
+  @override
+  String get codeTypography => '代码排版';
+
+  @override
+  String get fontSizeExtraSmall => '特小';
+
+  @override
+  String get fontSizeSmall => '小';
+
+  @override
+  String get fontSizeMediumRecommended => '中（推荐）';
+
+  @override
+  String get fontSizeLarge => '大';
+
+  @override
+  String get fontSizeExtraLarge => '特大';
+
+  @override
+  String get minimumFontSize => '最小字号';
+
+  @override
+  String get lineHeightCompact => '紧凑';
+
+  @override
+  String get lineHeightStandard => '标准';
+
+  @override
+  String get lineHeightRelaxed => '宽松';
+
+  @override
+  String get appearancePreview => '预览';
+
+  @override
+  String get appearancePreviewTitle => '更安静的阅读界面';
+
+  @override
+  String get appearancePreviewMeta => '预览 · 今天';
+
+  @override
+  String get appearancePreviewBody => '只需要调好一次，之后每篇文章都会以同样舒适的节奏打开。';
+
+  @override
+  String get appearancePreviewQuote => '好的阅读设置，应该先被看见，再被配置。';
+
+  @override
+  String get appearancePreviewLink => '示例链接';
+
+  @override
+  String get appearancePreviewCode => '代码示例';
+
+  @override
+  String get readerFontFamily => '字体';
+
+  @override
+  String get readerFontSystem => '系统';
+
+  @override
+  String get readerFontSerif => '衬线';
+
+  @override
+  String get readerFontSans => '无衬线';
+
+  @override
+  String get readerFontMono => '等宽';
+
+  @override
+  String get readerFontStack => '阅读字体栈';
+
+  @override
+  String get standardFont => '标准字体';
+
+  @override
+  String get serifFont => 'Serif 字体';
+
+  @override
+  String get sansSerifFont => 'Sans-serif 字体';
+
+  @override
+  String get fixedWidthFont => '宽度固定的字体';
+
+  @override
+  String get mathFont => '数学字体';
+
+  @override
+  String get fontStackExample =>
+      '\"PingFang SC\", \"Noto Sans CJK SC\", system-ui, sans-serif';
+
+  @override
+  String get monoFontStackExample => '\"SF Mono\", Menlo, Consolas, monospace';
+
+  @override
+  String get mathFontStackExample =>
+      '\"STIX Two Math\", \"Cambria Math\", serif';
+
+  @override
+  String get readerTheme => '阅读质感';
+
+  @override
+  String get readerThemeDefault => '默认';
+
+  @override
+  String get readerThemePaper => '纸张';
+
+  @override
+  String get readerThemeSepia => '暖色';
+
+  @override
+  String get readerThemeDim => '柔灰';
+
+  @override
+  String get readingWidth => '阅读宽度';
+
+  @override
+  String get readingWidthNarrow => '窄';
+
+  @override
+  String get readingWidthStandard => '标准';
+
+  @override
+  String get readingWidthWide => '宽';
+
+  @override
+  String get codeFontFamily => '代码字体';
+
+  @override
+  String get codeFontSystemMono => '系统等宽';
+
+  @override
+  String get codeFontStack => '代码字体栈';
+
+  @override
+  String get codeFontSize => '代码字号';
+
+  @override
+  String get codeFontSizeFollowReader => '跟随正文';
+
+  @override
+  String get codeFontSizeOneStepDown => '小一号';
+
+  @override
+  String get codeLineHeight => '代码行高';
+
+  @override
+  String get codeSoftWrap => '自动换行';
+
+  @override
+  String get storage => '存储';
+
+  @override
+  String get clearImageCache => '清理图片缓存';
+
+  @override
+  String get clearImageCacheSubtitle => '移除离线阅读预取的图片缓存';
+
+  @override
+  String get cacheCleared => '缓存已清理';
+
+  @override
+  String get subscriptions => '订阅源';
+
+  @override
+  String get defaultsGroup => '全局';
+
+  @override
+  String get folders => '订阅源';
+
+  @override
+  String get globalDefaults => '全局默认';
+
+  @override
+  String get allSubscriptions => '全部项目';
+
+  @override
+  String get manage => '管理';
+
+  @override
+  String get overview => '概览';
+
+  @override
+  String get categoriesLabel => '分类数';
+
+  @override
+  String get globalDefaultsDescription => '当文件夹或订阅源未覆盖设置时，会继承这里的默认值。';
+
+  @override
+  String get allSubscriptionsDescription => '在这里查看整体订阅结构，并选择具体项目继续编辑。';
+
+  @override
+  String get uncategorizedDescription => '未分类的订阅源会继承全局默认，直到你为它们单独覆盖设置。';
+
+  @override
+  String get tags => '标签';
+
+  @override
+  String get all => '所有文章';
+
+  @override
+  String get uncategorized => '未分类';
+
+  @override
+  String get refreshAll => '刷新订阅源';
+
+  @override
+  String get refreshFeed => '刷新当前订阅源';
+
+  @override
+  String get refreshCategory => '刷新当前分类';
+
+  @override
+  String get refreshFeedAndSync => '刷新当前订阅源并同步';
+
+  @override
+  String get refreshCategoryAndSync => '刷新当前分类并同步';
+
+  @override
+  String get refreshSourcesAndSync => '刷新订阅源并同步';
+
+  @override
+  String get accountSync => '账号同步';
+
+  @override
+  String get accountSyncSubtitle => '在后台同步这个远程账号。';
+
+  @override
+  String get syncAccount => '同步账号';
+
+  @override
+  String get syncingAccount => '正在同步账号...';
+
+  @override
+  String get syncedAccount => '账号已同步';
+
+  @override
+  String get refreshSelected => '刷新当前';
+
+  @override
+  String get importOpml => '导入 OPML';
+
+  @override
+  String get opmlParseFailed => 'OPML 文件无效';
+
+  @override
+  String get exportOpml => '导出 OPML';
+
+  @override
+  String get addSubscription => '添加订阅';
+
+  @override
+  String get selectCategory => '选择分类';
+
+  @override
+  String get loadingCategories => '正在加载分类...';
+
+  @override
+  String get creatingCategory => '正在创建分类...';
+
+  @override
+  String get feverAddSubscriptionNotSupported => 'Fever 账号不支持添加订阅，请在服务端管理订阅。';
+
+  @override
+  String get remoteCommandRequiresConnectivity => '此操作需要连接远程服务后才能完成。';
+
+  @override
+  String get remoteCommandRequiresAuthentication => '远程服务拒绝了当前账号凭据，请检查账号设置后重试。';
+
+  @override
+  String get remoteCommandNeedsRefresh => '远程服务无法匹配当前订阅或分类，请先同步后重试。';
+
+  @override
+  String get remoteCommandRejected => '远程服务拒绝了这次操作，请检查请求内容后重试。';
+
+  @override
+  String get remoteCommandUnavailable => '远程服务暂时无法完成此操作，请稍后再试。';
+
+  @override
+  String get remoteCommandNotSupported => '当前远程账号不支持这个操作。';
+
+  @override
+  String get remoteCommandRequiresCategory => '当前远程账号要求订阅必须归属服务端分类。';
+
+  @override
+  String get newCategory => '新建分类';
+
+  @override
+  String get articles => '文章';
+
+  @override
+  String get unread => '未读';
+
+  @override
+  String get refreshConcurrency => '刷新并发数';
+
+  @override
+  String refreshingProgress(int current, int total) {
+    return '正在刷新 $current/$total...';
+  }
+
+  @override
+  String get markAllRead => '全部已读';
+
+  @override
+  String get fullText => '阅读全文';
+
+  @override
+  String get fullTextRetry => '获取全文失败，重试';
+
+  @override
+  String get readerSettings => '阅读设置';
+
+  @override
+  String get done => '完成';
+
+  @override
+  String get more => '更多';
+
+  @override
+  String get showAll => '显示全部';
+
+  @override
+  String get unreadOnly => '只看未读';
+
+  @override
+  String get selectAnArticle => '请选择一篇文章';
+
+  @override
+  String get readerEmptySubtitle => '从左侧列表打开文章后，会在这里阅读。';
+
+  @override
+  String get savedReaderEmptyTitle => '选择一篇收藏';
+
+  @override
+  String get savedReaderEmptySubtitle => '从已收藏或稍后读列表中打开文章。';
+
+  @override
+  String get searchReaderEmptyTitle => '选择一条搜索结果';
+
+  @override
+  String get searchReaderEmptySubtitle => '输入关键词后，从左侧结果中打开文章。';
+
+  @override
+  String errorMessage(String error) {
+    return '错误：$error';
+  }
+
+  @override
+  String unreadCountError(String error) {
+    return '未读数获取失败：$error';
+  }
+
+  @override
+  String get refreshed => '已刷新';
+
+  @override
+  String get refreshedAll => '全部已刷新';
+
+  @override
+  String get refreshedAndSynced => '已刷新并同步';
+
+  @override
+  String get add => '添加';
+
+  @override
+  String get cancel => '取消';
+
+  @override
+  String get create => '创建';
+
+  @override
+  String get delete => '删除';
+
+  @override
+  String get deleted => '已删除';
+
+  @override
+  String get rssAtomUrl => 'RSS/Atom 地址';
+
+  @override
+  String get feedOrWebsiteUrl => '订阅源或网站 URL';
+
+  @override
+  String get feedOrWebsiteUrlHint => '粘贴网站地址或 RSS URL';
+
+  @override
+  String get findFeeds => '查找订阅源';
+
+  @override
+  String get discoveringFeeds => '正在发现订阅源…';
+
+  @override
+  String get addingSubscription => '正在添加订阅…';
+
+  @override
+  String get selectFeed => '选择订阅源';
+
+  @override
+  String get noFeedsFound => '未找到可用的订阅源';
+
+  @override
+  String get noFeedsFoundHint => '可以直接粘贴 RSS/Atom 地址，或试试这个网站的其他页面。';
+
+  @override
+  String get subscriptionPreview => '来源预览';
+
+  @override
+  String subscriptionResultsFound(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '已找到 $count 个订阅源',
+      one: '已找到 1 个订阅源',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get subscriptionPreviewUnavailable => '暂无可预览的最近文章';
+
+  @override
+  String get feedSourceDirect => 'RSS/Atom 地址';
+
+  @override
+  String get feedSourceAlternate => '页面声明';
+
+  @override
+  String get feedSourceCommonPath => '常见订阅路径';
+
+  @override
+  String get name => '名称';
+
+  @override
+  String get addedAndSynced => '已添加并同步';
+
+  @override
+  String get subscriptionAddedTitle => '订阅已添加';
+
+  @override
+  String get subscriptionAddedMessage => '订阅已添加。你可以现在查看，也可以继续添加更多订阅。';
+
+  @override
+  String get subscriptionRefreshWarning => '订阅已添加，但首次刷新失败。你可以稍后重新刷新。';
+
+  @override
+  String get subscriptionAlreadyExistsTitle => '已经订阅';
+
+  @override
+  String get subscriptionAlreadyExistsMessage => '这个订阅源已经在你的订阅列表中，没有改动它的分类。';
+
+  @override
+  String get viewSubscription => '查看订阅';
+
+  @override
+  String get continueAddingSubscription => '继续添加';
+
+  @override
+  String get moveToCurrentCategory => '移到当前分类';
+
+  @override
+  String get deleteSubscription => '删除订阅';
+
+  @override
+  String get deleteSubscriptionConfirmTitle => '删除订阅？';
+
+  @override
+  String get deleteSubscriptionConfirmContent => '确定要删除此订阅源吗？';
+
+  @override
+  String get makeAvailableOffline => '离线可用';
+
+  @override
+  String get deleteCategory => '删除分类';
+
+  @override
+  String get deleteCategoryConfirmTitle => '删除分类？';
+
+  @override
+  String get deleteCategoryConfirmContent => '该分类下的订阅源将移动到未分类。';
+
+  @override
+  String get remoteDeleteCategoryConfirmContent => '将先在远程服务上删除该分类，然后回刷本地镜像。';
+
+  @override
+  String get remoteWritableTaxonomyTitle => '远程分类';
+
+  @override
+  String get remoteWritableTaxonomyDescription => '分类变更会应用到远程服务，并同步回本地镜像。';
+
+  @override
+  String get remoteReadOnlyTaxonomyTitle => '只读远程分组';
+
+  @override
+  String get remoteReadOnlyTaxonomyDescription =>
+      '这些分类来自只读远程分组镜像。重命名、删除或移动请在远程服务中管理。';
+
+  @override
+  String get feedCategoryReadOnlyTaxonomyTitle => '分类由远程管理';
+
+  @override
+  String get feedCategoryReadOnlyTaxonomyDescription => '这个订阅源的分类来自只读远程分组镜像。';
+
+  @override
+  String get deleteTagConfirmTitle => '删除标签？';
+
+  @override
+  String get deleteTagConfirmContent => '这会从所有文章中移除该标签。';
+
+  @override
+  String get categoryDeleted => '分类已删除';
+
+  @override
+  String get refresh => '刷新';
+
+  @override
+  String get moveToCategory => '移动到分类';
+
+  @override
+  String get noFeedsFoundInOpml => 'OPML 中未找到订阅';
+
+  @override
+  String importedFeeds(int count) {
+    return '已导入 $count 个订阅';
+  }
+
+  @override
+  String get exportedOpml => '已导出 OPML';
+
+  @override
+  String fullTextFailed(String error) {
+    return '获取全文失败：$error';
+  }
+
+  @override
+  String get scrollToLoadMore => '滚动以加载更多';
+
+  @override
+  String get noArticles => '暂无文章';
+
+  @override
+  String get noStarredArticles => '暂无收藏文章';
+
+  @override
+  String get noReadLaterArticles => '暂无稍后读文章';
+
+  @override
+  String get noUnreadArticles => '暂无未读文章';
+
+  @override
+  String get articleListEmptySubtitle => '添加订阅或同步后，文章会出现在这里。';
+
+  @override
+  String get unreadEmptySubtitle => '当前筛选范围内的文章都已读完。';
+
+  @override
+  String get savedSearchEmptySubtitle => '当前收藏中没有匹配结果。';
+
+  @override
+  String get star => '收藏';
+
+  @override
+  String get unstar => '取消收藏';
+
+  @override
+  String get starred => '已收藏';
+
+  @override
+  String get readLater => '稍后读';
+
+  @override
+  String get removeReadLater => '移出稍后读';
+
+  @override
+  String get openArticle => '打开文章';
+
+  @override
+  String get markRead => '标记为已读';
+
+  @override
+  String get markUnread => '标记为未读';
+
+  @override
+  String get collapse => '收起';
+
+  @override
+  String get expand => '展开';
+
+  @override
+  String get openInBrowser => '在浏览器打开';
+
+  @override
+  String get copyLink => '复制链接';
+
+  @override
+  String get copiedToClipboard => '已复制到剪贴板';
+
+  @override
+  String get share => '分享';
+
+  @override
+  String get autoMarkRead => '打开时自动标记为已读';
+
+  @override
+  String get search => '搜索';
+
+  @override
+  String get searchInContent => '搜索正文';
+
+  @override
+  String get clearSearch => '清除搜索';
+
+  @override
+  String get searchStartTitle => '开始搜索';
+
+  @override
+  String get searchStartSubtitle => '输入关键词查找标题、摘要和正文。';
+
+  @override
+  String searchNoResultsSubtitle(Object query) {
+    return '没有匹配“$query”的文章。';
+  }
+
+  @override
+  String get articleNotFoundSubtitle => '这篇文章可能已被删除，或本地暂时不可用。';
+
+  @override
+  String get findInPage => '页面内查找';
+
+  @override
+  String get previousMatch => '上一个匹配';
+
+  @override
+  String get nextMatch => '下一个匹配';
+
+  @override
+  String get caseSensitive => '区分大小写';
+
+  @override
+  String get close => '关闭';
+
+  @override
+  String get groupingAndSorting => '分组与排序';
+
+  @override
+  String get groupBy => '分组方式';
+
+  @override
+  String get groupNone => '不分组';
+
+  @override
+  String get groupByDay => '按日期';
+
+  @override
+  String get sortOrder => '排序';
+
+  @override
+  String get sortNewestFirst => '最新优先';
+
+  @override
+  String get sortOldestFirst => '最旧优先';
+
+  @override
+  String get enabled => '启用';
+
+  @override
+  String get rename => '重命名';
+
+  @override
+  String get edit => '编辑';
+
+  @override
+  String get nameAlreadyExists => '名称已存在';
+
+  @override
+  String get lastChecked => '上次检查';
+
+  @override
+  String get lastSynced => '上次同步';
+
+  @override
+  String get never => '从未';
+
+  @override
+  String get cleanupReadArticles => '清理已读文章';
+
+  @override
+  String get cleanupNow => '立即清理';
+
+  @override
+  String cachingArticles(int count) {
+    return '正在缓存 $count 篇文章...';
+  }
+
+  @override
+  String get manageTags => '管理标签';
+
+  @override
+  String get newTag => '新标签';
+
+  @override
+  String get tagColor => '标签颜色';
+
+  @override
+  String get autoColor => '自动';
+
+  @override
+  String get tagsLoadingError => '加载标签失败';
+
+  @override
+  String cleanedArticles(int count) {
+    return '已清理 $count 篇文章';
+  }
+
+  @override
+  String days(int days) {
+    return '$days 天';
+  }
+
+  @override
+  String get services => '服务';
+
+  @override
+  String get account => '账号';
+
+  @override
+  String get addOrRegisterAccount => '添加或注册账号';
+
+  @override
+  String get local => '本地';
+
+  @override
+  String get miniflux => 'Miniflux';
+
+  @override
+  String get fever => 'Fever';
+
+  @override
+  String get addLocal => '添加本地';
+
+  @override
+  String get addLocalAccount => '添加本地账号';
+
+  @override
+  String get addMiniflux => '添加 Miniflux';
+
+  @override
+  String get addGoogleReaderApi => '添加 Google Reader API';
+
+  @override
+  String get googleReaderApi => 'Google Reader API';
+
+  @override
+  String get googleReaderCompatible => 'Google Reader 兼容服务';
+
+  @override
+  String get addFever => '添加 Fever';
+
+  @override
+  String get minifluxStrategy => 'Miniflux 策略';
+
+  @override
+  String get minifluxStrategySubtitle => '控制同步时拉取量与预取行为。';
+
+  @override
+  String get remoteSyncStrategy => '远程同步策略';
+
+  @override
+  String get remoteSyncStrategySubtitle => '控制同步时拉取的远程文章窗口。';
+
+  @override
+  String get remoteSyncStrategyMinifluxSubtitle =>
+      'Miniflux 会分页拉取远程文章，最多到这个每次同步窗口。';
+
+  @override
+  String get remoteSyncStrategyGoogleReaderSubtitle =>
+      'Google Reader 兼容服务会分页拉取远程 stream 文章，最多到这个每次同步窗口。';
+
+  @override
+  String get remoteSyncStrategyFeverSubtitle => 'Fever 同步未读和收藏条目，并受这个每次同步窗口限制。';
+
+  @override
+  String get remoteEntriesLimit => '每次同步拉取条数';
+
+  @override
+  String get remoteFetchConcurrency => '远端拉取并发数';
+
+  @override
+  String get remoteFetchConcurrencySubtitle => '控制账号同步文章批次时的并发请求数。';
+
+  @override
+  String get minifluxWebFetchMode => '网页抓取方式';
+
+  @override
+  String get minifluxWebFetchModeSubtitle => '当订阅开启“同步时下载 Web 页面”时生效。';
+
+  @override
+  String get minifluxWebFetchModeClient => '客户端（Readability）';
+
+  @override
+  String get minifluxWebFetchModeServer => '服务端（Miniflux fetch-content）';
+
+  @override
+  String get unlimited => '无限制';
+
+  @override
+  String get fieldName => '名称';
+
+  @override
+  String get nameRequired => '请输入名称';
+
+  @override
+  String get baseUrl => 'Base URL';
+
+  @override
+  String get baseUrlRequired => '请输入 Base URL';
+
+  @override
+  String get minifluxBaseUrlHint => 'https://miniflux.example.com';
+
+  @override
+  String get feverBaseUrlHint => 'https://example.com/fever/';
+
+  @override
+  String get apiToken => 'API Token';
+
+  @override
+  String get apiTokenRequired => '请输入 API Token';
+
+  @override
+  String get apiKey => 'API Key';
+
+  @override
+  String get appId => 'App ID';
+
+  @override
+  String get appKey => 'App Key';
+
+  @override
+  String get apiKeyRequired => '请输入 API Key';
+
+  @override
+  String get authenticationMethod => '认证方式';
+
+  @override
+  String get usernamePassword => '用户名与密码';
+
+  @override
+  String get minifluxAuthHint => '可填写 API Token（推荐）或用户名/密码。';
+
+  @override
+  String get feverAuthHint => '可填写 API Key（推荐）或用户名/密码。';
+
+  @override
+  String get username => '用户名';
+
+  @override
+  String get usernameRequired => '请输入用户名';
+
+  @override
+  String get password => '密码';
+
+  @override
+  String get passwordRequired => '请输入密码';
+
+  @override
+  String get defaultModel => '默认模型';
+
+  @override
+  String get savedApiKeyClearHint => '留空会清除已保存的 API Key。';
+
+  @override
+  String get savedCredentialsClearHint => '留空会清除已保存的凭据。';
+
+  @override
+  String get aiServicesEmptyState => '还没有添加任何 AI 服务。';
+
+  @override
+  String modelSummary(String model) {
+    return '模型：$model';
+  }
+
+  @override
+  String get show => '显示';
+
+  @override
+  String get hide => '隐藏';
+
+  @override
+  String get missingRequiredFields => '请填写必填项';
+
+  @override
+  String get invalidBaseUrl => 'Base URL 无效';
+
+  @override
+  String get onlySupportedInLocalAccount => '仅本地账号支持此操作';
+
+  @override
+  String get autoRefresh => '自动刷新订阅源';
+
+  @override
+  String get autoRefreshSubtitle =>
+      '按所选周期刷新订阅源；移动端后台刷新由系统调度，通常不会短于 15 分钟，且不保证准点。';
+
+  @override
+  String get off => '关闭';
+
+  @override
+  String everyMinutes(int minutes) {
+    return '每 $minutes 分钟';
+  }
+
+  @override
+  String get appPreferences => '应用偏好';
+
+  @override
+  String get about => '关于';
+
+  @override
+  String get dataDirectory => '数据目录';
+
+  @override
+  String get copyPath => '复制路径';
+
+  @override
+  String get openFolder => '打开文件夹';
+
+  @override
+  String get logDirectory => '日志目录';
+
+  @override
+  String get openLog => '打开日志';
+
+  @override
+  String get openLogFolder => '打开日志文件夹';
+
+  @override
+  String get exportLogs => '导出日志';
+
+  @override
+  String get exportedLogs => '日志已导出';
+
+  @override
+  String get noLogsFound => '未找到日志文件';
+
+  @override
+  String get keyboardShortcuts => '快捷键';
+
+  @override
+  String get version => '版本号';
+
+  @override
+  String get buildNumber => '构建号';
+
+  @override
+  String versionAndBuild(Object version, Object buildNumber) {
+    return '版本 $version · 构建 $buildNumber';
+  }
+
+  @override
+  String get checkForUpdates => '检查更新';
+
+  @override
+  String get checkingForUpdates => '正在检查...';
+
+  @override
+  String get updateAvailable => '更新';
+
+  @override
+  String get upToDate => '已是最新版本';
+
+  @override
+  String get updateCheckFailed => '检查更新失败。';
+
+  @override
+  String newVersionAvailable(Object version) {
+    return '发现新版本 $version';
+  }
+
+  @override
+  String get releaseNotes => '更新日志';
+
+  @override
+  String get goToOfficialUpdate => '去官网更新';
+
+  @override
+  String get openSourceLicense => '开源许可证';
+
+  @override
+  String get viewLicense => '查看许可证';
+
+  @override
+  String get thirdPartyLicenses => '第三方许可证';
+
+  @override
+  String get viewThirdPartyLicenses => '查看所有开源许可证';
+
+  @override
+  String get licenseLoadFailed => '加载许可证失败。';
+
+  @override
+  String get mitLicenseName => 'MIT 许可证';
+
+  @override
+  String get shortcutNextPreviousArticle => 'J / K：下一篇 / 上一篇文章';
+
+  @override
+  String get shortcutBackForwardHistory =>
+      'Alt + ← / Alt + →；macOS Cmd + [ / ]：返回 / 前进历史';
 
   @override
   String get shortcutRefreshCurrentSelection => 'R：刷新（当前选中项）';
@@ -1224,6 +3025,26 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get settings => '設定';
 
   @override
+  String get settingsSearchHint => '搜尋設定';
+
+  @override
+  String get settingsSearchNoResults => '沒有符合的設定。';
+
+  @override
+  String get settingsSearchPageLabel => '頁面';
+
+  @override
+  String get settingsSearchSectionLabel => '區段';
+
+  @override
+  String get settingsSearchSettingLabel => '設定項';
+
+  @override
+  String settingsSearchResultCount(Object count) {
+    return '$count 條結果';
+  }
+
+  @override
   String get feeds => '訂閱';
 
   @override
@@ -1254,10 +3075,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get dynamicColor => '動態取色';
 
   @override
-  String get dynamicColorSubtitle => '使用 Material You 動態配色（僅 Android 12+）';
+  String get dynamicColorSubtitle => '可用時跟隨系統動態色或強調色';
 
   @override
-  String get seedColorPreset => '主題配色';
+  String get seedColorPreset => '強調色';
 
   @override
   String get seedColorPresetSubtitle => '動態取色關閉或不可用時生效';
@@ -1303,6 +3124,182 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get horizontalPadding => '左右邊距';
+
+  @override
+  String get applicationAppearance => '應用外觀';
+
+  @override
+  String get readerAppearance => '閱讀外觀';
+
+  @override
+  String get codeAppearance => '程式碼外觀';
+
+  @override
+  String get custom => '自訂';
+
+  @override
+  String get back => '返回';
+
+  @override
+  String get forward => '前進';
+
+  @override
+  String get fontSettings => '字體';
+
+  @override
+  String get advancedFontSettings => '進階字體設定';
+
+  @override
+  String get fontsAndCode => '字體與程式碼';
+
+  @override
+  String get customFontStack => '自訂字體棧';
+
+  @override
+  String get codeTypography => '程式碼排版';
+
+  @override
+  String get fontSizeExtraSmall => '特小';
+
+  @override
+  String get fontSizeSmall => '小';
+
+  @override
+  String get fontSizeMediumRecommended => '中（推薦）';
+
+  @override
+  String get fontSizeLarge => '大';
+
+  @override
+  String get fontSizeExtraLarge => '特大';
+
+  @override
+  String get minimumFontSize => '最小字號';
+
+  @override
+  String get lineHeightCompact => '緊湊';
+
+  @override
+  String get lineHeightStandard => '標準';
+
+  @override
+  String get lineHeightRelaxed => '寬鬆';
+
+  @override
+  String get appearancePreview => '預覽';
+
+  @override
+  String get appearancePreviewTitle => '更安靜的閱讀介面';
+
+  @override
+  String get appearancePreviewMeta => '預覽 · 今天';
+
+  @override
+  String get appearancePreviewBody => '只需要調好一次，之後每篇文章都會以同樣舒適的節奏打開。';
+
+  @override
+  String get appearancePreviewQuote => '好的閱讀設定，應該先被看見，再被配置。';
+
+  @override
+  String get appearancePreviewLink => '範例連結';
+
+  @override
+  String get appearancePreviewCode => '程式碼範例';
+
+  @override
+  String get readerFontFamily => '字體';
+
+  @override
+  String get readerFontSystem => '系統';
+
+  @override
+  String get readerFontSerif => '襯線';
+
+  @override
+  String get readerFontSans => '無襯線';
+
+  @override
+  String get readerFontMono => '等寬';
+
+  @override
+  String get readerFontStack => '閱讀字體棧';
+
+  @override
+  String get standardFont => '標準字體';
+
+  @override
+  String get serifFont => 'Serif 字體';
+
+  @override
+  String get sansSerifFont => 'Sans-serif 字體';
+
+  @override
+  String get fixedWidthFont => '固定寬度字體';
+
+  @override
+  String get mathFont => '數學字體';
+
+  @override
+  String get fontStackExample =>
+      '\"PingFang SC\", \"Noto Sans CJK SC\", system-ui, sans-serif';
+
+  @override
+  String get monoFontStackExample => '\"SF Mono\", Menlo, Consolas, monospace';
+
+  @override
+  String get mathFontStackExample =>
+      '\"STIX Two Math\", \"Cambria Math\", serif';
+
+  @override
+  String get readerTheme => '閱讀質感';
+
+  @override
+  String get readerThemeDefault => '預設';
+
+  @override
+  String get readerThemePaper => '紙張';
+
+  @override
+  String get readerThemeSepia => '暖色';
+
+  @override
+  String get readerThemeDim => '柔灰';
+
+  @override
+  String get readingWidth => '閱讀寬度';
+
+  @override
+  String get readingWidthNarrow => '窄';
+
+  @override
+  String get readingWidthStandard => '標準';
+
+  @override
+  String get readingWidthWide => '寬';
+
+  @override
+  String get codeFontFamily => '程式碼字體';
+
+  @override
+  String get codeFontSystemMono => '系統等寬';
+
+  @override
+  String get codeFontStack => '程式碼字體棧';
+
+  @override
+  String get codeFontSize => '程式碼字號';
+
+  @override
+  String get codeFontSizeFollowReader => '跟隨正文';
+
+  @override
+  String get codeFontSizeOneStepDown => '小一號';
+
+  @override
+  String get codeLineHeight => '程式碼行高';
+
+  @override
+  String get codeSoftWrap => '自動換行';
 
   @override
   String get storage => '儲存';
@@ -1539,6 +3536,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get feedOrWebsiteUrl => '訂閱源或網站 URL';
 
   @override
+  String get feedOrWebsiteUrlHint => '貼上網站地址或 RSS URL';
+
+  @override
+  String get findFeeds => '尋找訂閱源';
+
+  @override
   String get discoveringFeeds => '正在發現訂閱源…';
 
   @override
@@ -1551,10 +3554,63 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get noFeedsFound => '未找到可用的訂閱源';
 
   @override
+  String get noFeedsFoundHint => '可以直接貼上 RSS/Atom 地址，或試試這個網站的其他頁面。';
+
+  @override
+  String get subscriptionPreview => '來源預覽';
+
+  @override
+  String subscriptionResultsFound(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '已找到 $count 個訂閱源',
+      one: '已找到 1 個訂閱源',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get subscriptionPreviewUnavailable => '暫無可預覽的最近文章';
+
+  @override
+  String get feedSourceDirect => 'RSS/Atom 地址';
+
+  @override
+  String get feedSourceAlternate => '頁面宣告';
+
+  @override
+  String get feedSourceCommonPath => '常見訂閱路徑';
+
+  @override
   String get name => '名稱';
 
   @override
   String get addedAndSynced => '已新增並同步';
+
+  @override
+  String get subscriptionAddedTitle => '訂閱已新增';
+
+  @override
+  String get subscriptionAddedMessage => '訂閱已新增。你可以現在查看，也可以繼續新增更多訂閱。';
+
+  @override
+  String get subscriptionRefreshWarning => '訂閱已新增，但首次重新整理失敗。你可以稍後重新整理。';
+
+  @override
+  String get subscriptionAlreadyExistsTitle => '已經訂閱';
+
+  @override
+  String get subscriptionAlreadyExistsMessage => '這個訂閱源已經在你的訂閱列表中，沒有改動它的分類。';
+
+  @override
+  String get viewSubscription => '查看訂閱';
+
+  @override
+  String get continueAddingSubscription => '繼續新增';
+
+  @override
+  String get moveToCurrentCategory => '移到目前分類';
 
   @override
   String get deleteSubscription => '刪除訂閱';
@@ -1843,6 +3899,15 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get addMiniflux => '新增 Miniflux';
 
   @override
+  String get addGoogleReaderApi => '新增 Google Reader API';
+
+  @override
+  String get googleReaderApi => 'Google Reader API';
+
+  @override
+  String get googleReaderCompatible => 'Google Reader 相容服務';
+
+  @override
   String get addFever => '新增 Fever';
 
   @override
@@ -1860,6 +3925,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String get remoteSyncStrategyMinifluxSubtitle =>
       'Miniflux 會分頁拉取遠端文章，最多到這個每次同步視窗。';
+
+  @override
+  String get remoteSyncStrategyGoogleReaderSubtitle =>
+      'Google Reader 相容服務會分頁拉取遠端 stream 文章，最多到這個每次同步視窗。';
 
   @override
   String get remoteSyncStrategyFeverSubtitle => 'Fever 同步未讀和收藏項目，並受這個每次同步視窗限制。';
@@ -2038,6 +4107,37 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get buildNumber => '構建號';
 
   @override
+  String versionAndBuild(Object version, Object buildNumber) {
+    return '版本 $version · 構建 $buildNumber';
+  }
+
+  @override
+  String get checkForUpdates => '檢查更新';
+
+  @override
+  String get checkingForUpdates => '正在檢查...';
+
+  @override
+  String get updateAvailable => '更新';
+
+  @override
+  String get upToDate => '已是最新版本';
+
+  @override
+  String get updateCheckFailed => '檢查更新失敗。';
+
+  @override
+  String newVersionAvailable(Object version) {
+    return '發現新版本 $version';
+  }
+
+  @override
+  String get releaseNotes => '更新日誌';
+
+  @override
+  String get goToOfficialUpdate => '去官網更新';
+
+  @override
   String get openSourceLicense => '開放原始碼授權';
 
   @override
@@ -2057,6 +4157,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get shortcutNextPreviousArticle => 'J / K：下一篇 / 上一篇文章';
+
+  @override
+  String get shortcutBackForwardHistory =>
+      'Alt + ← / Alt + →；macOS Cmd + [ / ]：返回 / 前進歷史';
 
   @override
   String get shortcutRefreshCurrentSelection => 'R：重新整理（目前選取項）';

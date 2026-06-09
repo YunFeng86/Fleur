@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 import 'package:fleur/models/article.dart';
 import 'package:fleur/models/category.dart';
@@ -11,6 +11,7 @@ import 'package:fleur/models/tag.dart';
 import 'package:fleur/providers/app_settings_providers.dart';
 import 'package:fleur/providers/article_list_controller.dart';
 import 'package:fleur/providers/core_providers.dart';
+import 'package:fleur/providers/query_providers.dart';
 import 'package:fleur/providers/unread_providers.dart';
 import 'package:fleur/repositories/article_repository.dart';
 import 'package:fleur/services/settings/app_settings.dart';
@@ -47,12 +48,21 @@ void main() {
     }
   });
 
-  ProviderContainer buildContainer({bool unreadOnly = false}) {
+  ProviderContainer buildContainer({
+    bool unreadOnly = false,
+    int? selectedArticleId,
+    AppSettings? settings,
+    ArticleListFilter filter = const ArticleListFilter(),
+  }) {
     final container = ProviderContainer(
       overrides: [
         isarProvider.overrideWithValue(isar!),
         appSettingsStoreProvider.overrideWithValue(
-          FakeAppSettingsStore(AppSettings.defaults()),
+          FakeAppSettingsStore(settings ?? AppSettings.defaults()),
+        ),
+        articleListFilterProvider.overrideWith((ref) => filter),
+        activeArticleListSelectionProvider.overrideWith(
+          (ref) => selectedArticleId,
         ),
         unreadOnlyProvider.overrideWith((ref) => unreadOnly),
       ],
@@ -84,6 +94,29 @@ void main() {
           ..isRead = false;
       });
       await isar!.articles.putAll(articles);
+    });
+  }
+
+  Future<void> seedSearchArticle() async {
+    final now = DateTime.utc(2026, 5, 1, 12);
+    await isar!.writeTxn(() async {
+      final feed = Feed()
+        ..id = 1
+        ..url = 'https://example.com/feed.xml'
+        ..title = 'Example';
+      await isar!.feeds.put(feed);
+
+      final article = Article()
+        ..id = 1
+        ..feedId = feed.id
+        ..link = 'https://example.com/articles/1'
+        ..title = 'Title only'
+        ..contentHtml = '<p>needle only in content</p>'
+        ..publishedAt = now
+        ..fetchedAt = now
+        ..updatedAt = now
+        ..isRead = false;
+      await isar!.articles.put(article);
     });
   }
 
@@ -152,6 +185,65 @@ void main() {
     },
   );
 
+  test(
+    'refresh temporarily keeps the selected article in unread lists',
+    () async {
+      await seedArticles(120);
+      final container = buildContainer(unreadOnly: true, selectedArticleId: 75);
+      keepArticleListAlive(container);
+      await container.read(appSettingsProvider.future);
+
+      await container.read(articleListControllerProvider.future);
+      await container.read(articleListControllerProvider.notifier).loadMore();
+
+      await ArticleRepository(isar!).markRead(75, true);
+      await container.read(articleListControllerProvider.notifier).refresh();
+
+      var state = container.read(articleListControllerProvider).requireValue;
+      expect(
+        articleIds(state),
+        orderedEquals(List.generate(101, (i) => i + 1)),
+      );
+      expect(state.items, hasLength(101));
+      expect(state.startOffset, 0);
+      expect(state.nextOffset, 100);
+      expect(state.hasMore, isTrue);
+
+      container.read(activeArticleListSelectionProvider.notifier).state = null;
+      await container.read(articleListControllerProvider.notifier).refresh();
+
+      state = container.read(articleListControllerProvider).requireValue;
+      final expectedIds = <int>[
+        ...List.generate(74, (i) => i + 1),
+        ...List.generate(26, (i) => i + 76),
+      ];
+      expect(articleIds(state), orderedEquals(expectedIds));
+      expect(state.items, hasLength(100));
+      expect(state.nextOffset, 100);
+    },
+  );
+
+  test('loadMore caps the retained article window at 500 items', () async {
+    await seedArticles(560);
+    final container = buildContainer();
+    keepArticleListAlive(container);
+    await container.read(appSettingsProvider.future);
+
+    var state = await container.read(articleListControllerProvider.future);
+    expect(articleIds(state), orderedEquals(List.generate(50, (i) => i + 1)));
+
+    for (var i = 0; i < 10; i++) {
+      await container.read(articleListControllerProvider.notifier).loadMore();
+    }
+
+    state = container.read(articleListControllerProvider).requireValue;
+    expect(state.items, hasLength(500));
+    expect(articleIds(state), orderedEquals(List.generate(500, (i) => i + 51)));
+    expect(state.startOffset, 50);
+    expect(state.nextOffset, 550);
+    expect(state.hasMore, isTrue);
+  });
+
   test('refresh keeps short lists without reporting more pages', () async {
     await seedArticles(30);
     final container = buildContainer();
@@ -170,5 +262,39 @@ void main() {
     expect(state.startOffset, 0);
     expect(state.nextOffset, 30);
     expect(state.hasMore, isFalse);
+  });
+
+  test('search content override takes precedence over app settings', () async {
+    await seedSearchArticle();
+
+    final titleOnlyContainer = buildContainer(
+      settings: AppSettings.defaults().copyWith(searchInContent: true),
+      filter: const ArticleListFilter(
+        searchQuery: 'needle',
+        searchInContentOverride: false,
+      ),
+    );
+    keepArticleListAlive(titleOnlyContainer);
+    await titleOnlyContainer.read(appSettingsProvider.future);
+
+    final titleOnlyState = await titleOnlyContainer.read(
+      articleListControllerProvider.future,
+    );
+    expect(articleIds(titleOnlyState), isEmpty);
+
+    final contentContainer = buildContainer(
+      settings: AppSettings.defaults().copyWith(searchInContent: false),
+      filter: const ArticleListFilter(
+        searchQuery: 'needle',
+        searchInContentOverride: true,
+      ),
+    );
+    keepArticleListAlive(contentContainer);
+    await contentContainer.read(appSettingsProvider.future);
+
+    final contentState = await contentContainer.read(
+      articleListControllerProvider.future,
+    );
+    expect(articleIds(contentState), [1]);
   });
 }

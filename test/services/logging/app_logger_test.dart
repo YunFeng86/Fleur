@@ -1,3 +1,6 @@
+@Tags(['global_logger'])
+library;
+
 import 'dart:convert';
 import 'dart:io';
 

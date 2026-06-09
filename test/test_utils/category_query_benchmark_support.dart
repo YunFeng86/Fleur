@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 import 'package:fleur/models/article.dart';
 import 'package:fleur/models/category.dart';

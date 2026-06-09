@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 import 'package:fleur/models/article.dart';
 import 'package:fleur/models/category.dart';
@@ -380,7 +380,7 @@ Dio _minifluxDio() {
               'category_id': 1,
             },
           ];
-        } else if (path == '/v1/entries') {
+        } else if (path == '/v1/feeds/10/entries') {
           data = <String, Object?>{
             'total': 3,
             'entries': [
@@ -569,6 +569,11 @@ void main() {
     () async {
       final reporter = _RecordingSyncStatusReporter();
       var sawProgressBeforeCache = false;
+      await FeedRepository(isar!).upsertRemote(
+        remoteId: '10',
+        url: 'https://example.com/feed.xml',
+        title: 'Example Feed',
+      );
       final cache = _RecordingArticleCacheService(
         onCache: () {
           sawProgressBeforeCache = reporter.saw(
@@ -610,6 +615,115 @@ void main() {
       );
     },
   );
+
+  test('Miniflux scoped feed sync uses feed entries endpoint only', () async {
+    final paths = <String>[];
+    final feedId = await FeedRepository(isar!).upsertRemote(
+      remoteId: '10',
+      url: 'https://example.com/feed.xml',
+      title: 'Example Feed',
+    );
+    final dio = Dio();
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          paths.add(options.uri.path);
+          if (options.uri.path == '/v1/feeds/10/entries') {
+            handler.resolve(
+              Response<Object?>(
+                requestOptions: options,
+                data: <String, Object?>{
+                  'total': 1,
+                  'entries': [
+                    {
+                      'id': 100,
+                      'feed_id': 10,
+                      'url': 'https://example.com/articles/100',
+                      'title': 'Scoped Article',
+                      'content': '<p>feed</p>',
+                      'status': 'read',
+                      'starred': true,
+                      'published_at': '2026-01-01T00:00:00Z',
+                    },
+                  ],
+                },
+              ),
+            );
+            return;
+          }
+          handler.reject(
+            DioException(
+              requestOptions: options,
+              error: 'unexpected Miniflux request: ${options.uri.path}',
+            ),
+          );
+        },
+      ),
+    );
+    final service = MinifluxSyncService(
+      account: buildTestAccount(
+        type: AccountType.miniflux,
+        baseUrl: 'https://miniflux.example.com',
+      ),
+      dio: dio,
+      credentials: _FakeCredentialStore(),
+      feeds: FeedRepository(isar!),
+      categories: CategoryRepository(isar!),
+      articles: ArticleRepository(isar!),
+      outbox: _MemoryOutboxStore(),
+      appSettingsStore: FakeAppSettingsStore(AppSettings.defaults()),
+      cache: _RecordingArticleCacheService(),
+      extractor: _FakeArticleExtractor(),
+    );
+
+    final result = await service.refreshFeedSafe(feedId, notify: false);
+
+    expect(result.ok, isTrue);
+    expect(paths, ['/v1/feeds/10/entries']);
+    final article = (await ArticleRepository(
+      isar!,
+    ).fetchPage(const ArticleQuery(), offset: 0, limit: 10)).single;
+    expect(article.isRead, isTrue);
+    expect(article.isStarred, isTrue);
+  });
+
+  test('Miniflux scoped feed sync treats empty id list as no-op', () async {
+    final paths = <String>[];
+    final dio = Dio();
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          paths.add(options.uri.path);
+          handler.reject(
+            DioException(
+              requestOptions: options,
+              error: 'unexpected Miniflux request: ${options.uri.path}',
+            ),
+          );
+        },
+      ),
+    );
+    final service = MinifluxSyncService(
+      account: buildTestAccount(
+        type: AccountType.miniflux,
+        baseUrl: 'https://miniflux.example.com',
+      ),
+      dio: dio,
+      credentials: _FakeCredentialStore(),
+      feeds: FeedRepository(isar!),
+      categories: CategoryRepository(isar!),
+      articles: ArticleRepository(isar!),
+      outbox: _MemoryOutboxStore(),
+      appSettingsStore: FakeAppSettingsStore(AppSettings.defaults()),
+      cache: _RecordingArticleCacheService(),
+      extractor: _FakeArticleExtractor(),
+    );
+
+    final result = await service.refreshFeedsSafe(const [], notify: false);
+
+    expect(result.results, isEmpty);
+    expect(paths, isEmpty);
+  });
 
   test('Fever fetches item batches with remote fetch concurrency', () async {
     final probe = _ConcurrencyProbe();

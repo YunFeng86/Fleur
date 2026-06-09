@@ -8,7 +8,9 @@ import 'package:fleur/l10n/app_localizations.dart';
 
 import '../providers/account_providers.dart';
 import '../services/accounts/account.dart';
+import '../services/sync/google_reader/google_reader_provider_profile.dart';
 import '../theme/fleur_icons.dart';
+import '../theme/fleur_theme_extensions.dart';
 import '../ui/dialogs/add_account_dialogs.dart';
 import '../ui/dialogs/text_input_dialog.dart';
 import '../utils/context_extensions.dart';
@@ -51,6 +53,13 @@ class AccountManagerDialog extends ConsumerWidget {
                   onTap: () =>
                       Navigator.of(dialogContext).pop(AccountType.fever),
                 ),
+                _AccountTypeCard(
+                  icon: FleurIcons.googleReaderAccount,
+                  title: l10n.addGoogleReaderApi,
+                  subtitle: l10n.googleReaderCompatible,
+                  onTap: () =>
+                      Navigator.of(dialogContext).pop(AccountType.googleReader),
+                ),
               ],
             ),
           ),
@@ -74,6 +83,9 @@ class AccountManagerDialog extends ConsumerWidget {
         return;
       case AccountType.fever:
         await showAddFeverAccountDialog(context, ref);
+        return;
+      case AccountType.googleReader:
+        await showAddGoogleReaderAccountDialog(context, ref);
         return;
     }
   }
@@ -136,12 +148,23 @@ class AccountManagerDialog extends ConsumerWidget {
     context.showSnack(l10n.done);
   }
 
+  Future<void> _editGoogleReaderConnection(
+    BuildContext context,
+    WidgetRef ref,
+    Account account,
+  ) async {
+    await showEditGoogleReaderAccountDialog(context, ref, account);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final accountsAsync = ref.watch(accountsControllerProvider);
     final active = ref.watch(activeAccountProvider);
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final surfaces = theme.fleurSurface;
+    final states = theme.fleurState;
 
     return Dialog(
       insetPadding: const EdgeInsets.all(24),
@@ -202,6 +225,7 @@ class AccountManagerDialog extends ConsumerWidget {
                     runSpacing: 8,
                     children: [
                       FilledButton.icon(
+                        key: const Key('account_manager_add_button'),
                         onPressed: () => unawaited(_addAccount(context, ref)),
                         icon: const Icon(FleurIcons.add),
                         label: Text(l10n.add),
@@ -218,10 +242,11 @@ class AccountManagerDialog extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   DecoratedBox(
+                    key: const Key('account_manager_list_surface'),
                     decoration: BoxDecoration(
-                      color: scheme.surfaceContainerHigh,
+                      color: surfaces.card,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: scheme.outlineVariant),
+                      border: Border.all(color: surfaces.subtleDivider),
                     ),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
@@ -252,20 +277,26 @@ class AccountManagerDialog extends ConsumerWidget {
                                   (a.baseUrl ?? '').trim().isEmpty
                                       ? l10n.fever
                                       : a.baseUrl!.trim(),
+                                AccountType.googleReader =>
+                                  _googleReaderAccountSubtitle(
+                                    a,
+                                    l10n.googleReaderCompatible,
+                                  ),
                               };
 
                               return AnimatedContainer(
+                                key: Key('account_manager_account_${a.id}'),
                                 duration: const Duration(milliseconds: 180),
                                 curve: Curves.easeOutCubic,
                                 decoration: BoxDecoration(
                                   color: isActive
-                                      ? scheme.primaryContainer
-                                      : scheme.surfaceContainerLowest,
+                                      ? surfaces.cardSelected
+                                      : surfaces.card,
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
                                     color: isActive
-                                        ? scheme.primary
-                                        : scheme.outlineVariant,
+                                        ? states.focusRing
+                                        : surfaces.subtleDivider,
                                   ),
                                 ),
                                 child: ListTile(
@@ -313,6 +344,19 @@ class AccountManagerDialog extends ConsumerWidget {
                                   trailing: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
+                                      if (a.type == AccountType.googleReader)
+                                        IconButton(
+                                          tooltip: 'Connection',
+                                          onPressed: () =>
+                                              _editGoogleReaderConnection(
+                                                context,
+                                                ref,
+                                                a,
+                                              ),
+                                          icon: const Icon(
+                                            FleurIcons.googleReaderAccount,
+                                          ),
+                                        ),
                                       IconButton(
                                         tooltip: l10n.rename,
                                         onPressed: () =>
@@ -360,6 +404,13 @@ class AccountManagerDialog extends ConsumerWidget {
   }
 }
 
+String _googleReaderAccountSubtitle(Account account, String fallback) {
+  final profile = GoogleReaderProviderProfiles.forAccount(account).displayName;
+  final baseUrl = account.baseUrl?.trim();
+  if (baseUrl == null || baseUrl.isEmpty) return '$profile - $fallback';
+  return '$profile - $baseUrl';
+}
+
 class _AccountTypeCard extends StatelessWidget {
   const _AccountTypeCard({
     required this.icon,
@@ -375,14 +426,16 @@ class _AccountTypeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final surfaces = theme.fleurSurface;
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 0,
-      color: scheme.surfaceContainerHigh,
+      color: surfaces.card,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: scheme.outlineVariant),
+        side: BorderSide(color: surfaces.subtleDivider),
       ),
       child: ListTile(
         leading: CircleAvatar(

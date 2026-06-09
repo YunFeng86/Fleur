@@ -5,7 +5,13 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
+import 'app_localizations_de.dart';
 import 'app_localizations_en.dart';
+import 'app_localizations_es.dart';
+import 'app_localizations_fr.dart';
+import 'app_localizations_ja.dart';
+import 'app_localizations_ko.dart';
+import 'app_localizations_pt.dart';
 import 'app_localizations_zh.dart';
 
 // ignore_for_file: type=lint
@@ -95,8 +101,16 @@ abstract class AppLocalizations {
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
+    Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'),
     Locale('zh'),
     Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
+    Locale('de'),
+    Locale('es'),
+    Locale('fr'),
+    Locale('ja'),
+    Locale('ko'),
+    Locale('pt'),
+    Locale('pt', 'BR'),
   ];
 
   /// appTitle
@@ -134,6 +148,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Settings'**
   String get settings;
+
+  /// Placeholder for the settings page search field
+  ///
+  /// In en, this message translates to:
+  /// **'Search settings'**
+  String get settingsSearchHint;
+
+  /// Empty state text for the settings page search results
+  ///
+  /// In en, this message translates to:
+  /// **'No settings match this search.'**
+  String get settingsSearchNoResults;
+
+  /// Settings search result type label for top-level pages
+  ///
+  /// In en, this message translates to:
+  /// **'Page'**
+  String get settingsSearchPageLabel;
+
+  /// Settings search result type label for settings sections
+  ///
+  /// In en, this message translates to:
+  /// **'Section'**
+  String get settingsSearchSectionLabel;
+
+  /// Settings search result type label for individual settings
+  ///
+  /// In en, this message translates to:
+  /// **'Setting'**
+  String get settingsSearchSettingLabel;
+
+  /// Settings search result count badge
+  ///
+  /// In en, this message translates to:
+  /// **'{count} results'**
+  String settingsSearchResultCount(Object count);
 
   /// Global navigation label: feeds
   ///
@@ -189,7 +239,7 @@ abstract class AppLocalizations {
   /// **'Dark'**
   String get dark;
 
-  /// Use Material You dynamic colors when available
+  /// Use system dynamic or accent colors when available
   ///
   /// In en, this message translates to:
   /// **'Dynamic colors'**
@@ -198,13 +248,13 @@ abstract class AppLocalizations {
   /// Hint for dynamic colors setting
   ///
   /// In en, this message translates to:
-  /// **'Use Material You colors (Android 12+)'**
+  /// **'Follow system dynamic or accent colors when available'**
   String get dynamicColorSubtitle;
 
   /// Seed color preset selector label
   ///
   /// In en, this message translates to:
-  /// **'Theme colors'**
+  /// **'Accent color'**
   String get seedColorPreset;
 
   /// Seed color preset selector hint
@@ -296,6 +346,354 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Horizontal padding'**
   String get horizontalPadding;
+
+  /// Section title for app-wide appearance settings
+  ///
+  /// In en, this message translates to:
+  /// **'App appearance'**
+  String get applicationAppearance;
+
+  /// Section title for reader appearance settings
+  ///
+  /// In en, this message translates to:
+  /// **'Reader appearance'**
+  String get readerAppearance;
+
+  /// Section title for code appearance settings
+  ///
+  /// In en, this message translates to:
+  /// **'Code appearance'**
+  String get codeAppearance;
+
+  /// Generic custom option label
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get custom;
+
+  /// Generic back action label
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get back;
+
+  /// Generic forward action label
+  ///
+  /// In en, this message translates to:
+  /// **'Forward'**
+  String get forward;
+
+  /// Appearance font detail page title
+  ///
+  /// In en, this message translates to:
+  /// **'Fonts'**
+  String get fontSettings;
+
+  /// Appearance advanced font settings row and detail page title
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced font settings'**
+  String get advancedFontSettings;
+
+  /// Appearance code font detail row label
+  ///
+  /// In en, this message translates to:
+  /// **'Fonts and code'**
+  String get fontsAndCode;
+
+  /// Custom font stack option label
+  ///
+  /// In en, this message translates to:
+  /// **'Custom font stack'**
+  String get customFontStack;
+
+  /// Code typography settings section title
+  ///
+  /// In en, this message translates to:
+  /// **'Code typography'**
+  String get codeTypography;
+
+  /// Reader font size preset label
+  ///
+  /// In en, this message translates to:
+  /// **'Extra small'**
+  String get fontSizeExtraSmall;
+
+  /// Reader font size preset label
+  ///
+  /// In en, this message translates to:
+  /// **'Small'**
+  String get fontSizeSmall;
+
+  /// Reader font size preset label
+  ///
+  /// In en, this message translates to:
+  /// **'Medium (recommended)'**
+  String get fontSizeMediumRecommended;
+
+  /// Reader font size preset label
+  ///
+  /// In en, this message translates to:
+  /// **'Large'**
+  String get fontSizeLarge;
+
+  /// Reader font size preset label
+  ///
+  /// In en, this message translates to:
+  /// **'Extra large'**
+  String get fontSizeExtraLarge;
+
+  /// Minimum reader body font size setting label
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum font size'**
+  String get minimumFontSize;
+
+  /// Reader line height preset label
+  ///
+  /// In en, this message translates to:
+  /// **'Compact'**
+  String get lineHeightCompact;
+
+  /// Reader line height preset label
+  ///
+  /// In en, this message translates to:
+  /// **'Standard'**
+  String get lineHeightStandard;
+
+  /// Reader line height preset label
+  ///
+  /// In en, this message translates to:
+  /// **'Relaxed'**
+  String get lineHeightRelaxed;
+
+  /// Appearance settings preview section title
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get appearancePreview;
+
+  /// Sample reader preview article title
+  ///
+  /// In en, this message translates to:
+  /// **'A quieter reading surface'**
+  String get appearancePreviewTitle;
+
+  /// Sample reader preview metadata
+  ///
+  /// In en, this message translates to:
+  /// **'Preview · Today'**
+  String get appearancePreviewMeta;
+
+  /// Sample reader preview body
+  ///
+  /// In en, this message translates to:
+  /// **'Tune the reader once, then let every article open with the same calm rhythm.'**
+  String get appearancePreviewBody;
+
+  /// Sample reader preview quote
+  ///
+  /// In en, this message translates to:
+  /// **'Readable settings should feel visible before they feel configurable.'**
+  String get appearancePreviewQuote;
+
+  /// Sample reader preview link
+  ///
+  /// In en, this message translates to:
+  /// **'Sample link'**
+  String get appearancePreviewLink;
+
+  /// Sample reader preview code text
+  ///
+  /// In en, this message translates to:
+  /// **'code sample'**
+  String get appearancePreviewCode;
+
+  /// Reader font family setting label
+  ///
+  /// In en, this message translates to:
+  /// **'Font family'**
+  String get readerFontFamily;
+
+  /// Reader system font option
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get readerFontSystem;
+
+  /// Reader serif font option
+  ///
+  /// In en, this message translates to:
+  /// **'Serif'**
+  String get readerFontSerif;
+
+  /// Reader sans font option
+  ///
+  /// In en, this message translates to:
+  /// **'Sans'**
+  String get readerFontSans;
+
+  /// Reader mono font option
+  ///
+  /// In en, this message translates to:
+  /// **'Mono'**
+  String get readerFontMono;
+
+  /// Reader custom font stack setting label
+  ///
+  /// In en, this message translates to:
+  /// **'Reading font stack'**
+  String get readerFontStack;
+
+  /// Standard reader font stack setting label
+  ///
+  /// In en, this message translates to:
+  /// **'Standard font'**
+  String get standardFont;
+
+  /// Serif reader font stack setting label
+  ///
+  /// In en, this message translates to:
+  /// **'Serif font'**
+  String get serifFont;
+
+  /// Sans-serif reader font stack setting label
+  ///
+  /// In en, this message translates to:
+  /// **'Sans-serif font'**
+  String get sansSerifFont;
+
+  /// Fixed-width reader and code font stack setting label
+  ///
+  /// In en, this message translates to:
+  /// **'Fixed-width font'**
+  String get fixedWidthFont;
+
+  /// Math font stack setting label
+  ///
+  /// In en, this message translates to:
+  /// **'Math font'**
+  String get mathFont;
+
+  /// Example helper text for custom font stack input
+  ///
+  /// In en, this message translates to:
+  /// **'\"PingFang SC\", \"Noto Sans CJK SC\", system-ui, sans-serif'**
+  String get fontStackExample;
+
+  /// Example helper text for monospace font stack input
+  ///
+  /// In en, this message translates to:
+  /// **'\"SF Mono\", Menlo, Consolas, monospace'**
+  String get monoFontStackExample;
+
+  /// Example helper text for math font stack input
+  ///
+  /// In en, this message translates to:
+  /// **'\"STIX Two Math\", \"Cambria Math\", serif'**
+  String get mathFontStackExample;
+
+  /// Reader surface texture preset setting label
+  ///
+  /// In en, this message translates to:
+  /// **'Reading texture'**
+  String get readerTheme;
+
+  /// Default reader texture option
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get readerThemeDefault;
+
+  /// Paper reader texture option
+  ///
+  /// In en, this message translates to:
+  /// **'Paper'**
+  String get readerThemePaper;
+
+  /// Sepia reader texture option
+  ///
+  /// In en, this message translates to:
+  /// **'Sepia'**
+  String get readerThemeSepia;
+
+  /// Soft gray reader texture option
+  ///
+  /// In en, this message translates to:
+  /// **'Soft gray'**
+  String get readerThemeDim;
+
+  /// Reader content width setting label
+  ///
+  /// In en, this message translates to:
+  /// **'Reading width'**
+  String get readingWidth;
+
+  /// Narrow reader content width option
+  ///
+  /// In en, this message translates to:
+  /// **'Narrow'**
+  String get readingWidthNarrow;
+
+  /// Standard reader content width option
+  ///
+  /// In en, this message translates to:
+  /// **'Standard'**
+  String get readingWidthStandard;
+
+  /// Wide reader content width option
+  ///
+  /// In en, this message translates to:
+  /// **'Wide'**
+  String get readingWidthWide;
+
+  /// Code font family setting label
+  ///
+  /// In en, this message translates to:
+  /// **'Code font'**
+  String get codeFontFamily;
+
+  /// Code system monospace font option
+  ///
+  /// In en, this message translates to:
+  /// **'System mono'**
+  String get codeFontSystemMono;
+
+  /// Code custom font stack setting label
+  ///
+  /// In en, this message translates to:
+  /// **'Code font stack'**
+  String get codeFontStack;
+
+  /// Code font size setting label
+  ///
+  /// In en, this message translates to:
+  /// **'Code font size'**
+  String get codeFontSize;
+
+  /// Code font size follows reader body option
+  ///
+  /// In en, this message translates to:
+  /// **'Follow body'**
+  String get codeFontSizeFollowReader;
+
+  /// Code font size one step smaller than reader body option
+  ///
+  /// In en, this message translates to:
+  /// **'One step down'**
+  String get codeFontSizeOneStepDown;
+
+  /// Code line height setting label
+  ///
+  /// In en, this message translates to:
+  /// **'Code line height'**
+  String get codeLineHeight;
+
+  /// Code soft wrap setting label
+  ///
+  /// In en, this message translates to:
+  /// **'Wrap code lines'**
+  String get codeSoftWrap;
 
   /// storage
   ///
@@ -753,6 +1151,18 @@ abstract class AppLocalizations {
   /// **'Feed / website URL'**
   String get feedOrWebsiteUrl;
 
+  /// Helper text for the add subscription URL field
+  ///
+  /// In en, this message translates to:
+  /// **'Paste a website or RSS URL'**
+  String get feedOrWebsiteUrlHint;
+
+  /// Button label for discovering RSS/Atom feeds from a URL
+  ///
+  /// In en, this message translates to:
+  /// **'Find feeds'**
+  String get findFeeds;
+
   /// discoveringFeeds
   ///
   /// In en, this message translates to:
@@ -777,6 +1187,48 @@ abstract class AppLocalizations {
   /// **'No feeds found'**
   String get noFeedsFound;
 
+  /// Inline hint shown when feed discovery finds no candidates
+  ///
+  /// In en, this message translates to:
+  /// **'Paste the RSS/Atom URL directly or try another page from the site.'**
+  String get noFeedsFoundHint;
+
+  /// Section title for the selected subscription source preview
+  ///
+  /// In en, this message translates to:
+  /// **'Source preview'**
+  String get subscriptionPreview;
+
+  /// Section title for discovered subscription result rows
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Found 1 subscription source} other{Found {count} subscription sources}}'**
+  String subscriptionResultsFound(int count);
+
+  /// Placeholder text when a discovered feed has no preview items
+  ///
+  /// In en, this message translates to:
+  /// **'No recent preview items available'**
+  String get subscriptionPreviewUnavailable;
+
+  /// Label for a feed discovered because the input URL is itself a feed
+  ///
+  /// In en, this message translates to:
+  /// **'RSS/Atom URL'**
+  String get feedSourceDirect;
+
+  /// Label for a feed discovered from HTML alternate/feed links
+  ///
+  /// In en, this message translates to:
+  /// **'Discovered on page'**
+  String get feedSourceAlternate;
+
+  /// Label for a feed discovered by probing common RSS paths
+  ///
+  /// In en, this message translates to:
+  /// **'Common feed path'**
+  String get feedSourceCommonPath;
+
   /// name
   ///
   /// In en, this message translates to:
@@ -788,6 +1240,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Added & synced'**
   String get addedAndSynced;
+
+  /// Success panel title after adding a subscription
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription added'**
+  String get subscriptionAddedTitle;
+
+  /// Success panel message after adding a subscription
+  ///
+  /// In en, this message translates to:
+  /// **'The subscription was added. You can open it now or keep adding more.'**
+  String get subscriptionAddedMessage;
+
+  /// Warning shown when adding a subscription succeeds but the initial refresh fails
+  ///
+  /// In en, this message translates to:
+  /// **'The subscription was added, but the first refresh failed. You can retry refresh later.'**
+  String get subscriptionRefreshWarning;
+
+  /// Panel title when the feed already exists
+  ///
+  /// In en, this message translates to:
+  /// **'Already subscribed'**
+  String get subscriptionAlreadyExistsTitle;
+
+  /// Panel message when the feed already exists
+  ///
+  /// In en, this message translates to:
+  /// **'This feed is already in your subscriptions. No category changes were made.'**
+  String get subscriptionAlreadyExistsMessage;
+
+  /// Button label for opening a newly added or existing subscription
+  ///
+  /// In en, this message translates to:
+  /// **'View subscription'**
+  String get viewSubscription;
+
+  /// Button label for resetting the add subscription form
+  ///
+  /// In en, this message translates to:
+  /// **'Continue adding'**
+  String get continueAddingSubscription;
+
+  /// Button label for moving an existing subscription into the category from which add subscription was opened
+  ///
+  /// In en, this message translates to:
+  /// **'Move to current category'**
+  String get moveToCurrentCategory;
 
   /// deleteSubscription
   ///
@@ -1335,6 +1835,24 @@ abstract class AppLocalizations {
   /// **'Add Miniflux'**
   String get addMiniflux;
 
+  /// addGoogleReaderApi
+  ///
+  /// In en, this message translates to:
+  /// **'Add Google Reader API'**
+  String get addGoogleReaderApi;
+
+  /// googleReaderApi
+  ///
+  /// In en, this message translates to:
+  /// **'Google Reader API'**
+  String get googleReaderApi;
+
+  /// googleReaderCompatible
+  ///
+  /// In en, this message translates to:
+  /// **'Google Reader compatible'**
+  String get googleReaderCompatible;
+
   /// addFever
   ///
   /// In en, this message translates to:
@@ -1370,6 +1888,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Miniflux can page through remote entries up to this per-sync window.'**
   String get remoteSyncStrategyMinifluxSubtitle;
+
+  /// remoteSyncStrategyGoogleReaderSubtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Google Reader compatible services page through remote stream entries up to this per-sync window.'**
+  String get remoteSyncStrategyGoogleReaderSubtitle;
 
   /// remoteSyncStrategyFeverSubtitle
   ///
@@ -1713,6 +2237,60 @@ abstract class AppLocalizations {
   /// **'Build number'**
   String get buildNumber;
 
+  /// Compact about-page app version and build label
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version} · Build {buildNumber}'**
+  String versionAndBuild(Object version, Object buildNumber);
+
+  /// Action label for manually checking app updates
+  ///
+  /// In en, this message translates to:
+  /// **'Check for updates'**
+  String get checkForUpdates;
+
+  /// Disabled action label while app update check is running
+  ///
+  /// In en, this message translates to:
+  /// **'Checking...'**
+  String get checkingForUpdates;
+
+  /// Short app update entry label shown when a new version is available
+  ///
+  /// In en, this message translates to:
+  /// **'Update'**
+  String get updateAvailable;
+
+  /// Status text shown after checking app updates
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re up to date'**
+  String get upToDate;
+
+  /// Error shown when checking app updates fails
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t check for updates.'**
+  String get updateCheckFailed;
+
+  /// Title for the app update dialog
+  ///
+  /// In en, this message translates to:
+  /// **'New version {version} available'**
+  String newVersionAvailable(Object version);
+
+  /// Heading for release notes in the app update dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Release notes'**
+  String get releaseNotes;
+
+  /// Action label to open the official GitHub release page
+  ///
+  /// In en, this message translates to:
+  /// **'Open release page'**
+  String get goToOfficialUpdate;
+
   /// openSourceLicense
   ///
   /// In en, this message translates to:
@@ -1754,6 +2332,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'J / K: Next / previous article'**
   String get shortcutNextPreviousArticle;
+
+  /// Keyboard shortcut help text for navigating backward or forward through history
+  ///
+  /// In en, this message translates to:
+  /// **'Alt + ← / Alt + →; macOS Cmd + [ / ]: Back / forward history'**
+  String get shortcutBackForwardHistory;
 
   /// Keyboard shortcut help text for refreshing the current selection
   ///
@@ -2404,8 +2988,16 @@ class _AppLocalizationsDelegate
   }
 
   @override
-  bool isSupported(Locale locale) =>
-      <String>['en', 'zh'].contains(locale.languageCode);
+  bool isSupported(Locale locale) => <String>[
+    'de',
+    'en',
+    'es',
+    'fr',
+    'ja',
+    'ko',
+    'pt',
+    'zh',
+  ].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -2417,6 +3009,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
     case 'zh':
       {
         switch (locale.scriptCode) {
+          case 'Hans':
+            return AppLocalizationsZhHans();
           case 'Hant':
             return AppLocalizationsZhHant();
         }
@@ -2424,10 +3018,34 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
       }
   }
 
+  // Lookup logic when language+country codes are specified.
+  switch (locale.languageCode) {
+    case 'pt':
+      {
+        switch (locale.countryCode) {
+          case 'BR':
+            return AppLocalizationsPtBr();
+        }
+        break;
+      }
+  }
+
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
+    case 'de':
+      return AppLocalizationsDe();
     case 'en':
       return AppLocalizationsEn();
+    case 'es':
+      return AppLocalizationsEs();
+    case 'fr':
+      return AppLocalizationsFr();
+    case 'ja':
+      return AppLocalizationsJa();
+    case 'ko':
+      return AppLocalizationsKo();
+    case 'pt':
+      return AppLocalizationsPt();
     case 'zh':
       return AppLocalizationsZh();
   }

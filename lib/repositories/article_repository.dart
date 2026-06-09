@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 import 'article_merge_policy.dart';
 import '../models/article.dart';
@@ -277,11 +277,29 @@ class ArticleRepository {
     });
   }
 
-  Future<int> markAllRead({int? feedId, int? categoryId}) {
-    return _markAllReadBatched(feedId: feedId, categoryId: categoryId);
+  Future<int> markAllRead({
+    int? feedId,
+    int? categoryId,
+    bool starredOnly = false,
+    bool readLaterOnly = false,
+    int? tagId,
+  }) {
+    return _markAllReadBatched(
+      feedId: feedId,
+      categoryId: categoryId,
+      starredOnly: starredOnly,
+      readLaterOnly: readLaterOnly,
+      tagId: tagId,
+    );
   }
 
-  Future<int> _markAllReadBatched({int? feedId, int? categoryId}) async {
+  Future<int> _markAllReadBatched({
+    int? feedId,
+    int? categoryId,
+    bool starredOnly = false,
+    bool readLaterOnly = false,
+    int? tagId,
+  }) async {
     final qb = _isar.articles
         .filter()
         .optional(feedId != null, (q) => q.feedIdEqualTo(feedId!))
@@ -289,6 +307,9 @@ class ArticleRepository {
           feedId == null && categoryId != null,
           (q) => q.categoryIdEqualTo(categoryId),
         )
+        .optional(starredOnly, (q) => q.isStarredEqualTo(true))
+        .optional(readLaterOnly, (q) => q.isReadLaterEqualTo(true))
+        .optional(tagId != null, (q) => q.tags((tag) => tag.idEqualTo(tagId!)))
         .isReadEqualTo(false);
 
     // 先取出 ID，避免单次事务加载过多数据。
@@ -324,6 +345,71 @@ class ArticleRepository {
       return q.feedIdEqualTo(feedId).findAll();
     }
     return q.findAll();
+  }
+
+  Future<void> reconcileRemoteReadStates({
+    required Set<String> unreadRemoteIds,
+    required bool complete,
+    int? feedId,
+  }) {
+    return _reconcileRemoteState(
+      remoteIdsWithState: unreadRemoteIds,
+      complete: complete,
+      feedId: feedId,
+      apply: (article, hasState) {
+        final nextIsRead = !hasState;
+        if (article.isRead == nextIsRead) return false;
+        article.isRead = nextIsRead;
+        return true;
+      },
+    );
+  }
+
+  Future<void> reconcileRemoteStarredStates({
+    required Set<String> starredRemoteIds,
+    required bool complete,
+    int? feedId,
+  }) {
+    return _reconcileRemoteState(
+      remoteIdsWithState: starredRemoteIds,
+      complete: complete,
+      feedId: feedId,
+      apply: (article, hasState) {
+        if (article.isStarred == hasState) return false;
+        article.isStarred = hasState;
+        return true;
+      },
+    );
+  }
+
+  Future<void> _reconcileRemoteState({
+    required Set<String> remoteIdsWithState,
+    required bool complete,
+    required int? feedId,
+    required bool Function(Article article, bool hasState) apply,
+  }) {
+    if (remoteIdsWithState.isEmpty && !complete) return Future.value();
+    return _isar.writeTxn(() async {
+      final articles = await _isar.articles
+          .filter()
+          .remoteIdIsNotNull()
+          .optional(feedId != null, (q) => q.feedIdEqualTo(feedId!))
+          .findAll();
+      final changed = <Article>[];
+      final now = DateTime.now();
+      for (final article in articles) {
+        final remoteId = article.remoteId?.trim();
+        if (remoteId == null || remoteId.isEmpty) continue;
+        final hasState = remoteIdsWithState.contains(remoteId);
+        if (!hasState && !complete) continue;
+        if (!apply(article, hasState)) continue;
+        article.updatedAt = now;
+        changed.add(article);
+      }
+      if (changed.isNotEmpty) {
+        await _isar.articles.putAll(changed);
+      }
+    });
   }
 
   Future<List<Article>> upsertMany(

@@ -1,11 +1,37 @@
 part of '../../widgets/reader_view.dart';
 
 extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
+  static void registerCodeSearchAnchors(
+    BuildContext context,
+    List<ReaderCodeSearchRange> ranges,
+  ) {
+    final coordinator = context
+        .findAncestorStateOfType<_ReaderViewState>()
+        ?._viewportCoordinator;
+    final key =
+        context.widget.key ??
+        context.findAncestorWidgetOfExactType<_ReaderCodeBlock>()?.key;
+    if (coordinator == null || key is! GlobalKey) return;
+    for (final range in ranges) {
+      coordinator._codeSearchAnchorKeys[range.anchorId] = key;
+    }
+  }
+
+  static void revealCodeSearchContext(BuildContext context) {
+    final coordinator = context
+        .findAncestorStateOfType<_ReaderViewState>()
+        ?._viewportCoordinator;
+    coordinator?._revealContextInReaderScroll(context, alignment: 0.1);
+  }
+
   void _setChunkedLayout(bool isChunked) {
     if (_usingChunkedLayout == isChunked) return;
     _usingChunkedLayout = isChunked;
     _chunkKeys.clear();
     _chunkHtmlKeys.clear();
+    _chunkHtmlSources.clear();
+    _codeSearchAnchorKeys.clear();
+    _fullHtmlSource = null;
     _pendingAnchor = null;
     _resizeRestoreAttempts = 0;
     _resizeTimer?.cancel();
@@ -16,7 +42,6 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
     _prefetchedChunks.clear();
     _prefetchTimer?.cancel();
     _prefetchTimer = null;
-    _currentChunks = null;
     _lastAnchor = null;
   }
 
@@ -194,7 +219,7 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
   void _jumpNearProgressAnchor(ReaderProgress progress) {
     if (!_scrollController.hasClients) return;
     final position = _scrollController.position;
-    final chunks = _currentChunks;
+    final chunks = _currentDocumentSnapshot?.chunks;
     double target = progress.pixels;
     if (chunks != null && chunks.isNotEmpty && progress.anchorIndex != null) {
       final totalItems = chunks.length + 1;
@@ -219,9 +244,12 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
 
   void _maybePrefetchNextChunks() {
     if (!_usingChunkedLayout) return;
-    final chunks = _currentChunks;
+    final snapshot = _currentDocumentSnapshot;
+    final handle = _currentDocumentHandle;
     final baseUrl = _currentImageBaseUrl;
-    if (chunks == null || baseUrl == null) return;
+    if (snapshot == null || handle == null || baseUrl == null) return;
+    final chunks = snapshot.chunks;
+    if (chunks.isEmpty) return;
     if (_prefetchTimer != null) return;
     _prefetchTimer = Timer(const Duration(milliseconds: 220), () async {
       _prefetchTimer = null;
@@ -239,7 +267,7 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
       final cache = ref.read(articleCacheServiceProvider);
       for (final idx in toPrefetch) {
         _prefetchedChunks.add(idx);
-        final html = chunks[idx - 1];
+        final html = handle.materializeRange(chunks[idx - 1]);
         unawaited(
           cache.prefetchImagesFromHtml(
             html,
@@ -273,7 +301,10 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
                   .read(readerSearchControllerProvider(widget.articleId))
                   .visible;
               if (!isVisible) {
-                _syncSearchDocumentHtml(widget.articleId);
+                final handle = _currentDocumentHandle;
+                if (handle != null) {
+                  controller.setDocumentHandle(handle);
+                }
                 controller.open();
                 return null;
               }
@@ -314,6 +345,12 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
     if (!_scrollController.hasClients) return;
 
     if (!_usingChunkedLayout) {
+      if (await _scrollToCodeSearchAnchor(
+        match.anchorId,
+        requestId: requestId,
+      )) {
+        return;
+      }
       final htmlState = _fullHtmlKey.currentState;
       if (htmlState != null) {
         unawaited(htmlState.scrollToAnchor(match.anchorId));
@@ -325,6 +362,10 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
     await _seekToChunkIndex(targetIndex, requestId: requestId);
     if (!mounted) return;
     if (requestId != _searchScrollRequestId) return;
+
+    if (await _scrollToCodeSearchAnchor(match.anchorId, requestId: requestId)) {
+      return;
+    }
 
     final state = _chunkHtmlKeys[targetIndex]?.currentState;
     if (state != null) {
@@ -350,6 +391,58 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
     }
   }
 
+  Future<bool> _scrollToCodeSearchAnchor(
+    String anchorId, {
+    required int requestId,
+  }) async {
+    for (var attempt = 0; attempt < 5; attempt++) {
+      if (!mounted) return false;
+      if (requestId != _searchScrollRequestId) return false;
+      final codeKey = _codeSearchAnchorKeys[anchorId];
+      final codeContext = codeKey?.currentContext;
+      if (codeContext != null && codeContext.mounted) {
+        return _revealContextInReaderScroll(codeContext, alignment: 0.1);
+      }
+      await WidgetsBinding.instance.endOfFrame;
+    }
+    return false;
+  }
+
+  bool _revealContextInReaderScroll(
+    BuildContext targetContext, {
+    required double alignment,
+  }) {
+    if (!_scrollController.hasClients) return false;
+    final targetBox = targetContext.findRenderObject() as RenderBox?;
+    final scrollContext =
+        _scrollController.position.context.notificationContext;
+    final scrollBox = scrollContext?.findRenderObject() as RenderBox?;
+    if (targetBox == null ||
+        scrollBox == null ||
+        !targetBox.hasSize ||
+        !scrollBox.hasSize) {
+      return false;
+    }
+    final targetTop = targetBox.localToGlobal(Offset.zero).dy;
+    final viewportTop = scrollBox.localToGlobal(Offset.zero).dy;
+    final viewportOffset = scrollBox.size.height * alignment;
+    final delta = targetTop - viewportTop - viewportOffset;
+    final position = _scrollController.position;
+    final next = (position.pixels + delta).clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
+    if ((next - position.pixels).abs() < 0.5) return true;
+    unawaited(
+      _scrollController.animateTo(
+        next,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+      ),
+    );
+    return true;
+  }
+
   double _estimateAverageChunkHeight() {
     double sum = 0;
     int count = 0;
@@ -373,7 +466,7 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
     if (!_scrollController.hasClients) return;
     if (requestId != _searchScrollRequestId) return;
 
-    final chunks = _currentChunks;
+    final chunks = _currentDocumentSnapshot?.chunks;
     if (chunks == null || chunks.isEmpty) return;
     final totalItems = chunks.length + 1;
     if (targetIndex < 0 || targetIndex >= totalItems) return;
@@ -427,22 +520,27 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
 
   Widget _buildContentWidget(
     BuildContext context,
-    List<String> chunks,
-    bool isChunked,
+    ReaderDocumentHandle documentHandle,
+    ReaderDocumentSnapshot snapshot,
+    List<String>? highlightedChunks,
     Article article,
     ReaderSettings settings,
+    ThemeData sceneTheme,
     Widget inlineHeader,
     String? currentAnchorId,
   ) {
     final cacheManager = ref.read(cacheManagerProvider);
+    _currentDocumentHandle = documentHandle;
+    _currentDocumentSnapshot = snapshot;
     _currentImageBaseUrl = Uri.tryParse(article.link);
-    final theme = Theme.of(context);
+    final theme = sceneTheme;
     final states = theme.fleurState;
     final reader = theme.fleurReader;
     final contentHorizontalPadding = math.max(
       settings.horizontalPadding,
       reader.contentPaddingHorizontal,
     );
+    _codeSearchAnchorKeys.clear();
 
     String rgba(Color color, {double alpha = 1}) {
       final a = (color.a * alpha).clamp(0.0, 1.0);
@@ -452,28 +550,211 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
       return 'rgba($r,$g,$b,${a.toStringAsFixed(3)})';
     }
 
-    Map<String, String>? searchStyles(dom.Element element) {
-      if (element.localName != 'mark') return null;
-      if (element.attributes[ReaderSearchService.markerAttribute] !=
-          ReaderSearchService.markerAttributeValue) {
-        return null;
-      }
-
-      final isCurrent =
-          currentAnchorId != null && element.id == currentAnchorId;
-      final bg = isCurrent
-          ? rgba(states.selectionTint, alpha: 0.95)
-          : rgba(reader.bannerSurface, alpha: 0.8);
-      return <String, String>{
-        'background-color': bg,
-        'padding': '0 2px',
-        'border-radius': '2px',
-      };
+    String cssColor(Color color) => rgba(color);
+    String cssFontFamily(TextStyle style) {
+      final fonts = <String>[?style.fontFamily, ...?style.fontFamilyFallback];
+      if (fonts.isEmpty) return 'monospace';
+      return fonts
+          .map((font) => font.contains(' ') ? '"$font"' : font)
+          .join(', ');
     }
 
-    if (!isChunked) {
-      final html = chunks.isEmpty ? '' : chunks.first;
-      _currentChunks = null;
+    final codeStyle = reader.codeStyle;
+    final codeCssFontFamily = cssFontFamily(codeStyle);
+    final codeCssFontSize = codeStyle.fontSize ?? settings.fontSize - 1;
+    final codeCssLineHeight =
+        codeStyle.height ?? ReaderSettings.defaultCodeLineHeight;
+
+    Map<String, String>? customStyles(dom.Element element) {
+      final localName = element.localName;
+      // Search highlight styles
+      if (localName == 'mark') {
+        if (element.attributes[ReaderSearchService.markerAttribute] ==
+            ReaderSearchService.markerAttributeValue) {
+          final isCurrent =
+              currentAnchorId != null && element.id == currentAnchorId;
+          final bg = isCurrent
+              ? rgba(states.selectionTint, alpha: 0.95)
+              : rgba(reader.bannerSurface, alpha: 0.8);
+          return <String, String>{
+            'background-color': bg,
+            'padding': '0 2px',
+            'border-radius': '2px',
+          };
+        }
+      }
+
+      // Link underline: dashed so adjacent links are visually distinct
+      if (localName == 'a') {
+        return const <String, String>{'text-decoration-style': 'dashed'};
+      }
+
+      if (localName == 'blockquote') {
+        return <String, String>{
+          'background-color': rgba(reader.bannerSurface, alpha: 0.64),
+          'border-left': '4px solid ${cssColor(reader.blockquoteAccent)}',
+          'border-radius': '6px',
+          'color': cssColor(theme.colorScheme.onSurfaceVariant),
+          'font-style': 'italic',
+          'margin': '18px 0',
+          'padding': '12px 16px',
+        };
+      }
+
+      if (localName == 'pre') {
+        return <String, String>{
+          'background-color': cssColor(reader.codeBlockSurface),
+          'border': '1px solid ${rgba(theme.fleurSurface.subtleDivider)}',
+          'border-radius': '6px',
+          'font-family': codeCssFontFamily,
+          'font-size': '${codeCssFontSize.toStringAsFixed(0)}px',
+          'font-style': 'normal',
+          'font-weight': '400',
+          'line-height': codeCssLineHeight.toStringAsFixed(2),
+          'margin': '18px 0',
+          'padding': '14px 16px',
+          'text-decoration': 'none',
+          'white-space': reader.codeSoftWrap ? 'pre-wrap' : 'pre',
+        };
+      }
+
+      if (localName == 'code') {
+        return <String, String>{
+          'background-color': cssColor(reader.codeBlockSurface),
+          'border-radius': '4px',
+          'font-family': codeCssFontFamily,
+          'font-size': '${codeCssFontSize.toStringAsFixed(0)}px',
+          'font-style': 'normal',
+          'font-weight': '400',
+          'line-height': codeCssLineHeight.toStringAsFixed(2),
+          'padding': '1px 4px',
+          'text-decoration': 'none',
+        };
+      }
+
+      if (localName == 'table') {
+        return <String, String>{
+          'border': '1px solid ${rgba(theme.fleurSurface.subtleDivider)}',
+          'border-collapse': 'collapse',
+          'margin': '18px 0',
+        };
+      }
+
+      if (localName == 'th') {
+        return <String, String>{
+          'background-color': rgba(reader.bannerSurface, alpha: 0.72),
+          'border': '1px solid ${rgba(theme.fleurSurface.subtleDivider)}',
+          'padding': '8px 10px',
+          'text-align': 'left',
+        };
+      }
+
+      if (localName == 'td') {
+        return <String, String>{
+          'border': '1px solid ${rgba(theme.fleurSurface.subtleDivider)}',
+          'padding': '8px 10px',
+        };
+      }
+
+      if (localName == 'caption') {
+        return <String, String>{
+          'caption-side': 'top',
+          'color': cssColor(theme.colorScheme.onSurfaceVariant),
+          'font-style': 'italic',
+          'padding': '8px 10px',
+          'text-align': 'left',
+        };
+      }
+
+      if (localName == 'tfoot') {
+        return <String, String>{
+          'background-color': rgba(reader.bannerSurface, alpha: 0.44),
+        };
+      }
+
+      if (localName == 'ul' || localName == 'ol') {
+        return const <String, String>{
+          'margin': '10px 0 14px 0',
+          'padding-left': '24px',
+        };
+      }
+
+      if (localName == 'li') {
+        return const <String, String>{'margin': '4px 0'};
+      }
+
+      return null;
+    }
+
+    Widget? customWidgets(dom.Element element) {
+      final localName = element.localName;
+      if (localName == 'fleur-math') {
+        final expression = element.attributes['data-fleur-math']?.trim();
+        if (expression == null || expression.isEmpty) return null;
+        final display =
+            element.attributes['data-fleur-math-display'] == 'block';
+        final math = _ReaderMathNode(expression: expression, display: display);
+        return display ? math : InlineCustomWidget(child: math);
+      }
+
+      if (localName == 'pre') {
+        final codeElement = element.querySelector('code');
+        final source = codeElement ?? element;
+        final extraction = const ReaderCodeHtmlRenderer().extract(source);
+        if (extraction.text.trim().isEmpty) return null;
+        final key = GlobalKey();
+        return _ReaderCodeBlock(
+          key: key,
+          source: source,
+          pre: element,
+          fontSize: settings.fontSize,
+          currentAnchorId: currentAnchorId,
+        );
+      }
+
+      if (localName == 'button') {
+        return InlineCustomWidget(child: _ReaderInertButton(element: element));
+      }
+
+      if (localName == 'input') {
+        return InlineCustomWidget(child: _ReaderInertInput(element: element));
+      }
+
+      if (localName == 'iframe' ||
+          localName == 'video' ||
+          localName == 'audio') {
+        final src = _mediaSourceForElement(element);
+        final resolved = src == null
+            ? ''
+            : Uri.tryParse(article.link)?.resolve(src).toString() ?? src;
+        return _MediaEmbedCard(
+          kind: switch (localName) {
+            'iframe' => 'Embedded',
+            'video' => 'Video',
+            'audio' => 'Audio',
+            _ => 'Embedded',
+          },
+          url: resolved,
+          onOpen: () {
+            if (resolved.isNotEmpty) {
+              unawaited(_onTapUrl(resolved));
+            }
+          },
+        );
+      }
+
+      return null;
+    }
+
+    if (!snapshot.isChunked) {
+      final highlightedHtml = highlightedChunks;
+      final html = highlightedHtml == null || highlightedHtml.isEmpty
+          ? snapshot.displayHtml
+          : highlightedHtml.first;
+      if (_fullHtmlSource != html) {
+        _fullHtmlSource = html;
+        _fullHtmlKey = GlobalKey<HtmlWidgetState>();
+      }
       return SelectionArea(
         key: _selectionAreaKey,
         onSelectionChanged: _handleSelectionChanged,
@@ -509,11 +790,16 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
                             factoryBuilder: () => _ReaderWidgetFactory(
                               cacheManager,
                               settings: settings,
+                              hoveredUrl: _interactionController.hoveredUrl,
+                              recognizerUrlMap:
+                                  _interactionController.recognizerUrlMap,
                             ),
                             renderMode: RenderMode.column,
                             buildAsync: true,
                             onLoadingBuilder: _buildImageLoadingPlaceholder,
-                            customStylesBuilder: searchStyles,
+                            onErrorBuilder: _buildImageErrorPlaceholder,
+                            customStylesBuilder: customStyles,
+                            customWidgetBuilder: customWidgets,
                             textStyle: reader.bodyStyle.copyWith(
                               fontSize: settings.fontSize,
                               height: settings.lineHeight,
@@ -533,7 +819,8 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
       );
     }
 
-    _currentChunks = chunks;
+    final highlightedHtml = highlightedChunks;
+    final chunkCount = highlightedHtml?.length ?? snapshot.chunks.length;
     return SelectionArea(
       key: _selectionAreaKey,
       onSelectionChanged: _handleSelectionChanged,
@@ -558,7 +845,7 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
                     contentHorizontalPadding,
                     reader.contentPaddingBottom,
                   ),
-                  itemCount: chunks.length + 1,
+                  itemCount: chunkCount + 1,
                   itemBuilder: (context, index) {
                     final key = _chunkKeys.putIfAbsent(
                       index,
@@ -567,24 +854,35 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
                     if (index == 0) {
                       return KeyedSubtree(key: key, child: inlineHeader);
                     }
-                    final htmlKey = _chunkHtmlKeys.putIfAbsent(
-                      index,
-                      () => GlobalKey<HtmlWidgetState>(),
-                    );
+                    final chunkHtml = highlightedHtml == null
+                        ? documentHandle.materializeRange(
+                            snapshot.chunks[index - 1],
+                          )
+                        : highlightedHtml[index - 1];
+                    if (_chunkHtmlSources[index] != chunkHtml) {
+                      _chunkHtmlSources[index] = chunkHtml;
+                      _chunkHtmlKeys[index] = GlobalKey<HtmlWidgetState>();
+                    }
+                    final htmlKey = _chunkHtmlKeys[index]!;
                     return KeyedSubtree(
                       key: key,
                       child: HtmlWidget(
-                        chunks[index - 1],
+                        chunkHtml,
                         key: htmlKey,
                         baseUrl: Uri.tryParse(article.link),
                         factoryBuilder: () => _ReaderWidgetFactory(
                           cacheManager,
                           settings: settings,
+                          hoveredUrl: _interactionController.hoveredUrl,
+                          recognizerUrlMap:
+                              _interactionController.recognizerUrlMap,
                         ),
                         renderMode: RenderMode.column,
                         buildAsync: true,
                         onLoadingBuilder: _buildImageLoadingPlaceholder,
-                        customStylesBuilder: searchStyles,
+                        onErrorBuilder: _buildImageErrorPlaceholder,
+                        customStylesBuilder: customStyles,
+                        customWidgetBuilder: customWidgets,
                         textStyle: reader.bodyStyle.copyWith(
                           fontSize: settings.fontSize,
                           height: settings.lineHeight,

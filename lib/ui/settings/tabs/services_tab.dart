@@ -12,7 +12,7 @@ import '../../../providers/backend_sync_semantics_provider.dart';
 import '../../../services/accounts/account.dart';
 import '../../../services/settings/app_settings.dart';
 import '../../../services/sync/backend_capabilities.dart';
-import '../../../services/sync/backend_sync_semantics.dart';
+import '../../../services/sync/google_reader/google_reader_provider_profile.dart';
 import '../../../theme/fleur_icons.dart';
 import '../../../utils/context_extensions.dart';
 import '../../../widgets/account_avatar.dart';
@@ -20,11 +20,17 @@ import '../../app_menu.dart';
 import '../../actions/subscription_actions.dart';
 import '../../dialogs/add_account_dialogs.dart';
 import '../../dialogs/text_input_dialog.dart';
+import '../settings_targets.dart';
 import '../widgets/section_header.dart';
 
 class ServicesTab extends ConsumerStatefulWidget {
-  const ServicesTab({super.key, this.showPageTitle = true});
+  const ServicesTab({
+    super.key,
+    required this.targetController,
+    this.showPageTitle = true,
+  });
 
+  final SettingsTargetController targetController;
   final bool showPageTitle;
 
   @override
@@ -37,7 +43,6 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
     final appSettings =
         ref.watch(appSettingsProvider).valueOrNull ?? AppSettings.defaults();
     final accountsAsync = ref.watch(accountsControllerProvider);
@@ -53,13 +58,11 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
     final refreshSectionTitle = l10n.refreshAll;
     final refreshSectionDescription = l10n.autoRefreshSubtitle;
     final refreshActionLabel = l10n.refreshAll;
-    final remoteStrategySubtitle = switch (syncSemantics.historyCoverage) {
-      BackendHistoryCoverage.remotePaginatedEntries =>
-        l10n.remoteSyncStrategyMinifluxSubtitle,
-      BackendHistoryCoverage.remoteUnreadAndSavedItems =>
-        l10n.remoteSyncStrategyFeverSubtitle,
-      BackendHistoryCoverage.localFeedContent =>
-        l10n.remoteSyncStrategySubtitle,
+    final remoteStrategySubtitle = switch (syncSemantics.accountType) {
+      AccountType.miniflux => l10n.remoteSyncStrategyMinifluxSubtitle,
+      AccountType.googleReader => l10n.remoteSyncStrategyGoogleReaderSubtitle,
+      AccountType.fever => l10n.remoteSyncStrategyFeverSubtitle,
+      AccountType.local => l10n.remoteSyncStrategySubtitle,
     };
     final showRemoteSyncStrategy =
         syncSemantics.supportsEntrySyncLimit ||
@@ -107,6 +110,13 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
                   onTap: () =>
                       Navigator.of(dialogContext).pop(AccountType.fever),
                 ),
+                ListTile(
+                  leading: const Icon(FleurIcons.googleReaderAccount),
+                  title: Text(l10n.addGoogleReaderApi),
+                  subtitle: Text(l10n.googleReaderCompatible),
+                  onTap: () =>
+                      Navigator.of(dialogContext).pop(AccountType.googleReader),
+                ),
               ],
             ),
             actions: [
@@ -129,6 +139,9 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
         case AccountType.fever:
           await showAddFeverAccountDialog(context, ref);
           return;
+        case AccountType.googleReader:
+          await showAddGoogleReaderAccountDialog(context, ref);
+          return;
       }
     }
 
@@ -143,6 +156,10 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
           (account.baseUrl ?? '').trim().isEmpty
               ? l10n.fever
               : account.baseUrl!.trim(),
+        AccountType.googleReader => _googleReaderAccountSubtitle(
+          account,
+          l10n.googleReaderCompatible,
+        ),
       };
     }
 
@@ -238,19 +255,32 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
                                 );
                               },
                         onRename: () => unawaited(renameAccount(account)),
+                        onConnection: account.type == AccountType.googleReader
+                            ? () => unawaited(
+                                showEditGoogleReaderAccountDialog(
+                                  context,
+                                  ref,
+                                  account,
+                                ),
+                              )
+                            : null,
                         onDelete: account.isPrimary
                             ? null
                             : () => unawaited(deleteAccount(account)),
                       ),
-                    SettingsTile(
-                      key: const Key('services_add_account'),
-                      leading: const CircleAvatar(
-                        radius: 18,
-                        child: Icon(FleurIcons.add),
+                    SettingsTargetAnchor(
+                      id: 'services.account.add',
+                      controller: widget.targetController,
+                      child: SettingsTile(
+                        key: const Key('services_add_account'),
+                        leading: const CircleAvatar(
+                          radius: 18,
+                          child: Icon(FleurIcons.add),
+                        ),
+                        title: Text(l10n.addOrRegisterAccount),
+                        trailing: const Icon(FleurIcons.chevronRight, size: 20),
+                        onTap: () => unawaited(addAccount()),
                       ),
-                      title: Text(l10n.addOrRegisterAccount),
-                      trailing: const Icon(FleurIcons.chevronRight, size: 20),
-                      onTap: () => unawaited(addAccount()),
                     ),
                   ],
                 );
@@ -263,71 +293,83 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
             title: refreshSectionTitle,
             description: refreshSectionDescription,
             child: SettingsCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              padding: EdgeInsets.zero,
+              child: SettingsTileGroup(
                 children: [
-                  DropdownButtonHideUnderline(
-                    child: DropdownButton<int?>(
-                      value: interval,
-                      isExpanded: true,
-                      items: [
-                        DropdownMenuItem<int?>(
-                          value: null,
-                          child: Text(l10n.off),
+                  SettingsTargetAnchor(
+                    id: 'services.refresh.interval',
+                    controller: widget.targetController,
+                    child: SettingsControlRow(
+                      title: Text(refreshSectionTitle),
+                      control: SettingsSelectField<int?>(
+                        key: const Key(
+                          'services_source_refresh_interval_select',
                         ),
-                        for (final m in const [15, 30, 60])
-                          DropdownMenuItem<int?>(
-                            value: m,
-                            child: Text(l10n.everyMinutes(m)),
+                        value: interval,
+                        options: [
+                          SettingsSelectOption<int?>(
+                            value: null,
+                            label: Text(l10n.off),
                           ),
-                      ],
-                      onChanged: (v) => ref
-                          .read(appSettingsProvider.notifier)
-                          .setSourceRefreshMinutes(v),
-                    ),
-                  ),
-                  if (showRefreshConcurrency) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      l10n.refreshConcurrency,
-                      style: theme.textTheme.titleSmall,
-                    ),
-                    const SizedBox(height: 8),
-                    DropdownButtonHideUnderline(
-                      child: DropdownButton<int>(
-                        value: appSettings.autoRefreshConcurrency,
-                        isExpanded: true,
-                        items: [
-                          for (final c in [1, 2, 4, 6])
-                            DropdownMenuItem(
-                              value: c,
-                              child: Text(c.toString()),
+                          for (final m in const [15, 30, 60])
+                            SettingsSelectOption<int?>(
+                              value: m,
+                              label: Text(l10n.everyMinutes(m)),
                             ),
                         ],
-                        onChanged: (v) {
-                          if (v == null) return;
-                          unawaited(
-                            ref
-                                .read(appSettingsProvider.notifier)
-                                .setAutoRefreshConcurrency(v),
-                          );
-                        },
+                        onChanged: (v) => ref
+                            .read(appSettingsProvider.notifier)
+                            .setSourceRefreshMinutes(v),
                       ),
                     ),
-                  ],
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: _isRefreshing
-                        ? null
-                        : () => unawaited(refreshNow()),
-                    icon: _isRefreshing
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(FleurIcons.refresh),
-                    label: Text(refreshActionLabel),
+                  ),
+                  if (showRefreshConcurrency)
+                    SettingsTargetAnchor(
+                      id: 'services.refresh.concurrency',
+                      controller: widget.targetController,
+                      child: SettingsControlRow(
+                        title: Text(l10n.refreshConcurrency),
+                        control: SettingsSelectField<int>(
+                          key: const Key('services_refresh_concurrency_select'),
+                          value: appSettings.autoRefreshConcurrency,
+                          options: [
+                            for (final c in [1, 2, 4, 6])
+                              SettingsSelectOption(
+                                value: c,
+                                label: Text(c.toString()),
+                              ),
+                          ],
+                          onChanged: (v) {
+                            unawaited(
+                              ref
+                                  .read(appSettingsProvider.notifier)
+                                  .setAutoRefreshConcurrency(v),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  SettingsControlRow(
+                    title: Text(refreshActionLabel),
+                    control: Align(
+                      alignment: AlignmentDirectional.centerEnd,
+                      child: SettingsActionButton(
+                        key: const Key('services_refresh_sources_button'),
+                        onPressed: _isRefreshing
+                            ? null
+                            : () => unawaited(refreshNow()),
+                        icon: _isRefreshing
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(FleurIcons.refresh),
+                        label: Text(refreshActionLabel),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -339,114 +381,100 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
             description: remoteStrategySubtitle,
             bottomSpacing: 0,
             child: SettingsCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              padding: EdgeInsets.zero,
+              child: SettingsTileGroup(
                 children: [
-                  if (syncSemantics.supportsEntrySyncLimit) ...[
-                    Text(
-                      l10n.remoteEntriesLimit,
-                      style: theme.textTheme.titleSmall,
-                    ),
-                    const SizedBox(height: 8),
-                    DropdownButtonHideUnderline(
-                      child: DropdownButton<int>(
-                        value: appSettings.remoteEntriesLimit,
-                        isExpanded: true,
-                        items: [
-                          for (final v in const [100, 200, 400, 800, 1200])
-                            DropdownMenuItem(value: v, child: Text('$v')),
-                          DropdownMenuItem(
-                            value: 0,
-                            child: Text(l10n.unlimited),
+                  if (syncSemantics.supportsEntrySyncLimit)
+                    SettingsTargetAnchor(
+                      id: 'services.remote.entries_limit',
+                      controller: widget.targetController,
+                      child: SettingsControlRow(
+                        title: Text(l10n.remoteEntriesLimit),
+                        control: SettingsSelectField<int>(
+                          key: const Key(
+                            'services_remote_entries_limit_select',
                           ),
-                        ],
-                        onChanged: (v) {
-                          if (v == null) return;
-                          unawaited(
-                            ref
-                                .read(appSettingsProvider.notifier)
-                                .setRemoteEntriesLimit(v),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                  if (syncSemantics.supportsRemoteFetchConcurrency) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      l10n.remoteFetchConcurrency,
-                      style: theme.textTheme.titleSmall,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      l10n.remoteFetchConcurrencySubtitle,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    DropdownButtonHideUnderline(
-                      child: DropdownButton<int>(
-                        value: appSettings.remoteFetchConcurrency,
-                        isExpanded: true,
-                        items: [
-                          for (final c in const [1, 2, 3, 4])
-                            DropdownMenuItem(
-                              value: c,
-                              child: Text(c.toString()),
+                          value: appSettings.remoteEntriesLimit,
+                          options: [
+                            for (final v in const [100, 200, 400, 800, 1200])
+                              SettingsSelectOption(value: v, label: Text('$v')),
+                            SettingsSelectOption(
+                              value: 0,
+                              label: Text(l10n.unlimited),
                             ),
-                        ],
-                        onChanged: (v) {
-                          if (v == null) return;
-                          unawaited(
-                            ref
-                                .read(appSettingsProvider.notifier)
-                                .setRemoteFetchConcurrency(v),
-                          );
-                        },
+                          ],
+                          onChanged: (v) {
+                            unawaited(
+                              ref
+                                  .read(appSettingsProvider.notifier)
+                                  .setRemoteEntriesLimit(v),
+                            );
+                          },
+                        ),
                       ),
                     ),
-                  ],
+                  if (syncSemantics.supportsRemoteFetchConcurrency)
+                    SettingsTargetAnchor(
+                      id: 'services.remote.fetch_concurrency',
+                      controller: widget.targetController,
+                      child: SettingsControlRow(
+                        title: Text(l10n.remoteFetchConcurrency),
+                        subtitle: Text(l10n.remoteFetchConcurrencySubtitle),
+                        control: SettingsSelectField<int>(
+                          key: const Key(
+                            'services_remote_fetch_concurrency_select',
+                          ),
+                          value: appSettings.remoteFetchConcurrency,
+                          options: [
+                            for (final c in const [1, 2, 3, 4])
+                              SettingsSelectOption(
+                                value: c,
+                                label: Text(c.toString()),
+                              ),
+                          ],
+                          onChanged: (v) {
+                            unawaited(
+                              ref
+                                  .read(appSettingsProvider.notifier)
+                                  .setRemoteFetchConcurrency(v),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
                   if (contentCapabilities
-                      .canChooseServerArticleContentFetchMode) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      l10n.minifluxWebFetchMode,
-                      style: theme.textTheme.titleSmall,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      l10n.minifluxWebFetchModeSubtitle,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                      .canChooseServerArticleContentFetchMode)
+                    SettingsTargetAnchor(
+                      id: 'services.remote.miniflux_web_fetch_mode',
+                      controller: widget.targetController,
+                      child: SettingsControlRow(
+                        title: Text(l10n.minifluxWebFetchMode),
+                        subtitle: Text(l10n.minifluxWebFetchModeSubtitle),
+                        control: SettingsSelectField<MinifluxWebFetchMode>(
+                          key: const Key(
+                            'services_miniflux_web_fetch_mode_select',
+                          ),
+                          value: appSettings.minifluxWebFetchMode,
+                          options: [
+                            SettingsSelectOption(
+                              value: MinifluxWebFetchMode.clientReadability,
+                              label: Text(l10n.minifluxWebFetchModeClient),
+                            ),
+                            SettingsSelectOption(
+                              value: MinifluxWebFetchMode.serverFetchContent,
+                              label: Text(l10n.minifluxWebFetchModeServer),
+                            ),
+                          ],
+                          onChanged: (v) {
+                            unawaited(
+                              ref
+                                  .read(appSettingsProvider.notifier)
+                                  .setMinifluxWebFetchMode(v),
+                            );
+                          },
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    DropdownButtonHideUnderline(
-                      child: DropdownButton<MinifluxWebFetchMode>(
-                        value: appSettings.minifluxWebFetchMode,
-                        isExpanded: true,
-                        items: [
-                          DropdownMenuItem(
-                            value: MinifluxWebFetchMode.clientReadability,
-                            child: Text(l10n.minifluxWebFetchModeClient),
-                          ),
-                          DropdownMenuItem(
-                            value: MinifluxWebFetchMode.serverFetchContent,
-                            child: Text(l10n.minifluxWebFetchModeServer),
-                          ),
-                        ],
-                        onChanged: (v) {
-                          if (v == null) return;
-                          unawaited(
-                            ref
-                                .read(appSettingsProvider.notifier)
-                                .setMinifluxWebFetchMode(v),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),
@@ -456,7 +484,14 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
   }
 }
 
-enum _AccountAction { rename, delete }
+String _googleReaderAccountSubtitle(Account account, String fallback) {
+  final profile = GoogleReaderProviderProfiles.forAccount(account).displayName;
+  final baseUrl = account.baseUrl?.trim();
+  if (baseUrl == null || baseUrl.isEmpty) return '$profile - $fallback';
+  return '$profile - $baseUrl';
+}
+
+enum _AccountAction { connection, rename, delete }
 
 class _AccountSettingsTile extends StatelessWidget {
   const _AccountSettingsTile({
@@ -466,6 +501,7 @@ class _AccountSettingsTile extends StatelessWidget {
     required this.isActive,
     required this.onTap,
     required this.onRename,
+    required this.onConnection,
     required this.onDelete,
   });
 
@@ -474,6 +510,7 @@ class _AccountSettingsTile extends StatelessWidget {
   final bool isActive;
   final VoidCallback? onTap;
   final VoidCallback onRename;
+  final VoidCallback? onConnection;
   final VoidCallback? onDelete;
 
   @override
@@ -508,6 +545,13 @@ class _AccountSettingsTile extends StatelessWidget {
             tooltip: l10n.more,
             icon: FleurIcons.moreVertical,
             items: [
+              if (onConnection != null)
+                AppMenuItem(
+                  key: Key('services_account_connection_${account.id}'),
+                  value: _AccountAction.connection,
+                  icon: FleurIcons.googleReaderAccount,
+                  label: 'Connection',
+                ),
               AppMenuItem(
                 key: Key('services_account_rename_${account.id}'),
                 value: _AccountAction.rename,
@@ -524,6 +568,9 @@ class _AccountSettingsTile extends StatelessWidget {
             ],
             onSelected: (action) {
               switch (action) {
+                case _AccountAction.connection:
+                  onConnection?.call();
+                  return;
                 case _AccountAction.rename:
                   onRename();
                   return;
