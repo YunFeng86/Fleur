@@ -9,6 +9,16 @@ Fleur 是一个 macOS-first 的 RSS 阅读器，面向开放 Web，提供安静�
 
 Fleur 1.0 计划作为优先面向 macOS 的正式版本发布。源码树中仍保留其他平台目标，但 1.0 的官方发行产物计划仅提供 macOS 版本。
 
+<!--
+产品截图预留：
+1. 将最终截图放到 assets/readme/fleur-macos-main.png。
+2. 图片准备好后取消下面这段注释。
+
+<p align="center">
+  <img src="assets/readme/fleur-macos-main.png" alt="Fleur 在 macOS 上运行" width="960">
+</p>
+-->
+
 ## 下载
 
 请从 [GitHub Releases](https://github.com/ZeyrMe/Fleur/releases) 下载 Fleur。

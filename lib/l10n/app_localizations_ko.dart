@@ -1128,6 +1128,37 @@ class AppLocalizationsKo extends AppLocalizations {
   String get buildNumber => '빌드 번호';
 
   @override
+  String versionAndBuild(Object version, Object buildNumber) {
+    return '버전 $version · 빌드 $buildNumber';
+  }
+
+  @override
+  String get checkForUpdates => '업데이트 확인';
+
+  @override
+  String get checkingForUpdates => '확인 중...';
+
+  @override
+  String get updateAvailable => '업데이트';
+
+  @override
+  String get upToDate => '최신 버전입니다';
+
+  @override
+  String get updateCheckFailed => '업데이트를 확인할 수 없습니다.';
+
+  @override
+  String newVersionAvailable(Object version) {
+    return '새 버전 $version을 사용할 수 있습니다';
+  }
+
+  @override
+  String get releaseNotes => '릴리스 노트';
+
+  @override
+  String get goToOfficialUpdate => '릴리스 페이지 열기';
+
+  @override
   String get openSourceLicense => '오픈소스 라이선스';
 
   @override

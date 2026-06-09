@@ -10,6 +10,7 @@ import '../models/article_scope.dart';
 import '../models/feed.dart';
 import '../app/settings_routes.dart';
 import '../providers/account_providers.dart';
+import '../providers/app_update_providers.dart';
 import '../providers/backend_capabilities_provider.dart';
 import '../providers/backend_sync_semantics_provider.dart';
 import '../providers/core_providers.dart';
@@ -19,6 +20,7 @@ import '../providers/sync_status_providers.dart';
 import '../services/accounts/account.dart';
 import '../services/sync/sync_status_reporter.dart';
 import '../services/sync/backend_capabilities.dart';
+import '../services/update/app_update_manifest.dart';
 import '../theme/app_typography.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
@@ -29,6 +31,7 @@ import '../ui/actions/subscription_object_menus.dart';
 import '../ui/sidebar/sidebar_management_actions.dart';
 import '../ui/sidebar/sidebar_selection_actions.dart';
 import '../ui/sidebar/sidebar_tree.dart';
+import '../ui/update/app_update_dialog.dart';
 import '../utils/platform.dart';
 import 'account_avatar.dart';
 import 'fleur_capsule_button_group.dart';
@@ -715,7 +718,7 @@ class _SidebarPanel extends StatelessWidget {
   }
 }
 
-class _SidebarPanelHeader extends StatelessWidget {
+class _SidebarPanelHeader extends ConsumerWidget {
   const _SidebarPanelHeader({
     required this.searchSelected,
     required this.onSearch,
@@ -727,9 +730,14 @@ class _SidebarPanelHeader extends StatelessWidget {
   final MacOSWindowChromeMetrics macOSWindowChromeMetrics;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final onPressed = onSearch;
+    final updateManifest = ref.watch(
+      appUpdateControllerProvider.select(
+        (state) => state.hasUpdate ? state.manifest : null,
+      ),
+    );
     final controlTop = isMacOS
         ? macOSWindowChromeMetrics.shellControlTopInset
         : kShellControlTopInset;
@@ -737,39 +745,140 @@ class _SidebarPanelHeader extends StatelessWidget {
     return SizedBox(
       key: const Key('app_shell_sidebar_header'),
       height: kWorkspaceHeaderHeight,
-      child: onPressed == null
+      child: onPressed == null && updateManifest == null
           ? const SizedBox.shrink()
-          : Stack(
-              children: [
-                Positioned(
-                  right: 8,
-                  top: controlTop,
-                  width: kShellControlSize,
-                  height: kShellControlSize,
-                  child: Semantics(
-                    button: true,
-                    selected: searchSelected,
-                    label: l10n.search,
-                    child: IconButton(
-                      key: const Key('shell_search_button'),
-                      tooltip: l10n.search,
-                      onPressed: onPressed,
-                      icon: Icon(
-                        searchSelected
-                            ? FleurIcons.searchSelected
-                            : FleurIcons.search,
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                const rightInset = 8.0;
+                const controlGap = 6.0;
+                const updateTextWidth = 72.0;
+                final hasSearch = onPressed != null;
+                final updateRight =
+                    rightInset +
+                    (hasSearch ? kShellControlSize + controlGap : 0);
+                final updateSpace = constraints.maxWidth - updateRight - 8;
+                final showUpdateLabel = updateSpace >= updateTextWidth;
+
+                return Stack(
+                  children: [
+                    if (updateManifest != null)
+                      Positioned(
+                        right: updateRight,
+                        top: controlTop,
+                        width: showUpdateLabel
+                            ? updateTextWidth
+                            : kShellControlSize,
+                        height: kShellControlSize,
+                        child: _SidebarUpdateButton(
+                          manifest: updateManifest,
+                          showLabel: showUpdateLabel,
+                        ),
                       ),
-                      iconSize: kShellControlIconSize,
-                      style: FleurCapsuleIconButton.styleFor(
-                        context,
-                        selected: searchSelected,
-                        size: kShellControlSize,
+                    if (hasSearch)
+                      Positioned(
+                        right: rightInset,
+                        top: controlTop,
+                        width: kShellControlSize,
+                        height: kShellControlSize,
+                        child: Semantics(
+                          button: true,
+                          selected: searchSelected,
+                          label: l10n.search,
+                          child: IconButton(
+                            key: const Key('shell_search_button'),
+                            tooltip: l10n.search,
+                            onPressed: onPressed,
+                            icon: Icon(
+                              searchSelected
+                                  ? FleurIcons.searchSelected
+                                  : FleurIcons.search,
+                            ),
+                            iconSize: kShellControlIconSize,
+                            style: FleurCapsuleIconButton.styleFor(
+                              context,
+                              selected: searchSelected,
+                              size: kShellControlSize,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ),
-              ],
+                  ],
+                );
+              },
             ),
+    );
+  }
+}
+
+class _SidebarUpdateButton extends StatelessWidget {
+  const _SidebarUpdateButton({required this.manifest, required this.showLabel});
+
+  final AppUpdateManifest manifest;
+  final bool showLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    if (!showLabel) {
+      return Semantics(
+        button: true,
+        label: l10n.updateAvailable,
+        child: IconButton(
+          key: const Key('sidebar_update_button'),
+          tooltip: l10n.updateAvailable,
+          onPressed: () {
+            unawaited(showAppUpdateDialog(context, manifest: manifest));
+          },
+          icon: const Icon(FleurIcons.download),
+          iconSize: kShellControlIconSize,
+          style: FleurCapsuleIconButton.styleFor(
+            context,
+            selected: true,
+            size: kShellControlSize,
+          ),
+        ),
+      );
+    }
+
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final states = theme.fleurState;
+    return TextButton.icon(
+      key: const Key('sidebar_update_button'),
+      onPressed: () {
+        unawaited(showAppUpdateDialog(context, manifest: manifest));
+      },
+      icon: const Icon(FleurIcons.download, size: kShellControlIconSize),
+      label: Text(
+        l10n.updateAvailable,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      style: ButtonStyle(
+        fixedSize: const WidgetStatePropertyAll(Size(72, kShellControlSize)),
+        minimumSize: const WidgetStatePropertyAll(Size(72, kShellControlSize)),
+        maximumSize: const WidgetStatePropertyAll(Size(72, kShellControlSize)),
+        padding: const WidgetStatePropertyAll(
+          EdgeInsets.symmetric(horizontal: 10),
+        ),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        visualDensity: VisualDensity.compact,
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+        ),
+        backgroundColor: WidgetStatePropertyAll(states.selectionTint),
+        foregroundColor: WidgetStatePropertyAll(scheme.primary),
+        overlayColor: WidgetStateProperty.resolveWith((stateSet) {
+          if (stateSet.contains(WidgetState.pressed)) {
+            return states.pressedTint;
+          }
+          if (stateSet.contains(WidgetState.hovered) ||
+              stateSet.contains(WidgetState.focused)) {
+            return states.hoverTint;
+          }
+          return null;
+        }),
+      ),
     );
   }
 }

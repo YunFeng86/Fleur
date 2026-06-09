@@ -12,6 +12,16 @@ Fleur 1.0 is planned as a macOS-focused release. The source tree still contains
 other platform targets, but the official 1.0 release artifacts are intended to
 be macOS-only.
 
+<!--
+Product screenshot placeholder:
+1. Add the final screenshot at assets/readme/fleur-macos-main.png.
+2. Uncomment the block below when the image is ready.
+
+<p align="center">
+  <img src="assets/readme/fleur-macos-main.png" alt="Fleur running on macOS" width="960">
+</p>
+-->
+
 ## Download
 
 Download Fleur from [GitHub Releases](https://github.com/ZeyrMe/Fleur/releases).

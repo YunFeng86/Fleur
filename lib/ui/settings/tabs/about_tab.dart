@@ -3,30 +3,34 @@ import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as p;
 
 import '../../../l10n/app_localizations.dart';
+import '../../../providers/app_update_providers.dart';
 import '../../../services/logging/app_logger.dart';
+import '../../../services/update/app_update_manifest.dart';
 import '../../../services/platform/shell_service.dart';
 import '../../../theme/fleur_icons.dart';
+import '../../../ui/update/app_update_dialog.dart';
 import '../../../utils/context_extensions.dart';
 import '../../../utils/path_manager.dart';
 import '../../../utils/platform.dart';
 import '../../../widgets/app_scrollbar.dart';
 import '../widgets/section_header.dart';
 
-class AboutTab extends StatefulWidget {
+class AboutTab extends ConsumerStatefulWidget {
   const AboutTab({super.key, this.showPageTitle = true});
 
   final bool showPageTitle;
 
   @override
-  State<AboutTab> createState() => _AboutTabState();
+  ConsumerState<AboutTab> createState() => _AboutTabState();
 }
 
-class _AboutTabState extends State<AboutTab> {
+class _AboutTabState extends ConsumerState<AboutTab> {
   late final Future<String> _appDataPathFuture;
   late final Future<String> _logsPathFuture;
   late final Future<PackageInfo> _packageInfoFuture;
@@ -209,11 +213,40 @@ class _AboutTabState extends State<AboutTab> {
     }
   }
 
+  Future<void> _checkForUpdates() async {
+    final l10n = AppLocalizations.of(context)!;
+    await ref.read(appUpdateControllerProvider.notifier).check();
+    if (!mounted) return;
+    final updateState = ref.read(appUpdateControllerProvider);
+    switch (updateState.status) {
+      case AppUpdateStatus.updateAvailable:
+        final manifest = updateState.manifest;
+        if (manifest != null) {
+          await showAppUpdateDialog(context, manifest: manifest);
+        }
+        return;
+      case AppUpdateStatus.upToDate:
+        context.showSnack(l10n.upToDate);
+        return;
+      case AppUpdateStatus.error:
+        context.showErrorMessage(l10n.updateCheckFailed);
+        return;
+      case AppUpdateStatus.idle:
+      case AppUpdateStatus.checking:
+        return;
+    }
+  }
+
+  Future<void> _showUpdateDialog(AppUpdateManifest manifest) {
+    return showAppUpdateDialog(context, manifest: manifest);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isDesktopPlatform = isDesktop;
+    final updateState = ref.watch(appUpdateControllerProvider);
 
     return FutureBuilder<PackageInfo>(
       future: _packageInfoFuture,
@@ -233,38 +266,41 @@ class _AboutTabState extends State<AboutTab> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(l10n.appTitle, style: theme.textTheme.titleMedium),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     if (packageInfo != null) ...[
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  l10n.version,
-                                  style: theme.textTheme.labelLarge,
-                                ),
-                                const SizedBox(height: 4),
-                                SelectableText(packageInfo.version),
-                              ],
-                            ),
+                      _AboutVersionUpdateRow(
+                        packageInfo: packageInfo,
+                        updateState: updateState,
+                        onCheck: _checkForUpdates,
+                        onShowUpdate: (manifest) {
+                          unawaited(_showUpdateDialog(manifest));
+                        },
+                      ),
+                      if (updateState.status == AppUpdateStatus.error) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          l10n.updateCheckFailed,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.error,
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  l10n.buildNumber,
-                                  style: theme.textTheme.labelLarge,
-                                ),
-                                const SizedBox(height: 4),
-                                SelectableText(packageInfo.buildNumber),
-                              ],
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                    ] else ...[
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          return Align(
+                            alignment: AlignmentDirectional.centerEnd,
+                            child: _AboutUpdateButton(
+                              state: updateState,
+                              onCheck: _checkForUpdates,
+                              onShowUpdate: (manifest) {
+                                unawaited(_showUpdateDialog(manifest));
+                              },
+                              compact: constraints.maxWidth < 420,
                             ),
-                          ),
-                        ],
+                          );
+                        },
                       ),
                       const SizedBox(height: 16),
                     ],
@@ -471,6 +507,130 @@ class _AboutPathActionRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _AboutVersionUpdateRow extends StatelessWidget {
+  const _AboutVersionUpdateRow({
+    required this.packageInfo,
+    required this.updateState,
+    required this.onCheck,
+    required this.onShowUpdate,
+  });
+
+  final PackageInfo packageInfo;
+  final AppUpdateState updateState;
+  final Future<void> Function() onCheck;
+  final ValueChanged<AppUpdateManifest> onShowUpdate;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final versionBlock = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SelectableText(
+          l10n.versionAndBuild(packageInfo.version, packageInfo.buildNumber),
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        if (updateState.status == AppUpdateStatus.upToDate) ...[
+          const SizedBox(height: 4),
+          Text(
+            l10n.upToDate,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ],
+    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final narrow = constraints.maxWidth < 420;
+        final effectiveUpdateButton = _AboutUpdateButton(
+          state: updateState,
+          onCheck: onCheck,
+          onShowUpdate: onShowUpdate,
+          compact: narrow,
+        );
+        if (narrow) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              versionBlock,
+              const SizedBox(height: 12),
+              Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: effectiveUpdateButton,
+              ),
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(child: versionBlock),
+            const SizedBox(width: 12),
+            effectiveUpdateButton,
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _AboutUpdateButton extends StatelessWidget {
+  const _AboutUpdateButton({
+    required this.state,
+    required this.onCheck,
+    required this.onShowUpdate,
+    this.compact = false,
+  });
+
+  final AppUpdateState state;
+  final Future<void> Function() onCheck;
+  final ValueChanged<AppUpdateManifest> onShowUpdate;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final checking = state.status == AppUpdateStatus.checking;
+    final manifest = state.hasUpdate ? state.manifest : null;
+    final label = checking
+        ? l10n.checkingForUpdates
+        : (manifest == null ? l10n.checkForUpdates : l10n.goToOfficialUpdate);
+    final onPressed = checking
+        ? null
+        : () {
+            if (manifest != null) {
+              onShowUpdate(manifest);
+              return;
+            }
+            unawaited(onCheck());
+          };
+    final icon = manifest == null ? FleurIcons.refresh : FleurIcons.download;
+    if (compact) {
+      return IconButton(
+        key: const Key('about_check_updates_button'),
+        tooltip: label,
+        onPressed: onPressed,
+        icon: Icon(icon),
+      );
+    }
+    return SettingsActionButton(
+      key: const Key('about_check_updates_button'),
+      onPressed: onPressed,
+      icon: Icon(icon),
+      label: Text(label),
+      variant: manifest == null
+          ? SettingsActionButtonVariant.outline
+          : SettingsActionButtonVariant.filled,
     );
   }
 }

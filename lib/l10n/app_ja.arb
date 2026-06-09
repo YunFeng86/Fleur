@@ -1482,6 +1482,49 @@
   "@buildNumber": {
     "description": "buildNumber"
   },
+  "versionAndBuild": "バージョン {version} · ビルド {buildNumber}",
+  "@versionAndBuild": {
+    "description": "Compact about-page app version and build label",
+    "placeholders": {
+      "version": {},
+      "buildNumber": {}
+    }
+  },
+  "checkForUpdates": "アップデートを確認",
+  "@checkForUpdates": {
+    "description": "Action label for manually checking app updates"
+  },
+  "checkingForUpdates": "確認中...",
+  "@checkingForUpdates": {
+    "description": "Disabled action label while app update check is running"
+  },
+  "updateAvailable": "アップデート",
+  "@updateAvailable": {
+    "description": "Short app update entry label shown when a new version is available"
+  },
+  "upToDate": "最新バージョンです",
+  "@upToDate": {
+    "description": "Status text shown after checking app updates"
+  },
+  "updateCheckFailed": "アップデートを確認できませんでした。",
+  "@updateCheckFailed": {
+    "description": "Error shown when checking app updates fails"
+  },
+  "newVersionAvailable": "新しいバージョン {version} が利用可能です",
+  "@newVersionAvailable": {
+    "description": "Title for the app update dialog",
+    "placeholders": {
+      "version": {}
+    }
+  },
+  "releaseNotes": "リリースノート",
+  "@releaseNotes": {
+    "description": "Heading for release notes in the app update dialog"
+  },
+  "goToOfficialUpdate": "リリースページを開く",
+  "@goToOfficialUpdate": {
+    "description": "Action label to open the official GitHub release page"
+  },
   "openSourceLicense": "オープンソースライセンス",
   "@openSourceLicense": {
     "description": "openSourceLicense"

@@ -8,10 +8,13 @@ import 'package:go_router/go_router.dart';
 
 import '../app/article_scope_routes.dart';
 import '../models/article_scope.dart';
+import '../providers/app_update_providers.dart';
 import '../providers/core_providers.dart';
 import '../providers/navigation_history_provider.dart';
+import '../services/update/app_update_manifest.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
+import '../ui/update/app_update_dialog.dart';
 import '../widgets/fleur_capsule_button_group.dart';
 import '../widgets/sidebar.dart';
 import '../utils/platform.dart';
@@ -210,6 +213,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     required bool usesTemporarySidebar,
     required bool searchSelected,
     required NavigationHistoryState history,
+    required AppUpdateManifest? updateManifest,
   }) {
     if (!isDesktop) return child;
     final commands = ShellNavigationCommands(
@@ -231,6 +235,7 @@ class _AppShellState extends ConsumerState<AppShell> {
             presentationMode: presentationMode,
             commands: commands,
             searchSelected: searchSelected,
+            updateManifest: updateManifest,
           ),
         ),
       ],
@@ -305,12 +310,21 @@ class _AppShellState extends ConsumerState<AppShell> {
     final controlsPresentationMode = sidebarExpanded || temporarySidebarOpen
         ? SidebarPresentationMode.expanded
         : SidebarPresentationMode.collapsed;
+    final updateManifest = ref.watch(
+      appUpdateControllerProvider.select(
+        (state) => state.hasUpdate ? state.manifest : null,
+      ),
+    );
     final controlsLeft = _shellControlsLeftInset(
       macOSWindowChromeMetrics,
       fallback: 12,
     );
     final controlsRight =
-        controlsLeft + _shellControlsGroupWidth(controlsPresentationMode);
+        controlsLeft +
+        _shellControlsGroupWidth(
+          controlsPresentationMode,
+          hasUpdate: updateManifest != null,
+        );
     final overlapWithContent = controlsRight - contentLeft;
     final headerLeadingInset = overlapWithContent > 0
         ? overlapWithContent + 8
@@ -364,6 +378,7 @@ class _AppShellState extends ConsumerState<AppShell> {
             usesTemporarySidebar: usesTemporarySidebar,
             searchSelected: _isSearchRoute(widget.currentUri),
             history: history,
+            updateManifest: updateManifest,
             child: Stack(
               clipBehavior: Clip.hardEdge,
               children: [
@@ -635,8 +650,12 @@ class _AppShellState extends ConsumerState<AppShell> {
 const _kContentLayerAnimationDuration = Duration(milliseconds: 180);
 const double _kSidebarCollapseThresholdWidth = kMinWorkspaceSidebarWidth / 2;
 
-double _shellControlsGroupWidth(SidebarPresentationMode mode) {
-  return kShellControlSize * (mode == SidebarPresentationMode.expanded ? 3 : 4);
+double _shellControlsGroupWidth(
+  SidebarPresentationMode mode, {
+  required bool hasUpdate,
+}) {
+  final baseControlCount = mode == SidebarPresentationMode.expanded ? 3 : 4;
+  return kShellControlSize * (baseControlCount + (hasUpdate ? 1 : 0));
 }
 
 double _shellControlsLeftInset(
@@ -830,17 +849,20 @@ class _InlineShellControlsHost extends StatelessWidget {
     required this.presentationMode,
     required this.commands,
     required this.searchSelected,
+    required this.updateManifest,
   });
 
   final SidebarPresentationMode presentationMode;
   final ShellNavigationCommands commands;
   final bool searchSelected;
+  final AppUpdateManifest? updateManifest;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final sidebarExpanded =
         presentationMode == SidebarPresentationMode.expanded;
+    final updateManifest = this.updateManifest;
     final controls = [
       _ShellControlData(
         key: const Key('shell_sidebar_button'),
@@ -862,6 +884,16 @@ class _InlineShellControlsHost extends StatelessWidget {
         onPressed: commands.canGoForward ? commands.goForward : null,
         icon: FleurIcons.forward,
       ),
+      if (updateManifest != null)
+        _ShellControlData(
+          key: const Key('shell_update_button'),
+          tooltip: l10n.updateAvailable,
+          onPressed: () {
+            unawaited(showAppUpdateDialog(context, manifest: updateManifest));
+          },
+          icon: FleurIcons.download,
+          selected: true,
+        ),
       if (!sidebarExpanded)
         _ShellControlData(
           key: const Key('shell_search_button'),

@@ -2237,6 +2237,60 @@ abstract class AppLocalizations {
   /// **'Build number'**
   String get buildNumber;
 
+  /// Compact about-page app version and build label
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version} · Build {buildNumber}'**
+  String versionAndBuild(Object version, Object buildNumber);
+
+  /// Action label for manually checking app updates
+  ///
+  /// In en, this message translates to:
+  /// **'Check for updates'**
+  String get checkForUpdates;
+
+  /// Disabled action label while app update check is running
+  ///
+  /// In en, this message translates to:
+  /// **'Checking...'**
+  String get checkingForUpdates;
+
+  /// Short app update entry label shown when a new version is available
+  ///
+  /// In en, this message translates to:
+  /// **'Update'**
+  String get updateAvailable;
+
+  /// Status text shown after checking app updates
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re up to date'**
+  String get upToDate;
+
+  /// Error shown when checking app updates fails
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t check for updates.'**
+  String get updateCheckFailed;
+
+  /// Title for the app update dialog
+  ///
+  /// In en, this message translates to:
+  /// **'New version {version} available'**
+  String newVersionAvailable(Object version);
+
+  /// Heading for release notes in the app update dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Release notes'**
+  String get releaseNotes;
+
+  /// Action label to open the official GitHub release page
+  ///
+  /// In en, this message translates to:
+  /// **'Open release page'**
+  String get goToOfficialUpdate;
+
   /// openSourceLicense
   ///
   /// In en, this message translates to:

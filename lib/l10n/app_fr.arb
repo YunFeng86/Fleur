@@ -1482,6 +1482,49 @@
   "@buildNumber": {
     "description": "buildNumber"
   },
+  "versionAndBuild": "Version {version} · Build {buildNumber}",
+  "@versionAndBuild": {
+    "description": "Compact about-page app version and build label",
+    "placeholders": {
+      "version": {},
+      "buildNumber": {}
+    }
+  },
+  "checkForUpdates": "Rechercher des mises à jour",
+  "@checkForUpdates": {
+    "description": "Action label for manually checking app updates"
+  },
+  "checkingForUpdates": "Recherche...",
+  "@checkingForUpdates": {
+    "description": "Disabled action label while app update check is running"
+  },
+  "updateAvailable": "Mise à jour",
+  "@updateAvailable": {
+    "description": "Short app update entry label shown when a new version is available"
+  },
+  "upToDate": "Vous êtes à jour",
+  "@upToDate": {
+    "description": "Status text shown after checking app updates"
+  },
+  "updateCheckFailed": "Impossible de rechercher des mises à jour.",
+  "@updateCheckFailed": {
+    "description": "Error shown when checking app updates fails"
+  },
+  "newVersionAvailable": "Nouvelle version {version} disponible",
+  "@newVersionAvailable": {
+    "description": "Title for the app update dialog",
+    "placeholders": {
+      "version": {}
+    }
+  },
+  "releaseNotes": "Notes de version",
+  "@releaseNotes": {
+    "description": "Heading for release notes in the app update dialog"
+  },
+  "goToOfficialUpdate": "Ouvrir la page de la version",
+  "@goToOfficialUpdate": {
+    "description": "Action label to open the official GitHub release page"
+  },
   "openSourceLicense": "Licence open source",
   "@openSourceLicense": {
     "description": "openSourceLicense"

@@ -1483,6 +1483,49 @@
   "@buildNumber": {
     "description": "buildNumber"
   },
+  "versionAndBuild": "版本 {version} · 構建 {buildNumber}",
+  "@versionAndBuild": {
+    "description": "關於頁緊湊展示版本和構建號的文案",
+    "placeholders": {
+      "version": {},
+      "buildNumber": {}
+    }
+  },
+  "checkForUpdates": "檢查更新",
+  "@checkForUpdates": {
+    "description": "手動檢查應用更新的按鈕文案"
+  },
+  "checkingForUpdates": "正在檢查...",
+  "@checkingForUpdates": {
+    "description": "應用更新檢查中禁用態按鈕文案"
+  },
+  "updateAvailable": "更新",
+  "@updateAvailable": {
+    "description": "發現新版本後顯示的短更新入口文案"
+  },
+  "upToDate": "已是最新版本",
+  "@upToDate": {
+    "description": "應用更新檢查完成且無更新時的狀態文案"
+  },
+  "updateCheckFailed": "檢查更新失敗。",
+  "@updateCheckFailed": {
+    "description": "應用更新檢查失敗時的錯誤提示"
+  },
+  "newVersionAvailable": "發現新版本 {version}",
+  "@newVersionAvailable": {
+    "description": "應用更新彈窗標題",
+    "placeholders": {
+      "version": {}
+    }
+  },
+  "releaseNotes": "更新日誌",
+  "@releaseNotes": {
+    "description": "應用更新彈窗中的更新日誌標題"
+  },
+  "goToOfficialUpdate": "去官網更新",
+  "@goToOfficialUpdate": {
+    "description": "打開官方 GitHub Release 頁面的按鈕文案"
+  },
   "openSourceLicense": "開放原始碼授權",
   "@openSourceLicense": {
     "description": "openSourceLicense"

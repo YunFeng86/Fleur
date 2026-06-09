@@ -11,6 +11,7 @@ import 'router.dart';
 import '../models/article_scope.dart';
 import '../providers/core_providers.dart';
 import '../providers/app_settings_providers.dart';
+import '../providers/app_update_providers.dart';
 import '../providers/auto_refresh_providers.dart';
 import '../providers/background_sync_providers.dart';
 import '../providers/outbox_flush_providers.dart';
@@ -287,6 +288,8 @@ class _AppControllerHostState extends ConsumerState<AppControllerHost> {
   ProviderSubscription<void>? _autoRefreshSubscription;
   ProviderSubscription<void>? _outboxFlushSubscription;
   ProviderSubscription<void>? _backgroundSyncSubscription;
+  ProviderSubscription<AppUpdateState>? _appUpdateSubscription;
+  AppUpdateController? _appUpdateController;
 
   @override
   void initState() {
@@ -306,13 +309,22 @@ class _AppControllerHostState extends ConsumerState<AppControllerHost> {
       (previous, next) {},
       fireImmediately: true,
     );
+    _appUpdateSubscription = ref.listenManual<AppUpdateState>(
+      appUpdateControllerProvider,
+      (previous, next) {},
+      fireImmediately: true,
+    );
+    _appUpdateController = ref.read(appUpdateControllerProvider.notifier);
+    _appUpdateController?.scheduleStartupCheck();
   }
 
   @override
   void dispose() {
+    _appUpdateController?.cancelStartupCheck();
     _autoRefreshSubscription?.close();
     _outboxFlushSubscription?.close();
     _backgroundSyncSubscription?.close();
+    _appUpdateSubscription?.close();
     super.dispose();
   }
 

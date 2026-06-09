@@ -1165,6 +1165,37 @@ class AppLocalizationsDe extends AppLocalizations {
   String get buildNumber => 'Build-Nummer';
 
   @override
+  String versionAndBuild(Object version, Object buildNumber) {
+    return 'Version $version · Build $buildNumber';
+  }
+
+  @override
+  String get checkForUpdates => 'Nach Updates suchen';
+
+  @override
+  String get checkingForUpdates => 'Prüfe...';
+
+  @override
+  String get updateAvailable => 'Update';
+
+  @override
+  String get upToDate => 'Sie sind auf dem neuesten Stand';
+
+  @override
+  String get updateCheckFailed => 'Updates konnten nicht geprüft werden.';
+
+  @override
+  String newVersionAvailable(Object version) {
+    return 'Neue Version $version verfügbar';
+  }
+
+  @override
+  String get releaseNotes => 'Versionshinweise';
+
+  @override
+  String get goToOfficialUpdate => 'Release-Seite öffnen';
+
+  @override
   String get openSourceLicense => 'Open-Source-Lizenz';
 
   @override

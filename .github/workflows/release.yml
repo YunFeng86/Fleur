@@ -3,75 +3,114 @@ name: Release Build
 on:
   push:
     tags:
-      - 'v*'  # 触发条件: 所有v开头的tag (v0.0.1, v1.0.0-alpha, v1.2.3-beta.1, v2.0.0-rc.2等)
-  workflow_dispatch:  # 允许手动触发（测试CI用）
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+    types:
+      - closed
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+  pages: write
+  pull-requests: read
 
 jobs:
-  # 跨平台构建（使用矩阵策略消除重复代码）
-  build:
-    timeout-minutes: 30  # 防止构建卡死浪费Actions分钟数
-    strategy:
-      fail-fast: false  # 一个平台失败不影响其他平台继续构建
-      matrix:
-        include:
-          # Windows构建
-          - os: windows-latest
-            platform: windows
-            build-args: windows --release
-            artifact-path: build/windows/x64/runner/Release
-            artifact-name: fleur-windows-x64.zip
-            archive-cmd: |
-              cd build/windows/x64/runner/Release
-              rm -f *.pdb
-              7z a -tzip "$GITHUB_WORKSPACE/fleur-windows-x64.zip" *
+  release-context:
+    name: Resolve release context
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.context.outputs.should_build }}
+      create_release: ${{ steps.context.outputs.create_release }}
+      is_prerelease: ${{ steps.context.outputs.is_prerelease }}
+      include_platform_previews: ${{ steps.context.outputs.include_platform_previews }}
+      version_name: ${{ steps.context.outputs.version_name }}
+      app_version: ${{ steps.context.outputs.app_version }}
+      artifact_suffix: ${{ steps.context.outputs.artifact_suffix }}
+      checkout_ref: ${{ steps.context.outputs.checkout_ref }}
+    steps:
+      - name: Resolve build mode
+        id: context
+        shell: bash
+        run: |
+          EVENT_NAME="${{ github.event_name }}"
+          REF="${{ github.ref }}"
+          REF_NAME="${{ github.ref_name }}"
+          SHORT_SHA="${GITHUB_SHA::7}"
 
-          # macOS构建
-          - os: macos-latest
-            platform: macos
-            build-args: macos --release
-            artifact-path: build/macos/Build/Products/Release
-            artifact-name: fleur-macos.dmg
-            archive-cmd: |
-              # 创建临时目录用于 DMG 内容
-              mkdir -p "$GITHUB_WORKSPACE/dmg_temp"
-              cp -R build/macos/Build/Products/Release/Fleur.app "$GITHUB_WORKSPACE/dmg_temp/"
+          SHOULD_BUILD=false
+          CREATE_RELEASE=false
+          IS_PRERELEASE=false
+          INCLUDE_PLATFORM_PREVIEWS=false
+          VERSION_NAME="manual-${SHORT_SHA}"
+          APP_VERSION="0.0.0-preview.${{ github.run_number }}"
+          ARTIFACT_SUFFIX="manual-${SHORT_SHA}"
+          CHECKOUT_REF="${REF}"
 
-              # 创建 DMG（使用 hdiutil）
-              hdiutil create -volname "Fleur" \
-                -srcfolder "$GITHUB_WORKSPACE/dmg_temp" \
-                -ov -format UDZO \
-                "$GITHUB_WORKSPACE/fleur-macos.dmg"
+          if [[ "${REF}" == refs/tags/v* ]]; then
+            SHOULD_BUILD=true
+            CREATE_RELEASE=true
+            VERSION_NAME="${REF_NAME#v}"
+            APP_VERSION="${VERSION_NAME}"
+            ARTIFACT_SUFFIX="${VERSION_NAME}"
 
-          # Linux构建（实验性，未测试）
-          - os: ubuntu-latest
-            platform: linux
-            build-args: linux --release
-            artifact-path: build/linux/x64/release/bundle
-            artifact-name: fleur-linux-x64.tar.gz
-            archive-cmd: |
-              cd build/linux/x64/release/bundle
-              tar -czf "$GITHUB_WORKSPACE/fleur-linux-x64.tar.gz" *
-            deps-cmd: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev libsecret-1-dev
+            if [[ "${REF_NAME}" =~ -alpha|-beta|-rc ]]; then
+              IS_PRERELEASE=true
+              INCLUDE_PLATFORM_PREVIEWS=true
+            fi
+          elif [[ "${EVENT_NAME}" == "pull_request" && "${{ github.event.pull_request.merged }}" == "true" ]]; then
+            SHOULD_BUILD=true
+            INCLUDE_PLATFORM_PREVIEWS=true
+            VERSION_NAME="pr-${{ github.event.pull_request.number }}-${SHORT_SHA}"
+            APP_VERSION="0.0.0-pr.${{ github.event.pull_request.number }}.${{ github.run_number }}"
+            ARTIFACT_SUFFIX="${VERSION_NAME}"
+            MERGE_SHA="${{ github.event.pull_request.merge_commit_sha }}"
+            if [[ -n "${MERGE_SHA}" && "${MERGE_SHA}" != "null" ]]; then
+              CHECKOUT_REF="${MERGE_SHA}"
+            else
+              CHECKOUT_REF="${GITHUB_SHA}"
+            fi
+          elif [[ "${EVENT_NAME}" == "workflow_dispatch" ]]; then
+            SHOULD_BUILD=true
+            INCLUDE_PLATFORM_PREVIEWS=true
+          fi
 
-    runs-on: ${{ matrix.os }}
+          echo "should_build=${SHOULD_BUILD}" >> "$GITHUB_OUTPUT"
+          echo "create_release=${CREATE_RELEASE}" >> "$GITHUB_OUTPUT"
+          echo "is_prerelease=${IS_PRERELEASE}" >> "$GITHUB_OUTPUT"
+          echo "include_platform_previews=${INCLUDE_PLATFORM_PREVIEWS}" >> "$GITHUB_OUTPUT"
+          echo "version_name=${VERSION_NAME}" >> "$GITHUB_OUTPUT"
+          echo "app_version=${APP_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "artifact_suffix=${ARTIFACT_SUFFIX}" >> "$GITHUB_OUTPUT"
+          echo "checkout_ref=${CHECKOUT_REF}" >> "$GITHUB_OUTPUT"
 
+          echo "Build: ${SHOULD_BUILD}"
+          echo "Create GitHub Release: ${CREATE_RELEASE}"
+          echo "Prerelease: ${IS_PRERELEASE}"
+          echo "Platform preview artifacts: ${INCLUDE_PLATFORM_PREVIEWS}"
+          echo "Version: ${VERSION_NAME}"
+
+  build-macos:
+    name: Build macOS DMG
+    needs: release-context
+    if: needs.release-context.outputs.should_build == 'true'
+    runs-on: macos-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      # Linux平台需要额外安装依赖
-      - name: Install platform dependencies
-        if: matrix.deps-cmd
-        run: ${{ matrix.deps-cmd }}
+        with:
+          ref: ${{ needs.release-context.outputs.checkout_ref }}
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.38.9'  # 匹配本地开发环境（自带 Dart 3.10.8）
-          channel: 'stable'
-          cache: true  # 启用Flutter SDK缓存，加速后续构建
+          flutter-version: '3.38.9'
+          channel: stable
+          cache: true
 
-      # 缓存pub依赖，避免每次重新下载
       - name: Cache pub dependencies
         uses: actions/cache@v4
         with:
@@ -85,75 +124,34 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # 计算版本变量（版本号+构建号+Commit Hash）
-      - name: Calculate version variables
+      - name: Calculate build variables
         id: version_vars
         shell: bash
         run: |
-          # 提取版本号（从tag移除v前缀，如 v1.0.0-alpha.1 -> 1.0.0-alpha.1）
-          VERSION_NAME="${{ github.ref_name }}"
-          VERSION_NAME=${VERSION_NAME#v}
+          BUILD_NUM="${{ github.run_number }}"
+          COMMIT_HASH="$(git rev-parse --short HEAD)"
+          BUILD_TIME="$(date -u "+%Y-%m-%d %H:%M UTC")"
 
-          # 构建号：使用GitHub Actions的run_number（纯数字，严格递增）
-          BUILD_NUM=${{ github.run_number }}
+          echo "build_number=${BUILD_NUM}" >> "$GITHUB_OUTPUT"
+          echo "commit_hash=${COMMIT_HASH}" >> "$GITHUB_OUTPUT"
+          echo "build_time=${BUILD_TIME}" >> "$GITHUB_OUTPUT"
 
-          # 完整版本号（符合语义化版本规范）
-          FULL_VERSION="${VERSION_NAME}+${BUILD_NUM}"
-
-          # Git Commit Hash（用于"关于"页面显示，不写入pubspec.yaml）
-          COMMIT_HASH=$(git rev-parse --short HEAD)
-
-          # 构建时间（UTC）
-          BUILD_TIME=$(date -u "+%Y-%m-%d %H:%M UTC")
-
-          # 输出变量供后续步骤使用
-          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
-          echo "build_number=$BUILD_NUM" >> $GITHUB_OUTPUT
-          echo "full_version=$FULL_VERSION" >> $GITHUB_OUTPUT
-          echo "commit_hash=$COMMIT_HASH" >> $GITHUB_OUTPUT
-          echo "build_time=$BUILD_TIME" >> $GITHUB_OUTPUT
-
-          # 调试输出
-          echo "✅ Version: $FULL_VERSION"
-          echo "✅ Commit: $COMMIT_HASH"
-          echo "✅ Build Time: $BUILD_TIME"
-
-      # 更新pubspec.yaml的版本号（仅在tag构建时）
       - name: Update version from tag
-        if: startsWith(github.ref, 'refs/tags/')
+        if: needs.release-context.outputs.create_release == 'true'
         shell: bash
         run: |
-          VERSION="${{ steps.version_vars.outputs.full_version }}"
-
-          # 使用sed替换pubspec.yaml中的版本号（处理macOS/Linux的sed差异）
-          if [[ "$RUNNER_OS" == "macOS" ]]; then
-            sed -i '' "s/^version: .*/version: $VERSION/" pubspec.yaml
-          else
-            sed -i "s/^version: .*/version: $VERSION/" pubspec.yaml
-          fi
-
-          echo "✅ Updated pubspec.yaml version to $VERSION"
+          VERSION="${{ needs.release-context.outputs.app_version }}+${{ steps.version_vars.outputs.build_number }}"
+          sed -i '' "s/^version: .*/version: ${VERSION}/" pubspec.yaml
           grep "^version:" pubspec.yaml
 
       - name: Generate Isar code
         run: dart run build_runner build --delete-conflicting-outputs
 
-      # 运行测试（可选：如果测试失败则不发布）
       - name: Run tests
         run: flutter test
-        continue-on-error: true  # 测试失败不阻塞构建（Alpha版本容忍测试失败）
+        continue-on-error: true
 
-      - name: Build ${{ matrix.platform }} release
-        if: matrix.platform != 'macos'
-        shell: bash
-        run: |
-          flutter build ${{ matrix.build-args }} \
-            --dart-define=APP_COMMIT_HASH="${{ steps.version_vars.outputs.commit_hash }}" \
-            --dart-define=APP_BUILD_TIME="${{ steps.version_vars.outputs.build_time }}" \
-            --dart-define=APP_BUILD_NUMBER="${{ steps.version_vars.outputs.build_number }}"
-
-      - name: Build macOS unsigned release
-        if: matrix.platform == 'macos'
+      - name: Build unsigned macOS release
         shell: bash
         run: |
           flutter build macos --release --config-only \
@@ -175,83 +173,178 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGN_ENTITLEMENTS=""
 
-      - name: Archive build artifacts
+      - name: Create DMG
         shell: bash
-        run: ${{ matrix.archive-cmd }}
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/dmg_temp"
+          cp -R build/macos/Build/Products/Release/Fleur.app "$GITHUB_WORKSPACE/dmg_temp/"
 
-      - name: Upload artifact
+          hdiutil create -volname "Fleur" \
+            -srcfolder "$GITHUB_WORKSPACE/dmg_temp" \
+            -ov -format UDZO \
+            "$GITHUB_WORKSPACE/fleur-macos.dmg"
+
+      - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.platform }}-release
-          path: ${{ matrix.artifact-name }}
-          retention-days: 90  # 保留90天
+          name: macos-${{ needs.release-context.outputs.artifact_suffix }}
+          path: fleur-macos.dmg
+          retention-days: 30
 
-  # Windows 安装器构建
-  build-windows-installer:
-    needs: [build]
-    runs-on: windows-latest
-    timeout-minutes: 20  # 添加超时保护
+  build-preview-platforms:
+    name: Build preview ${{ matrix.platform }}
+    needs: release-context
+    if: needs.release-context.outputs.include_platform_previews == 'true'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows
+            build_args: windows --release
+            artifact_name: fleur-windows-x64.zip
+            archive_cmd: |
+              cd build/windows/x64/runner/Release
+              rm -f *.pdb
+              7z a -tzip "$GITHUB_WORKSPACE/fleur-windows-x64.zip" *
+          - os: ubuntu-latest
+            platform: linux
+            build_args: linux --release
+            artifact_name: fleur-linux-x64.tar.gz
+            deps_cmd: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev libsecret-1-dev
+            archive_cmd: |
+              cd build/linux/x64/release/bundle
+              tar -czf "$GITHUB_WORKSPACE/fleur-linux-x64.tar.gz" *
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-context.outputs.checkout_ref }}
 
-      - name: Download Windows artifacts
+      - name: Install platform dependencies
+        if: matrix.deps_cmd
+        run: ${{ matrix.deps_cmd }}
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.9'
+          channel: stable
+          cache: true
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.PUB_CACHE }}
+            ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Calculate build variables
+        id: version_vars
+        shell: bash
+        run: |
+          BUILD_NUM="${{ github.run_number }}"
+          COMMIT_HASH="$(git rev-parse --short HEAD)"
+          BUILD_TIME="$(date -u "+%Y-%m-%d %H:%M UTC")"
+
+          echo "build_number=${BUILD_NUM}" >> "$GITHUB_OUTPUT"
+          echo "commit_hash=${COMMIT_HASH}" >> "$GITHUB_OUTPUT"
+          echo "build_time=${BUILD_TIME}" >> "$GITHUB_OUTPUT"
+
+      - name: Update version from tag
+        if: needs.release-context.outputs.create_release == 'true'
+        shell: bash
+        run: |
+          VERSION="${{ needs.release-context.outputs.app_version }}+${{ steps.version_vars.outputs.build_number }}"
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            sed -i '' "s/^version: .*/version: ${VERSION}/" pubspec.yaml
+          else
+            sed -i "s/^version: .*/version: ${VERSION}/" pubspec.yaml
+          fi
+          grep "^version:" pubspec.yaml
+
+      - name: Generate Isar code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Run tests
+        run: flutter test
+        continue-on-error: true
+
+      - name: Build ${{ matrix.platform }} release
+        shell: bash
+        run: |
+          flutter build ${{ matrix.build_args }} \
+            --dart-define=APP_COMMIT_HASH="${{ steps.version_vars.outputs.commit_hash }}" \
+            --dart-define=APP_BUILD_TIME="${{ steps.version_vars.outputs.build_time }}" \
+            --dart-define=APP_BUILD_NUMBER="${{ steps.version_vars.outputs.build_number }}"
+
+      - name: Archive build artifacts
+        shell: bash
+        run: ${{ matrix.archive_cmd }}
+
+      - name: Upload preview artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}-${{ needs.release-context.outputs.artifact_suffix }}
+          path: ${{ matrix.artifact_name }}
+          retention-days: 30
+
+  build-windows-installer:
+    name: Build preview Windows installer
+    needs:
+      - release-context
+      - build-preview-platforms
+    if: needs.release-context.outputs.include_platform_previews == 'true'
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-context.outputs.checkout_ref }}
+
+      - name: Download Windows artifact
         uses: actions/download-artifact@v4
         with:
-          name: windows-release
+          name: windows-${{ needs.release-context.outputs.artifact_suffix }}
           path: windows-release
 
       - name: Extract Windows build
         shell: powershell
         run: |
-          # 检查下载的文件
-          Write-Host "Downloaded artifacts:"
-          Get-ChildItem -Path "windows-release" -File | ForEach-Object { Write-Host "  $($_.Name) - $($_.Length) bytes" }
-          
+          Get-ChildItem -Path "windows-release" -File | ForEach-Object {
+            Write-Host "Downloaded: $($_.Name) - $($_.Length) bytes"
+          }
+
           cd windows-release
-          # 使用 PowerShell 的 Expand-Archive 而不是 7z
           Expand-Archive -Path "fleur-windows-x64.zip" -DestinationPath "temp" -Force
-          
-          Write-Host "Extracted files:"
-          Get-ChildItem -Path "temp" -Recurse | ForEach-Object { Write-Host "  $($_.FullName)" }
-          
-          # 检查关键文件
-          if (Test-Path "temp\fleur.exe") {
-            Write-Host "Main executable found"
-          } else {
-            Write-Error "Main executable not found!"
+
+          if (-not (Test-Path "temp\fleur.exe")) {
+            Write-Error "Main executable not found."
             exit 1
           }
 
-      # 计算版本变量
-      - name: Calculate version variables
-        id: version_vars
-        shell: bash
-        run: |
-          VERSION_NAME="${{ github.ref_name }}"
-          VERSION_NAME=${VERSION_NAME#v}
-          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
-
-      # 使用 Inno Setup 创建安装器
-      - name: Build Windows Installer
+      - name: Build Windows installer script
         shell: powershell
         run: |
-          # 先检查文件结构
-          Write-Host "Checking file structure:"
-          Get-ChildItem -Path "windows-release\temp" -Recurse | Select-Object FullName | ForEach-Object { Write-Host $_.FullName }
-          
-          # 检查并创建必要文件
           if (-not (Test-Path "LICENSE")) {
-            Write-Host "Creating LICENSE file"
             "MIT License" | Out-File -FilePath "LICENSE" -Encoding UTF8
           }
-          
-          # 创建 Inno Setup 脚本 - 简化版本，避免复杂路径问题
+
           $issContent = @"
           [Setup]
           AppName=Fleur
-          AppVersion=${{ steps.version_vars.outputs.version_name }}
-          AppPublisher=Fleur Team
+          AppVersion=${{ needs.release-context.outputs.app_version }}
+          AppPublisher=Fleur
           AppPublisherURL=https://github.com/${{ github.repository }}
           AppSupportURL=https://github.com/${{ github.repository }}/issues
           AppUpdatesURL=https://github.com/${{ github.repository }}/releases
@@ -259,7 +352,7 @@ jobs:
           DefaultGroupName=Fleur
           AllowNoIcons=yes
           LicenseFile=LICENSE
-          OutputBaseFilename=fleur-windows-x64-installer-${{ steps.version_vars.outputs.version_name }}
+          OutputBaseFilename=fleur-windows-x64-installer-${{ needs.release-context.outputs.artifact_suffix }}
           SetupIconFile=windows\runner\resources\app_icon.ico
           Compression=lzma
           SolidCompression=yes
@@ -268,187 +361,142 @@ jobs:
           ArchitecturesInstallIn64BitMode=x64
           MinVersion=10.0
           PrivilegesRequired=lowest
-          
+
           [Languages]
           Name: "english"; MessagesFile: "compiler:Default.isl"
-          
+
           [Tasks]
           Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
-          
+
           [Files]
           Source: "windows-release\temp\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-          
+
           [Icons]
           Name: "{group}\Fleur"; Filename: "{app}\fleur.exe"
           Name: "{group}\{cm:UninstallProgram,Fleur}"; Filename: "{uninstallexe}"
           Name: "{autodesktop}\Fleur"; Filename: "{app}\fleur.exe"; Tasks: desktopicon
-          
+
           [Run]
           Filename: "{app}\fleur.exe"; Description: "{cm:LaunchProgram,Fleur}"; Flags: nowait postinstall skipifsilent
           "@
-          
-          $issContent | Out-File -FilePath "installer.iss" -Encoding UTF8
-          Write-Host "Created installer.iss"
 
-      - name: Install Inno Setup and Compile Installer
+          $issContent | Out-File -FilePath "installer.iss" -Encoding UTF8
+
+      - name: Compile Windows installer
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.4
         with:
           path: installer.iss
           options: /Qp
 
-      - name: Check generated installer
-        shell: powershell
-        run: |
-          Write-Host "=== Current working directory ==="
-          Write-Host "PWD: $(Get-Location)"
-          
-          Write-Host "`n=== All files in current directory ==="
-          Get-ChildItem -Path "." -File | ForEach-Object {
-            Write-Host "File: $($_.Name) ($([math]::Round($_.Length / 1MB, 2)) MB)"
-          }
-          
-          Write-Host "`n=== Checking Output directory ==="
-          if (Test-Path "Output") {
-            Write-Host "Output folder exists, contents:"
-            Get-ChildItem -Path "Output" -File | ForEach-Object {
-              Write-Host "  Output/$($_.Name) ($([math]::Round($_.Length / 1MB, 2)) MB)"
-            }
-          } else {
-            Write-Host "No Output folder found"
-          }
-          
-          Write-Host "`n=== Checking installer.iss content ==="
-          if (Test-Path "installer.iss") {
-            Write-Host "installer.iss exists, showing OutputBaseFilename line:"
-            Get-Content "installer.iss" | Where-Object { $_ -like "*OutputBaseFilename*" }
-          } else {
-            Write-Host "installer.iss not found!"
-          }
-          
-          Write-Host "`n=== Checking windows-release extraction ==="
-          if (Test-Path "windows-release\temp") {
-            Write-Host "windows-release\temp exists:"
-            Get-ChildItem -Path "windows-release\temp" -File | ForEach-Object {
-              Write-Host "  $($_.Name)"
-            }
-          } else {
-            Write-Host "windows-release\temp not found!"
-          }
-
-      - name: Upload Windows Installer
+      - name: Upload Windows installer
         uses: actions/upload-artifact@v4
         with:
-          name: windows-installer
+          name: windows-installer-${{ needs.release-context.outputs.artifact_suffix }}
           path: Output/fleur-windows-x64-installer-*.exe
-          retention-days: 90
+          retention-days: 30
           if-no-files-found: error
 
-  # 创建GitHub Release并上传所有构建产物
   create-release:
-    needs: [build, build-windows-installer]
+    name: Create GitHub Release
+    needs:
+      - release-context
+      - build-macos
+      - build-preview-platforms
+      - build-windows-installer
+    if: |
+      always() &&
+      needs.release-context.outputs.create_release == 'true' &&
+      needs.build-macos.result == 'success' &&
+      (needs.build-preview-platforms.result == 'success' || needs.build-preview-platforms.result == 'skipped') &&
+      (needs.build-windows-installer.result == 'success' || needs.build-windows-installer.result == 'skipped')
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
-      - name: Download all artifacts
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-context.outputs.checkout_ref }}
+
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+
+      - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
 
-      - name: Determine if prerelease
-        id: prerelease
+      - name: Prepare release files
+        shell: bash
         run: |
-          TAG="${{ github.ref_name }}"
-          if [[ "$TAG" =~ -alpha|-beta|-rc ]]; then
-            echo "is_prerelease=true" >> $GITHUB_OUTPUT
-            echo "version_type=预发布版本" >> $GITHUB_OUTPUT
-          else
-            echo "is_prerelease=false" >> $GITHUB_OUTPUT
-            echo "version_type=正式版本" >> $GITHUB_OUTPUT
+          VERSION="${{ needs.release-context.outputs.artifact_suffix }}"
+          mkdir -p release-files
+
+          if [[ -f artifacts/macos-${VERSION}/fleur-macos.dmg ]]; then
+            cp artifacts/macos-${VERSION}/fleur-macos.dmg "release-files/fleur-macos-${VERSION}.dmg"
           fi
 
-      # 重命名artifact文件以包含版本号
-      - name: Rename artifacts with version
+          if [[ -f artifacts/windows-${VERSION}/fleur-windows-x64.zip ]]; then
+            cp artifacts/windows-${VERSION}/fleur-windows-x64.zip "release-files/fleur-windows-x64-${VERSION}.zip"
+          fi
+
+          if [[ -f artifacts/windows-installer-${VERSION}/fleur-windows-x64-installer-${VERSION}.exe ]]; then
+            cp artifacts/windows-installer-${VERSION}/fleur-windows-x64-installer-${VERSION}.exe "release-files/fleur-windows-x64-installer-${VERSION}.exe"
+          fi
+
+          if [[ -f artifacts/linux-${VERSION}/fleur-linux-x64.tar.gz ]]; then
+            cp artifacts/linux-${VERSION}/fleur-linux-x64.tar.gz "release-files/fleur-linux-x64-${VERSION}.tar.gz"
+          fi
+
+          ls -la release-files
+
+      - name: Generate merged changes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.ref_name }}
+        shell: bash
         run: |
-          VERSION="${{ github.ref_name }}"
-          VERSION=${VERSION#v}
+          gh api "repos/${{ github.repository }}/releases/generate-notes" \
+            -f tag_name="${TAG_NAME}" \
+            --jq '.body // ""' > GENERATED_NOTES.md || true
 
-          # 重命名Windows构建
-          if [ -f artifacts/windows-release/fleur-windows-x64.zip ]; then
-            mv artifacts/windows-release/fleur-windows-x64.zip \
-               artifacts/windows-release/fleur-windows-x64-${VERSION}.zip
-          fi
+      - name: Generate update metadata and release body
+        shell: bash
+        run: |
+          dart tool/release/generate_update_manifest.dart \
+            --tag "${{ github.ref_name }}" \
+            --repository "${{ github.repository }}" \
+            --release-files release-files \
+            --output update-pages \
+            --release-body RELEASE_BODY.md \
+            --generated-notes GENERATED_NOTES.md \
+            --pages-base-url "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
 
-          # 重命名Windows安装器（不需要重命名，Inno Setup已经包含了版本号）
-          # Windows 安装器已经在构建时包含版本号
-          
-          # 重命名macOS构建
-          if [ -f artifacts/macos-release/fleur-macos.dmg ]; then
-            mv artifacts/macos-release/fleur-macos.dmg \
-               artifacts/macos-release/fleur-macos-${VERSION}.dmg
-          fi
-
-          # 重命名Linux构建
-          if [ -f artifacts/linux-release/fleur-linux-x64.tar.gz ]; then
-            mv artifacts/linux-release/fleur-linux-x64.tar.gz \
-               artifacts/linux-release/fleur-linux-x64-${VERSION}.tar.gz
-          fi
+      - name: Upload update metadata Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: update-pages
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           draft: false
-          prerelease: ${{ steps.prerelease.outputs.is_prerelease }}
-          generate_release_notes: true
-          body: |
-            ## 支持平台
-
-            ### ✅ 正式支持（已测试）
-            - **Windows 11 (x64)** - 经过充分测试，稳定可用
-            - **macOS 26** - 经过充分测试，稳定可用
-
-            ### 🔄 实验性支持（未经测试，风险自负）
-            - **Windows 10 (x64)** - 理论上可用，但未在真机验证
-            - **macOS 11~25** - 理论上可用，但未在真机验证
-            - **Linux (x64)** - 需要 GTK 3.0+，可能需要手动安装依赖
-
-            ## 已知问题
-            - 删除大订阅源（>1万篇文章）时可能卡顿
-            - 数据库迁移逻辑未经过实际Schema变更测试
-            - macOS/Linux的窗口管理和通知系统未验证
-
-            ## 安装说明
-
-            **Windows:**
-            1. **安装器版本（推荐）**: 下载 `fleur-windows-x64-installer-*.exe`
-               - 双击运行安装器，按提示安装
-               - 自动创建开始菜单和桌面快捷方式
-               - 支持自动卸载
-            2. **便携版**: 下载 `fleur-windows-x64.zip`
-               - 解压到任意目录
-               - 运行 `fleur.exe`
-
-            **macOS:**
-            > 当前 macOS 包未签名、未公证，仅适合测试分发。
-
-            1. 下载 `fleur-macos.dmg`
-            2. 双击打开 DMG 文件
-            3. 拖动 `Fleur.app` 到应用程序文件夹
-            4. 首次运行需右键 → 打开（绕过Gatekeeper）
-
-            **Linux:**
-            1. 下载 `fleur-linux-x64.tar.gz`
-            2. 解压: `tar -xzf fleur-linux-x64.tar.gz`
-            3. 运行: `./fleur`
-            4. 如果缺少依赖: `sudo apt install libgtk-3-0` (Debian/Ubuntu)
-
-            ---
-
-            **如遇到问题请提交 [Issue](https://github.com/${{ github.repository }}/issues)**
-          files: |
-            artifacts/windows-release/fleur-windows-x64-*.zip
-            artifacts/windows-installer/fleur-windows-x64-installer-*.exe
-            artifacts/macos-release/fleur-macos-*.dmg
-            artifacts/linux-release/fleur-linux-x64-*.tar.gz
+          prerelease: ${{ needs.release-context.outputs.is_prerelease }}
+          body_path: RELEASE_BODY.md
+          files: release-files/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy-update-pages:
+    name: Deploy update metadata
+    needs: create-release
+    if: needs.create-release.result == 'success'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

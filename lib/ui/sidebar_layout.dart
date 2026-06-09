@@ -5,7 +5,7 @@ import 'layout.dart';
 // Expanded mode intentionally reuses the existing desktop sidebar width so the
 // sidebar migration does not change the reading workspace's visual rhythm yet.
 const double kDefaultWorkspaceSidebarWidth = kDesktopSidebarWidth;
-const double kMinWorkspaceSidebarWidth = 220;
+const double kMinWorkspaceSidebarWidth = 256;
 const double kMaxWorkspaceSidebarWidth = 360;
 const double kTemporaryWorkspaceSidebarWidth = kDefaultWorkspaceSidebarWidth;
 const double kDefaultWorkspaceListWidth = kDesktopListWidth;

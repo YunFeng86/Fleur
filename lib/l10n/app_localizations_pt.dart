@@ -1160,6 +1160,37 @@ class AppLocalizationsPt extends AppLocalizations {
   String get buildNumber => 'Número da versão';
 
   @override
+  String versionAndBuild(Object version, Object buildNumber) {
+    return 'Versão $version · Compilação $buildNumber';
+  }
+
+  @override
+  String get checkForUpdates => 'Verificar atualizações';
+
+  @override
+  String get checkingForUpdates => 'Verificando...';
+
+  @override
+  String get updateAvailable => 'Atualização';
+
+  @override
+  String get upToDate => 'Está na versão mais recente';
+
+  @override
+  String get updateCheckFailed => 'Não foi possível verificar atualizações.';
+
+  @override
+  String newVersionAvailable(Object version) {
+    return 'Nova versão $version disponível';
+  }
+
+  @override
+  String get releaseNotes => 'Notas da versão';
+
+  @override
+  String get goToOfficialUpdate => 'Abrir a página da versão';
+
+  @override
   String get openSourceLicense => 'Licença de código aberto';
 
   @override
@@ -2687,6 +2718,37 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get buildNumber => 'Número da versão';
+
+  @override
+  String versionAndBuild(Object version, Object buildNumber) {
+    return 'Versão $version · Compilação $buildNumber';
+  }
+
+  @override
+  String get checkForUpdates => 'Verificar atualizações';
+
+  @override
+  String get checkingForUpdates => 'Verificando...';
+
+  @override
+  String get updateAvailable => 'Atualização';
+
+  @override
+  String get upToDate => 'Você está na versão mais recente';
+
+  @override
+  String get updateCheckFailed => 'Não foi possível verificar atualizações.';
+
+  @override
+  String newVersionAvailable(Object version) {
+    return 'Nova versão $version disponível';
+  }
+
+  @override
+  String get releaseNotes => 'Notas da versão';
+
+  @override
+  String get goToOfficialUpdate => 'Abrir a página da versão';
 
   @override
   String get openSourceLicense => 'Licença de código aberto';

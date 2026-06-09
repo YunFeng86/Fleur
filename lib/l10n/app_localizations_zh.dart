@@ -1111,6 +1111,37 @@ class AppLocalizationsZh extends AppLocalizations {
   String get buildNumber => '构建号';
 
   @override
+  String versionAndBuild(Object version, Object buildNumber) {
+    return '版本 $version · 构建 $buildNumber';
+  }
+
+  @override
+  String get checkForUpdates => '检查更新';
+
+  @override
+  String get checkingForUpdates => '正在检查...';
+
+  @override
+  String get updateAvailable => '更新';
+
+  @override
+  String get upToDate => '已是最新版本';
+
+  @override
+  String get updateCheckFailed => '检查更新失败。';
+
+  @override
+  String newVersionAvailable(Object version) {
+    return '发现新版本 $version';
+  }
+
+  @override
+  String get releaseNotes => '更新日志';
+
+  @override
+  String get goToOfficialUpdate => '去官网更新';
+
+  @override
   String get openSourceLicense => '开源许可证';
 
   @override
@@ -2578,6 +2609,37 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get buildNumber => '构建号';
 
   @override
+  String versionAndBuild(Object version, Object buildNumber) {
+    return '版本 $version · 构建 $buildNumber';
+  }
+
+  @override
+  String get checkForUpdates => '检查更新';
+
+  @override
+  String get checkingForUpdates => '正在检查...';
+
+  @override
+  String get updateAvailable => '更新';
+
+  @override
+  String get upToDate => '已是最新版本';
+
+  @override
+  String get updateCheckFailed => '检查更新失败。';
+
+  @override
+  String newVersionAvailable(Object version) {
+    return '发现新版本 $version';
+  }
+
+  @override
+  String get releaseNotes => '更新日志';
+
+  @override
+  String get goToOfficialUpdate => '去官网更新';
+
+  @override
   String get openSourceLicense => '开源许可证';
 
   @override
@@ -4043,6 +4105,37 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get buildNumber => '構建號';
+
+  @override
+  String versionAndBuild(Object version, Object buildNumber) {
+    return '版本 $version · 構建 $buildNumber';
+  }
+
+  @override
+  String get checkForUpdates => '檢查更新';
+
+  @override
+  String get checkingForUpdates => '正在檢查...';
+
+  @override
+  String get updateAvailable => '更新';
+
+  @override
+  String get upToDate => '已是最新版本';
+
+  @override
+  String get updateCheckFailed => '檢查更新失敗。';
+
+  @override
+  String newVersionAvailable(Object version) {
+    return '發現新版本 $version';
+  }
+
+  @override
+  String get releaseNotes => '更新日誌';
+
+  @override
+  String get goToOfficialUpdate => '去官網更新';
 
   @override
   String get openSourceLicense => '開放原始碼授權';
