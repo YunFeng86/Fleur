@@ -331,6 +331,10 @@ class _AppShellState extends ConsumerState<AppShell> {
         (state) => state.hasUpdate ? state.manifest : null,
       ),
     );
+    final shellShowsUpdate =
+        updateManifest != null &&
+        (shellChromeLayout.placesControlsInTitleBar ||
+            controlsPresentationMode != SidebarPresentationMode.expanded);
     final controlsLeft = _shellControlsLeftInset(
       macOSWindowChromeMetrics,
       shellChromeLayout: shellChromeLayout,
@@ -341,7 +345,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         _shellControlsGroupWidth(
           controlsPresentationMode,
           shellChromeLayout: shellChromeLayout,
-          hasUpdate: updateManifest != null,
+          hasUpdate: shellShowsUpdate,
         );
     final overlapWithContent = controlsRight - contentLeft;
     final headerLeadingInset = overlapWithContent > 0
@@ -398,7 +402,7 @@ class _AppShellState extends ConsumerState<AppShell> {
             usesTemporarySidebar: usesTemporarySidebar,
             searchSelected: _isSearchRoute(widget.currentUri),
             history: history,
-            updateManifest: updateManifest,
+            updateManifest: shellShowsUpdate ? updateManifest : null,
             child: Stack(
               clipBehavior: Clip.hardEdge,
               children: [
@@ -905,9 +909,9 @@ class _InlineShellControlsHost extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final sidebarExpanded =
         presentationMode == SidebarPresentationMode.expanded;
-    final updateManifest = this.updateManifest;
     final placesSearchInShell =
         shellChromeLayout.placesControlsInTitleBar || !sidebarExpanded;
+    final updateManifest = placesSearchInShell ? this.updateManifest : null;
     final controls = [
       _ShellControlData(
         key: const Key('shell_sidebar_button'),

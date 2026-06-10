@@ -1060,6 +1060,43 @@ void main() {
     );
   });
 
+  testWidgets('macOS expanded shell shows a single sidebar update action', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(1200, 900);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      _buildShellHarness(
+        overrides: [
+          appUpdateControllerProvider.overrideWith(
+            () => _TestAppUpdateController(
+              AppUpdateState(
+                status: AppUpdateStatus.updateAvailable,
+                manifest: _buildUpdateManifest(),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('shell_update_button')), findsNothing);
+    expect(find.byKey(const Key('sidebar_update_button')), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('sidebar_update_button')),
+        matching: find.text('Update'),
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('Linux shell uses titlebar controls and a plain collapsed rail', (
     tester,
   ) async {

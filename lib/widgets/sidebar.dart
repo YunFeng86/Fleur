@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -773,13 +774,16 @@ class _SidebarPanelHeader extends ConsumerWidget {
               builder: (context, constraints) {
                 const rightInset = 8.0;
                 const controlGap = 6.0;
-                const updateTextWidth = 72.0;
                 final hasSearch = onPressed != null;
                 final updateRight =
                     rightInset +
                     (hasSearch ? kShellControlSize + controlGap : 0);
                 final updateSpace = constraints.maxWidth - updateRight - 8;
+                final updateTextWidth = _measureUpdateButtonWidth(context);
                 final showUpdateLabel = updateSpace >= updateTextWidth;
+                final updateWidth = showUpdateLabel
+                    ? updateTextWidth
+                    : kShellControlSize;
 
                 return Stack(
                   children: [
@@ -787,13 +791,12 @@ class _SidebarPanelHeader extends ConsumerWidget {
                       Positioned(
                         right: updateRight,
                         top: controlTop,
-                        width: showUpdateLabel
-                            ? updateTextWidth
-                            : kShellControlSize,
+                        width: updateWidth,
                         height: kShellControlSize,
                         child: _SidebarUpdateButton(
                           manifest: updateManifest,
                           showLabel: showUpdateLabel,
+                          labelWidth: updateTextWidth,
                         ),
                       ),
                     if (hasSearch)
@@ -832,11 +835,31 @@ class _SidebarPanelHeader extends ConsumerWidget {
   }
 }
 
+double _measureUpdateButtonWidth(BuildContext context) {
+  final l10n = AppLocalizations.of(context)!;
+  final theme = Theme.of(context);
+  final style = (theme.textTheme.labelLarge ?? const TextStyle()).copyWith(
+    fontWeight: FontWeight.w600,
+  );
+  final painter = TextPainter(
+    text: TextSpan(text: l10n.updateAvailable, style: style),
+    maxLines: 1,
+    textDirection: Directionality.of(context),
+    textScaler: MediaQuery.textScalerOf(context),
+  )..layout();
+  return math.max(64.0, painter.width.ceilToDouble() + 28);
+}
+
 class _SidebarUpdateButton extends StatelessWidget {
-  const _SidebarUpdateButton({required this.manifest, required this.showLabel});
+  const _SidebarUpdateButton({
+    required this.manifest,
+    required this.showLabel,
+    required this.labelWidth,
+  });
 
   final AppUpdateManifest manifest;
   final bool showLabel;
+  final double labelWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -865,21 +888,19 @@ class _SidebarUpdateButton extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final states = theme.fleurState;
-    return TextButton.icon(
+    return TextButton(
       key: const Key('sidebar_update_button'),
       onPressed: () {
         unawaited(showAppUpdateDialog(context, manifest: manifest));
       },
-      icon: const Icon(FleurIcons.download, size: kShellControlIconSize),
-      label: Text(
-        l10n.updateAvailable,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
       style: ButtonStyle(
-        fixedSize: const WidgetStatePropertyAll(Size(72, kShellControlSize)),
-        minimumSize: const WidgetStatePropertyAll(Size(72, kShellControlSize)),
-        maximumSize: const WidgetStatePropertyAll(Size(72, kShellControlSize)),
+        fixedSize: WidgetStatePropertyAll(Size(labelWidth, kShellControlSize)),
+        minimumSize: WidgetStatePropertyAll(
+          Size(labelWidth, kShellControlSize),
+        ),
+        maximumSize: WidgetStatePropertyAll(
+          Size(labelWidth, kShellControlSize),
+        ),
         padding: const WidgetStatePropertyAll(
           EdgeInsets.symmetric(horizontal: 10),
         ),
@@ -900,6 +921,11 @@ class _SidebarUpdateButton extends StatelessWidget {
           }
           return null;
         }),
+      ),
+      child: Text(
+        l10n.updateAvailable,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }
