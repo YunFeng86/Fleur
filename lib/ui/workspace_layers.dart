@@ -286,7 +286,12 @@ class WorkspaceHeader extends StatelessWidget {
                     leadingPadding + (scope?.contentLeadingInset ?? 0),
                     scope?.headerLeadingInset ?? leadingPadding,
                   );
-                  final rightInset = trailingPadding + trailingWidth + 8;
+                  final captionInset =
+                      shellChromeLayout.placesControlsInTitleBar
+                      ? kShellWindowCaptionControlsWidth
+                      : 0.0;
+                  final rightInset =
+                      trailingPadding + captionInset + trailingWidth + 8;
                   final titlePlacement = _titlePlacement(
                     context: context,
                     width: width,
@@ -331,7 +336,7 @@ class WorkspaceHeader extends StatelessWidget {
                           ),
                         ),
                       Positioned(
-                        right: trailingPadding,
+                        right: trailingPadding + captionInset,
                         top: controlTop,
                         width: trailingWidth,
                         height: kShellControlSize,
@@ -527,6 +532,9 @@ class WorkspacePageHeader extends StatelessWidget {
         final controlTop = hasIntegratedCorner
             ? metrics.shellControlTopInset
             : kShellControlTopInset;
+        final captionInset = shellChromeLayout.placesControlsInTitleBar
+            ? kShellWindowCaptionControlsWidth
+            : 0.0;
         final minTitleWidth = title.isEmpty ? 0.0 : 96.0;
         final needsSecondRow =
             avoidTrafficLights &&
@@ -587,7 +595,7 @@ class WorkspacePageHeader extends StatelessWidget {
                   Positioned(
                     left: rowLeft + kShellControlSize + 8,
                     top: needsSecondRow ? kWorkspaceHeaderHeight : 0,
-                    right: 12,
+                    right: 12 + captionInset,
                     height: kWorkspaceHeaderHeight,
                     child: IgnorePointer(
                       child: Align(

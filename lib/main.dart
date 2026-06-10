@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +11,7 @@ import 'app/app.dart';
 import 'services/background/background_sync_service.dart';
 import 'services/logging/app_logger.dart';
 import 'services/logging/app_provider_observer.dart';
+import 'utils/desktop_window_options.dart';
 import 'utils/macos_window_chrome_bridge.dart';
 import 'utils/platform.dart';
 
@@ -66,12 +66,7 @@ Future<void> main() async {
 
       if (isDesktop) {
         await windowManager.ensureInitialized();
-        const options = WindowOptions(
-          size: Size(1200, 800),
-          center: true,
-          minimumSize: Size(420, 520),
-          titleBarStyle: TitleBarStyle.hidden,
-        );
+        final options = desktopWindowOptions();
         await windowManager.waitUntilReadyToShow(options, () async {
           await windowManager.show();
           await windowManager.focus();

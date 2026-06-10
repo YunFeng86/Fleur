@@ -524,6 +524,8 @@ class _SidebarRail extends StatelessWidget {
     final collapsed = mode == SidebarPresentationMode.collapsed;
     final showsCapsuleSurface =
         collapsed && railSurfaceStyle == SidebarRailSurfaceStyle.capsule;
+    final showsPlainDivider =
+        collapsed && railSurfaceStyle == SidebarRailSurfaceStyle.plain;
     final railButtons = Column(
       mainAxisSize: MainAxisSize.min,
       children: [for (final item in items) _SidebarRailScopeButton(item: item)],
@@ -540,7 +542,7 @@ class _SidebarRail extends StatelessWidget {
           )
         : railButtons;
 
-    return Column(
+    final rail = Column(
       children: [
         if (reserveShellHeader) const SizedBox(height: kWorkspaceHeaderHeight),
         Expanded(
@@ -574,6 +576,16 @@ class _SidebarRail extends StatelessWidget {
           ),
         ),
       ],
+    );
+
+    if (!showsPlainDivider) return rail;
+
+    return DecoratedBox(
+      key: const Key('sidebar_collapsed_rail_divider'),
+      decoration: BoxDecoration(
+        border: Border(right: BorderSide(color: surfaces.subtleDivider)),
+      ),
+      child: rail,
     );
   }
 }

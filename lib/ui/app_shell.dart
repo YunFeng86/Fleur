@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fleur/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../app/article_scope_routes.dart';
 import '../models/article_scope.dart';
@@ -233,6 +234,18 @@ class _AppShellState extends ConsumerState<AppShell> {
     return Stack(
       children: [
         Positioned.fill(child: child),
+        if (shellChromeLayout.placesControlsInTitleBar)
+          Positioned(
+            key: const Key('shell_window_caption_controls_host'),
+            top: 0,
+            right: 0,
+            height: kWorkspaceHeaderHeight,
+            width: kShellWindowCaptionControlsWidth,
+            child: const Align(
+              alignment: Alignment.topRight,
+              child: _WindowCaptionControls(),
+            ),
+          ),
         Positioned(
           left: _shellControlsLeftInset(
             macOSWindowChromeMetrics,
@@ -265,27 +278,53 @@ class _AppShellState extends ConsumerState<AppShell> {
     required double listWidth,
   }) {
     return AppMenuHost(
-      child: ShellLayerScope(
-        totalSize: size,
-        contentSize: size,
-        sidebarLayoutMode: sidebarLayoutModeForWidth(size.width),
-        contentLeft: 0,
-        contentLeadingInset: 0,
-        railOverlayVisible: false,
-        sidebarWidth: sidebarWidth,
-        listWidth: listWidth,
-        headerLeadingInset: 14,
-        macOSWindowChromeMetrics: macOSWindowChromeMetrics,
+      child: _withDesktopWindowCaptionOverlay(
         shellChromeLayout: shellChromeLayout,
-        child: AppDrawerScope(
-          hasAppDrawer: false,
-          child: WorkspaceLayerSurface(
-            key: const Key('app_shell_secondary_layer'),
-            color: surfaces.reader,
-            child: widget.child,
+        child: ShellLayerScope(
+          totalSize: size,
+          contentSize: size,
+          sidebarLayoutMode: sidebarLayoutModeForWidth(size.width),
+          contentLeft: 0,
+          contentLeadingInset: 0,
+          railOverlayVisible: false,
+          sidebarWidth: sidebarWidth,
+          listWidth: listWidth,
+          headerLeadingInset: 14,
+          macOSWindowChromeMetrics: macOSWindowChromeMetrics,
+          shellChromeLayout: shellChromeLayout,
+          child: AppDrawerScope(
+            hasAppDrawer: false,
+            child: WorkspaceLayerSurface(
+              key: const Key('app_shell_secondary_layer'),
+              color: surfaces.reader,
+              child: widget.child,
+            ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _withDesktopWindowCaptionOverlay({
+    required ShellChromeLayout shellChromeLayout,
+    required Widget child,
+  }) {
+    if (!shellChromeLayout.placesControlsInTitleBar) return child;
+    return Stack(
+      children: [
+        Positioned.fill(child: child),
+        const Positioned(
+          key: Key('shell_window_caption_controls_host'),
+          top: 0,
+          right: 0,
+          height: kWorkspaceHeaderHeight,
+          width: kShellWindowCaptionControlsWidth,
+          child: Align(
+            alignment: Alignment.topRight,
+            child: _WindowCaptionControls(),
+          ),
+        ),
+      ],
     );
   }
 
@@ -1011,6 +1050,116 @@ class _ShellControlData {
   final VoidCallback? onPressed;
   final IconData icon;
   final bool selected;
+}
+
+class _WindowCaptionControls extends StatefulWidget {
+  const _WindowCaptionControls();
+
+  @override
+  State<_WindowCaptionControls> createState() => _WindowCaptionControlsState();
+}
+
+class _WindowCaptionControlsState extends State<_WindowCaptionControls>
+    with WindowListener {
+  bool _maximized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    windowManager.addListener(this);
+    unawaited(_syncMaximized());
+  }
+
+  @override
+  void dispose() {
+    windowManager.removeListener(this);
+    super.dispose();
+  }
+
+  Future<void> _syncMaximized() async {
+    try {
+      final maximized = await windowManager.isMaximized();
+      if (!mounted) return;
+      setState(() => _maximized = maximized);
+    } on MissingPluginException {
+      return;
+    }
+  }
+
+  Future<void> _minimize() async {
+    try {
+      await windowManager.minimize();
+    } on MissingPluginException {
+      return;
+    }
+  }
+
+  Future<void> _toggleMaximized() async {
+    try {
+      if (await windowManager.isMaximized()) {
+        await windowManager.unmaximize();
+      } else {
+        await windowManager.maximize();
+      }
+      await _syncMaximized();
+    } on MissingPluginException {
+      return;
+    }
+  }
+
+  Future<void> _close() async {
+    try {
+      await windowManager.close();
+    } on MissingPluginException {
+      return;
+    }
+  }
+
+  @override
+  void onWindowMaximize() {
+    if (mounted) setState(() => _maximized = true);
+  }
+
+  @override
+  void onWindowUnmaximize() {
+    if (mounted) setState(() => _maximized = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
+    return SizedBox(
+      key: const Key('shell_window_caption_controls'),
+      height: 32,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          WindowCaptionButton.minimize(
+            key: const Key('shell_window_minimize_button'),
+            brightness: brightness,
+            onPressed: () => unawaited(_minimize()),
+          ),
+          if (_maximized)
+            WindowCaptionButton.unmaximize(
+              key: const Key('shell_window_maximize_button'),
+              brightness: brightness,
+              onPressed: () => unawaited(_toggleMaximized()),
+            )
+          else
+            WindowCaptionButton.maximize(
+              key: const Key('shell_window_maximize_button'),
+              brightness: brightness,
+              onPressed: () => unawaited(_toggleMaximized()),
+            ),
+          WindowCaptionButton.close(
+            key: const Key('shell_window_close_button'),
+            brightness: brightness,
+            onPressed: () => unawaited(_close()),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _DrawerControlsHost extends StatelessWidget {

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:window_manager/window_manager.dart';
 
 import 'package:fleur/app/app.dart';
 import 'package:fleur/app/router.dart';
@@ -57,6 +58,7 @@ import 'package:fleur/ui/sidebar/sidebar_selection_actions.dart';
 import 'package:fleur/ui/sidebar/sidebar_tree.dart';
 import 'package:fleur/ui/workspace_layers.dart';
 import 'package:fleur/utils/platform.dart';
+import 'package:fleur/utils/desktop_window_options.dart';
 import 'package:fleur/widgets/article_list.dart';
 import 'package:fleur/widgets/article_list_item.dart';
 import 'package:fleur/widgets/app_scrollbar.dart';
@@ -597,6 +599,19 @@ void main() {
     expect(macTheme.fleurReader.metaStyle.fontSize, 12);
   });
 
+  test('Desktop window options hide native chrome for Flutter titlebars', () {
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+    expect(desktopWindowOptions().titleBarStyle, TitleBarStyle.hidden);
+
+    debugFleurTargetPlatformOverride = TargetPlatform.windows;
+    expect(desktopWindowOptions().titleBarStyle, TitleBarStyle.hidden);
+
+    debugFleurTargetPlatformOverride = TargetPlatform.linux;
+    expect(desktopWindowOptions().titleBarStyle, TitleBarStyle.hidden);
+  });
+
   test('Reader title scale stays above body text and caps growth', () {
     final theme = AppTheme.light();
     final defaultTitle = theme.fleurReader.titleStyleForBodyFontSize(16);
@@ -768,6 +783,19 @@ void main() {
     expect(find.byKey(const Key('shell_back_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_forward_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
+    expect(
+      find.byKey(const Key('shell_window_caption_controls')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('shell_window_minimize_button')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('shell_window_maximize_button')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('shell_window_close_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_outbox_button')), findsNothing);
     expect(
       tester.getSize(find.byKey(const Key('shell_sidebar_button'))),
@@ -890,6 +918,13 @@ void main() {
       matching: find.byKey(const Key('sidebar_collapsed_rail_surface')),
     );
     expect(collapsedRailSurface, findsNothing);
+    expect(
+      find.descendant(
+        of: railOverlay,
+        matching: find.byKey(const Key('sidebar_collapsed_rail_divider')),
+      ),
+      findsOneWidget,
+    );
     expect(
       find.descendant(
         of: collapsedRailSurface,
@@ -1043,6 +1078,7 @@ void main() {
 
     expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_update_button')), findsOneWidget);
+    expect(find.byKey(const Key('shell_window_close_button')), findsOneWidget);
     expect(find.byKey(const Key('sidebar_update_button')), findsNothing);
     expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
 
@@ -1057,6 +1093,10 @@ void main() {
     expect(
       find.byKey(const Key('sidebar_collapsed_rail_surface')),
       findsNothing,
+    );
+    expect(
+      find.byKey(const Key('sidebar_collapsed_rail_divider')),
+      findsOneWidget,
     );
   });
 
@@ -1159,6 +1199,7 @@ void main() {
 
     expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
+    expect(find.byKey(const Key('shell_window_close_button')), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
     await tester.pump();
@@ -1169,6 +1210,10 @@ void main() {
     expect(
       find.byKey(const Key('sidebar_collapsed_rail_surface')),
       findsNothing,
+    );
+    expect(
+      find.byKey(const Key('sidebar_collapsed_rail_divider')),
+      findsOneWidget,
     );
   });
 
@@ -1710,6 +1755,10 @@ void main() {
         find.byKey(const Key('sidebar_collapsed_rail_surface')),
         findsOneWidget,
       );
+      expect(
+        find.byKey(const Key('sidebar_collapsed_rail_divider')),
+        findsNothing,
+      );
 
       final shellButtonLeft = tester
           .getTopLeft(find.byKey(const Key('shell_sidebar_button')))
@@ -1737,6 +1786,7 @@ void main() {
     expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
     expect(find.byKey(const Key('shell_drawer_controls')), findsNothing);
     expect(find.byKey(const Key('shell_sidebar_button')), findsNothing);
+    expect(find.byKey(const Key('shell_window_close_button')), findsOneWidget);
     expect(find.byType(Sidebar), findsNothing);
     expect(find.byKey(const Key('app_shell_child')), findsOneWidget);
   });
@@ -2096,6 +2146,10 @@ void main() {
     expect(
       find.byKey(const Key('sidebar_collapsed_rail_surface')),
       findsNothing,
+    );
+    expect(
+      find.byKey(const Key('sidebar_collapsed_rail_divider')),
+      findsOneWidget,
     );
 
     final allY = tester

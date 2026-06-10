@@ -8,6 +8,10 @@ enum ShellControlsPlacement { floatingLeading, titleBarLeading, railLeading }
 
 enum SidebarRailSurfaceStyle { capsule, plain }
 
+const double kShellWindowCaptionButtonWidth = 46;
+const double kShellWindowCaptionControlsWidth =
+    kShellWindowCaptionButtonWidth * 3;
+
 class ShellChromeLayout {
   const ShellChromeLayout({
     required this.profile,
