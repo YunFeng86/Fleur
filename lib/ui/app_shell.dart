@@ -22,6 +22,7 @@ import 'app_drawer_scope.dart';
 import 'app_menu.dart';
 import 'layout.dart';
 import 'layout_spec.dart';
+import 'shell_chrome_layout.dart';
 import 'sidebar_layout.dart';
 import 'workspace_layers.dart';
 
@@ -187,6 +188,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     required bool showAccountSyncStatus,
     required Uri currentUri,
     required MacOSWindowChromeMetrics macOSWindowChromeMetrics,
+    required ShellChromeLayout shellChromeLayout,
     VoidCallback? onSearch,
     SidebarPresentationMode? presentationModeOverride,
   }) {
@@ -200,6 +202,8 @@ class _AppShellState extends ConsumerState<AppShell> {
         currentUri: currentUri,
         onSearch: onSearch,
         macOSWindowChromeMetrics: macOSWindowChromeMetrics,
+        railSurfaceStyle: shellChromeLayout.railSurfaceStyle,
+        showHeaderActions: !shellChromeLayout.placesControlsInTitleBar,
       ),
     );
   }
@@ -210,6 +214,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     required Widget child,
     required SidebarPresentationMode presentationMode,
     required MacOSWindowChromeMetrics macOSWindowChromeMetrics,
+    required ShellChromeLayout shellChromeLayout,
     required bool usesTemporarySidebar,
     required bool searchSelected,
     required NavigationHistoryState history,
@@ -229,10 +234,18 @@ class _AppShellState extends ConsumerState<AppShell> {
       children: [
         Positioned.fill(child: child),
         Positioned(
-          left: _shellControlsLeftInset(macOSWindowChromeMetrics, fallback: 12),
-          top: _shellControlsTopInset(macOSWindowChromeMetrics),
+          left: _shellControlsLeftInset(
+            macOSWindowChromeMetrics,
+            shellChromeLayout: shellChromeLayout,
+            fallback: 12,
+          ),
+          top: _shellControlsTopInset(
+            macOSWindowChromeMetrics,
+            shellChromeLayout: shellChromeLayout,
+          ),
           child: _InlineShellControlsHost(
             presentationMode: presentationMode,
+            shellChromeLayout: shellChromeLayout,
             commands: commands,
             searchSelected: searchSelected,
             updateManifest: updateManifest,
@@ -247,6 +260,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     required Size size,
     required FleurSurfaceTheme surfaces,
     required MacOSWindowChromeMetrics macOSWindowChromeMetrics,
+    required ShellChromeLayout shellChromeLayout,
     required double sidebarWidth,
     required double listWidth,
   }) {
@@ -262,6 +276,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         listWidth: listWidth,
         headerLeadingInset: 14,
         macOSWindowChromeMetrics: macOSWindowChromeMetrics,
+        shellChromeLayout: shellChromeLayout,
         child: AppDrawerScope(
           hasAppDrawer: false,
           child: WorkspaceLayerSurface(
@@ -280,6 +295,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     required Size size,
     required SidebarPresentationMode presentationMode,
     required MacOSWindowChromeMetrics macOSWindowChromeMetrics,
+    required ShellChromeLayout shellChromeLayout,
     required FleurSurfaceTheme surfaces,
     required double sidebarWidth,
     required double listWidth,
@@ -317,12 +333,14 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
     final controlsLeft = _shellControlsLeftInset(
       macOSWindowChromeMetrics,
+      shellChromeLayout: shellChromeLayout,
       fallback: 12,
     );
     final controlsRight =
         controlsLeft +
         _shellControlsGroupWidth(
           controlsPresentationMode,
+          shellChromeLayout: shellChromeLayout,
           hasUpdate: updateManifest != null,
         );
     final overlapWithContent = controlsRight - contentLeft;
@@ -347,6 +365,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       listWidth: listWidth,
       headerLeadingInset: headerLeadingInset,
       macOSWindowChromeMetrics: macOSWindowChromeMetrics,
+      shellChromeLayout: shellChromeLayout,
       child: WorkspaceLayerSurface(
         key: const Key('app_shell_content_layer'),
         color: surfaces.list,
@@ -375,6 +394,7 @@ class _AppShellState extends ConsumerState<AppShell> {
             ref: ref,
             presentationMode: controlsPresentationMode,
             macOSWindowChromeMetrics: macOSWindowChromeMetrics,
+            shellChromeLayout: shellChromeLayout,
             usesTemporarySidebar: usesTemporarySidebar,
             searchSelected: _isSearchRoute(widget.currentUri),
             history: history,
@@ -393,7 +413,10 @@ class _AppShellState extends ConsumerState<AppShell> {
                     showAccountSyncStatus: showAccountSyncStatus,
                     currentUri: widget.currentUri,
                     macOSWindowChromeMetrics: macOSWindowChromeMetrics,
-                    onSearch: sidebarExpanded || temporarySidebarOpen
+                    shellChromeLayout: shellChromeLayout,
+                    onSearch:
+                        !shellChromeLayout.placesControlsInTitleBar &&
+                            (sidebarExpanded || temporarySidebarOpen)
                         ? () => _goToSearch(context)
                         : null,
                     presentationModeOverride: SidebarPresentationMode.expanded,
@@ -446,6 +469,9 @@ class _AppShellState extends ConsumerState<AppShell> {
                           SidebarPresentationMode.collapsed,
                       showAccountSyncStatus: showAccountSyncStatus,
                       currentUri: widget.currentUri,
+                      railSurfaceStyle: shellChromeLayout.railSurfaceStyle,
+                      showHeaderActions:
+                          !shellChromeLayout.placesControlsInTitleBar,
                     ),
                   ),
                 ),
@@ -482,6 +508,7 @@ class _AppShellState extends ConsumerState<AppShell> {
           top: 0,
           child: _DrawerControlsHost(
             macOSWindowChromeMetrics: macOSWindowChromeMetrics,
+            shellChromeLayout: ShellChromeLayout.resolve(),
             commands: commands,
           ),
         ),
@@ -549,6 +576,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     final macOSWindowChromeMetrics = ref.watch(
       macOSWindowChromeMetricsProvider,
     );
+    final shellChromeLayout = ShellChromeLayout.resolve();
     final spec = LayoutSpec.fromTotalSize(
       totalWidth: size.width,
       totalHeight: size.height,
@@ -579,6 +607,7 @@ class _AppShellState extends ConsumerState<AppShell> {
             size: size,
             surfaces: surfaces,
             macOSWindowChromeMetrics: macOSWindowChromeMetrics,
+            shellChromeLayout: shellChromeLayout,
             sidebarWidth: sidebarWidth,
             listWidth: listWidth,
           ),
@@ -601,6 +630,7 @@ class _AppShellState extends ConsumerState<AppShell> {
           size: size,
           presentationMode: effectiveSidebarPresentationMode,
           macOSWindowChromeMetrics: macOSWindowChromeMetrics,
+          shellChromeLayout: shellChromeLayout,
           surfaces: surfaces,
           sidebarWidth: sidebarWidth,
           listWidth: listWidth,
@@ -652,22 +682,33 @@ const double _kSidebarCollapseThresholdWidth = kMinWorkspaceSidebarWidth / 2;
 
 double _shellControlsGroupWidth(
   SidebarPresentationMode mode, {
+  required ShellChromeLayout shellChromeLayout,
   required bool hasUpdate,
 }) {
-  final baseControlCount = mode == SidebarPresentationMode.expanded ? 3 : 4;
+  final baseControlCount = shellChromeLayout.placesControlsInTitleBar
+      ? 4
+      : (mode == SidebarPresentationMode.expanded ? 3 : 4);
   return kShellControlSize * (baseControlCount + (hasUpdate ? 1 : 0));
 }
 
 double _shellControlsLeftInset(
   MacOSWindowChromeMetrics metrics, {
+  required ShellChromeLayout shellChromeLayout,
   required double fallback,
 }) {
-  if (!isMacOS) return fallback;
+  if (shellChromeLayout.profile != ShellChromeProfile.integratedCorner) {
+    return fallback;
+  }
   return metrics.trafficLightsVisible ? metrics.safeInset : fallback;
 }
 
-double _shellControlsTopInset(MacOSWindowChromeMetrics metrics) {
-  if (!isMacOS) return kShellControlTopInset;
+double _shellControlsTopInset(
+  MacOSWindowChromeMetrics metrics, {
+  required ShellChromeLayout shellChromeLayout,
+}) {
+  if (shellChromeLayout.profile != ShellChromeProfile.integratedCorner) {
+    return kShellControlTopInset;
+  }
   return metrics.shellControlTopInset;
 }
 
@@ -847,12 +888,14 @@ class _ShellHistoryShortcuts extends StatelessWidget {
 class _InlineShellControlsHost extends StatelessWidget {
   const _InlineShellControlsHost({
     required this.presentationMode,
+    required this.shellChromeLayout,
     required this.commands,
     required this.searchSelected,
     required this.updateManifest,
   });
 
   final SidebarPresentationMode presentationMode;
+  final ShellChromeLayout shellChromeLayout;
   final ShellNavigationCommands commands;
   final bool searchSelected;
   final AppUpdateManifest? updateManifest;
@@ -863,6 +906,8 @@ class _InlineShellControlsHost extends StatelessWidget {
     final sidebarExpanded =
         presentationMode == SidebarPresentationMode.expanded;
     final updateManifest = this.updateManifest;
+    final placesSearchInShell =
+        shellChromeLayout.placesControlsInTitleBar || !sidebarExpanded;
     final controls = [
       _ShellControlData(
         key: const Key('shell_sidebar_button'),
@@ -884,6 +929,14 @@ class _InlineShellControlsHost extends StatelessWidget {
         onPressed: commands.canGoForward ? commands.goForward : null,
         icon: FleurIcons.forward,
       ),
+      if (shellChromeLayout.placesControlsInTitleBar && placesSearchInShell)
+        _ShellControlData(
+          key: const Key('shell_search_button'),
+          tooltip: l10n.search,
+          onPressed: commands.goToSearch,
+          icon: searchSelected ? FleurIcons.searchSelected : FleurIcons.search,
+          selected: searchSelected,
+        ),
       if (updateManifest != null)
         _ShellControlData(
           key: const Key('shell_update_button'),
@@ -894,7 +947,7 @@ class _InlineShellControlsHost extends StatelessWidget {
           icon: FleurIcons.download,
           selected: true,
         ),
-      if (!sidebarExpanded)
+      if (!shellChromeLayout.placesControlsInTitleBar && placesSearchInShell)
         _ShellControlData(
           key: const Key('shell_search_button'),
           tooltip: l10n.search,
@@ -904,7 +957,7 @@ class _InlineShellControlsHost extends StatelessWidget {
         ),
     ];
 
-    if (!sidebarExpanded) {
+    if (!sidebarExpanded && shellChromeLayout.usesFloatingLeadingControls) {
       return FleurCapsuleButtonGroup(
         key: const Key('shell_controls_capsule'),
         height: kShellControlCapsuleHeight,
@@ -933,6 +986,7 @@ class _InlineShellControlsHost extends StatelessWidget {
             tooltip: control.tooltip,
             onPressed: control.onPressed,
             icon: control.icon,
+            selected: control.selected,
           ),
       ],
     );
@@ -958,10 +1012,12 @@ class _ShellControlData {
 class _DrawerControlsHost extends StatelessWidget {
   const _DrawerControlsHost({
     required this.macOSWindowChromeMetrics,
+    required this.shellChromeLayout,
     required this.commands,
   });
 
   final MacOSWindowChromeMetrics macOSWindowChromeMetrics;
+  final ShellChromeLayout shellChromeLayout;
   final ShellNavigationCommands commands;
 
   @override
@@ -974,8 +1030,15 @@ class _DrawerControlsHost extends StatelessWidget {
       height: kWorkspaceHeaderHeight,
       child: Padding(
         padding: EdgeInsets.only(
-          left: _shellControlsLeftInset(macOSWindowChromeMetrics, fallback: 8),
-          top: _shellControlsTopInset(macOSWindowChromeMetrics),
+          left: _shellControlsLeftInset(
+            macOSWindowChromeMetrics,
+            shellChromeLayout: shellChromeLayout,
+            fallback: 8,
+          ),
+          top: _shellControlsTopInset(
+            macOSWindowChromeMetrics,
+            shellChromeLayout: shellChromeLayout,
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -1017,11 +1080,13 @@ class _DrawerControlButton extends StatelessWidget {
     required this.tooltip,
     required this.onPressed,
     required this.icon,
+    this.selected = false,
   });
 
   final String tooltip;
   final VoidCallback? onPressed;
   final IconData icon;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
@@ -1046,8 +1111,12 @@ class _DrawerControlButton extends StatelessWidget {
           if (stateSet.contains(WidgetState.disabled)) {
             return scheme.onSurface.withValues(alpha: disabledOpacity);
           }
+          if (selected) return scheme.primary;
           return scheme.onSurfaceVariant;
         }),
+        backgroundColor: WidgetStatePropertyAll(
+          selected ? states.selectionTint : Colors.transparent,
+        ),
         overlayColor: WidgetStateProperty.resolveWith((stateSet) {
           if (stateSet.contains(WidgetState.disabled)) {
             return Colors.transparent;

@@ -26,6 +26,7 @@ import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/app_menu.dart';
 import '../ui/motion.dart';
+import '../ui/shell_chrome_layout.dart';
 import '../ui/sidebar_layout.dart';
 import '../ui/actions/subscription_object_menus.dart';
 import '../ui/sidebar/sidebar_management_actions.dart';
@@ -49,6 +50,8 @@ class Sidebar extends ConsumerStatefulWidget {
     this.currentUri,
     this.onSearch,
     this.macOSWindowChromeMetrics = MacOSWindowChromeMetrics.fallback,
+    this.railSurfaceStyle = SidebarRailSurfaceStyle.capsule,
+    this.showHeaderActions = true,
   });
 
   final ValueChanged<ArticleScope> onSelectScope;
@@ -60,6 +63,8 @@ class Sidebar extends ConsumerStatefulWidget {
   final Uri? currentUri;
   final VoidCallback? onSearch;
   final MacOSWindowChromeMetrics macOSWindowChromeMetrics;
+  final SidebarRailSurfaceStyle railSurfaceStyle;
+  final bool showHeaderActions;
 
   @override
   ConsumerState<Sidebar> createState() => _SidebarState();
@@ -303,6 +308,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
                   reserveShellHeader: widget.reserveShellHeader,
                   onAccountTap: () => unawaited(_showAccountMenu()),
                   accountAnchorKey: _accountFooterKey,
+                  railSurfaceStyle: widget.railSurfaceStyle,
                 ),
               ),
             )
@@ -317,6 +323,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
               searchSelected: searchSelected,
               onSearch: widget.onSearch,
               macOSWindowChromeMetrics: widget.macOSWindowChromeMetrics,
+              showHeaderActions: widget.showHeaderActions,
               navigationTree: navigationTree,
               navigationScrollController: _scrollController,
             ),
@@ -499,6 +506,7 @@ class _SidebarRail extends StatelessWidget {
     required this.reserveShellHeader,
     required this.onAccountTap,
     required this.accountAnchorKey,
+    required this.railSurfaceStyle,
   });
 
   final SidebarPresentationMode mode;
@@ -507,15 +515,29 @@ class _SidebarRail extends StatelessWidget {
   final bool reserveShellHeader;
   final VoidCallback onAccountTap;
   final Key accountAnchorKey;
+  final SidebarRailSurfaceStyle railSurfaceStyle;
 
   @override
   Widget build(BuildContext context) {
     final surfaces = Theme.of(context).fleurSurface;
     final collapsed = mode == SidebarPresentationMode.collapsed;
+    final showsCapsuleSurface =
+        collapsed && railSurfaceStyle == SidebarRailSurfaceStyle.capsule;
     final railButtons = Column(
       mainAxisSize: MainAxisSize.min,
       children: [for (final item in items) _SidebarRailScopeButton(item: item)],
     );
+    final railButtonGroup = showsCapsuleSurface
+        ? DecoratedBox(
+            key: const Key('sidebar_collapsed_rail_surface'),
+            decoration: BoxDecoration(
+              color: surfaces.floating,
+              border: Border.all(color: surfaces.subtleDivider),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: railButtons,
+          )
+        : railButtons;
 
     return Column(
       children: [
@@ -527,19 +549,7 @@ class _SidebarRail extends StatelessWidget {
             ),
             child: Column(
               children: [
-                DecoratedBox(
-                  key: collapsed
-                      ? const Key('sidebar_collapsed_rail_surface')
-                      : null,
-                  decoration: collapsed
-                      ? BoxDecoration(
-                          color: surfaces.floating,
-                          border: Border.all(color: surfaces.subtleDivider),
-                          borderRadius: BorderRadius.circular(999),
-                        )
-                      : const BoxDecoration(),
-                  child: railButtons,
-                ),
+                railButtonGroup,
                 const Expanded(child: SizedBox.shrink()),
                 SafeArea(
                   top: false,
@@ -674,6 +684,7 @@ class _SidebarPanel extends StatelessWidget {
     required this.searchSelected,
     required this.onSearch,
     required this.macOSWindowChromeMetrics,
+    required this.showHeaderActions,
     required this.navigationTree,
     required this.navigationScrollController,
   });
@@ -688,6 +699,7 @@ class _SidebarPanel extends StatelessWidget {
   final bool searchSelected;
   final VoidCallback? onSearch;
   final MacOSWindowChromeMetrics macOSWindowChromeMetrics;
+  final bool showHeaderActions;
   final Widget navigationTree;
   final ScrollController navigationScrollController;
 
@@ -700,6 +712,7 @@ class _SidebarPanel extends StatelessWidget {
             searchSelected: searchSelected,
             onSearch: onSearch,
             macOSWindowChromeMetrics: macOSWindowChromeMetrics,
+            showActions: showHeaderActions,
           ),
         _SidebarPanelFixedItems(
           items: fixedItems,
@@ -723,14 +736,23 @@ class _SidebarPanelHeader extends ConsumerWidget {
     required this.searchSelected,
     required this.onSearch,
     required this.macOSWindowChromeMetrics,
+    required this.showActions,
   });
 
   final bool searchSelected;
   final VoidCallback? onSearch;
   final MacOSWindowChromeMetrics macOSWindowChromeMetrics;
+  final bool showActions;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (!showActions) {
+      return const SizedBox(
+        key: Key('app_shell_sidebar_header'),
+        height: kWorkspaceHeaderHeight,
+      );
+    }
+
     final l10n = AppLocalizations.of(context)!;
     final onPressed = onSearch;
     final updateManifest = ref.watch(

@@ -24,6 +24,8 @@ bool get isMacOS => !kIsWeb && _effectiveTargetPlatform == TargetPlatform.macOS;
 bool get isWindows =>
     !kIsWeb && _effectiveTargetPlatform == TargetPlatform.windows;
 
+bool get isLinux => !kIsWeb && _effectiveTargetPlatform == TargetPlatform.linux;
+
 bool get supportsBackgroundSyncPlatform => isAndroid || isIOS;
 
 class IosShareBridge {

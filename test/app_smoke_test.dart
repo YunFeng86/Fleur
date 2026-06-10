@@ -17,6 +17,7 @@ import 'package:fleur/models/tag.dart';
 import 'package:fleur/providers/account_providers.dart';
 import 'package:fleur/providers/article_list_controller.dart';
 import 'package:fleur/providers/app_settings_providers.dart';
+import 'package:fleur/providers/app_update_providers.dart';
 import 'package:fleur/providers/background_sync_providers.dart';
 import 'package:fleur/providers/core_providers.dart';
 import 'package:fleur/providers/outbox_status_providers.dart';
@@ -38,6 +39,7 @@ import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/settings/reader_settings.dart';
 import 'package:fleur/services/sync/sync_service.dart';
 import 'package:fleur/services/sync/sync_status_reporter.dart';
+import 'package:fleur/services/update/app_update_manifest.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/app_typography.dart';
 import 'package:fleur/theme/fleur_icons.dart';
@@ -49,6 +51,7 @@ import 'package:fleur/ui/home/home_scene_panes.dart';
 import 'package:fleur/ui/home/home_scene_shortcuts.dart';
 import 'package:fleur/ui/layout.dart';
 import 'package:fleur/ui/layout_spec.dart';
+import 'package:fleur/ui/shell_chrome_layout.dart';
 import 'package:fleur/ui/sidebar_layout.dart';
 import 'package:fleur/ui/sidebar/sidebar_selection_actions.dart';
 import 'package:fleur/ui/sidebar/sidebar_tree.dart';
@@ -153,6 +156,28 @@ Feed _buildFeed({
     ..url = url
     ..title = title
     ..siteUrl = 'https://example.com';
+}
+
+AppUpdateManifest _buildUpdateManifest() {
+  return AppUpdateManifest(
+    schemaVersion: 1,
+    channel: AppUpdateChannel.stable,
+    version: '9.9.9',
+    tag: 'v9.9.9',
+    publishedAt: DateTime.utc(2026, 1, 1),
+    releaseUrl: Uri.parse('https://example.com/releases/v9.9.9'),
+    notes: const {'en': 'Test update'},
+    assets: const {},
+  );
+}
+
+class _TestAppUpdateController extends AppUpdateController {
+  _TestAppUpdateController(this.initialState);
+
+  final AppUpdateState initialState;
+
+  @override
+  AppUpdateState build() => initialState;
 }
 
 Article _buildArticle({
@@ -814,12 +839,9 @@ void main() {
     final expandedSearchTopLeft = tester.getTopLeft(
       find.byKey(const Key('shell_search_button')),
     );
-    expect(
-      expandedSearchTopLeft.dx,
-      kDefaultWorkspaceSidebarWidth - 8 - kShellControlSize,
-    );
+    expect(expandedSearchTopLeft.dx, 12 + kShellControlSize * 3);
     expect(expandedSearchTopLeft.dy, kShellControlTopInset);
-    expect(expandedSearchTopLeft.dx, greaterThan(expandedForwardRight));
+    expect(expandedSearchTopLeft.dx, expandedForwardRight);
     final expandedAllDx = tester
         .getCenter(find.byKey(const Key('sidebar_all_button')))
         .dx;
@@ -867,7 +889,7 @@ void main() {
       of: railOverlay,
       matching: find.byKey(const Key('sidebar_collapsed_rail_surface')),
     );
-    expect(collapsedRailSurface, findsOneWidget);
+    expect(collapsedRailSurface, findsNothing);
     expect(
       find.descendant(
         of: collapsedRailSurface,
@@ -875,11 +897,7 @@ void main() {
       ),
       findsNothing,
     );
-    expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
-    expect(
-      tester.getSize(find.byKey(const Key('shell_controls_capsule'))).height,
-      kShellControlCapsuleHeight,
-    );
+    expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
     expect(find.byKey(const Key('shell_sidebar_toggle_capsule')), findsNothing);
     expect(
       find.byKey(const Key('shell_content_controls_capsule')),
@@ -892,13 +910,6 @@ void main() {
     expect(find.byKey(const Key('shell_back_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_forward_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
-    expect(
-      find.descendant(
-        of: find.byKey(const Key('shell_controls_capsule')),
-        matching: find.byKey(const Key('shell_search_button')),
-      ),
-      findsOneWidget,
-    );
     expect(
       tester.getTopLeft(find.byKey(const Key('shell_sidebar_button'))),
       expandedToggleTopLeft,
@@ -979,7 +990,7 @@ void main() {
     await _settleRailOverlayReveal(tester);
     expect(find.byType(Sidebar), findsNWidgets(2));
     expect(find.byKey(const Key('app_shell_rail_overlay')), findsOneWidget);
-    expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
+    expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
     expect(find.byKey(const Key('shell_drawer_controls')), findsNothing);
     expect(find.byKey(const Key('app_shell_sidebar_divider')), findsNothing);
     expect(
@@ -1001,6 +1012,79 @@ void main() {
     expect(
       tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
       kDefaultWorkspaceSidebarWidth,
+    );
+  });
+
+  testWidgets('Windows shell keeps update and search actions in titlebar', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(1200, 900);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      _buildShellHarness(
+        overrides: [
+          appUpdateControllerProvider.overrideWith(
+            () => _TestAppUpdateController(
+              AppUpdateState(
+                status: AppUpdateStatus.updateAvailable,
+                manifest: _buildUpdateManifest(),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
+    expect(find.byKey(const Key('shell_update_button')), findsOneWidget);
+    expect(find.byKey(const Key('sidebar_update_button')), findsNothing);
+    expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('shell_sidebar_button')));
+    await tester.pump();
+    await _settleRailOverlayReveal(tester);
+
+    expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
+    expect(find.byKey(const Key('shell_update_button')), findsOneWidget);
+    expect(find.byKey(const Key('sidebar_update_button')), findsNothing);
+    expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
+    expect(
+      find.byKey(const Key('sidebar_collapsed_rail_surface')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('Linux shell uses titlebar controls and a plain collapsed rail', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.linux;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(1200, 900);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(_buildShellHarness());
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
+    expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('shell_sidebar_button')));
+    await tester.pump();
+    await _settleRailOverlayReveal(tester);
+
+    expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
+    expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
+    expect(
+      find.byKey(const Key('sidebar_collapsed_rail_surface')),
+      findsNothing,
     );
   });
 
@@ -1263,7 +1347,7 @@ void main() {
       await tester.pumpAndSettle();
       await _settleRailOverlayReveal(tester);
 
-      expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
+      expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
       expect(find.byKey(const Key('app_shell_rail_overlay')), findsOneWidget);
       expect(
         tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
@@ -1295,7 +1379,7 @@ void main() {
       await _settleRailOverlayReveal(tester);
 
       expect(handle, findsNothing);
-      expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
+      expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
       expect(find.byKey(const Key('app_shell_rail_overlay')), findsOneWidget);
       expect(
         tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
@@ -1537,6 +1621,11 @@ void main() {
 
       expect(find.byKey(const Key('shell_drawer_controls')), findsNothing);
       expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
+      expect(find.byKey(const Key('app_shell_rail_overlay')), findsOneWidget);
+      expect(
+        find.byKey(const Key('sidebar_collapsed_rail_surface')),
+        findsOneWidget,
+      );
 
       final shellButtonLeft = tester
           .getTopLeft(find.byKey(const Key('shell_sidebar_button')))
@@ -1585,7 +1674,7 @@ void main() {
 
       expect(find.byKey(const Key('app_shell_secondary_layer')), findsNothing);
       expect(find.byKey(const Key('app_shell_sidebar_divider')), findsNothing);
-      expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
+      expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
       expect(find.byKey(const Key('shell_drawer_controls')), findsNothing);
       expect(find.byKey(const Key('shell_sidebar_button')), findsOneWidget);
       expect(
@@ -1624,7 +1713,7 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
+      expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
       expect(
         tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
         0,
@@ -1902,7 +1991,10 @@ void main() {
           home: const AppMenuHost(
             child: SizedBox(
               width: kSidebarCollapsedWidth,
-              child: Sidebar(onSelectScope: _noopSelectScope),
+              child: Sidebar(
+                onSelectScope: _noopSelectScope,
+                railSurfaceStyle: SidebarRailSurfaceStyle.plain,
+              ),
             ),
           ),
         ),
@@ -1919,13 +2011,7 @@ void main() {
     expect(find.text('Dense Pixels'), findsNothing);
     expect(
       find.byKey(const Key('sidebar_collapsed_rail_surface')),
-      findsOneWidget,
-    );
-    expect(
-      tester
-          .getSize(find.byKey(const Key('sidebar_collapsed_rail_surface')))
-          .width,
-      lessThan(kSidebarRailWidth),
+      findsNothing,
     );
 
     final allY = tester

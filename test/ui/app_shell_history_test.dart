@@ -200,7 +200,7 @@ void main() {
     );
   });
 
-  testWidgets('collapsed capsule controls use the same history state', (
+  testWidgets('collapsed titlebar controls use the same history state', (
     tester,
   ) async {
     final router = _buildShellRouter();
@@ -225,7 +225,7 @@ void main() {
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
+    expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
     expect(
       _iconButton(tester, const Key('shell_back_button')).onPressed,
       isNotNull,

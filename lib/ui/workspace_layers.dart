@@ -1,12 +1,16 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../utils/macos_window_chrome_bridge.dart';
 import '../utils/platform.dart';
+import 'shell_chrome_layout.dart';
 import 'sidebar_layout.dart';
 
 const BorderRadius kWorkspaceLayerRadius = BorderRadius.only(
@@ -29,6 +33,7 @@ class ShellLayerScope extends InheritedWidget {
     required this.listWidth,
     required this.headerLeadingInset,
     required this.macOSWindowChromeMetrics,
+    this.shellChromeLayout,
     required super.child,
   });
 
@@ -42,6 +47,7 @@ class ShellLayerScope extends InheritedWidget {
   final double listWidth;
   final double headerLeadingInset;
   final MacOSWindowChromeMetrics macOSWindowChromeMetrics;
+  final ShellChromeLayout? shellChromeLayout;
 
   static ShellLayerScope? maybeOf(BuildContext context) {
     return context.dependOnInheritedWidgetOfExactType<ShellLayerScope>();
@@ -58,7 +64,8 @@ class ShellLayerScope extends InheritedWidget {
         sidebarWidth != oldWidget.sidebarWidth ||
         listWidth != oldWidget.listWidth ||
         headerLeadingInset != oldWidget.headerLeadingInset ||
-        macOSWindowChromeMetrics != oldWidget.macOSWindowChromeMetrics;
+        macOSWindowChromeMetrics != oldWidget.macOSWindowChromeMetrics ||
+        shellChromeLayout != oldWidget.shellChromeLayout;
   }
 }
 
@@ -247,20 +254,30 @@ class WorkspaceHeader extends StatelessWidget {
                 builder: (context, constraints) {
                   final width = constraints.maxWidth;
                   final scope = ShellLayerScope.maybeOf(context);
+                  final shellChromeLayout =
+                      scope?.shellChromeLayout ?? ShellChromeLayout.resolve();
+                  final hasIntegratedCorner =
+                      shellChromeLayout.profile ==
+                      ShellChromeProfile.integratedCorner;
+                  final hasTitleBarDrag =
+                      shellChromeLayout.profile ==
+                      ShellChromeProfile.titleBarExpected;
                   final metrics =
                       scope?.macOSWindowChromeMetrics ??
                       MacOSWindowChromeMetrics.fallback;
-                  final dragHeight = math.min(
-                    kWorkspaceHeaderHeight,
-                    math.max(0.0, metrics.titlebarDragHeight),
-                  );
+                  final dragHeight = hasIntegratedCorner
+                      ? math.min(
+                          kWorkspaceHeaderHeight,
+                          math.max(0.0, metrics.titlebarDragHeight),
+                        )
+                      : (hasTitleBarDrag ? kWorkspaceHeaderHeight : 0.0);
                   final dragLeft =
-                      isMacOS &&
+                      hasIntegratedCorner &&
                           metrics.trafficLightsVisible &&
                           (scope?.contentLeft ?? 0) <= 0
                       ? metrics.safeInset
                       : 0.0;
-                  final controlTop = isMacOS
+                  final controlTop = hasIntegratedCorner
                       ? metrics.shellControlTopInset
                       : kShellControlTopInset;
                   final rowCenterY = controlTop + kShellControlSize / 2;
@@ -280,7 +297,7 @@ class WorkspaceHeader extends StatelessWidget {
 
                   return Stack(
                     children: [
-                      if (isMacOS && dragHeight > 0 && dragLeft < width)
+                      if (dragHeight > 0 && dragLeft < width)
                         Positioned(
                           left: dragLeft,
                           top: 0,
@@ -438,14 +455,43 @@ class WindowDragSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!isMacOS) return const SizedBox.expand();
+    if (isMacOS) {
+      return GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onPanStart: (_) => MacOSWindowChromeBridge.performWindowDrag(),
+        onDoubleTap: () => MacOSWindowChromeBridge.performWindowZoom(),
+        child: const SizedBox.expand(),
+      );
+    }
+
+    if (!isWindows && !isLinux) return const SizedBox.expand();
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
-      onPanStart: (_) => MacOSWindowChromeBridge.performWindowDrag(),
-      onDoubleTap: () => MacOSWindowChromeBridge.performWindowZoom(),
+      onPanStart: (_) => unawaited(_startDesktopWindowDrag()),
+      onDoubleTap: () => unawaited(_toggleDesktopWindowMaximize()),
       child: const SizedBox.expand(),
     );
+  }
+
+  static Future<void> _startDesktopWindowDrag() async {
+    try {
+      await windowManager.startDragging();
+    } on MissingPluginException {
+      return;
+    }
+  }
+
+  static Future<void> _toggleDesktopWindowMaximize() async {
+    try {
+      if (await windowManager.isMaximized()) {
+        await windowManager.unmaximize();
+      } else {
+        await windowManager.maximize();
+      }
+    } on MissingPluginException {
+      return;
+    }
   }
 }
 
@@ -466,12 +512,19 @@ class WorkspacePageHeader extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final scope = ShellLayerScope.maybeOf(context);
+        final shellChromeLayout =
+            scope?.shellChromeLayout ?? ShellChromeLayout.resolve();
+        final hasIntegratedCorner =
+            shellChromeLayout.profile == ShellChromeProfile.integratedCorner;
+        final hasTitleBarDrag =
+            shellChromeLayout.profile == ShellChromeProfile.titleBarExpected;
         final metrics =
             scope?.macOSWindowChromeMetrics ??
             MacOSWindowChromeMetrics.fallback;
-        final avoidTrafficLights = isMacOS && metrics.trafficLightsVisible;
+        final avoidTrafficLights =
+            hasIntegratedCorner && metrics.trafficLightsVisible;
         final leadingLeft = avoidTrafficLights ? metrics.safeInset : 8.0;
-        final controlTop = isMacOS
+        final controlTop = hasIntegratedCorner
             ? metrics.shellControlTopInset
             : kShellControlTopInset;
         final minTitleWidth = title.isEmpty ? 0.0 : 96.0;
@@ -495,15 +548,17 @@ class WorkspacePageHeader extends StatelessWidget {
             height: height,
             child: Stack(
               children: [
-                if (isMacOS)
+                if (hasIntegratedCorner || hasTitleBarDrag)
                   Positioned(
                     left: avoidTrafficLights ? metrics.safeInset : 0,
                     top: 0,
                     right: 0,
-                    height: math.min(
-                      height,
-                      math.max(0.0, metrics.titlebarDragHeight),
-                    ),
+                    height: hasIntegratedCorner
+                        ? math.min(
+                            height,
+                            math.max(0.0, metrics.titlebarDragHeight),
+                          )
+                        : kWorkspaceHeaderHeight,
                     child: const WindowDragSurface(
                       key: Key('window_page_drag_surface'),
                     ),
