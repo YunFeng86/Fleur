@@ -486,7 +486,7 @@ jobs:
   deploy-update-pages:
     name: Deploy update metadata
     needs: create-release
-    if: needs.create-release.result == 'success'
+    if: always() && needs.create-release.result == 'success'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

@@ -1,0 +1,68 @@
+name: Deploy Update Metadata
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish update metadata for.
+        required: true
+        default: v1.0.0
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+  id-token: write
+  pages: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy update metadata
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+
+      - name: Download release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          mkdir -p release-files
+          gh release download "${{ inputs.tag }}" \
+            --repo "${{ github.repository }}" \
+            --dir release-files \
+            --pattern '*'
+          ls -la release-files
+
+      - name: Generate update metadata
+        shell: bash
+        run: |
+          dart tool/release/generate_update_manifest.dart \
+            --tag "${{ inputs.tag }}" \
+            --repository "${{ github.repository }}" \
+            --release-files release-files \
+            --output update-pages \
+            --release-body RELEASE_BODY.md \
+            --pages-base-url "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+
+      - name: Upload update metadata Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: update-pages
+
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
