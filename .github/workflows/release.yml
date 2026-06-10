@@ -149,7 +149,6 @@ jobs:
 
       - name: Run tests
         run: flutter test
-        continue-on-error: true
 
       - name: Build unsigned macOS release
         shell: bash
@@ -277,7 +276,6 @@ jobs:
 
       - name: Run tests
         run: flutter test
-        continue-on-error: true
 
       - name: Build ${{ matrix.platform }} release
         shell: bash
