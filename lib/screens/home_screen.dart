@@ -16,6 +16,8 @@ import '../ui/home/home_scene_panes.dart';
 import '../ui/home/home_scene_shortcuts.dart';
 import '../ui/layout.dart';
 import '../ui/layout_spec.dart';
+import '../ui/shell_chrome_layout.dart';
+import '../ui/shell_title_bar.dart';
 import '../ui/sidebar_layout.dart';
 import '../ui/workspace_layers.dart';
 import '../utils/platform.dart';
@@ -30,8 +32,8 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    // Desktop stays chrome-less here; future shell controls live outside the
-    // page instead of as an in-page AppBar.
+    // Desktop shell chrome is owned by AppShell; the page only contributes
+    // title/action content when the active shell profile has a title bar.
     final useCompactTopBar = !isDesktop;
     final showSyncCapsule = LayoutSpec.fromContext(
       context,
@@ -218,6 +220,11 @@ class HomeScreen extends ConsumerWidget {
     final showSyncCapsule = LayoutSpec.fromContext(
       context,
     ).showsListSyncStatusCapsule;
+    final shellLayerScope = ShellLayerScope.maybeOf(context);
+    final shellChromeLayout =
+        shellLayerScope?.shellChromeLayout ?? ShellChromeLayout.resolve();
+    final usesShellTitleBar =
+        shellLayerScope != null && shellChromeLayout.placesControlsInTitleBar;
     final topBar = _HomeArticleListToolbar(
       showRefresh: showRootRefresh,
       refreshTooltip: refreshActionLabel,
@@ -234,7 +241,7 @@ class HomeScreen extends ConsumerWidget {
         listWidth: listWidth,
         selectedArticleId: selectedArticleId,
         showSyncCapsule: showSyncCapsule,
-        topBar: topBar,
+        topBar: usesShellTitleBar ? null : topBar,
         enableSplitHandle: true,
       ),
       DesktopPaneMode.listOnly => _buildWorkspaceLayout(
@@ -243,12 +250,27 @@ class HomeScreen extends ConsumerWidget {
         listWidth: listWidth,
         selectedArticleId: selectedArticleId,
         showSyncCapsule: showSyncCapsule,
-        topBar: topBar,
+        topBar: usesShellTitleBar ? null : topBar,
         enableSplitHandle: false,
       ),
     };
 
     final content = HomeSceneShortcuts(commands: commands, child: body);
+
+    if (usesShellTitleBar) {
+      return ShellTitleBarRegistration(
+        title: _homeScopeTitle(ref, l10n),
+        trailingWidth: _homeScopeActionsWidth(showRootRefresh),
+        trailingBuilder: (context) => _HomeScopeActions(
+          showRefresh: showRootRefresh,
+          refreshTooltip: refreshActionLabel,
+          onRefresh: refreshAll,
+          onToggleUnreadOnly: commands.toggleUnreadOnly,
+          onMarkAllRead: markAllRead,
+        ),
+        child: content,
+      );
+    }
 
     if (!useCompactTopBar) return content;
 
@@ -340,81 +362,113 @@ class _HomeArticleListToolbar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final unreadOnly = ref.watch(unreadOnlyProvider);
-    final title = _scopeTitle(ref, l10n);
-    final actionCount = (showRefresh ? 1 : 0) + 2;
-    final trailingWidth = actionCount * kShellControlSize + 2;
+    final title = _homeScopeTitle(ref, l10n);
 
     return WorkspaceHeader(
       title: title,
-      trailingWidth: trailingWidth,
-      trailing: FleurCapsuleButtonGroup(
-        key: const Key('home_scope_actions'),
-        children: [
-          if (showRefresh)
-            FleurCapsuleIconButton(
-              key: const Key('scope_refresh_button'),
-              tooltip: refreshTooltip,
-              onPressed: onRefresh,
-              icon: FleurIcons.refresh,
-            ),
-          FleurCapsuleIconButton(
-            key: const Key('scope_unread_filter_button'),
-            tooltip: unreadOnly ? l10n.showAll : l10n.unreadOnly,
-            onPressed: onToggleUnreadOnly,
-            selected: unreadOnly,
-            icon: unreadOnly ? FleurIcons.filterActive : FleurIcons.filter,
-          ),
-          FleurCapsuleIconButton(
-            key: const Key('scope_mark_all_read_button'),
-            tooltip: l10n.markAllRead,
-            onPressed: onMarkAllRead,
-            icon: FleurIcons.markAllRead,
-          ),
-        ],
+      trailingWidth: _homeScopeActionsWidth(showRefresh),
+      trailing: _HomeScopeActions(
+        showRefresh: showRefresh,
+        refreshTooltip: refreshTooltip,
+        onRefresh: onRefresh,
+        onToggleUnreadOnly: onToggleUnreadOnly,
+        onMarkAllRead: onMarkAllRead,
       ),
     );
   }
+}
 
-  String _scopeTitle(WidgetRef ref, AppLocalizations l10n) {
-    final starredOnly = ref.watch(starredOnlyProvider);
-    if (starredOnly) return l10n.starred;
+class _HomeScopeActions extends ConsumerWidget {
+  const _HomeScopeActions({
+    required this.showRefresh,
+    required this.refreshTooltip,
+    required this.onRefresh,
+    required this.onToggleUnreadOnly,
+    required this.onMarkAllRead,
+  });
 
-    final readLaterOnly = ref.watch(readLaterOnlyProvider);
-    if (readLaterOnly) return l10n.readLater;
+  final bool showRefresh;
+  final String refreshTooltip;
+  final Future<void> Function() onRefresh;
+  final VoidCallback onToggleUnreadOnly;
+  final Future<void> Function() onMarkAllRead;
 
-    final tagId = ref.watch(selectedTagIdProvider);
-    if (tagId != null) {
-      final tags = ref.watch(tagsProvider).valueOrNull;
-      if (tags != null) {
-        for (final tag in tags) {
-          if (tag.id == tagId) return tag.name;
-        }
-      }
-      return l10n.feeds;
-    }
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final unreadOnly = ref.watch(unreadOnlyProvider);
 
-    final feedId = ref.watch(selectedFeedIdProvider);
-    if (feedId != null) {
-      final feed = ref.watch(feedProvider(feedId)).valueOrNull;
-      if (feed != null) {
-        final userTitle = feed.userTitle?.trim();
-        if (userTitle != null && userTitle.isNotEmpty) return userTitle;
-
-        final title = feed.title?.trim();
-        if (title != null && title.isNotEmpty) return title;
-
-        return feed.url;
-      }
-      return l10n.feeds;
-    }
-
-    final categoryId = ref.watch(selectedCategoryIdProvider);
-    if (categoryId != null) {
-      final category = ref.watch(categoryProvider(categoryId)).valueOrNull;
-      return category?.name ?? l10n.feeds;
-    }
-
-    return l10n.all;
+    return FleurCapsuleButtonGroup(
+      key: const Key('home_scope_actions'),
+      children: [
+        if (showRefresh)
+          FleurCapsuleIconButton(
+            key: const Key('scope_refresh_button'),
+            tooltip: refreshTooltip,
+            onPressed: onRefresh,
+            icon: FleurIcons.refresh,
+          ),
+        FleurCapsuleIconButton(
+          key: const Key('scope_unread_filter_button'),
+          tooltip: unreadOnly ? l10n.showAll : l10n.unreadOnly,
+          onPressed: onToggleUnreadOnly,
+          selected: unreadOnly,
+          icon: unreadOnly ? FleurIcons.filterActive : FleurIcons.filter,
+        ),
+        FleurCapsuleIconButton(
+          key: const Key('scope_mark_all_read_button'),
+          tooltip: l10n.markAllRead,
+          onPressed: onMarkAllRead,
+          icon: FleurIcons.markAllRead,
+        ),
+      ],
+    );
   }
+}
+
+double _homeScopeActionsWidth(bool showRefresh) {
+  final actionCount = (showRefresh ? 1 : 0) + 2;
+  return actionCount * kShellControlSize + 2;
+}
+
+String _homeScopeTitle(WidgetRef ref, AppLocalizations l10n) {
+  final starredOnly = ref.watch(starredOnlyProvider);
+  if (starredOnly) return l10n.starred;
+
+  final readLaterOnly = ref.watch(readLaterOnlyProvider);
+  if (readLaterOnly) return l10n.readLater;
+
+  final tagId = ref.watch(selectedTagIdProvider);
+  if (tagId != null) {
+    final tags = ref.watch(tagsProvider).valueOrNull;
+    if (tags != null) {
+      for (final tag in tags) {
+        if (tag.id == tagId) return tag.name;
+      }
+    }
+    return l10n.feeds;
+  }
+
+  final feedId = ref.watch(selectedFeedIdProvider);
+  if (feedId != null) {
+    final feed = ref.watch(feedProvider(feedId)).valueOrNull;
+    if (feed != null) {
+      final userTitle = feed.userTitle?.trim();
+      if (userTitle != null && userTitle.isNotEmpty) return userTitle;
+
+      final title = feed.title?.trim();
+      if (title != null && title.isNotEmpty) return title;
+
+      return feed.url;
+    }
+    return l10n.feeds;
+  }
+
+  final categoryId = ref.watch(selectedCategoryIdProvider);
+  if (categoryId != null) {
+    final category = ref.watch(categoryProvider(categoryId)).valueOrNull;
+    return category?.name ?? l10n.feeds;
+  }
+
+  return l10n.all;
 }

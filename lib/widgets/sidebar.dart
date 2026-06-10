@@ -301,7 +301,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
           ? Align(
               alignment: Alignment.topLeft,
               child: SizedBox(
-                width: kSidebarRailWidth,
+                width: double.infinity,
                 child: _SidebarRail(
                   mode: presentationMode,
                   items: fixedItems,

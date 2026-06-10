@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -24,6 +25,7 @@ import 'app_menu.dart';
 import 'layout.dart';
 import 'layout_spec.dart';
 import 'shell_chrome_layout.dart';
+import 'shell_title_bar.dart';
 import 'sidebar_layout.dart';
 import 'workspace_layers.dart';
 
@@ -197,7 +199,8 @@ class _AppShellState extends ConsumerState<AppShell> {
       width: width,
       child: Sidebar(
         onSelectScope: (scope) => _goToScope(context, scope),
-        reserveShellHeader: isDesktop,
+        reserveShellHeader:
+            isDesktop && !shellChromeLayout.placesControlsInTitleBar,
         presentationModeOverride: presentationModeOverride,
         showAccountSyncStatus: showAccountSyncStatus,
         currentUri: currentUri,
@@ -222,6 +225,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     required AppUpdateManifest? updateManifest,
   }) {
     if (!isDesktop) return child;
+    if (shellChromeLayout.placesControlsInTitleBar) return child;
     final commands = ShellNavigationCommands(
       context: context,
       router: GoRouter.maybeOf(context),
@@ -234,18 +238,6 @@ class _AppShellState extends ConsumerState<AppShell> {
     return Stack(
       children: [
         Positioned.fill(child: child),
-        if (shellChromeLayout.placesControlsInTitleBar)
-          Positioned(
-            key: const Key('shell_window_caption_controls_host'),
-            top: 0,
-            right: 0,
-            height: kWorkspaceHeaderHeight,
-            width: kShellWindowCaptionControlsWidth,
-            child: const Align(
-              alignment: Alignment.topRight,
-              child: _WindowCaptionControls(),
-            ),
-          ),
         Positioned(
           left: _shellControlsLeftInset(
             macOSWindowChromeMetrics,
@@ -277,54 +269,52 @@ class _AppShellState extends ConsumerState<AppShell> {
     required double sidebarWidth,
     required double listWidth,
   }) {
+    final usesTitleBar = shellChromeLayout.placesControlsInTitleBar;
+    final titleBarHeight = usesTitleBar ? kWorkspaceHeaderHeight : 0.0;
+    final workspaceHeight = (size.height - titleBarHeight)
+        .clamp(0.0, double.infinity)
+        .toDouble();
+
     return AppMenuHost(
-      child: _withDesktopWindowCaptionOverlay(
+      child: ShellLayerScope(
+        totalSize: size,
+        contentSize: Size(size.width, workspaceHeight),
+        sidebarLayoutMode: sidebarLayoutModeForWidth(size.width),
+        contentLeft: 0,
+        contentLeadingInset: 0,
+        railOverlayVisible: false,
+        sidebarWidth: sidebarWidth,
+        listWidth: listWidth,
+        headerLeadingInset: 14,
+        macOSWindowChromeMetrics: macOSWindowChromeMetrics,
         shellChromeLayout: shellChromeLayout,
-        child: ShellLayerScope(
-          totalSize: size,
-          contentSize: size,
-          sidebarLayoutMode: sidebarLayoutModeForWidth(size.width),
-          contentLeft: 0,
-          contentLeadingInset: 0,
-          railOverlayVisible: false,
-          sidebarWidth: sidebarWidth,
-          listWidth: listWidth,
-          headerLeadingInset: 14,
-          macOSWindowChromeMetrics: macOSWindowChromeMetrics,
-          shellChromeLayout: shellChromeLayout,
-          child: AppDrawerScope(
-            hasAppDrawer: false,
-            child: WorkspaceLayerSurface(
-              key: const Key('app_shell_secondary_layer'),
-              color: surfaces.reader,
-              child: widget.child,
-            ),
+        child: AppDrawerScope(
+          hasAppDrawer: false,
+          child: Stack(
+            children: [
+              if (usesTitleBar)
+                const Positioned(
+                  left: 0,
+                  top: 0,
+                  right: 0,
+                  height: kWorkspaceHeaderHeight,
+                  child: _ShellTitleBar(),
+                ),
+              Positioned(
+                left: 0,
+                top: titleBarHeight,
+                right: 0,
+                bottom: 0,
+                child: WorkspaceLayerSurface(
+                  key: const Key('app_shell_secondary_layer'),
+                  color: surfaces.reader,
+                  child: widget.child,
+                ),
+              ),
+            ],
           ),
         ),
       ),
-    );
-  }
-
-  Widget _withDesktopWindowCaptionOverlay({
-    required ShellChromeLayout shellChromeLayout,
-    required Widget child,
-  }) {
-    if (!shellChromeLayout.placesControlsInTitleBar) return child;
-    return Stack(
-      children: [
-        Positioned.fill(child: child),
-        const Positioned(
-          key: Key('shell_window_caption_controls_host'),
-          top: 0,
-          right: 0,
-          height: kWorkspaceHeaderHeight,
-          width: kShellWindowCaptionControlsWidth,
-          child: Align(
-            alignment: Alignment.topRight,
-            child: _WindowCaptionControls(),
-          ),
-        ),
-      ],
     );
   }
 
@@ -358,9 +348,17 @@ class _AppShellState extends ConsumerState<AppShell> {
     final contentWidth = sidebarExpanded
         ? (size.width - contentLeft).clamp(0.0, double.infinity).toDouble()
         : size.width;
+    final usesTitleBar = shellChromeLayout.placesControlsInTitleBar;
+    final titleBarHeight = usesTitleBar ? kWorkspaceHeaderHeight : 0.0;
+    final workspaceHeight = (size.height - titleBarHeight)
+        .clamp(0.0, double.infinity)
+        .toDouble();
+    final collapsedRailWidth = usesTitleBar
+        ? kTitleBarExpectedSidebarRailWidth
+        : kSidebarRailWidth;
     final railOverlayVisible = !sidebarExpanded && !temporarySidebarOpen;
     final contentLeadingInset = railOverlayVisible
-        ? kSidebarRailWidth + kRailOverlayContentGap
+        ? collapsedRailWidth + kRailOverlayContentGap
         : 0.0;
     final controlsPresentationMode = sidebarExpanded || temporarySidebarOpen
         ? SidebarPresentationMode.expanded
@@ -377,7 +375,9 @@ class _AppShellState extends ConsumerState<AppShell> {
     final controlsLeft = _shellControlsLeftInset(
       macOSWindowChromeMetrics,
       shellChromeLayout: shellChromeLayout,
-      fallback: 12,
+      fallback: usesTitleBar
+          ? (collapsedRailWidth - kShellControlSize) / 2
+          : 12,
     );
     final controlsRight =
         controlsLeft +
@@ -392,19 +392,22 @@ class _AppShellState extends ConsumerState<AppShell> {
         : 14.0;
     final contentLayoutSpec = LayoutSpec.fromContentSize(
       contentWidth: contentWidth,
-      contentHeight: size.height,
+      contentHeight: workspaceHeight,
       listWidth: listWidth,
     );
     final showAccountSyncStatus = !contentLayoutSpec.showsListSyncStatusCapsule;
+    final reserveSidebarHeader = !usesTitleBar;
 
     final contentLayer = ShellLayerScope(
       totalSize: size,
-      contentSize: Size(contentWidth, size.height),
+      contentSize: Size(contentWidth, workspaceHeight),
       sidebarLayoutMode: sidebarLayoutMode,
       contentLeft: contentLeft,
       contentLeadingInset: contentLeadingInset,
       railOverlayVisible: railOverlayVisible,
-      sidebarWidth: visibleSidebarWidth,
+      sidebarWidth: sidebarExpanded || temporarySidebarOpen
+          ? visibleSidebarWidth
+          : collapsedRailWidth,
       listWidth: listWidth,
       headerLeadingInset: headerLeadingInset,
       macOSWindowChromeMetrics: macOSWindowChromeMetrics,
@@ -445,31 +448,62 @@ class _AppShellState extends ConsumerState<AppShell> {
             child: Stack(
               clipBehavior: Clip.hardEdge,
               children: [
+                if (usesTitleBar)
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    right: 0,
+                    height: kWorkspaceHeaderHeight,
+                    child: _ShellTitleBar(
+                      commands: ShellNavigationCommands(
+                        context: context,
+                        router: GoRouter.maybeOf(context),
+                        history: history,
+                        historyController: ref.read(
+                          navigationHistoryControllerProvider.notifier,
+                        ),
+                        onToggleSidebar: () => _toggleSidebar(
+                          ref,
+                          usesTemporarySidebar: usesTemporarySidebar,
+                        ),
+                        onSearch: () => _goToSearch(context),
+                      ),
+                      presentationMode: controlsPresentationMode,
+                      searchSelected: _isSearchRoute(widget.currentUri),
+                      updateManifest: shellShowsUpdate ? updateManifest : null,
+                      leadingLeft: controlsLeft,
+                    ),
+                  ),
                 Positioned(
                   left: 0,
-                  top: 0,
+                  top: titleBarHeight,
                   bottom: 0,
-                  width: visibleSidebarWidth,
-                  child: _desktopSidebar(
-                    context: context,
-                    width: visibleSidebarWidth,
-                    showAccountSyncStatus: showAccountSyncStatus,
-                    currentUri: widget.currentUri,
-                    macOSWindowChromeMetrics: macOSWindowChromeMetrics,
-                    shellChromeLayout: shellChromeLayout,
-                    onSearch:
-                        !shellChromeLayout.placesControlsInTitleBar &&
-                            (sidebarExpanded || temporarySidebarOpen)
-                        ? () => _goToSearch(context)
-                        : null,
-                    presentationModeOverride: SidebarPresentationMode.expanded,
-                  ),
+                  width: sidebarExpanded || temporarySidebarOpen
+                      ? visibleSidebarWidth
+                      : collapsedRailWidth,
+                  child: sidebarExpanded || temporarySidebarOpen
+                      ? _desktopSidebar(
+                          context: context,
+                          width: visibleSidebarWidth,
+                          showAccountSyncStatus: showAccountSyncStatus,
+                          currentUri: widget.currentUri,
+                          macOSWindowChromeMetrics: macOSWindowChromeMetrics,
+                          shellChromeLayout: shellChromeLayout,
+                          onSearch:
+                              !shellChromeLayout.placesControlsInTitleBar &&
+                                  (sidebarExpanded || temporarySidebarOpen)
+                              ? () => _goToSearch(context)
+                              : null,
+                          presentationModeOverride:
+                              SidebarPresentationMode.expanded,
+                        )
+                      : const SizedBox.shrink(),
                 ),
                 if (sidebarExpanded) ...[
                   Positioned(
                     key: const Key('app_shell_sidebar_split_handle'),
                     left: sidebarWidth - kWorkspaceSplitHandleHitWidth / 2,
-                    top: kWorkspaceHeaderHeight,
+                    top: titleBarHeight,
                     bottom: 0,
                     width: kWorkspaceSplitHandleHitWidth,
                     child: WorkspaceSplitHandle(
@@ -491,22 +525,22 @@ class _AppShellState extends ConsumerState<AppShell> {
                   duration: _kContentLayerAnimationDuration,
                   curve: Curves.easeOutCubic,
                   left: contentLeft,
-                  top: 0,
+                  top: titleBarHeight,
                   bottom: 0,
                   width: contentWidth,
                   child: contentLayer,
                 ),
                 Positioned(
                   left: 0,
-                  top: 0,
+                  top: titleBarHeight,
                   bottom: 0,
-                  width: kSidebarRailWidth,
+                  width: collapsedRailWidth,
                   child: _RailOverlayHost(
                     visible: railOverlayVisible,
                     delay: _kContentLayerAnimationDuration,
                     child: Sidebar(
                       onSelectScope: (scope) => _goToScope(context, scope),
-                      reserveShellHeader: true,
+                      reserveShellHeader: reserveSidebarHeader,
                       transparentBackground: true,
                       presentationModeOverride:
                           SidebarPresentationMode.collapsed,
@@ -926,6 +960,247 @@ class _ShellHistoryShortcuts extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ShellTitleBar extends ConsumerWidget {
+  const _ShellTitleBar({
+    this.commands,
+    this.presentationMode = SidebarPresentationMode.expanded,
+    this.searchSelected = false,
+    this.updateManifest,
+    this.leadingLeft = 0,
+  });
+
+  final ShellNavigationCommands? commands;
+  final SidebarPresentationMode presentationMode;
+  final bool searchSelected;
+  final AppUpdateManifest? updateManifest;
+  final double leadingLeft;
+
+  static const double _titleGap = 12;
+  static const double _captionGap = 8;
+  static const double _minVisibleTitleWidth =
+      WorkspaceHeader.minVisibleTitleWidth;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final surfaces = theme.fleurSurface;
+    final titleBarState = ref.watch(shellTitleBarControllerProvider);
+    final commands = this.commands;
+    final hasLeading = commands != null;
+    final leadingWidth = hasLeading
+        ? _shellControlsGroupWidth(
+            presentationMode,
+            shellChromeLayout: ShellChromeLayout.titleBarExpected,
+            hasUpdate: updateManifest != null,
+          )
+        : 0.0;
+    final trailingWidth = titleBarState.hasTrailing
+        ? titleBarState.trailingWidth
+        : 0.0;
+
+    return Material(
+      key: const Key('shell_title_bar'),
+      color: surfaces.chrome,
+      child: SizedBox(
+        height: kWorkspaceHeaderHeight,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth;
+            final leadingInset = hasLeading
+                ? leadingLeft + leadingWidth + _titleGap
+                : 14.0;
+            final rightInset =
+                kShellWindowCaptionControlsWidth +
+                _captionGap +
+                (titleBarState.hasTrailing ? trailingWidth + _captionGap : 0);
+            final titlePlacement = _shellTitlePlacement(
+              context: context,
+              width: width,
+              leadingInset: leadingInset,
+              rightInset: rightInset,
+              title: titleBarState.title,
+            );
+            final rowCenterY = kShellControlTopInset + kShellControlSize / 2;
+            final titleTop = rowCenterY - kWorkspaceHeaderHeight / 2;
+
+            return Stack(
+              clipBehavior: Clip.hardEdge,
+              children: [
+                const Positioned.fill(
+                  child: WindowDragSurface(
+                    key: Key('shell_title_bar_drag_surface'),
+                  ),
+                ),
+                if (titlePlacement != null)
+                  Positioned(
+                    left: titlePlacement.left,
+                    top: titleTop,
+                    width: titlePlacement.width,
+                    height: kWorkspaceHeaderHeight,
+                    child: IgnorePointer(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: _ShellTitleBarTitle(
+                          title: titleBarState.title,
+                          faded: titlePlacement.faded,
+                        ),
+                      ),
+                    ),
+                  ),
+                if (titleBarState.hasTrailing)
+                  Positioned(
+                    right: kShellWindowCaptionControlsWidth + _captionGap,
+                    top: kShellControlTopInset,
+                    width: trailingWidth,
+                    height: kShellControlSize,
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: titleBarState.trailingBuilder!(context),
+                    ),
+                  ),
+                if (hasLeading)
+                  Positioned(
+                    left: leadingLeft,
+                    top: kShellControlTopInset,
+                    height: kShellControlSize,
+                    child: _InlineShellControlsHost(
+                      presentationMode: presentationMode,
+                      shellChromeLayout: ShellChromeLayout.titleBarExpected,
+                      commands: commands,
+                      searchSelected: searchSelected,
+                      updateManifest: updateManifest,
+                    ),
+                  ),
+                const Positioned(
+                  key: Key('shell_window_caption_controls_host'),
+                  top: 0,
+                  right: 0,
+                  height: kWorkspaceHeaderHeight,
+                  width: kShellWindowCaptionControlsWidth,
+                  child: Align(
+                    alignment: Alignment.topRight,
+                    child: _WindowCaptionControls(),
+                  ),
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height: 1,
+                  child: ColoredBox(
+                    key: const Key('shell_title_bar_divider'),
+                    color: surfaces.subtleDivider,
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  _ShellTitlePlacement? _shellTitlePlacement({
+    required BuildContext context,
+    required double width,
+    required double leadingInset,
+    required double rightInset,
+    required String title,
+  }) {
+    if (title.isEmpty) return null;
+
+    final available = width - leadingInset - rightInset;
+    if (available < _minVisibleTitleWidth) return null;
+
+    final textWidth = _measureShellTitle(context, title);
+    final centerLeft = (width - textWidth) / 2;
+    final centerRight = centerLeft + textWidth;
+    final safeRight = width - rightInset;
+
+    if (centerLeft >= leadingInset && centerRight <= safeRight) {
+      return _ShellTitlePlacement(
+        left: centerLeft,
+        width: math.min(textWidth, available),
+        faded: false,
+      );
+    }
+
+    final fittedWidth = math.min(textWidth, available);
+    if (fittedWidth < _minVisibleTitleWidth) return null;
+    return _ShellTitlePlacement(
+      left: leadingInset,
+      width: fittedWidth,
+      faded: textWidth > available,
+    );
+  }
+
+  double _measureShellTitle(BuildContext context, String title) {
+    final style = Theme.of(context).textTheme.titleSmall?.copyWith(
+      fontSize: 14,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 0,
+      height: 1.2,
+    );
+    final painter = TextPainter(
+      text: TextSpan(text: title, style: style),
+      maxLines: 1,
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout();
+    return painter.width;
+  }
+}
+
+class _ShellTitleBarTitle extends StatelessWidget {
+  const _ShellTitleBarTitle({required this.title, required this.faded});
+
+  final String title;
+  final bool faded;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final text = Text(
+      title,
+      key: const Key('shell_title_bar_title'),
+      maxLines: 1,
+      overflow: TextOverflow.clip,
+      softWrap: false,
+      style: theme.textTheme.titleSmall?.copyWith(
+        color: theme.colorScheme.onSurface,
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0,
+        height: 1.2,
+      ),
+    );
+
+    if (!faded) return text;
+
+    return ShaderMask(
+      key: const Key('shell_title_bar_title_fade'),
+      blendMode: BlendMode.dstIn,
+      shaderCallback: (bounds) => const LinearGradient(
+        colors: [Colors.white, Colors.white, Colors.transparent],
+        stops: [0, 0.78, 1],
+      ).createShader(bounds),
+      child: text,
+    );
+  }
+}
+
+class _ShellTitlePlacement {
+  const _ShellTitlePlacement({
+    required this.left,
+    required this.width,
+    required this.faded,
+  });
+
+  final double left;
+  final double width;
+  final bool faded;
 }
 
 class _InlineShellControlsHost extends StatelessWidget {

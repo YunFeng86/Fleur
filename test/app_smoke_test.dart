@@ -779,6 +779,12 @@ void main() {
     );
     expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
     expect(find.byKey(const Key('app_shell_rail_overlay')), findsNothing);
+    expect(find.byKey(const Key('shell_title_bar')), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const Key('shell_title_bar'))).height,
+      kWorkspaceHeaderHeight,
+    );
+    expect(find.byKey(const Key('shell_title_bar_divider')), findsOneWidget);
     expect(find.byKey(const Key('shell_sidebar_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_back_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_forward_button')), findsOneWidget);
@@ -852,7 +858,11 @@ void main() {
     expect(find.byType(AppBar), findsNothing);
     expect(
       tester.getSize(find.byKey(const Key('app_shell_child'))).height,
-      900,
+      900 - kWorkspaceHeaderHeight,
+    );
+    expect(
+      tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dy,
+      kWorkspaceHeaderHeight,
     );
     expect(
       tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
@@ -885,8 +895,8 @@ void main() {
     final expandedAccountCenter = tester.getCenter(
       find.byKey(const Key('sidebar_account_button')),
     );
-    final expandedAccountDx = expandedAccountCenter.dx;
     final fixedItemDx = kSidebarRailWidth / 2;
+    const collapsedFixedItemDx = kTitleBarExpectedSidebarRailWidth / 2;
     expect(expandedAllDx, fixedItemDx);
     expect(expandedStarredDx, fixedItemDx);
     expect(expandedReadLaterDx, fixedItemDx);
@@ -910,9 +920,13 @@ void main() {
     await tester.pump();
     expect(find.byKey(const Key('app_shell_rail_overlay')), findsNothing);
     await _settleRailOverlayReveal(tester);
-    expect(find.byType(Sidebar), findsNWidgets(2));
+    expect(find.byType(Sidebar), findsOneWidget);
     expect(find.byKey(const Key('app_shell_rail_overlay')), findsOneWidget);
     final railOverlay = find.byKey(const Key('app_shell_rail_overlay'));
+    expect(
+      tester.getSize(railOverlay).width,
+      kTitleBarExpectedSidebarRailWidth,
+    );
     final collapsedRailSurface = find.descendant(
       of: railOverlay,
       matching: find.byKey(const Key('sidebar_collapsed_rail_surface')),
@@ -967,21 +981,21 @@ void main() {
     );
     expect(
       tester.getCenter(railButton(const Key('sidebar_all_button'))).dx,
-      fixedItemDx,
+      collapsedFixedItemDx,
     );
     expect(
       tester.getCenter(railButton(const Key('sidebar_starred_button'))).dx,
-      fixedItemDx,
+      collapsedFixedItemDx,
     );
     expect(
       tester.getCenter(railButton(const Key('sidebar_read_later_button'))).dx,
-      fixedItemDx,
+      collapsedFixedItemDx,
     );
     expect(
       tester
           .getCenter(railButton(const Key('sidebar_add_subscription_button')))
           .dx,
-      fixedItemDx,
+      collapsedFixedItemDx,
     );
     expect(
       tester.getSize(railButton(const Key('sidebar_account_button'))),
@@ -989,11 +1003,7 @@ void main() {
     );
     expect(
       tester.getCenter(railButton(const Key('sidebar_account_button'))).dx,
-      expandedAccountDx,
-    );
-    expect(
-      tester.getCenter(railButton(const Key('sidebar_account_button'))).dx,
-      fixedItemDx,
+      collapsedFixedItemDx,
     );
     expect(
       tester.getCenter(railButton(const Key('sidebar_account_button'))).dy,
@@ -1020,10 +1030,10 @@ void main() {
 
     expect(find.byType(NavigationRail), findsNothing);
     expect(find.byType(NavigationBar), findsNothing);
-    expect(find.byType(Sidebar), findsOneWidget);
+    expect(find.byType(Sidebar), findsNothing);
     expect(find.byKey(const Key('app_shell_rail_overlay')), findsNothing);
     await _settleRailOverlayReveal(tester);
-    expect(find.byType(Sidebar), findsNWidgets(2));
+    expect(find.byType(Sidebar), findsOneWidget);
     expect(find.byKey(const Key('app_shell_rail_overlay')), findsOneWidget);
     expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
     expect(find.byKey(const Key('shell_drawer_controls')), findsNothing);
@@ -1034,7 +1044,7 @@ void main() {
     );
     expect(
       tester.getSize(find.byKey(const Key('app_shell_child'))).height,
-      900,
+      900 - kWorkspaceHeaderHeight,
     );
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
@@ -1096,6 +1106,69 @@ void main() {
     );
     expect(
       find.byKey(const Key('sidebar_collapsed_rail_divider')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Windows home header actions move into the shell titlebar', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(1200, 900);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      _buildShellHarness(
+        currentUri: Uri(path: '/all'),
+        child: const HomeScreen(selectedArticleId: null),
+        overrides: [
+          appSettingsStoreProvider.overrideWithValue(
+            FakeAppSettingsStore(AppSettings.defaults()),
+          ),
+          articleListControllerProvider.overrideWith(
+            _EmptyArticleListController.new,
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final titleBar = find.byKey(const Key('shell_title_bar'));
+    expect(titleBar, findsOneWidget);
+    expect(find.byKey(const Key('home_scope_header')), findsNothing);
+    expect(
+      find.descendant(of: titleBar, matching: find.text('All Articles')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: titleBar,
+        matching: find.byKey(const Key('home_scope_actions')),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: titleBar,
+        matching: find.byKey(const Key('scope_refresh_button')),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: titleBar,
+        matching: find.byKey(const Key('scope_unread_filter_button')),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: titleBar,
+        matching: find.byKey(const Key('scope_mark_all_read_button')),
+      ),
       findsOneWidget,
     );
   });
@@ -1278,7 +1351,7 @@ void main() {
     );
   });
 
-  testWidgets('App shell aligns sidebar controls with the workspace header', (
+  testWidgets('Windows shell titlebar sits above shifted workspace content', (
     tester,
   ) async {
     debugFleurTargetPlatformOverride = TargetPlatform.windows;
@@ -1311,11 +1384,20 @@ void main() {
     final shellCenter = tester
         .getCenter(find.byKey(const Key('shell_sidebar_button')))
         .dy;
+    final shellCenterX = tester
+        .getCenter(find.byKey(const Key('shell_sidebar_button')))
+        .dx;
+    final headerTop = tester
+        .getTopLeft(find.byKey(const Key('home_scope_header')))
+        .dy;
     final headerCenter = tester
         .getCenter(find.byKey(const Key('home_scope_header')))
         .dy;
 
-    expect(shellCenter, headerCenter);
+    expect(shellCenter, kWorkspaceHeaderHeight / 2);
+    expect(shellCenterX, kTitleBarExpectedSidebarRailWidth / 2);
+    expect(headerTop, kWorkspaceHeaderHeight);
+    expect(headerCenter, kWorkspaceHeaderHeight + kWorkspaceHeaderHeight / 2);
   });
 
   testWidgets('App shell sidebar split handle resizes the content layer', (
@@ -1576,6 +1658,9 @@ void main() {
     await tester.pumpWidget(_buildShellHarness());
     await tester.pumpAndSettle();
 
+    expect(find.byKey(const Key('shell_title_bar')), findsNothing);
+    expect(find.byKey(const Key('shell_window_close_button')), findsNothing);
+
     final allButtonTop = tester
         .getTopLeft(find.byKey(const Key('sidebar_all_button')))
         .dy;
@@ -1747,6 +1832,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await _settleRailOverlayReveal(tester);
 
       expect(find.byKey(const Key('shell_drawer_controls')), findsNothing);
       expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);

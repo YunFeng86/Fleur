@@ -11,6 +11,7 @@ enum SidebarRailSurfaceStyle { capsule, plain }
 const double kShellWindowCaptionButtonWidth = 46;
 const double kShellWindowCaptionControlsWidth =
     kShellWindowCaptionButtonWidth * 3;
+const double kTitleBarExpectedSidebarRailWidth = 56;
 
 class ShellChromeLayout {
   const ShellChromeLayout({
