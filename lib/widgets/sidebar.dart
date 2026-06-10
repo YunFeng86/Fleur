@@ -778,9 +778,14 @@ class _SidebarPanelHeader extends ConsumerWidget {
                 final updateRight =
                     rightInset +
                     (hasSearch ? kShellControlSize + controlGap : 0);
-                final updateSpace = constraints.maxWidth - updateRight - 8;
+                final reservedLeadingWidth = _sidebarHeaderReservedLeadingWidth(
+                  macOSWindowChromeMetrics,
+                );
+                final updateSpace =
+                    constraints.maxWidth - updateRight - reservedLeadingWidth;
                 final updateTextWidth = _measureUpdateButtonWidth(context);
-                final showUpdateLabel = updateSpace >= updateTextWidth;
+                final showUpdateLabel =
+                    !searchSelected && updateSpace >= updateTextWidth;
                 final updateWidth = showUpdateLabel
                     ? updateTextWidth
                     : kShellControlSize;
@@ -848,6 +853,17 @@ double _measureUpdateButtonWidth(BuildContext context) {
     textScaler: MediaQuery.textScalerOf(context),
   )..layout();
   return math.max(64.0, painter.width.ceilToDouble() + 28);
+}
+
+double _sidebarHeaderReservedLeadingWidth(
+  MacOSWindowChromeMetrics macOSWindowChromeMetrics,
+) {
+  if (!isMacOS) return 8;
+  final controlLeft = macOSWindowChromeMetrics.trafficLightsVisible
+      ? macOSWindowChromeMetrics.safeInset
+      : 12.0;
+  const shellControlCount = 3;
+  return controlLeft + shellControlCount * kShellControlSize + 6;
 }
 
 class _SidebarUpdateButton extends StatelessWidget {
