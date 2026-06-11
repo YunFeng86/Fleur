@@ -272,6 +272,9 @@ class _AppShellState extends ConsumerState<AppShell> {
     final workspaceHeight = (size.height - titleBarHeight)
         .clamp(0.0, double.infinity)
         .toDouble();
+    final surfaceAppearance = WorkspaceLayerSurfaceAppearance.resolve(
+      shellChromeLayout,
+    );
 
     return AppMenuHost(
       child: ShellLayerScope(
@@ -306,10 +309,9 @@ class _AppShellState extends ConsumerState<AppShell> {
                 child: WorkspaceLayerSurface(
                   key: const Key('app_shell_secondary_layer'),
                   color: surfaces.reader,
-                  borderRadius: usesTitleBar
-                      ? BorderRadius.zero
-                      : kWorkspaceLayerRadius,
-                  showShadow: !usesTitleBar,
+                  borderRadius: surfaceAppearance.borderRadius,
+                  showShadow: surfaceAppearance.showShadow,
+                  leadingEdge: surfaceAppearance.leadingEdge,
                   child: widget.child,
                 ),
               ),
@@ -400,6 +402,10 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
     final showAccountSyncStatus = !contentLayoutSpec.showsListSyncStatusCapsule;
     final reserveSidebarHeader = !usesTitleBar;
+    final contentSurfaceAppearance = WorkspaceLayerSurfaceAppearance.resolve(
+      shellChromeLayout,
+      floatingLeadingEdge: WorkspaceLayerEdge.level1,
+    );
 
     final contentLayer = ShellLayerScope(
       totalSize: size,
@@ -418,13 +424,9 @@ class _AppShellState extends ConsumerState<AppShell> {
       child: WorkspaceLayerSurface(
         key: const Key('app_shell_content_layer'),
         color: surfaces.list,
-        borderRadius: geometry.usesConnectedWindowChrome
-            ? BorderRadius.zero
-            : kWorkspaceLayerRadius,
-        showShadow: !geometry.usesConnectedWindowChrome,
-        leadingEdge: geometry.usesConnectedWindowChrome
-            ? WorkspaceLayerEdge.none
-            : WorkspaceLayerEdge.level1,
+        borderRadius: contentSurfaceAppearance.borderRadius,
+        showShadow: contentSurfaceAppearance.showShadow,
+        leadingEdge: contentSurfaceAppearance.leadingEdge,
         child: Stack(
           children: [
             Positioned.fill(
@@ -797,7 +799,6 @@ class _DesktopShellChromeGeometry {
     required this.dividerLeadingInset,
     required this.railOverlayVisible,
     required this.connectedRailVisible,
-    required this.usesConnectedWindowChrome,
   });
 
   final double titleBarHeight;
@@ -809,7 +810,6 @@ class _DesktopShellChromeGeometry {
   final double dividerLeadingInset;
   final bool railOverlayVisible;
   final bool connectedRailVisible;
-  final bool usesConnectedWindowChrome;
 
   static _DesktopShellChromeGeometry resolve({
     required Size size,
@@ -845,7 +845,6 @@ class _DesktopShellChromeGeometry {
         dividerLeadingInset: leftChromeWidth,
         railOverlayVisible: false,
         connectedRailVisible: !sidebarExpanded && !temporarySidebarOpen,
-        usesConnectedWindowChrome: true,
       );
     }
 
@@ -870,7 +869,6 @@ class _DesktopShellChromeGeometry {
       dividerLeadingInset: 0,
       railOverlayVisible: railOverlayVisible,
       connectedRailVisible: false,
-      usesConnectedWindowChrome: false,
     );
   }
 }

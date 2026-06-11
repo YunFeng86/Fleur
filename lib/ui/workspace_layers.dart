@@ -18,7 +18,49 @@ const BorderRadius kWorkspaceLayerRadius = BorderRadius.only(
   bottomLeft: Radius.circular(16),
 );
 
+const BorderRadius kConnectedWorkspaceLayerRadius = BorderRadius.only(
+  topLeft: Radius.circular(12),
+);
+
 enum WorkspaceLayerEdge { none, level1, level2 }
+
+@immutable
+class WorkspaceLayerSurfaceAppearance {
+  const WorkspaceLayerSurfaceAppearance({
+    required this.borderRadius,
+    required this.showShadow,
+    required this.leadingEdge,
+  });
+
+  final BorderRadius borderRadius;
+  final bool showShadow;
+  final WorkspaceLayerEdge leadingEdge;
+
+  static WorkspaceLayerSurfaceAppearance resolve(
+    ShellChromeLayout shellChromeLayout, {
+    WorkspaceLayerEdge floatingLeadingEdge = WorkspaceLayerEdge.none,
+  }) {
+    return switch (shellChromeLayout.contentSurfaceStyle) {
+      ShellContentSurfaceStyle.floatingRounded =>
+        WorkspaceLayerSurfaceAppearance(
+          borderRadius: kWorkspaceLayerRadius,
+          showShadow: true,
+          leadingEdge: floatingLeadingEdge,
+        ),
+      ShellContentSurfaceStyle.connectedSoft =>
+        const WorkspaceLayerSurfaceAppearance(
+          borderRadius: kConnectedWorkspaceLayerRadius,
+          showShadow: false,
+          leadingEdge: WorkspaceLayerEdge.none,
+        ),
+      ShellContentSurfaceStyle.plain => const WorkspaceLayerSurfaceAppearance(
+        borderRadius: BorderRadius.zero,
+        showShadow: false,
+        leadingEdge: WorkspaceLayerEdge.none,
+      ),
+    };
+  }
+}
 
 class ShellLayerScope extends InheritedWidget {
   const ShellLayerScope({

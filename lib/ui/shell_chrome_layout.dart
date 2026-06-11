@@ -8,6 +8,8 @@ enum ShellControlsPlacement { floatingLeading, titleBarLeading, railLeading }
 
 enum SidebarRailSurfaceStyle { capsule, plain }
 
+enum ShellContentSurfaceStyle { floatingRounded, connectedSoft, plain }
+
 const double kShellWindowCaptionButtonWidth = 46;
 const double kShellWindowCaptionControlsWidth =
     kShellWindowCaptionButtonWidth * 3;
@@ -18,28 +20,33 @@ class ShellChromeLayout {
     required this.profile,
     required this.controlsPlacement,
     required this.railSurfaceStyle,
+    required this.contentSurfaceStyle,
   });
 
   final ShellChromeProfile profile;
   final ShellControlsPlacement controlsPlacement;
   final SidebarRailSurfaceStyle railSurfaceStyle;
+  final ShellContentSurfaceStyle contentSurfaceStyle;
 
   static const integratedCorner = ShellChromeLayout(
     profile: ShellChromeProfile.integratedCorner,
     controlsPlacement: ShellControlsPlacement.floatingLeading,
     railSurfaceStyle: SidebarRailSurfaceStyle.capsule,
+    contentSurfaceStyle: ShellContentSurfaceStyle.floatingRounded,
   );
 
   static const titleBarExpected = ShellChromeLayout(
     profile: ShellChromeProfile.titleBarExpected,
     controlsPlacement: ShellControlsPlacement.titleBarLeading,
     railSurfaceStyle: SidebarRailSurfaceStyle.plain,
+    contentSurfaceStyle: ShellContentSurfaceStyle.connectedSoft,
   );
 
   static const contentOnly = ShellChromeLayout(
     profile: ShellChromeProfile.contentOnly,
     controlsPlacement: ShellControlsPlacement.railLeading,
     railSurfaceStyle: SidebarRailSurfaceStyle.plain,
+    contentSurfaceStyle: ShellContentSurfaceStyle.plain,
   );
 
   static ShellChromeLayout resolve({TargetPlatform? platform}) {

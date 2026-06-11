@@ -429,6 +429,20 @@ void main() {
       tester.getTopLeft(find.byKey(const Key('shell_title_bar_divider'))).dx,
       kDefaultWorkspaceSidebarWidth + kSidebarContentDividerWidth,
     );
+    final paperDecoration =
+        tester
+                .widget<DecoratedBox>(
+                  find.byKey(const Key('settings_paper_surface')),
+                )
+                .decoration
+            as BoxDecoration;
+    expect(
+      paperDecoration.borderRadius,
+      const BorderRadius.only(
+        topLeft: Radius.circular(20),
+        topRight: Radius.circular(20),
+      ),
+    );
   });
 
   testWidgets(

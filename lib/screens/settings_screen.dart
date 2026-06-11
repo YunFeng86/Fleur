@@ -446,7 +446,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             final scene = _SettingsScene(
               width: width,
               height: sceneHeight,
-              usesWindowTitleBar: usesTitleBar,
               sidebarPinned: sidebarPinned,
               sidebarOpen: sidebarOpen,
               title: showingSearchResults || showingList
@@ -544,7 +543,6 @@ class _SettingsScene extends StatelessWidget {
   const _SettingsScene({
     required this.width,
     required this.height,
-    required this.usesWindowTitleBar,
     required this.sidebarPinned,
     required this.sidebarOpen,
     required this.title,
@@ -564,7 +562,6 @@ class _SettingsScene extends StatelessWidget {
 
   final double width;
   final double height;
-  final bool usesWindowTitleBar;
   final bool sidebarPinned;
   final bool sidebarOpen;
   final String title;
@@ -633,7 +630,6 @@ class _SettingsScene extends StatelessWidget {
               bottom: 0,
               width: contentWidth,
               child: _SettingsContentLayer(
-                usesWindowTitleBar: usesWindowTitleBar,
                 sidebarPinned: sidebarPinned,
                 sidebarOpen: sidebarOpen,
                 title: title,
@@ -775,7 +771,6 @@ class _SettingsListBody extends StatelessWidget {
 
 class _SettingsContentLayer extends StatelessWidget {
   const _SettingsContentLayer({
-    required this.usesWindowTitleBar,
     required this.sidebarPinned,
     required this.sidebarOpen,
     required this.title,
@@ -789,7 +784,6 @@ class _SettingsContentLayer extends StatelessWidget {
     required this.child,
   });
 
-  final bool usesWindowTitleBar;
   final bool sidebarPinned;
   final bool sidebarOpen;
   final String title;
@@ -806,7 +800,7 @@ class _SettingsContentLayer extends StatelessWidget {
   Widget build(BuildContext context) {
     final surfaces = Theme.of(context).fleurSurface;
     final paper = _SettingsPaperSurface(
-      borderRadius: sidebarPinned && !usesWindowTitleBar
+      borderRadius: sidebarPinned
           ? const BorderRadius.only(
               topLeft: Radius.circular(20),
               topRight: Radius.circular(20),

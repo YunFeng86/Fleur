@@ -173,6 +173,19 @@ AppUpdateManifest _buildUpdateManifest() {
   );
 }
 
+void _expectWorkspaceSurfaceAppearance(
+  WidgetTester tester,
+  Key key, {
+  required BorderRadius borderRadius,
+  required bool showShadow,
+  required WorkspaceLayerEdge leadingEdge,
+}) {
+  final surface = tester.widget<WorkspaceLayerSurface>(find.byKey(key));
+  expect(surface.borderRadius, borderRadius);
+  expect(surface.showShadow, showShadow);
+  expect(surface.leadingEdge, leadingEdge);
+}
+
 class _TestAppUpdateController extends AppUpdateController {
   _TestAppUpdateController(this.initialState);
 
@@ -842,6 +855,13 @@ void main() {
       ),
       findsNothing,
     );
+    _expectWorkspaceSurfaceAppearance(
+      tester,
+      const Key('app_shell_content_layer'),
+      borderRadius: kConnectedWorkspaceLayerRadius,
+      showShadow: false,
+      leadingEdge: WorkspaceLayerEdge.none,
+    );
     expect(
       find.byKey(const Key('app_shell_sidebar_split_handle')),
       findsOneWidget,
@@ -958,6 +978,13 @@ void main() {
     expect(
       tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
       kTitleBarExpectedSidebarRailWidth,
+    );
+    _expectWorkspaceSurfaceAppearance(
+      tester,
+      const Key('app_shell_content_layer'),
+      borderRadius: kConnectedWorkspaceLayerRadius,
+      showShadow: false,
+      leadingEdge: WorkspaceLayerEdge.none,
     );
     expect(
       tester.getTopLeft(find.byKey(const Key('shell_title_bar_divider'))).dx,
@@ -1293,6 +1320,13 @@ void main() {
     expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
     expect(find.byKey(const Key('shell_window_close_button')), findsOneWidget);
+    _expectWorkspaceSurfaceAppearance(
+      tester,
+      const Key('app_shell_content_layer'),
+      borderRadius: kConnectedWorkspaceLayerRadius,
+      showShadow: false,
+      leadingEdge: WorkspaceLayerEdge.none,
+    );
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
     await tester.pump();
@@ -1307,6 +1341,13 @@ void main() {
     expect(
       find.byKey(const Key('sidebar_collapsed_rail_divider')),
       findsOneWidget,
+    );
+    _expectWorkspaceSurfaceAppearance(
+      tester,
+      const Key('app_shell_content_layer'),
+      borderRadius: kConnectedWorkspaceLayerRadius,
+      showShadow: false,
+      leadingEdge: WorkspaceLayerEdge.none,
     );
   });
 
@@ -1878,6 +1919,13 @@ void main() {
       expect(
         find.byKey(const Key('sidebar_collapsed_rail_divider')),
         findsNothing,
+      );
+      _expectWorkspaceSurfaceAppearance(
+        tester,
+        const Key('app_shell_content_layer'),
+        borderRadius: kWorkspaceLayerRadius,
+        showShadow: true,
+        leadingEdge: WorkspaceLayerEdge.level1,
       );
 
       final shellButtonLeft = tester
