@@ -16,8 +16,13 @@ import '../ui/settings/tabs/translation_ai_services_tab.dart';
 import '../ui/settings/settings_search_index.dart';
 import '../ui/settings/settings_targets.dart';
 import '../ui/settings/widgets/section_header.dart';
+import '../ui/shell_chrome_layout.dart';
+import '../ui/shell_title_bar.dart';
 import '../ui/sidebar_layout.dart';
 import '../ui/workspace_layers.dart';
+import '../providers/app_update_providers.dart';
+import '../providers/core_providers.dart';
+import '../providers/navigation_history_provider.dart';
 import '../providers/subscription_settings_provider.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
@@ -307,11 +312,46 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     context.go(widget.fallbackBackLocation);
   }
 
+  void _toggleWorkspaceSidebar() {
+    final notifier = ref.read(sidebarPresentationModeProvider.notifier);
+    notifier.state = notifier.state == SidebarPresentationMode.expanded
+        ? SidebarPresentationMode.collapsed
+        : SidebarPresentationMode.expanded;
+  }
+
+  void _goToGlobalSearch() {
+    if (context.canPop()) context.pop();
+    context.go('/search');
+  }
+
+  void _goBackInWindow(NavigationHistoryState history) {
+    if (history.canGoBack) {
+      ref.read(navigationHistoryControllerProvider.notifier).goBack();
+      return;
+    }
+    _closeSettings();
+  }
+
+  void _goForwardInWindow(NavigationHistoryState history) {
+    if (!history.canGoForward) return;
+    ref.read(navigationHistoryControllerProvider.notifier).goForward();
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final searchEntries = buildSettingsSearchEntries(l10n);
+    final shellChromeLayout = ShellChromeLayout.resolve();
+    final usesTitleBar =
+        isDesktop && shellChromeLayout.placesControlsInTitleBar;
+    final titleBarHeight = usesTitleBar ? kWorkspaceHeaderHeight : 0.0;
+    final history = ref.watch(navigationHistoryControllerProvider);
+    final updateManifest = ref.watch(
+      appUpdateControllerProvider.select(
+        (state) => state.hasUpdate ? state.manifest : null,
+      ),
+    );
 
     if (_pendingInitialSettingId case final settingId?
         when settingId.trim().isNotEmpty) {
@@ -335,8 +375,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final width = constraints.maxWidth;
+            final sceneHeight = (constraints.maxHeight - titleBarHeight)
+                .clamp(0.0, double.infinity)
+                .toDouble();
             final sidebarPinned = width >= _kSidebarPinnedWidth;
             final sidebarOpen = !sidebarPinned && _sidebarOpen;
+            final sidebarVisible = sidebarPinned || sidebarOpen;
+            final settingsContentLeft = sidebarPinned
+                ? _kSettingsSidebarWidth + kSidebarContentDividerWidth
+                : (sidebarOpen ? _kSettingsSidebarWidth : 0.0);
             final items = _buildItems(context, showPageTitle: false);
             final trimmedSearchQuery = _searchQuery.trim();
             final showingSearchResults = trimmedSearchQuery.isNotEmpty;
@@ -398,6 +445,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 : FocusTraversalGroup(child: selectedItem.content);
             final scene = _SettingsScene(
               width: width,
+              height: sceneHeight,
+              usesWindowTitleBar: usesTitleBar,
               sidebarPinned: sidebarPinned,
               sidebarOpen: sidebarOpen,
               title: showingSearchResults || showingList
@@ -429,6 +478,49 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               searchFocused: _searchFocused,
             );
 
+            final titleBarCommands = ShellWindowTitleBarCommands(
+              onToggleSidebar: _toggleWorkspaceSidebar,
+              onBack: () => _goBackInWindow(history),
+              onForward: () => _goForwardInWindow(history),
+              onSearch: _goToGlobalSearch,
+              canGoBack: history.canGoBack || widget.showBack,
+              canGoForward: history.canGoForward,
+            );
+
+            final wrappedScene = usesTitleBar
+                ? Stack(
+                    clipBehavior: Clip.hardEdge,
+                    children: [
+                      Positioned(
+                        left: 0,
+                        top: 0,
+                        right: 0,
+                        height: kWorkspaceHeaderHeight,
+                        child: ShellWindowTitleBar(
+                          commands: titleBarCommands,
+                          presentationMode: ref.watch(
+                            sidebarPresentationModeProvider,
+                          ),
+                          searchSelected: false,
+                          updateManifest: updateManifest,
+                          leadingLeft:
+                              ((sidebarVisible ? kSidebarRailWidth : 56) -
+                                  kShellControlSize) /
+                              2,
+                          dividerLeadingInset: settingsContentLeft,
+                        ),
+                      ),
+                      Positioned(
+                        left: 0,
+                        top: kWorkspaceHeaderHeight,
+                        right: 0,
+                        bottom: 0,
+                        child: scene,
+                      ),
+                    ],
+                  )
+                : scene;
+
             if (!sidebarPinned && !showingList) {
               return PopScope(
                 canPop: false,
@@ -436,11 +528,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   if (didPop) return;
                   handleDetailBack();
                 },
-                child: scene,
+                child: wrappedScene,
               );
             }
 
-            return scene;
+            return wrappedScene;
           },
         ),
       ),
@@ -451,6 +543,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 class _SettingsScene extends StatelessWidget {
   const _SettingsScene({
     required this.width,
+    required this.height,
+    required this.usesWindowTitleBar,
     required this.sidebarPinned,
     required this.sidebarOpen,
     required this.title,
@@ -469,6 +563,8 @@ class _SettingsScene extends StatelessWidget {
   });
 
   final double width;
+  final double height;
+  final bool usesWindowTitleBar;
   final bool sidebarPinned;
   final bool sidebarOpen;
   final String title;
@@ -497,57 +593,62 @@ class _SettingsScene extends StatelessWidget {
         ? (width - contentLeft).clamp(0.0, double.infinity).toDouble()
         : width;
 
-    return ColoredBox(
-      color: surfaces.chrome,
-      child: Stack(
-        clipBehavior: Clip.hardEdge,
-        children: [
-          if (sidebarVisible)
-            Positioned(
-              key: const Key('settings_sidebar'),
-              left: 0,
+    return SizedBox(
+      width: width,
+      height: height,
+      child: ColoredBox(
+        color: surfaces.chrome,
+        child: Stack(
+          clipBehavior: Clip.hardEdge,
+          children: [
+            if (sidebarVisible)
+              Positioned(
+                key: const Key('settings_sidebar'),
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: _SettingsScreenState._kSettingsSidebarWidth,
+                child: _SettingsSidebar(
+                  title: sidebarTitle,
+                  items: items,
+                  selectedIndex: sidebarSelectedIndex,
+                  onSelect: onSelect,
+                ),
+              ),
+            if (sidebarPinned)
+              Positioned(
+                key: const Key('settings_sidebar_divider'),
+                left: _SettingsScreenState._kSettingsSidebarWidth,
+                top: 0,
+                bottom: 0,
+                width: kSidebarContentDividerWidth,
+                child: ColoredBox(color: surfaces.subtleDivider),
+              ),
+            AnimatedPositioned(
+              key: const Key('settings_content_layer'),
+              duration: _SettingsScreenState._kLayerAnimationDuration,
+              curve: Curves.easeOutCubic,
+              left: contentLeft,
               top: 0,
               bottom: 0,
-              width: _SettingsScreenState._kSettingsSidebarWidth,
-              child: _SettingsSidebar(
-                title: sidebarTitle,
-                items: items,
-                selectedIndex: sidebarSelectedIndex,
-                onSelect: onSelect,
+              width: contentWidth,
+              child: _SettingsContentLayer(
+                usesWindowTitleBar: usesWindowTitleBar,
+                sidebarPinned: sidebarPinned,
+                sidebarOpen: sidebarOpen,
+                title: title,
+                showSidebarButton: showSidebarButton,
+                onToggleSidebar: onToggleSidebar,
+                onBack: onBack,
+                selectedContentKey: selectedContentKey,
+                searchController: searchController,
+                searchFocusNode: searchFocusNode,
+                searchFocused: searchFocused,
+                child: content,
               ),
             ),
-          if (sidebarPinned)
-            Positioned(
-              key: const Key('settings_sidebar_divider'),
-              left: _SettingsScreenState._kSettingsSidebarWidth,
-              top: 0,
-              bottom: 0,
-              width: kSidebarContentDividerWidth,
-              child: ColoredBox(color: surfaces.subtleDivider),
-            ),
-          AnimatedPositioned(
-            key: const Key('settings_content_layer'),
-            duration: _SettingsScreenState._kLayerAnimationDuration,
-            curve: Curves.easeOutCubic,
-            left: contentLeft,
-            top: 0,
-            bottom: 0,
-            width: contentWidth,
-            child: _SettingsContentLayer(
-              sidebarPinned: sidebarPinned,
-              sidebarOpen: sidebarOpen,
-              title: title,
-              showSidebarButton: showSidebarButton,
-              onToggleSidebar: onToggleSidebar,
-              onBack: onBack,
-              selectedContentKey: selectedContentKey,
-              searchController: searchController,
-              searchFocusNode: searchFocusNode,
-              searchFocused: searchFocused,
-              child: content,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -674,6 +775,7 @@ class _SettingsListBody extends StatelessWidget {
 
 class _SettingsContentLayer extends StatelessWidget {
   const _SettingsContentLayer({
+    required this.usesWindowTitleBar,
     required this.sidebarPinned,
     required this.sidebarOpen,
     required this.title,
@@ -687,6 +789,7 @@ class _SettingsContentLayer extends StatelessWidget {
     required this.child,
   });
 
+  final bool usesWindowTitleBar;
   final bool sidebarPinned;
   final bool sidebarOpen;
   final String title;
@@ -703,7 +806,7 @@ class _SettingsContentLayer extends StatelessWidget {
   Widget build(BuildContext context) {
     final surfaces = Theme.of(context).fleurSurface;
     final paper = _SettingsPaperSurface(
-      borderRadius: sidebarPinned
+      borderRadius: sidebarPinned && !usesWindowTitleBar
           ? const BorderRadius.only(
               topLeft: Radius.circular(20),
               topRight: Radius.circular(20),

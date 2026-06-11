@@ -840,7 +840,7 @@ void main() {
         of: find.byKey(const Key('app_shell_content_layer')),
         matching: find.byKey(const Key('workspace_layer_leading_edge')),
       ),
-      findsOneWidget,
+      findsNothing,
     );
     expect(
       find.byKey(const Key('app_shell_sidebar_split_handle')),
@@ -868,6 +868,10 @@ void main() {
       tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
       kDefaultWorkspaceSidebarWidth + kSidebarContentDividerWidth,
     );
+    expect(
+      tester.getTopLeft(find.byKey(const Key('shell_title_bar_divider'))).dx,
+      kDefaultWorkspaceSidebarWidth + kSidebarContentDividerWidth,
+    );
     final expandedToggleTopLeft = tester.getTopLeft(
       find.byKey(const Key('shell_sidebar_button')),
     );
@@ -877,7 +881,7 @@ void main() {
     final expandedSearchTopLeft = tester.getTopLeft(
       find.byKey(const Key('shell_search_button')),
     );
-    expect(expandedSearchTopLeft.dx, 12 + kShellControlSize * 3);
+    expect(expandedSearchTopLeft.dx, 16 + kShellControlSize * 3);
     expect(expandedSearchTopLeft.dy, kShellControlTopInset);
     expect(expandedSearchTopLeft.dx, expandedForwardRight);
     final expandedAllDx = tester
@@ -917,24 +921,23 @@ void main() {
     expect(tester.getSize(newCategoryButton), const Size.square(32));
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(find.byKey(const Key('app_shell_rail_overlay')), findsNothing);
-    await _settleRailOverlayReveal(tester);
     expect(find.byType(Sidebar), findsOneWidget);
-    expect(find.byKey(const Key('app_shell_rail_overlay')), findsOneWidget);
-    final railOverlay = find.byKey(const Key('app_shell_rail_overlay'));
+    expect(find.byKey(const Key('app_shell_connected_rail')), findsOneWidget);
+    final connectedRail = find.byKey(const Key('app_shell_connected_rail'));
     expect(
-      tester.getSize(railOverlay).width,
+      tester.getSize(connectedRail).width,
       kTitleBarExpectedSidebarRailWidth,
     );
     final collapsedRailSurface = find.descendant(
-      of: railOverlay,
+      of: connectedRail,
       matching: find.byKey(const Key('sidebar_collapsed_rail_surface')),
     );
     expect(collapsedRailSurface, findsNothing);
     expect(
       find.descendant(
-        of: railOverlay,
+        of: connectedRail,
         matching: find.byKey(const Key('sidebar_collapsed_rail_divider')),
       ),
       findsOneWidget,
@@ -954,19 +957,25 @@ void main() {
     );
     expect(
       tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
-      0,
+      kTitleBarExpectedSidebarRailWidth,
+    );
+    expect(
+      tester.getTopLeft(find.byKey(const Key('shell_title_bar_divider'))).dx,
+      kTitleBarExpectedSidebarRailWidth,
     );
     expect(find.byKey(const Key('shell_back_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_forward_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
     expect(
-      tester.getTopLeft(find.byKey(const Key('shell_sidebar_button'))),
-      expandedToggleTopLeft,
+      tester.getTopLeft(find.byKey(const Key('shell_sidebar_button'))).dx,
+      12,
     );
-    Finder railButton(Key key) => find.descendant(
-      of: find.byKey(const Key('app_shell_rail_overlay')),
-      matching: find.byKey(key),
+    expect(
+      tester.getTopLeft(find.byKey(const Key('shell_sidebar_button'))).dy,
+      expandedToggleTopLeft.dy,
     );
+    Finder railButton(Key key) =>
+        find.descendant(of: connectedRail, matching: find.byKey(key));
     final collapsedAllButton = tester.widget<IconButton>(
       find
           .descendant(
@@ -1026,21 +1035,19 @@ void main() {
 
     tester.view.physicalSize = const Size(640, 900);
     await tester.pumpWidget(_buildShellHarness());
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.byType(NavigationRail), findsNothing);
     expect(find.byType(NavigationBar), findsNothing);
-    expect(find.byType(Sidebar), findsNothing);
-    expect(find.byKey(const Key('app_shell_rail_overlay')), findsNothing);
-    await _settleRailOverlayReveal(tester);
     expect(find.byType(Sidebar), findsOneWidget);
-    expect(find.byKey(const Key('app_shell_rail_overlay')), findsOneWidget);
+    expect(find.byKey(const Key('app_shell_rail_overlay')), findsNothing);
+    expect(find.byKey(const Key('app_shell_connected_rail')), findsOneWidget);
     expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
     expect(find.byKey(const Key('shell_drawer_controls')), findsNothing);
     expect(find.byKey(const Key('app_shell_sidebar_divider')), findsNothing);
     expect(
       tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
-      0,
+      kTitleBarExpectedSidebarRailWidth,
     );
     expect(
       tester.getSize(find.byKey(const Key('app_shell_child'))).height,
@@ -1094,12 +1101,13 @@ void main() {
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
     await tester.pump();
-    await _settleRailOverlayReveal(tester);
 
     expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_update_button')), findsOneWidget);
     expect(find.byKey(const Key('sidebar_update_button')), findsNothing);
     expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
+    expect(find.byKey(const Key('app_shell_connected_rail')), findsOneWidget);
+    expect(find.byKey(const Key('app_shell_rail_overlay')), findsNothing);
     expect(
       find.byKey(const Key('sidebar_collapsed_rail_surface')),
       findsNothing,
@@ -1110,7 +1118,7 @@ void main() {
     );
   });
 
-  testWidgets('Windows home header actions move into the shell titlebar', (
+  testWidgets('Windows home header actions stay in the content header', (
     tester,
   ) async {
     debugFleurTargetPlatformOverride = TargetPlatform.windows;
@@ -1138,35 +1146,47 @@ void main() {
 
     final titleBar = find.byKey(const Key('shell_title_bar'));
     expect(titleBar, findsOneWidget);
-    expect(find.byKey(const Key('home_scope_header')), findsNothing);
+    final header = find.byKey(const Key('home_scope_header'));
+    expect(header, findsOneWidget);
     expect(
       find.descendant(of: titleBar, matching: find.text('All Articles')),
-      findsOneWidget,
+      findsNothing,
     );
     expect(
       find.descendant(
         of: titleBar,
         matching: find.byKey(const Key('home_scope_actions')),
       ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: header, matching: find.text('All Articles')),
       findsOneWidget,
     );
     expect(
       find.descendant(
-        of: titleBar,
+        of: header,
+        matching: find.byKey(const Key('home_scope_actions')),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: header,
         matching: find.byKey(const Key('scope_refresh_button')),
       ),
       findsOneWidget,
     );
     expect(
       find.descendant(
-        of: titleBar,
+        of: header,
         matching: find.byKey(const Key('scope_unread_filter_button')),
       ),
       findsOneWidget,
     );
     expect(
       find.descendant(
-        of: titleBar,
+        of: header,
         matching: find.byKey(const Key('scope_mark_all_read_button')),
       ),
       findsOneWidget,
@@ -1395,7 +1415,7 @@ void main() {
         .dy;
 
     expect(shellCenter, kWorkspaceHeaderHeight / 2);
-    expect(shellCenterX, kTitleBarExpectedSidebarRailWidth / 2);
+    expect(shellCenterX, kSidebarRailWidth / 2);
     expect(headerTop, kWorkspaceHeaderHeight);
     expect(headerCenter, kWorkspaceHeaderHeight + kWorkspaceHeaderHeight / 2);
   });
@@ -1556,13 +1576,13 @@ void main() {
 
       await gesture.up();
       await tester.pumpAndSettle();
-      await _settleRailOverlayReveal(tester);
 
       expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
-      expect(find.byKey(const Key('app_shell_rail_overlay')), findsOneWidget);
+      expect(find.byKey(const Key('app_shell_rail_overlay')), findsNothing);
+      expect(find.byKey(const Key('app_shell_connected_rail')), findsOneWidget);
       expect(
         tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
-        0,
+        kTitleBarExpectedSidebarRailWidth,
       );
     },
   );
@@ -1587,14 +1607,14 @@ void main() {
       await gesture.moveBy(const Offset(30, 0));
       await gesture.up();
       await tester.pumpAndSettle();
-      await _settleRailOverlayReveal(tester);
 
       expect(handle, findsNothing);
       expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
-      expect(find.byKey(const Key('app_shell_rail_overlay')), findsOneWidget);
+      expect(find.byKey(const Key('app_shell_rail_overlay')), findsNothing);
+      expect(find.byKey(const Key('app_shell_connected_rail')), findsOneWidget);
       expect(
         tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
-        0,
+        kTitleBarExpectedSidebarRailWidth,
       );
 
       final element = tester.element(find.byKey(const Key('app_shell_child')));
@@ -1610,7 +1630,7 @@ void main() {
     },
   );
 
-  testWidgets('App shell rail overlay leaves header content clear', (
+  testWidgets('Windows connected rail gives content headers their full width', (
     tester,
   ) async {
     debugFleurTargetPlatformOverride = TargetPlatform.windows;
@@ -1622,27 +1642,41 @@ void main() {
 
     await tester.pumpWidget(
       _buildShellHarness(
-        child: WorkspaceHeader(
-          title: 'All Articles',
-          trailingWidth: kShellControlSize,
-          trailing: const SizedBox.square(
-            dimension: kShellControlSize,
-            key: Key('rail_clear_trailing'),
-          ),
+        child: Column(
+          children: [
+            WorkspaceHeader(
+              title: 'All Articles',
+              trailingWidth: kShellControlSize,
+              trailing: const SizedBox.square(
+                dimension: kShellControlSize,
+                key: Key('rail_clear_trailing'),
+              ),
+            ),
+            Builder(
+              builder: (context) {
+                final scope = ShellLayerScope.maybeOf(context);
+                return Text(
+                  'leading:${scope?.contentLeadingInset}',
+                  key: const Key('content_leading_inset_probe'),
+                );
+              },
+            ),
+          ],
         ),
       ),
     );
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
-    await tester.pump();
-    await _settleRailOverlayReveal(tester);
+    await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('app_shell_rail_overlay')), findsOneWidget);
+    expect(find.byKey(const Key('app_shell_rail_overlay')), findsNothing);
+    expect(find.byKey(const Key('app_shell_connected_rail')), findsOneWidget);
     expect(
-      tester.getTopLeft(find.byKey(const Key('workspace_header_title'))).dx,
-      greaterThanOrEqualTo(kSidebarRailWidth + kRailOverlayContentGap),
+      tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
+      kTitleBarExpectedSidebarRailWidth,
     );
+    expect(find.text('leading:0.0'), findsOneWidget);
   });
 
   testWidgets('App shell keeps macOS traffic lights clear of sidebar items', (
@@ -1899,7 +1933,7 @@ void main() {
       expect(find.byKey(const Key('shell_sidebar_button')), findsOneWidget);
       expect(
         tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
-        0,
+        kTitleBarExpectedSidebarRailWidth,
       );
 
       final element = tester.element(find.byKey(const Key('app_shell_child')));
@@ -1936,7 +1970,7 @@ void main() {
       expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
       expect(
         tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
-        0,
+        kTitleBarExpectedSidebarRailWidth,
       );
 
       await tester.tap(find.byKey(const Key('shell_sidebar_button')));

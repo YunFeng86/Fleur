@@ -259,9 +259,6 @@ class WorkspaceHeader extends StatelessWidget {
                   final hasIntegratedCorner =
                       shellChromeLayout.profile ==
                       ShellChromeProfile.integratedCorner;
-                  final hasTitleBarDrag =
-                      shellChromeLayout.profile ==
-                      ShellChromeProfile.titleBarExpected;
                   final metrics =
                       scope?.macOSWindowChromeMetrics ??
                       MacOSWindowChromeMetrics.fallback;
@@ -270,7 +267,7 @@ class WorkspaceHeader extends StatelessWidget {
                           kWorkspaceHeaderHeight,
                           math.max(0.0, metrics.titlebarDragHeight),
                         )
-                      : (hasTitleBarDrag ? kWorkspaceHeaderHeight : 0.0);
+                      : 0.0;
                   final dragLeft =
                       hasIntegratedCorner &&
                           metrics.trafficLightsVisible &&
@@ -286,12 +283,7 @@ class WorkspaceHeader extends StatelessWidget {
                     leadingPadding + (scope?.contentLeadingInset ?? 0),
                     scope?.headerLeadingInset ?? leadingPadding,
                   );
-                  final captionInset =
-                      shellChromeLayout.placesControlsInTitleBar
-                      ? kShellWindowCaptionControlsWidth
-                      : 0.0;
-                  final rightInset =
-                      trailingPadding + captionInset + trailingWidth + 8;
+                  final rightInset = trailingPadding + trailingWidth + 8;
                   final titlePlacement = _titlePlacement(
                     context: context,
                     width: width,
@@ -336,7 +328,7 @@ class WorkspaceHeader extends StatelessWidget {
                           ),
                         ),
                       Positioned(
-                        right: trailingPadding + captionInset,
+                        right: trailingPadding,
                         top: controlTop,
                         width: trailingWidth,
                         height: kShellControlSize,

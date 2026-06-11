@@ -21,6 +21,7 @@ import '../ui/app_shell.dart';
 import '../ui/layout.dart';
 import '../ui/layout_spec.dart';
 import '../ui/motion.dart';
+import '../ui/shell_chrome_layout.dart';
 import '../ui/sidebar_layout.dart';
 import '../ui/workspace_layers.dart';
 
@@ -116,6 +117,8 @@ final routerProvider = Provider<GoRouter>((ref) {
             final surfaces = Theme.of(context).fleurSurface;
             final size = MediaQuery.sizeOf(context);
             final metrics = ref.watch(macOSWindowChromeMetricsProvider);
+            final shellChromeLayout = ShellChromeLayout.resolve();
+            final usesTitleBar = shellChromeLayout.placesControlsInTitleBar;
             return ColoredBox(
               color: Colors.transparent,
               child: ShellLayerScope(
@@ -129,8 +132,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                 listWidth: ref.watch(workspaceListWidthProvider),
                 headerLeadingInset: 14,
                 macOSWindowChromeMetrics: metrics,
+                shellChromeLayout: shellChromeLayout,
                 child: WorkspaceLayerSurface(
                   color: surfaces.list,
+                  borderRadius: usesTitleBar
+                      ? BorderRadius.zero
+                      : kWorkspaceLayerRadius,
+                  showShadow: !usesTitleBar,
                   child: child,
                 ),
               ),

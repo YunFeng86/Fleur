@@ -14,6 +14,8 @@ import 'package:fleur/services/settings/reader_settings.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/seed_color_presets.dart';
 import 'package:fleur/ui/settings/widgets/section_header.dart';
+import 'package:fleur/ui/sidebar_layout.dart';
+import 'package:fleur/utils/platform.dart';
 
 import '../test_utils/critical_workflow_test_support.dart';
 
@@ -403,6 +405,30 @@ void main() {
     expect(find.byKey(const Key('settings_sidebar')), findsOneWidget);
     expect(find.byKey(const Key('settings_sidebar_button')), findsNothing);
     expect(find.byKey(const Key('settings_back_button')), findsOneWidget);
+  });
+
+  testWidgets('Windows settings screen keeps window chrome above content', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    await pumpSettingsScreen(tester, 1000, showBack: true);
+
+    expect(find.byKey(const Key('shell_title_bar')), findsOneWidget);
+    expect(find.byKey(const Key('shell_sidebar_button')), findsOneWidget);
+    expect(find.byKey(const Key('shell_back_button')), findsOneWidget);
+    expect(find.byKey(const Key('shell_forward_button')), findsOneWidget);
+    expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
+    expect(find.byKey(const Key('shell_window_close_button')), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.byKey(const Key('settings_content_layer'))).dy,
+      kWorkspaceHeaderHeight,
+    );
+    expect(
+      tester.getTopLeft(find.byKey(const Key('shell_title_bar_divider'))).dx,
+      kDefaultWorkspaceSidebarWidth + kSidebarContentDividerWidth,
+    );
   });
 
   testWidgets(

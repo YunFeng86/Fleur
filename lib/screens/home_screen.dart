@@ -16,8 +16,6 @@ import '../ui/home/home_scene_panes.dart';
 import '../ui/home/home_scene_shortcuts.dart';
 import '../ui/layout.dart';
 import '../ui/layout_spec.dart';
-import '../ui/shell_chrome_layout.dart';
-import '../ui/shell_title_bar.dart';
 import '../ui/sidebar_layout.dart';
 import '../ui/workspace_layers.dart';
 import '../utils/platform.dart';
@@ -220,11 +218,6 @@ class HomeScreen extends ConsumerWidget {
     final showSyncCapsule = LayoutSpec.fromContext(
       context,
     ).showsListSyncStatusCapsule;
-    final shellLayerScope = ShellLayerScope.maybeOf(context);
-    final shellChromeLayout =
-        shellLayerScope?.shellChromeLayout ?? ShellChromeLayout.resolve();
-    final usesShellTitleBar =
-        shellLayerScope != null && shellChromeLayout.placesControlsInTitleBar;
     final topBar = _HomeArticleListToolbar(
       showRefresh: showRootRefresh,
       refreshTooltip: refreshActionLabel,
@@ -241,7 +234,7 @@ class HomeScreen extends ConsumerWidget {
         listWidth: listWidth,
         selectedArticleId: selectedArticleId,
         showSyncCapsule: showSyncCapsule,
-        topBar: usesShellTitleBar ? null : topBar,
+        topBar: topBar,
         enableSplitHandle: true,
       ),
       DesktopPaneMode.listOnly => _buildWorkspaceLayout(
@@ -250,27 +243,12 @@ class HomeScreen extends ConsumerWidget {
         listWidth: listWidth,
         selectedArticleId: selectedArticleId,
         showSyncCapsule: showSyncCapsule,
-        topBar: usesShellTitleBar ? null : topBar,
+        topBar: topBar,
         enableSplitHandle: false,
       ),
     };
 
     final content = HomeSceneShortcuts(commands: commands, child: body);
-
-    if (usesShellTitleBar) {
-      return ShellTitleBarRegistration(
-        title: _homeScopeTitle(ref, l10n),
-        trailingWidth: _homeScopeActionsWidth(showRootRefresh),
-        trailingBuilder: (context) => _HomeScopeActions(
-          showRefresh: showRootRefresh,
-          refreshTooltip: refreshActionLabel,
-          onRefresh: refreshAll,
-          onToggleUnreadOnly: commands.toggleUnreadOnly,
-          onMarkAllRead: markAllRead,
-        ),
-        child: content,
-      );
-    }
 
     if (!useCompactTopBar) return content;
 
