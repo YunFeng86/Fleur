@@ -815,6 +815,22 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const Key('shell_window_close_button')), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const Key('shell_window_caption_controls'))),
+      const Size(kShellWindowCaptionControlsWidth, kWorkspaceHeaderHeight),
+    );
+    expect(
+      tester.getSize(find.byKey(const Key('shell_window_minimize_button'))),
+      const Size(kShellWindowCaptionButtonWidth, kWorkspaceHeaderHeight),
+    );
+    expect(
+      tester.getSize(find.byKey(const Key('shell_window_maximize_button'))),
+      const Size(kShellWindowCaptionButtonWidth, kWorkspaceHeaderHeight),
+    );
+    expect(
+      tester.getSize(find.byKey(const Key('shell_window_close_button'))),
+      const Size(kShellWindowCaptionButtonWidth, kWorkspaceHeaderHeight),
+    );
     expect(find.byKey(const Key('shell_outbox_button')), findsNothing);
     expect(
       tester.getSize(find.byKey(const Key('shell_sidebar_button'))),

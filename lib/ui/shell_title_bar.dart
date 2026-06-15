@@ -85,10 +85,7 @@ class ShellWindowTitleBar extends StatelessWidget {
               right: 0,
               height: kWorkspaceHeaderHeight,
               width: kShellWindowCaptionControlsWidth,
-              child: Align(
-                alignment: Alignment.topRight,
-                child: _WindowCaptionControls(),
-              ),
+              child: _WindowCaptionControls(),
             ),
             Positioned(
               left: dividerLeadingInset,
@@ -339,34 +336,57 @@ class _WindowCaptionControlsState extends State<_WindowCaptionControls>
     final brightness = Theme.of(context).brightness;
     return SizedBox(
       key: const Key('shell_window_caption_controls'),
-      height: 32,
+      height: kWorkspaceHeaderHeight,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          WindowCaptionButton.minimize(
-            key: const Key('shell_window_minimize_button'),
-            brightness: brightness,
-            onPressed: () => unawaited(_minimize()),
+          _CaptionButtonSlot(
+            child: WindowCaptionButton.minimize(
+              key: const Key('shell_window_minimize_button'),
+              brightness: brightness,
+              onPressed: () => unawaited(_minimize()),
+            ),
           ),
           if (_maximized)
-            WindowCaptionButton.unmaximize(
-              key: const Key('shell_window_maximize_button'),
-              brightness: brightness,
-              onPressed: () => unawaited(_toggleMaximized()),
+            _CaptionButtonSlot(
+              child: WindowCaptionButton.unmaximize(
+                key: const Key('shell_window_maximize_button'),
+                brightness: brightness,
+                onPressed: () => unawaited(_toggleMaximized()),
+              ),
             )
           else
-            WindowCaptionButton.maximize(
-              key: const Key('shell_window_maximize_button'),
-              brightness: brightness,
-              onPressed: () => unawaited(_toggleMaximized()),
+            _CaptionButtonSlot(
+              child: WindowCaptionButton.maximize(
+                key: const Key('shell_window_maximize_button'),
+                brightness: brightness,
+                onPressed: () => unawaited(_toggleMaximized()),
+              ),
             ),
-          WindowCaptionButton.close(
-            key: const Key('shell_window_close_button'),
-            brightness: brightness,
-            onPressed: () => unawaited(_close()),
+          _CaptionButtonSlot(
+            child: WindowCaptionButton.close(
+              key: const Key('shell_window_close_button'),
+              brightness: brightness,
+              onPressed: () => unawaited(_close()),
+            ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _CaptionButtonSlot extends StatelessWidget {
+  const _CaptionButtonSlot({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: kShellWindowCaptionButtonWidth,
+      height: kWorkspaceHeaderHeight,
+      child: child,
     );
   }
 }
