@@ -186,6 +186,19 @@ void _expectWorkspaceSurfaceAppearance(
   expect(surface.leadingEdge, leadingEdge);
 }
 
+void _expectShellIconButtonRadius(WidgetTester tester, Key key) {
+  final iconButton = tester.widget<IconButton>(
+    find.descendant(of: find.byKey(key), matching: find.byType(IconButton)),
+  );
+  final shape = iconButton.style?.shape?.resolve(<WidgetState>{});
+
+  expect(shape, isA<RoundedRectangleBorder>());
+  expect(
+    (shape! as RoundedRectangleBorder).borderRadius,
+    BorderRadius.circular(kShellControlSize / 2),
+  );
+}
+
 class _TestAppUpdateController extends AppUpdateController {
   _TestAppUpdateController(this.initialState);
 
@@ -836,6 +849,7 @@ void main() {
       tester.getSize(find.byKey(const Key('shell_sidebar_button'))),
       const Size.square(kShellControlSize),
     );
+    _expectShellIconButtonRadius(tester, const Key('shell_sidebar_button'));
     final expandedSidebarIcon = tester.widget<Icon>(
       find.descendant(
         of: find.byKey(const Key('shell_sidebar_button')),
@@ -1013,6 +1027,7 @@ void main() {
       tester.getTopLeft(find.byKey(const Key('shell_sidebar_button'))).dx,
       12,
     );
+    _expectShellIconButtonRadius(tester, const Key('shell_sidebar_button'));
     expect(
       tester.getTopLeft(find.byKey(const Key('shell_sidebar_button'))).dy,
       expandedToggleTopLeft.dy,

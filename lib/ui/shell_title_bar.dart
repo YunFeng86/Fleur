@@ -8,6 +8,7 @@ import 'package:window_manager/window_manager.dart';
 import '../services/update/app_update_manifest.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
+import '../widgets/fleur_shell_icon_button.dart';
 import 'shell_chrome_layout.dart';
 import 'sidebar_layout.dart';
 import 'update/app_update_dialog.dart';
@@ -211,48 +212,17 @@ class _ShellControlButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final states = theme.fleurState;
     final disabledOpacity = theme.brightness == Brightness.dark ? 0.22 : 0.28;
 
     return IconButton(
       tooltip: tooltip,
       onPressed: onPressed,
       icon: Icon(icon, size: kShellControlIconSize),
-      style: ButtonStyle(
-        fixedSize: const WidgetStatePropertyAll(Size.square(kShellControlSize)),
-        minimumSize: const WidgetStatePropertyAll(
-          Size.square(kShellControlSize),
-        ),
-        padding: const WidgetStatePropertyAll(EdgeInsets.zero),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        foregroundColor: WidgetStateProperty.resolveWith((widgetStates) {
-          if (widgetStates.contains(WidgetState.disabled)) {
-            return scheme.onSurface.withValues(alpha: disabledOpacity);
-          }
-          if (selected) return scheme.primary;
-          return scheme.onSurfaceVariant;
-        }),
-        backgroundColor: WidgetStateProperty.resolveWith((widgetStates) {
-          if (selected) return states.selectionTint;
-          return Colors.transparent;
-        }),
-        overlayColor: WidgetStateProperty.resolveWith((widgetStates) {
-          if (widgetStates.contains(WidgetState.disabled)) {
-            return Colors.transparent;
-          }
-          if (widgetStates.contains(WidgetState.pressed)) {
-            return states.pressedTint;
-          }
-          if (widgetStates.contains(WidgetState.hovered) ||
-              widgetStates.contains(WidgetState.focused)) {
-            return states.hoverTint;
-          }
-          return null;
-        }),
-        shape: WidgetStatePropertyAll(
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
+      style: FleurShellIconButtonStyle.styleFor(
+        context,
+        selected: selected,
+        size: kShellControlSize,
+        disabledOpacity: disabledOpacity,
       ),
     );
   }
