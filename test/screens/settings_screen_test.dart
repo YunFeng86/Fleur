@@ -14,7 +14,6 @@ import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/settings/reader_settings.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/seed_color_presets.dart';
-import 'package:fleur/ui/adaptive_workspace_layout.dart';
 import 'package:fleur/ui/app_shell.dart';
 import 'package:fleur/ui/settings/widgets/section_header.dart';
 import 'package:fleur/ui/sidebar_layout.dart';

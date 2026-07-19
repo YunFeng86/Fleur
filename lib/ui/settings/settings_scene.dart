@@ -1,0 +1,700 @@
+part of '../../screens/settings_screen.dart';
+
+class _SettingsScene extends StatelessWidget {
+  const _SettingsScene({
+    required this.width,
+    required this.height,
+    required this.navigationPresentation,
+    required this.temporaryNavigationOpen,
+    required this.railWidth,
+    required this.title,
+    required this.sidebarTitle,
+    required this.showSidebarButton,
+    required this.onToggleSidebar,
+    required this.onBack,
+    required this.items,
+    required this.sidebarSelectedIndex,
+    required this.selectedContentKey,
+    required this.content,
+    required this.onSelect,
+    required this.searchController,
+    required this.searchFocusNode,
+    required this.searchFocused,
+  });
+
+  final double width;
+  final double height;
+  final WorkspaceNavigationPresentation navigationPresentation;
+  final bool temporaryNavigationOpen;
+  final double railWidth;
+  final String title;
+  final String sidebarTitle;
+  final bool showSidebarButton;
+  final VoidCallback onToggleSidebar;
+  final VoidCallback? onBack;
+  final List<_SettingsPageItem> items;
+  final int? sidebarSelectedIndex;
+  final Key selectedContentKey;
+  final Widget content;
+  final ValueChanged<SettingsTab> onSelect;
+  final TextEditingController searchController;
+  final FocusNode searchFocusNode;
+  final bool searchFocused;
+
+  @override
+  Widget build(BuildContext context) {
+    final surfaces = Theme.of(context).fleurSurface;
+    final sidebarExpanded =
+        navigationPresentation == WorkspaceNavigationPresentation.expanded;
+    final sidebarRail =
+        navigationPresentation == WorkspaceNavigationPresentation.rail;
+    final structuralContentLeft = sidebarExpanded
+        ? _SettingsScreenState._kSettingsSidebarWidth +
+              kSidebarContentDividerWidth
+        : sidebarRail
+        ? railWidth
+        : 0.0;
+    final contentLeft = temporaryNavigationOpen
+        ? _SettingsScreenState._kSettingsSidebarWidth
+        : structuralContentLeft;
+    final contentWidth = (width - structuralContentLeft)
+        .clamp(0.0, double.infinity)
+        .toDouble();
+    final sidebarPinned = sidebarExpanded || sidebarRail;
+
+    return SizedBox(
+      width: width,
+      height: height,
+      child: ColoredBox(
+        color: surfaces.chrome,
+        child: Stack(
+          clipBehavior: Clip.hardEdge,
+          children: [
+            if (sidebarExpanded || temporaryNavigationOpen)
+              Positioned(
+                key: const Key('settings_sidebar'),
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: _SettingsScreenState._kSettingsSidebarWidth,
+                child: _SettingsSidebar(
+                  title: sidebarTitle,
+                  items: items,
+                  selectedIndex: sidebarSelectedIndex,
+                  onSelect: onSelect,
+                ),
+              ),
+            if (sidebarRail && !temporaryNavigationOpen)
+              Positioned(
+                key: const Key('settings_navigation_rail'),
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: railWidth,
+                child: _SettingsNavigationRail(
+                  width: railWidth,
+                  items: items,
+                  selectedIndex: sidebarSelectedIndex,
+                  onSelect: onSelect,
+                ),
+              ),
+            if ((sidebarExpanded || sidebarRail) && !temporaryNavigationOpen)
+              Positioned(
+                key: const Key('settings_sidebar_divider'),
+                left: structuralContentLeft - kSidebarContentDividerWidth,
+                top: 0,
+                bottom: 0,
+                width: kSidebarContentDividerWidth,
+                child: ColoredBox(color: surfaces.subtleDivider),
+              ),
+            AnimatedPositioned(
+              key: const Key('settings_content_layer'),
+              duration: _SettingsScreenState._kLayerAnimationDuration,
+              curve: Curves.easeOutCubic,
+              left: contentLeft,
+              top: 0,
+              bottom: 0,
+              width: contentWidth,
+              child: _SettingsContentLayer(
+                sidebarPinned: sidebarPinned,
+                sidebarOpen: temporaryNavigationOpen,
+                title: title,
+                showSidebarButton: showSidebarButton,
+                onToggleSidebar: onToggleSidebar,
+                onBack: onBack,
+                selectedContentKey: selectedContentKey,
+                searchController: searchController,
+                searchFocusNode: searchFocusNode,
+                searchFocused: searchFocused,
+                child: content,
+              ),
+            ),
+            if (temporaryNavigationOpen)
+              Positioned(
+                key: const Key('settings_navigation_scrim'),
+                left: _SettingsScreenState._kSettingsSidebarWidth,
+                top: 0,
+                right: 0,
+                bottom: 0,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onToggleSidebar,
+                  child: ColoredBox(
+                    color: Colors.black.withValues(alpha: 0.08),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsNavigationRail extends StatelessWidget {
+  const _SettingsNavigationRail({
+    required this.width,
+    required this.items,
+    required this.selectedIndex,
+    required this.onSelect,
+  });
+
+  final double width;
+  final List<_SettingsPageItem> items;
+  final int? selectedIndex;
+  final ValueChanged<SettingsTab> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final surfaces = theme.fleurSurface;
+    final scheme = theme.colorScheme;
+
+    return Material(
+      color: surfaces.sidebar,
+      child: Column(
+        children: [
+          SizedBox(
+            height: kWorkspaceHeaderHeight,
+            child: Center(
+              child: Icon(
+                FleurIcons.settingsSelected,
+                size: 18,
+                color: scheme.primary,
+              ),
+            ),
+          ),
+          Expanded(
+            child: AppScrollbar(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  final item = items[index];
+                  final selected = index == selectedIndex;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Center(
+                      child: IconButton(
+                        key: Key('settings_rail_nav_${item.tab.queryValue}'),
+                        tooltip: item.label,
+                        onPressed: () => onSelect(item.tab),
+                        icon: Icon(
+                          selected ? item.selectedIcon : item.icon,
+                          size: 18,
+                        ),
+                        style: IconButton.styleFrom(
+                          foregroundColor: selected
+                              ? scheme.primary
+                              : scheme.onSurfaceVariant,
+                          backgroundColor: selected
+                              ? surfaces.cardSelected
+                              : Colors.transparent,
+                          fixedSize: const Size.square(40),
+                          minimumSize: const Size.square(40),
+                          padding: EdgeInsets.zero,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SettingsSidebar extends StatelessWidget {
+  const _SettingsSidebar({
+    required this.title,
+    required this.items,
+    required this.selectedIndex,
+    required this.onSelect,
+  });
+
+  final String title;
+  final List<_SettingsPageItem> items;
+  final int? selectedIndex;
+  final ValueChanged<SettingsTab> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final surfaces = Theme.of(context).fleurSurface;
+
+    return Material(
+      color: surfaces.sidebar,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _SettingsSidebarHeader(title: title),
+          Expanded(
+            child: AppScrollbar(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(12, 6, 12, 24),
+                children: [
+                  for (var index = 0; index < items.length; index++)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: _SettingsNavigationTile(
+                        key: Key('settings_nav_${items[index].tab.queryValue}'),
+                        item: items[index],
+                        selected: index == selectedIndex,
+                        onTap: () => onSelect(items[index].tab),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SettingsSidebarHeader extends StatelessWidget {
+  const _SettingsSidebarHeader({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scope = ShellLayerScope.maybeOf(context);
+    final metrics =
+        scope?.macOSWindowChromeMetrics ?? MacOSWindowChromeMetrics.fallback;
+    final avoidTrafficLights = isMacOS && metrics.trafficLightsVisible;
+    final leadingLeft = avoidTrafficLights ? metrics.safeInset : 16.0;
+
+    return SizedBox(
+      height: kWorkspaceHeaderHeight,
+      child: Padding(
+        padding: EdgeInsets.only(left: leadingLeft, right: 12),
+        child: Row(
+          children: [
+            Icon(
+              FleurIcons.settingsSelected,
+              size: 18,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsListBody extends StatelessWidget {
+  const _SettingsListBody({required this.items, required this.onSelect});
+
+  final List<_SettingsPageItem> items;
+  final ValueChanged<SettingsTab> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return SettingsPageBody(
+      maxWidth: 720,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      children: [
+        for (final item in items)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: _SettingsNavigationTile(
+              key: Key('settings_list_nav_${item.tab.queryValue}'),
+              item: item,
+              trailing: const Icon(FleurIcons.expand, size: 18),
+              onTap: () => onSelect(item.tab),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _SettingsContentLayer extends StatelessWidget {
+  const _SettingsContentLayer({
+    required this.sidebarPinned,
+    required this.sidebarOpen,
+    required this.title,
+    required this.showSidebarButton,
+    required this.onToggleSidebar,
+    required this.onBack,
+    required this.selectedContentKey,
+    required this.searchController,
+    required this.searchFocusNode,
+    required this.searchFocused,
+    required this.child,
+  });
+
+  final bool sidebarPinned;
+  final bool sidebarOpen;
+  final String title;
+  final bool showSidebarButton;
+  final VoidCallback onToggleSidebar;
+  final VoidCallback? onBack;
+  final Key selectedContentKey;
+  final TextEditingController searchController;
+  final FocusNode searchFocusNode;
+  final bool searchFocused;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final surfaces = Theme.of(context).fleurSurface;
+    final paper = _SettingsPaperSurface(
+      borderRadius: sidebarPinned
+          ? const BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            )
+          : BorderRadius.zero,
+      child: Column(
+        children: [
+          _SettingsSceneHeader(
+            title: title,
+            sidebarPinned: sidebarPinned,
+            sidebarOpen: sidebarOpen,
+            showSidebarButton: showSidebarButton,
+            onToggleSidebar: onToggleSidebar,
+            onBack: onBack,
+          ),
+          if (!sidebarPinned)
+            _SettingsSearchDock(
+              insidePaper: true,
+              controller: searchController,
+              focusNode: searchFocusNode,
+              focused: searchFocused,
+            ),
+          Divider(height: 1, color: surfaces.subtleDivider),
+          Expanded(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 180),
+              layoutBuilder: (currentChild, previousChildren) {
+                return Stack(
+                  alignment: Alignment.topCenter,
+                  children: [...previousChildren, ?currentChild],
+                );
+              },
+              transitionBuilder: (child, animation) {
+                return FadeTransition(opacity: animation, child: child);
+              },
+              child: KeyedSubtree(key: selectedContentKey, child: child),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (!sidebarPinned) return paper;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final paperWidth = constraints.maxWidth
+            .clamp(0.0, _SettingsScreenState._kSettingsPaperMaxWidth)
+            .toDouble();
+
+        return ColoredBox(
+          color: surfaces.chrome,
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: SizedBox(
+              width: paperWidth,
+              child: Column(
+                children: [
+                  _SettingsSearchDock(
+                    insidePaper: false,
+                    controller: searchController,
+                    focusNode: searchFocusNode,
+                    focused: searchFocused,
+                  ),
+                  const SizedBox(
+                    height: _SettingsScreenState._kSettingsSearchPaperGap,
+                  ),
+                  Expanded(child: paper),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SettingsSceneHeader extends StatelessWidget {
+  const _SettingsSceneHeader({
+    required this.title,
+    required this.sidebarPinned,
+    required this.sidebarOpen,
+    required this.showSidebarButton,
+    required this.onToggleSidebar,
+    required this.onBack,
+  });
+
+  final String title;
+  final bool sidebarPinned;
+  final bool sidebarOpen;
+  final bool showSidebarButton;
+  final VoidCallback onToggleSidebar;
+  final VoidCallback? onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scope = ShellLayerScope.maybeOf(context);
+    final metrics =
+        scope?.macOSWindowChromeMetrics ?? MacOSWindowChromeMetrics.fallback;
+    final avoidTrafficLights =
+        !sidebarPinned &&
+        !sidebarOpen &&
+        isMacOS &&
+        metrics.trafficLightsVisible;
+    final leadingLeft = avoidTrafficLights ? metrics.safeInset : 8.0;
+    final rowTop = isMacOS
+        ? metrics.shellControlTopInset
+        : kShellControlTopInset;
+
+    return SizedBox(
+      height: kWorkspaceHeaderHeight,
+      child: Stack(
+        children: [
+          Positioned(
+            left: leadingLeft,
+            top: rowTop,
+            right: 12,
+            height: kShellControlSize,
+            child: Row(
+              children: [
+                if (showSidebarButton)
+                  _SettingsHeaderButton(
+                    key: const Key('settings_sidebar_button'),
+                    tooltip: sidebarOpen
+                        ? AppLocalizations.of(context)!.collapse
+                        : AppLocalizations.of(context)!.expand,
+                    icon: sidebarOpen
+                        ? FleurIcons.sidebarCollapse
+                        : FleurIcons.sidebarExpand,
+                    onPressed: onToggleSidebar,
+                  ),
+                if (onBack != null)
+                  _SettingsHeaderButton(
+                    key: const Key('settings_back_button'),
+                    tooltip: MaterialLocalizations.of(
+                      context,
+                    ).backButtonTooltip,
+                    icon: FleurIcons.back,
+                    onPressed: onBack,
+                  ),
+                if (showSidebarButton || onBack != null)
+                  const SizedBox(width: 8),
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SettingsPaperSurface extends StatelessWidget {
+  const _SettingsPaperSurface({
+    required this.child,
+    required this.borderRadius,
+  });
+
+  final Widget child;
+  final BorderRadius borderRadius;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final surfaces = theme.fleurSurface;
+    final dark = theme.brightness == Brightness.dark;
+    final shadowColor = theme.shadowColor.withValues(alpha: dark ? 0.28 : 0.10);
+
+    return DecoratedBox(
+      key: const Key('settings_paper_surface'),
+      decoration: BoxDecoration(
+        color: surfaces.list,
+        borderRadius: borderRadius,
+        border: Border.all(color: surfaces.subtleDivider),
+        boxShadow: [
+          BoxShadow(
+            color: shadowColor,
+            blurRadius: 26,
+            spreadRadius: dark ? 0 : 1,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: ClipRRect(borderRadius: borderRadius, child: child),
+    );
+  }
+}
+
+class _SettingsHeaderButton extends StatelessWidget {
+  const _SettingsHeaderButton({
+    super.key,
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: tooltip,
+      onPressed: onPressed,
+      icon: Icon(icon, size: kShellControlIconSize),
+      style: IconButton.styleFrom(
+        fixedSize: const Size.square(kShellControlSize),
+        minimumSize: const Size.square(kShellControlSize),
+        padding: EdgeInsets.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+    );
+  }
+}
+
+class _SettingsNavigationTile extends StatelessWidget {
+  const _SettingsNavigationTile({
+    super.key,
+    required this.item,
+    required this.onTap,
+    this.selected = false,
+    this.trailing,
+  });
+
+  final _SettingsPageItem item;
+  final VoidCallback onTap;
+  final bool selected;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final surfaces = theme.fleurSurface;
+    final selectedColor = surfaces.cardSelected;
+    final iconColor = selected ? scheme.primary : scheme.onSurfaceVariant;
+    final textColor = selected ? scheme.onSurface : scheme.onSurfaceVariant;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOutCubic,
+          constraints: const BoxConstraints(minHeight: 42),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: selected ? selectedColor : Colors.transparent,
+            borderRadius: BorderRadius.circular(22),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                selected ? item.selectedIcon : item.icon,
+                size: 18,
+                color: iconColor,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  item.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: textColor,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                  ),
+                ),
+              ),
+              if (trailing != null) ...[
+                const SizedBox(width: 10),
+                IconTheme.merge(
+                  data: IconThemeData(color: scheme.onSurfaceVariant),
+                  child: trailing!,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsPageItem {
+  final SettingsTab tab;
+  final IconData icon;
+  final IconData selectedIcon;
+  final String label;
+  final Widget content;
+
+  const _SettingsPageItem({
+    required this.tab,
+    required this.icon,
+    required this.selectedIcon,
+    required this.label,
+    required this.content,
+  });
+}

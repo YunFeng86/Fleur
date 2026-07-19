@@ -7,7 +7,6 @@ import 'article_scope_routes.dart';
 import 'search_routes.dart';
 import 'settings_routes.dart';
 import '../models/article_scope.dart';
-import '../providers/core_providers.dart';
 import '../providers/navigation_history_provider.dart';
 import '../screens/add_subscription_screen.dart';
 import '../screens/reading_workspace_screen.dart';
