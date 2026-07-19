@@ -1,6 +1,6 @@
 # ADR-0001: Unify Shell and Adaptive Workspace Layout
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-07-19
 - Decision owners: Fleur maintainers
 
@@ -83,6 +83,10 @@ A separate adaptive workspace policy determines:
 - Touch target sizing, hover availability, and keyboard focus behaviour.
 - Safe-area treatment for headers and reader-local overlays.
 
+The policy returns one immutable arrangement for a layout pass. Navigation,
+reader presentation, and scene geometry must consume that same arrangement;
+routes and widgets must not independently repeat the fit calculation.
+
 Native behaviour remains behind platform adapters: the macOS window chrome
 bridge owns traffic-light and zoom/drag integration, while `window_manager`
 owns Windows/Linux window dragging and caption commands.
@@ -108,10 +112,39 @@ Workspace adaptation is content-driven:
 
 - Large constraints may show expanded navigation, a primary list, and a reader
   pane simultaneously.
-- Medium constraints use a structural rail or temporary navigation and may
-  retain a list/reader split when content minimums fit.
-- Small constraints use off-canvas or compact navigation and show one primary
-  pane at a time.
+- Medium constraints use a structural rail and may retain a list/reader split
+  when content minimums fit.
+- Small constraints remove structural navigation, expose one navigation toggle
+  in the available top chrome or page header, and show one primary pane at a
+  time.
+
+These states are resolved from the space required by their contents, not from
+one desktop/mobile breakpoint. In particular, a narrow desktop window may use
+the same off-canvas navigation presentation as a phone, while retaining its
+desktop window-chrome profile and mouse/keyboard input behaviour.
+
+Fit is calculated once from the total viewport and candidate scene
+requirements. It must not use a content width that has already been reduced by
+the currently rendered navigation, because that creates a layout feedback
+loop. The first implementation will use deterministic thresholds without
+hysteresis; hysteresis may be added later only if real resize testing shows
+visible boundary chatter.
+
+Initial scene requirements reuse the product's established dimensions:
+
+- Feed, saved, and search primary panes use `420px` as the compact comfortable
+  width when deciding whether a rail remains structural.
+- An embedded reader additionally requires its existing `450px` minimum plus
+  the split-handle extent.
+- Expanded feed navigation uses its current `260px` preferred width.
+- Pinned settings navigation retains its current `720px` content requirement;
+  settings may retain a rail while at least `600px` remains for its adaptive
+  paper content.
+
+These are policy inputs and named layout tokens, not platform checks. With the
+current `420px` native minimum window width, the Windows `56px` rail therefore
+falls back to off-canvas below approximately `477px`, so all three navigation
+presentations remain reachable on desktop.
 
 Input adaptation is independent of width. Touch layouts provide at least 44px
 interactive targets and safe gesture spacing. Mouse layouts retain hover and
@@ -145,16 +178,71 @@ items, later-reading items, and search:
 - Optional reader pane.
 - Reader-local bottom overlay.
 
-Search is a primary-pane variant, not a separate application shell. Opening an
-article changes the pane arrangement; it does not replace the workspace.
+Search is a primary-pane variant, not a separate application shell.
+
+Opening an article preserves the current responsive routing contract:
+
+- When the primary list and minimum reader width fit, the article route remains
+  in the feed workspace and reveals the reader pane on the right.
+- When they do not fit, the article is pushed as a secondary page instead of
+  squeezing a reader pane into the workspace.
+- If expanded navigation is the only reason the split cannot fit, the resolved
+  navigation may temporarily fall back to its rail state while preserving the
+  user's expanded preference. Widening the window or closing the reader restores
+  the preferred state when it fits again.
+
+The list/search state, selection, scroll position, and reader route semantics
+must survive these presentation changes.
+
+Window resizing changes presentation, not navigation history. An article route
+keeps one stable page identity while the feed workspace switches between an
+embedded reader and a secondary-page presentation. A route opened narrowly by
+`push` remains poppable if the window later widens; a route opened widely keeps
+an explicit fallback to its list route if the window later narrows and there is
+no route beneath it. Resizing must never issue `go`, `push`, `pop`, or `replace`.
 
 ### Navigation
 
-Expanded and collapsed navigation are presentation states of one navigation
-module. A fixed-width icon rail owns the stable horizontal anchors. Expanded
-navigation reveals an adjacent detail region for labels and the subscription
-tree. Collapse/expand animation changes the detail region and the overall
-width without moving the rail icons.
+Navigation has one preferred user state and one resolved presentation. The
+preferred state records whether the user last requested expanded or collapsed
+navigation. The adaptive policy resolves that preference into one of three
+presentations:
+
+- `expanded`: the stable icon rail plus the adjacent label/subscription detail
+  region are inline.
+- `rail`: only the stable icon rail is inline.
+- `offCanvas`: no navigation width is reserved; one toggle reveals the expanded
+  navigation from the leading edge.
+
+The resolver uses content minimums in this order: preserve the preferred
+expanded state when it fits, otherwise preserve a rail when rail plus primary
+content fits, otherwise use off-canvas navigation. A temporary reader-driven
+fallback may choose rail to retain a valid list/reader split. Automatic
+fallbacks do not overwrite the user's preferred state.
+
+Preferred navigation state is scene-local, per window, and session-scoped. The
+feed and settings workspaces retain independent preferences across route
+changes. This state is not persisted across application launches in this ADR.
+
+The fixed-width icon rail owns stable horizontal anchors in both expanded and
+rail presentations. Expanded navigation reveals an adjacent detail region for
+labels and the subscription tree. Collapse/expand animation changes the detail
+region and overall width without moving rail icons.
+
+Opening off-canvas navigation uses one shared push-reveal interaction across
+platforms: the expanded navigation enters from the leading edge while the
+workspace is translated to the right. The workspace keeps its laid-out size so
+opening navigation does not recalculate list/reader breakpoints or discard pane
+state. The translated workspace is clipped by the viewport and may receive a
+scrim according to input mode.
+
+Only the active product scene is translated. Native window chrome, caption
+buttons, and macOS traffic-light integration remain fixed to the window. On a
+content-only host, the page header belongs to the scene and moves with it.
+Opening navigation traps focus within the revealed pane; `Escape`, system back,
+scrim activation, destination selection, or a route change closes it and
+restores focus to the toggle. Reduced-motion mode performs the same state
+change without translation animation.
 
 Platform profiles may render the collapsed state differently:
 
@@ -163,7 +251,9 @@ Platform profiles may render the collapsed state differently:
 - Other content-only platforms may choose a plain structural rail.
 
 These adapters consume the same navigation data, selection state, commands,
-and icon anchors.
+and icon anchors. The platform profile changes the treatment of `expanded` and
+`rail`; it does not prevent an extremely narrow window from resolving to
+`offCanvas`.
 
 ### Windows and Linux
 
@@ -176,6 +266,20 @@ bottom divider begins at the content leading edge, and the navigation divider
 begins below the title bar. Page titles and page actions remain in the page
 header below the window title bar. Window caption buttons remain in the title
 bar.
+
+When navigation resolves to `offCanvas`, the title bar remains because it is a
+window-chrome requirement. The title-bar shell-control strip provides the
+navigation toggle, and no closed rail width is reserved below it.
+
+Caption controls are never removed or compressed. The navigation toggle is the
+highest-priority leading command, followed by back, search, forward, and the
+update entry. The title bar reserves a draggable span before showing lower
+priority commands; commands that cannot fit move to a shell overflow menu in
+reverse priority order. Disabled back/forward commands may remain visible when
+space permits so control positions do not jump. The current `420px` native
+minimum is expected to fit the four core leading commands, the draggable span,
+and all three caption buttons; the overflow rule primarily protects future
+hosts and update states.
 
 ### macOS
 
@@ -190,7 +294,11 @@ target. The refactor must preserve:
 - Existing macOS native bridge semantics.
 
 The shared frame may reorganize the implementation, but it must not change
-these observable behaviours without a separate ADR.
+these observable behaviours without a separate ADR. Existing expanded and rail
+states retain their current macOS treatment. The shared `offCanvas` state only
+applies below the width at which a valid rail plus primary content can fit; it
+must not alter the geometry of currently characterized normal-width macOS
+layouts.
 
 ### Settings
 
@@ -203,6 +311,19 @@ The settings scene owns:
 - Settings-local responsive navigation state.
 - A search dock.
 - A centered, maximum-width paper surface.
+
+Settings uses the same `expanded`/`rail`/`offCanvas` presentation vocabulary but
+has its own navigation data, layout requirements, and preferred state. Wide
+settings pins the expanded navigation beside the centered paper, medium
+settings may retain a structural rail, and small settings uses the shared
+off-canvas push reveal plus list/detail content.
+
+Shell control commands are supplied by the active scene. In the feed workspace,
+the title-bar or leading toggle controls feed navigation. In settings, it
+controls settings navigation and must not mutate the hidden feed preference.
+Global history and global search remain window-level commands. Settings-local
+back behaviour resolves nested detail first, then the settings list, then the
+route outside settings.
 
 On Windows/Linux, settings navigation participates in the same connected
 title-bar/left-chrome treatment. On macOS, settings continues to respect the
@@ -222,6 +343,10 @@ responsibilities are fixed by this ADR:
 - Window frame: chrome composition and top-level geometry.
 - Window chrome profile: semantic host-chrome decisions only.
 - Adaptive workspace policy: constraint, safe-area, and input decisions only.
+- Adaptive workspace arrangement: the single immutable output consumed by the
+  frame, active scene, navigation presentation, and reader presentation.
+- Navigation presentation resolver: preferred state, content minimums,
+  reader-driven fallback, and `expanded`/`rail`/`offCanvas` resolution.
 - Shell control strip: one ordered control model and its presentation.
 - Navigation pane: rail anchors, expanded detail region, and transition.
 - Feed workspace: list/reader pane composition.
@@ -265,9 +390,12 @@ green test suite and observable platform behaviour.
 3. Extract the shared window-frame geometry and chrome composition from
    `AppShell` while keeping the existing feed workspace intact.
 4. Extract adaptive workspace decisions from route widgets and verify large,
-   medium, small, touch, mouse, and keyboard environments.
-5. Express navigation as a stable rail plus an animated detail region without
-   changing routes or selection state.
+   medium, small, touch, mouse, and keyboard environments. Introduce the
+   preferred-versus-resolved navigation model without changing current
+   normal-width platform geometry.
+5. Make article routes presentation-stable across resizing, then express
+   navigation as a stable rail plus an animated detail region without changing
+   route history or selection state.
 6. Move the settings scene under the shared window frame and remove its
    duplicate title-bar composition.
 7. Remove obsolete platform conditionals and route-level surface decisions
@@ -284,12 +412,24 @@ Every migration stage must retain or add focused tests for:
 - Windows/Linux title-bar height, caption hit regions, connected rail geometry,
   content offsets, transition radius, and divider start points.
 - Stable rail icon positions before, during, and after expand/collapse.
+- Expanded, rail, and off-canvas thresholds derived from content minimums;
+  widening after an automatic fallback restores the user's preferred state.
+- The resolver uses total viewport constraints and returns one arrangement;
+  no caller recalculates navigation or reader fit from post-layout content
+  width.
+- Off-canvas push reveal translates the workspace without changing its layout
+  width or recalculating list/reader pane mode.
+- Native title bars and caption controls remain fixed while the active scene is
+  translated; dismissal, focus restoration, and reduced-motion behaviour are
+  covered.
 - Feed, scope, saved, later-reading, and search routes using the same workspace
   structure.
 - Reader-pane appearance and reader-bottom-overlay placement.
 - Settings title-bar persistence on native desktop, title-bar absence on
   content-only hosts, navigation geometry, centered paper width, and search
   dock placement.
+- Feed and settings navigation preferences remain independent, and the active
+  scene owns the shell toggle command.
 - macOS traffic-light visible/hidden/full-screen metrics, floating controls,
   capsule rail, overlay geometry, and native bridge behaviour.
 - Linux matching the Windows `titleBarExpected` profile where intended.
@@ -299,6 +439,13 @@ Every migration stage must retain or add focused tests for:
   areas must remain valid as the layout changes between split and single pane.
 - Phone navigation, single-pane list/reader transitions, and reader-bottom
   overlays respecting system safe areas.
+- Article routing retaining an embedded reader when the split fits, using a
+  temporary rail fallback when that makes the split fit, and pushing a
+  secondary reader page when no valid split fits.
+- Resizing an open article changes only its presentation and preserves page
+  identity, history depth, fallback back target, selection, and scroll state.
+- Title-bar command priority and overflow at the native minimum width, including
+  the update-available state.
 - Keyboard traversal and focus visibility on desktop-class Web and tablet
   environments with hardware keyboards.
 
