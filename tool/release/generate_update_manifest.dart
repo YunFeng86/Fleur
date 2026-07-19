@@ -5,8 +5,13 @@ const updateSchemaVersion = 1;
 const supportedChannels = {'stable', 'beta'};
 
 Future<void> main(List<String> arguments) async {
-  final options = CliOptions.parse(arguments);
-  await generateUpdateManifest(options);
+  try {
+    final options = CliOptions.parse(arguments);
+    await generateUpdateManifest(options);
+  } on StateError catch (error) {
+    stderr.writeln(error.message);
+    exitCode = 1;
+  }
 }
 
 Future<void> generateUpdateManifest(CliOptions options) async {
@@ -389,8 +394,6 @@ void writeJson(File file, Object? value) {
 }
 
 Never fail(String message) {
-  stderr.writeln(message);
-  exitCode = 1;
   throw StateError(message);
 }
 
