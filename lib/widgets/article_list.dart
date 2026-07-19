@@ -26,6 +26,7 @@ import '../ui/actions/subscription_actions.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/layout.dart';
 import '../ui/layout_spec.dart';
+import '../ui/adaptive_workspace_layout.dart';
 import '../ui/motion.dart';
 import '../ui/sidebar_layout.dart';
 import '../ui/workspace_layers.dart';
@@ -316,7 +317,7 @@ class _ArticleListState extends ConsumerState<ArticleList> {
             : '${widget.articleRoutePrefix}/article/${article.id}');
 
     if (openAsSecondaryPage) {
-      await context.push(loc);
+      await context.push(loc, extra: WorkspaceReaderPresentation.secondaryPage);
     } else {
       context.go(loc);
     }

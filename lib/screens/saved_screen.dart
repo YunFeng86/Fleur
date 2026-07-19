@@ -117,10 +117,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
           context,
         ).showsListSyncStatusCapsule;
         final width = constraints.maxWidth;
-        final spec = LayoutSpec.fromContentSize(
-          contentWidth: width,
-          contentHeight: MediaQuery.sizeOf(context).height,
-        );
+        final spec = LayoutSpec.fromContext(context);
         final isEmbedded = shouldEmbedReaderForLayout(
           spec,
           listWidth: kDesktopListWidth,
@@ -241,21 +238,20 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
               subtitle: l10n.savedReaderEmptySubtitle,
             );
           }
-          return ReadingPaneSurface(
-            child: ReaderView(
-              key: ValueKey('saved-reader-$id'),
-              articleId: id,
-              embedded: embedded,
-              showBack: !embedded,
-              fallbackBackLocation: _locationForMode(_mode),
-            ),
+          final reader = ReaderView(
+            key: ValueKey('saved-reader-$id'),
+            articleId: id,
+            embedded: embedded,
+            showBack: !embedded,
+            fallbackBackLocation: _locationForMode(_mode),
           );
+          if (!embedded) return reader;
+          return ReadingPaneSurface(child: reader);
         }
 
         final id = widget.selectedArticleId;
-        final content = !isEmbedded
-            // List-only; reader is a secondary route (or shown full page if deep-linked).
-            ? listPane()
+        final content = id != null && !isEmbedded
+            ? readerPane(embedded: false)
             : ArticleReaderWorkspaceLayout(
                 selectedArticleId: id,
                 contentWidth: width,

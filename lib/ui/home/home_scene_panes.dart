@@ -32,20 +32,24 @@ class HomeReaderPane extends StatelessWidget {
     super.key,
     required this.articleId,
     this.embedded = true,
+    this.fallbackBackLocation = '/',
   });
 
   final int articleId;
   final bool embedded;
+  final String fallbackBackLocation;
 
   @override
   Widget build(BuildContext context) {
-    return ReadingPaneSurface(
-      child: ReaderView(
-        key: ValueKey('home-reader-$articleId'),
-        articleId: articleId,
-        embedded: embedded,
-      ),
+    final reader = ReaderView(
+      key: ValueKey('home-reader-$articleId'),
+      articleId: articleId,
+      embedded: embedded,
+      showBack: !embedded,
+      fallbackBackLocation: fallbackBackLocation,
     );
+    if (!embedded) return reader;
+    return ReadingPaneSurface(child: reader);
   }
 }
 

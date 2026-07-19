@@ -21,6 +21,7 @@ import 'package:fleur/providers/unread_providers.dart';
 import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/settings/reader_settings.dart';
 import 'package:fleur/theme/app_theme.dart';
+import 'package:fleur/ui/adaptive_workspace_layout.dart';
 import 'package:fleur/utils/platform.dart';
 import 'package:fleur/widgets/reader_view.dart';
 
@@ -125,7 +126,10 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.text(article.title!), findsOneWidget);
 
-      final opened = router.push<void>('/all/article/42');
+      final opened = router.push<void>(
+        '/all/article/42',
+        extra: WorkspaceReaderPresentation.secondaryPage,
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 16));
 
@@ -139,6 +143,30 @@ void main() {
 
       expect(router.canPop(), isTrue);
       expect(find.byType(ReaderView), findsOneWidget);
+      expect(
+        tester.widget<ReaderView>(find.byType(ReaderView)).embedded,
+        isFalse,
+      );
+      expect(tester.takeException(), isNull);
+
+      tester.view.physicalSize = const Size(1200, 900);
+      await tester.pumpAndSettle();
+
+      expect(router.canPop(), isTrue);
+      expect(
+        tester.widget<ReaderView>(find.byType(ReaderView)).embedded,
+        isTrue,
+      );
+      expect(tester.takeException(), isNull);
+
+      tester.view.physicalSize = const Size(640, 900);
+      await tester.pumpAndSettle();
+
+      expect(router.canPop(), isTrue);
+      expect(
+        tester.widget<ReaderView>(find.byType(ReaderView)).embedded,
+        isFalse,
+      );
       expect(tester.takeException(), isNull);
 
       router.pop();

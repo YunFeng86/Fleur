@@ -249,11 +249,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ref.watch(workspaceListWidthProvider),
           width,
         );
-        final spec = LayoutSpec.fromContentSize(
-          contentWidth: width,
-          contentHeight: MediaQuery.sizeOf(context).height,
-          listWidth: listWidth,
-        );
+        final spec = LayoutSpec.fromContext(context);
         final isEmbedded = shouldEmbedReaderForLayout(
           spec,
           listWidth: kDesktopListWidth,
@@ -373,19 +369,21 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               subtitle: l10n.searchReaderEmptySubtitle,
             );
           }
-          return ReadingPaneSurface(
-            child: ReaderView(
-              key: ValueKey('search-reader-$id'),
-              articleId: id,
-              embedded: embedded,
-              showBack: !embedded,
-              fallbackBackLocation: searchLocation(routeState),
-            ),
+          final reader = ReaderView(
+            key: ValueKey('search-reader-$id'),
+            articleId: id,
+            embedded: embedded,
+            showBack: !embedded,
+            fallbackBackLocation: searchLocation(routeState),
           );
+          if (!embedded) return reader;
+          return ReadingPaneSurface(child: reader);
         }
 
         final id = widget.selectedArticleId;
-        final content = !showResults || !isEmbedded
+        final content = id != null && !isEmbedded
+            ? readerPane(embedded: false)
+            : !showResults
             ? listPane()
             : ArticleReaderWorkspaceLayout(
                 selectedArticleId: id,

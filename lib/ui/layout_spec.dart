@@ -158,7 +158,11 @@ class LayoutSpec {
     required bool hasReader,
   }) {
     final existing = workspaceArrangement;
-    if (existing != null && hasReader) return existing;
+    if (existing != null) {
+      final existingHasReader =
+          existing.readerPresentation != WorkspaceReaderPresentation.none;
+      if (existingHasReader == hasReader) return existing;
+    }
     final navigationMetrics = _arrangementUsesTotalWidth
         ? shellChromeLayout.workspaceNavigationMetrics
         : const WorkspaceNavigationMetrics(expandedExtent: 0, railExtent: 0);

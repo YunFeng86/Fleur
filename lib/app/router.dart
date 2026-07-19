@@ -11,15 +11,12 @@ import '../providers/core_providers.dart';
 import '../providers/navigation_history_provider.dart';
 import '../screens/add_subscription_screen.dart';
 import '../screens/reading_workspace_screen.dart';
-import '../screens/reader_screen.dart';
 import '../screens/search_screen.dart';
 import '../screens/settings_screen.dart';
 import '../theme/fleur_theme_extensions.dart';
-import '../utils/platform.dart';
+import '../ui/adaptive_workspace_layout.dart';
 import '../ui/app_menu.dart';
 import '../ui/app_shell.dart';
-import '../ui/layout.dart';
-import '../ui/layout_spec.dart';
 import '../ui/motion.dart';
 import '../ui/shell_chrome_layout.dart';
 import '../ui/sidebar_layout.dart';
@@ -37,22 +34,6 @@ final _shellNavigatorKey = GlobalKey<NavigatorState>(
 );
 
 final routerProvider = Provider<GoRouter>((ref) {
-  LayoutSpec routeLayoutSpec(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
-    final sidebarLayoutMode = sidebarLayoutModeForWidth(size.width);
-    final sidebarPresentationMode =
-        sidebarLayoutMode == SidebarLayoutMode.inline
-        ? ref.read(sidebarPresentationModeProvider)
-        : SidebarPresentationMode.collapsed;
-    return LayoutSpec.fromTotalSize(
-      totalWidth: size.width,
-      totalHeight: size.height,
-      sidebarPresentationMode: sidebarPresentationMode,
-      sidebarWidth: ref.read(workspaceSidebarWidthProvider),
-      listWidth: ref.read(workspaceListWidthProvider),
-    );
-  }
-
   Page<void> sectionPage({
     required GoRouterState state,
     required Widget child,
@@ -167,31 +148,19 @@ final routerProvider = Provider<GoRouter>((ref) {
     );
   }
 
-  Page<void> workspaceArticlePage(BuildContext context, GoRouterState state) {
+  Page<void> workspaceArticlePage(GoRouterState state) {
     final scope = scopeFromRoute(state);
     final id = scopedArticleIdFromRoute(state);
     if (id == null) return const NoTransitionPage(child: _NotFoundScreen());
 
-    final spec = routeLayoutSpec(context);
-    final embedsReader = shouldEmbedReaderForLayout(
-      spec,
-      listWidth: kHomeListWidth,
-    );
-
-    if (embedsReader) {
-      return sectionPage(
-        state: state,
-        pageKey: _workspaceSectionKey,
-        child: ReadingWorkspaceScreen(scope: scope, selectedArticleId: id),
-      );
+    final child = ReadingWorkspaceScreen(scope: scope, selectedArticleId: id);
+    if (state.extra == WorkspaceReaderPresentation.secondaryPage) {
+      return secondaryPage(state: state, child: child);
     }
-
-    return secondaryPage(
+    return sectionPage(
       state: state,
-      child: ReaderScreen(
-        articleId: id,
-        fallbackBackLocation: scopeLocation(scope),
-      ),
+      pageKey: _workspaceSectionKey,
+      child: child,
     );
   }
 
@@ -226,7 +195,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/all/article/:articleId',
             name: 'allArticle',
             pageBuilder: (context, state) {
-              return workspaceArticlePage(context, state);
+              return workspaceArticlePage(state);
             },
           ),
           GoRoute(
@@ -247,7 +216,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/starred/article/:articleId',
             name: 'starredArticle',
             pageBuilder: (context, state) {
-              return workspaceArticlePage(context, state);
+              return workspaceArticlePage(state);
             },
           ),
           GoRoute(
@@ -268,7 +237,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/read-later/article/:articleId',
             name: 'readLaterArticle',
             pageBuilder: (context, state) {
-              return workspaceArticlePage(context, state);
+              return workspaceArticlePage(state);
             },
           ),
           GoRoute(
@@ -293,7 +262,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/feed/:feedId/article/:articleId',
             name: 'feedArticle',
             pageBuilder: (context, state) {
-              return workspaceArticlePage(context, state);
+              return workspaceArticlePage(state);
             },
           ),
           GoRoute(
@@ -318,7 +287,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/category/:categoryId/article/:articleId',
             name: 'categoryArticle',
             pageBuilder: (context, state) {
-              return workspaceArticlePage(context, state);
+              return workspaceArticlePage(state);
             },
           ),
           GoRoute(
@@ -343,7 +312,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/tag/:tagId/article/:articleId',
             name: 'tagArticle',
             pageBuilder: (context, state) {
-              return workspaceArticlePage(context, state);
+              return workspaceArticlePage(state);
             },
           ),
           GoRoute(
@@ -383,52 +352,17 @@ final routerProvider = Provider<GoRouter>((ref) {
               }
 
               final routeState = searchStateFromUri(state.uri);
-              final fallbackBackLocation = searchLocation(routeState);
-              final spec = routeLayoutSpec(context);
-
-              if (isDesktop) {
-                if (shouldEmbedReaderForLayout(
-                  spec,
-                  listWidth: kDesktopListWidth,
-                )) {
-                  return sectionPage(
-                    state: state,
-                    pageKey: _searchSectionKey,
-                    child: SearchScreen(
-                      selectedArticleId: id,
-                      routeState: routeState,
-                    ),
-                  );
-                }
-                return secondaryPage(
-                  state: state,
-                  child: ReaderScreen(
-                    articleId: id,
-                    fallbackBackLocation: fallbackBackLocation,
-                  ),
-                );
+              final child = SearchScreen(
+                selectedArticleId: id,
+                routeState: routeState,
+              );
+              if (state.extra == WorkspaceReaderPresentation.secondaryPage) {
+                return secondaryPage(state: state, child: child);
               }
-
-              if (shouldEmbedReaderForLayout(
-                spec,
-                listWidth: kDesktopListWidth,
-              )) {
-                return sectionPage(
-                  state: state,
-                  pageKey: _searchSectionKey,
-                  child: SearchScreen(
-                    selectedArticleId: id,
-                    routeState: routeState,
-                  ),
-                );
-              }
-
-              return secondaryPage(
+              return sectionPage(
                 state: state,
-                child: ReaderScreen(
-                  articleId: id,
-                  fallbackBackLocation: fallbackBackLocation,
-                ),
+                pageKey: _searchSectionKey,
+                child: child,
               );
             },
           ),

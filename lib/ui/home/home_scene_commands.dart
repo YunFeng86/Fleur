@@ -22,6 +22,7 @@ import '../../services/sync/sync_service.dart';
 import '../../utils/platform.dart';
 import '../layout.dart';
 import '../layout_spec.dart';
+import '../adaptive_workspace_layout.dart';
 
 enum HomeRefreshIntent {
   refreshFeed,
@@ -223,9 +224,10 @@ class HomeSceneCommands {
     final location = scopedArticleLocation(scope, articleId);
     final spec = LayoutSpec.fromContext(_context);
     final listWidth = isDesktop ? spec.listWidth : kHomeListWidth;
-    final openAsSecondaryPage = isDesktop
-        ? !spec.desktopEmbedsReader
-        : !spec.canEmbedReader(listWidth: listWidth);
+    final openAsSecondaryPage = !shouldEmbedReaderForLayout(
+      spec,
+      listWidth: listWidth,
+    );
 
     if (!openAsSecondaryPage) {
       _context.go(location);
@@ -233,7 +235,12 @@ class HomeSceneCommands {
     }
 
     if (selectedArticleId == null) {
-      unawaited(_context.push<void>(location));
+      unawaited(
+        _context.push<void>(
+          location,
+          extra: WorkspaceReaderPresentation.secondaryPage,
+        ),
+      );
       return;
     }
     _context.replace(location);

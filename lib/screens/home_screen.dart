@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fleur/l10n/app_localizations.dart';
 
+import '../app/article_scope_routes.dart';
 import '../providers/backend_capabilities_provider.dart';
 import '../providers/backend_sync_semantics_provider.dart';
 import '../providers/core_providers.dart';
@@ -94,6 +95,25 @@ class HomeScreen extends ConsumerWidget {
           ref.watch(workspaceListWidthProvider),
           width,
         );
+        final arrangement = LayoutSpec.fromContext(context)
+            .resolveFeedArrangement(
+              listWidth: kHomeListWidth,
+              hasReader: selectedArticleId != null,
+            );
+        final articleId = selectedArticleId;
+        if (articleId != null && arrangement.showsSecondaryReader) {
+          final fallbackLocation = scopeLocation(
+            ref.watch(currentArticleScopeProvider),
+          );
+          return HomeSceneShortcuts(
+            commands: commands,
+            child: HomeReaderPane(
+              articleId: articleId,
+              embedded: false,
+              fallbackBackLocation: fallbackLocation,
+            ),
+          );
+        }
         final columns = homeColumnsForWidth(width);
 
         if (isDesktop) {
