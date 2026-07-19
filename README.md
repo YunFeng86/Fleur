@@ -137,6 +137,7 @@ lib/
 ├── providers/    # Riverpod providers and controllers
 ├── services/     # RSS, sync, extraction, settings, AI, notifications
 ├── screens/      # Top-level screens
+├── ui/           # Shell, adaptive layout, scene chrome, dialogs, actions
 ├── widgets/      # Reusable UI components
 ├── theme/        # Theme and design tokens
 ├── l10n/         # Localization files
@@ -162,10 +163,9 @@ lib/
 
 ### Why is Fleur 1.0 macOS-only?
 
-Fleur's recent work has focused on making the desktop reading experience feel
-native on macOS: window chrome, keyboard navigation, split workspaces, reader
-layout, and menu behavior. Releasing 1.0 as macOS-first keeps the support
-promise honest.
+Fleur 1.0 focuses on making the desktop reading experience feel native on
+macOS: window chrome, keyboard navigation, split workspaces, reader layout, and
+menu behavior. Releasing 1.0 as macOS-first keeps the support promise honest.
 
 ### Why is the macOS app unsigned and not notarized?
 

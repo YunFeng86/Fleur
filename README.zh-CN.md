@@ -119,6 +119,7 @@ lib/
 ├── providers/    # Riverpod providers 和 controllers
 ├── services/     # RSS、同步、提取、设置、AI、通知
 ├── screens/      # 顶层页面
+├── ui/           # 外壳、自适应布局、场景 chrome、对话框与操作
 ├── widgets/      # 可复用 UI 组件
 ├── theme/        # 主题和设计 token
 ├── l10n/         # 本地化文件
@@ -144,7 +145,7 @@ lib/
 
 ### 为什么 Fleur 1.0 只发布 macOS 版本？
 
-Fleur 最近的工作主要集中在让桌面阅读体验更贴近 macOS：窗口控制、键盘导航、分栏工作区、阅读器布局和菜单行为。把 1.0 定义为 macOS-first，可以让支持承诺更诚实。
+Fleur 1.0 的开发重点是让桌面阅读体验更贴近 macOS：窗口控制、键盘导航、分栏工作区、阅读器布局和菜单行为。把 1.0 定义为 macOS-first，可以让支持承诺更诚实。
 
 ### 为什么 macOS 应用未签名、未公证？
 

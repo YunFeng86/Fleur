@@ -40,8 +40,11 @@ flutter test
 
 ## Current Boundary Contract
 
-- Windows 10/11 is the only officially supported platform in this repository.
-- Android, iOS, macOS, and Linux are preview targets: useful for local validation, but not yet described as production-ready release paths.
+- macOS 10.15+ is the official Fleur 1.0 release target.
+- Windows and Linux retain maintained desktop source targets, including their
+  custom title bar and connected navigation chrome, but are not official 1.0
+  release artifacts.
+- Android and iOS are experimental source targets for local validation.
 - Web is currently unsupported in this repository; `flutter build web` is expected to fail until the current web-target blockers are resolved.
 
 ## Architecture Overview
@@ -108,22 +111,23 @@ isarProvider (overridden in main.dart)
 
 ### Routing Behavior
 
-- `/` - Home screen with progressive pane layout (feeds | article list | reader)
-- `/article/:id` - Article reader (responsive: embeds in right pane when space allows)
-- `/saved` - Saved/bookmarked articles screen
-- `/saved/article/:id` - Reader for saved articles
-- `/search` - Article search screen
-- `/search/article/:id` - Reader for search results
-- `/settings` - Settings screen
+- `/all`, `/starred`, `/read-later` - top-level article scopes
+- `/feed/:feedId`, `/category/:categoryId`, `/tag/:tagId` - scoped article lists
+- Each article scope has a nested `/article/:articleId` route
+- `/search` and `/search/article/:id` - search list and responsive reader
+- `/add-subscription` - subscription task page
+- `/settings` - settings scene inside the shared application shell
 
-**Global Navigation**: Four destinations (Feeds, Saved, Search, Settings) accessed via:
-- NavigationRail on desktop ≥900px width
-- BottomNavigationBar on narrower screens
-
-**Responsive Layout**:
-- Desktop ≥900px: 3-pane (sidebar | list | reader) → 2-pane (drawer | list+reader) → 1-pane
-- Mobile/tablet: Adaptive 1/2/3 column layout based on available width
-- Minimum reader width: 450px (kMinReadingWidth)
+**Responsive workspace**:
+- `AdaptiveWorkspaceArrangement.resolve()` is the single source of truth for
+  `expanded`, `rail`, and `offCanvas` navigation plus embedded/secondary reader
+  presentation.
+- Route history remains stable while resizing changes reader presentation.
+- Feed and settings navigation preferences are independent.
+- macOS uses integrated traffic-light chrome and a floating capsule rail;
+  Windows/Linux use a persistent custom title bar with connected left chrome.
+- See `docs/adr/0001-unify-shell-and-adaptive-workspace-layout.md` before
+  changing shell, navigation, settings, or reader geometry.
 
 ### Code Generation (Isar)
 
@@ -154,10 +158,12 @@ All models in `models/` use `@collection` annotation and require code generation
 - Remember: `isarProvider` must be overridden in `main()` after DB initialization
 
 **Layout Decisions**:
-- Use `LayoutSpec.fromContext(context)` to get current layout info
-- Respect `kMinReadingWidth` (450px) when showing reader side-by-side
-- Consider `desktopPaneMode` for desktop-specific layouts
-- Global nav switches between rail (≥900px) and bottom bar (<900px)
+- Resolve host chrome through `ShellChromeLayout.resolve()`.
+- Consume the active `AdaptiveWorkspaceArrangement` from `ShellLayerScope`
+  instead of repeating width checks inside screens or routes.
+- Respect `kMinReadingWidth` (450px) when changing reader pane composition.
+- Keep platform-specific window operations behind the macOS bridge or
+  `window_manager`; product scenes must not create native caption controls.
 
 ### Services
 
@@ -187,7 +193,9 @@ All models in `models/` use `@collection` annotation and require code generation
 
 ### Internationalization
 
-Supported languages: English (`en`), Simplified Chinese (`zh`), Traditional Chinese (`zh_Hant`).
+Primary languages are English (`en`), Simplified Chinese (`zh`), and
+Traditional Chinese (`zh_Hant`). German, Spanish, French, Japanese, Korean,
+Portuguese, and Brazilian Portuguese are present as beta/experimental locales.
 
 Add localization keys to all ARB files in `l10n/` and run `flutter pub get` to regenerate `app_localizations.dart`.
 
