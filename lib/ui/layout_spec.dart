@@ -1,8 +1,10 @@
 import 'package:flutter/widgets.dart';
 
 import '../utils/platform.dart';
-import 'sidebar_layout.dart';
+import 'adaptive_workspace_layout.dart';
 import 'layout.dart';
+import 'shell_chrome_layout.dart';
+import 'sidebar_layout.dart';
 import 'workspace_layers.dart';
 
 /// A single source of truth for responsive/layout decisions.
@@ -19,7 +21,11 @@ class LayoutSpec {
     required this.sidebarLayoutMode,
     required this.sidebarWidth,
     required this.listWidth,
-  });
+    required this.preferredSidebarPresentationMode,
+    required this.shellChromeLayout,
+    required bool arrangementUsesTotalWidth,
+    this.workspaceArrangement,
+  }) : _arrangementUsesTotalWidth = arrangementUsesTotalWidth;
 
   factory LayoutSpec.fromTotalSize({
     required double totalWidth,
@@ -28,6 +34,7 @@ class LayoutSpec {
         SidebarPresentationMode.expanded,
     double sidebarWidth = kDefaultWorkspaceSidebarWidth,
     double listWidth = kDefaultWorkspaceListWidth,
+    ShellChromeLayout? shellChromeLayout,
   }) {
     final effectiveSidebarWidth = clampWorkspaceSidebarWidth(
       sidebarWidth,
@@ -46,6 +53,9 @@ class LayoutSpec {
       sidebarLayoutMode: sidebarLayoutModeForWidth(totalWidth),
       sidebarWidth: effectiveSidebarWidth,
       listWidth: clampWorkspaceListWidth(listWidth, contentWidth),
+      preferredSidebarPresentationMode: sidebarPresentationMode,
+      shellChromeLayout: shellChromeLayout ?? ShellChromeLayout.resolve(),
+      arrangementUsesTotalWidth: true,
     );
   }
 
@@ -58,6 +68,7 @@ class LayoutSpec {
     required double contentWidth,
     required double contentHeight,
     double listWidth = kDefaultWorkspaceListWidth,
+    ShellChromeLayout? shellChromeLayout,
   }) {
     return LayoutSpec._(
       totalWidth: contentWidth,
@@ -67,6 +78,9 @@ class LayoutSpec {
       sidebarLayoutMode: sidebarLayoutModeForWidth(contentWidth),
       sidebarWidth: kDefaultWorkspaceSidebarWidth,
       listWidth: clampWorkspaceListWidth(listWidth, contentWidth),
+      preferredSidebarPresentationMode: SidebarPresentationMode.collapsed,
+      shellChromeLayout: shellChromeLayout ?? ShellChromeLayout.resolve(),
+      arrangementUsesTotalWidth: false,
     );
   }
 
@@ -84,6 +98,12 @@ class LayoutSpec {
           shellLayer.listWidth,
           shellLayer.contentSize.width,
         ),
+        preferredSidebarPresentationMode:
+            shellLayer.preferredSidebarPresentationMode,
+        shellChromeLayout:
+            shellLayer.shellChromeLayout ?? ShellChromeLayout.resolve(),
+        arrangementUsesTotalWidth: true,
+        workspaceArrangement: shellLayer.workspaceArrangement,
       );
     }
 
@@ -101,6 +121,10 @@ class LayoutSpec {
   final SidebarLayoutMode sidebarLayoutMode;
   final double sidebarWidth;
   final double listWidth;
+  final SidebarPresentationMode preferredSidebarPresentationMode;
+  final ShellChromeLayout shellChromeLayout;
+  final AdaptiveWorkspaceArrangement? workspaceArrangement;
+  final bool _arrangementUsesTotalWidth;
 
   bool get isDesktopPlatform => isDesktop;
 
@@ -128,18 +152,30 @@ class LayoutSpec {
   bool get isCompact => contentWidth < kCompactWidth;
 
   bool get canSwipeToDelete => !isDesktopPlatform;
+
+  AdaptiveWorkspaceArrangement resolveFeedArrangement({
+    required double listWidth,
+    required bool hasReader,
+  }) {
+    final existing = workspaceArrangement;
+    if (existing != null && hasReader) return existing;
+    final navigationMetrics = _arrangementUsesTotalWidth
+        ? shellChromeLayout.workspaceNavigationMetrics
+        : const WorkspaceNavigationMetrics(expandedExtent: 0, railExtent: 0);
+    return AdaptiveWorkspaceArrangement.resolve(
+      totalWidth: _arrangementUsesTotalWidth ? totalWidth : contentWidth,
+      preferredNavigation: preferredSidebarPresentationMode,
+      navigationMetrics: navigationMetrics,
+      requirements: WorkspaceLayoutRequirements.feed(listWidth: listWidth),
+      hasReader: hasReader,
+    );
+  }
 }
 
 bool shouldEmbedReaderForLayout(LayoutSpec spec, {required double listWidth}) {
-  if (!spec.isDesktopPlatform) {
-    return spec.canEmbedReader(listWidth: listWidth);
-  }
-
-  return canEmbedDesktopReaderForContentWidth(
-        spec.contentWidth,
-        preferredListWidth: listWidth,
-      ) ||
-      shouldCollapseSidebarForReaderLayout(spec, preferredListWidth: listWidth);
+  return spec
+      .resolveFeedArrangement(listWidth: listWidth, hasReader: true)
+      .readerEmbedded;
 }
 
 bool canEmbedDesktopReaderForContentWidth(
@@ -157,23 +193,7 @@ bool shouldCollapseSidebarForReaderLayout(
   LayoutSpec spec, {
   required double preferredListWidth,
 }) {
-  if (!spec.isDesktopPlatform) return false;
-  if (!spec.hasInlineSidebar) return false;
-  if (spec.contentWidth >= spec.totalWidth) return false;
-  if (canEmbedDesktopReaderForContentWidth(
-    spec.contentWidth,
-    preferredListWidth: preferredListWidth,
-  )) {
-    return false;
-  }
-
-  final collapsedContentWidth = effectiveContentWidth(
-    spec.totalWidth,
-    sidebarPresentationMode: SidebarPresentationMode.collapsed,
-    sidebarWidth: spec.sidebarWidth,
-  );
-  return canEmbedDesktopReaderForContentWidth(
-    collapsedContentWidth,
-    preferredListWidth: preferredListWidth,
-  );
+  return spec
+      .resolveFeedArrangement(listWidth: preferredListWidth, hasReader: true)
+      .navigationTemporarilyCollapsed;
 }

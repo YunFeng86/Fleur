@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 
 import '../utils/platform.dart';
+import 'adaptive_workspace_layout.dart';
+import 'sidebar_layout.dart';
 
 enum ShellChromeProfile { integratedCorner, titleBarExpected, contentOnly }
 
@@ -64,4 +66,18 @@ class ShellChromeLayout {
 
   bool get usesFloatingLeadingControls =>
       controlsPlacement == ShellControlsPlacement.floatingLeading;
+
+  WorkspaceNavigationMetrics get workspaceNavigationMetrics {
+    final railExtent = switch (profile) {
+      ShellChromeProfile.integratedCorner =>
+        kSidebarRailWidth + kRailOverlayContentGap,
+      ShellChromeProfile.titleBarExpected => kTitleBarExpectedSidebarRailWidth,
+      ShellChromeProfile.contentOnly => kSidebarRailWidth,
+    };
+    return WorkspaceNavigationMetrics(
+      expandedExtent:
+          kDefaultWorkspaceSidebarWidth + kSidebarContentDividerWidth,
+      railExtent: railExtent,
+    );
+  }
 }

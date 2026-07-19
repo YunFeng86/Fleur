@@ -10,6 +10,7 @@ import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../utils/macos_window_chrome_bridge.dart';
 import '../utils/platform.dart';
+import 'adaptive_workspace_layout.dart';
 import 'shell_chrome_layout.dart';
 import 'sidebar_layout.dart';
 
@@ -76,6 +77,8 @@ class ShellLayerScope extends InheritedWidget {
     required this.headerLeadingInset,
     required this.macOSWindowChromeMetrics,
     this.shellChromeLayout,
+    this.preferredSidebarPresentationMode = SidebarPresentationMode.expanded,
+    this.workspaceArrangement,
     required super.child,
   });
 
@@ -90,6 +93,8 @@ class ShellLayerScope extends InheritedWidget {
   final double headerLeadingInset;
   final MacOSWindowChromeMetrics macOSWindowChromeMetrics;
   final ShellChromeLayout? shellChromeLayout;
+  final SidebarPresentationMode preferredSidebarPresentationMode;
+  final AdaptiveWorkspaceArrangement? workspaceArrangement;
 
   static ShellLayerScope? maybeOf(BuildContext context) {
     return context.dependOnInheritedWidgetOfExactType<ShellLayerScope>();
@@ -107,7 +112,10 @@ class ShellLayerScope extends InheritedWidget {
         listWidth != oldWidget.listWidth ||
         headerLeadingInset != oldWidget.headerLeadingInset ||
         macOSWindowChromeMetrics != oldWidget.macOSWindowChromeMetrics ||
-        shellChromeLayout != oldWidget.shellChromeLayout;
+        shellChromeLayout != oldWidget.shellChromeLayout ||
+        preferredSidebarPresentationMode !=
+            oldWidget.preferredSidebarPresentationMode ||
+        workspaceArrangement != oldWidget.workspaceArrangement;
   }
 }
 
