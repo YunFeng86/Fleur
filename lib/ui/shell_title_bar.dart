@@ -2,35 +2,16 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:fleur/l10n/app_localizations.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../services/update/app_update_manifest.dart';
-import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
-import '../widgets/fleur_shell_icon_button.dart';
+import 'shell_control_strip.dart';
 import 'shell_chrome_layout.dart';
 import 'sidebar_layout.dart';
-import 'update/app_update_dialog.dart';
 import 'workspace_layers.dart';
 
-class ShellWindowTitleBarCommands {
-  const ShellWindowTitleBarCommands({
-    required this.onToggleSidebar,
-    required this.onBack,
-    required this.onForward,
-    required this.onSearch,
-    required this.canGoBack,
-    required this.canGoForward,
-  });
-
-  final VoidCallback onToggleSidebar;
-  final VoidCallback onBack;
-  final VoidCallback onForward;
-  final VoidCallback onSearch;
-  final bool canGoBack;
-  final bool canGoForward;
-}
+export 'shell_control_strip.dart' show ShellWindowTitleBarCommands;
 
 class ShellWindowTitleBar extends StatelessWidget {
   const ShellWindowTitleBar({
@@ -41,6 +22,7 @@ class ShellWindowTitleBar extends StatelessWidget {
     this.updateManifest,
     this.leadingLeft = 0,
     this.dividerLeadingInset = 0,
+    this.navigationToggleFocusNode,
   });
 
   final ShellWindowTitleBarCommands? commands;
@@ -49,6 +31,7 @@ class ShellWindowTitleBar extends StatelessWidget {
   final AppUpdateManifest? updateManifest;
   final double leadingLeft;
   final double dividerLeadingInset;
+  final FocusNode? navigationToggleFocusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -78,6 +61,7 @@ class ShellWindowTitleBar extends StatelessWidget {
                   commands: commands,
                   searchSelected: searchSelected,
                   updateManifest: updateManifest,
+                  navigationToggleFocusNode: navigationToggleFocusNode,
                 ),
               ),
             const Positioned(
@@ -111,119 +95,24 @@ class _ShellWindowControlsHost extends StatelessWidget {
     required this.commands,
     required this.searchSelected,
     required this.updateManifest,
+    required this.navigationToggleFocusNode,
   });
 
   final SidebarPresentationMode presentationMode;
   final ShellWindowTitleBarCommands commands;
   final bool searchSelected;
   final AppUpdateManifest? updateManifest;
+  final FocusNode? navigationToggleFocusNode;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final sidebarExpanded =
-        presentationMode == SidebarPresentationMode.expanded;
-    final controls = [
-      _ShellControlData(
-        key: const Key('shell_sidebar_button'),
-        tooltip: sidebarExpanded ? l10n.collapse : l10n.expand,
-        onPressed: commands.onToggleSidebar,
-        icon: sidebarExpanded
-            ? FleurIcons.sidebarCollapse
-            : FleurIcons.sidebarExpand,
-      ),
-      _ShellControlData(
-        key: const Key('shell_back_button'),
-        tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-        onPressed: commands.canGoBack ? commands.onBack : null,
-        icon: FleurIcons.back,
-      ),
-      _ShellControlData(
-        key: const Key('shell_forward_button'),
-        tooltip: l10n.forward,
-        onPressed: commands.canGoForward ? commands.onForward : null,
-        icon: FleurIcons.forward,
-      ),
-      _ShellControlData(
-        key: const Key('shell_search_button'),
-        tooltip: l10n.search,
-        onPressed: commands.onSearch,
-        icon: searchSelected ? FleurIcons.searchSelected : FleurIcons.search,
-        selected: searchSelected,
-      ),
-      if (updateManifest != null)
-        _ShellControlData(
-          key: const Key('shell_update_button'),
-          tooltip: l10n.updateAvailable,
-          onPressed: () {
-            unawaited(showAppUpdateDialog(context, manifest: updateManifest!));
-          },
-          icon: FleurIcons.download,
-          selected: true,
-        ),
-    ];
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (final control in controls)
-          _ShellControlButton(
-            key: control.key,
-            tooltip: control.tooltip,
-            onPressed: control.onPressed,
-            icon: control.icon,
-            selected: control.selected,
-          ),
-      ],
-    );
-  }
-}
-
-class _ShellControlData {
-  const _ShellControlData({
-    required this.key,
-    required this.tooltip,
-    required this.onPressed,
-    required this.icon,
-    this.selected = false,
-  });
-
-  final Key key;
-  final String tooltip;
-  final VoidCallback? onPressed;
-  final IconData icon;
-  final bool selected;
-}
-
-class _ShellControlButton extends StatelessWidget {
-  const _ShellControlButton({
-    super.key,
-    required this.tooltip,
-    required this.onPressed,
-    required this.icon,
-    this.selected = false,
-  });
-
-  final String tooltip;
-  final VoidCallback? onPressed;
-  final IconData icon;
-  final bool selected;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final disabledOpacity = theme.brightness == Brightness.dark ? 0.22 : 0.28;
-
-    return IconButton(
-      tooltip: tooltip,
-      onPressed: onPressed,
-      icon: Icon(icon, size: kShellControlIconSize),
-      style: FleurShellIconButtonStyle.styleFor(
-        context,
-        selected: selected,
-        size: kShellControlSize,
-        disabledOpacity: disabledOpacity,
-      ),
+    return ShellControlStrip(
+      commands: commands,
+      presentationMode: presentationMode,
+      surface: ShellControlStripSurface.flat,
+      searchSelected: searchSelected,
+      updateManifest: updateManifest,
+      navigationToggleFocusNode: navigationToggleFocusNode,
     );
   }
 }

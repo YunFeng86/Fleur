@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fleur/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
 import '../app/article_scope_routes.dart';
@@ -12,11 +11,7 @@ import '../providers/app_update_providers.dart';
 import '../providers/core_providers.dart';
 import '../providers/navigation_history_provider.dart';
 import '../services/update/app_update_manifest.dart';
-import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
-import '../ui/update/app_update_dialog.dart';
-import '../widgets/fleur_capsule_button_group.dart';
-import '../widgets/fleur_shell_icon_button.dart';
 import '../widgets/sidebar.dart';
 import '../utils/platform.dart';
 import 'adaptive_workspace_layout.dart';
@@ -25,6 +20,7 @@ import 'app_menu.dart';
 import 'layout.dart';
 import 'layout_spec.dart';
 import 'shell_chrome_layout.dart';
+import 'shell_control_strip.dart';
 import 'shell_frame_geometry.dart';
 import 'shell_title_bar.dart';
 import 'sidebar_layout.dart';
@@ -46,6 +42,19 @@ class _AppShellState extends ConsumerState<AppShell> {
   double? _sidebarResizeVirtualWidth;
   GoRouter? _pendingNavigationHistoryRouter;
   Size? _lastWindowSize;
+  final FocusNode _navigationToggleFocusNode = FocusNode(
+    debugLabel: 'shell-navigation-toggle',
+  );
+  final FocusNode _temporaryNavigationFocusNode = FocusNode(
+    debugLabel: 'shell-temporary-navigation',
+  );
+
+  @override
+  void dispose() {
+    _navigationToggleFocusNode.dispose();
+    _temporaryNavigationFocusNode.dispose();
+    super.dispose();
+  }
 
   @override
   void didChangeDependencies() {
@@ -119,6 +128,10 @@ class _AppShellState extends ConsumerState<AppShell> {
   void _closeTemporarySidebar() {
     if (!_temporarySidebarOpen) return;
     setState(() => _temporarySidebarOpen = false);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_navigationToggleFocusNode.canRequestFocus) return;
+      _navigationToggleFocusNode.requestFocus();
+    });
   }
 
   void _toggleResolvedNavigation(
@@ -143,6 +156,10 @@ class _AppShellState extends ConsumerState<AppShell> {
           SidebarPresentationMode.expanded;
     }
     setState(() => _temporarySidebarOpen = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_temporaryNavigationFocusNode.canRequestFocus) return;
+      _temporaryNavigationFocusNode.requestFocus();
+    });
   }
 
   void _beginSidebarResize(double sidebarWidth) {
@@ -258,6 +275,7 @@ class _AppShellState extends ConsumerState<AppShell> {
             commands: commands,
             searchSelected: searchSelected,
             updateManifest: updateManifest,
+            navigationToggleFocusNode: _navigationToggleFocusNode,
           ),
         ),
       ],
@@ -503,6 +521,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                       updateManifest: shellShowsUpdate ? updateManifest : null,
                       leadingLeft: controlsLeft,
                       dividerLeadingInset: geometry.dividerLeadingInset,
+                      navigationToggleFocusNode: _navigationToggleFocusNode,
                     ),
                   ),
                 if (sidebarExpanded ||
@@ -516,20 +535,27 @@ class _AppShellState extends ConsumerState<AppShell> {
                         ? visibleSidebarWidth
                         : collapsedRailWidth,
                     child: sidebarExpanded || temporarySidebarOpen
-                        ? _desktopSidebar(
-                            context: context,
-                            width: visibleSidebarWidth,
-                            showAccountSyncStatus: showAccountSyncStatus,
-                            currentUri: widget.currentUri,
-                            macOSWindowChromeMetrics: macOSWindowChromeMetrics,
-                            shellChromeLayout: shellChromeLayout,
-                            onSearch:
-                                !shellChromeLayout.placesControlsInTitleBar &&
-                                    (sidebarExpanded || temporarySidebarOpen)
-                                ? () => _goToSearch(context)
+                        ? Focus(
+                            focusNode: temporarySidebarOpen
+                                ? _temporaryNavigationFocusNode
                                 : null,
-                            presentationModeOverride:
-                                SidebarPresentationMode.expanded,
+                            autofocus: temporarySidebarOpen,
+                            child: _desktopSidebar(
+                              context: context,
+                              width: visibleSidebarWidth,
+                              showAccountSyncStatus: showAccountSyncStatus,
+                              currentUri: widget.currentUri,
+                              macOSWindowChromeMetrics:
+                                  macOSWindowChromeMetrics,
+                              shellChromeLayout: shellChromeLayout,
+                              onSearch:
+                                  !shellChromeLayout.placesControlsInTitleBar &&
+                                      (sidebarExpanded || temporarySidebarOpen)
+                                  ? () => _goToSearch(context)
+                                  : null,
+                              presentationModeOverride:
+                                  SidebarPresentationMode.expanded,
+                            ),
                           )
                         : KeyedSubtree(
                             key: const Key('app_shell_connected_rail'),
@@ -723,6 +749,9 @@ class _AppShellState extends ConsumerState<AppShell> {
 
     return _ShellHistoryShortcuts(
       commands: shortcutCommands,
+      onDismissNavigation: _temporarySidebarOpen
+          ? _closeTemporarySidebar
+          : null,
       child: _buildDesktopLayeredShell(
         context: context,
         ref: ref,
@@ -915,11 +944,20 @@ class _ShellHistoryForwardIntent extends Intent {
   const _ShellHistoryForwardIntent();
 }
 
+class _DismissShellNavigationIntent extends Intent {
+  const _DismissShellNavigationIntent();
+}
+
 class _ShellHistoryShortcuts extends StatelessWidget {
-  const _ShellHistoryShortcuts({required this.commands, required this.child});
+  const _ShellHistoryShortcuts({
+    required this.commands,
+    required this.child,
+    this.onDismissNavigation,
+  });
 
   final ShellNavigationCommands commands;
   final Widget child;
+  final VoidCallback? onDismissNavigation;
 
   @override
   Widget build(BuildContext context) {
@@ -934,6 +972,9 @@ class _ShellHistoryShortcuts extends StatelessWidget {
         SingleActivator(LogicalKeyboardKey.bracketRight, meta: true):
             _ShellHistoryForwardIntent(),
       },
+      if (onDismissNavigation != null)
+        const SingleActivator(LogicalKeyboardKey.escape):
+            const _DismissShellNavigationIntent(),
     };
     return Shortcuts(
       shortcuts: shortcuts,
@@ -952,6 +993,13 @@ class _ShellHistoryShortcuts extends StatelessWidget {
                   return null;
                 },
               ),
+          _DismissShellNavigationIntent:
+              CallbackAction<_DismissShellNavigationIntent>(
+                onInvoke: (intent) {
+                  onDismissNavigation?.call();
+                  return null;
+                },
+              ),
         },
         child: Focus(autofocus: true, child: child),
       ),
@@ -966,6 +1014,7 @@ class _InlineShellControlsHost extends StatelessWidget {
     required this.commands,
     required this.searchSelected,
     required this.updateManifest,
+    required this.navigationToggleFocusNode,
   });
 
   final SidebarPresentationMode presentationMode;
@@ -973,145 +1022,26 @@ class _InlineShellControlsHost extends StatelessWidget {
   final ShellNavigationCommands commands;
   final bool searchSelected;
   final AppUpdateManifest? updateManifest;
+  final FocusNode navigationToggleFocusNode;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     final sidebarExpanded =
         presentationMode == SidebarPresentationMode.expanded;
     final placesSearchInShell =
         shellChromeLayout.placesControlsInTitleBar || !sidebarExpanded;
     final updateManifest = placesSearchInShell ? this.updateManifest : null;
-    final controls = [
-      _ShellControlData(
-        key: const Key('shell_sidebar_button'),
-        tooltip: sidebarExpanded ? l10n.collapse : l10n.expand,
-        onPressed: commands.toggleSidebar,
-        icon: sidebarExpanded
-            ? FleurIcons.sidebarCollapse
-            : FleurIcons.sidebarExpand,
-      ),
-      _ShellControlData(
-        key: const Key('shell_back_button'),
-        tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-        onPressed: commands.canGoBack ? commands.goBack : null,
-        icon: FleurIcons.back,
-      ),
-      _ShellControlData(
-        key: const Key('shell_forward_button'),
-        tooltip: AppLocalizations.of(context)!.forward,
-        onPressed: commands.canGoForward ? commands.goForward : null,
-        icon: FleurIcons.forward,
-      ),
-      if (shellChromeLayout.placesControlsInTitleBar && placesSearchInShell)
-        _ShellControlData(
-          key: const Key('shell_search_button'),
-          tooltip: l10n.search,
-          onPressed: commands.goToSearch,
-          icon: searchSelected ? FleurIcons.searchSelected : FleurIcons.search,
-          selected: searchSelected,
-        ),
-      if (updateManifest != null)
-        _ShellControlData(
-          key: const Key('shell_update_button'),
-          tooltip: l10n.updateAvailable,
-          onPressed: () {
-            unawaited(showAppUpdateDialog(context, manifest: updateManifest));
-          },
-          icon: FleurIcons.download,
-          selected: true,
-        ),
-      if (!shellChromeLayout.placesControlsInTitleBar && placesSearchInShell)
-        _ShellControlData(
-          key: const Key('shell_search_button'),
-          tooltip: l10n.search,
-          onPressed: commands.goToSearch,
-          icon: searchSelected ? FleurIcons.searchSelected : FleurIcons.search,
-          selected: searchSelected,
-        ),
-    ];
-
-    if (!sidebarExpanded && shellChromeLayout.usesFloatingLeadingControls) {
-      return FleurCapsuleButtonGroup(
-        key: const Key('shell_controls_capsule'),
-        height: kShellControlCapsuleHeight,
-        padding: EdgeInsets.zero,
-        children: [
-          for (final control in controls)
-            FleurCapsuleIconButton(
-              key: control.key,
-              tooltip: control.tooltip,
-              onPressed: control.onPressed,
-              icon: control.icon,
-              selected: control.selected,
-              size: kShellControlSize,
-              iconSize: kShellControlIconSize,
-            ),
-        ],
-      );
-    }
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (final control in controls)
-          _DrawerControlButton(
-            key: control.key,
-            tooltip: control.tooltip,
-            onPressed: control.onPressed,
-            icon: control.icon,
-            selected: control.selected,
-          ),
-      ],
-    );
-  }
-}
-
-class _ShellControlData {
-  const _ShellControlData({
-    required this.key,
-    required this.tooltip,
-    required this.onPressed,
-    required this.icon,
-    this.selected = false,
-  });
-
-  final Key key;
-  final String tooltip;
-  final VoidCallback? onPressed;
-  final IconData icon;
-  final bool selected;
-}
-
-class _DrawerControlButton extends StatelessWidget {
-  const _DrawerControlButton({
-    super.key,
-    required this.tooltip,
-    required this.onPressed,
-    required this.icon,
-    this.selected = false,
-  });
-
-  final String tooltip;
-  final VoidCallback? onPressed;
-  final IconData icon;
-  final bool selected;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final disabledOpacity = theme.brightness == Brightness.dark ? 0.22 : 0.28;
-
-    return IconButton(
-      tooltip: tooltip,
-      onPressed: onPressed,
-      icon: Icon(icon, size: kShellControlIconSize),
-      style: FleurShellIconButtonStyle.styleFor(
-        context,
-        selected: selected,
-        size: kShellControlSize,
-        disabledOpacity: disabledOpacity,
-      ),
+    return ShellControlStrip(
+      commands: commands.toTitleBarCommands(),
+      presentationMode: presentationMode,
+      surface: !sidebarExpanded && shellChromeLayout.usesFloatingLeadingControls
+          ? ShellControlStripSurface.capsule
+          : ShellControlStripSurface.flat,
+      searchSelected: searchSelected,
+      showSearch: placesSearchInShell,
+      updateManifest: updateManifest,
+      updateBeforeSearch: !shellChromeLayout.placesControlsInTitleBar,
+      navigationToggleFocusNode: navigationToggleFocusNode,
     );
   }
 }

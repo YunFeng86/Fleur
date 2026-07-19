@@ -1151,14 +1151,22 @@ void main() {
 
     expect(find.byType(Sidebar), findsOneWidget);
     expect(find.byKey(const Key('app_shell_navigation_scrim')), findsOneWidget);
+    expect(
+      FocusManager.instance.primaryFocus?.debugLabel,
+      'shell-temporary-navigation',
+    );
     expect(tester.getTopLeft(contentLayer).dx, kTemporaryWorkspaceSidebarWidth);
     expect(tester.getSize(contentLayer).width, 475);
 
-    await tester.tap(find.byKey(const Key('app_shell_navigation_scrim')));
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('app_shell_navigation_scrim')), findsNothing);
     expect(tester.getTopLeft(contentLayer).dx, 0);
+    expect(
+      FocusManager.instance.primaryFocus?.debugLabel,
+      'shell-navigation-toggle',
+    );
   });
 
   testWidgets('Windows shell keeps update and search actions in titlebar', (

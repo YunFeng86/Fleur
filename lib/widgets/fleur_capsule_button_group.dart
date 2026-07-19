@@ -53,6 +53,7 @@ class FleurCapsuleIconButton extends StatelessWidget {
     this.selected = false,
     this.size = 32,
     this.iconSize = 16,
+    this.focusNode,
   });
 
   final String tooltip;
@@ -61,6 +62,7 @@ class FleurCapsuleIconButton extends StatelessWidget {
   final bool selected;
   final double size;
   final double iconSize;
+  final FocusNode? focusNode;
 
   static ButtonStyle styleFor(
     BuildContext context, {
@@ -77,6 +79,7 @@ class FleurCapsuleIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton(
+      focusNode: focusNode,
       tooltip: tooltip,
       onPressed: onPressed,
       icon: Icon(icon),
