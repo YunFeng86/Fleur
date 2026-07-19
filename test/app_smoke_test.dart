@@ -46,6 +46,7 @@ import 'package:fleur/theme/app_typography.dart';
 import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
 import 'package:fleur/ui/app_menu.dart';
+import 'package:fleur/ui/app_drawer_scope.dart';
 import 'package:fleur/ui/app_shell.dart';
 import 'package:fleur/ui/home/home_scene_commands.dart';
 import 'package:fleur/ui/home/home_scene_panes.dart';
@@ -423,7 +424,7 @@ void main() {
             ),
           )
           .toList(),
-      <bool>[true, true, true, true, true, false],
+      <bool>[true, true, true, false, false, false],
     );
     expect(
       widths
@@ -434,7 +435,7 @@ void main() {
             ),
           )
           .toList(),
-      <bool>[true, true, true, true, true, false],
+      <bool>[true, true, true, false, false, false],
     );
     expect(
       widths
@@ -1123,6 +1124,41 @@ void main() {
       tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
       kDefaultWorkspaceSidebarWidth,
     );
+  });
+
+  testWidgets('Windows compact shell uses off-canvas push reveal', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(475, 800);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(_buildShellHarness());
+    await tester.pumpAndSettle();
+
+    final contentLayer = find.byKey(const Key('app_shell_content_layer'));
+    expect(find.byKey(const Key('shell_title_bar')), findsOneWidget);
+    expect(find.byKey(const Key('app_shell_connected_rail')), findsNothing);
+    expect(find.byKey(const Key('app_shell_rail_overlay')), findsNothing);
+    expect(tester.getTopLeft(contentLayer).dx, 0);
+    expect(tester.getSize(contentLayer).width, 475);
+
+    await tester.tap(find.byKey(const Key('shell_sidebar_button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Sidebar), findsOneWidget);
+    expect(find.byKey(const Key('app_shell_navigation_scrim')), findsOneWidget);
+    expect(tester.getTopLeft(contentLayer).dx, kTemporaryWorkspaceSidebarWidth);
+    expect(tester.getSize(contentLayer).width, 475);
+
+    await tester.tap(find.byKey(const Key('app_shell_navigation_scrim')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('app_shell_navigation_scrim')), findsNothing);
+    expect(tester.getTopLeft(contentLayer).dx, 0);
   });
 
   testWidgets('Windows shell keeps update and search actions in titlebar', (
@@ -2276,7 +2312,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    tester.state<ScaffoldState>(find.byType(Scaffold).first).openDrawer();
+    final shellChildContext = tester.element(
+      find.byKey(const Key('app_shell_content_layer')),
+    );
+    AppDrawerScope.drawerOpenerOf(shellChildContext)!();
     await tester.pumpAndSettle();
 
     expect(find.text('Test Account'), findsOneWidget);

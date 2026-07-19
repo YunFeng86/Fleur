@@ -19,11 +19,13 @@ import '../widgets/fleur_capsule_button_group.dart';
 import '../widgets/fleur_shell_icon_button.dart';
 import '../widgets/sidebar.dart';
 import '../utils/platform.dart';
+import 'adaptive_workspace_layout.dart';
 import 'app_drawer_scope.dart';
 import 'app_menu.dart';
 import 'layout.dart';
 import 'layout_spec.dart';
 import 'shell_chrome_layout.dart';
+import 'shell_frame_geometry.dart';
 import 'shell_title_bar.dart';
 import 'sidebar_layout.dart';
 import 'workspace_layers.dart';
@@ -43,6 +45,19 @@ class _AppShellState extends ConsumerState<AppShell> {
   bool _navigationHistoryBindScheduled = false;
   double? _sidebarResizeVirtualWidth;
   GoRouter? _pendingNavigationHistoryRouter;
+  Size? _lastWindowSize;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final size = MediaQuery.sizeOf(context);
+    if (_lastWindowSize != null &&
+        _lastWindowSize != size &&
+        _temporarySidebarOpen) {
+      _temporarySidebarOpen = false;
+    }
+    _lastWindowSize = size;
+  }
 
   @override
   void didUpdateWidget(covariant AppShell oldWidget) {
@@ -60,14 +75,6 @@ class _AppShellState extends ConsumerState<AppShell> {
       'search' => kDesktopListWidth,
       _ => kHomeListWidth,
     };
-  }
-
-  bool _isReaderEmbedded({required LayoutSpec spec, required Uri uri}) {
-    if (!_isArticleRoute(uri)) return true;
-    return shouldEmbedReaderForLayout(
-      spec,
-      listWidth: _listWidthForArticleUri(uri),
-    );
   }
 
   void _goToScope(BuildContext context, ArticleScope scope) {
@@ -114,16 +121,28 @@ class _AppShellState extends ConsumerState<AppShell> {
     setState(() => _temporarySidebarOpen = false);
   }
 
-  void _toggleSidebar(WidgetRef ref, {required bool usesTemporarySidebar}) {
-    if (usesTemporarySidebar) {
-      setState(() => _temporarySidebarOpen = !_temporarySidebarOpen);
+  void _toggleResolvedNavigation(
+    WidgetRef ref, {
+    required AdaptiveWorkspaceArrangement arrangement,
+    required SidebarPresentationMode preferredNavigation,
+  }) {
+    if (_temporarySidebarOpen) {
+      _closeTemporarySidebar();
       return;
     }
 
-    final notifier = ref.read(sidebarPresentationModeProvider.notifier);
-    notifier.state = notifier.state == SidebarPresentationMode.expanded
-        ? SidebarPresentationMode.collapsed
-        : SidebarPresentationMode.expanded;
+    if (arrangement.navigationPresentation ==
+        WorkspaceNavigationPresentation.expanded) {
+      ref.read(sidebarPresentationModeProvider.notifier).state =
+          SidebarPresentationMode.collapsed;
+      return;
+    }
+
+    if (preferredNavigation == SidebarPresentationMode.collapsed) {
+      ref.read(sidebarPresentationModeProvider.notifier).state =
+          SidebarPresentationMode.expanded;
+    }
+    setState(() => _temporarySidebarOpen = true);
   }
 
   void _beginSidebarResize(double sidebarWidth) {
@@ -166,24 +185,6 @@ class _AppShellState extends ConsumerState<AppShell> {
     _sidebarResizeVirtualWidth = null;
   }
 
-  Widget _sidebarDrawer(
-    BuildContext context, {
-    required bool showAccountSyncStatus,
-    required Uri currentUri,
-  }) {
-    return Drawer(
-      child: SafeArea(
-        child: Sidebar(
-          onSelectScope: (scope) => _goToScope(context, scope),
-          router: GoRouter.maybeOf(context),
-          presentationModeOverride: SidebarPresentationMode.expanded,
-          showAccountSyncStatus: showAccountSyncStatus,
-          currentUri: currentUri,
-        ),
-      ),
-    );
-  }
-
   Widget _desktopSidebar({
     required BuildContext context,
     required double width,
@@ -218,7 +219,8 @@ class _AppShellState extends ConsumerState<AppShell> {
     required SidebarPresentationMode presentationMode,
     required MacOSWindowChromeMetrics macOSWindowChromeMetrics,
     required ShellChromeLayout shellChromeLayout,
-    required bool usesTemporarySidebar,
+    required AdaptiveWorkspaceArrangement arrangement,
+    required SidebarPresentationMode preferredNavigation,
     required bool searchSelected,
     required NavigationHistoryState history,
     required AppUpdateManifest? updateManifest,
@@ -230,8 +232,11 @@ class _AppShellState extends ConsumerState<AppShell> {
       router: GoRouter.maybeOf(context),
       history: history,
       historyController: ref.read(navigationHistoryControllerProvider.notifier),
-      onToggleSidebar: () =>
-          _toggleSidebar(ref, usesTemporarySidebar: usesTemporarySidebar),
+      onToggleSidebar: () => _toggleResolvedNavigation(
+        ref,
+        arrangement: arrangement,
+        preferredNavigation: preferredNavigation,
+      ),
       onSearch: () => _goToSearch(context),
     );
     return Stack(
@@ -267,6 +272,8 @@ class _AppShellState extends ConsumerState<AppShell> {
     required ShellChromeLayout shellChromeLayout,
     required double sidebarWidth,
     required double listWidth,
+    required SidebarPresentationMode preferredNavigation,
+    required AdaptiveWorkspaceArrangement arrangement,
   }) {
     final usesTitleBar = shellChromeLayout.placesControlsInTitleBar;
     final titleBarHeight = usesTitleBar ? kWorkspaceHeaderHeight : 0.0;
@@ -290,6 +297,8 @@ class _AppShellState extends ConsumerState<AppShell> {
         headerLeadingInset: 14,
         macOSWindowChromeMetrics: macOSWindowChromeMetrics,
         shellChromeLayout: shellChromeLayout,
+        preferredSidebarPresentationMode: preferredNavigation,
+        workspaceArrangement: arrangement,
         child: AppDrawerScope(
           hasAppDrawer: false,
           child: Stack(
@@ -327,22 +336,20 @@ class _AppShellState extends ConsumerState<AppShell> {
     required BuildContext context,
     required WidgetRef ref,
     required Size size,
-    required SidebarPresentationMode presentationMode,
+    required SidebarPresentationMode preferredNavigation,
+    required AdaptiveWorkspaceArrangement arrangement,
     required MacOSWindowChromeMetrics macOSWindowChromeMetrics,
     required ShellChromeLayout shellChromeLayout,
     required FleurSurfaceTheme surfaces,
     required double sidebarWidth,
     required double listWidth,
     required NavigationHistoryState history,
-    bool useTemporarySidebarControls = false,
   }) {
     final sidebarLayoutMode = sidebarLayoutModeForWidth(size.width);
-    final hasInlineSidebar = sidebarLayoutMode == SidebarLayoutMode.inline;
     final sidebarExpanded =
-        hasInlineSidebar &&
-        presentationMode == SidebarPresentationMode.expanded;
-    final usesTemporarySidebar =
-        !hasInlineSidebar || useTemporarySidebarControls;
+        arrangement.navigationPresentation ==
+        WorkspaceNavigationPresentation.expanded;
+    final usesTemporarySidebar = !sidebarExpanded;
     final temporarySidebarOpen = usesTemporarySidebar && _temporarySidebarOpen;
     final visibleSidebarWidth = temporarySidebarOpen
         ? kTemporaryWorkspaceSidebarWidth
@@ -351,14 +358,14 @@ class _AppShellState extends ConsumerState<AppShell> {
     final collapsedRailWidth = usesTitleBar
         ? kTitleBarExpectedSidebarRailWidth
         : kSidebarRailWidth;
-    final geometry = _DesktopShellChromeGeometry.resolve(
+    final geometry = ShellFrameGeometry.resolve(
       size: size,
       shellChromeLayout: shellChromeLayout,
-      sidebarExpanded: sidebarExpanded,
-      temporarySidebarOpen: temporarySidebarOpen,
-      visibleSidebarWidth: visibleSidebarWidth,
-      sidebarWidth: sidebarWidth,
-      collapsedRailWidth: collapsedRailWidth,
+      navigationPresentation: arrangement.navigationPresentation,
+      temporaryNavigationOpen: temporarySidebarOpen,
+      expandedNavigationWidth: sidebarWidth,
+      railWidth: collapsedRailWidth,
+      temporaryNavigationWidth: visibleSidebarWidth,
     );
     final controlsPresentationMode = sidebarExpanded || temporarySidebarOpen
         ? SidebarPresentationMode.expanded
@@ -422,6 +429,8 @@ class _AppShellState extends ConsumerState<AppShell> {
       headerLeadingInset: headerLeadingInset,
       macOSWindowChromeMetrics: macOSWindowChromeMetrics,
       shellChromeLayout: shellChromeLayout,
+      preferredSidebarPresentationMode: preferredNavigation,
+      workspaceArrangement: arrangement,
       child: WorkspaceLayerSurface(
         key: const Key('app_shell_content_layer'),
         color: surfaces.list,
@@ -447,13 +456,21 @@ class _AppShellState extends ConsumerState<AppShell> {
         decoration: BoxDecoration(color: surfaces.chrome),
         child: AppDrawerScope(
           hasAppDrawer: true,
+          openDrawer: !isDesktop
+              ? () => _toggleResolvedNavigation(
+                  ref,
+                  arrangement: arrangement,
+                  preferredNavigation: preferredNavigation,
+                )
+              : null,
           child: _withDesktopShellControlsOverlay(
             context: context,
             ref: ref,
             presentationMode: controlsPresentationMode,
             macOSWindowChromeMetrics: macOSWindowChromeMetrics,
             shellChromeLayout: shellChromeLayout,
-            usesTemporarySidebar: usesTemporarySidebar,
+            arrangement: arrangement,
+            preferredNavigation: preferredNavigation,
             searchSelected: _isSearchRoute(widget.currentUri),
             history: history,
             updateManifest: shellShowsUpdate ? updateManifest : null,
@@ -474,9 +491,10 @@ class _AppShellState extends ConsumerState<AppShell> {
                         historyController: ref.read(
                           navigationHistoryControllerProvider.notifier,
                         ),
-                        onToggleSidebar: () => _toggleSidebar(
+                        onToggleSidebar: () => _toggleResolvedNavigation(
                           ref,
-                          usesTemporarySidebar: usesTemporarySidebar,
+                          arrangement: arrangement,
+                          preferredNavigation: preferredNavigation,
                         ),
                         onSearch: () => _goToSearch(context),
                       ).toTitleBarCommands(),
@@ -489,7 +507,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                   ),
                 if (sidebarExpanded ||
                     temporarySidebarOpen ||
-                    geometry.connectedRailVisible)
+                    geometry.structuralRailVisible)
                   Positioned(
                     left: 0,
                     top: geometry.titleBarHeight,
@@ -556,12 +574,29 @@ class _AppShellState extends ConsumerState<AppShell> {
                 AnimatedPositioned(
                   duration: _kContentLayerAnimationDuration,
                   curve: Curves.easeOutCubic,
-                  left: geometry.contentLeft,
+                  left: geometry.translatedContentLeft,
                   top: geometry.titleBarHeight,
                   bottom: 0,
                   width: geometry.contentWidth,
                   child: contentLayer,
                 ),
+                if (temporarySidebarOpen)
+                  Positioned(
+                    key: const Key('app_shell_navigation_scrim'),
+                    left: visibleSidebarWidth,
+                    top: geometry.titleBarHeight,
+                    right: 0,
+                    bottom: 0,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: _closeTemporarySidebar,
+                      child: ColoredBox(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.scrim.withValues(alpha: 0.12),
+                      ),
+                    ),
+                  ),
                 Positioned(
                   left: 0,
                   top: geometry.titleBarHeight,
@@ -592,39 +627,6 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
   }
 
-  Widget _withDesktopDrawerControlsOverlay({
-    required BuildContext context,
-    required WidgetRef ref,
-    required Widget child,
-    required VoidCallback? openDrawer,
-    required MacOSWindowChromeMetrics macOSWindowChromeMetrics,
-    required NavigationHistoryState history,
-  }) {
-    if (!isDesktop || openDrawer == null) return child;
-    final commands = ShellNavigationCommands(
-      context: context,
-      router: GoRouter.maybeOf(context),
-      history: history,
-      historyController: ref.read(navigationHistoryControllerProvider.notifier),
-      onToggleSidebar: openDrawer,
-      onSearch: () => _goToSearch(context),
-    );
-    return Stack(
-      children: [
-        Positioned.fill(child: child),
-        Positioned(
-          left: 0,
-          top: 0,
-          child: _DrawerControlsHost(
-            macOSWindowChromeMetrics: macOSWindowChromeMetrics,
-            shellChromeLayout: ShellChromeLayout.resolve(),
-            commands: commands,
-          ),
-        ),
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final router = GoRouter.maybeOf(context);
@@ -639,45 +641,42 @@ class _AppShellState extends ConsumerState<AppShell> {
       onSearch: () => _goToSearch(context),
     );
     final size = MediaQuery.sizeOf(context);
-    final presentationMode = ref.watch(sidebarPresentationModeProvider);
+    final preferredNavigation = ref.watch(sidebarPresentationModeProvider);
     final sidebarWidth = clampWorkspaceSidebarWidth(
       ref.watch(workspaceSidebarWidthProvider),
       size.width,
     );
-    final sidebarLayoutMode = sidebarLayoutModeForWidth(size.width);
+    final shellChromeLayout = ShellChromeLayout.resolve();
     final preferredArticleListWidth = _isArticleRoute(widget.currentUri)
         ? _listWidthForArticleUri(widget.currentUri)
         : null;
-    final baseSidebarPresentationMode =
-        sidebarLayoutMode == SidebarLayoutMode.inline
-        ? presentationMode
-        : SidebarPresentationMode.collapsed;
-    var effectiveSidebarPresentationMode = baseSidebarPresentationMode;
-    var useTemporarySidebarControls = false;
-
-    if (preferredArticleListWidth != null &&
-        baseSidebarPresentationMode == SidebarPresentationMode.expanded) {
-      final expandedSpec = LayoutSpec.fromTotalSize(
-        totalWidth: size.width,
-        totalHeight: size.height,
-        sidebarPresentationMode: baseSidebarPresentationMode,
-        sidebarWidth: sidebarWidth,
-        listWidth: preferredArticleListWidth,
-      );
-      if (shouldCollapseSidebarForReaderLayout(
-        expandedSpec,
-        preferredListWidth: preferredArticleListWidth,
-      )) {
-        effectiveSidebarPresentationMode = SidebarPresentationMode.collapsed;
-        useTemporarySidebarControls = true;
-      }
-    }
-
-    final contentWidthForList = effectiveContentWidth(
-      size.width,
-      sidebarPresentationMode: effectiveSidebarPresentationMode,
-      sidebarWidth: sidebarWidth,
+    final arrangementListWidth =
+        preferredArticleListWidth ?? kCompactWorkspacePrimaryWidth;
+    final arrangement = AdaptiveWorkspaceArrangement.resolve(
+      totalWidth: size.width,
+      preferredNavigation: preferredNavigation,
+      navigationMetrics: shellChromeLayout.workspaceNavigationMetrics,
+      requirements: WorkspaceLayoutRequirements.feed(
+        listWidth: arrangementListWidth,
+      ),
+      hasReader: preferredArticleListWidth != null,
     );
+    final railWidth = shellChromeLayout.placesControlsInTitleBar
+        ? kTitleBarExpectedSidebarRailWidth
+        : kSidebarRailWidth;
+    final permanentNavigationWidth =
+        switch (arrangement.navigationPresentation) {
+          WorkspaceNavigationPresentation.expanded =>
+            sidebarWidth + kSidebarContentDividerWidth,
+          WorkspaceNavigationPresentation.rail
+              when shellChromeLayout.profile !=
+                  ShellChromeProfile.integratedCorner =>
+            railWidth,
+          _ => 0.0,
+        };
+    final contentWidthForList = (size.width - permanentNavigationWidth)
+        .clamp(0.0, double.infinity)
+        .toDouble();
     final listWidth = clampWorkspaceListWidth(
       ref.watch(workspaceListWidthProvider),
       contentWidthForList,
@@ -685,18 +684,8 @@ class _AppShellState extends ConsumerState<AppShell> {
     final macOSWindowChromeMetrics = ref.watch(
       macOSWindowChromeMetricsProvider,
     );
-    final shellChromeLayout = ShellChromeLayout.resolve();
-    final spec = LayoutSpec.fromTotalSize(
-      totalWidth: size.width,
-      totalHeight: size.height,
-      sidebarPresentationMode: effectiveSidebarPresentationMode,
-      sidebarWidth: sidebarWidth,
-      listWidth: listWidth,
-    );
     final surfaces = Theme.of(context).fleurSurface;
-    final hideNavForReaderPage =
-        _isArticleRoute(widget.currentUri) &&
-        !_isReaderEmbedded(spec: spec, uri: widget.currentUri);
+    final hideNavForReaderPage = arrangement.showsSecondaryReader;
 
     Widget wrapShell(Widget shell) {
       return AppMenuHost(
@@ -719,6 +708,8 @@ class _AppShellState extends ConsumerState<AppShell> {
             shellChromeLayout: shellChromeLayout,
             sidebarWidth: sidebarWidth,
             listWidth: listWidth,
+            preferredNavigation: preferredNavigation,
+            arrangement: arrangement,
           ),
         );
       }
@@ -730,57 +721,20 @@ class _AppShellState extends ConsumerState<AppShell> {
       );
     }
 
-    if (isDesktop) {
-      return _ShellHistoryShortcuts(
-        commands: shortcutCommands,
-        child: _buildDesktopLayeredShell(
-          context: context,
-          ref: ref,
-          size: size,
-          presentationMode: effectiveSidebarPresentationMode,
-          macOSWindowChromeMetrics: macOSWindowChromeMetrics,
-          shellChromeLayout: shellChromeLayout,
-          surfaces: surfaces,
-          sidebarWidth: sidebarWidth,
-          listWidth: listWidth,
-          history: history,
-          useTemporarySidebarControls: useTemporarySidebarControls,
-        ),
-      );
-    }
-
     return _ShellHistoryShortcuts(
       commands: shortcutCommands,
-      child: wrapShell(
-        Scaffold(
-          drawer: _sidebarDrawer(
-            context,
-            showAccountSyncStatus: !spec.showsListSyncStatusCapsule,
-            currentUri: widget.currentUri,
-          ),
-          body: Builder(
-            builder: (scaffoldContext) {
-              void openDrawer() => Scaffold.of(scaffoldContext).openDrawer();
-
-              return AppDrawerScope(
-                hasAppDrawer: true,
-                openDrawer: openDrawer,
-                child: _withDesktopDrawerControlsOverlay(
-                  context: context,
-                  ref: ref,
-                  openDrawer: openDrawer,
-                  macOSWindowChromeMetrics: macOSWindowChromeMetrics,
-                  history: history,
-                  child: MediaQuery.removePadding(
-                    context: context,
-                    removeBottom: true,
-                    child: widget.child,
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
+      child: _buildDesktopLayeredShell(
+        context: context,
+        ref: ref,
+        size: size,
+        preferredNavigation: preferredNavigation,
+        arrangement: arrangement,
+        macOSWindowChromeMetrics: macOSWindowChromeMetrics,
+        shellChromeLayout: shellChromeLayout,
+        surfaces: surfaces,
+        sidebarWidth: sidebarWidth,
+        listWidth: listWidth,
+        history: history,
       ),
     );
   }
@@ -788,91 +742,6 @@ class _AppShellState extends ConsumerState<AppShell> {
 
 const _kContentLayerAnimationDuration = Duration(milliseconds: 180);
 const double _kSidebarCollapseThresholdWidth = kMinWorkspaceSidebarWidth / 2;
-
-class _DesktopShellChromeGeometry {
-  const _DesktopShellChromeGeometry({
-    required this.titleBarHeight,
-    required this.workspaceHeight,
-    required this.leftChromeWidth,
-    required this.contentLeft,
-    required this.contentWidth,
-    required this.contentLeadingInset,
-    required this.dividerLeadingInset,
-    required this.railOverlayVisible,
-    required this.connectedRailVisible,
-  });
-
-  final double titleBarHeight;
-  final double workspaceHeight;
-  final double leftChromeWidth;
-  final double contentLeft;
-  final double contentWidth;
-  final double contentLeadingInset;
-  final double dividerLeadingInset;
-  final bool railOverlayVisible;
-  final bool connectedRailVisible;
-
-  static _DesktopShellChromeGeometry resolve({
-    required Size size,
-    required ShellChromeLayout shellChromeLayout,
-    required bool sidebarExpanded,
-    required bool temporarySidebarOpen,
-    required double visibleSidebarWidth,
-    required double sidebarWidth,
-    required double collapsedRailWidth,
-  }) {
-    final usesTitleBar = shellChromeLayout.placesControlsInTitleBar;
-    final titleBarHeight = usesTitleBar ? kWorkspaceHeaderHeight : 0.0;
-    final workspaceHeight = (size.height - titleBarHeight)
-        .clamp(0.0, double.infinity)
-        .toDouble();
-
-    if (usesTitleBar) {
-      final leftChromeWidth = sidebarExpanded
-          ? sidebarWidth + kSidebarContentDividerWidth
-          : temporarySidebarOpen
-          ? visibleSidebarWidth
-          : collapsedRailWidth;
-      final contentWidth = (size.width - leftChromeWidth)
-          .clamp(0.0, double.infinity)
-          .toDouble();
-      return _DesktopShellChromeGeometry(
-        titleBarHeight: titleBarHeight,
-        workspaceHeight: workspaceHeight,
-        leftChromeWidth: leftChromeWidth,
-        contentLeft: leftChromeWidth,
-        contentWidth: contentWidth,
-        contentLeadingInset: 0,
-        dividerLeadingInset: leftChromeWidth,
-        railOverlayVisible: false,
-        connectedRailVisible: !sidebarExpanded && !temporarySidebarOpen,
-      );
-    }
-
-    final contentLeft = sidebarExpanded
-        ? sidebarWidth + kSidebarContentDividerWidth
-        : (temporarySidebarOpen ? visibleSidebarWidth : 0.0);
-    final contentWidth = sidebarExpanded
-        ? (size.width - contentLeft).clamp(0.0, double.infinity).toDouble()
-        : size.width;
-    final railOverlayVisible = !sidebarExpanded && !temporarySidebarOpen;
-    final contentLeadingInset = railOverlayVisible
-        ? collapsedRailWidth + kRailOverlayContentGap
-        : 0.0;
-
-    return _DesktopShellChromeGeometry(
-      titleBarHeight: titleBarHeight,
-      workspaceHeight: workspaceHeight,
-      leftChromeWidth: contentLeft,
-      contentLeft: contentLeft,
-      contentWidth: contentWidth,
-      contentLeadingInset: contentLeadingInset,
-      dividerLeadingInset: 0,
-      railOverlayVisible: railOverlayVisible,
-      connectedRailVisible: false,
-    );
-  }
-}
 
 double _shellControlsGroupWidth(
   SidebarPresentationMode mode, {
@@ -1212,71 +1081,6 @@ class _ShellControlData {
   final VoidCallback? onPressed;
   final IconData icon;
   final bool selected;
-}
-
-class _DrawerControlsHost extends StatelessWidget {
-  const _DrawerControlsHost({
-    required this.macOSWindowChromeMetrics,
-    required this.shellChromeLayout,
-    required this.commands,
-  });
-
-  final MacOSWindowChromeMetrics macOSWindowChromeMetrics;
-  final ShellChromeLayout shellChromeLayout;
-  final ShellNavigationCommands commands;
-
-  @override
-  Widget build(BuildContext context) {
-    if (!isDesktop) return const SizedBox.shrink();
-
-    final l10n = AppLocalizations.of(context)!;
-    return SizedBox(
-      key: const Key('shell_drawer_controls'),
-      height: kWorkspaceHeaderHeight,
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: _shellControlsLeftInset(
-            macOSWindowChromeMetrics,
-            shellChromeLayout: shellChromeLayout,
-            fallback: 8,
-          ),
-          top: _shellControlsTopInset(
-            macOSWindowChromeMetrics,
-            shellChromeLayout: shellChromeLayout,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _DrawerControlButton(
-              key: const Key('shell_sidebar_button'),
-              tooltip: MaterialLocalizations.of(context).openAppDrawerTooltip,
-              onPressed: commands.toggleSidebar,
-              icon: FleurIcons.sidebarExpand,
-            ),
-            _DrawerControlButton(
-              key: const Key('shell_back_button'),
-              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-              onPressed: commands.canGoBack ? commands.goBack : null,
-              icon: FleurIcons.back,
-            ),
-            _DrawerControlButton(
-              key: const Key('shell_forward_button'),
-              tooltip: l10n.forward,
-              onPressed: commands.canGoForward ? commands.goForward : null,
-              icon: FleurIcons.forward,
-            ),
-            _DrawerControlButton(
-              key: const Key('shell_search_button'),
-              tooltip: l10n.search,
-              onPressed: commands.goToSearch,
-              icon: FleurIcons.search,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _DrawerControlButton extends StatelessWidget {
