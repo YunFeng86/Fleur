@@ -74,9 +74,16 @@ class _AppShellState extends ConsumerState<AppShell> {
     if (oldWidget.currentUri != widget.currentUri && _temporarySidebarOpen) {
       _temporarySidebarOpen = false;
     }
+    if (oldWidget.currentUri != widget.currentUri &&
+        ref.read(settingsTemporaryNavigationOpenProvider)) {
+      ref.read(settingsTemporaryNavigationOpenProvider.notifier).state = false;
+    }
   }
 
   bool _isArticleRoute(Uri uri) => uri.pathSegments.contains('article');
+
+  bool _isSettingsRoute(Uri uri) =>
+      uri.pathSegments.isNotEmpty && uri.pathSegments.first == 'settings';
 
   double _listWidthForArticleUri(Uri uri) {
     final seg0 = uri.pathSegments.isEmpty ? '' : uri.pathSegments.first;
@@ -160,6 +167,31 @@ class _AppShellState extends ConsumerState<AppShell> {
       if (!mounted || !_temporaryNavigationFocusNode.canRequestFocus) return;
       _temporaryNavigationFocusNode.requestFocus();
     });
+  }
+
+  void _toggleSettingsNavigation(
+    WidgetRef ref, {
+    required AdaptiveWorkspaceArrangement arrangement,
+    required SidebarPresentationMode preferredNavigation,
+  }) {
+    final openNotifier = ref.read(
+      settingsTemporaryNavigationOpenProvider.notifier,
+    );
+    if (openNotifier.state) {
+      openNotifier.state = false;
+      return;
+    }
+    if (arrangement.navigationPresentation ==
+        WorkspaceNavigationPresentation.expanded) {
+      ref.read(settingsSidebarPresentationModeProvider.notifier).state =
+          SidebarPresentationMode.collapsed;
+      return;
+    }
+    if (preferredNavigation == SidebarPresentationMode.collapsed) {
+      ref.read(settingsSidebarPresentationModeProvider.notifier).state =
+          SidebarPresentationMode.expanded;
+    }
+    openNotifier.state = true;
   }
 
   void _beginSidebarResize(double sidebarWidth) {
@@ -342,6 +374,145 @@ class _AppShellState extends ConsumerState<AppShell> {
                   leadingEdge: surfaceAppearance.leadingEdge,
                   child: widget.child,
                 ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsShell({
+    required BuildContext context,
+    required WidgetRef ref,
+    required Size size,
+    required SidebarPresentationMode preferredNavigation,
+    required AdaptiveWorkspaceArrangement arrangement,
+    required MacOSWindowChromeMetrics macOSWindowChromeMetrics,
+    required ShellChromeLayout shellChromeLayout,
+    required FleurSurfaceTheme surfaces,
+    required double listWidth,
+    required NavigationHistoryState history,
+  }) {
+    final usesTitleBar = shellChromeLayout.placesControlsInTitleBar;
+    final titleBarHeight = usesTitleBar ? kWorkspaceHeaderHeight : 0.0;
+    final workspaceHeight = (size.height - titleBarHeight)
+        .clamp(0.0, double.infinity)
+        .toDouble();
+    final railWidth = usesTitleBar
+        ? kTitleBarExpectedSidebarRailWidth
+        : kSidebarRailWidth;
+    final temporaryOpen = ref.watch(settingsTemporaryNavigationOpenProvider);
+    final leftChromeWidth = temporaryOpen
+        ? kTemporaryWorkspaceSidebarWidth
+        : switch (arrangement.navigationPresentation) {
+            WorkspaceNavigationPresentation.expanded =>
+              kDefaultWorkspaceSidebarWidth + kSidebarContentDividerWidth,
+            WorkspaceNavigationPresentation.rail => railWidth,
+            WorkspaceNavigationPresentation.offCanvas => 0.0,
+          };
+    final controlsPresentationMode =
+        arrangement.navigationPresentation ==
+                WorkspaceNavigationPresentation.expanded ||
+            temporaryOpen
+        ? SidebarPresentationMode.expanded
+        : SidebarPresentationMode.collapsed;
+    final updateManifest = ref.watch(
+      appUpdateControllerProvider.select(
+        (state) => state.hasUpdate ? state.manifest : null,
+      ),
+    );
+    final commands = ShellNavigationCommands(
+      context: context,
+      router: GoRouter.maybeOf(context),
+      history: history,
+      historyController: ref.read(navigationHistoryControllerProvider.notifier),
+      onToggleSidebar: () => _toggleSettingsNavigation(
+        ref,
+        arrangement: arrangement,
+        preferredNavigation: preferredNavigation,
+      ),
+      onSearch: () => _goToSearch(context),
+    );
+    final controlsLeft = _shellControlsLeftInset(
+      macOSWindowChromeMetrics,
+      shellChromeLayout: shellChromeLayout,
+      fallback:
+          ((arrangement.navigationPresentation ==
+                      WorkspaceNavigationPresentation.expanded
+                  ? kSidebarRailWidth
+                  : railWidth) -
+              kShellControlSize) /
+          2,
+    );
+    final scope = ShellLayerScope(
+      totalSize: size,
+      contentSize: Size(size.width, workspaceHeight),
+      sidebarLayoutMode: sidebarLayoutModeForWidth(size.width),
+      contentLeft: 0,
+      contentLeadingInset: 0,
+      railOverlayVisible: false,
+      sidebarWidth: leftChromeWidth,
+      listWidth: listWidth,
+      headerLeadingInset: 14,
+      macOSWindowChromeMetrics: macOSWindowChromeMetrics,
+      shellChromeLayout: shellChromeLayout,
+      preferredSidebarPresentationMode: preferredNavigation,
+      workspaceArrangement: arrangement,
+      child: AppDrawerScope(
+        hasAppDrawer:
+            arrangement.navigationPresentation !=
+            WorkspaceNavigationPresentation.expanded,
+        openDrawer: () => _toggleSettingsNavigation(
+          ref,
+          arrangement: arrangement,
+          preferredNavigation: preferredNavigation,
+        ),
+        child: MediaQuery.removePadding(
+          context: context,
+          removeBottom: true,
+          child: widget.child,
+        ),
+      ),
+    );
+
+    return _ShellHistoryShortcuts(
+      commands: commands,
+      onDismissNavigation: temporaryOpen
+          ? () =>
+                ref
+                        .read(settingsTemporaryNavigationOpenProvider.notifier)
+                        .state =
+                    false
+          : null,
+      child: AppMenuHost(
+        child: DecoratedBox(
+          decoration: BoxDecoration(color: surfaces.chrome),
+          child: Stack(
+            clipBehavior: Clip.hardEdge,
+            children: [
+              if (usesTitleBar)
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  right: 0,
+                  height: kWorkspaceHeaderHeight,
+                  child: ShellWindowTitleBar(
+                    commands: commands.toTitleBarCommands(),
+                    presentationMode: controlsPresentationMode,
+                    searchSelected: false,
+                    updateManifest: updateManifest,
+                    leadingLeft: controlsLeft,
+                    dividerLeadingInset: leftChromeWidth,
+                    navigationToggleFocusNode: _navigationToggleFocusNode,
+                  ),
+                ),
+              Positioned(
+                left: 0,
+                top: titleBarHeight,
+                right: 0,
+                bottom: 0,
+                child: scope,
               ),
             ],
           ),
@@ -667,13 +838,19 @@ class _AppShellState extends ConsumerState<AppShell> {
       onSearch: () => _goToSearch(context),
     );
     final size = MediaQuery.sizeOf(context);
-    final preferredNavigation = ref.watch(sidebarPresentationModeProvider);
-    final sidebarWidth = clampWorkspaceSidebarWidth(
-      ref.watch(workspaceSidebarWidthProvider),
-      size.width,
-    );
+    final settingsScene = _isSettingsRoute(widget.currentUri);
+    final preferredNavigation = settingsScene
+        ? ref.watch(settingsSidebarPresentationModeProvider)
+        : ref.watch(sidebarPresentationModeProvider);
+    final sidebarWidth = settingsScene
+        ? kDefaultWorkspaceSidebarWidth
+        : clampWorkspaceSidebarWidth(
+            ref.watch(workspaceSidebarWidthProvider),
+            size.width,
+          );
     final shellChromeLayout = ShellChromeLayout.resolve();
-    final preferredArticleListWidth = _isArticleRoute(widget.currentUri)
+    final preferredArticleListWidth =
+        !settingsScene && _isArticleRoute(widget.currentUri)
         ? _listWidthForArticleUri(widget.currentUri)
         : null;
     final arrangementListWidth =
@@ -682,9 +859,9 @@ class _AppShellState extends ConsumerState<AppShell> {
       totalWidth: size.width,
       preferredNavigation: preferredNavigation,
       navigationMetrics: shellChromeLayout.workspaceNavigationMetrics,
-      requirements: WorkspaceLayoutRequirements.feed(
-        listWidth: arrangementListWidth,
-      ),
+      requirements: settingsScene
+          ? WorkspaceLayoutRequirements.settings
+          : WorkspaceLayoutRequirements.feed(listWidth: arrangementListWidth),
       hasReader: preferredArticleListWidth != null,
     );
     final railWidth = shellChromeLayout.placesControlsInTitleBar
@@ -712,6 +889,21 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
     final surfaces = Theme.of(context).fleurSurface;
     final hideNavForReaderPage = arrangement.showsSecondaryReader;
+
+    if (settingsScene) {
+      return _buildSettingsShell(
+        context: context,
+        ref: ref,
+        size: size,
+        preferredNavigation: preferredNavigation,
+        arrangement: arrangement,
+        macOSWindowChromeMetrics: macOSWindowChromeMetrics,
+        shellChromeLayout: shellChromeLayout,
+        surfaces: surfaces,
+        listWidth: listWidth,
+        history: history,
+      );
+    }
 
     Widget wrapShell(Widget shell) {
       return AppMenuHost(

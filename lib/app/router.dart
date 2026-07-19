@@ -15,12 +15,8 @@ import '../screens/search_screen.dart';
 import '../screens/settings_screen.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/adaptive_workspace_layout.dart';
-import '../ui/app_menu.dart';
 import '../ui/app_shell.dart';
 import '../ui/motion.dart';
-import '../ui/shell_chrome_layout.dart';
-import '../ui/sidebar_layout.dart';
-import '../ui/workspace_layers.dart';
 
 const _workspaceSectionKey = ValueKey<String>('workspace-section');
 const _searchSectionKey = ValueKey<String>('search-section');
@@ -78,71 +74,6 @@ final routerProvider = Provider<GoRouter>((ref) {
             end: Offset.zero,
           ).animate(curved),
           child: child,
-        );
-      },
-    );
-  }
-
-  Page<void> settingsLayerPage({
-    required GoRouterState state,
-    required Widget child,
-  }) {
-    return CustomTransitionPage<void>(
-      key: state.pageKey,
-      opaque: false,
-      transitionDuration: AppMotion.pageTransitionDuration,
-      reverseTransitionDuration: AppMotion.pageReverseTransitionDuration,
-      child: AppMenuHost(
-        child: Consumer(
-          builder: (context, ref, _) {
-            final surfaces = Theme.of(context).fleurSurface;
-            final size = MediaQuery.sizeOf(context);
-            final metrics = ref.watch(macOSWindowChromeMetricsProvider);
-            final shellChromeLayout = ShellChromeLayout.resolve();
-            final usesTitleBar = shellChromeLayout.placesControlsInTitleBar;
-            return ColoredBox(
-              color: Colors.transparent,
-              child: ShellLayerScope(
-                totalSize: size,
-                contentSize: size,
-                sidebarLayoutMode: sidebarLayoutModeForWidth(size.width),
-                contentLeft: 0,
-                contentLeadingInset: 0,
-                railOverlayVisible: false,
-                sidebarWidth: ref.watch(workspaceSidebarWidthProvider),
-                listWidth: ref.watch(workspaceListWidthProvider),
-                headerLeadingInset: 14,
-                macOSWindowChromeMetrics: metrics,
-                shellChromeLayout: shellChromeLayout,
-                child: WorkspaceLayerSurface(
-                  color: surfaces.list,
-                  borderRadius: usesTitleBar
-                      ? BorderRadius.zero
-                      : kWorkspaceLayerRadius,
-                  showShadow: !usesTitleBar,
-                  child: child,
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        if (AppMotion.reduceMotion(context)) return child;
-        final curved = CurvedAnimation(
-          parent: animation,
-          curve: AppMotion.emphasizedDecelerate,
-          reverseCurve: AppMotion.emphasizedAccelerate,
-        );
-        return FadeTransition(
-          opacity: curved,
-          child: SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0.035, 0),
-              end: Offset.zero,
-            ).animate(curved),
-            child: child,
-          ),
         );
       },
     );
@@ -382,27 +313,26 @@ final routerProvider = Provider<GoRouter>((ref) {
               );
             },
           ),
+          GoRoute(
+            path: '/settings',
+            name: 'settings',
+            pageBuilder: (context, state) {
+              final tab = settingsTabFromQueryValue(
+                state.uri.queryParameters['tab'],
+              );
+              final settingId = state.uri.queryParameters['setting'];
+              return sectionPage(
+                state: state,
+                child: SettingsScreen(
+                  initialTab: tab,
+                  initialSettingId: settingId,
+                  showBack: true,
+                  fallbackBackLocation: '/all',
+                ),
+              );
+            },
+          ),
         ],
-      ),
-      GoRoute(
-        path: '/settings',
-        name: 'settings',
-        parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) {
-          final tab = settingsTabFromQueryValue(
-            state.uri.queryParameters['tab'],
-          );
-          final settingId = state.uri.queryParameters['setting'];
-          return settingsLayerPage(
-            state: state,
-            child: SettingsScreen(
-              initialTab: tab,
-              initialSettingId: settingId,
-              showBack: true,
-              fallbackBackLocation: '/all',
-            ),
-          );
-        },
       ),
     ],
   );

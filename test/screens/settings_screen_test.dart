@@ -5,6 +5,7 @@ import 'package:fleur/l10n/app_localizations.dart';
 import 'package:fleur/app/settings_routes.dart';
 import 'package:fleur/providers/account_providers.dart';
 import 'package:fleur/providers/app_settings_providers.dart';
+import 'package:fleur/providers/core_providers.dart';
 import 'package:fleur/providers/settings_providers.dart';
 import 'package:fleur/screens/settings_screen.dart';
 import 'package:fleur/services/accounts/account.dart';
@@ -13,6 +14,8 @@ import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/settings/reader_settings.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/seed_color_presets.dart';
+import 'package:fleur/ui/adaptive_workspace_layout.dart';
+import 'package:fleur/ui/app_shell.dart';
 import 'package:fleur/ui/settings/widgets/section_header.dart';
 import 'package:fleur/ui/sidebar_layout.dart';
 import 'package:fleur/utils/platform.dart';
@@ -104,6 +107,41 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+  }
+
+  Future<ProviderContainer> pumpSettingsShell(
+    WidgetTester tester,
+    double width, {
+    double height = 800,
+    List<Override> overrides = const [],
+  }) async {
+    tester.view.physicalSize = Size(width, height);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          readerSettingsStoreProvider.overrideWithValue(
+            FakeReaderSettingsStore(const ReaderSettings()),
+          ),
+          ...overrides,
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: AppShell(
+            currentUri: Uri(path: '/settings'),
+            child: const SettingsScreen(showBack: true),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    return ProviderScope.containerOf(
+      tester.element(find.byType(SettingsScreen)),
+    );
   }
 
   Finder settingsSwitchControl(Key tileKey) {
@@ -274,10 +312,10 @@ void main() {
     );
   });
 
-  testWidgets('Settings Screen expands temporary sidebar in narrow mode', (
+  testWidgets('Settings Screen expands temporary sidebar in off-canvas mode', (
     tester,
   ) async {
-    await pumpSettingsScreen(tester, 900, overrides: servicesOverrides());
+    await pumpSettingsScreen(tester, 650, overrides: servicesOverrides());
 
     final paperBefore = tester.getTopLeft(
       find.byKey(const Key('settings_paper_surface')),
@@ -307,6 +345,24 @@ void main() {
     expect(find.text('Services'), findsOneWidget);
     expect(
       find.byKey(const Key('services_account_tile_settings-account')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Settings Screen uses a navigation rail at medium width', (
+    tester,
+  ) async {
+    await pumpSettingsScreen(tester, 800);
+
+    expect(find.byKey(const Key('settings_sidebar')), findsNothing);
+    expect(find.byKey(const Key('settings_navigation_rail')), findsOneWidget);
+    expect(find.byKey(const Key('settings_sidebar_button')), findsNothing);
+    expect(
+      tester.getTopLeft(find.byKey(const Key('settings_content_layer'))).dx,
+      kSidebarRailWidth,
+    );
+    expect(
+      find.byKey(const Key('settings_search_outside_paper')),
       findsOneWidget,
     );
   });
@@ -407,13 +463,42 @@ void main() {
     expect(find.byKey(const Key('settings_back_button')), findsOneWidget);
   });
 
-  testWidgets('Windows settings screen keeps window chrome above content', (
+  testWidgets('Settings Screen does not own native window chrome', (
     tester,
   ) async {
     debugFleurTargetPlatformOverride = TargetPlatform.windows;
     addTearDown(() => debugFleurTargetPlatformOverride = null);
 
     await pumpSettingsScreen(tester, 1000, showBack: true);
+
+    expect(find.byKey(const Key('shell_title_bar')), findsNothing);
+    expect(
+      tester.getTopLeft(find.byKey(const Key('settings_content_layer'))).dy,
+      0,
+    );
+    final paperDecoration =
+        tester
+                .widget<DecoratedBox>(
+                  find.byKey(const Key('settings_paper_surface')),
+                )
+                .decoration
+            as BoxDecoration;
+    expect(
+      paperDecoration.borderRadius,
+      const BorderRadius.only(
+        topLeft: Radius.circular(20),
+        topRight: Radius.circular(20),
+      ),
+    );
+  });
+
+  testWidgets('Windows AppShell owns one title bar above settings', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    await pumpSettingsShell(tester, 1000);
 
     expect(find.byKey(const Key('shell_title_bar')), findsOneWidget);
     expect(find.byKey(const Key('shell_sidebar_button')), findsOneWidget);
@@ -429,19 +514,32 @@ void main() {
       tester.getTopLeft(find.byKey(const Key('shell_title_bar_divider'))).dx,
       kDefaultWorkspaceSidebarWidth + kSidebarContentDividerWidth,
     );
-    final paperDecoration =
-        tester
-                .widget<DecoratedBox>(
-                  find.byKey(const Key('settings_paper_surface')),
-                )
-                .decoration
-            as BoxDecoration;
+  });
+
+  testWidgets('Settings title-bar toggle keeps feed preference independent', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    final container = await pumpSettingsShell(
+      tester,
+      800,
+      overrides: [
+        sidebarPresentationModeProvider.overrideWith(
+          (ref) => SidebarPresentationMode.collapsed,
+        ),
+      ],
+    );
+
+    expect(find.byKey(const Key('settings_navigation_rail')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('shell_sidebar_button')));
+    await tester.pumpAndSettle();
+
+    expect(container.read(settingsTemporaryNavigationOpenProvider), isTrue);
     expect(
-      paperDecoration.borderRadius,
-      const BorderRadius.only(
-        topLeft: Radius.circular(20),
-        topRight: Radius.circular(20),
-      ),
+      container.read(sidebarPresentationModeProvider),
+      SidebarPresentationMode.collapsed,
     );
   });
 

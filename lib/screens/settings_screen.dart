@@ -16,13 +16,11 @@ import '../ui/settings/tabs/translation_ai_services_tab.dart';
 import '../ui/settings/settings_search_index.dart';
 import '../ui/settings/settings_targets.dart';
 import '../ui/settings/widgets/section_header.dart';
+import '../ui/adaptive_workspace_layout.dart';
 import '../ui/shell_chrome_layout.dart';
-import '../ui/shell_title_bar.dart';
 import '../ui/sidebar_layout.dart';
 import '../ui/workspace_layers.dart';
-import '../providers/app_update_providers.dart';
 import '../providers/core_providers.dart';
-import '../providers/navigation_history_provider.dart';
 import '../providers/subscription_settings_provider.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
@@ -49,18 +47,14 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   static const _kSettingsSidebarWidth = kDefaultWorkspaceSidebarWidth;
-  static const _kSettingsMinContentWidth = 720.0;
   static const _kSettingsPaperMaxWidth = 960.0;
   static const _kSettingsSearchPaperGap = 8.0;
-  static const _kSidebarPinnedWidth =
-      _kSettingsSidebarWidth + _kSettingsMinContentWidth;
   static const _kLayerAnimationDuration = Duration(milliseconds: 180);
 
   // Nullable tab: null means "List View" in narrow mode or default first item
   // in wide mode.
   SettingsTab? _selectedTab;
   AppearanceDetailPage? _appearanceDetailPage;
-  bool _sidebarOpen = false;
   final SettingsTargetController _targetController = SettingsTargetController();
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
@@ -297,9 +291,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     setState(() {
       _selectedTab = entry.tab;
       _appearanceDetailPage = null;
-      _sidebarOpen = false;
       _searchQuery = '';
     });
+    ref.read(settingsTemporaryNavigationOpenProvider.notifier).state = false;
     final targetId = entry.targetId;
     if (targetId != null) _queueRevealTarget(targetId);
   }
@@ -312,46 +306,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     context.go(widget.fallbackBackLocation);
   }
 
-  void _toggleWorkspaceSidebar() {
-    final notifier = ref.read(sidebarPresentationModeProvider.notifier);
-    notifier.state = notifier.state == SidebarPresentationMode.expanded
-        ? SidebarPresentationMode.collapsed
-        : SidebarPresentationMode.expanded;
-  }
-
-  void _goToGlobalSearch() {
-    if (context.canPop()) context.pop();
-    context.go('/search');
-  }
-
-  void _goBackInWindow(NavigationHistoryState history) {
-    if (history.canGoBack) {
-      ref.read(navigationHistoryControllerProvider.notifier).goBack();
-      return;
-    }
-    _closeSettings();
-  }
-
-  void _goForwardInWindow(NavigationHistoryState history) {
-    if (!history.canGoForward) return;
-    ref.read(navigationHistoryControllerProvider.notifier).goForward();
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final searchEntries = buildSettingsSearchEntries(l10n);
-    final shellChromeLayout = ShellChromeLayout.resolve();
-    final usesTitleBar =
-        isDesktop && shellChromeLayout.placesControlsInTitleBar;
-    final titleBarHeight = usesTitleBar ? kWorkspaceHeaderHeight : 0.0;
-    final history = ref.watch(navigationHistoryControllerProvider);
-    final updateManifest = ref.watch(
-      appUpdateControllerProvider.select(
-        (state) => state.hasUpdate ? state.manifest : null,
-      ),
-    );
 
     if (_pendingInitialSettingId case final settingId?
         when settingId.trim().isNotEmpty) {
@@ -375,20 +334,42 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final width = constraints.maxWidth;
-            final sceneHeight = (constraints.maxHeight - titleBarHeight)
-                .clamp(0.0, double.infinity)
-                .toDouble();
-            final sidebarPinned = width >= _kSidebarPinnedWidth;
-            final sidebarOpen = !sidebarPinned && _sidebarOpen;
-            final sidebarVisible = sidebarPinned || sidebarOpen;
-            final settingsContentLeft = sidebarPinned
-                ? _kSettingsSidebarWidth + kSidebarContentDividerWidth
-                : (sidebarOpen ? _kSettingsSidebarWidth : 0.0);
+            final scope = ShellLayerScope.maybeOf(context);
+            final shellChromeLayout =
+                scope?.shellChromeLayout ?? ShellChromeLayout.resolve();
+            final preferredNavigation = ref.watch(
+              settingsSidebarPresentationModeProvider,
+            );
+            final arrangement =
+                scope?.workspaceArrangement ??
+                AdaptiveWorkspaceArrangement.resolve(
+                  totalWidth: width,
+                  preferredNavigation: preferredNavigation,
+                  navigationMetrics:
+                      shellChromeLayout.workspaceNavigationMetrics,
+                  requirements: WorkspaceLayoutRequirements.settings,
+                  hasReader: false,
+                );
+            final navigationPresentation = arrangement.navigationPresentation;
+            final sidebarExpanded =
+                navigationPresentation ==
+                WorkspaceNavigationPresentation.expanded;
+            final sidebarRail =
+                navigationPresentation == WorkspaceNavigationPresentation.rail;
+            final temporaryNavigationOpen = ref.watch(
+              settingsTemporaryNavigationOpenProvider,
+            );
+            final railWidth = shellChromeLayout.placesControlsInTitleBar
+                ? kTitleBarExpectedSidebarRailWidth
+                : kSidebarRailWidth;
             final items = _buildItems(context, showPageTitle: false);
             final trimmedSearchQuery = _searchQuery.trim();
             final showingSearchResults = trimmedSearchQuery.isNotEmpty;
             final currentSelectedIndex = _selectedIndexFor(items);
-            final showingList = !sidebarPinned && currentSelectedIndex == null;
+            final showingList =
+                navigationPresentation ==
+                    WorkspaceNavigationPresentation.offCanvas &&
+                currentSelectedIndex == null;
             final selectedIndex = currentSelectedIndex ?? 0;
             final selectedItem = items[selectedIndex];
             final tabLabels = {for (final item in items) item.tab: item.label};
@@ -400,8 +381,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               setState(() {
                 _selectedTab = tab;
                 _appearanceDetailPage = null;
-                if (!sidebarPinned) _sidebarOpen = false;
               });
+              ref.read(settingsTemporaryNavigationOpenProvider.notifier).state =
+                  false;
             }
 
             void handleDetailBack() {
@@ -445,24 +427,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 : FocusTraversalGroup(child: selectedItem.content);
             final scene = _SettingsScene(
               width: width,
-              height: sceneHeight,
-              sidebarPinned: sidebarPinned,
-              sidebarOpen: sidebarOpen,
+              height: constraints.maxHeight,
+              navigationPresentation: navigationPresentation,
+              temporaryNavigationOpen: temporaryNavigationOpen,
+              railWidth: railWidth,
               title: showingSearchResults || showingList
                   ? l10n.settings
                   : selectedItem.label,
               sidebarTitle: l10n.settings,
-              showSidebarButton: !sidebarPinned,
-              onToggleSidebar: () {
-                setState(() => _sidebarOpen = !_sidebarOpen);
-              },
-              onBack: sidebarPinned
+              showSidebarButton:
+                  navigationPresentation ==
+                      WorkspaceNavigationPresentation.offCanvas &&
+                  !shellChromeLayout.placesControlsInTitleBar,
+              onToggleSidebar: () =>
+                  ref
+                          .read(
+                            settingsTemporaryNavigationOpenProvider.notifier,
+                          )
+                          .state =
+                      !temporaryNavigationOpen,
+              onBack: sidebarExpanded || sidebarRail
                   ? (widget.showBack ? handleChromeBack : null)
                   : showingList
                   ? (widget.showBack ? _closeSettings : null)
                   : handleDetailBack,
               items: items,
-              sidebarSelectedIndex: sidebarPinned
+              sidebarSelectedIndex: sidebarExpanded || sidebarRail
                   ? selectedIndex
                   : currentSelectedIndex,
               selectedContentKey: showingSearchResults
@@ -477,61 +467,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               searchFocused: _searchFocused,
             );
 
-            final titleBarCommands = ShellWindowTitleBarCommands(
-              onToggleSidebar: _toggleWorkspaceSidebar,
-              onBack: () => _goBackInWindow(history),
-              onForward: () => _goForwardInWindow(history),
-              onSearch: _goToGlobalSearch,
-              canGoBack: history.canGoBack || widget.showBack,
-              canGoForward: history.canGoForward,
-            );
-
-            final wrappedScene = usesTitleBar
-                ? Stack(
-                    clipBehavior: Clip.hardEdge,
-                    children: [
-                      Positioned(
-                        left: 0,
-                        top: 0,
-                        right: 0,
-                        height: kWorkspaceHeaderHeight,
-                        child: ShellWindowTitleBar(
-                          commands: titleBarCommands,
-                          presentationMode: ref.watch(
-                            sidebarPresentationModeProvider,
-                          ),
-                          searchSelected: false,
-                          updateManifest: updateManifest,
-                          leadingLeft:
-                              ((sidebarVisible ? kSidebarRailWidth : 56) -
-                                  kShellControlSize) /
-                              2,
-                          dividerLeadingInset: settingsContentLeft,
-                        ),
-                      ),
-                      Positioned(
-                        left: 0,
-                        top: kWorkspaceHeaderHeight,
-                        right: 0,
-                        bottom: 0,
-                        child: scene,
-                      ),
-                    ],
-                  )
-                : scene;
-
-            if (!sidebarPinned && !showingList) {
+            if (!sidebarExpanded && !sidebarRail && !showingList) {
               return PopScope(
                 canPop: false,
                 onPopInvokedWithResult: (didPop, _) {
                   if (didPop) return;
                   handleDetailBack();
                 },
-                child: wrappedScene,
+                child: scene,
               );
             }
 
-            return wrappedScene;
+            return scene;
           },
         ),
       ),
@@ -543,8 +490,9 @@ class _SettingsScene extends StatelessWidget {
   const _SettingsScene({
     required this.width,
     required this.height,
-    required this.sidebarPinned,
-    required this.sidebarOpen,
+    required this.navigationPresentation,
+    required this.temporaryNavigationOpen,
+    required this.railWidth,
     required this.title,
     required this.sidebarTitle,
     required this.showSidebarButton,
@@ -562,8 +510,9 @@ class _SettingsScene extends StatelessWidget {
 
   final double width;
   final double height;
-  final bool sidebarPinned;
-  final bool sidebarOpen;
+  final WorkspaceNavigationPresentation navigationPresentation;
+  final bool temporaryNavigationOpen;
+  final double railWidth;
   final String title;
   final String sidebarTitle;
   final bool showSidebarButton;
@@ -581,14 +530,23 @@ class _SettingsScene extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final surfaces = Theme.of(context).fleurSurface;
-    final sidebarVisible = sidebarPinned || sidebarOpen;
-    final contentLeft = sidebarPinned
+    final sidebarExpanded =
+        navigationPresentation == WorkspaceNavigationPresentation.expanded;
+    final sidebarRail =
+        navigationPresentation == WorkspaceNavigationPresentation.rail;
+    final structuralContentLeft = sidebarExpanded
         ? _SettingsScreenState._kSettingsSidebarWidth +
               kSidebarContentDividerWidth
-        : (sidebarOpen ? _SettingsScreenState._kSettingsSidebarWidth : 0.0);
-    final contentWidth = sidebarPinned
-        ? (width - contentLeft).clamp(0.0, double.infinity).toDouble()
-        : width;
+        : sidebarRail
+        ? railWidth
+        : 0.0;
+    final contentLeft = temporaryNavigationOpen
+        ? _SettingsScreenState._kSettingsSidebarWidth
+        : structuralContentLeft;
+    final contentWidth = (width - structuralContentLeft)
+        .clamp(0.0, double.infinity)
+        .toDouble();
+    final sidebarPinned = sidebarExpanded || sidebarRail;
 
     return SizedBox(
       width: width,
@@ -598,7 +556,7 @@ class _SettingsScene extends StatelessWidget {
         child: Stack(
           clipBehavior: Clip.hardEdge,
           children: [
-            if (sidebarVisible)
+            if (sidebarExpanded || temporaryNavigationOpen)
               Positioned(
                 key: const Key('settings_sidebar'),
                 left: 0,
@@ -612,10 +570,24 @@ class _SettingsScene extends StatelessWidget {
                   onSelect: onSelect,
                 ),
               ),
-            if (sidebarPinned)
+            if (sidebarRail && !temporaryNavigationOpen)
+              Positioned(
+                key: const Key('settings_navigation_rail'),
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: railWidth,
+                child: _SettingsNavigationRail(
+                  width: railWidth,
+                  items: items,
+                  selectedIndex: sidebarSelectedIndex,
+                  onSelect: onSelect,
+                ),
+              ),
+            if ((sidebarExpanded || sidebarRail) && !temporaryNavigationOpen)
               Positioned(
                 key: const Key('settings_sidebar_divider'),
-                left: _SettingsScreenState._kSettingsSidebarWidth,
+                left: structuralContentLeft - kSidebarContentDividerWidth,
                 top: 0,
                 bottom: 0,
                 width: kSidebarContentDividerWidth,
@@ -631,7 +603,7 @@ class _SettingsScene extends StatelessWidget {
               width: contentWidth,
               child: _SettingsContentLayer(
                 sidebarPinned: sidebarPinned,
-                sidebarOpen: sidebarOpen,
+                sidebarOpen: temporaryNavigationOpen,
                 title: title,
                 showSidebarButton: showSidebarButton,
                 onToggleSidebar: onToggleSidebar,
@@ -643,8 +615,102 @@ class _SettingsScene extends StatelessWidget {
                 child: content,
               ),
             ),
+            if (temporaryNavigationOpen)
+              Positioned(
+                key: const Key('settings_navigation_scrim'),
+                left: _SettingsScreenState._kSettingsSidebarWidth,
+                top: 0,
+                right: 0,
+                bottom: 0,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onToggleSidebar,
+                  child: ColoredBox(
+                    color: Colors.black.withValues(alpha: 0.08),
+                  ),
+                ),
+              ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SettingsNavigationRail extends StatelessWidget {
+  const _SettingsNavigationRail({
+    required this.width,
+    required this.items,
+    required this.selectedIndex,
+    required this.onSelect,
+  });
+
+  final double width;
+  final List<_SettingsPageItem> items;
+  final int? selectedIndex;
+  final ValueChanged<SettingsTab> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final surfaces = theme.fleurSurface;
+    final scheme = theme.colorScheme;
+
+    return Material(
+      color: surfaces.sidebar,
+      child: Column(
+        children: [
+          SizedBox(
+            height: kWorkspaceHeaderHeight,
+            child: Center(
+              child: Icon(
+                FleurIcons.settingsSelected,
+                size: 18,
+                color: scheme.primary,
+              ),
+            ),
+          ),
+          Expanded(
+            child: AppScrollbar(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  final item = items[index];
+                  final selected = index == selectedIndex;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Center(
+                      child: IconButton(
+                        key: Key('settings_rail_nav_${item.tab.queryValue}'),
+                        tooltip: item.label,
+                        onPressed: () => onSelect(item.tab),
+                        icon: Icon(
+                          selected ? item.selectedIcon : item.icon,
+                          size: 18,
+                        ),
+                        style: IconButton.styleFrom(
+                          foregroundColor: selected
+                              ? scheme.primary
+                              : scheme.onSurfaceVariant,
+                          backgroundColor: selected
+                              ? surfaces.cardSelected
+                              : Colors.transparent,
+                          fixedSize: const Size.square(40),
+                          minimumSize: const Size.square(40),
+                          padding: EdgeInsets.zero,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

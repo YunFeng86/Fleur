@@ -14,6 +14,15 @@ final sidebarPresentationModeProvider = StateProvider<SidebarPresentationMode>(
   (ref) => SidebarPresentationMode.expanded,
 );
 
+final settingsSidebarPresentationModeProvider =
+    StateProvider<SidebarPresentationMode>(
+      (ref) => SidebarPresentationMode.expanded,
+    );
+
+final settingsTemporaryNavigationOpenProvider = StateProvider<bool>(
+  (ref) => false,
+);
+
 final workspaceSidebarWidthProvider = StateProvider<double>(
   (ref) => kDefaultWorkspaceSidebarWidth,
 );
