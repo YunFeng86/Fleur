@@ -1,5 +1,76 @@
 part of 'app_shell.dart';
 
+extension _AppShellNavigationToggleActions on _AppShellState {
+  void _toggleResolvedNavigation(
+    WidgetRef ref, {
+    required AdaptiveWorkspaceArrangement arrangement,
+    required SidebarPresentationMode preferredNavigation,
+    required bool canExpandInline,
+  }) {
+    final temporaryNavigationVisible =
+        arrangement.navigationPresentation !=
+            WorkspaceNavigationPresentation.expanded &&
+        _temporarySidebarOpen;
+    if (temporaryNavigationVisible) {
+      _closeTemporarySidebar();
+      return;
+    }
+
+    if (arrangement.navigationPresentation ==
+        WorkspaceNavigationPresentation.expanded) {
+      _temporarySidebarOpen = false;
+      ref.read(sidebarPresentationModeProvider.notifier).state =
+          SidebarPresentationMode.collapsed;
+      return;
+    }
+
+    if (preferredNavigation == SidebarPresentationMode.collapsed) {
+      ref.read(sidebarPresentationModeProvider.notifier).state =
+          SidebarPresentationMode.expanded;
+      if (canExpandInline) {
+        _temporarySidebarOpen = false;
+        return;
+      }
+    }
+    _openTemporarySidebar();
+  }
+
+  void _toggleSettingsNavigation(
+    WidgetRef ref, {
+    required AdaptiveWorkspaceArrangement arrangement,
+    required SidebarPresentationMode preferredNavigation,
+    required bool canExpandInline,
+  }) {
+    final openNotifier = ref.read(
+      settingsTemporaryNavigationOpenProvider.notifier,
+    );
+    final temporaryNavigationVisible =
+        arrangement.navigationPresentation !=
+            WorkspaceNavigationPresentation.expanded &&
+        openNotifier.state;
+    if (temporaryNavigationVisible) {
+      openNotifier.state = false;
+      return;
+    }
+    if (arrangement.navigationPresentation ==
+        WorkspaceNavigationPresentation.expanded) {
+      openNotifier.state = false;
+      ref.read(settingsSidebarPresentationModeProvider.notifier).state =
+          SidebarPresentationMode.collapsed;
+      return;
+    }
+    if (preferredNavigation == SidebarPresentationMode.collapsed) {
+      ref.read(settingsSidebarPresentationModeProvider.notifier).state =
+          SidebarPresentationMode.expanded;
+      if (canExpandInline) {
+        openNotifier.state = false;
+        return;
+      }
+    }
+    openNotifier.state = true;
+  }
+}
+
 double _shellControlsLeftInset(
   MacOSWindowChromeMetrics metrics, {
   required ShellChromeLayout shellChromeLayout,

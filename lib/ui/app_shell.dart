@@ -143,57 +143,12 @@ class _AppShellState extends ConsumerState<AppShell> {
     });
   }
 
-  void _toggleResolvedNavigation(
-    WidgetRef ref, {
-    required AdaptiveWorkspaceArrangement arrangement,
-    required SidebarPresentationMode preferredNavigation,
-  }) {
-    if (_temporarySidebarOpen) {
-      _closeTemporarySidebar();
-      return;
-    }
-
-    if (arrangement.navigationPresentation ==
-        WorkspaceNavigationPresentation.expanded) {
-      ref.read(sidebarPresentationModeProvider.notifier).state =
-          SidebarPresentationMode.collapsed;
-      return;
-    }
-
-    if (preferredNavigation == SidebarPresentationMode.collapsed) {
-      ref.read(sidebarPresentationModeProvider.notifier).state =
-          SidebarPresentationMode.expanded;
-    }
+  void _openTemporarySidebar() {
     setState(() => _temporarySidebarOpen = true);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_temporaryNavigationFocusNode.canRequestFocus) return;
       _temporaryNavigationFocusNode.requestFocus();
     });
-  }
-
-  void _toggleSettingsNavigation(
-    WidgetRef ref, {
-    required AdaptiveWorkspaceArrangement arrangement,
-    required SidebarPresentationMode preferredNavigation,
-  }) {
-    final openNotifier = ref.read(
-      settingsTemporaryNavigationOpenProvider.notifier,
-    );
-    if (openNotifier.state) {
-      openNotifier.state = false;
-      return;
-    }
-    if (arrangement.navigationPresentation ==
-        WorkspaceNavigationPresentation.expanded) {
-      ref.read(settingsSidebarPresentationModeProvider.notifier).state =
-          SidebarPresentationMode.collapsed;
-      return;
-    }
-    if (preferredNavigation == SidebarPresentationMode.collapsed) {
-      ref.read(settingsSidebarPresentationModeProvider.notifier).state =
-          SidebarPresentationMode.expanded;
-    }
-    openNotifier.state = true;
   }
 
   void _beginSidebarResize(double sidebarWidth) {
@@ -272,6 +227,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     required ShellChromeLayout shellChromeLayout,
     required AdaptiveWorkspaceArrangement arrangement,
     required SidebarPresentationMode preferredNavigation,
+    required bool canExpandInline,
     required bool searchSelected,
     required NavigationHistoryState history,
     required AppUpdateManifest? updateManifest,
@@ -287,6 +243,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         ref,
         arrangement: arrangement,
         preferredNavigation: preferredNavigation,
+        canExpandInline: canExpandInline,
       ),
       onSearch: () => _goToSearch(context),
     );
@@ -390,6 +347,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     required Size size,
     required SidebarPresentationMode preferredNavigation,
     required AdaptiveWorkspaceArrangement arrangement,
+    required bool canExpandInline,
     required MacOSWindowChromeMetrics macOSWindowChromeMetrics,
     required ShellChromeLayout shellChromeLayout,
     required FleurSurfaceTheme surfaces,
@@ -433,6 +391,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         ref,
         arrangement: arrangement,
         preferredNavigation: preferredNavigation,
+        canExpandInline: canExpandInline,
       ),
       onSearch: () => _goToSearch(context),
     );
@@ -469,6 +428,7 @@ class _AppShellState extends ConsumerState<AppShell> {
           ref,
           arrangement: arrangement,
           preferredNavigation: preferredNavigation,
+          canExpandInline: canExpandInline,
         ),
         child: MediaQuery.removePadding(
           context: context,
@@ -529,6 +489,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     required Size size,
     required SidebarPresentationMode preferredNavigation,
     required AdaptiveWorkspaceArrangement arrangement,
+    required bool canExpandInline,
     required MacOSWindowChromeMetrics macOSWindowChromeMetrics,
     required ShellChromeLayout shellChromeLayout,
     required FleurSurfaceTheme surfaces,
@@ -652,6 +613,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                   ref,
                   arrangement: arrangement,
                   preferredNavigation: preferredNavigation,
+                  canExpandInline: canExpandInline,
                 )
               : null,
           child: _withDesktopShellControlsOverlay(
@@ -662,6 +624,7 @@ class _AppShellState extends ConsumerState<AppShell> {
             shellChromeLayout: shellChromeLayout,
             arrangement: arrangement,
             preferredNavigation: preferredNavigation,
+            canExpandInline: canExpandInline,
             searchSelected: _isSearchRoute(widget.currentUri),
             history: history,
             updateManifest: shellShowsUpdate ? updateManifest : null,
@@ -686,6 +649,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                           ref,
                           arrangement: arrangement,
                           preferredNavigation: preferredNavigation,
+                          canExpandInline: canExpandInline,
                         ),
                         onSearch: () => _goToSearch(context),
                       ).toTitleBarCommands(),
@@ -857,15 +821,25 @@ class _AppShellState extends ConsumerState<AppShell> {
         : null;
     final arrangementListWidth =
         preferredArticleListWidth ?? kCompactWorkspacePrimaryWidth;
+    final layoutRequirements = settingsScene
+        ? WorkspaceLayoutRequirements.settings
+        : WorkspaceLayoutRequirements.feed(listWidth: arrangementListWidth);
     final arrangement = AdaptiveWorkspaceArrangement.resolve(
       totalWidth: size.width,
       preferredNavigation: preferredNavigation,
       navigationMetrics: shellChromeLayout.workspaceNavigationMetrics,
-      requirements: settingsScene
-          ? WorkspaceLayoutRequirements.settings
-          : WorkspaceLayoutRequirements.feed(listWidth: arrangementListWidth),
+      requirements: layoutRequirements,
       hasReader: preferredArticleListWidth != null,
     );
+    final canExpandInline =
+        AdaptiveWorkspaceArrangement.resolve(
+          totalWidth: size.width,
+          preferredNavigation: SidebarPresentationMode.expanded,
+          navigationMetrics: shellChromeLayout.workspaceNavigationMetrics,
+          requirements: layoutRequirements,
+          hasReader: preferredArticleListWidth != null,
+        ).navigationPresentation ==
+        WorkspaceNavigationPresentation.expanded;
     final railWidth = shellChromeLayout.placesControlsInTitleBar
         ? kTitleBarExpectedSidebarRailWidth
         : kSidebarRailWidth;
@@ -899,6 +873,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         size: size,
         preferredNavigation: preferredNavigation,
         arrangement: arrangement,
+        canExpandInline: canExpandInline,
         macOSWindowChromeMetrics: macOSWindowChromeMetrics,
         shellChromeLayout: shellChromeLayout,
         surfaces: surfaces,
@@ -952,6 +927,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         size: size,
         preferredNavigation: preferredNavigation,
         arrangement: arrangement,
+        canExpandInline: canExpandInline,
         macOSWindowChromeMetrics: macOSWindowChromeMetrics,
         shellChromeLayout: shellChromeLayout,
         surfaces: surfaces,

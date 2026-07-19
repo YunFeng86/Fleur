@@ -320,8 +320,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                 state.uri.queryParameters['tab'],
               );
               final settingId = state.uri.queryParameters['setting'];
-              return sectionPage(
-                state: state,
+              // Settings changes the shell's navigation geometry. Keeping the
+              // old scene alive during a page transition briefly renders it
+              // inside the new shell profile, so this boundary is atomic.
+              return NoTransitionPage<void>(
+                key: state.pageKey,
                 child: SettingsScreen(
                   initialTab: tab,
                   initialSettingId: settingId,

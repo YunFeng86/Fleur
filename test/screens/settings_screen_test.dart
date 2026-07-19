@@ -542,6 +542,40 @@ void main() {
     );
   });
 
+  testWidgets('Settings title-bar toggle collapses after inline re-expansion', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    final container = await pumpSettingsShell(tester, 1000);
+
+    await tester.tap(find.byKey(const Key('shell_sidebar_button')));
+    await tester.pumpAndSettle();
+    expect(
+      container.read(settingsSidebarPresentationModeProvider),
+      SidebarPresentationMode.collapsed,
+    );
+    expect(find.byKey(const Key('settings_navigation_rail')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('shell_sidebar_button')));
+    await tester.pumpAndSettle();
+    expect(
+      container.read(settingsSidebarPresentationModeProvider),
+      SidebarPresentationMode.expanded,
+    );
+    expect(container.read(settingsTemporaryNavigationOpenProvider), isFalse);
+    expect(find.byKey(const Key('settings_sidebar')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('shell_sidebar_button')));
+    await tester.pumpAndSettle();
+    expect(
+      container.read(settingsSidebarPresentationModeProvider),
+      SidebarPresentationMode.collapsed,
+    );
+    expect(find.byKey(const Key('settings_navigation_rail')), findsOneWidget);
+  });
+
   testWidgets(
     'Settings Screen opens Services detail from initial tab in narrow mode',
     (tester) async {

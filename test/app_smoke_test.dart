@@ -1839,6 +1839,49 @@ void main() {
     );
   });
 
+  testWidgets('macOS sidebar collapses with one click after re-expanding', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(1200, 900);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(_buildShellHarness());
+    await tester.pumpAndSettle();
+    final container = ProviderScope.containerOf(
+      tester.element(find.byKey(const Key('app_shell_child'))),
+    );
+
+    await tester.tap(find.byKey(const Key('shell_sidebar_button')));
+    await tester.pumpAndSettle();
+    await _settleRailOverlayReveal(tester);
+    expect(
+      container.read(sidebarPresentationModeProvider),
+      SidebarPresentationMode.collapsed,
+    );
+    expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('shell_sidebar_button')));
+    await tester.pumpAndSettle();
+    expect(
+      container.read(sidebarPresentationModeProvider),
+      SidebarPresentationMode.expanded,
+    );
+    expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('shell_sidebar_button')));
+    await tester.pumpAndSettle();
+    await _settleRailOverlayReveal(tester);
+    expect(
+      container.read(sidebarPresentationModeProvider),
+      SidebarPresentationMode.collapsed,
+    );
+    expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
+  });
+
   testWidgets('App shell follows macOS traffic light metrics', (tester) async {
     debugFleurTargetPlatformOverride = TargetPlatform.macOS;
     addTearDown(() => debugFleurTargetPlatformOverride = null);
