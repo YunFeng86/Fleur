@@ -20,6 +20,8 @@ class _SettingsScene extends StatelessWidget {
     required this.searchController,
     required this.searchFocusNode,
     required this.searchFocused,
+    required this.navigationToggleFocusNode,
+    required this.temporaryNavigationFocusNode,
   });
 
   final double width;
@@ -40,6 +42,8 @@ class _SettingsScene extends StatelessWidget {
   final TextEditingController searchController;
   final FocusNode searchFocusNode;
   final bool searchFocused;
+  final FocusNode navigationToggleFocusNode;
+  final FocusScopeNode temporaryNavigationFocusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -61,6 +65,20 @@ class _SettingsScene extends StatelessWidget {
         .clamp(0.0, double.infinity)
         .toDouble();
     final sidebarPinned = sidebarExpanded || sidebarRail;
+    final expandedSidebar = _SettingsSidebar(
+      title: sidebarTitle,
+      railWidth: railWidth,
+      items: items,
+      selectedIndex: sidebarSelectedIndex,
+      onSelect: onSelect,
+    );
+    final visibleExpandedSidebar = temporaryNavigationOpen
+        ? FocusScope.withExternalFocusNode(
+            focusScopeNode: temporaryNavigationFocusNode,
+            autofocus: true,
+            child: expandedSidebar,
+          )
+        : expandedSidebar;
 
     return SizedBox(
       width: width,
@@ -77,13 +95,7 @@ class _SettingsScene extends StatelessWidget {
                 top: 0,
                 bottom: 0,
                 width: _SettingsScreenState._kSettingsSidebarWidth,
-                child: _SettingsSidebar(
-                  title: sidebarTitle,
-                  railWidth: railWidth,
-                  items: items,
-                  selectedIndex: sidebarSelectedIndex,
-                  onSelect: onSelect,
-                ),
+                child: visibleExpandedSidebar,
               ),
             if (sidebarRail && !temporaryNavigationOpen)
               Positioned(
@@ -110,7 +122,10 @@ class _SettingsScene extends StatelessWidget {
               ),
             AnimatedPositioned(
               key: const Key('settings_content_layer'),
-              duration: _SettingsScreenState._kLayerAnimationDuration,
+              duration: AppMotion.effectiveDuration(
+                context,
+                _SettingsScreenState._kLayerAnimationDuration,
+              ),
               curve: Curves.easeOutCubic,
               left: contentLeft,
               top: 0,
@@ -127,6 +142,7 @@ class _SettingsScene extends StatelessWidget {
                 searchController: searchController,
                 searchFocusNode: searchFocusNode,
                 searchFocused: searchFocused,
+                navigationToggleFocusNode: navigationToggleFocusNode,
                 child: content,
               ),
             ),
@@ -289,9 +305,13 @@ class _SettingsSidebarHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scope = ShellLayerScope.maybeOf(context);
+    final chromeLayout =
+        scope?.shellChromeLayout ?? ShellChromeLayout.resolve();
     final metrics =
         scope?.macOSWindowChromeMetrics ?? MacOSWindowChromeMetrics.fallback;
-    final avoidTrafficLights = isMacOS && metrics.trafficLightsVisible;
+    final avoidTrafficLights =
+        chromeLayout.profile == ShellChromeProfile.integratedCorner &&
+        metrics.trafficLightsVisible;
     final leadingLeft = avoidTrafficLights ? metrics.safeInset : 16.0;
 
     return SizedBox(
@@ -363,6 +383,7 @@ class _SettingsContentLayer extends StatelessWidget {
     required this.searchController,
     required this.searchFocusNode,
     required this.searchFocused,
+    required this.navigationToggleFocusNode,
     required this.child,
   });
 
@@ -376,6 +397,7 @@ class _SettingsContentLayer extends StatelessWidget {
   final TextEditingController searchController;
   final FocusNode searchFocusNode;
   final bool searchFocused;
+  final FocusNode navigationToggleFocusNode;
   final Widget child;
 
   @override
@@ -397,6 +419,7 @@ class _SettingsContentLayer extends StatelessWidget {
             showSidebarButton: showSidebarButton,
             onToggleSidebar: onToggleSidebar,
             onBack: onBack,
+            navigationToggleFocusNode: navigationToggleFocusNode,
           ),
           if (!sidebarPinned)
             _SettingsSearchDock(
@@ -457,6 +480,7 @@ class _SettingsSceneHeader extends StatelessWidget {
     required this.showSidebarButton,
     required this.onToggleSidebar,
     required this.onBack,
+    required this.navigationToggleFocusNode,
   });
 
   final String title;
@@ -465,20 +489,25 @@ class _SettingsSceneHeader extends StatelessWidget {
   final bool showSidebarButton;
   final VoidCallback onToggleSidebar;
   final VoidCallback? onBack;
+  final FocusNode navigationToggleFocusNode;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scope = ShellLayerScope.maybeOf(context);
+    final chromeLayout =
+        scope?.shellChromeLayout ?? ShellChromeLayout.resolve();
+    final integratedCorner =
+        chromeLayout.profile == ShellChromeProfile.integratedCorner;
     final metrics =
         scope?.macOSWindowChromeMetrics ?? MacOSWindowChromeMetrics.fallback;
     final avoidTrafficLights =
         !sidebarPinned &&
         !sidebarOpen &&
-        isMacOS &&
+        integratedCorner &&
         metrics.trafficLightsVisible;
     final leadingLeft = avoidTrafficLights ? metrics.safeInset : 8.0;
-    final rowTop = isMacOS
+    final rowTop = integratedCorner
         ? metrics.shellControlTopInset
         : kShellControlTopInset;
 
@@ -503,6 +532,7 @@ class _SettingsSceneHeader extends StatelessWidget {
                         ? FleurIcons.sidebarCollapse
                         : FleurIcons.sidebarExpand,
                     onPressed: onToggleSidebar,
+                    focusNode: navigationToggleFocusNode,
                   ),
                 if (onBack != null)
                   _SettingsHeaderButton(
@@ -580,15 +610,18 @@ class _SettingsHeaderButton extends StatelessWidget {
     required this.tooltip,
     required this.icon,
     required this.onPressed,
+    this.focusNode,
   });
 
   final String tooltip;
   final IconData icon;
   final VoidCallback? onPressed;
+  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context) {
     return IconButton(
+      focusNode: focusNode,
       tooltip: tooltip,
       onPressed: onPressed,
       icon: Icon(icon, size: kShellControlIconSize),

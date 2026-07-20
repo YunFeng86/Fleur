@@ -67,10 +67,12 @@ void main() {
         resolve(1200).navigationPresentation,
         WorkspaceNavigationPresentation.expanded,
       );
+      expect(resolve(1200).canExpandInline, isTrue);
       expect(
         resolve(680).navigationPresentation,
         WorkspaceNavigationPresentation.rail,
       );
+      expect(resolve(680).canExpandInline, isFalse);
       expect(
         resolve(475).navigationPresentation,
         WorkspaceNavigationPresentation.offCanvas,
@@ -112,8 +114,29 @@ void main() {
           WorkspaceReaderPresentation.embedded,
         );
         expect(arrangement.navigationTemporarilyCollapsed, isTrue);
+        expect(arrangement.canExpandInline, isFalse);
       },
     );
+
+    test('includes reader requirements when resolving inline expansion', () {
+      final withoutReader = AdaptiveWorkspaceArrangement.resolve(
+        totalWidth: 1000,
+        preferredNavigation: SidebarPresentationMode.expanded,
+        navigationMetrics: windowsNavigation,
+        requirements: const WorkspaceLayoutRequirements.feed(listWidth: 420),
+        hasReader: false,
+      );
+      final withReader = AdaptiveWorkspaceArrangement.resolve(
+        totalWidth: 1000,
+        preferredNavigation: SidebarPresentationMode.expanded,
+        navigationMetrics: windowsNavigation,
+        requirements: const WorkspaceLayoutRequirements.feed(listWidth: 420),
+        hasReader: true,
+      );
+
+      expect(withoutReader.canExpandInline, isTrue);
+      expect(withReader.canExpandInline, isFalse);
+    });
 
     test('uses a secondary reader when no valid split fits', () {
       final arrangement = AdaptiveWorkspaceArrangement.resolve(

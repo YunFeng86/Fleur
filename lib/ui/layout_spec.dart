@@ -134,21 +134,6 @@ class LayoutSpec {
 
   bool get showsListSyncStatusCapsule => !usesCompactListActions;
 
-  DesktopPaneMode get desktopPaneMode => desktopModeForWidth(
-    contentWidth - kWorkspaceSplitHandleHitWidth,
-    listWidth: listWidth,
-  );
-
-  bool get desktopEmbedsReader => desktopReaderEmbedded(desktopPaneMode);
-
-  bool canEmbedReader({
-    required double listWidth,
-    double minReaderWidth = kMinReadingWidth,
-  }) {
-    return contentWidth >=
-        (listWidth + minReaderWidth + kPaneGap + kWorkspaceSplitHandleHitWidth);
-  }
-
   bool get isCompact => contentWidth < kCompactWidth;
 
   bool get canSwipeToDelete => !isDesktopPlatform;
@@ -180,17 +165,6 @@ bool shouldEmbedReaderForLayout(LayoutSpec spec, {required double listWidth}) {
   return spec
       .resolveFeedArrangement(listWidth: listWidth, hasReader: true)
       .readerEmbedded;
-}
-
-bool canEmbedDesktopReaderForContentWidth(
-  double contentWidth, {
-  required double preferredListWidth,
-  double minReaderWidth = kMinReadingWidth,
-}) {
-  if (contentWidth <= 0) return false;
-  final listWidth = clampWorkspaceListWidth(preferredListWidth, contentWidth);
-  return contentWidth >=
-      (listWidth + minReaderWidth + kPaneGap + kWorkspaceSplitHandleHitWidth);
 }
 
 bool shouldCollapseSidebarForReaderLayout(

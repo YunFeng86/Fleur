@@ -18,6 +18,7 @@ import '../ui/settings/settings_search_index.dart';
 import '../ui/settings/settings_targets.dart';
 import '../ui/settings/widgets/section_header.dart';
 import '../ui/adaptive_workspace_layout.dart';
+import '../ui/motion.dart';
 import '../ui/shell_chrome_layout.dart';
 import '../ui/sidebar_layout.dart';
 import '../ui/workspace_layers.dart';
@@ -25,7 +26,6 @@ import '../providers/core_providers.dart';
 import '../providers/subscription_settings_provider.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
-import '../utils/platform.dart';
 import '../widgets/app_scrollbar.dart';
 import '../widgets/fleur_selectable_button.dart';
 import '../widgets/fleur_selection_transition.dart';
@@ -65,6 +65,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final SettingsTargetController _targetController = SettingsTargetController();
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
+  final FocusNode _navigationToggleFocusNode = FocusNode(
+    debugLabel: 'settings-navigation-toggle',
+  );
+  final FocusScopeNode _temporaryNavigationFocusNode = FocusScopeNode(
+    debugLabel: 'settings-temporary-navigation',
+    traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
+    directionalTraversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
+  );
   Timer? _highlightTimer;
   String? _pendingInitialSettingId;
   String? _pendingRevealTargetId;
@@ -103,6 +111,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _searchController.removeListener(_handleSearchChanged);
     _targetController.removeListener(_handleTargetControllerChanged);
     _searchFocusNode.dispose();
+    _navigationToggleFocusNode.dispose();
+    _temporaryNavigationFocusNode.dispose();
     _searchController.dispose();
     _targetController.dispose();
     super.dispose();
@@ -318,6 +328,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final searchEntries = buildSettingsSearchEntries(l10n);
+    final shellScope = ShellLayerScope.maybeOf(context);
+    final navigationToggleFocusNode =
+        shellScope?.navigationToggleFocusNode ?? _navigationToggleFocusNode;
+    final temporaryNavigationFocusNode =
+        shellScope?.temporaryNavigationFocusNode ??
+        _temporaryNavigationFocusNode;
+    ref.listen<bool>(settingsTemporaryNavigationOpenProvider, (previous, next) {
+      if (previous == next) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final target = next
+            ? temporaryNavigationFocusNode
+            : navigationToggleFocusNode;
+        if (target.canRequestFocus) target.requestFocus();
+      });
+    });
 
     if (_pendingInitialSettingId case final settingId?
         when settingId.trim().isNotEmpty) {
@@ -341,7 +367,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final width = constraints.maxWidth;
-            final scope = ShellLayerScope.maybeOf(context);
+            final scope = shellScope;
             final shellChromeLayout =
                 scope?.shellChromeLayout ?? ShellChromeLayout.resolve();
             final preferredNavigation = ref.watch(
@@ -357,16 +383,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   requirements: WorkspaceLayoutRequirements.settings,
                   hasReader: false,
                 );
-            final canExpandInline =
-                AdaptiveWorkspaceArrangement.resolve(
-                  totalWidth: width,
-                  preferredNavigation: SidebarPresentationMode.expanded,
-                  navigationMetrics:
-                      shellChromeLayout.workspaceNavigationMetrics,
-                  requirements: WorkspaceLayoutRequirements.settings,
-                  hasReader: false,
-                ).navigationPresentation ==
-                WorkspaceNavigationPresentation.expanded;
             final navigationPresentation = arrangement.navigationPresentation;
             final sidebarExpanded =
                 navigationPresentation ==
@@ -452,7 +468,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 presentation: navigationPresentation,
                 preferredNavigation: preferredNavigation,
                 temporaryNavigationOpen: temporaryNavigationOpen,
-                canExpandInline: canExpandInline,
+                canExpandInline: arrangement.canExpandInline,
               );
               ref.read(settingsSidebarPresentationModeProvider.notifier).state =
                   result.preferredNavigation;
@@ -491,6 +507,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               searchController: _searchController,
               searchFocusNode: _searchFocusNode,
               searchFocused: _searchFocused,
+              navigationToggleFocusNode: navigationToggleFocusNode,
+              temporaryNavigationFocusNode: temporaryNavigationFocusNode,
             );
 
             if (!sidebarExpanded && !sidebarRail && !showingList) {

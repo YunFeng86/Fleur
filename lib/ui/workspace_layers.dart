@@ -77,6 +77,8 @@ class ShellLayerScope extends InheritedWidget {
     required this.headerLeadingInset,
     required this.macOSWindowChromeMetrics,
     this.shellChromeLayout,
+    this.navigationToggleFocusNode,
+    this.temporaryNavigationFocusNode,
     this.preferredSidebarPresentationMode = SidebarPresentationMode.expanded,
     this.workspaceArrangement,
     required super.child,
@@ -93,6 +95,8 @@ class ShellLayerScope extends InheritedWidget {
   final double headerLeadingInset;
   final MacOSWindowChromeMetrics macOSWindowChromeMetrics;
   final ShellChromeLayout? shellChromeLayout;
+  final FocusNode? navigationToggleFocusNode;
+  final FocusScopeNode? temporaryNavigationFocusNode;
   final SidebarPresentationMode preferredSidebarPresentationMode;
   final AdaptiveWorkspaceArrangement? workspaceArrangement;
 
@@ -113,6 +117,9 @@ class ShellLayerScope extends InheritedWidget {
         headerLeadingInset != oldWidget.headerLeadingInset ||
         macOSWindowChromeMetrics != oldWidget.macOSWindowChromeMetrics ||
         shellChromeLayout != oldWidget.shellChromeLayout ||
+        navigationToggleFocusNode != oldWidget.navigationToggleFocusNode ||
+        temporaryNavigationFocusNode !=
+            oldWidget.temporaryNavigationFocusNode ||
         preferredSidebarPresentationMode !=
             oldWidget.preferredSidebarPresentationMode ||
         workspaceArrangement != oldWidget.workspaceArrangement;

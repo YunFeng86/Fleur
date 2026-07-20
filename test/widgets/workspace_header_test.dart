@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:fleur/l10n/app_localizations.dart';
+import 'package:fleur/services/update/app_update_manifest.dart';
 import 'package:fleur/theme/app_theme.dart';
+import 'package:fleur/ui/shell_chrome_layout.dart';
+import 'package:fleur/ui/shell_title_bar.dart';
 import 'package:fleur/ui/sidebar_layout.dart';
 import 'package:fleur/ui/workspace_layers.dart';
 import 'package:fleur/utils/platform.dart';
@@ -346,5 +350,72 @@ void main() {
     expect(buttonTapCount, 2);
     expect(calls, isNot(contains('performWindowZoom')));
     expect(calls, isNot(contains('performWindowDrag')));
+  });
+
+  testWidgets('titlebar preserves drag space and overflows lower priorities', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(352, 120);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    final manifest = AppUpdateManifest(
+      schemaVersion: 1,
+      channel: AppUpdateChannel.stable,
+      version: '9.9.9',
+      tag: 'v9.9.9',
+      publishedAt: DateTime.utc(2026, 1, 1),
+      releaseUrl: Uri.parse('https://example.com/releases/v9.9.9'),
+      notes: const {'en': 'Test update'},
+      assets: const {},
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        theme: AppTheme.light(),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(
+            width: 352,
+            child: ShellWindowTitleBar(
+              leadingLeft: 12,
+              commands: ShellWindowTitleBarCommands(
+                onToggleSidebar: () {},
+                onBack: () {},
+                onForward: () {},
+                onSearch: () {},
+                canGoBack: true,
+                canGoForward: true,
+              ),
+              updateManifest: manifest,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byKey(const Key('shell_sidebar_button')), findsOneWidget);
+    expect(find.byKey(const Key('shell_back_button')), findsOneWidget);
+    expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
+    expect(find.byKey(const Key('shell_forward_button')), findsNothing);
+    expect(find.byKey(const Key('shell_update_button')), findsNothing);
+    expect(
+      find.byKey(const Key('shell_control_overflow_button')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('shell_title_bar_drag_surface')),
+      findsOneWidget,
+    );
+    expect(
+      tester.getSize(
+        find.byKey(const Key('shell_window_caption_controls_host')),
+      ),
+      const Size(kShellWindowCaptionControlsWidth, kWorkspaceHeaderHeight),
+    );
   });
 }

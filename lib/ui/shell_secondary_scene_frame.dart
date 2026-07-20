@@ -5,9 +5,11 @@ import '../theme/fleur_theme_extensions.dart';
 import 'adaptive_workspace_layout.dart';
 import 'app_drawer_scope.dart';
 import 'app_menu.dart';
+import 'motion.dart';
 import 'shell_chrome_layout.dart';
 import 'shell_frame_geometry.dart';
 import 'shell_title_bar.dart';
+import 'shell_window_frame.dart';
 import 'sidebar_layout.dart';
 import 'workspace_layers.dart';
 
@@ -45,7 +47,7 @@ class ShellSecondarySceneFrame extends StatelessWidget {
   final double controlsLeading;
   final AppUpdateManifest? updateManifest;
   final FocusNode navigationToggleFocusNode;
-  final FocusNode temporaryNavigationFocusNode;
+  final FocusScopeNode temporaryNavigationFocusNode;
   final Widget navigationPane;
   final Widget? floatingLeadingControls;
   final VoidCallback onDismissNavigation;
@@ -85,92 +87,80 @@ class ShellSecondarySceneFrame extends StatelessWidget {
         headerLeadingInset: 14,
         macOSWindowChromeMetrics: macOSWindowChromeMetrics,
         shellChromeLayout: shellChromeLayout,
+        navigationToggleFocusNode: navigationToggleFocusNode,
+        temporaryNavigationFocusNode: temporaryNavigationFocusNode,
         preferredSidebarPresentationMode: preferredNavigation,
         workspaceArrangement: arrangement,
         child: AppDrawerScope(
           hasAppDrawer: true,
           openDrawer: titleBarCommands.onToggleSidebar,
-          child: Stack(
-            clipBehavior: Clip.hardEdge,
-            children: [
-              if (shellChromeLayout.placesControlsInTitleBar)
-                Positioned(
-                  left: 0,
-                  top: 0,
-                  right: 0,
-                  height: geometry.titleBarHeight,
-                  child: ShellWindowTitleBar(
-                    commands: titleBarCommands,
-                    presentationMode: controlsPresentationMode,
-                    searchSelected: false,
-                    updateManifest: updateManifest,
-                    leadingLeft: controlsLeading,
-                    dividerLeadingInset: geometry.dividerLeadingInset,
-                    navigationToggleFocusNode: navigationToggleFocusNode,
-                  ),
-                ),
-              if (temporaryNavigationOpen)
-                Positioned(
-                  left: 0,
-                  top: geometry.titleBarHeight,
-                  bottom: 0,
-                  width: temporaryNavigationWidth,
-                  child: Focus(
-                    focusNode: temporaryNavigationFocusNode,
-                    autofocus: true,
-                    child: navigationPane,
-                  ),
-                ),
-              AnimatedPositioned(
-                left: geometry.translatedContentLeft,
-                top: geometry.titleBarHeight,
-                bottom: 0,
-                width: geometry.contentWidth,
-                duration: kShellContentTranslationDuration,
-                curve: Curves.easeOutCubic,
-                child: WorkspaceLayerSurface(
-                  key: const Key('app_shell_secondary_layer'),
-                  color: surfaces.reader,
-                  borderRadius: surfaceAppearance.borderRadius,
-                  showShadow: surfaceAppearance.showShadow,
-                  leadingEdge: surfaceAppearance.leadingEdge,
-                  child: child,
-                ),
-              ),
-              if (temporaryNavigationOpen)
-                Positioned(
-                  key: const Key('app_shell_navigation_scrim'),
-                  left: temporaryNavigationWidth,
-                  top: geometry.titleBarHeight,
-                  right: 0,
-                  bottom: 0,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: onDismissNavigation,
-                    child: ColoredBox(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.scrim.withValues(alpha: 0.12),
+          child: ShellWindowFrame(
+            geometry: geometry,
+            shellChromeLayout: shellChromeLayout,
+            macOSWindowChromeMetrics: macOSWindowChromeMetrics,
+            titleBarCommands: titleBarCommands,
+            controlsPresentationMode: controlsPresentationMode,
+            searchSelected: false,
+            updateManifest: updateManifest,
+            controlsLeading: controlsLeading,
+            navigationToggleFocusNode: navigationToggleFocusNode,
+            floatingLeadingControls: floatingLeadingControls,
+            child: Stack(
+              clipBehavior: Clip.hardEdge,
+              children: [
+                if (temporaryNavigationOpen)
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: temporaryNavigationWidth,
+                    child: FocusScope.withExternalFocusNode(
+                      focusScopeNode: temporaryNavigationFocusNode,
+                      autofocus: true,
+                      child: navigationPane,
                     ),
                   ),
+                AnimatedPositioned(
+                  left: geometry.translatedContentLeft,
+                  top: 0,
+                  bottom: 0,
+                  width: geometry.contentWidth,
+                  duration: AppMotion.effectiveDuration(
+                    context,
+                    kShellContentTranslationDuration,
+                  ),
+                  curve: Curves.easeOutCubic,
+                  child: WorkspaceLayerSurface(
+                    key: const Key('app_shell_secondary_layer'),
+                    color: surfaces.reader,
+                    borderRadius: surfaceAppearance.borderRadius,
+                    showShadow: surfaceAppearance.showShadow,
+                    leadingEdge: surfaceAppearance.leadingEdge,
+                    child: child,
+                  ),
                 ),
-              if (floatingLeadingControls != null)
-                Positioned(
-                  left: controlsLeading,
-                  top: _floatingControlsTop,
-                  child: floatingLeadingControls!,
-                ),
-            ],
+                if (temporaryNavigationOpen)
+                  Positioned(
+                    key: const Key('app_shell_navigation_scrim'),
+                    left: temporaryNavigationWidth,
+                    top: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: onDismissNavigation,
+                      child: ColoredBox(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.scrim.withValues(alpha: 0.12),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
     );
-  }
-
-  double get _floatingControlsTop {
-    if (shellChromeLayout.profile != ShellChromeProfile.integratedCorner) {
-      return kShellControlTopInset;
-    }
-    return macOSWindowChromeMetrics.shellControlTopInset;
   }
 }

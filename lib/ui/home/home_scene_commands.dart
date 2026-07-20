@@ -19,7 +19,6 @@ import '../../services/sync/backend_capabilities.dart';
 import '../../services/sync/backend_sync_semantics.dart';
 import '../../services/sync/refresh_all_coordinator.dart';
 import '../../services/sync/sync_service.dart';
-import '../../utils/platform.dart';
 import '../layout.dart';
 import '../layout_spec.dart';
 import '../adaptive_workspace_layout.dart';
@@ -223,10 +222,9 @@ class HomeSceneCommands {
     final scope = _ref.read(currentArticleScopeProvider);
     final location = scopedArticleLocation(scope, articleId);
     final spec = LayoutSpec.fromContext(_context);
-    final listWidth = isDesktop ? spec.listWidth : kHomeListWidth;
     final openAsSecondaryPage = !shouldEmbedReaderForLayout(
       spec,
-      listWidth: listWidth,
+      listWidth: kHomeListWidth,
     );
 
     if (!openAsSecondaryPage) {

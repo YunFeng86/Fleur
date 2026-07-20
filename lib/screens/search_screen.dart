@@ -18,8 +18,8 @@ import '../ui/home/article_reader_workspace_layout.dart';
 import '../ui/home/home_scene_panes.dart';
 import '../ui/layout.dart';
 import '../ui/layout_spec.dart';
+import '../ui/shell_chrome_layout.dart';
 import '../ui/sidebar_layout.dart';
-import '../utils/platform.dart';
 import '../widgets/article_list.dart';
 import '../widgets/fleur_empty_state.dart';
 import '../widgets/reader_view.dart';
@@ -221,7 +221,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final surfaces = Theme.of(context).fleurSurface;
-    final useCompactTopBar = !isDesktop;
+    final layoutSpec = LayoutSpec.fromContext(context);
+    final useCompactTopBar =
+        layoutSpec.shellChromeLayout.profile == ShellChromeProfile.contentOnly;
 
     if (!_initialized) {
       final loading = Container(
@@ -249,7 +251,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ref.watch(workspaceListWidthProvider),
           width,
         );
-        final spec = LayoutSpec.fromContext(context);
+        final spec = layoutSpec;
         final isEmbedded = shouldEmbedReaderForLayout(
           spec,
           listWidth: kDesktopListWidth,
@@ -303,7 +305,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     child: SizedBox(
                       width: fieldWidth,
                       child: StaggeredReveal(
-                        enabled: isDesktop,
+                        enabled: !spec.isCompact,
                         child: searchField,
                       ),
                     ),
@@ -316,7 +318,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           return Column(
             children: [
               StaggeredReveal(
-                enabled: isDesktop,
+                enabled: !spec.isCompact,
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
                   child: Center(

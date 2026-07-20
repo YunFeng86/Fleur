@@ -42,6 +42,8 @@ class ShellControlStrip extends StatelessWidget {
     this.updateManifest,
     this.updateBeforeSearch = false,
     this.navigationToggleFocusNode,
+    this.useTitleBarPriority = false,
+    this.availableWidth,
   });
 
   final ShellWindowTitleBarCommands commands;
@@ -52,45 +54,57 @@ class ShellControlStrip extends StatelessWidget {
   final AppUpdateManifest? updateManifest;
   final bool updateBeforeSearch;
   final FocusNode? navigationToggleFocusNode;
+  final bool useTitleBarPriority;
+  final double? availableWidth;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final sidebarExpanded =
         presentationMode == SidebarPresentationMode.expanded;
-    final controls = <_ShellControlData>[
-      _ShellControlData(
-        key: const Key('shell_sidebar_button'),
-        tooltip: sidebarExpanded ? l10n.collapse : l10n.expand,
-        onPressed: commands.onToggleSidebar,
-        icon: sidebarExpanded
-            ? FleurIcons.sidebarCollapse
-            : FleurIcons.sidebarExpand,
-        focusNode: navigationToggleFocusNode,
-      ),
-      _ShellControlData(
-        key: const Key('shell_back_button'),
-        tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-        onPressed: commands.canGoBack ? commands.onBack : null,
-        icon: FleurIcons.back,
-      ),
-      _ShellControlData(
-        key: const Key('shell_forward_button'),
-        tooltip: l10n.forward,
-        onPressed: commands.canGoForward ? commands.onForward : null,
-        icon: FleurIcons.forward,
-      ),
-      if (updateBeforeSearch) ..._updateControl(context, l10n),
-      if (showSearch)
-        _ShellControlData(
-          key: const Key('shell_search_button'),
-          tooltip: l10n.search,
-          onPressed: commands.onSearch,
-          icon: searchSelected ? FleurIcons.searchSelected : FleurIcons.search,
-          selected: searchSelected,
-        ),
-      if (!updateBeforeSearch) ..._updateControl(context, l10n),
-    ];
+    final toggle = _ShellControlData(
+      key: const Key('shell_sidebar_button'),
+      tooltip: sidebarExpanded ? l10n.collapse : l10n.expand,
+      onPressed: commands.onToggleSidebar,
+      icon: sidebarExpanded
+          ? FleurIcons.sidebarCollapse
+          : FleurIcons.sidebarExpand,
+      focusNode: navigationToggleFocusNode,
+    );
+    final back = _ShellControlData(
+      key: const Key('shell_back_button'),
+      tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+      onPressed: commands.canGoBack ? commands.onBack : null,
+      icon: FleurIcons.back,
+    );
+    final forward = _ShellControlData(
+      key: const Key('shell_forward_button'),
+      tooltip: l10n.forward,
+      onPressed: commands.canGoForward ? commands.onForward : null,
+      icon: FleurIcons.forward,
+    );
+    final search = showSearch
+        ? _ShellControlData(
+            key: const Key('shell_search_button'),
+            tooltip: l10n.search,
+            onPressed: commands.onSearch,
+            icon: searchSelected
+                ? FleurIcons.searchSelected
+                : FleurIcons.search,
+            selected: searchSelected,
+          )
+        : null;
+    final update = _updateControl(context, l10n);
+    final controls = useTitleBarPriority
+        ? <_ShellControlData>[toggle, back, ?search, forward, ...update]
+        : <_ShellControlData>[
+            toggle,
+            back,
+            forward,
+            if (updateBeforeSearch) ...update,
+            ?search,
+            if (!updateBeforeSearch) ...update,
+          ];
 
     if (surface == ShellControlStripSurface.capsule) {
       return FleurCapsuleButtonGroup(
@@ -113,10 +127,12 @@ class ShellControlStrip extends StatelessWidget {
       );
     }
 
+    final visibleControls = _visibleControls(controls);
+    final hiddenControls = controls.skip(visibleControls.length).toList();
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        for (final control in controls)
+        for (final control in visibleControls)
           _FlatShellControlButton(
             key: control.key,
             tooltip: control.tooltip,
@@ -125,8 +141,19 @@ class ShellControlStrip extends StatelessWidget {
             selected: control.selected,
             focusNode: control.focusNode,
           ),
+        if (hiddenControls.isNotEmpty)
+          _ShellControlOverflowButton(controls: hiddenControls),
       ],
     );
+  }
+
+  List<_ShellControlData> _visibleControls(List<_ShellControlData> controls) {
+    final width = availableWidth;
+    if (width == null || !width.isFinite) return controls;
+    final slotCount = (width / kShellControlSize).floor();
+    if (slotCount >= controls.length) return controls;
+    if (slotCount <= 1) return controls.take(1).toList();
+    return controls.take(slotCount - 1).toList();
   }
 
   List<_ShellControlData> _updateControl(
@@ -198,6 +225,41 @@ class _FlatShellControlButton extends StatelessWidget {
         size: kShellControlSize,
         disabledOpacity: disabledOpacity,
       ),
+    );
+  }
+}
+
+class _ShellControlOverflowButton extends StatelessWidget {
+  const _ShellControlOverflowButton({required this.controls});
+
+  final List<_ShellControlData> controls;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return PopupMenuButton<int>(
+      key: const Key('shell_control_overflow_button'),
+      tooltip: l10n.more,
+      icon: const Icon(FleurIcons.moreHorizontal, size: kShellControlIconSize),
+      style: FleurShellIconButtonStyle.styleFor(
+        context,
+        size: kShellControlSize,
+      ),
+      onSelected: (index) => controls[index].onPressed?.call(),
+      itemBuilder: (context) => [
+        for (var index = 0; index < controls.length; index++)
+          PopupMenuItem<int>(
+            key: ValueKey('shell-overflow-${controls[index].key}'),
+            value: index,
+            enabled: controls[index].onPressed != null,
+            child: ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(controls[index].icon, size: kShellControlIconSize),
+              title: Text(controls[index].tooltip),
+            ),
+          ),
+      ],
     );
   }
 }

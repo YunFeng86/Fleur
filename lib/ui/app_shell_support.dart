@@ -39,7 +39,7 @@ extension _AppShellNavigationToggleActions on _AppShellState {
     );
     ref.read(settingsSidebarPresentationModeProvider.notifier).state =
         result.preferredNavigation;
-    openNotifier.state = result.temporaryNavigationOpen;
+    _setSettingsTemporaryNavigation(ref, result.temporaryNavigationOpen);
   }
 }
 
@@ -52,16 +52,6 @@ double _shellControlsLeftInset(
     return fallback;
   }
   return metrics.trafficLightsVisible ? metrics.safeInset : fallback;
-}
-
-double _shellControlsTopInset(
-  MacOSWindowChromeMetrics metrics, {
-  required ShellChromeLayout shellChromeLayout,
-}) {
-  if (shellChromeLayout.profile != ShellChromeProfile.integratedCorner) {
-    return kShellControlTopInset;
-  }
-  return metrics.shellControlTopInset;
 }
 
 class _RailOverlayHost extends StatefulWidget {
@@ -126,7 +116,10 @@ class _RailOverlayHostState extends State<_RailOverlayHost> {
       ignoring: !widget.visible,
       child: TweenAnimationBuilder<double>(
         tween: Tween(begin: 0, end: 1),
-        duration: const Duration(milliseconds: 90),
+        duration: AppMotion.effectiveDuration(
+          context,
+          const Duration(milliseconds: 90),
+        ),
         curve: Curves.easeOutCubic,
         builder: (context, opacity, child) {
           return Opacity(opacity: opacity, child: child);
@@ -236,7 +229,7 @@ class _ShellHistoryShortcuts extends StatelessWidget {
         const SingleActivator(LogicalKeyboardKey.escape):
             const _DismissShellNavigationIntent(),
     };
-    return Shortcuts(
+    final result = Shortcuts(
       shortcuts: shortcuts,
       child: Actions(
         actions: {
@@ -263,6 +256,15 @@ class _ShellHistoryShortcuts extends StatelessWidget {
         },
         child: Focus(autofocus: true, child: child),
       ),
+    );
+    final dismissNavigation = onDismissNavigation;
+    if (dismissNavigation == null) return result;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) dismissNavigation();
+      },
+      child: result,
     );
   }
 }

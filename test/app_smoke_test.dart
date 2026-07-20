@@ -118,8 +118,18 @@ Widget _buildRuntimeHostHarness({
 Widget _buildShellHarness({
   Uri? currentUri,
   Widget? child,
+  MediaQueryData? mediaQueryData,
   List<Override> overrides = const [],
 }) {
+  final shell = AppShell(
+    currentUri: currentUri ?? Uri(path: '/'),
+    child:
+        child ??
+        const ColoredBox(
+          key: Key('app_shell_child'),
+          color: Colors.transparent,
+        ),
+  );
   return ProviderScope(
     overrides: [
       activeAccountProvider.overrideWithValue(buildTestAccount()),
@@ -136,15 +146,9 @@ Widget _buildShellHarness({
       theme: AppTheme.light(),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      home: AppShell(
-        currentUri: currentUri ?? Uri(path: '/'),
-        child:
-            child ??
-            const ColoredBox(
-              key: Key('app_shell_child'),
-              color: Colors.transparent,
-            ),
-      ),
+      home: mediaQueryData == null
+          ? shell
+          : MediaQuery(data: mediaQueryData, child: shell),
     ),
   );
 }
@@ -447,20 +451,6 @@ void main() {
           )
           .toList(),
       <bool>[false, true, true, false, false, false],
-    );
-    expect(
-      canEmbedDesktopReaderForContentWidth(
-        822,
-        preferredListWidth: kDesktopListWidth,
-      ),
-      isTrue,
-    );
-    expect(
-      canEmbedDesktopReaderForContentWidth(
-        821,
-        preferredListWidth: kDesktopListWidth,
-      ),
-      isFalse,
     );
   });
 
@@ -800,6 +790,7 @@ void main() {
     final theme = AppTheme.light();
 
     expect(find.byType(Sidebar), findsOneWidget);
+    final sidebarState = tester.state(find.byType(Sidebar));
     expect(
       tester.getSize(find.byType(Sidebar)).width,
       kDefaultWorkspaceSidebarWidth,
@@ -921,15 +912,18 @@ void main() {
     final expandedToggleTopLeft = tester.getTopLeft(
       find.byKey(const Key('shell_sidebar_button')),
     );
-    final expandedForwardRight = tester
-        .getRect(find.byKey(const Key('shell_forward_button')))
-        .right;
+    final expandedForwardTopLeft = tester.getTopLeft(
+      find.byKey(const Key('shell_forward_button')),
+    );
     final expandedSearchTopLeft = tester.getTopLeft(
       find.byKey(const Key('shell_search_button')),
     );
-    expect(expandedSearchTopLeft.dx, 12 + kShellControlSize * 3);
+    expect(expandedSearchTopLeft.dx, 12 + kShellControlSize * 2);
     expect(expandedSearchTopLeft.dy, kShellControlTopInset);
-    expect(expandedSearchTopLeft.dx, expandedForwardRight);
+    expect(
+      expandedForwardTopLeft.dx,
+      expandedSearchTopLeft.dx + kShellControlSize,
+    );
     final expandedAllDx = tester
         .getCenter(find.byKey(const Key('sidebar_all_button')))
         .dx;
@@ -974,6 +968,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('app_shell_rail_overlay')), findsNothing);
     expect(find.byType(Sidebar), findsOneWidget);
+    expect(tester.state(find.byType(Sidebar)), same(sidebarState));
+    expect(find.byKey(const Key('sidebar_detail_panel')), findsNothing);
+    expect(
+      find.byKey(const Key('sidebar_detail_panel'), skipOffstage: false),
+      findsOneWidget,
+    );
     expect(find.byKey(const Key('app_shell_connected_rail')), findsOneWidget);
     final connectedRail = find.byKey(const Key('app_shell_connected_rail'));
     expect(
@@ -1086,6 +1086,7 @@ void main() {
       tester.getSize(find.byType(Sidebar)).width,
       kDefaultWorkspaceSidebarWidth,
     );
+    expect(tester.state(find.byType(Sidebar)), same(sidebarState));
     expect(find.byKey(const Key('app_shell_rail_overlay')), findsNothing);
     expect(
       tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
@@ -1155,6 +1156,21 @@ void main() {
       FocusManager.instance.primaryFocus?.debugLabel,
       'shell-temporary-navigation',
     );
+    for (var index = 0; index < 16; index++) {
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+      final focusContext = FocusManager.instance.primaryFocus?.context;
+      expect(focusContext, isNotNull);
+      expect(
+        find.ancestor(
+          of: find.byElementPredicate(
+            (element) => identical(element, focusContext),
+          ),
+          matching: find.byType(Sidebar),
+        ),
+        findsOneWidget,
+      );
+    }
     expect(tester.getTopLeft(contentLayer).dx, kTemporaryWorkspaceSidebarWidth);
     expect(tester.getSize(contentLayer).width, 475);
 
@@ -1167,6 +1183,76 @@ void main() {
       FocusManager.instance.primaryFocus?.debugLabel,
       'shell-navigation-toggle',
     );
+
+    await tester.tap(find.byKey(const Key('shell_sidebar_button')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('app_shell_navigation_scrim')), findsOneWidget);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('app_shell_navigation_scrim')), findsNothing);
+    expect(tester.getTopLeft(contentLayer).dx, 0);
+  });
+
+  testWidgets('off-canvas push reveal honors reduced motion', (tester) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(475, 800);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      _buildShellHarness(
+        mediaQueryData: const MediaQueryData(disableAnimations: true),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('shell_sidebar_button')));
+    await tester.pump();
+
+    final contentLayer = find.byKey(const Key('app_shell_content_layer'));
+    final position = tester.widget<AnimatedPositioned>(
+      find
+          .ancestor(of: contentLayer, matching: find.byType(AnimatedPositioned))
+          .first,
+    );
+    expect(position.duration, Duration.zero);
+    expect(tester.getTopLeft(contentLayer).dx, kTemporaryWorkspaceSidebarWidth);
+  });
+
+  testWidgets('content-only shell uses the same width-driven navigation', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.android;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(1200, 800);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(_buildShellHarness());
+    await tester.pumpAndSettle();
+
+    final contentLayer = find.byKey(const Key('app_shell_content_layer'));
+    expect(find.byKey(const Key('shell_title_bar')), findsNothing);
+    expect(tester.getSize(find.byType(Sidebar)).width, 260);
+    expect(tester.getTopLeft(contentLayer).dx, 261);
+
+    tester.view.physicalSize = const Size(680, 800);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('app_shell_connected_rail')), findsOneWidget);
+    expect(tester.getTopLeft(contentLayer).dx, kSidebarRailWidth);
+
+    tester.view.physicalSize = const Size(467, 800);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Sidebar), findsNothing);
+    expect(tester.getTopLeft(contentLayer).dx, 0);
+    expect(tester.getSize(contentLayer).width, 467);
   });
 
   testWidgets('Windows shell keeps update and search actions in titlebar', (
@@ -4963,6 +5049,31 @@ void main() {
     );
     expect(tester.getSize(find.byType(ArticleList)).width, kDesktopListWidth);
     expect(find.byType(ReaderView), findsOneWidget);
+    expect(tester.widget<ReaderView>(find.byType(ReaderView)).embedded, isTrue);
+
+    tester.view.physicalSize = const Size(900, 800);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 240));
+
+    expect(find.byType(ArticleList), findsNothing);
+    expect(
+      tester.widget<ReaderView>(find.byType(ReaderView)).embedded,
+      isFalse,
+    );
+
+    tester.view.physicalSize = const Size(1200, 800);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 240));
+
+    expect(find.byType(ArticleList), findsOneWidget);
+    expect(tester.widget<ReaderView>(find.byType(ReaderView)).embedded, isTrue);
+    expect(
+      tester
+          .widget<SearchBar>(find.byKey(const Key('search_task_field')))
+          .controller
+          ?.text,
+      'claude',
+    );
   });
 
   testWidgets('Saved reader route uses the sliding workspace layout', (

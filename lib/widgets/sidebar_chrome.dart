@@ -91,192 +91,6 @@ class _SidebarFixedItemData {
   IconData get effectiveIcon => selected ? (selectedIcon ?? icon) : icon;
 }
 
-class _SidebarRail extends StatelessWidget {
-  const _SidebarRail({
-    required this.mode,
-    required this.items,
-    required this.account,
-    required this.reserveShellHeader,
-    required this.onAccountTap,
-    required this.accountAnchorKey,
-    required this.railSurfaceStyle,
-  });
-
-  final SidebarPresentationMode mode;
-  final List<_SidebarFixedItemData> items;
-  final Account account;
-  final bool reserveShellHeader;
-  final VoidCallback onAccountTap;
-  final Key accountAnchorKey;
-  final SidebarRailSurfaceStyle railSurfaceStyle;
-
-  @override
-  Widget build(BuildContext context) {
-    final surfaces = Theme.of(context).fleurSurface;
-    final collapsed = mode == SidebarPresentationMode.collapsed;
-    final showsCapsuleSurface =
-        collapsed && railSurfaceStyle == SidebarRailSurfaceStyle.capsule;
-    final showsPlainDivider =
-        collapsed && railSurfaceStyle == SidebarRailSurfaceStyle.plain;
-    final railButtons = Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [for (final item in items) _SidebarRailScopeButton(item: item)],
-    );
-    final railButtonGroup = showsCapsuleSurface
-        ? DecoratedBox(
-            key: const Key('sidebar_collapsed_rail_surface'),
-            decoration: BoxDecoration(
-              color: surfaces.floating,
-              border: Border.all(color: surfaces.subtleDivider),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: railButtons,
-          )
-        : railButtons;
-
-    final rail = Column(
-      children: [
-        if (reserveShellHeader) const SizedBox(height: kWorkspaceHeaderHeight),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: _kSidebarRailHorizontalInset,
-            ),
-            child: Column(
-              children: [
-                railButtonGroup,
-                const Expanded(child: SizedBox.shrink()),
-                SafeArea(
-                  top: false,
-                  child: SizedBox(
-                    height: _kSidebarAccountHeight,
-                    child: Center(
-                      child: SizedBox.square(
-                        key: accountAnchorKey,
-                        dimension: _kSidebarRailButtonSize,
-                        child: _SidebarRailAccountButton(
-                          key: const Key('sidebar_account_button'),
-                          account: account,
-                          onTap: onAccountTap,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-
-    if (!showsPlainDivider) return rail;
-
-    return DecoratedBox(
-      key: const Key('sidebar_collapsed_rail_divider'),
-      decoration: BoxDecoration(
-        border: Border(right: BorderSide(color: surfaces.subtleDivider)),
-      ),
-      child: rail,
-    );
-  }
-}
-
-class _SidebarRailScopeButton extends StatelessWidget {
-  const _SidebarRailScopeButton({required this.item});
-
-  final _SidebarFixedItemData item;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: _kSidebarFixedItemHeight,
-      child: Center(
-        child: Semantics(
-          button: true,
-          selected: item.selected,
-          label: item.title,
-          child: _SidebarRailIconButton(
-            key: item.key,
-            tooltip: item.title,
-            icon: item.effectiveIcon,
-            selected: item.selected,
-            onPressed: item.onTap,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SidebarRailAccountButton extends StatelessWidget {
-  const _SidebarRailAccountButton({
-    super.key,
-    required this.account,
-    required this.onTap,
-  });
-
-  final Account account;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final states = Theme.of(context).fleurState;
-    return Tooltip(
-      message: account.name,
-      child: Semantics(
-        button: true,
-        label: account.name,
-        child: InkResponse(
-          onTap: onTap,
-          hoverColor: states.hoverTint,
-          radius: 20,
-          child: SizedBox.square(
-            dimension: _kSidebarRailButtonSize,
-            child: Center(
-              child: AccountAvatar(
-                account: account,
-                radius: _kSidebarAccountAvatarRadius,
-                showTypeBadge: true,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SidebarRailIconButton extends StatelessWidget {
-  const _SidebarRailIconButton({
-    super.key,
-    required this.tooltip,
-    required this.icon,
-    required this.onPressed,
-    this.selected = false,
-  });
-
-  final String tooltip;
-  final IconData icon;
-  final VoidCallback? onPressed;
-  final bool selected;
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      tooltip: tooltip,
-      onPressed: onPressed,
-      icon: FleurAnimatedIcon(icon: icon, size: _kSidebarRailIconSize),
-      iconSize: _kSidebarRailIconSize,
-      style: FleurCapsuleIconButton.styleFor(
-        context,
-        selected: selected,
-        size: _kSidebarRailButtonSize,
-      ),
-    );
-  }
-}
-
 class _SidebarPanel extends StatelessWidget {
   const _SidebarPanel({
     required this.fixedItems,
@@ -284,7 +98,6 @@ class _SidebarPanel extends StatelessWidget {
     required this.sync,
     required this.showSyncStatus,
     required this.onAccountTap,
-    required this.accountAnchorKey,
     required this.reserveShellHeader,
     required this.searchSelected,
     required this.onSearch,
@@ -292,6 +105,7 @@ class _SidebarPanel extends StatelessWidget {
     required this.showHeaderActions,
     required this.navigationTree,
     required this.navigationScrollController,
+    required this.showRailAnchors,
   });
 
   final List<_SidebarFixedItemData> fixedItems;
@@ -299,7 +113,6 @@ class _SidebarPanel extends StatelessWidget {
   final SyncStatusState sync;
   final bool showSyncStatus;
   final VoidCallback onAccountTap;
-  final Key accountAnchorKey;
   final bool reserveShellHeader;
   final bool searchSelected;
   final VoidCallback? onSearch;
@@ -307,6 +120,7 @@ class _SidebarPanel extends StatelessWidget {
   final bool showHeaderActions;
   final Widget navigationTree;
   final ScrollController navigationScrollController;
+  final bool showRailAnchors;
 
   @override
   Widget build(BuildContext context) {
@@ -322,6 +136,7 @@ class _SidebarPanel extends StatelessWidget {
         _SidebarPanelFixedItems(
           items: fixedItems,
           scrollController: navigationScrollController,
+          showRailAnchors: showRailAnchors,
         ),
         Expanded(child: navigationTree),
         _AccountPanelFooter(
@@ -329,7 +144,7 @@ class _SidebarPanel extends StatelessWidget {
           sync: sync,
           showSyncStatus: showSyncStatus,
           onTap: onAccountTap,
-          accountAnchorKey: accountAnchorKey,
+          showRailAnchor: false,
         ),
       ],
     );
@@ -555,10 +370,12 @@ class _SidebarPanelFixedItems extends StatelessWidget {
   const _SidebarPanelFixedItems({
     required this.items,
     required this.scrollController,
+    required this.showRailAnchors,
   });
 
   final List<_SidebarFixedItemData> items;
   final ScrollController scrollController;
+  final bool showRailAnchors;
 
   @override
   Widget build(BuildContext context) {
@@ -571,7 +388,11 @@ class _SidebarPanelFixedItems extends StatelessWidget {
         Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            for (final item in items) _SidebarPanelFixedItem(item: item),
+            for (final item in items)
+              _SidebarPanelFixedItem(
+                item: item,
+                showRailAnchor: showRailAnchors,
+              ),
           ],
         ),
         Positioned(
@@ -602,9 +423,13 @@ class _SidebarPanelFixedItems extends StatelessWidget {
 }
 
 class _SidebarPanelFixedItem extends StatelessWidget {
-  const _SidebarPanelFixedItem({required this.item});
+  const _SidebarPanelFixedItem({
+    required this.item,
+    required this.showRailAnchor,
+  });
 
   final _SidebarFixedItemData item;
+  final bool showRailAnchor;
 
   @override
   Widget build(BuildContext context) {
@@ -646,11 +471,9 @@ class _SidebarPanelFixedItem extends StatelessWidget {
                 width: railWidth - 16,
                 child: Center(
                   child: SizedBox.square(
-                    key: item.key,
+                    key: showRailAnchor ? item.key : null,
                     dimension: _kSidebarRailButtonSize,
-                    child: Center(
-                      child: Icon(item.icon, size: _kSidebarRailIconSize),
-                    ),
+                    child: const SizedBox.shrink(),
                   ),
                 ),
               ),
@@ -703,14 +526,14 @@ class _AccountPanelFooter extends StatelessWidget {
     required this.sync,
     required this.showSyncStatus,
     required this.onTap,
-    required this.accountAnchorKey,
+    required this.showRailAnchor,
   });
 
   final Account account;
   final SyncStatusState sync;
   final bool showSyncStatus;
   final VoidCallback onTap;
-  final Key accountAnchorKey;
+  final bool showRailAnchor;
 
   String _syncText(AppLocalizations l10n) {
     String labelFor(SyncStatusLabel label) => switch (label) {
@@ -765,7 +588,6 @@ class _AccountPanelFooter extends StatelessWidget {
               button: true,
               label: account.name,
               child: Material(
-                key: accountAnchorKey,
                 color: Colors.transparent,
                 borderRadius: borderRadius,
                 child: InkWell(
@@ -779,11 +601,19 @@ class _AccountPanelFooter extends StatelessWidget {
                         SizedBox(
                           width: railWidth - 12,
                           child: Center(
-                            child: AccountAvatar(
-                              key: const Key('sidebar_account_button'),
-                              account: account,
-                              radius: _kSidebarAccountAvatarRadius,
-                              showTypeBadge: true,
+                            child: SizedBox.square(
+                              key: showRailAnchor
+                                  ? const Key('sidebar_account_button')
+                                  : null,
+                              dimension: _kSidebarRailButtonSize,
+                              child: Opacity(
+                                opacity: 0,
+                                child: AccountAvatar(
+                                  account: account,
+                                  radius: _kSidebarAccountAvatarRadius,
+                                  showTypeBadge: true,
+                                ),
+                              ),
                             ),
                           ),
                         ),

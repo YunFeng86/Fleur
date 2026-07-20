@@ -13,6 +13,8 @@ import 'workspace_layers.dart';
 
 export 'shell_control_strip.dart' show ShellWindowTitleBarCommands;
 
+const double kShellTitleBarMinimumDragWidth = 48;
+
 class ShellWindowTitleBar extends StatelessWidget {
   const ShellWindowTitleBar({
     super.key,
@@ -41,49 +43,62 @@ class ShellWindowTitleBar extends StatelessWidget {
     return Material(
       key: const Key('shell_title_bar'),
       color: surfaces.chrome,
-      child: SizedBox(
-        height: kWorkspaceHeaderHeight,
-        child: Stack(
-          clipBehavior: Clip.hardEdge,
-          children: [
-            const Positioned.fill(
-              child: WindowDragSurface(
-                key: Key('shell_title_bar_drag_surface'),
-              ),
-            ),
-            if (commands != null)
-              Positioned(
-                left: leadingLeft,
-                top: kShellControlTopInset,
-                height: kShellControlSize,
-                child: _ShellWindowControlsHost(
-                  presentationMode: presentationMode,
-                  commands: commands,
-                  searchSelected: searchSelected,
-                  updateManifest: updateManifest,
-                  navigationToggleFocusNode: navigationToggleFocusNode,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final controlsWidth =
+              (constraints.maxWidth -
+                      leadingLeft -
+                      kShellWindowCaptionControlsWidth -
+                      kShellTitleBarMinimumDragWidth)
+                  .clamp(0.0, double.infinity)
+                  .toDouble();
+          return SizedBox(
+            height: kWorkspaceHeaderHeight,
+            child: Stack(
+              clipBehavior: Clip.hardEdge,
+              children: [
+                const Positioned.fill(
+                  child: WindowDragSurface(
+                    key: Key('shell_title_bar_drag_surface'),
+                  ),
                 ),
-              ),
-            const Positioned(
-              key: Key('shell_window_caption_controls_host'),
-              top: 0,
-              right: 0,
-              height: kWorkspaceHeaderHeight,
-              width: kShellWindowCaptionControlsWidth,
-              child: _WindowCaptionControls(),
+                if (commands != null)
+                  Positioned(
+                    left: leadingLeft,
+                    top: kShellControlTopInset,
+                    width: controlsWidth,
+                    height: kShellControlSize,
+                    child: _ShellWindowControlsHost(
+                      presentationMode: presentationMode,
+                      commands: commands,
+                      searchSelected: searchSelected,
+                      updateManifest: updateManifest,
+                      navigationToggleFocusNode: navigationToggleFocusNode,
+                      availableWidth: controlsWidth,
+                    ),
+                  ),
+                const Positioned(
+                  key: Key('shell_window_caption_controls_host'),
+                  top: 0,
+                  right: 0,
+                  height: kWorkspaceHeaderHeight,
+                  width: kShellWindowCaptionControlsWidth,
+                  child: _WindowCaptionControls(),
+                ),
+                Positioned(
+                  left: dividerLeadingInset,
+                  right: 0,
+                  bottom: 0,
+                  height: 1,
+                  child: ColoredBox(
+                    key: const Key('shell_title_bar_divider'),
+                    color: surfaces.subtleDivider,
+                  ),
+                ),
+              ],
             ),
-            Positioned(
-              left: dividerLeadingInset,
-              right: 0,
-              bottom: 0,
-              height: 1,
-              child: ColoredBox(
-                key: const Key('shell_title_bar_divider'),
-                color: surfaces.subtleDivider,
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -96,6 +111,7 @@ class _ShellWindowControlsHost extends StatelessWidget {
     required this.searchSelected,
     required this.updateManifest,
     required this.navigationToggleFocusNode,
+    required this.availableWidth,
   });
 
   final SidebarPresentationMode presentationMode;
@@ -103,6 +119,7 @@ class _ShellWindowControlsHost extends StatelessWidget {
   final bool searchSelected;
   final AppUpdateManifest? updateManifest;
   final FocusNode? navigationToggleFocusNode;
+  final double availableWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -113,6 +130,8 @@ class _ShellWindowControlsHost extends StatelessWidget {
       searchSelected: searchSelected,
       updateManifest: updateManifest,
       navigationToggleFocusNode: navigationToggleFocusNode,
+      useTitleBarPriority: true,
+      availableWidth: availableWidth,
     );
   }
 }

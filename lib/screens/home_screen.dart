@@ -17,9 +17,9 @@ import '../ui/home/home_scene_panes.dart';
 import '../ui/home/home_scene_shortcuts.dart';
 import '../ui/layout.dart';
 import '../ui/layout_spec.dart';
+import '../ui/shell_chrome_layout.dart';
 import '../ui/sidebar_layout.dart';
 import '../ui/workspace_layers.dart';
-import '../utils/platform.dart';
 import '../widgets/fleur_capsule_button_group.dart';
 import '../widgets/outbox_status_action.dart';
 
@@ -31,12 +31,10 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    // Desktop shell chrome is owned by AppShell; the page only contributes
-    // title/action content when the active shell profile has a title bar.
-    final useCompactTopBar = !isDesktop;
-    final showSyncCapsule = LayoutSpec.fromContext(
-      context,
-    ).showsListSyncStatusCapsule;
+    final layoutSpec = LayoutSpec.fromContext(context);
+    final usesContentPageHeader =
+        layoutSpec.shellChromeLayout.profile == ShellChromeProfile.contentOnly;
+    final showSyncCapsule = layoutSpec.showsListSyncStatusCapsule;
     final capabilities = ref.watch(backendCapabilitiesProvider);
     final syncSemantics = ref.watch(backendSyncSemanticsProvider);
     final showRootRefresh = SubscriptionObjectMenus.showsRootRefresh(
@@ -80,14 +78,6 @@ class HomeScreen extends ConsumerWidget {
       ).showSnackBar(SnackBar(content: Text(l10n.done)));
     }
 
-    Widget markAllReadFab() {
-      return FloatingActionButton(
-        onPressed: markAllRead,
-        tooltip: l10n.markAllRead,
-        child: const Icon(FleurIcons.markAllRead),
-      );
-    }
-
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
@@ -95,11 +85,10 @@ class HomeScreen extends ConsumerWidget {
           ref.watch(workspaceListWidthProvider),
           width,
         );
-        final arrangement = LayoutSpec.fromContext(context)
-            .resolveFeedArrangement(
-              listWidth: kHomeListWidth,
-              hasReader: selectedArticleId != null,
-            );
+        final arrangement = layoutSpec.resolveFeedArrangement(
+          listWidth: kHomeListWidth,
+          hasReader: selectedArticleId != null,
+        );
         final articleId = selectedArticleId;
         if (articleId != null && arrangement.showsSecondaryReader) {
           final fallbackLocation = scopeLocation(
@@ -114,196 +103,60 @@ class HomeScreen extends ConsumerWidget {
             ),
           );
         }
-        final columns = homeColumnsForWidth(width);
-
-        if (isDesktop) {
-          final mode = desktopModeForWidth(
-            width - kWorkspaceSplitHandleHitWidth,
-            listWidth: listWidth,
-          );
-          return _buildDesktop(
-            context,
-            ref,
-            l10n,
-            mode,
-            useCompactTopBar,
-            commands,
-            refreshAll,
-            showRootRefresh,
-            refreshActionLabel,
-            markAllRead,
-            listWidth,
-            width,
-          );
-        }
-
-        // 1-column: mobile-style list + drawer, dedicated reader route.
-        if (columns == 1) {
-          final unreadOnly = ref.watch(unreadOnlyProvider);
-          return Scaffold(
-            appBar: AppBar(
-              leading: AppDrawerScope.drawerLeading(context),
-              title: Text(l10n.feeds),
-              actions: [
-                if (showRootRefresh)
-                  IconButton(
-                    tooltip: refreshActionLabel,
-                    onPressed: refreshAll,
-                    icon: const Icon(FleurIcons.refresh),
-                  ),
-                // The mobile AppBar stays focused on feed-only actions while
-                // shell-level navigation lives in the drawer/sidebar model.
-                IconButton(
-                  tooltip: unreadOnly ? l10n.showAll : l10n.unreadOnly,
-                  onPressed: commands.toggleUnreadOnly,
-                  icon: Icon(
-                    unreadOnly ? FleurIcons.filterActive : FleurIcons.filter,
-                  ),
-                ),
-                const OutboxStatusAction(),
-              ],
-            ),
-            floatingActionButton: useCompactTopBar ? markAllReadFab() : null,
-            body: HomeArticleListPane(
-              selectedArticleId: selectedArticleId,
-              showSyncCapsule: showSyncCapsule,
-            ),
-          );
-        }
-
-        // 2/3-column: tablet style with shared keyboard shortcuts.
-        return HomeSceneShortcuts(
+        final topBar = usesContentPageHeader
+            ? null
+            : _HomeArticleListToolbar(
+                showRefresh: showRootRefresh,
+                refreshTooltip: refreshActionLabel,
+                onRefresh: refreshAll,
+                onToggleUnreadOnly: commands.toggleUnreadOnly,
+                onMarkAllRead: markAllRead,
+              );
+        final content = HomeSceneShortcuts(
           commands: commands,
-          child: Scaffold(
-            appBar: useCompactTopBar
-                ? AppBar(
-                    leading: AppDrawerScope.drawerLeading(context),
-                    title: Text(l10n.feeds),
-                    actions: [
-                      if (showRootRefresh)
-                        IconButton(
-                          tooltip: refreshActionLabel,
-                          onPressed: refreshAll,
-                          icon: const Icon(FleurIcons.refresh),
-                        ),
-                      Consumer(
-                        builder: (context, ref, _) {
-                          final unreadOnly = ref.watch(unreadOnlyProvider);
-                          return IconButton(
-                            tooltip: unreadOnly
-                                ? l10n.showAll
-                                : l10n.unreadOnly,
-                            onPressed: commands.toggleUnreadOnly,
-                            icon: Icon(
-                              unreadOnly
-                                  ? FleurIcons.filterActive
-                                  : FleurIcons.filter,
-                            ),
-                          );
-                        },
-                      ),
-                      const OutboxStatusAction(),
-                    ],
-                  )
-                : null,
-            floatingActionButton: useCompactTopBar ? markAllReadFab() : null,
-            body: _buildWorkspaceLayout(
-              ref: ref,
-              contentWidth: width,
-              listWidth: kHomeListWidth,
-              selectedArticleId: selectedArticleId,
-              showSyncCapsule: showSyncCapsule,
-              enableSplitHandle: false,
-            ),
+          child: _buildWorkspaceLayout(
+            ref: ref,
+            contentWidth: width,
+            listWidth: listWidth,
+            selectedArticleId: selectedArticleId,
+            showSyncCapsule: showSyncCapsule,
+            enableSplitHandle:
+                selectedArticleId != null && arrangement.readerEmbedded,
+            topBar: topBar,
           ),
         );
-      },
-    );
-  }
+        if (!usesContentPageHeader) return content;
 
-  Widget _buildDesktop(
-    BuildContext context,
-    WidgetRef ref,
-    AppLocalizations l10n,
-    DesktopPaneMode mode,
-    bool useCompactTopBar,
-    HomeSceneCommands commands,
-    Future<void> Function() refreshAll,
-    bool showRootRefresh,
-    String refreshActionLabel,
-    Future<void> Function() markAllRead,
-    double listWidth,
-    double contentWidth,
-  ) {
-    final showSyncCapsule = LayoutSpec.fromContext(
-      context,
-    ).showsListSyncStatusCapsule;
-    final topBar = _HomeArticleListToolbar(
-      showRefresh: showRootRefresh,
-      refreshTooltip: refreshActionLabel,
-      onRefresh: refreshAll,
-      onToggleUnreadOnly: commands.toggleUnreadOnly,
-      onMarkAllRead: markAllRead,
-    );
-
-    final body = switch (mode) {
-      DesktopPaneMode.threePane ||
-      DesktopPaneMode.splitListReader => _buildWorkspaceLayout(
-        ref: ref,
-        contentWidth: contentWidth,
-        listWidth: listWidth,
-        selectedArticleId: selectedArticleId,
-        showSyncCapsule: showSyncCapsule,
-        topBar: topBar,
-        enableSplitHandle: true,
-      ),
-      DesktopPaneMode.listOnly => _buildWorkspaceLayout(
-        ref: ref,
-        contentWidth: contentWidth,
-        listWidth: listWidth,
-        selectedArticleId: selectedArticleId,
-        showSyncCapsule: showSyncCapsule,
-        topBar: topBar,
-        enableSplitHandle: false,
-      ),
-    };
-
-    final content = HomeSceneShortcuts(commands: commands, child: body);
-
-    if (!useCompactTopBar) return content;
-
-    return Scaffold(
-      appBar: AppBar(
-        leading: AppDrawerScope.drawerLeading(context),
-        title: Text(l10n.feeds),
-        actions: [
-          if (showRootRefresh)
-            IconButton(
-              tooltip: refreshActionLabel,
-              onPressed: refreshAll,
-              icon: const Icon(FleurIcons.refresh),
-            ),
-          Consumer(
-            builder: (context, ref, _) {
-              final unreadOnly = ref.watch(unreadOnlyProvider);
-              return IconButton(
+        final unreadOnly = ref.watch(unreadOnlyProvider);
+        return Scaffold(
+          appBar: AppBar(
+            leading: AppDrawerScope.drawerLeading(context),
+            title: Text(l10n.feeds),
+            actions: [
+              if (showRootRefresh)
+                IconButton(
+                  tooltip: refreshActionLabel,
+                  onPressed: refreshAll,
+                  icon: const Icon(FleurIcons.refresh),
+                ),
+              IconButton(
                 tooltip: unreadOnly ? l10n.showAll : l10n.unreadOnly,
                 onPressed: commands.toggleUnreadOnly,
                 icon: Icon(
                   unreadOnly ? FleurIcons.filterActive : FleurIcons.filter,
                 ),
-              );
-            },
+              ),
+              const OutboxStatusAction(),
+            ],
           ),
-          const OutboxStatusAction(),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: markAllRead,
-        tooltip: l10n.markAllRead,
-        child: const Icon(FleurIcons.markAllRead),
-      ),
-      body: content,
+          floatingActionButton: FloatingActionButton(
+            onPressed: markAllRead,
+            tooltip: l10n.markAllRead,
+            child: const Icon(FleurIcons.markAllRead),
+          ),
+          body: content,
+        );
+      },
     );
   }
 

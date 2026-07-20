@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fleur/l10n/app_localizations.dart';
@@ -609,6 +610,46 @@ void main() {
     expect(
       container.read(sidebarPresentationModeProvider),
       SidebarPresentationMode.collapsed,
+    );
+  });
+
+  testWidgets('Settings temporary navigation traps and restores focus', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    await pumpSettingsShell(tester, 650);
+    await tester.tap(find.byKey(const Key('shell_sidebar_button')));
+    await tester.pumpAndSettle();
+
+    expect(
+      FocusManager.instance.primaryFocus?.debugLabel,
+      'shell-temporary-navigation',
+    );
+    for (var index = 0; index < 12; index++) {
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+      final focusContext = FocusManager.instance.primaryFocus?.context;
+      expect(focusContext, isNotNull);
+      expect(
+        find.ancestor(
+          of: find.byElementPredicate(
+            (element) => identical(element, focusContext),
+          ),
+          matching: find.byKey(const Key('settings_sidebar')),
+        ),
+        findsOneWidget,
+      );
+    }
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('settings_sidebar')), findsNothing);
+    expect(
+      FocusManager.instance.primaryFocus?.debugLabel,
+      'shell-navigation-toggle',
     );
   });
 

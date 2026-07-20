@@ -104,11 +104,13 @@ class AdaptiveWorkspaceArrangement {
     required this.navigationPresentation,
     required this.readerPresentation,
     required this.navigationTemporarilyCollapsed,
+    required this.canExpandInline,
   });
 
   final WorkspaceNavigationPresentation navigationPresentation;
   final WorkspaceReaderPresentation readerPresentation;
   final bool navigationTemporarilyCollapsed;
+  final bool canExpandInline;
 
   bool get readerEmbedded =>
       readerPresentation == WorkspaceReaderPresentation.embedded;
@@ -135,11 +137,26 @@ class AdaptiveWorkspaceArrangement {
       requirements: requirements,
     );
 
+    final expandedFits =
+        width >=
+        navigationMetrics.expandedExtent + requirements.expandedContentWidth;
+    final expandedReaderFits =
+        !hasReader ||
+        !requirements.supportsReader ||
+        _readerFits(
+          width: width,
+          presentation: WorkspaceNavigationPresentation.expanded,
+          navigationMetrics: navigationMetrics,
+          requirements: requirements,
+        );
+    final canExpandInline = expandedFits && expandedReaderFits;
+
     if (!hasReader || !requirements.supportsReader) {
       return AdaptiveWorkspaceArrangement(
         navigationPresentation: preferredPresentation,
         readerPresentation: WorkspaceReaderPresentation.none,
         navigationTemporarilyCollapsed: false,
+        canExpandInline: canExpandInline,
       );
     }
 
@@ -153,6 +170,7 @@ class AdaptiveWorkspaceArrangement {
         navigationPresentation: preferredPresentation,
         readerPresentation: WorkspaceReaderPresentation.embedded,
         navigationTemporarilyCollapsed: false,
+        canExpandInline: canExpandInline,
       );
     }
 
@@ -168,10 +186,11 @@ class AdaptiveWorkspaceArrangement {
           navigationMetrics: navigationMetrics,
           requirements: requirements,
         )) {
-      return const AdaptiveWorkspaceArrangement(
+      return AdaptiveWorkspaceArrangement(
         navigationPresentation: WorkspaceNavigationPresentation.rail,
         readerPresentation: WorkspaceReaderPresentation.embedded,
         navigationTemporarilyCollapsed: true,
+        canExpandInline: canExpandInline,
       );
     }
 
@@ -179,6 +198,7 @@ class AdaptiveWorkspaceArrangement {
       navigationPresentation: preferredPresentation,
       readerPresentation: WorkspaceReaderPresentation.secondaryPage,
       navigationTemporarilyCollapsed: false,
+      canExpandInline: canExpandInline,
     );
   }
 

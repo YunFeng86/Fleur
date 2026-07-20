@@ -11,7 +11,7 @@ import '../ui/home/article_reader_workspace_layout.dart';
 import '../ui/home/home_scene_panes.dart';
 import '../ui/layout.dart';
 import '../ui/layout_spec.dart';
-import '../utils/platform.dart';
+import '../ui/shell_chrome_layout.dart';
 import '../widgets/article_list.dart';
 import '../widgets/fleur_empty_state.dart';
 import '../widgets/reader_view.dart';
@@ -91,9 +91,9 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
     final starredCount = ref.watch(starredCountProvider).valueOrNull;
     final readLaterCount = ref.watch(readLaterCountProvider).valueOrNull;
     final searchQuery = ref.watch(articleSearchQueryProvider);
-    // Desktop stays chrome-less here; future shell controls live outside the
-    // page instead of as an in-page AppBar.
-    final useCompactTopBar = !isDesktop;
+    final layoutSpec = LayoutSpec.fromContext(context);
+    final useCompactTopBar =
+        layoutSpec.shellChromeLayout.profile == ShellChromeProfile.contentOnly;
 
     if (!_initialized) {
       final loading = Container(
@@ -117,7 +117,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
           context,
         ).showsListSyncStatusCapsule;
         final width = constraints.maxWidth;
-        final spec = LayoutSpec.fromContext(context);
+        final spec = layoutSpec;
         final isEmbedded = shouldEmbedReaderForLayout(
           spec,
           listWidth: kDesktopListWidth,
@@ -145,7 +145,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
         );
 
         final header = StaggeredReveal(
-          enabled: isDesktop,
+          enabled: !spec.isCompact,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
             child: Column(

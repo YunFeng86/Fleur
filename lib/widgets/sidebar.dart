@@ -42,6 +42,7 @@ import 'fleur_selection_transition.dart';
 import 'overflow_marquee.dart';
 
 part 'sidebar_chrome.dart';
+part 'sidebar_rail.dart';
 
 class Sidebar extends ConsumerStatefulWidget {
   const Sidebar({
@@ -57,6 +58,7 @@ class Sidebar extends ConsumerStatefulWidget {
     this.macOSWindowChromeMetrics = MacOSWindowChromeMetrics.fallback,
     this.railSurfaceStyle = SidebarRailSurfaceStyle.capsule,
     this.railWidth = kSidebarRailWidth,
+    this.expandedWidth = kDefaultWorkspaceSidebarWidth,
     this.showHeaderActions = true,
   });
 
@@ -71,6 +73,7 @@ class Sidebar extends ConsumerStatefulWidget {
   final MacOSWindowChromeMetrics macOSWindowChromeMetrics;
   final SidebarRailSurfaceStyle railSurfaceStyle;
   final double railWidth;
+  final double expandedWidth;
   final bool showHeaderActions;
 
   @override
@@ -305,37 +308,36 @@ class _SidebarState extends ConsumerState<Sidebar> {
         color: widget.transparentBackground
             ? Colors.transparent
             : surfaces.sidebar,
-        child: collapsed
-            ? Align(
-                alignment: Alignment.topLeft,
-                child: SizedBox(
-                  width: double.infinity,
-                  child: _SidebarRail(
-                    mode: presentationMode,
-                    items: fixedItems,
-                    account: activeAccount,
-                    reserveShellHeader: widget.reserveShellHeader,
-                    onAccountTap: () => unawaited(_showAccountMenu()),
-                    accountAnchorKey: _accountFooterKey,
-                    railSurfaceStyle: widget.railSurfaceStyle,
-                  ),
-                ),
-              )
-            : _SidebarPanel(
-                fixedItems: fixedItems,
-                account: activeAccount,
-                sync: syncStatus,
-                showSyncStatus: widget.showAccountSyncStatus,
-                onAccountTap: () => unawaited(_showAccountMenu()),
-                accountAnchorKey: _accountFooterKey,
-                reserveShellHeader: widget.reserveShellHeader,
-                searchSelected: searchSelected,
-                onSearch: widget.onSearch,
-                macOSWindowChromeMetrics: widget.macOSWindowChromeMetrics,
-                showHeaderActions: widget.showHeaderActions,
-                navigationTree: navigationTree,
-                navigationScrollController: _scrollController,
-              ),
+        child: _PersistentSidebarChrome(
+          collapsed: collapsed,
+          expandedWidth: widget.expandedWidth,
+          railWidth: widget.railWidth,
+          rail: _SidebarRail(
+            mode: presentationMode,
+            items: fixedItems,
+            account: activeAccount,
+            reserveShellHeader: widget.reserveShellHeader,
+            onAccountTap: () => unawaited(_showAccountMenu()),
+            accountAnchorKey: _accountFooterKey,
+            railSurfaceStyle: widget.railSurfaceStyle,
+            showAnchorKeys: collapsed,
+          ),
+          detail: _SidebarPanel(
+            fixedItems: fixedItems,
+            account: activeAccount,
+            sync: syncStatus,
+            showSyncStatus: widget.showAccountSyncStatus,
+            onAccountTap: () => unawaited(_showAccountMenu()),
+            reserveShellHeader: widget.reserveShellHeader,
+            searchSelected: searchSelected,
+            onSearch: widget.onSearch,
+            macOSWindowChromeMetrics: widget.macOSWindowChromeMetrics,
+            showHeaderActions: widget.showHeaderActions,
+            navigationTree: navigationTree,
+            navigationScrollController: _scrollController,
+            showRailAnchors: !collapsed,
+          ),
+        ),
       ),
     );
   }
