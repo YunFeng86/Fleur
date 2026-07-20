@@ -1,11 +1,10 @@
 import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
 
-/// Normalizes feed-provided HTML before reader math normalization/sanitizing.
+/// Normalizes feed or extracted HTML before reader math normalization/sanitizing.
 ///
-/// This layer keeps RSS/Atom content readable without executing feed scripts or
-/// styles. It only rewrites resource URLs and lazy image attributes into the
-/// regular HTML shape expected by the reader.
+/// This layer canonicalizes known publisher structures and resource attributes
+/// into the regular HTML shape expected by the reader.
 class FeedHtmlNormalizer {
   FeedHtmlNormalizer._();
 
@@ -13,10 +12,74 @@ class FeedHtmlNormalizer {
     if (html.trim().isEmpty) return '';
 
     final fragment = html_parser.parseFragment(html);
+    _normalizeHighlightFigures(fragment);
     _normalizeImages(fragment, baseUrl: baseUrl);
     _normalizeLinks(fragment, baseUrl: baseUrl);
     return fragment.outerHtml;
   }
+
+  static void _normalizeHighlightFigures(dom.DocumentFragment fragment) {
+    for (final figure in fragment.querySelectorAll('figure.highlight')) {
+      final table = figure.children
+          .where((element) => element.localName == 'table')
+          .firstOrNull;
+      if (table == null) continue;
+
+      final sourcePre = table.querySelector('td.code pre');
+      if (sourcePre == null) continue;
+
+      final pre = dom.Element.tag('pre');
+      final code = dom.Element.tag('code');
+      final language = _highlightLanguage(figure);
+      if (language != null) {
+        final languageClass = 'language-$language';
+        pre.attributes
+          ..['class'] = languageClass
+          ..['data-language'] = language;
+        code.attributes
+          ..['class'] = languageClass
+          ..['data-language'] = language;
+      }
+
+      final source = _codeContents(sourcePre);
+      code.nodes.addAll(source.nodes.map((node) => node.clone(true)));
+      pre.append(code);
+      figure.replaceWith(pre);
+    }
+  }
+
+  static dom.Element _codeContents(dom.Element pre) {
+    if (pre.children.length != 1) return pre;
+    final code = pre.children.single;
+    if (code.localName != 'code') return pre;
+    final onlyWhitespaceAroundCode = pre.nodes.every(
+      (node) =>
+          identical(node, code) || node is dom.Text && node.data.trim().isEmpty,
+    );
+    return onlyWhitespaceAroundCode ? code : pre;
+  }
+
+  static String? _highlightLanguage(dom.Element figure) {
+    for (final rawClass in figure.classes) {
+      final candidate = rawClass.startsWith('language-')
+          ? rawClass.substring('language-'.length)
+          : rawClass;
+      final normalized = candidate.trim().toLowerCase();
+      if (_highlightPresentationClasses.contains(normalized)) continue;
+      if (_safeLanguagePattern.hasMatch(normalized)) return normalized;
+    }
+    return null;
+  }
+
+  static const _highlightPresentationClasses = {
+    'highlight',
+    'hljs',
+    'code',
+    'code-block',
+    'line-numbers',
+  };
+
+  static final _safeLanguagePattern = RegExp(r'^[a-z0-9_-]+$');
 
   static void _normalizeImages(dom.DocumentFragment fragment, {Uri? baseUrl}) {
     for (final img in fragment.querySelectorAll('img')) {

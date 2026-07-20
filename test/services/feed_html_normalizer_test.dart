@@ -1,3 +1,4 @@
+import 'package:html/parser.dart' as html_parser;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:fleur/services/feed_html_normalizer.dart';
@@ -68,5 +69,41 @@ void main() {
     expect(normalized, isNot(contains('data:image')));
     expect(normalized, isNot(contains('about:blank')));
     expect(normalized, isNot(contains('placeholder.png')));
+  });
+
+  test('converts Hexo highlight tables into canonical code blocks', () {
+    final normalized = FeedHtmlNormalizer.normalize('''
+<figure class="highlight bash">
+  <table><tbody><tr>
+    <td class="gutter"><pre><span>1</span><br><span>2</span></pre></td>
+    <td class="code"><pre><span class="meta">\$</span> echo <span class="string">hello</span><br>pwd</pre></td>
+  </tr></tbody></table>
+</figure>
+''');
+    final fragment = html_parser.parseFragment(normalized);
+    final pre = fragment.querySelector('pre.language-bash');
+    final code = pre?.querySelector('code.language-bash');
+
+    expect(fragment.querySelector('figure'), isNull);
+    expect(fragment.querySelector('table'), isNull);
+    expect(pre?.attributes['data-language'], 'bash');
+    expect(code?.attributes['data-language'], 'bash');
+    expect(code?.querySelector('span.meta')?.text, r'$');
+    expect(code?.querySelector('span.string')?.text, 'hello');
+    expect(code?.innerHtml, contains('<br>pwd'));
+    expect(code?.text, isNot(contains('1')));
+    expect(code?.text, isNot(contains('2')));
+  });
+
+  test('does not rewrite ordinary article tables', () {
+    const html =
+        '<table><tbody><tr><td class="code"><pre>value</pre></td></tr></tbody></table>';
+
+    final normalized = FeedHtmlNormalizer.normalize(html);
+    final fragment = html_parser.parseFragment(normalized);
+
+    expect(fragment.querySelector('table'), isNotNull);
+    expect(fragment.querySelector('td.code pre')?.text, 'value');
+    expect(fragment.querySelector('pre > code'), isNull);
   });
 }

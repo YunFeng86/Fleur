@@ -2288,6 +2288,59 @@ void main() {
     expect(restoredPixels, closeTo(expectedOffset, 40));
   });
 
+  testWidgets('reader lays out Hexo highlight tables as code blocks', (
+    tester,
+  ) async {
+    final article =
+        buildArticle(title: 'Hexo article', html: '<p>Feed body</p>')
+          ..link = 'https://blog.zhheo.com/p/u61vslr3.html'
+          ..extractedContentHtml = '''
+<article>
+  <p>Before code</p>
+  <figure class="highlight bash">
+    <table><tbody><tr>
+      <td class="gutter"><pre><span>1</span><br><span>2</span></pre></td>
+      <td class="code"><pre><span class="meta">\$</span> echo <span class="string">hello</span><br>pwd</pre></td>
+    </tr></tbody></table>
+  </figure>
+  <h2>After code heading</h2>
+  <p>After code paragraph</p>
+</article>
+'''
+          ..preferredContentView = ArticleContentView.extracted;
+
+    await pumpReader(
+      tester,
+      article: article,
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      size: const Size(1000, 900),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 12);
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(ReaderCodeBlockChrome), findsOneWidget);
+    expect(readerCodePlainTexts(tester), ['\$ echo hello\npwd']);
+
+    Finder readerText(String text) => find.descendant(
+      of: find.byType(HtmlWidget),
+      matching: find.byWidgetPredicate(
+        (widget) =>
+            widget is ReaderSelectableRichText &&
+            widget.text.toPlainText().contains(text),
+      ),
+    );
+
+    final headingPosition = tester.getTopLeft(readerText('After code heading'));
+    final paragraphPosition = tester.getTopLeft(
+      readerText('After code paragraph'),
+    );
+    expect(headingPosition.dy.isFinite, isTrue);
+    expect(paragraphPosition.dy, greaterThan(headingPosition.dy));
+  });
+
   testWidgets(
     'manage tags dialog keeps 48dp color swatches with semantic labels',
     (tester) async {
