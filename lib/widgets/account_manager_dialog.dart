@@ -16,6 +16,7 @@ import '../ui/dialogs/text_input_dialog.dart';
 import '../utils/context_extensions.dart';
 import 'app_scrollbar.dart';
 import 'account_avatar.dart';
+import 'fleur_selection_transition.dart';
 
 class AccountManagerDialog extends ConsumerWidget {
   const AccountManagerDialog({super.key});
@@ -284,21 +285,32 @@ class AccountManagerDialog extends ConsumerWidget {
                                   ),
                               };
 
-                              return AnimatedContainer(
+                              return FleurSelectionTransition(
                                 key: Key('account_manager_account_${a.id}'),
-                                duration: const Duration(milliseconds: 180),
-                                curve: Curves.easeOutCubic,
-                                decoration: BoxDecoration(
-                                  color: isActive
-                                      ? surfaces.cardSelected
-                                      : surfaces.card,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: isActive
-                                        ? states.focusRing
-                                        : surfaces.subtleDivider,
-                                  ),
-                                ),
+                                selected: isActive,
+                                builder: (context, selection, child) {
+                                  return DecoratedBox(
+                                    key: Key(
+                                      'account_manager_account_surface_${a.id}',
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Color.lerp(
+                                        surfaces.card,
+                                        surfaces.cardSelected,
+                                        selection,
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: Color.lerp(
+                                          surfaces.subtleDivider,
+                                          states.focusRing,
+                                          selection,
+                                        )!,
+                                      ),
+                                    ),
+                                    child: child,
+                                  );
+                                },
                                 child: ListTile(
                                   contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 12,
@@ -314,26 +326,41 @@ class AccountManagerDialog extends ConsumerWidget {
                                       Expanded(
                                         child: Text(
                                           a.name,
-                                          style: TextStyle(
-                                            fontWeight: isActive
-                                                ? FontWeight.w600
-                                                : FontWeight.w500,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w500,
                                           ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
-                                      if (isActive)
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                            left: 8.0,
-                                          ),
-                                          child: Icon(
-                                            FleurIcons.activeAccount,
-                                            size: 18,
-                                            color: scheme.primary,
+                                      const SizedBox(width: 8),
+                                      SizedBox.square(
+                                        dimension: 18,
+                                        child: ExcludeSemantics(
+                                          excluding: !isActive,
+                                          child: FleurSelectionTransition(
+                                            key: Key(
+                                              'account_manager_indicator_${a.id}',
+                                            ),
+                                            selected: isActive,
+                                            builder:
+                                                (context, selection, child) {
+                                                  return Opacity(
+                                                    opacity: selection,
+                                                    child: child,
+                                                  );
+                                                },
+                                            child: Icon(
+                                              FleurIcons.activeAccount,
+                                              key: Key(
+                                                'account_manager_selected_${a.id}',
+                                              ),
+                                              size: 18,
+                                              color: scheme.primary,
+                                            ),
                                           ),
                                         ),
+                                      ),
                                     ],
                                   ),
                                   subtitle: Text(

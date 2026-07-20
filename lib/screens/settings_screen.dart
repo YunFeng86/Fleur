@@ -26,6 +26,8 @@ import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../utils/platform.dart';
 import '../widgets/app_scrollbar.dart';
+import '../widgets/fleur_selection_transition.dart';
+import '../widgets/fleur_shell_icon_button.dart';
 
 part '../ui/settings/settings_scene.dart';
 part '../ui/settings/settings_search_view.dart';

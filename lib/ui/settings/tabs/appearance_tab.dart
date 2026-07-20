@@ -16,6 +16,7 @@ import '../../../theme/seed_color_presets.dart';
 import '../settings_targets.dart';
 import '../widgets/section_header.dart';
 import '../widgets/slider_tile.dart';
+import '../../../widgets/fleur_selection_transition.dart';
 
 enum AppearanceDetailPage { fonts }
 
@@ -772,16 +773,26 @@ class _PreviewOptionButton<T> extends StatelessWidget {
       label: option.semanticLabel,
       child: SizedBox(
         width: option.width,
-        child: Material(
-          color: selected ? states.selectionTint : surfaces.card,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-            side: BorderSide(
-              color: selected ? scheme.primary : surfaces.subtleDivider,
-              width: selected ? 1.6 : 1,
-            ),
-          ),
-          clipBehavior: Clip.antiAlias,
+        child: FleurSelectionTransition(
+          selected: selected,
+          builder: (context, selection, child) {
+            return Material(
+              color: Color.lerp(surfaces.card, states.selectionTint, selection),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+                side: BorderSide(
+                  color: Color.lerp(
+                    surfaces.subtleDivider,
+                    scheme.primary,
+                    selection,
+                  )!,
+                  width: 1 + (selection * 0.6),
+                ),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: child,
+            );
+          },
           child: InkWell(
             onTap: onTap,
             hoverColor: states.hoverTint,
@@ -801,16 +812,21 @@ class _PreviewOptionButton<T> extends StatelessWidget {
                       child: option.child,
                     ),
                   ),
-                  if (selected)
-                    PositionedDirectional(
-                      top: 5,
-                      end: 5,
+                  PositionedDirectional(
+                    top: 5,
+                    end: 5,
+                    child: FleurSelectionTransition(
+                      selected: selected,
+                      builder: (context, selection, child) {
+                        return Opacity(opacity: selection, child: child);
+                      },
                       child: Icon(
                         FleurIcons.check,
                         size: 14,
                         color: foreground,
                       ),
                     ),
+                  ),
                 ],
               ),
             ),
@@ -1479,35 +1495,46 @@ class _ThemeColorCard extends StatelessWidget {
             containedInkWell: true,
             highlightShape: BoxShape.circle,
             radius: tapSize / 2,
-            child: Stack(
-              children: [
-                Center(
-                  child: CustomPaint(
-                    size: const Size.square(swatchSize),
-                    painter: _SchemeSwatchPainter(
-                      scheme,
-                      outlineColor: selected ? selectedColor : scheme.outline,
-                      outlineWidth: selected ? 4 : 2,
-                    ),
-                  ),
-                ),
-                if (selected)
-                  Center(
-                    child: Container(
-                      width: 26,
-                      height: 26,
-                      decoration: BoxDecoration(
-                        color: selectedColor,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        FleurIcons.check,
-                        size: 18,
-                        color: onSelectedColor,
+            child: FleurSelectionTransition(
+              selected: selected,
+              builder: (context, selection, _) {
+                return Stack(
+                  children: [
+                    Center(
+                      child: CustomPaint(
+                        size: const Size.square(swatchSize),
+                        painter: _SchemeSwatchPainter(
+                          scheme,
+                          outlineColor: Color.lerp(
+                            scheme.outline,
+                            selectedColor,
+                            selection,
+                          )!,
+                          outlineWidth: 2 + (selection * 2),
+                        ),
                       ),
                     ),
-                  ),
-              ],
+                    Center(
+                      child: Opacity(
+                        opacity: selection,
+                        child: Container(
+                          width: 26,
+                          height: 26,
+                          decoration: BoxDecoration(
+                            color: selectedColor,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            FleurIcons.check,
+                            size: 18,
+                            color: onSelectedColor,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ),

@@ -37,6 +37,7 @@ import '../ui/update/app_update_dialog.dart';
 import '../utils/platform.dart';
 import 'account_avatar.dart';
 import 'fleur_capsule_button_group.dart';
+import 'fleur_selection_transition.dart';
 import 'overflow_marquee.dart';
 
 part 'sidebar_chrome.dart';

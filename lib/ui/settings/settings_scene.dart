@@ -195,26 +195,24 @@ class _SettingsNavigationRail extends StatelessWidget {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 4),
                     child: Center(
-                      child: IconButton(
-                        key: Key('settings_rail_nav_${item.tab.queryValue}'),
-                        tooltip: item.label,
-                        onPressed: () => onSelect(item.tab),
-                        icon: Icon(
-                          selected ? item.selectedIcon : item.icon,
-                          size: 18,
-                        ),
-                        style: IconButton.styleFrom(
-                          foregroundColor: selected
-                              ? scheme.primary
-                              : scheme.onSurfaceVariant,
-                          backgroundColor: selected
-                              ? surfaces.cardSelected
-                              : Colors.transparent,
-                          fixedSize: const Size.square(40),
-                          minimumSize: const Size.square(40),
-                          padding: EdgeInsets.zero,
-                          shape: RoundedRectangleBorder(
+                      child: Semantics(
+                        selected: selected,
+                        child: IconButton(
+                          key: Key('settings_rail_nav_${item.tab.queryValue}'),
+                          tooltip: item.label,
+                          onPressed: () => onSelect(item.tab),
+                          icon: FleurAnimatedIcon(
+                            icon: selected ? item.selectedIcon : item.icon,
+                            size: 18,
+                          ),
+                          style: FleurShellIconButtonStyle.styleFor(
+                            context,
+                            selected: selected,
+                            size: 40,
                             borderRadius: BorderRadius.circular(8),
+                            selectedBackgroundColor: surfaces.cardSelected,
+                            selectedForegroundColor: scheme.primary,
+                            unselectedForegroundColor: scheme.onSurfaceVariant,
                           ),
                         ),
                       ),
@@ -632,51 +630,74 @@ class _SettingsNavigationTile extends StatelessWidget {
     final scheme = theme.colorScheme;
     final surfaces = theme.fleurSurface;
     final selectedColor = surfaces.cardSelected;
-    final iconColor = selected ? scheme.primary : scheme.onSurfaceVariant;
-    final textColor = selected ? scheme.onSurface : scheme.onSurfaceVariant;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(22),
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          curve: Curves.easeOutCubic,
-          constraints: const BoxConstraints(minHeight: 42),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: selected ? selectedColor : Colors.transparent,
-            borderRadius: BorderRadius.circular(22),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                selected ? item.selectedIcon : item.icon,
-                size: 18,
-                color: iconColor,
+    return Semantics(
+      selected: selected,
+      child: Material(
+        color: Colors.transparent,
+        child: FleurSelectionTransition(
+          key: Key('settings_nav_transition_${item.tab.queryValue}'),
+          selected: selected,
+          builder: (context, selection, _) {
+            final iconColor = Color.lerp(
+              scheme.onSurfaceVariant,
+              scheme.primary,
+              selection,
+            );
+            final textColor = Color.lerp(
+              scheme.onSurfaceVariant,
+              scheme.onSurface,
+              selection,
+            );
+            return Ink(
+              key: Key('settings_nav_surface_${item.tab.queryValue}'),
+              decoration: BoxDecoration(
+                color: Color.lerp(Colors.transparent, selectedColor, selection),
+                borderRadius: BorderRadius.circular(22),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  item.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: textColor,
-                    fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(22),
+                onTap: onTap,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 42),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    child: Row(
+                      children: [
+                        FleurAnimatedIcon(
+                          icon: selected ? item.selectedIcon : item.icon,
+                          size: 18,
+                          color: iconColor,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            item.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: textColor,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        if (trailing != null) ...[
+                          const SizedBox(width: 10),
+                          IconTheme.merge(
+                            data: IconThemeData(color: scheme.onSurfaceVariant),
+                            child: trailing!,
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
                 ),
               ),
-              if (trailing != null) ...[
-                const SizedBox(width: 10),
-                IconTheme.merge(
-                  data: IconThemeData(color: scheme.onSurfaceVariant),
-                  child: trailing!,
-                ),
-              ],
-            ],
-          ),
+            );
+          },
         ),
       ),
     );

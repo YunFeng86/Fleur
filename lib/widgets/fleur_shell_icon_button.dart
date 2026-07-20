@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/fleur_theme_extensions.dart';
+import '../ui/motion.dart';
 
 class FleurShellIconButtonStyle {
   const FleurShellIconButtonStyle._();
@@ -10,11 +11,15 @@ class FleurShellIconButtonStyle {
     bool selected = false,
     double size = 32,
     double disabledOpacity = 0.38,
+    BorderRadius? borderRadius,
+    Color? selectedBackgroundColor,
+    Color? selectedForegroundColor,
+    Color? unselectedForegroundColor,
   }) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final states = theme.fleurState;
-    final radius = BorderRadius.circular(size / 2);
+    final radius = borderRadius ?? BorderRadius.circular(size / 2);
 
     return ButtonStyle(
       fixedSize: WidgetStatePropertyAll(Size.square(size)),
@@ -23,6 +28,10 @@ class FleurShellIconButtonStyle {
       padding: const WidgetStatePropertyAll(EdgeInsets.zero),
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       visualDensity: VisualDensity.compact,
+      animationDuration: AppMotion.effectiveDuration(
+        context,
+        AppMotion.selectionTransitionDuration,
+      ),
       shape: WidgetStatePropertyAll(
         RoundedRectangleBorder(borderRadius: radius),
       ),
@@ -30,13 +39,17 @@ class FleurShellIconButtonStyle {
         if (stateSet.contains(WidgetState.disabled)) {
           return Colors.transparent;
         }
-        return selected ? states.selectionTint : Colors.transparent;
+        return selected
+            ? selectedBackgroundColor ?? states.selectionTint
+            : Colors.transparent;
       }),
       foregroundColor: WidgetStateProperty.resolveWith((stateSet) {
         if (stateSet.contains(WidgetState.disabled)) {
           return scheme.onSurface.withValues(alpha: disabledOpacity);
         }
-        return selected ? scheme.primary : scheme.onSurfaceVariant;
+        return selected
+            ? selectedForegroundColor ?? scheme.primary
+            : unselectedForegroundColor ?? scheme.onSurfaceVariant;
       }),
       overlayColor: WidgetStateProperty.resolveWith((stateSet) {
         if (stateSet.contains(WidgetState.disabled)) {

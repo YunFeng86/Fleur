@@ -280,7 +280,31 @@ void main() {
       );
       expect(
         find.byKey(const Key('services_account_selected_local')),
-        findsNothing,
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<Opacity>(
+              find.descendant(
+                of: find.byKey(
+                  const Key('services_account_indicator_miniflux'),
+                ),
+                matching: find.byType(Opacity),
+              ),
+            )
+            .opacity,
+        1,
+      );
+      expect(
+        tester
+            .widget<Opacity>(
+              find.descendant(
+                of: find.byKey(const Key('services_account_indicator_local')),
+                matching: find.byType(Opacity),
+              ),
+            )
+            .opacity,
+        0,
       );
 
       final activeTop = tester

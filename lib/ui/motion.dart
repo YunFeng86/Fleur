@@ -10,6 +10,7 @@ class AppMotion {
   static const Duration short = Duration(milliseconds: 140);
   static const Duration medium = Duration(milliseconds: 220);
   static const Duration emphasized = Duration(milliseconds: 300);
+  static const Duration selectionTransitionDuration = short;
 
   static const Duration pageTransitionDuration = emphasized;
   static const Duration pageReverseTransitionDuration = Duration(
@@ -19,6 +20,7 @@ class AppMotion {
   static const Curve emphasizedDecelerate = Curves.easeOutCubic;
   static const Curve emphasizedAccelerate = Curves.easeInCubic;
   static const Curve standardCurve = Curves.easeOutCubic;
+  static const Curve selectionTransitionCurve = standardCurve;
 
   static bool reduceMotion(BuildContext context) {
     final mediaQuery = MediaQuery.maybeOf(context);
@@ -26,6 +28,9 @@ class AppMotion {
     return mediaQuery.accessibleNavigation ||
         MediaQuery.disableAnimationsOf(context);
   }
+
+  static Duration effectiveDuration(BuildContext context, Duration duration) =>
+      reduceMotion(context) ? Duration.zero : duration;
 
   /// Section transitions tuned for pane-based navigation (Sidebar/List/Reader).
   ///

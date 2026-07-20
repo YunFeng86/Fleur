@@ -9,6 +9,7 @@ import 'package:fleur/services/accounts/account_store.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
 import 'package:fleur/widgets/account_manager_dialog.dart';
+import 'package:fleur/widgets/fleur_selection_transition.dart';
 
 import '../test_utils/critical_workflow_test_support.dart';
 
@@ -76,19 +77,60 @@ void main() {
     expect(listDecoration.color, surfaces.card);
     expect(listDecoration.border?.top.color, surfaces.subtleDivider);
 
-    final activeRow = tester.widget<AnimatedContainer>(
+    final activeRow = tester.widget<FleurSelectionTransition>(
       find.byKey(const Key('account_manager_account_local')),
     );
-    final activeDecoration = activeRow.decoration as BoxDecoration;
+    expect(activeRow.selected, isTrue);
+    final activeDecoration =
+        tester
+                .widget<DecoratedBox>(
+                  find.byKey(
+                    const Key('account_manager_account_surface_local'),
+                  ),
+                )
+                .decoration
+            as BoxDecoration;
     expect(activeDecoration.color, surfaces.cardSelected);
     expect(activeDecoration.border?.top.color, states.focusRing);
 
-    final inactiveRow = tester.widget<AnimatedContainer>(
+    final inactiveRow = tester.widget<FleurSelectionTransition>(
       find.byKey(const Key('account_manager_account_miniflux')),
     );
-    final inactiveDecoration = inactiveRow.decoration as BoxDecoration;
+    expect(inactiveRow.selected, isFalse);
+    final inactiveDecoration =
+        tester
+                .widget<DecoratedBox>(
+                  find.byKey(
+                    const Key('account_manager_account_surface_miniflux'),
+                  ),
+                )
+                .decoration
+            as BoxDecoration;
     expect(inactiveDecoration.color, surfaces.card);
     expect(inactiveDecoration.border?.top.color, surfaces.subtleDivider);
+
+    expect(
+      tester
+          .widget<Opacity>(
+            find.descendant(
+              of: find.byKey(const Key('account_manager_indicator_local')),
+              matching: find.byType(Opacity),
+            ),
+          )
+          .opacity,
+      1,
+    );
+    expect(
+      tester
+          .widget<Opacity>(
+            find.descendant(
+              of: find.byKey(const Key('account_manager_indicator_miniflux')),
+              matching: find.byType(Opacity),
+            ),
+          )
+          .opacity,
+      0,
+    );
   });
 
   testWidgets('Account type cards use Fleur card and divider tokens', (

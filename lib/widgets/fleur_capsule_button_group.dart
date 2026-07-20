@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/fleur_theme_extensions.dart';
 import 'fleur_shell_icon_button.dart';
+import 'fleur_selection_transition.dart';
 
 class FleurCapsuleButtonGroup extends StatelessWidget {
   const FleurCapsuleButtonGroup({
@@ -82,7 +83,7 @@ class FleurCapsuleIconButton extends StatelessWidget {
       focusNode: focusNode,
       tooltip: tooltip,
       onPressed: onPressed,
-      icon: Icon(icon),
+      icon: FleurAnimatedIcon(icon: icon, size: iconSize),
       iconSize: iconSize,
       style: styleFor(context, selected: selected, size: size),
     );

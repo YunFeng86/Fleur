@@ -6,6 +6,7 @@ import 'package:fleur/l10n/app_localizations.dart';
 import '../services/update/app_update_manifest.dart';
 import '../theme/fleur_icons.dart';
 import '../widgets/fleur_capsule_button_group.dart';
+import '../widgets/fleur_selection_transition.dart';
 import '../widgets/fleur_shell_icon_button.dart';
 import 'sidebar_layout.dart';
 import 'update/app_update_dialog.dart';
@@ -190,7 +191,7 @@ class _FlatShellControlButton extends StatelessWidget {
       focusNode: focusNode,
       tooltip: tooltip,
       onPressed: onPressed,
-      icon: Icon(icon, size: kShellControlIconSize),
+      icon: FleurAnimatedIcon(icon: icon, size: kShellControlIconSize),
       style: FleurShellIconButtonStyle.styleFor(
         context,
         selected: selected,

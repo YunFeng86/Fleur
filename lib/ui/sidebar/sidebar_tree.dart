@@ -19,6 +19,7 @@ import '../actions/subscription_object_menus.dart';
 import '../../utils/platform.dart';
 import '../../widgets/app_scrollbar.dart';
 import '../../widgets/favicon_circle.dart';
+import '../../widgets/fleur_selection_transition.dart';
 import '../../widgets/tree_disclosure_button.dart';
 
 class SidebarNavigationTree extends StatefulWidget {
@@ -568,14 +569,40 @@ class _SidebarCollapsedTile extends StatelessWidget {
             radius: 24,
             child: SizedBox.square(
               dimension: 48,
-              child:
-                  child ??
-                  Icon(
-                    icon,
-                    color: selected
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurfaceVariant,
-                  ),
+              child: Center(
+                child: FleurSelectionTransition(
+                  selected: selected,
+                  builder: (context, selection, _) {
+                    final color = Color.lerp(
+                      theme.colorScheme.onSurfaceVariant,
+                      theme.colorScheme.primary,
+                      selection,
+                    );
+                    return DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Color.lerp(
+                          Colors.transparent,
+                          states.selectionTint,
+                          selection,
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: SizedBox.square(
+                        dimension: 40,
+                        child: Center(
+                          child:
+                              child ??
+                              FleurAnimatedIcon(
+                                icon: icon,
+                                color: color,
+                                size: 20,
+                              ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
             ),
           ),
         ),
@@ -847,9 +874,7 @@ class _SidebarFeedTile extends StatelessWidget {
             diameter: 28,
             avatarSize: 18,
             fallbackIcon: FleurIcons.feed,
-            fallbackColor: selected
-                ? theme.colorScheme.primary
-                : theme.colorScheme.onSurfaceVariant,
+            fallbackColor: theme.colorScheme.onSurfaceVariant,
           ),
         ),
       );

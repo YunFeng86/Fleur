@@ -266,7 +266,7 @@ class _SidebarRailIconButton extends StatelessWidget {
     return IconButton(
       tooltip: tooltip,
       onPressed: onPressed,
-      icon: Icon(icon),
+      icon: FleurAnimatedIcon(icon: icon, size: _kSidebarRailIconSize),
       iconSize: _kSidebarRailIconSize,
       style: FleurCapsuleIconButton.styleFor(
         context,
@@ -618,45 +618,61 @@ class _SidebarPanelFixedItem extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: SizedBox(
         height: _kSidebarFixedItemHeight,
-        child: Semantics(
-          button: true,
+        child: FleurSelectionTransition(
           selected: item.selected,
-          label: item.title,
-          child: ListTile(
+          builder: (context, selection, child) {
+            return DecoratedBox(
+              decoration: BoxDecoration(
+                color: Color.lerp(
+                  Colors.transparent,
+                  surfaces.cardSelected,
+                  selection,
+                ),
+                borderRadius: borderRadius,
+              ),
+              child: child,
+            );
+          },
+          child: Semantics(
+            button: true,
             selected: item.selected,
-            selectedTileColor: surfaces.cardSelected,
-            hoverColor: states.hoverTint,
-            shape: RoundedRectangleBorder(borderRadius: borderRadius),
-            minTileHeight: _kSidebarFixedItemHeight,
-            minLeadingWidth: kSidebarRailWidth - 16,
-            horizontalTitleGap: 8,
-            contentPadding: const EdgeInsets.only(right: 8),
-            leading: SizedBox(
-              width: kSidebarRailWidth - 16,
-              child: Center(
-                child: _SidebarFixedIconSurface(
-                  key: item.key,
-                  icon: item.effectiveIcon,
-                  selected: item.selected,
+            label: item.title,
+            child: ListTile(
+              selected: item.selected,
+              selectedTileColor: Colors.transparent,
+              hoverColor: states.hoverTint,
+              shape: RoundedRectangleBorder(borderRadius: borderRadius),
+              minTileHeight: _kSidebarFixedItemHeight,
+              minLeadingWidth: kSidebarRailWidth - 16,
+              horizontalTitleGap: 8,
+              contentPadding: const EdgeInsets.only(right: 8),
+              leading: SizedBox(
+                width: kSidebarRailWidth - 16,
+                child: Center(
+                  child: _SidebarFixedIconSurface(
+                    key: item.key,
+                    icon: item.effectiveIcon,
+                    selected: item.selected,
+                  ),
                 ),
               ),
-            ),
-            title: Text(
-              item.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: scheme.onSurface,
-                fontSize: 13,
-                fontWeight: AppTypography.platformWeight(FontWeight.w500),
-                letterSpacing: 0,
-                height: 1.2,
+              title: Text(
+                item.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurface,
+                  fontSize: 13,
+                  fontWeight: AppTypography.platformWeight(FontWeight.w500),
+                  letterSpacing: 0,
+                  height: 1.2,
+                ),
               ),
+              trailing: item.count == null
+                  ? null
+                  : _SidebarFixedCount(item.count!),
+              onTap: item.onTap,
             ),
-            trailing: item.count == null
-                ? null
-                : _SidebarFixedCount(item.count!),
-            onTap: item.onTap,
           ),
         ),
       ),
@@ -677,23 +693,34 @@ class _SidebarFixedIconSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = selected
-        ? theme.colorScheme.primary
-        : theme.colorScheme.onSurfaceVariant;
-    final background = selected
-        ? theme.fleurState.selectionTint
-        : Colors.transparent;
-
     return SizedBox.square(
       dimension: _kSidebarRailButtonSize,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: background,
-          borderRadius: BorderRadius.circular(_kSidebarRailButtonSize / 2),
-        ),
-        child: Center(
-          child: Icon(icon, color: color, size: _kSidebarRailIconSize),
-        ),
+      child: FleurSelectionTransition(
+        selected: selected,
+        builder: (context, selection, _) {
+          final color = Color.lerp(
+            theme.colorScheme.onSurfaceVariant,
+            theme.colorScheme.primary,
+            selection,
+          );
+          return DecoratedBox(
+            decoration: BoxDecoration(
+              color: Color.lerp(
+                Colors.transparent,
+                theme.fleurState.selectionTint,
+                selection,
+              ),
+              borderRadius: BorderRadius.circular(_kSidebarRailButtonSize / 2),
+            ),
+            child: Center(
+              child: FleurAnimatedIcon(
+                icon: icon,
+                color: color,
+                size: _kSidebarRailIconSize,
+              ),
+            ),
+          );
+        },
       ),
     );
   }

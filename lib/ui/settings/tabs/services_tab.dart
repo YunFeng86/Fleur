@@ -16,6 +16,7 @@ import '../../../services/sync/google_reader/google_reader_provider_profile.dart
 import '../../../theme/fleur_icons.dart';
 import '../../../utils/context_extensions.dart';
 import '../../../widgets/account_avatar.dart';
+import '../../../widgets/fleur_selection_transition.dart';
 import '../../app_menu.dart';
 import '../../actions/subscription_actions.dart';
 import '../../dialogs/add_account_dialogs.dart';
@@ -525,21 +526,31 @@ class _AccountSettingsTile extends StatelessWidget {
         account.name,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-        ),
+        style: const TextStyle(fontWeight: FontWeight.w500),
       ),
       subtitle: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (isActive)
-            Icon(
-              FleurIcons.activeAccount,
-              key: Key('services_account_selected_${account.id}'),
-              color: scheme.primary,
-              size: 20,
+          SizedBox.square(
+            dimension: 20,
+            child: ExcludeSemantics(
+              excluding: !isActive,
+              child: FleurSelectionTransition(
+                key: Key('services_account_indicator_${account.id}'),
+                selected: isActive,
+                builder: (context, selection, child) {
+                  return Opacity(opacity: selection, child: child);
+                },
+                child: Icon(
+                  FleurIcons.activeAccount,
+                  key: Key('services_account_selected_${account.id}'),
+                  color: scheme.primary,
+                  size: 20,
+                ),
+              ),
             ),
+          ),
           AppMenuButton<_AccountAction>(
             buttonKey: Key('services_account_menu_${account.id}'),
             tooltip: l10n.more,

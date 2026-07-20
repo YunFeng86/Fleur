@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../theme/fleur_theme_extensions.dart';
+import '../../motion.dart';
 import '../../../widgets/app_scrollbar.dart';
 import '../../../widgets/fleur_select_field.dart';
 
@@ -328,6 +329,10 @@ class SettingsTile extends StatelessWidget {
         onSecondaryTapDown: onSecondaryTapDown,
         child: Material(
           color: selected ? states.selectionTint : Colors.transparent,
+          animationDuration: AppMotion.effectiveDuration(
+            context,
+            AppMotion.selectionTransitionDuration,
+          ),
           child: InkWell(
             onTap: onTap,
             hoverColor: states.hoverTint,
