@@ -16,6 +16,7 @@ import '../../../theme/seed_color_presets.dart';
 import '../settings_targets.dart';
 import '../widgets/section_header.dart';
 import '../widgets/slider_tile.dart';
+import '../../../widgets/fleur_selectable_button.dart';
 import '../../../widgets/fleur_selection_transition.dart';
 
 enum AppearanceDetailPage { fonts }
@@ -765,7 +766,6 @@ class _PreviewOptionButton<T> extends StatelessWidget {
     final scheme = theme.colorScheme;
     final states = theme.fleurState;
     final surfaces = theme.fleurSurface;
-    final foreground = selected ? scheme.primary : scheme.onSurfaceVariant;
 
     return Semantics(
       button: true,
@@ -773,63 +773,37 @@ class _PreviewOptionButton<T> extends StatelessWidget {
       label: option.semanticLabel,
       child: SizedBox(
         width: option.width,
-        child: FleurSelectionTransition(
+        child: FleurSelectableButton(
           selected: selected,
-          builder: (context, selection, child) {
-            return Material(
-              color: Color.lerp(surfaces.card, states.selectionTint, selection),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-                side: BorderSide(
-                  color: Color.lerp(
-                    surfaces.subtleDivider,
-                    scheme.primary,
-                    selection,
-                  )!,
-                  width: 1 + (selection * 0.6),
+          onPressed: onTap,
+          minimumHeight: option.minHeight,
+          borderRadius: BorderRadius.circular(8),
+          selectedBackgroundColor: states.selectionTint,
+          unselectedBackgroundColor: surfaces.card,
+          selectedForegroundColor: scheme.primary,
+          unselectedForegroundColor: scheme.onSurfaceVariant,
+          selectedSide: BorderSide(color: scheme.primary, width: 1.6),
+          unselectedSide: BorderSide(color: surfaces.subtleDivider),
+          child: Stack(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: DefaultTextStyle.merge(
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: scheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0,
+                  ),
+                  child: option.child,
                 ),
               ),
-              clipBehavior: Clip.antiAlias,
-              child: child,
-            );
-          },
-          child: InkWell(
-            onTap: onTap,
-            hoverColor: states.hoverTint,
-            splashColor: states.pressedTint,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: option.minHeight),
-              child: Stack(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: DefaultTextStyle.merge(
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: scheme.onSurface,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0,
-                      ),
-                      child: option.child,
-                    ),
-                  ),
-                  PositionedDirectional(
-                    top: 5,
-                    end: 5,
-                    child: FleurSelectionTransition(
-                      selected: selected,
-                      builder: (context, selection, child) {
-                        return Opacity(opacity: selection, child: child);
-                      },
-                      child: Icon(
-                        FleurIcons.check,
-                        size: 14,
-                        color: foreground,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+              if (selected)
+                const PositionedDirectional(
+                  top: 5,
+                  end: 5,
+                  child: Icon(FleurIcons.check, size: 14),
+                ),
+            ],
           ),
         ),
       ),

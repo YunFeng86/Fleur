@@ -16,11 +16,9 @@ import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
 import 'package:fleur/theme/seed_color_presets.dart';
 import 'package:fleur/ui/app_shell.dart';
-import 'package:fleur/ui/motion.dart';
 import 'package:fleur/ui/settings/widgets/section_header.dart';
 import 'package:fleur/ui/sidebar_layout.dart';
 import 'package:fleur/utils/platform.dart';
-import 'package:fleur/widgets/fleur_selection_transition.dart';
 
 import '../test_utils/critical_workflow_test_support.dart';
 
@@ -460,27 +458,25 @@ void main() {
   ) async {
     await pumpSettingsScreen(tester, 1500);
 
-    FleurSelectionTransition transition(String tab) {
-      return tester.widget<FleurSelectionTransition>(
-        find.byKey(Key('settings_nav_transition_$tab')),
+    TextButton button(String tab) {
+      return tester.widget<TextButton>(
+        find.descendant(
+          of: find.byKey(Key('settings_nav_button_$tab')),
+          matching: find.byType(TextButton),
+        ),
       );
-    }
-
-    Color surfaceColor(String tab) {
-      final decoration =
-          tester
-                  .widget<Ink>(find.byKey(Key('settings_nav_surface_$tab')))
-                  .decoration
-              as BoxDecoration;
-      return decoration.color!;
     }
 
     final theme = Theme.of(tester.element(find.byType(SettingsScreen)));
     final selectedColor = theme.fleurSurface.cardSelected;
-    expect(transition('app-preferences').selected, isTrue);
-    expect(transition('appearance').selected, isFalse);
-    expect(surfaceColor('app-preferences'), selectedColor);
-    expect(surfaceColor('appearance'), Colors.transparent);
+    expect(
+      button('app-preferences').style?.backgroundColor?.resolve({}),
+      selectedColor,
+    );
+    expect(
+      button('appearance').style?.backgroundColor?.resolve({}),
+      Colors.transparent,
+    );
 
     final appPreferencesLabel = tester.widget<Text>(
       find.descendant(
@@ -492,18 +488,22 @@ void main() {
 
     await tester.tap(find.byKey(const Key('settings_nav_appearance')));
     await tester.pump();
-    await tester.pump(AppMotion.selectionTransitionDuration ~/ 2);
 
-    expect(transition('app-preferences').selected, isFalse);
-    expect(transition('appearance').selected, isTrue);
-    expect(surfaceColor('app-preferences'), isNot(Colors.transparent));
-    expect(surfaceColor('app-preferences'), isNot(selectedColor));
-    expect(surfaceColor('appearance'), isNot(Colors.transparent));
-    expect(surfaceColor('appearance'), isNot(selectedColor));
-
-    await tester.pumpAndSettle();
-    expect(surfaceColor('app-preferences'), Colors.transparent);
-    expect(surfaceColor('appearance'), selectedColor);
+    expect(
+      button('app-preferences').style?.backgroundColor?.resolve({}),
+      Colors.transparent,
+    );
+    expect(
+      button('appearance').style?.backgroundColor?.resolve({}),
+      selectedColor,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('settings_content_layer')),
+        matching: find.byType(AnimatedSwitcher),
+      ),
+      findsNothing,
+    );
   });
 
   testWidgets('Settings Screen shows close back button in wide route mode', (

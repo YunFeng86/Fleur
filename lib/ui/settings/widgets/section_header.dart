@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../theme/fleur_theme_extensions.dart';
-import '../../motion.dart';
 import '../../../widgets/app_scrollbar.dart';
 import '../../../widgets/fleur_select_field.dart';
+import '../../../widgets/fleur_selectable_button.dart';
 
 const double _kSettingsControlBreakpoint = 680;
 const double _kSettingsControlMinWidth = 220;
@@ -277,6 +277,7 @@ class SettingsTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final states = theme.fleurState;
+    final scheme = theme.colorScheme;
     final titleColor = destructive ? states.errorAccent : null;
     final minHeight = subtitle == null
         ? _kSettingsControlRowMinHeight
@@ -327,18 +328,20 @@ class SettingsTile extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onSecondaryTapDown: onSecondaryTapDown,
-        child: Material(
-          color: selected ? states.selectionTint : Colors.transparent,
-          animationDuration: AppMotion.effectiveDuration(
-            context,
-            AppMotion.selectionTransitionDuration,
-          ),
-          child: InkWell(
-            onTap: onTap,
-            hoverColor: states.hoverTint,
-            splashColor: states.pressedTint,
-            child: row,
-          ),
+        child: FleurSelectableButton(
+          selected: selected,
+          onPressed: onTap,
+          minimumHeight: minHeight,
+          alignment: AlignmentDirectional.centerStart,
+          borderRadius: BorderRadius.zero,
+          selectedBackgroundColor: states.selectionTint,
+          selectedForegroundColor: destructive
+              ? states.errorAccent
+              : scheme.onSurface,
+          unselectedForegroundColor: destructive
+              ? states.errorAccent
+              : scheme.onSurface,
+          child: row,
         ),
       ),
     );

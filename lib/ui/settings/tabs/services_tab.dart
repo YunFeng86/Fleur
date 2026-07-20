@@ -16,7 +16,6 @@ import '../../../services/sync/google_reader/google_reader_provider_profile.dart
 import '../../../theme/fleur_icons.dart';
 import '../../../utils/context_extensions.dart';
 import '../../../widgets/account_avatar.dart';
-import '../../../widgets/fleur_selection_transition.dart';
 import '../../app_menu.dart';
 import '../../actions/subscription_actions.dart';
 import '../../dialogs/add_account_dialogs.dart';
@@ -533,15 +532,12 @@ class _AccountSettingsTile extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox.square(
+            key: Key('services_account_indicator_${account.id}'),
             dimension: 20,
             child: ExcludeSemantics(
               excluding: !isActive,
-              child: FleurSelectionTransition(
-                key: Key('services_account_indicator_${account.id}'),
-                selected: isActive,
-                builder: (context, selection, child) {
-                  return Opacity(opacity: selection, child: child);
-                },
+              child: Opacity(
+                opacity: isActive ? 1 : 0,
                 child: Icon(
                   FleurIcons.activeAccount,
                   key: Key('services_account_selected_${account.id}'),

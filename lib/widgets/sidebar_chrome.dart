@@ -610,37 +610,32 @@ class _SidebarPanelFixedItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final surfaces = theme.fleurSurface;
-    final states = theme.fleurState;
     final scheme = theme.colorScheme;
     final borderRadius = BorderRadius.circular(8);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: SizedBox(
+        width: double.infinity,
         height: _kSidebarFixedItemHeight,
-        child: FleurSelectionTransition(
+        child: Semantics(
+          button: true,
           selected: item.selected,
-          builder: (context, selection, child) {
-            return DecoratedBox(
-              decoration: BoxDecoration(
-                color: Color.lerp(
-                  Colors.transparent,
-                  surfaces.cardSelected,
-                  selection,
-                ),
-                borderRadius: borderRadius,
-              ),
-              child: child,
-            );
-          },
-          child: Semantics(
-            button: true,
+          label: item.title,
+          child: FleurSelectableButton(
             selected: item.selected,
-            label: item.title,
+            onPressed: item.onTap,
+            minimumHeight: _kSidebarFixedItemHeight,
+            borderRadius: borderRadius,
+            selectedBackgroundColor: surfaces.cardSelected,
+            selectedForegroundColor: scheme.primary,
+            unselectedForegroundColor: scheme.onSurfaceVariant,
             child: ListTile(
               selected: item.selected,
               selectedTileColor: Colors.transparent,
-              hoverColor: states.hoverTint,
+              tileColor: Colors.transparent,
+              hoverColor: Colors.transparent,
+              splashColor: Colors.transparent,
               shape: RoundedRectangleBorder(borderRadius: borderRadius),
               minTileHeight: _kSidebarFixedItemHeight,
               minLeadingWidth: kSidebarRailWidth - 16,
@@ -649,10 +644,12 @@ class _SidebarPanelFixedItem extends StatelessWidget {
               leading: SizedBox(
                 width: kSidebarRailWidth - 16,
                 child: Center(
-                  child: _SidebarFixedIconSurface(
+                  child: SizedBox.square(
                     key: item.key,
-                    icon: item.effectiveIcon,
-                    selected: item.selected,
+                    dimension: _kSidebarRailButtonSize,
+                    child: Center(
+                      child: Icon(item.icon, size: _kSidebarRailIconSize),
+                    ),
                   ),
                 ),
               ),
@@ -671,56 +668,9 @@ class _SidebarPanelFixedItem extends StatelessWidget {
               trailing: item.count == null
                   ? null
                   : _SidebarFixedCount(item.count!),
-              onTap: item.onTap,
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _SidebarFixedIconSurface extends StatelessWidget {
-  const _SidebarFixedIconSurface({
-    super.key,
-    required this.icon,
-    required this.selected,
-  });
-
-  final IconData icon;
-  final bool selected;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return SizedBox.square(
-      dimension: _kSidebarRailButtonSize,
-      child: FleurSelectionTransition(
-        selected: selected,
-        builder: (context, selection, _) {
-          final color = Color.lerp(
-            theme.colorScheme.onSurfaceVariant,
-            theme.colorScheme.primary,
-            selection,
-          );
-          return DecoratedBox(
-            decoration: BoxDecoration(
-              color: Color.lerp(
-                Colors.transparent,
-                theme.fleurState.selectionTint,
-                selection,
-              ),
-              borderRadius: BorderRadius.circular(_kSidebarRailButtonSize / 2),
-            ),
-            child: Center(
-              child: FleurAnimatedIcon(
-                icon: icon,
-                color: color,
-                size: _kSidebarRailIconSize,
-              ),
-            ),
-          );
-        },
       ),
     );
   }

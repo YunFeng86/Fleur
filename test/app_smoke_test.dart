@@ -862,17 +862,12 @@ void main() {
       tester.getSize(find.byKey(const Key('sidebar_all_button'))),
       const Size.square(kShellControlSize),
     );
-    final expandedAllIconSurface = tester.widget<DecoratedBox>(
-      find
-          .descendant(
-            of: find.byKey(const Key('sidebar_all_button')),
-            matching: find.byType(DecoratedBox),
-          )
-          .first,
-    );
     expect(
-      (expandedAllIconSurface.decoration as BoxDecoration).color,
-      theme.fleurState.selectionTint,
+      find.descendant(
+        of: find.byKey(const Key('sidebar_all_button')),
+        matching: find.byType(DecoratedBox),
+      ),
+      findsNothing,
     );
     expect(
       find.byKey(const Key('sidebar_collapsed_rail_surface')),

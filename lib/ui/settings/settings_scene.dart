@@ -403,19 +403,7 @@ class _SettingsContentLayer extends StatelessWidget {
             ),
           Divider(height: 1, color: surfaces.subtleDivider),
           Expanded(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 180),
-              layoutBuilder: (currentChild, previousChildren) {
-                return Stack(
-                  alignment: Alignment.topCenter,
-                  children: [...previousChildren, ?currentChild],
-                );
-              },
-              transitionBuilder: (child, animation) {
-                return FadeTransition(opacity: animation, child: child);
-              },
-              child: KeyedSubtree(key: selectedContentKey, child: child),
-            ),
+            child: KeyedSubtree(key: selectedContentKey, child: child),
           ),
         ],
       ),
@@ -629,75 +617,44 @@ class _SettingsNavigationTile extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final surfaces = theme.fleurSurface;
-    final selectedColor = surfaces.cardSelected;
 
     return Semantics(
+      button: true,
       selected: selected,
-      child: Material(
-        color: Colors.transparent,
-        child: FleurSelectionTransition(
-          key: Key('settings_nav_transition_${item.tab.queryValue}'),
-          selected: selected,
-          builder: (context, selection, _) {
-            final iconColor = Color.lerp(
-              scheme.onSurfaceVariant,
-              scheme.primary,
-              selection,
-            );
-            final textColor = Color.lerp(
-              scheme.onSurfaceVariant,
-              scheme.onSurface,
-              selection,
-            );
-            return Ink(
-              key: Key('settings_nav_surface_${item.tab.queryValue}'),
-              decoration: BoxDecoration(
-                color: Color.lerp(Colors.transparent, selectedColor, selection),
-                borderRadius: BorderRadius.circular(22),
-              ),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(22),
-                onTap: onTap,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: 42),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    child: Row(
-                      children: [
-                        FleurAnimatedIcon(
-                          icon: selected ? item.selectedIcon : item.icon,
-                          size: 18,
-                          color: iconColor,
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            item.label,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: textColor,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        if (trailing != null) ...[
-                          const SizedBox(width: 10),
-                          IconTheme.merge(
-                            data: IconThemeData(color: scheme.onSurfaceVariant),
-                            child: trailing!,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
+      child: FleurSelectableButton(
+        key: Key('settings_nav_button_${item.tab.queryValue}'),
+        selected: selected,
+        onPressed: onTap,
+        minimumHeight: 42,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        alignment: AlignmentDirectional.centerStart,
+        borderRadius: BorderRadius.circular(22),
+        selectedBackgroundColor: surfaces.cardSelected,
+        selectedForegroundColor: scheme.primary,
+        unselectedForegroundColor: scheme.onSurfaceVariant,
+        child: Row(
+          children: [
+            Icon(item.icon, size: 18),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                item.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: scheme.onSurface,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-            );
-          },
+            ),
+            if (trailing != null) ...[
+              const SizedBox(width: 10),
+              IconTheme.merge(
+                data: IconThemeData(color: scheme.onSurfaceVariant),
+                child: trailing!,
+              ),
+            ],
+          ],
         ),
       ),
     );
