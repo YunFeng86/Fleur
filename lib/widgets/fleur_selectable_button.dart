@@ -52,17 +52,17 @@ class FleurSelectableButton extends StatelessWidget {
         ? selectedForegroundColor ?? theme.colorScheme.primary
         : unselectedForegroundColor ?? theme.colorScheme.onSurfaceVariant;
 
-    Color backgroundFor(Set<WidgetState> stateSet) {
+    Color? overlayFor(Set<WidgetState> stateSet) {
       if (stateSet.contains(WidgetState.pressed)) {
-        return Color.alphaBlend(states.pressedTint, baseBackground);
+        return states.pressedTint;
       }
       if (stateSet.contains(WidgetState.hovered)) {
-        return Color.alphaBlend(states.hoverTint, baseBackground);
+        return states.hoverTint;
       }
       if (stateSet.contains(WidgetState.focused)) {
-        return Color.alphaBlend(states.focusRing.withAlpha(32), baseBackground);
+        return states.focusRing.withAlpha(32);
       }
-      return baseBackground;
+      return null;
     }
 
     return TextButton(
@@ -74,9 +74,9 @@ class FleurSelectableButton extends StatelessWidget {
           context,
           AppMotion.selectionTransitionDuration,
         ),
-        splashFactory: NoSplash.splashFactory,
-        overlayColor: const WidgetStatePropertyAll(Colors.transparent),
-        backgroundColor: WidgetStateProperty.resolveWith(backgroundFor),
+        splashFactory: theme.splashFactory,
+        overlayColor: WidgetStateProperty.resolveWith(overlayFor),
+        backgroundColor: WidgetStatePropertyAll(baseBackground),
         foregroundColor: WidgetStatePropertyAll(foreground),
         minimumSize: WidgetStatePropertyAll(Size(0, minimumHeight)),
         padding: WidgetStatePropertyAll(padding),

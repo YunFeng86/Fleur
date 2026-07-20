@@ -7,7 +7,9 @@ import 'package:fleur/ui/motion.dart';
 import 'package:fleur/widgets/fleur_selectable_button.dart';
 
 void main() {
-  testWidgets('resolves selection and press in one style', (tester) async {
+  testWidgets('keeps selection persistent and press in the state layer', (
+    tester,
+  ) async {
     final selected = ValueNotifier<bool>(false);
     addTearDown(selected.dispose);
 
@@ -46,9 +48,12 @@ void main() {
       Colors.transparent,
     );
     expect(
-      style().backgroundColor!.resolve(<WidgetState>{WidgetState.pressed}),
+      style().overlayColor!.resolve(<WidgetState>{WidgetState.pressed}),
       theme.fleurState.pressedTint,
     );
+    expect(style().overlayColor!.resolve(<WidgetState>{}), isNull);
+    expect(style().splashFactory, theme.splashFactory);
+    expect(style().splashFactory, isNot(NoSplash.splashFactory));
     expect(style().animationDuration, AppMotion.selectionTransitionDuration);
 
     await tester.tap(find.byKey(const Key('selectable_button')));
@@ -60,10 +65,11 @@ void main() {
     );
     expect(
       style().backgroundColor!.resolve(<WidgetState>{WidgetState.pressed}),
-      Color.alphaBlend(
-        theme.fleurState.pressedTint,
-        theme.fleurState.selectionTint,
-      ),
+      theme.fleurState.selectionTint,
+    );
+    expect(
+      style().overlayColor!.resolve(<WidgetState>{WidgetState.pressed}),
+      theme.fleurState.pressedTint,
     );
   });
 
