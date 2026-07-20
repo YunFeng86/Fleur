@@ -1,6 +1,7 @@
 import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
 
+import '../feed_html_normalizer.dart';
 import '../html_sanitizer.dart';
 
 class ExtractedArticle {
@@ -87,7 +88,11 @@ $titleHtml
     int? statusCode,
   }) {
     final article = extractFromHtml(html: html, url: url);
-    final sanitizedHtml = HtmlSanitizer.sanitize(article.contentHtml);
+    final normalizedHtml = FeedHtmlNormalizer.normalize(
+      article.contentHtml,
+      baseUrl: Uri.tryParse(url),
+    );
+    final sanitizedHtml = HtmlSanitizer.sanitize(normalizedHtml);
     final reason = _classifyExtraction(
       html: html,
       url: url,

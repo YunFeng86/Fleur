@@ -2,6 +2,7 @@ import 'package:html/parser.dart' as html_parser;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:fleur/services/feed_html_normalizer.dart';
+import 'package:fleur/services/html_sanitizer.dart';
 
 void main() {
   test('normalizes protocol-relative image urls with the article scheme', () {
@@ -95,15 +96,41 @@ void main() {
     expect(code?.text, isNot(contains('2')));
   });
 
+  test('repairs Hexo code tables sanitized before normalization', () {
+    const html = '''
+<figure class="highlight python">
+  <table><tbody><tr>
+    <td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span></pre></td>
+    <td class="code"><pre><span class="line"><span class="keyword">print</span>("one")</span><br><span class="line">print("two")</span></pre></td>
+  </tr></tbody></table>
+</figure>
+''';
+    final prematurelySanitized = HtmlSanitizer.sanitize(html);
+    final normalized = FeedHtmlNormalizer.normalize(prematurelySanitized);
+    final fragment = html_parser.parseFragment(normalized);
+    final code = fragment.querySelector('pre > code');
+
+    expect(prematurelySanitized, contains('<table>'));
+    expect(fragment.querySelector('table'), isNull);
+    expect(code?.text, contains('print("one")'));
+    expect(code?.text, contains('print("two")'));
+    expect(code?.text, isNot(contains('12')));
+    expect(code?.querySelector('span.keyword')?.text, 'print');
+  });
+
   test('does not rewrite ordinary article tables', () {
-    const html =
-        '<table><tbody><tr><td class="code"><pre>value</pre></td></tr></tbody></table>';
+    const html = '''
+<table><tbody><tr>
+  <td><pre><span class="line">Version</span></pre></td>
+  <td><pre>value</pre></td>
+</tr></tbody></table>
+''';
 
     final normalized = FeedHtmlNormalizer.normalize(html);
     final fragment = html_parser.parseFragment(normalized);
 
     expect(fragment.querySelector('table'), isNotNull);
-    expect(fragment.querySelector('td.code pre')?.text, 'value');
+    expect(fragment.querySelectorAll('td pre'), hasLength(2));
     expect(fragment.querySelector('pre > code'), isNull);
   });
 }

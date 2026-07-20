@@ -13,6 +13,7 @@ class FeedHtmlNormalizer {
 
     final fragment = html_parser.parseFragment(html);
     _normalizeHighlightFigures(fragment);
+    _normalizeLegacyHighlightTables(fragment);
     _normalizeImages(fragment, baseUrl: baseUrl);
     _normalizeLinks(fragment, baseUrl: baseUrl);
     return fragment.outerHtml;
@@ -28,23 +29,84 @@ class FeedHtmlNormalizer {
       final sourcePre = table.querySelector('td.code pre');
       if (sourcePre == null) continue;
 
-      final pre = dom.Element.tag('pre');
-      final code = dom.Element.tag('code');
       final language = _highlightLanguage(figure);
-      if (language != null) {
-        final languageClass = 'language-$language';
-        pre.attributes
-          ..['class'] = languageClass
-          ..['data-language'] = language;
-        code.attributes
-          ..['class'] = languageClass
-          ..['data-language'] = language;
-      }
+      figure.replaceWith(_buildCodeBlock(sourcePre, language: language));
+    }
+  }
 
-      final source = _codeContents(sourcePre);
-      code.nodes.addAll(source.nodes.map((node) => node.clone(true)));
-      pre.append(code);
-      figure.replaceWith(pre);
+  static void _normalizeLegacyHighlightTables(dom.DocumentFragment fragment) {
+    for (final table in fragment.querySelectorAll('table')) {
+      if (table.querySelector('caption') != null) continue;
+      final rows = table.querySelectorAll('tr');
+      if (rows.length != 1) continue;
+
+      final cells = rows.single.children
+          .where((element) => element.localName == 'td')
+          .toList(growable: false);
+      if (cells.length != 2) continue;
+
+      final gutterPre = _singlePre(cells.first);
+      final sourcePre = _singlePre(cells.last);
+      if (gutterPre == null || sourcePre == null) continue;
+      if (!_isLineNumberGutter(gutterPre)) continue;
+      if (_codeContents(sourcePre).text.trim().isEmpty) continue;
+
+      table.replaceWith(_buildCodeBlock(sourcePre));
+    }
+  }
+
+  static dom.Element? _singlePre(dom.Element cell) {
+    final preElements = cell.querySelectorAll('pre');
+    return preElements.length == 1 ? preElements.single : null;
+  }
+
+  static bool _isLineNumberGutter(dom.Element pre) {
+    final lines = pre.querySelectorAll('span.line');
+    if (lines.isEmpty) return false;
+
+    var previous = 0;
+    for (final line in lines) {
+      final number = int.tryParse(line.text.trim());
+      if (number == null || number <= previous) return false;
+      previous = number;
+    }
+    return true;
+  }
+
+  static dom.Element _buildCodeBlock(
+    dom.Element sourcePre, {
+    String? language,
+  }) {
+    final pre = dom.Element.tag('pre');
+    final code = dom.Element.tag('code');
+    if (language != null) {
+      final languageClass = 'language-$language';
+      pre.attributes
+        ..['class'] = languageClass
+        ..['data-language'] = language;
+      code.attributes
+        ..['class'] = languageClass
+        ..['data-language'] = language;
+    }
+
+    final source = _codeContents(sourcePre);
+    code.nodes.addAll(source.nodes.map((node) => node.clone(true)));
+    _removeRedundantLineBreaks(code);
+    pre.append(code);
+    return pre;
+  }
+
+  static void _removeRedundantLineBreaks(dom.Element code) {
+    for (var index = code.nodes.length - 1; index > 0; index--) {
+      final node = code.nodes[index];
+      final previous = code.nodes[index - 1];
+      if (node is dom.Element &&
+          node.localName == 'br' &&
+          previous is dom.Element &&
+          (previous.classes.contains('line') ||
+              previous.classes.contains('token-line'))) {
+        node.remove();
+      }
     }
   }
 

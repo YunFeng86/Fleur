@@ -8,6 +8,19 @@ import 'package:fleur/utils/content_hash.dart';
 
 void main() {
   group('ReaderDocumentPipeline', () {
+    test('processing revisions produce distinct document identities', () {
+      const contentRevision = 'extracted:abc';
+
+      final previous = versionReaderDocumentSourceRevision(
+        contentRevision,
+        processingRevision: 1,
+      );
+      final current = versionReaderDocumentSourceRevision(contentRevision);
+
+      expect(previous, isNot(current));
+      expect(current, endsWith(':$readerDocumentProcessingRevision'));
+    });
+
     test('builds a stable sanitized snapshot for the same request', () {
       const request = ReaderDocumentRequest(
         articleId: '42',

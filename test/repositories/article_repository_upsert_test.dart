@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:html/parser.dart' as html_parser;
 import 'package:isar_community/isar.dart';
 
 import 'package:fleur/models/article.dart';
@@ -110,6 +111,35 @@ void main() {
       ..publishedAt =
           publishedAt ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
   }
+
+  test('normalizes extracted code structures before persistence', () async {
+    final feedId = await insertFeed();
+    final articleId = await insertArticle(
+      feedId: feedId,
+      link: 'https://example.com/articles/code',
+    );
+    const extractedHtml = '''
+<figure class="highlight bash">
+  <table><tbody><tr>
+    <td class="gutter"><pre><span class="line">1</span></pre></td>
+    <td class="code"><pre><span class="line">echo ready</span></pre></td>
+  </tr></tbody></table>
+</figure>
+''';
+
+    await ArticleRepository(
+      isar!,
+    ).setExtractedContent(articleId, extractedHtml);
+
+    final stored = await isar!.articles.get(articleId);
+    final fragment = html_parser.parseFragment(stored!.extractedContentHtml);
+    expect(fragment.querySelector('table'), isNull);
+    expect(
+      fragment.querySelector('pre.language-bash > code')?.text,
+      'echo ready',
+    );
+    expect(stored.contentSource, ContentSource.extracted);
+  });
 
   test('preserves user state when feed content is unchanged', () async {
     final feedId = await insertFeed(categoryId: 7);

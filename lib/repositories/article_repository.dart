@@ -6,6 +6,7 @@ import 'article_merge_policy.dart';
 import '../models/article.dart';
 import '../models/feed.dart';
 import '../models/tag.dart';
+import '../services/feed_html_normalizer.dart';
 import '../services/html_sanitizer.dart';
 
 class ArticleQuery {
@@ -215,8 +216,11 @@ class ArticleRepository {
     return _isar.writeTxn(() async {
       final a = await _isar.articles.get(id);
       if (a == null) return;
-      // [V2.0] Sanitize HTML to prevent XSS attacks
-      a.extractedContentHtml = HtmlSanitizer.sanitize(html);
+      final normalized = FeedHtmlNormalizer.normalize(
+        html,
+        baseUrl: Uri.tryParse(a.link),
+      );
+      a.extractedContentHtml = HtmlSanitizer.sanitize(normalized);
       a.contentSource = ContentSource.extracted;
       a.updatedAt = DateTime.now();
       await _isar.articles.put(a);

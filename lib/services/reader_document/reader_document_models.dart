@@ -2,6 +2,16 @@ import 'package:flutter/foundation.dart';
 
 enum ReaderDisplayMode { source, translation }
 
+/// Increment when normalization or sanitizing changes the rendered document.
+const int readerDocumentProcessingRevision = 3;
+
+String versionReaderDocumentSourceRevision(
+  String sourceRevision, {
+  int processingRevision = readerDocumentProcessingRevision,
+}) {
+  return '$sourceRevision|reader-processing:$processingRevision';
+}
+
 @immutable
 class ReaderTypographySettings {
   const ReaderTypographySettings({

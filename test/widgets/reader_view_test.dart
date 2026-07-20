@@ -2288,26 +2288,30 @@ void main() {
     expect(restoredPixels, closeTo(expectedOffset, 40));
   });
 
-  testWidgets('reader lays out Hexo highlight tables as code blocks', (
+  testWidgets('reader repairs previously sanitized Hexo code tables', (
     tester,
   ) async {
-    final article =
-        buildArticle(title: 'Hexo article', html: '<p>Feed body</p>')
-          ..link = 'https://blog.zhheo.com/p/u61vslr3.html'
-          ..extractedContentHtml = '''
+    const extractedHtml = '''
 <article>
   <p>Before code</p>
   <figure class="highlight bash">
     <table><tbody><tr>
-      <td class="gutter"><pre><span>1</span><br><span>2</span></pre></td>
-      <td class="code"><pre><span class="meta">\$</span> echo <span class="string">hello</span><br>pwd</pre></td>
+      <td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span></pre></td>
+      <td class="code"><pre><span class="line"><span class="meta">\$</span> echo <span class="string">hello</span></span><br><span class="line">pwd</span></pre></td>
     </tr></tbody></table>
   </figure>
   <h2>After code heading</h2>
   <p>After code paragraph</p>
 </article>
-'''
+''';
+    final legacyStoredHtml = HtmlSanitizer.sanitize(extractedHtml);
+    final article =
+        buildArticle(title: 'Hexo article', html: '<p>Feed body</p>')
+          ..link = 'https://blog.zhheo.com/p/u61vslr3.html'
+          ..extractedContentHtml = legacyStoredHtml
           ..preferredContentView = ArticleContentView.extracted;
+
+    expect(legacyStoredHtml, contains('<table>'));
 
     await pumpReader(
       tester,

@@ -31,7 +31,9 @@ final class _ReaderSessionCoordinator {
     final rawHtml = usesTranslation ? translatedHtml : sourceHtml;
     return ReaderDocumentRequest(
       articleId: article.id.toString(),
-      sourceRevision: _revisionForArticleSource(article, sourceHtml),
+      sourceRevision: versionReaderDocumentSourceRevision(
+        _revisionForArticleSource(article, sourceHtml),
+      ),
       rawHtml: rawHtml,
       baseUrl: article.link,
       displayMode: usesTranslation
