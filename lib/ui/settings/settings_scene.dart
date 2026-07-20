@@ -79,6 +79,7 @@ class _SettingsScene extends StatelessWidget {
                 width: _SettingsScreenState._kSettingsSidebarWidth,
                 child: _SettingsSidebar(
                   title: sidebarTitle,
+                  railWidth: railWidth,
                   items: items,
                   selectedIndex: sidebarSelectedIndex,
                   onSelect: onSelect,
@@ -231,12 +232,14 @@ class _SettingsNavigationRail extends StatelessWidget {
 class _SettingsSidebar extends StatelessWidget {
   const _SettingsSidebar({
     required this.title,
+    required this.railWidth,
     required this.items,
     required this.selectedIndex,
     required this.onSelect,
   });
 
   final String title;
+  final double railWidth;
   final List<_SettingsPageItem> items;
   final int? selectedIndex;
   final ValueChanged<SettingsTab> onSelect;
@@ -262,6 +265,7 @@ class _SettingsSidebar extends StatelessWidget {
                       child: _SettingsNavigationTile(
                         key: Key('settings_nav_${items[index].tab.queryValue}'),
                         item: items[index],
+                        railWidth: railWidth,
                         selected: index == selectedIndex,
                         onTap: () => onSelect(items[index].tab),
                       ),
@@ -602,12 +606,14 @@ class _SettingsNavigationTile extends StatelessWidget {
   const _SettingsNavigationTile({
     super.key,
     required this.item,
+    this.railWidth = kSidebarRailWidth,
     required this.onTap,
     this.selected = false,
     this.trailing,
   });
 
   final _SettingsPageItem item;
+  final double railWidth;
   final VoidCallback onTap;
   final bool selected;
   final Widget? trailing;
@@ -626,7 +632,7 @@ class _SettingsNavigationTile extends StatelessWidget {
         selected: selected,
         onPressed: onTap,
         minimumHeight: 42,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: EdgeInsetsDirectional.fromSTEB(railWidth / 2 - 21, 8, 12, 8),
         alignment: AlignmentDirectional.centerStart,
         borderRadius: BorderRadius.circular(22),
         selectedBackgroundColor: surfaces.cardSelected,

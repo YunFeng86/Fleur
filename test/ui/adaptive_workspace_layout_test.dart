@@ -9,6 +9,48 @@ void main() {
     railExtent: 56,
   );
 
+  group('WorkspaceNavigationToggleResult', () {
+    test('collapses expanded navigation and preserves a collapsed rail', () {
+      final collapse = WorkspaceNavigationToggleResult.resolve(
+        presentation: WorkspaceNavigationPresentation.expanded,
+        preferredNavigation: SidebarPresentationMode.expanded,
+        temporaryNavigationOpen: false,
+        canExpandInline: true,
+      );
+      expect(collapse.preferredNavigation, SidebarPresentationMode.collapsed);
+      expect(collapse.temporaryNavigationOpen, isFalse);
+
+      final expand = WorkspaceNavigationToggleResult.resolve(
+        presentation: WorkspaceNavigationPresentation.rail,
+        preferredNavigation: SidebarPresentationMode.collapsed,
+        temporaryNavigationOpen: false,
+        canExpandInline: true,
+      );
+      expect(expand.preferredNavigation, SidebarPresentationMode.expanded);
+      expect(expand.temporaryNavigationOpen, isFalse);
+    });
+
+    test('opens and closes temporary navigation when inline cannot fit', () {
+      final open = WorkspaceNavigationToggleResult.resolve(
+        presentation: WorkspaceNavigationPresentation.offCanvas,
+        preferredNavigation: SidebarPresentationMode.expanded,
+        temporaryNavigationOpen: false,
+        canExpandInline: false,
+      );
+      expect(open.preferredNavigation, SidebarPresentationMode.expanded);
+      expect(open.temporaryNavigationOpen, isTrue);
+
+      final close = WorkspaceNavigationToggleResult.resolve(
+        presentation: WorkspaceNavigationPresentation.offCanvas,
+        preferredNavigation: SidebarPresentationMode.expanded,
+        temporaryNavigationOpen: true,
+        canExpandInline: false,
+      );
+      expect(close.preferredNavigation, SidebarPresentationMode.expanded);
+      expect(close.temporaryNavigationOpen, isFalse);
+    });
+  });
+
   group('AdaptiveWorkspaceArrangement feed', () {
     test('resolves expanded, rail, and off-canvas from total width', () {
       AdaptiveWorkspaceArrangement resolve(double width) {

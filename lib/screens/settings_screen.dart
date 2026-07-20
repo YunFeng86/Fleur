@@ -6,6 +6,7 @@ import 'package:fleur/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
 import '../app/settings_routes.dart';
+import '../ui/app_drawer_scope.dart';
 import '../ui/settings/subscriptions/subscriptions_settings_tab.dart';
 import '../ui/settings/tabs/about_tab.dart';
 import '../ui/settings/tabs/app_preferences_tab.dart';
@@ -356,6 +357,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   requirements: WorkspaceLayoutRequirements.settings,
                   hasReader: false,
                 );
+            final canExpandInline =
+                AdaptiveWorkspaceArrangement.resolve(
+                  totalWidth: width,
+                  preferredNavigation: SidebarPresentationMode.expanded,
+                  navigationMetrics:
+                      shellChromeLayout.workspaceNavigationMetrics,
+                  requirements: WorkspaceLayoutRequirements.settings,
+                  hasReader: false,
+                ).navigationPresentation ==
+                WorkspaceNavigationPresentation.expanded;
             final navigationPresentation = arrangement.navigationPresentation;
             final sidebarExpanded =
                 navigationPresentation ==
@@ -431,6 +442,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 : showingList
                 ? _SettingsListBody(items: items, onSelect: selectTab)
                 : FocusTraversalGroup(child: selectedItem.content);
+            void toggleNavigation() {
+              final shellToggle = AppDrawerScope.drawerOpenerOf(context);
+              if (shellToggle != null) {
+                shellToggle();
+                return;
+              }
+              final result = WorkspaceNavigationToggleResult.resolve(
+                presentation: navigationPresentation,
+                preferredNavigation: preferredNavigation,
+                temporaryNavigationOpen: temporaryNavigationOpen,
+                canExpandInline: canExpandInline,
+              );
+              ref.read(settingsSidebarPresentationModeProvider.notifier).state =
+                  result.preferredNavigation;
+              ref.read(settingsTemporaryNavigationOpenProvider.notifier).state =
+                  result.temporaryNavigationOpen;
+            }
+
             final scene = _SettingsScene(
               width: width,
               height: constraints.maxHeight,
@@ -441,17 +470,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ? l10n.settings
                   : selectedItem.label,
               sidebarTitle: l10n.settings,
-              showSidebarButton:
-                  navigationPresentation ==
-                      WorkspaceNavigationPresentation.offCanvas &&
-                  !shellChromeLayout.placesControlsInTitleBar,
-              onToggleSidebar: () =>
-                  ref
-                          .read(
-                            settingsTemporaryNavigationOpenProvider.notifier,
-                          )
-                          .state =
-                      !temporaryNavigationOpen,
+              showSidebarButton: !shellChromeLayout.placesControlsInTitleBar,
+              onToggleSidebar: toggleNavigation,
               onBack: sidebarExpanded || sidebarRail
                   ? (widget.showBack ? handleChromeBack : null)
                   : showingList

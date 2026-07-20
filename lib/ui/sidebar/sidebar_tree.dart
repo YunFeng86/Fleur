@@ -688,6 +688,7 @@ class _SidebarCategoryTile extends StatelessWidget {
     final canMarkRead =
         capabilities.isVisible(BackendFeature.articleReadState) &&
         unreadCount > 0;
+    final railWidth = SidebarRailLayoutScope.widthOf(context);
 
     if (presentationMode == SidebarPresentationMode.collapsed) {
       return _SidebarCollapsedTile(
@@ -714,10 +715,10 @@ class _SidebarCategoryTile extends StatelessWidget {
               ListTile(
                 selected: selected,
                 contentPadding: const EdgeInsets.only(right: 12),
-                minLeadingWidth: kSidebarRailWidth,
+                minLeadingWidth: railWidth,
                 horizontalTitleGap: 0,
                 leading: SizedBox(
-                  width: kSidebarRailWidth,
+                  width: railWidth,
                   child: Center(
                     child: TreeDisclosureButton(
                       expanded: expanded,
@@ -856,6 +857,7 @@ class _SidebarFeedTile extends StatelessWidget {
     final canMarkRead =
         capabilities.isVisible(BackendFeature.articleReadState) &&
         (unreadCount ?? 0) > 0;
+    final railWidth = SidebarRailLayoutScope.widthOf(context);
 
     if (presentationMode == SidebarPresentationMode.collapsed) {
       return _SidebarCollapsedTile(
@@ -892,10 +894,10 @@ class _SidebarFeedTile extends StatelessWidget {
           child: ListTile(
             selected: selected,
             contentPadding: const EdgeInsets.only(right: 16),
-            minLeadingWidth: kSidebarRailWidth + indent,
+            minLeadingWidth: railWidth + indent,
             horizontalTitleGap: 0,
             leading: SizedBox(
-              width: kSidebarRailWidth + indent,
+              width: railWidth + indent,
               child: Padding(
                 padding: EdgeInsets.only(left: indent),
                 child: Center(

@@ -612,6 +612,7 @@ class _SidebarPanelFixedItem extends StatelessWidget {
     final surfaces = theme.fleurSurface;
     final scheme = theme.colorScheme;
     final borderRadius = BorderRadius.circular(8);
+    final railWidth = SidebarRailLayoutScope.widthOf(context);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -638,11 +639,11 @@ class _SidebarPanelFixedItem extends StatelessWidget {
               splashColor: Colors.transparent,
               shape: RoundedRectangleBorder(borderRadius: borderRadius),
               minTileHeight: _kSidebarFixedItemHeight,
-              minLeadingWidth: kSidebarRailWidth - 16,
+              minLeadingWidth: railWidth - 16,
               horizontalTitleGap: 8,
               contentPadding: const EdgeInsets.only(right: 8),
               leading: SizedBox(
-                width: kSidebarRailWidth - 16,
+                width: railWidth - 16,
                 child: Center(
                   child: SizedBox.square(
                     key: item.key,
@@ -743,6 +744,7 @@ class _AccountPanelFooter extends StatelessWidget {
     final scheme = theme.colorScheme;
     final reduceMotion = AppMotion.reduceMotion(context);
     final duration = reduceMotion ? Duration.zero : AppMotion.short;
+    final railWidth = SidebarRailLayoutScope.widthOf(context);
 
     final showSync = showSyncStatus && sync.visible;
     final syncText = _syncText(l10n);
@@ -775,7 +777,7 @@ class _AccountPanelFooter extends StatelessWidget {
                     child: Row(
                       children: [
                         SizedBox(
-                          width: kSidebarRailWidth - 12,
+                          width: railWidth - 12,
                           child: Center(
                             child: AccountAvatar(
                               key: const Key('sidebar_account_button'),

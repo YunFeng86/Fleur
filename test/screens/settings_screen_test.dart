@@ -16,6 +16,7 @@ import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
 import 'package:fleur/theme/seed_color_presets.dart';
 import 'package:fleur/ui/app_shell.dart';
+import 'package:fleur/ui/shell_chrome_layout.dart';
 import 'package:fleur/ui/settings/widgets/section_header.dart';
 import 'package:fleur/ui/sidebar_layout.dart';
 import 'package:fleur/utils/platform.dart';
@@ -356,7 +357,7 @@ void main() {
 
     expect(find.byKey(const Key('settings_sidebar')), findsNothing);
     expect(find.byKey(const Key('settings_navigation_rail')), findsOneWidget);
-    expect(find.byKey(const Key('settings_sidebar_button')), findsNothing);
+    expect(find.byKey(const Key('settings_sidebar_button')), findsOneWidget);
     expect(
       tester.getTopLeft(find.byKey(const Key('settings_content_layer'))).dx,
       kSidebarRailWidth,
@@ -390,7 +391,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const Key('settings_sidebar')), findsOneWidget);
-    expect(find.byKey(const Key('settings_sidebar_button')), findsNothing);
+    expect(find.byKey(const Key('settings_sidebar_button')), findsOneWidget);
     expect(find.byKey(const Key('settings_back_button')), findsNothing);
     expect(
       find.byKey(const Key('settings_search_outside_paper')),
@@ -406,7 +407,7 @@ void main() {
     await pumpSettingsScreen(tester, 1500); // Wide
 
     expect(find.byKey(const Key('settings_sidebar')), findsOneWidget);
-    expect(find.byKey(const Key('settings_sidebar_button')), findsNothing);
+    expect(find.byKey(const Key('settings_sidebar_button')), findsOneWidget);
     expect(find.byKey(const Key('settings_back_button')), findsNothing);
     expect(find.byKey(const Key('settings_paper_surface')), findsOneWidget);
     expect(
@@ -512,7 +513,7 @@ void main() {
     await pumpSettingsScreen(tester, 1000, showBack: true);
 
     expect(find.byKey(const Key('settings_sidebar')), findsOneWidget);
-    expect(find.byKey(const Key('settings_sidebar_button')), findsNothing);
+    expect(find.byKey(const Key('settings_sidebar_button')), findsOneWidget);
     expect(find.byKey(const Key('settings_back_button')), findsOneWidget);
   });
 
@@ -566,6 +567,21 @@ void main() {
     expect(
       tester.getTopLeft(find.byKey(const Key('shell_title_bar_divider'))).dx,
       kDefaultWorkspaceSidebarWidth + kSidebarContentDividerWidth,
+    );
+    expect(
+      tester.getCenter(find.byKey(const Key('shell_sidebar_button'))).dx,
+      kTitleBarExpectedSidebarRailWidth / 2,
+    );
+    expect(
+      tester
+          .getCenter(
+            find.descendant(
+              of: find.byKey(const Key('settings_nav_button_app-preferences')),
+              matching: find.byType(Icon),
+            ),
+          )
+          .dx,
+      kTitleBarExpectedSidebarRailWidth / 2,
     );
   });
 
@@ -628,6 +644,33 @@ void main() {
       SidebarPresentationMode.collapsed,
     );
     expect(find.byKey(const Key('settings_navigation_rail')), findsOneWidget);
+  });
+
+  testWidgets('Content-only settings header owns adaptive navigation toggle', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.android;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    final container = await pumpSettingsShell(tester, 1200);
+
+    expect(find.byKey(const Key('shell_title_bar')), findsNothing);
+    expect(find.byKey(const Key('shell_window_close_button')), findsNothing);
+    expect(find.byKey(const Key('settings_sidebar')), findsOneWidget);
+    expect(find.byKey(const Key('settings_sidebar_button')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('settings_sidebar_button')));
+    await tester.pumpAndSettle();
+
+    expect(
+      container.read(settingsSidebarPresentationModeProvider),
+      SidebarPresentationMode.collapsed,
+    );
+    expect(find.byKey(const Key('settings_navigation_rail')), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.byKey(const Key('settings_content_layer'))).dx,
+      kSidebarRailWidth,
+    );
   });
 
   testWidgets(

@@ -8,6 +8,51 @@ enum WorkspaceNavigationPresentation { expanded, rail, offCanvas }
 enum WorkspaceReaderPresentation { none, embedded, secondaryPage }
 
 @immutable
+class WorkspaceNavigationToggleResult {
+  const WorkspaceNavigationToggleResult({
+    required this.preferredNavigation,
+    required this.temporaryNavigationOpen,
+  });
+
+  final SidebarPresentationMode preferredNavigation;
+  final bool temporaryNavigationOpen;
+
+  static WorkspaceNavigationToggleResult resolve({
+    required WorkspaceNavigationPresentation presentation,
+    required SidebarPresentationMode preferredNavigation,
+    required bool temporaryNavigationOpen,
+    required bool canExpandInline,
+  }) {
+    if (presentation != WorkspaceNavigationPresentation.expanded &&
+        temporaryNavigationOpen) {
+      return WorkspaceNavigationToggleResult(
+        preferredNavigation: preferredNavigation,
+        temporaryNavigationOpen: false,
+      );
+    }
+
+    if (presentation == WorkspaceNavigationPresentation.expanded) {
+      return const WorkspaceNavigationToggleResult(
+        preferredNavigation: SidebarPresentationMode.collapsed,
+        temporaryNavigationOpen: false,
+      );
+    }
+
+    if (preferredNavigation == SidebarPresentationMode.collapsed) {
+      return WorkspaceNavigationToggleResult(
+        preferredNavigation: SidebarPresentationMode.expanded,
+        temporaryNavigationOpen: !canExpandInline,
+      );
+    }
+
+    return WorkspaceNavigationToggleResult(
+      preferredNavigation: preferredNavigation,
+      temporaryNavigationOpen: true,
+    );
+  }
+}
+
+@immutable
 class WorkspaceNavigationMetrics {
   const WorkspaceNavigationMetrics({
     required this.expandedExtent,

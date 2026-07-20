@@ -927,7 +927,7 @@ void main() {
     final expandedSearchTopLeft = tester.getTopLeft(
       find.byKey(const Key('shell_search_button')),
     );
-    expect(expandedSearchTopLeft.dx, 16 + kShellControlSize * 3);
+    expect(expandedSearchTopLeft.dx, 12 + kShellControlSize * 3);
     expect(expandedSearchTopLeft.dy, kShellControlTopInset);
     expect(expandedSearchTopLeft.dx, expandedForwardRight);
     final expandedAllDx = tester
@@ -945,12 +945,16 @@ void main() {
     final expandedAccountCenter = tester.getCenter(
       find.byKey(const Key('sidebar_account_button')),
     );
-    final fixedItemDx = kSidebarRailWidth / 2;
+    final fixedItemDx = kTitleBarExpectedSidebarRailWidth / 2;
     const collapsedFixedItemDx = kTitleBarExpectedSidebarRailWidth / 2;
     expect(expandedAllDx, fixedItemDx);
     expect(expandedStarredDx, fixedItemDx);
     expect(expandedReadLaterDx, fixedItemDx);
     expect(expandedAddDx, fixedItemDx);
+    expect(
+      tester.getCenter(find.byKey(const Key('shell_sidebar_button'))).dx,
+      fixedItemDx,
+    );
     final addTileRect = tester.getRect(
       find
           .ancestor(
@@ -1072,6 +1076,7 @@ void main() {
       tester.getCenter(railButton(const Key('sidebar_account_button'))).dy,
       expandedAccountCenter.dy,
     );
+    expect(collapsedFixedItemDx, expandedAllDx);
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
     await tester.pump();
@@ -1526,7 +1531,7 @@ void main() {
         .dy;
 
     expect(shellCenter, kWorkspaceHeaderHeight / 2);
-    expect(shellCenterX, kSidebarRailWidth / 2);
+    expect(shellCenterX, kTitleBarExpectedSidebarRailWidth / 2);
     expect(headerTop, kWorkspaceHeaderHeight);
     expect(headerCenter, kWorkspaceHeaderHeight + kWorkspaceHeaderHeight / 2);
   });
@@ -2049,7 +2054,7 @@ void main() {
     },
   );
 
-  testWidgets('App shell hides capsule controls on dedicated reader pages', (
+  testWidgets('App shell keeps window controls on dedicated reader pages', (
     tester,
   ) async {
     debugFleurTargetPlatformOverride = TargetPlatform.windows;
@@ -2066,10 +2071,73 @@ void main() {
 
     expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
     expect(find.byKey(const Key('shell_drawer_controls')), findsNothing);
-    expect(find.byKey(const Key('shell_sidebar_button')), findsNothing);
+    expect(find.byKey(const Key('shell_sidebar_button')), findsOneWidget);
+    expect(find.byKey(const Key('shell_back_button')), findsOneWidget);
+    expect(find.byKey(const Key('shell_forward_button')), findsOneWidget);
+    expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_window_close_button')), findsOneWidget);
     expect(find.byType(Sidebar), findsNothing);
     expect(find.byKey(const Key('app_shell_child')), findsOneWidget);
+
+    final titleBarLeft = tester
+        .getTopLeft(find.byKey(const Key('shell_title_bar')))
+        .dx;
+    await tester.tap(find.byKey(const Key('shell_sidebar_button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Sidebar), findsOneWidget);
+    expect(find.byKey(const Key('app_shell_navigation_scrim')), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.byKey(const Key('app_shell_secondary_layer'))).dx,
+      kTemporaryWorkspaceSidebarWidth,
+    );
+    expect(
+      tester.getTopLeft(find.byKey(const Key('shell_title_bar'))).dx,
+      titleBarLeft,
+    );
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(find.byType(Sidebar), findsNothing);
+    expect(
+      tester.getTopLeft(find.byKey(const Key('app_shell_secondary_layer'))).dx,
+      0,
+    );
+  });
+
+  testWidgets('Content-only reader pages retain off-canvas navigation', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.android;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(400, 800);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      _buildShellHarness(currentUri: Uri(path: '/all/article/42')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('shell_title_bar')), findsNothing);
+    expect(find.byType(Sidebar), findsNothing);
+    final childContext = tester.element(
+      find.byKey(const Key('app_shell_child')),
+    );
+    AppDrawerScope.drawerOpenerOf(childContext)!();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Sidebar), findsOneWidget);
+    expect(find.byKey(const Key('app_shell_navigation_scrim')), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.byKey(const Key('app_shell_secondary_layer'))).dx,
+      kTemporaryWorkspaceSidebarWidth,
+    );
+    expect(
+      tester.getSize(find.byKey(const Key('app_shell_secondary_layer'))).width,
+      400,
+    );
   });
 
   testWidgets(

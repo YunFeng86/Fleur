@@ -142,21 +142,26 @@ extension _ReaderSceneScaffold on _ReaderViewState {
         );
       }
 
+      final drawerLeading = AppDrawerScope.drawerLeading(context);
+      final backButton = widget.showBack
+          ? IconButton(
+              icon: const Icon(Icons.arrow_back),
+              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+              onPressed: handleBack,
+            )
+          : null;
+      final showsDrawerAndBack = drawerLeading != null && backButton != null;
+
       return Theme(
         data: sceneTheme,
         child: Scaffold(
           appBar: AppBar(
             title: null,
             automaticallyImplyLeading: true,
-            leading: widget.showBack
-                ? IconButton(
-                    icon: const Icon(Icons.arrow_back),
-                    tooltip: MaterialLocalizations.of(
-                      context,
-                    ).backButtonTooltip,
-                    onPressed: handleBack,
-                  )
-                : null,
+            leadingWidth: showsDrawerAndBack ? 96 : null,
+            leading: showsDrawerAndBack
+                ? Row(children: [drawerLeading, backButton])
+                : backButton ?? drawerLeading,
             actions: const [],
           ),
           body: body,

@@ -67,12 +67,18 @@ class ShellChromeLayout {
   bool get usesFloatingLeadingControls =>
       controlsPlacement == ShellControlsPlacement.floatingLeading;
 
+  double get sidebarRailWidth => switch (profile) {
+    ShellChromeProfile.titleBarExpected => kTitleBarExpectedSidebarRailWidth,
+    ShellChromeProfile.integratedCorner ||
+    ShellChromeProfile.contentOnly => kSidebarRailWidth,
+  };
+
   WorkspaceNavigationMetrics get workspaceNavigationMetrics {
     final railExtent = switch (profile) {
       ShellChromeProfile.integratedCorner =>
-        kSidebarRailWidth + kRailOverlayContentGap,
-      ShellChromeProfile.titleBarExpected => kTitleBarExpectedSidebarRailWidth,
-      ShellChromeProfile.contentOnly => kSidebarRailWidth,
+        sidebarRailWidth + kRailOverlayContentGap,
+      ShellChromeProfile.titleBarExpected ||
+      ShellChromeProfile.contentOnly => sidebarRailWidth,
     };
     return WorkspaceNavigationMetrics(
       expandedExtent:

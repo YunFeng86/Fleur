@@ -7,32 +7,19 @@ extension _AppShellNavigationToggleActions on _AppShellState {
     required SidebarPresentationMode preferredNavigation,
     required bool canExpandInline,
   }) {
-    final temporaryNavigationVisible =
-        arrangement.navigationPresentation !=
-            WorkspaceNavigationPresentation.expanded &&
-        _temporarySidebarOpen;
-    if (temporaryNavigationVisible) {
+    final result = WorkspaceNavigationToggleResult.resolve(
+      presentation: arrangement.navigationPresentation,
+      preferredNavigation: preferredNavigation,
+      temporaryNavigationOpen: _temporarySidebarOpen,
+      canExpandInline: canExpandInline,
+    );
+    ref.read(sidebarPresentationModeProvider.notifier).state =
+        result.preferredNavigation;
+    if (result.temporaryNavigationOpen) {
+      _openTemporarySidebar();
+    } else {
       _closeTemporarySidebar();
-      return;
     }
-
-    if (arrangement.navigationPresentation ==
-        WorkspaceNavigationPresentation.expanded) {
-      _temporarySidebarOpen = false;
-      ref.read(sidebarPresentationModeProvider.notifier).state =
-          SidebarPresentationMode.collapsed;
-      return;
-    }
-
-    if (preferredNavigation == SidebarPresentationMode.collapsed) {
-      ref.read(sidebarPresentationModeProvider.notifier).state =
-          SidebarPresentationMode.expanded;
-      if (canExpandInline) {
-        _temporarySidebarOpen = false;
-        return;
-      }
-    }
-    _openTemporarySidebar();
   }
 
   void _toggleSettingsNavigation(
@@ -44,30 +31,15 @@ extension _AppShellNavigationToggleActions on _AppShellState {
     final openNotifier = ref.read(
       settingsTemporaryNavigationOpenProvider.notifier,
     );
-    final temporaryNavigationVisible =
-        arrangement.navigationPresentation !=
-            WorkspaceNavigationPresentation.expanded &&
-        openNotifier.state;
-    if (temporaryNavigationVisible) {
-      openNotifier.state = false;
-      return;
-    }
-    if (arrangement.navigationPresentation ==
-        WorkspaceNavigationPresentation.expanded) {
-      openNotifier.state = false;
-      ref.read(settingsSidebarPresentationModeProvider.notifier).state =
-          SidebarPresentationMode.collapsed;
-      return;
-    }
-    if (preferredNavigation == SidebarPresentationMode.collapsed) {
-      ref.read(settingsSidebarPresentationModeProvider.notifier).state =
-          SidebarPresentationMode.expanded;
-      if (canExpandInline) {
-        openNotifier.state = false;
-        return;
-      }
-    }
-    openNotifier.state = true;
+    final result = WorkspaceNavigationToggleResult.resolve(
+      presentation: arrangement.navigationPresentation,
+      preferredNavigation: preferredNavigation,
+      temporaryNavigationOpen: openNotifier.state,
+      canExpandInline: canExpandInline,
+    );
+    ref.read(settingsSidebarPresentationModeProvider.notifier).state =
+        result.preferredNavigation;
+    openNotifier.state = result.temporaryNavigationOpen;
   }
 }
 

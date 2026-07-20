@@ -22,6 +22,7 @@ import 'layout_spec.dart';
 import 'shell_chrome_layout.dart';
 import 'shell_control_strip.dart';
 import 'shell_frame_geometry.dart';
+import 'shell_secondary_scene_frame.dart';
 import 'shell_title_bar.dart';
 import 'sidebar_layout.dart';
 import 'workspace_layers.dart';
@@ -213,6 +214,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         onSearch: onSearch,
         macOSWindowChromeMetrics: macOSWindowChromeMetrics,
         railSurfaceStyle: shellChromeLayout.railSurfaceStyle,
+        railWidth: shellChromeLayout.sidebarRailWidth,
         showHeaderActions: !shellChromeLayout.placesControlsInTitleBar,
       ),
     );
@@ -275,69 +277,87 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   Widget _buildDesktopSecondaryLayer({
     required BuildContext context,
-    required Size size,
-    required FleurSurfaceTheme surfaces,
+    required WidgetRef ref,
     required MacOSWindowChromeMetrics macOSWindowChromeMetrics,
     required ShellChromeLayout shellChromeLayout,
     required double sidebarWidth,
     required double listWidth,
     required SidebarPresentationMode preferredNavigation,
     required AdaptiveWorkspaceArrangement arrangement,
+    required NavigationHistoryState history,
   }) {
     final usesTitleBar = shellChromeLayout.placesControlsInTitleBar;
-    final titleBarHeight = usesTitleBar ? kWorkspaceHeaderHeight : 0.0;
-    final workspaceHeight = (size.height - titleBarHeight)
-        .clamp(0.0, double.infinity)
-        .toDouble();
-    final surfaceAppearance = WorkspaceLayerSurfaceAppearance.resolve(
-      shellChromeLayout,
+    final temporaryNavigationOpen = _temporarySidebarOpen;
+    final controlsPresentationMode = temporaryNavigationOpen
+        ? SidebarPresentationMode.expanded
+        : SidebarPresentationMode.collapsed;
+    final updateManifest = ref.watch(
+      appUpdateControllerProvider.select(
+        (state) => state.hasUpdate ? state.manifest : null,
+      ),
     );
-
-    return AppMenuHost(
-      child: ShellLayerScope(
-        totalSize: size,
-        contentSize: Size(size.width, workspaceHeight),
-        sidebarLayoutMode: sidebarLayoutModeForWidth(size.width),
-        contentLeft: 0,
-        contentLeadingInset: 0,
-        railOverlayVisible: false,
-        sidebarWidth: sidebarWidth,
-        listWidth: listWidth,
-        headerLeadingInset: 14,
+    final commands = ShellNavigationCommands(
+      context: context,
+      router: GoRouter.maybeOf(context),
+      history: history,
+      historyController: ref.read(navigationHistoryControllerProvider.notifier),
+      onToggleSidebar: () {
+        final result = WorkspaceNavigationToggleResult.resolve(
+          presentation: WorkspaceNavigationPresentation.offCanvas,
+          preferredNavigation: preferredNavigation,
+          temporaryNavigationOpen: temporaryNavigationOpen,
+          canExpandInline: false,
+        );
+        ref.read(sidebarPresentationModeProvider.notifier).state =
+            result.preferredNavigation;
+        if (result.temporaryNavigationOpen) {
+          _openTemporarySidebar();
+        } else {
+          _closeTemporarySidebar();
+        }
+      },
+      onSearch: () => _goToSearch(context),
+    );
+    final controlsLeft = _shellControlsLeftInset(
+      macOSWindowChromeMetrics,
+      shellChromeLayout: shellChromeLayout,
+      fallback: (shellChromeLayout.sidebarRailWidth - kShellControlSize) / 2,
+    );
+    return ShellSecondarySceneFrame(
+      shellChromeLayout: shellChromeLayout,
+      macOSWindowChromeMetrics: macOSWindowChromeMetrics,
+      sidebarWidth: sidebarWidth,
+      listWidth: listWidth,
+      preferredNavigation: preferredNavigation,
+      arrangement: arrangement,
+      temporaryNavigationOpen: temporaryNavigationOpen,
+      titleBarCommands: commands.toTitleBarCommands(),
+      controlsLeading: controlsLeft,
+      updateManifest: updateManifest,
+      navigationToggleFocusNode: _navigationToggleFocusNode,
+      temporaryNavigationFocusNode: _temporaryNavigationFocusNode,
+      navigationPane: _desktopSidebar(
+        context: context,
+        width: kTemporaryWorkspaceSidebarWidth,
+        showAccountSyncStatus: true,
+        currentUri: widget.currentUri,
         macOSWindowChromeMetrics: macOSWindowChromeMetrics,
         shellChromeLayout: shellChromeLayout,
-        preferredSidebarPresentationMode: preferredNavigation,
-        workspaceArrangement: arrangement,
-        child: AppDrawerScope(
-          hasAppDrawer: false,
-          child: Stack(
-            children: [
-              if (usesTitleBar)
-                const Positioned(
-                  left: 0,
-                  top: 0,
-                  right: 0,
-                  height: kWorkspaceHeaderHeight,
-                  child: ShellWindowTitleBar(),
-                ),
-              Positioned(
-                left: 0,
-                top: titleBarHeight,
-                right: 0,
-                bottom: 0,
-                child: WorkspaceLayerSurface(
-                  key: const Key('app_shell_secondary_layer'),
-                  color: surfaces.reader,
-                  borderRadius: surfaceAppearance.borderRadius,
-                  showShadow: surfaceAppearance.showShadow,
-                  leadingEdge: surfaceAppearance.leadingEdge,
-                  child: widget.child,
-                ),
-              ),
-            ],
-          ),
-        ),
+        onSearch: !usesTitleBar ? () => _goToSearch(context) : null,
+        presentationModeOverride: SidebarPresentationMode.expanded,
       ),
+      floatingLeadingControls: shellChromeLayout.usesFloatingLeadingControls
+          ? _InlineShellControlsHost(
+              presentationMode: controlsPresentationMode,
+              shellChromeLayout: shellChromeLayout,
+              commands: commands,
+              searchSelected: false,
+              updateManifest: updateManifest,
+              navigationToggleFocusNode: _navigationToggleFocusNode,
+            )
+          : null,
+      onDismissNavigation: _closeTemporarySidebar,
+      child: widget.child,
     );
   }
 
@@ -355,22 +375,20 @@ class _AppShellState extends ConsumerState<AppShell> {
     required NavigationHistoryState history,
   }) {
     final usesTitleBar = shellChromeLayout.placesControlsInTitleBar;
-    final titleBarHeight = usesTitleBar ? kWorkspaceHeaderHeight : 0.0;
-    final workspaceHeight = (size.height - titleBarHeight)
-        .clamp(0.0, double.infinity)
-        .toDouble();
-    final railWidth = usesTitleBar
-        ? kTitleBarExpectedSidebarRailWidth
-        : kSidebarRailWidth;
+    final railWidth = shellChromeLayout.sidebarRailWidth;
     final temporaryOpen = ref.watch(settingsTemporaryNavigationOpenProvider);
-    final leftChromeWidth = temporaryOpen
+    final geometry = ShellFrameGeometry.resolve(
+      size: size,
+      shellChromeLayout: shellChromeLayout,
+      navigationPresentation: arrangement.navigationPresentation,
+      temporaryNavigationOpen: temporaryOpen,
+      expandedNavigationWidth: kDefaultWorkspaceSidebarWidth,
+      railWidth: railWidth,
+      temporaryNavigationWidth: kTemporaryWorkspaceSidebarWidth,
+    );
+    final visibleLeftChromeWidth = temporaryOpen
         ? kTemporaryWorkspaceSidebarWidth
-        : switch (arrangement.navigationPresentation) {
-            WorkspaceNavigationPresentation.expanded =>
-              kDefaultWorkspaceSidebarWidth + kSidebarContentDividerWidth,
-            WorkspaceNavigationPresentation.rail => railWidth,
-            WorkspaceNavigationPresentation.offCanvas => 0.0,
-          };
+        : geometry.leftChromeWidth;
     final controlsPresentationMode =
         arrangement.navigationPresentation ==
                 WorkspaceNavigationPresentation.expanded ||
@@ -398,22 +416,16 @@ class _AppShellState extends ConsumerState<AppShell> {
     final controlsLeft = _shellControlsLeftInset(
       macOSWindowChromeMetrics,
       shellChromeLayout: shellChromeLayout,
-      fallback:
-          ((arrangement.navigationPresentation ==
-                      WorkspaceNavigationPresentation.expanded
-                  ? kSidebarRailWidth
-                  : railWidth) -
-              kShellControlSize) /
-          2,
+      fallback: (railWidth - kShellControlSize) / 2,
     );
     final scope = ShellLayerScope(
       totalSize: size,
-      contentSize: Size(size.width, workspaceHeight),
+      contentSize: Size(size.width, geometry.workspaceHeight),
       sidebarLayoutMode: sidebarLayoutModeForWidth(size.width),
       contentLeft: 0,
       contentLeadingInset: 0,
       railOverlayVisible: false,
-      sidebarWidth: leftChromeWidth,
+      sidebarWidth: visibleLeftChromeWidth,
       listWidth: listWidth,
       headerLeadingInset: 14,
       macOSWindowChromeMetrics: macOSWindowChromeMetrics,
@@ -465,13 +477,13 @@ class _AppShellState extends ConsumerState<AppShell> {
                     searchSelected: false,
                     updateManifest: updateManifest,
                     leadingLeft: controlsLeft,
-                    dividerLeadingInset: leftChromeWidth,
+                    dividerLeadingInset: geometry.dividerLeadingInset,
                     navigationToggleFocusNode: _navigationToggleFocusNode,
                   ),
                 ),
               Positioned(
                 left: 0,
-                top: titleBarHeight,
+                top: geometry.titleBarHeight,
                 right: 0,
                 bottom: 0,
                 child: scope,
@@ -507,9 +519,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         ? kTemporaryWorkspaceSidebarWidth
         : sidebarWidth;
     final usesTitleBar = shellChromeLayout.placesControlsInTitleBar;
-    final collapsedRailWidth = usesTitleBar
-        ? kTitleBarExpectedSidebarRailWidth
-        : kSidebarRailWidth;
+    final collapsedRailWidth = shellChromeLayout.sidebarRailWidth;
     final geometry = ShellFrameGeometry.resolve(
       size: size,
       shellChromeLayout: shellChromeLayout,
@@ -535,11 +545,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       macOSWindowChromeMetrics,
       shellChromeLayout: shellChromeLayout,
       fallback: usesTitleBar
-          ? (((controlsPresentationMode == SidebarPresentationMode.expanded
-                        ? kSidebarRailWidth
-                        : collapsedRailWidth) -
-                    kShellControlSize) /
-                2)
+          ? ((collapsedRailWidth - kShellControlSize) / 2)
           : 12,
     );
     final controlsRight =
@@ -707,6 +713,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                               currentUri: widget.currentUri,
                               railSurfaceStyle:
                                   shellChromeLayout.railSurfaceStyle,
+                              railWidth: collapsedRailWidth,
                               showHeaderActions:
                                   !shellChromeLayout.placesControlsInTitleBar,
                             ),
@@ -735,7 +742,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                   ),
                 ],
                 AnimatedPositioned(
-                  duration: _kContentLayerAnimationDuration,
+                  duration: kShellContentTranslationDuration,
                   curve: Curves.easeOutCubic,
                   left: geometry.translatedContentLeft,
                   top: geometry.titleBarHeight,
@@ -767,7 +774,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                   width: collapsedRailWidth,
                   child: _RailOverlayHost(
                     visible: geometry.railOverlayVisible,
-                    delay: _kContentLayerAnimationDuration,
+                    delay: kShellContentTranslationDuration,
                     child: Sidebar(
                       onSelectScope: (scope) => _goToScope(context, scope),
                       reserveShellHeader: reserveSidebarHeader,
@@ -777,6 +784,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                       showAccountSyncStatus: showAccountSyncStatus,
                       currentUri: widget.currentUri,
                       railSurfaceStyle: shellChromeLayout.railSurfaceStyle,
+                      railWidth: collapsedRailWidth,
                       showHeaderActions:
                           !shellChromeLayout.placesControlsInTitleBar,
                     ),
@@ -840,9 +848,7 @@ class _AppShellState extends ConsumerState<AppShell> {
           hasReader: preferredArticleListWidth != null,
         ).navigationPresentation ==
         WorkspaceNavigationPresentation.expanded;
-    final railWidth = shellChromeLayout.placesControlsInTitleBar
-        ? kTitleBarExpectedSidebarRailWidth
-        : kSidebarRailWidth;
+    final railWidth = shellChromeLayout.sidebarRailWidth;
     final permanentNavigationWidth =
         switch (arrangement.navigationPresentation) {
           WorkspaceNavigationPresentation.expanded =>
@@ -882,36 +888,22 @@ class _AppShellState extends ConsumerState<AppShell> {
       );
     }
 
-    Widget wrapShell(Widget shell) {
-      return AppMenuHost(
-        child: DecoratedBox(
-          decoration: BoxDecoration(color: surfaces.chrome),
-          child: shell,
-        ),
-      );
-    }
-
     if (hideNavForReaderPage) {
-      if (isDesktop) {
-        return _ShellHistoryShortcuts(
-          commands: shortcutCommands,
-          child: _buildDesktopSecondaryLayer(
-            context: context,
-            size: size,
-            surfaces: surfaces,
-            macOSWindowChromeMetrics: macOSWindowChromeMetrics,
-            shellChromeLayout: shellChromeLayout,
-            sidebarWidth: sidebarWidth,
-            listWidth: listWidth,
-            preferredNavigation: preferredNavigation,
-            arrangement: arrangement,
-          ),
-        );
-      }
       return _ShellHistoryShortcuts(
         commands: shortcutCommands,
-        child: wrapShell(
-          AppDrawerScope(hasAppDrawer: false, child: widget.child),
+        onDismissNavigation: _temporarySidebarOpen
+            ? _closeTemporarySidebar
+            : null,
+        child: _buildDesktopSecondaryLayer(
+          context: context,
+          ref: ref,
+          macOSWindowChromeMetrics: macOSWindowChromeMetrics,
+          shellChromeLayout: shellChromeLayout,
+          sidebarWidth: sidebarWidth,
+          listWidth: listWidth,
+          preferredNavigation: preferredNavigation,
+          arrangement: arrangement,
+          history: history,
         ),
       );
     }
@@ -939,7 +931,6 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 }
 
-const _kContentLayerAnimationDuration = Duration(milliseconds: 180);
 const double _kSidebarCollapseThresholdWidth = kMinWorkspaceSidebarWidth / 2;
 
 double _shellControlsGroupWidth(

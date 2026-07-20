@@ -1,3 +1,5 @@
+import 'package:flutter/widgets.dart';
+
 import 'layout.dart';
 
 // App-wide sidebar sizing/breakpoints.
@@ -29,6 +31,27 @@ const double kMacOSShellControlTopInset =
     kMacOSTrafficLightTargetCenterY - (kShellControlSize / 2);
 const double kMacOSTrafficLightSafeInset = 72;
 const double kMacOSFullscreenClickSafeTopInset = 8;
+
+class SidebarRailLayoutScope extends InheritedWidget {
+  const SidebarRailLayoutScope({
+    super.key,
+    required this.railWidth,
+    required super.child,
+  });
+
+  final double railWidth;
+
+  static double widthOf(BuildContext context) {
+    return context
+            .dependOnInheritedWidgetOfExactType<SidebarRailLayoutScope>()
+            ?.railWidth ??
+        kSidebarRailWidth;
+  }
+
+  @override
+  bool updateShouldNotify(SidebarRailLayoutScope oldWidget) =>
+      oldWidget.railWidth != railWidth;
+}
 
 class MacOSWindowChromeMetrics {
   const MacOSWindowChromeMetrics({

@@ -56,6 +56,7 @@ class Sidebar extends ConsumerStatefulWidget {
     this.onSearch,
     this.macOSWindowChromeMetrics = MacOSWindowChromeMetrics.fallback,
     this.railSurfaceStyle = SidebarRailSurfaceStyle.capsule,
+    this.railWidth = kSidebarRailWidth,
     this.showHeaderActions = true,
   });
 
@@ -69,6 +70,7 @@ class Sidebar extends ConsumerStatefulWidget {
   final VoidCallback? onSearch;
   final MacOSWindowChromeMetrics macOSWindowChromeMetrics;
   final SidebarRailSurfaceStyle railSurfaceStyle;
+  final double railWidth;
   final bool showHeaderActions;
 
   @override
@@ -297,41 +299,44 @@ class _SidebarState extends ConsumerState<Sidebar> {
       onShowFeedMenu: (feed) => _showFeedMenu(feed, managementActions),
     );
 
-    return Material(
-      color: widget.transparentBackground
-          ? Colors.transparent
-          : surfaces.sidebar,
-      child: collapsed
-          ? Align(
-              alignment: Alignment.topLeft,
-              child: SizedBox(
-                width: double.infinity,
-                child: _SidebarRail(
-                  mode: presentationMode,
-                  items: fixedItems,
-                  account: activeAccount,
-                  reserveShellHeader: widget.reserveShellHeader,
-                  onAccountTap: () => unawaited(_showAccountMenu()),
-                  accountAnchorKey: _accountFooterKey,
-                  railSurfaceStyle: widget.railSurfaceStyle,
+    return SidebarRailLayoutScope(
+      railWidth: widget.railWidth,
+      child: Material(
+        color: widget.transparentBackground
+            ? Colors.transparent
+            : surfaces.sidebar,
+        child: collapsed
+            ? Align(
+                alignment: Alignment.topLeft,
+                child: SizedBox(
+                  width: double.infinity,
+                  child: _SidebarRail(
+                    mode: presentationMode,
+                    items: fixedItems,
+                    account: activeAccount,
+                    reserveShellHeader: widget.reserveShellHeader,
+                    onAccountTap: () => unawaited(_showAccountMenu()),
+                    accountAnchorKey: _accountFooterKey,
+                    railSurfaceStyle: widget.railSurfaceStyle,
+                  ),
                 ),
+              )
+            : _SidebarPanel(
+                fixedItems: fixedItems,
+                account: activeAccount,
+                sync: syncStatus,
+                showSyncStatus: widget.showAccountSyncStatus,
+                onAccountTap: () => unawaited(_showAccountMenu()),
+                accountAnchorKey: _accountFooterKey,
+                reserveShellHeader: widget.reserveShellHeader,
+                searchSelected: searchSelected,
+                onSearch: widget.onSearch,
+                macOSWindowChromeMetrics: widget.macOSWindowChromeMetrics,
+                showHeaderActions: widget.showHeaderActions,
+                navigationTree: navigationTree,
+                navigationScrollController: _scrollController,
               ),
-            )
-          : _SidebarPanel(
-              fixedItems: fixedItems,
-              account: activeAccount,
-              sync: syncStatus,
-              showSyncStatus: widget.showAccountSyncStatus,
-              onAccountTap: () => unawaited(_showAccountMenu()),
-              accountAnchorKey: _accountFooterKey,
-              reserveShellHeader: widget.reserveShellHeader,
-              searchSelected: searchSelected,
-              onSearch: widget.onSearch,
-              macOSWindowChromeMetrics: widget.macOSWindowChromeMetrics,
-              showHeaderActions: widget.showHeaderActions,
-              navigationTree: navigationTree,
-              navigationScrollController: _scrollController,
-            ),
+      ),
     );
   }
 
