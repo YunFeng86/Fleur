@@ -6,6 +6,26 @@ enum ReaderFontFamily { system, serif, sans, mono, custom }
 
 enum ReaderContentWidthPreset { narrow, standard, wide }
 
+enum ReaderFontSizePreset {
+  extraSmall(14),
+  small(16),
+  medium(18),
+  large(20),
+  extraLarge(22);
+
+  const ReaderFontSizePreset(this.fontSize);
+
+  final double fontSize;
+
+  static ReaderFontSizePreset fromFontSize(double value) {
+    if (value < 15) return extraSmall;
+    if (value < 17) return small;
+    if (value < 19) return medium;
+    if (value < 21) return large;
+    return extraLarge;
+  }
+}
+
 enum CodeFontFamilyPreset { systemMono, custom }
 
 enum CodeFontSizeMode { followReader, oneStepDown, custom }
@@ -17,7 +37,7 @@ class ReaderSettings {
     this.lineHeight = defaultLineHeight,
     this.horizontalPadding = 16,
     this.readerTheme = ReaderThemePreset.defaultLightAware,
-    this.fontFamily = ReaderFontFamily.system,
+    this.fontFamily = ReaderFontFamily.serif,
     this.readerFontStack = '',
     this.standardFontStack = '',
     this.serifFontStack = '',
@@ -33,7 +53,7 @@ class ReaderSettings {
     this.codeSoftWrap = false,
   });
 
-  static const double defaultFontSize = 15;
+  static const double defaultFontSize = 18;
   static const double defaultMinimumFontSize = 12;
   static const double defaultLineHeight = 1.6;
   static const double defaultHorizontalPadding = 16;
@@ -130,7 +150,7 @@ class ReaderSettings {
     final rawFontFamily = readEnumByNameOr(
       ReaderFontFamily.values,
       json['fontFamily'],
-      ReaderFontFamily.system,
+      ReaderFontFamily.serif,
       trim: false,
     );
     final legacyReaderFontStack = readStringOrEmpty(json['readerFontStack']);

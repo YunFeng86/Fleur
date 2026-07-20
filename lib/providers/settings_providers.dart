@@ -117,7 +117,7 @@ class ReaderSettingsController extends AsyncNotifier<ReaderSettings> {
         lineHeight: ReaderSettings.defaultLineHeight,
         horizontalPadding: ReaderSettings.defaultHorizontalPadding,
         readerTheme: ReaderThemePreset.defaultLightAware,
-        fontFamily: ReaderFontFamily.system,
+        fontFamily: ReaderFontFamily.serif,
         readerFontStack: '',
         standardFontStack: '',
         serifFontStack: '',

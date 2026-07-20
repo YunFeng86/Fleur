@@ -1,13 +1,5 @@
 part of '../../widgets/reader_view.dart';
 
-enum _ReaderSettingsFontSizePreset {
-  extraSmall,
-  small,
-  medium,
-  large,
-  extraLarge,
-}
-
 enum _ReaderSettingsLineHeightPreset { compact, standard, relaxed }
 
 final class _ReaderInteractionController {
@@ -577,15 +569,13 @@ final class _ReaderInteractionController {
           ReaderContentWidthPreset.standard => l10n.readingWidthStandard,
           ReaderContentWidthPreset.wide => l10n.readingWidthWide,
         };
-    String fontSizePresetLabel(_ReaderSettingsFontSizePreset preset) =>
-        switch (preset) {
-          _ReaderSettingsFontSizePreset.extraSmall => l10n.fontSizeExtraSmall,
-          _ReaderSettingsFontSizePreset.small => l10n.fontSizeSmall,
-          _ReaderSettingsFontSizePreset.medium =>
-            l10n.fontSizeMediumRecommended,
-          _ReaderSettingsFontSizePreset.large => l10n.fontSizeLarge,
-          _ReaderSettingsFontSizePreset.extraLarge => l10n.fontSizeExtraLarge,
-        };
+    String fontSizePresetLabel(ReaderFontSizePreset preset) => switch (preset) {
+      ReaderFontSizePreset.extraSmall => l10n.fontSizeExtraSmall,
+      ReaderFontSizePreset.small => l10n.fontSizeSmall,
+      ReaderFontSizePreset.medium => l10n.fontSizeMediumRecommended,
+      ReaderFontSizePreset.large => l10n.fontSizeLarge,
+      ReaderFontSizePreset.extraLarge => l10n.fontSizeExtraLarge,
+    };
     String lineHeightPresetLabel(_ReaderSettingsLineHeightPreset preset) =>
         switch (preset) {
           _ReaderSettingsLineHeightPreset.compact => l10n.lineHeightCompact,
@@ -654,29 +644,25 @@ final class _ReaderInteractionController {
                       padding: EdgeInsets.zero,
                       title: Text(l10n.fontSize),
                       controlWidth: 260,
-                      control:
-                          SettingsSelectField<_ReaderSettingsFontSizePreset>(
-                            value: _readerSettingsFontSizePresetFor(
-                              current.fontSize,
+                      control: SettingsSelectField<ReaderFontSizePreset>(
+                        value: ReaderFontSizePreset.fromFontSize(
+                          current.fontSize,
+                        ),
+                        options: [
+                          for (final preset in ReaderFontSizePreset.values)
+                            SettingsSelectOption(
+                              value: preset,
+                              label: Text(fontSizePresetLabel(preset)),
                             ),
-                            options: [
-                              for (final preset
-                                  in _ReaderSettingsFontSizePreset.values)
-                                SettingsSelectOption(
-                                  value: preset,
-                                  label: Text(fontSizePresetLabel(preset)),
-                                ),
-                            ],
-                            onChanged: (preset) {
-                              final next = current.copyWith(
-                                fontSize: _readerSettingsFontSizePresetValue(
-                                  preset,
-                                ),
-                              );
-                              setState(() => current = next);
-                              unawaited(save(next));
-                            },
-                          ),
+                        ],
+                        onChanged: (preset) {
+                          final next = current.copyWith(
+                            fontSize: preset.fontSize,
+                          );
+                          setState(() => current = next);
+                          unawaited(save(next));
+                        },
+                      ),
                     ),
                     const SizedBox(height: 10),
                     SettingsControlRow(
@@ -779,26 +765,6 @@ final class _ReaderInteractionController {
       );
     }
   }
-}
-
-_ReaderSettingsFontSizePreset _readerSettingsFontSizePresetFor(double value) {
-  if (value <= 13) return _ReaderSettingsFontSizePreset.extraSmall;
-  if (value <= 14.5) return _ReaderSettingsFontSizePreset.small;
-  if (value <= 16.5) return _ReaderSettingsFontSizePreset.medium;
-  if (value <= 20) return _ReaderSettingsFontSizePreset.large;
-  return _ReaderSettingsFontSizePreset.extraLarge;
-}
-
-double _readerSettingsFontSizePresetValue(
-  _ReaderSettingsFontSizePreset preset,
-) {
-  return switch (preset) {
-    _ReaderSettingsFontSizePreset.extraSmall => 12,
-    _ReaderSettingsFontSizePreset.small => 14,
-    _ReaderSettingsFontSizePreset.medium => ReaderSettings.defaultFontSize,
-    _ReaderSettingsFontSizePreset.large => 18,
-    _ReaderSettingsFontSizePreset.extraLarge => 22,
-  };
 }
 
 _ReaderSettingsLineHeightPreset _readerSettingsLineHeightPresetFor(

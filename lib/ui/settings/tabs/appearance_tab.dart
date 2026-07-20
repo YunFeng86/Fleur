@@ -21,8 +21,6 @@ import '../../../widgets/fleur_selection_transition.dart';
 
 enum AppearanceDetailPage { fonts }
 
-enum _ReaderFontSizePreset { extraSmall, small, medium, large, extraLarge }
-
 enum _ReaderLineHeightPreset { compact, standard, relaxed }
 
 const _visibleReaderFontFamilies = [
@@ -280,11 +278,13 @@ class _AppearanceTabState extends ConsumerState<AppearanceTab> {
                   child: SettingsControlRow(
                     title: Text(l10n.fontSize),
                     controlWidth: 520,
-                    control: _PreviewOptionGroup<_ReaderFontSizePreset>(
+                    control: _PreviewOptionGroup<ReaderFontSizePreset>(
                       key: const Key('appearance_reader_font_size_options'),
-                      value: _fontSizePresetFor(readerSettings.fontSize),
+                      value: ReaderFontSizePreset.fromFontSize(
+                        readerSettings.fontSize,
+                      ),
                       options: [
-                        for (final preset in _ReaderFontSizePreset.values)
+                        for (final preset in ReaderFontSizePreset.values)
                           _PreviewOption(
                             key: Key(
                               'appearance_reader_font_size_${preset.name}_option',
@@ -292,16 +292,17 @@ class _AppearanceTabState extends ConsumerState<AppearanceTab> {
                             value: preset,
                             semanticLabel: _fontSizePresetLabel(l10n, preset),
                             width: 92,
+                            minHeight: 74,
                             child: _FontSizePresetPreview(
                               label: _fontSizePresetLabel(l10n, preset),
-                              fontSize: _fontSizePresetValue(preset),
+                              fontSize: preset.fontSize,
                             ),
                           ),
                       ],
                       onChanged: (preset) => unawaited(
                         ref
                             .read(readerSettingsProvider.notifier)
-                            .setFontSize(_fontSizePresetValue(preset)),
+                            .setFontSize(preset.fontSize),
                       ),
                     ),
                   ),
@@ -784,26 +785,29 @@ class _PreviewOptionButton<T> extends StatelessWidget {
           unselectedForegroundColor: scheme.onSurfaceVariant,
           selectedSide: BorderSide(color: scheme.primary, width: 1.6),
           unselectedSide: BorderSide(color: surfaces.subtleDivider),
-          child: Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(8),
-                child: DefaultTextStyle.merge(
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: scheme.onSurface,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0,
+          child: SizedBox(
+            width: double.infinity,
+            child: Stack(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: DefaultTextStyle.merge(
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: scheme.onSurface,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0,
+                    ),
+                    child: option.child,
                   ),
-                  child: option.child,
                 ),
-              ),
-              if (selected)
-                const PositionedDirectional(
-                  top: 5,
-                  end: 5,
-                  child: Icon(FleurIcons.check, size: 14),
-                ),
-            ],
+                if (selected)
+                  const PositionedDirectional(
+                    top: 5,
+                    end: 5,
+                    child: Icon(FleurIcons.check, size: 14),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -823,23 +827,34 @@ class _FontSizePresetPreview extends StatelessWidget {
 
     return Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          'Aa',
-          maxLines: 1,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontSize: fontSize,
-            height: 1.05,
-            letterSpacing: 0,
+        SizedBox(
+          height: 26,
+          child: Center(
+            child: Text(
+              'Aa',
+              maxLines: 1,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontSize: fontSize,
+                height: 1,
+                letterSpacing: 0,
+              ),
+            ),
           ),
         ),
-        const SizedBox(height: 6),
-        Text(
-          label,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.labelSmall?.copyWith(letterSpacing: 0),
+        const SizedBox(height: 4),
+        SizedBox(
+          height: 28,
+          child: Center(
+            child: Text(
+              label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.labelSmall?.copyWith(letterSpacing: 0),
+            ),
+          ),
         ),
       ],
     );
@@ -903,27 +918,47 @@ class _ReadingWidthPresetPreview extends StatelessWidget {
 
     return Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SizedBox(
-          width: double.infinity,
-          height: 28,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              _PreviewLine(widthFactor: widthFactor, color: scheme.primary),
-              const SizedBox(height: 5),
-              _PreviewLine(
-                widthFactor: widthFactor * 0.88,
-                color: scheme.onSurfaceVariant,
-              ),
-              const SizedBox(height: 5),
-              _PreviewLine(
-                widthFactor: widthFactor * 0.72,
-                color: scheme.onSurfaceVariant,
-              ),
-            ],
+          height: 30,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return Center(
+                child: Container(
+                  key: Key('appearance_reader_width_${preset.name}_measure'),
+                  width: constraints.maxWidth * widthFactor,
+                  height: 28,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: scheme.primary.withValues(alpha: 0.06),
+                    border: Border.symmetric(
+                      vertical: BorderSide(
+                        color: scheme.primary.withValues(alpha: 0.36),
+                      ),
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _PreviewLine(widthFactor: 1, color: scheme.primary),
+                      _PreviewLine(
+                        widthFactor: 0.88,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                      _PreviewLine(
+                        widthFactor: 0.68,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
         ),
         const SizedBox(height: 6),
@@ -931,6 +966,7 @@ class _ReadingWidthPresetPreview extends StatelessWidget {
           label,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
           style: theme.textTheme.labelSmall?.copyWith(letterSpacing: 0),
         ),
       ],
@@ -1173,34 +1209,16 @@ String _readingWidthLabel(
   };
 }
 
-_ReaderFontSizePreset _fontSizePresetFor(double value) {
-  if (value <= 13) return _ReaderFontSizePreset.extraSmall;
-  if (value <= 14.5) return _ReaderFontSizePreset.small;
-  if (value <= 16.5) return _ReaderFontSizePreset.medium;
-  if (value <= 20) return _ReaderFontSizePreset.large;
-  return _ReaderFontSizePreset.extraLarge;
-}
-
-double _fontSizePresetValue(_ReaderFontSizePreset preset) {
-  return switch (preset) {
-    _ReaderFontSizePreset.extraSmall => 12,
-    _ReaderFontSizePreset.small => 14,
-    _ReaderFontSizePreset.medium => ReaderSettings.defaultFontSize,
-    _ReaderFontSizePreset.large => 18,
-    _ReaderFontSizePreset.extraLarge => 22,
-  };
-}
-
 String _fontSizePresetLabel(
   AppLocalizations l10n,
-  _ReaderFontSizePreset preset,
+  ReaderFontSizePreset preset,
 ) {
   return switch (preset) {
-    _ReaderFontSizePreset.extraSmall => l10n.fontSizeExtraSmall,
-    _ReaderFontSizePreset.small => l10n.fontSizeSmall,
-    _ReaderFontSizePreset.medium => l10n.fontSizeMediumRecommended,
-    _ReaderFontSizePreset.large => l10n.fontSizeLarge,
-    _ReaderFontSizePreset.extraLarge => l10n.fontSizeExtraLarge,
+    ReaderFontSizePreset.extraSmall => l10n.fontSizeExtraSmall,
+    ReaderFontSizePreset.small => l10n.fontSizeSmall,
+    ReaderFontSizePreset.medium => l10n.fontSizeMediumRecommended,
+    ReaderFontSizePreset.large => l10n.fontSizeLarge,
+    ReaderFontSizePreset.extraLarge => l10n.fontSizeExtraLarge,
   };
 }
 

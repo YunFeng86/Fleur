@@ -2,6 +2,24 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fleur/services/settings/reader_settings.dart';
 
 void main() {
+  test('ReaderSettings uses reading-first typography defaults', () {
+    const settings = ReaderSettings();
+
+    expect(settings.fontSize, 18);
+    expect(settings.fontFamily, ReaderFontFamily.serif);
+    expect(ReaderFontSizePreset.values.map((preset) => preset.fontSize), [
+      14,
+      16,
+      18,
+      20,
+      22,
+    ]);
+    expect(
+      ReaderFontSizePreset.fromFontSize(settings.fontSize),
+      ReaderFontSizePreset.medium,
+    );
+  });
+
   test('ReaderSettings.fromJson restores numeric values', () {
     final settings = ReaderSettings.fromJson(<String, Object?>{
       'fontSize': 18,
@@ -27,7 +45,7 @@ void main() {
     expect(settings.lineHeight, ReaderSettings.defaultLineHeight);
     expect(settings.horizontalPadding, ReaderSettings.defaultHorizontalPadding);
     expect(settings.readerTheme, ReaderThemePreset.defaultLightAware);
-    expect(settings.fontFamily, ReaderFontFamily.system);
+    expect(settings.fontFamily, ReaderFontFamily.serif);
     expect(settings.readerFontStack, isEmpty);
     expect(settings.standardFontStack, isEmpty);
     expect(settings.serifFontStack, isEmpty);
@@ -103,7 +121,7 @@ void main() {
     });
 
     expect(settings.readerTheme, ReaderThemePreset.defaultLightAware);
-    expect(settings.fontFamily, ReaderFontFamily.system);
+    expect(settings.fontFamily, ReaderFontFamily.serif);
     expect(settings.contentWidthPreset, ReaderContentWidthPreset.standard);
     expect(settings.codeFontFamily, CodeFontFamilyPreset.systemMono);
     expect(settings.codeFontSizeMode, CodeFontSizeMode.oneStepDown);

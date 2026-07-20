@@ -813,7 +813,7 @@ void main() {
       find.byKey(const Key('appearance_reader_font_size_large_option')),
     );
     await tester.pumpAndSettle();
-    expect(store.settings.fontSize, 18);
+    expect(store.settings.fontSize, 20);
 
     await tester.tap(
       find.byKey(const Key('appearance_reader_line_height_relaxed_option')),
@@ -878,7 +878,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('appearance_reader_reset_button')));
     await tester.pumpAndSettle();
-    expect(store.settings.fontFamily, ReaderFontFamily.system);
+    expect(store.settings.fontFamily, ReaderFontFamily.serif);
     expect(store.settings.readerFontStack, isEmpty);
     expect(store.settings.standardFontStack, isEmpty);
     expect(
@@ -891,6 +891,69 @@ void main() {
     );
     expect(store.settings.readerTheme, ReaderThemePreset.defaultLightAware);
     expect(store.settings.codeSoftWrap, isFalse);
+  });
+
+  testWidgets('Appearance reader previews keep stable card geometry', (
+    tester,
+  ) async {
+    await pumpSettingsScreen(
+      tester,
+      1200,
+      height: 1200,
+      initialTab: SettingsTab.appearance,
+      readerSettingsStore: FakeReaderSettingsStore(const ReaderSettings()),
+      overrides: servicesOverrides(),
+    );
+
+    final mediumOption = find.byKey(
+      const Key('appearance_reader_font_size_medium_option'),
+    );
+    final selectedIcon = find.descendant(
+      of: mediumOption,
+      matching: find.byType(Icon),
+    );
+    final optionRect = tester.getRect(mediumOption);
+    final iconRect = tester.getRect(selectedIcon);
+    expect(optionRect.right - iconRect.right, closeTo(5, 0.5));
+    expect(iconRect.top - optionRect.top, closeTo(5, 0.5));
+
+    final fontOptionRects = <Rect>[];
+    final fontPreviewCenters = <Offset>[];
+    for (final preset in ReaderFontSizePreset.values) {
+      final option = find.byKey(
+        Key('appearance_reader_font_size_${preset.name}_option'),
+      );
+      final preview = find.descendant(of: option, matching: find.text('Aa'));
+      fontOptionRects.add(tester.getRect(option));
+      fontPreviewCenters.add(tester.getCenter(preview));
+    }
+    expect(fontOptionRects.map((rect) => rect.height).toSet(), hasLength(1));
+    for (var index = 0; index < fontPreviewCenters.length; index++) {
+      expect(
+        fontPreviewCenters[index].dx,
+        closeTo(fontOptionRects[index].center.dx, 0.5),
+      );
+      expect(
+        fontPreviewCenters[index].dy,
+        closeTo(fontPreviewCenters.first.dy, 0.5),
+      );
+    }
+
+    final measureWidths = <double>[];
+    for (final preset in ReaderContentWidthPreset.values) {
+      final option = find.byKey(
+        Key('appearance_reader_width_${preset.name}_option'),
+      );
+      final measure = find.byKey(
+        Key('appearance_reader_width_${preset.name}_measure'),
+      );
+      final optionRect = tester.getRect(option);
+      final measureRect = tester.getRect(measure);
+      measureWidths.add(measureRect.width);
+      expect(measureRect.center.dx, closeTo(optionRect.center.dx, 0.5));
+    }
+    expect(measureWidths[0], lessThan(measureWidths[1]));
+    expect(measureWidths[1], lessThan(measureWidths[2]));
   });
 
   testWidgets('Appearance advanced font controls persist code typography', (
