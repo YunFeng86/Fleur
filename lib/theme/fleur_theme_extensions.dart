@@ -421,7 +421,7 @@ class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
       contentPaddingBottom: profile.readerBottomPadding,
       titleStyle: applyReaderFont(
         (textTheme.headlineMedium ?? const TextStyle()).copyWith(
-          fontWeight: AppTypography.platformWeight(FontWeight.w700),
+          fontWeight: FontWeight.w700,
           letterSpacing: 0,
           height: 1.12,
           color: scheme.onSurface,
@@ -430,7 +430,7 @@ class FleurReaderTheme extends ThemeExtension<FleurReaderTheme> {
       metaStyle: (textTheme.labelLarge ?? const TextStyle()).copyWith(
         color: scheme.onSurfaceVariant,
         fontSize: 12,
-        fontWeight: AppTypography.platformWeight(FontWeight.w500),
+        fontWeight: FontWeight.w500,
         letterSpacing: 0,
         height: 1.2,
       ),

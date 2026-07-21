@@ -39,7 +39,6 @@ import '../services/settings/app_settings.dart';
 import '../services/settings/reader_settings.dart';
 import '../services/settings/reader_progress_store.dart';
 import '../theme/app_theme.dart';
-import '../theme/app_typography.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../utils/content_hash.dart';
@@ -679,9 +678,7 @@ class _MediaEmbedCard extends StatelessWidget {
                       Text(
                         '$kind media',
                         style: theme.textTheme.labelLarge?.copyWith(
-                          fontWeight: AppTypography.platformWeight(
-                            FontWeight.w700,
-                          ),
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -746,7 +743,7 @@ class _ReaderInertButton extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.labelMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
-              fontWeight: AppTypography.platformWeight(FontWeight.w600),
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),

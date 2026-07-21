@@ -8,7 +8,6 @@ import '../../models/category.dart';
 import '../../models/feed.dart';
 import '../../services/sync/backend_capabilities.dart';
 import '../../services/sync/backend_sync_semantics.dart';
-import '../../theme/app_typography.dart';
 import '../../theme/fleur_icons.dart';
 import '../../theme/fleur_theme_extensions.dart';
 import '../sidebar_layout.dart';
@@ -500,7 +499,7 @@ class _SidebarSectionHeader extends StatelessWidget {
                     style: theme.textTheme.titleSmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                       fontSize: 11,
-                      fontWeight: AppTypography.platformWeight(FontWeight.w600),
+                      fontWeight: FontWeight.w600,
                       letterSpacing: 0,
                       height: 1.2,
                     ),
@@ -1256,7 +1255,7 @@ class _UnreadCountText extends StatelessWidget {
           textAlign: TextAlign.right,
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
             color: colorScheme.onSurfaceVariant,
-            fontWeight: AppTypography.platformWeight(FontWeight.w700),
+            fontWeight: FontWeight.w700,
             fontFeatures: const [FontFeature.tabularFigures()],
           ),
         ),

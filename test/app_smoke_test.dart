@@ -589,7 +589,7 @@ void main() {
     expect(mobileTheme.navigationBarTheme.height, isNull);
   });
 
-  test('Windows typography keeps the same title hierarchy as macOS', () {
+  test('Windows typography uses the shared weight scale', () {
     debugFleurTargetPlatformOverride = TargetPlatform.windows;
     addTearDown(() => debugFleurTargetPlatformOverride = null);
 
@@ -4281,7 +4281,7 @@ void main() {
     expect(actions.markReadCalls, [(articleId: 42, isRead: true)]);
   });
 
-  testWidgets('Article list item softens title weight on Windows', (
+  testWidgets('Article list item uses shared read-state weights on Windows', (
     tester,
   ) async {
     debugFleurTargetPlatformOverride = TargetPlatform.windows;
@@ -4309,6 +4309,29 @@ void main() {
 
     final title = tester.widget<Text>(find.text('Selected Article'));
     expect(title.style?.fontWeight, FontWeight.w600);
+    expect(title.style?.shadows, isNull);
+
+    article.isRead = true;
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          feedsProvider.overrideWith((ref) => Stream.value([feed])),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: ArticleListItem(article: article, selected: false),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final readTitle = tester.widget<Text>(find.text('Selected Article'));
+    expect(readTitle.style?.fontWeight, FontWeight.w500);
+    expect(readTitle.style?.shadows, isNull);
   });
 
   testWidgets('Article list item omits empty preview without overflow', (

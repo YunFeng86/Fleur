@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_typography.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/layout.dart';
 
@@ -37,10 +36,7 @@ class FleurEmptyState extends StatelessWidget {
         : scheme.primary;
     final titleStyle =
         (isReader ? theme.textTheme.titleMedium : theme.textTheme.titleLarge)
-            ?.copyWith(
-              color: textColor,
-              fontWeight: AppTypography.platformWeight(FontWeight.w700),
-            );
+            ?.copyWith(color: textColor, fontWeight: FontWeight.w700);
     final subtitleStyle = theme.textTheme.bodyMedium?.copyWith(
       color: mutedTextColor,
     );

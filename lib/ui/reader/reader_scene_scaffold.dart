@@ -221,9 +221,7 @@ extension _ReaderSceneScaffold on _ReaderViewState {
                     Text(
                       l10n.aiSummaryAction,
                       style: sceneTheme.textTheme.labelLarge?.copyWith(
-                        fontWeight: AppTypography.platformWeight(
-                          FontWeight.w700,
-                        ),
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                     const Spacer(),

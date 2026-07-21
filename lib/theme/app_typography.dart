@@ -6,15 +6,6 @@ import '../utils/platform.dart' as platform;
 class AppTypography {
   const AppTypography._();
 
-  /// Keep the common Windows title weights aligned with the cross-platform
-  /// hierarchy. Only the uncommon heavy extremes are softened; lowering w700
-  /// to w600 makes CJK titles visibly too light beside the macOS equivalent.
-  static FontWeight platformWeight(FontWeight weight) {
-    if (!platform.isWindows) return weight;
-    if (weight == FontWeight.w900) return FontWeight.w800;
-    return weight;
-  }
-
   static String? fontFamily() {
     if (platform.isWindows) return 'Segoe UI';
     return null;
@@ -85,22 +76,22 @@ class AppTypography {
 
     return applied.copyWith(
       headlineMedium: applied.headlineMedium?.copyWith(
-        fontWeight: platformWeight(FontWeight.w700),
+        fontWeight: FontWeight.w700,
         letterSpacing: -0.6,
         height: 1.12,
       ),
       titleLarge: applied.titleLarge?.copyWith(
-        fontWeight: platformWeight(FontWeight.w700),
+        fontWeight: FontWeight.w700,
         letterSpacing: -0.25,
         height: 1.18,
       ),
       titleMedium: applied.titleMedium?.copyWith(
-        fontWeight: platformWeight(FontWeight.w600),
+        fontWeight: FontWeight.w600,
         letterSpacing: -0.1,
         height: 1.24,
       ),
       titleSmall: applied.titleSmall?.copyWith(
-        fontWeight: platformWeight(FontWeight.w600),
+        fontWeight: FontWeight.w600,
         height: 1.25,
       ),
       bodyLarge: applied.bodyLarge?.copyWith(height: 1.52, letterSpacing: 0.05),
@@ -113,15 +104,15 @@ class AppTypography {
         color: scheme.onSurfaceVariant,
       ),
       labelLarge: applied.labelLarge?.copyWith(
-        fontWeight: platformWeight(FontWeight.w600),
+        fontWeight: FontWeight.w600,
         letterSpacing: 0.15,
       ),
       labelMedium: applied.labelMedium?.copyWith(
-        fontWeight: platformWeight(FontWeight.w600),
+        fontWeight: FontWeight.w600,
         letterSpacing: 0.18,
       ),
       labelSmall: applied.labelSmall?.copyWith(
-        fontWeight: platformWeight(FontWeight.w600),
+        fontWeight: FontWeight.w600,
         letterSpacing: 0.2,
       ),
     );

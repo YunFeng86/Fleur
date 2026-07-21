@@ -22,7 +22,6 @@ import '../services/accounts/account.dart';
 import '../services/sync/sync_status_reporter.dart';
 import '../services/sync/backend_capabilities.dart';
 import '../services/update/app_update_manifest.dart';
-import '../theme/app_typography.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/app_menu.dart';

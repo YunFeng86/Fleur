@@ -9,7 +9,6 @@ import '../models/article.dart';
 import '../models/feed.dart';
 import '../providers/query_providers.dart';
 import '../providers/service_providers.dart';
-import '../theme/app_typography.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../utils/html_utils.dart';
@@ -86,14 +85,14 @@ class _ArticleListItemState extends ConsumerState<ArticleListItem> {
     final metadataStyle = theme.textTheme.labelMedium?.copyWith(
       color: metaColor,
       fontSize: 11,
-      fontWeight: AppTypography.platformWeight(FontWeight.w500),
+      fontWeight: FontWeight.w500,
       letterSpacing: 0,
       height: 1.1,
     );
     final timestampStyle = theme.textTheme.labelSmall?.copyWith(
       color: metaColor,
       fontSize: 10,
-      fontWeight: AppTypography.platformWeight(FontWeight.w500),
+      fontWeight: FontWeight.w500,
       letterSpacing: 0,
       height: 1.1,
     );
@@ -106,7 +105,7 @@ class _ArticleListItemState extends ConsumerState<ArticleListItem> {
     final previewStyle = theme.textTheme.bodyMedium?.copyWith(
       color: metaColor,
       fontSize: 13,
-      fontWeight: AppTypography.platformWeight(FontWeight.w400),
+      fontWeight: FontWeight.w400,
       letterSpacing: 0,
       height: 1.32,
     );

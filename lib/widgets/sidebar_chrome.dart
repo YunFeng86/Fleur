@@ -484,7 +484,7 @@ class _SidebarPanelFixedItem extends StatelessWidget {
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: scheme.onSurface,
                   fontSize: 13,
-                  fontWeight: AppTypography.platformWeight(FontWeight.w500),
+                  fontWeight: FontWeight.w500,
                   letterSpacing: 0,
                   height: 1.2,
                 ),
@@ -513,7 +513,7 @@ class _SidebarFixedCount extends StatelessWidget {
       style: Theme.of(context).textTheme.labelSmall?.copyWith(
         color: Theme.of(context).colorScheme.onSurfaceVariant,
         fontSize: 11,
-        fontWeight: AppTypography.platformWeight(FontWeight.w600),
+        fontWeight: FontWeight.w600,
         letterSpacing: 0,
       ),
     );
@@ -631,9 +631,7 @@ class _AccountPanelFooter extends StatelessWidget {
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     color: scheme.onSurface,
                                     fontSize: 13,
-                                    fontWeight: AppTypography.platformWeight(
-                                      FontWeight.w500,
-                                    ),
+                                    fontWeight: FontWeight.w500,
                                     letterSpacing: 0,
                                     height: 1.2,
                                   ),
@@ -695,9 +693,7 @@ class _AccountPanelFooter extends StatelessWidget {
                                                             .onSurfaceVariant,
                                                         fontSize: 11,
                                                         fontWeight:
-                                                            AppTypography.platformWeight(
-                                                              FontWeight.w500,
-                                                            ),
+                                                            FontWeight.w500,
                                                         letterSpacing: 0,
                                                         height: 1.15,
                                                       ),
