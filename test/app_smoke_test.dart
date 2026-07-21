@@ -595,8 +595,12 @@ void main() {
 
     final windowsTheme = AppTheme.light();
     expect(AppTypography.fontFamily(), 'Segoe UI');
-    expect(AppTypography.fontFallback().first, 'Microsoft YaHei UI');
-    expect(AppTypography.fontFallback()[1], 'Microsoft YaHei');
+    expect(
+      AppTypography.fontFallback().first,
+      AppTypography.bundledCjkSansFamily,
+    );
+    expect(AppTypography.fontFallback()[1], 'Microsoft YaHei UI');
+    expect(AppTypography.fontFallback()[2], 'Microsoft YaHei');
     expect(AppTypography.fontFallback(), isNot(contains('DengXian Light')));
     expect(windowsTheme.textTheme.titleLarge?.fontWeight, FontWeight.w700);
     expect(windowsTheme.textTheme.titleMedium?.fontWeight, FontWeight.w600);
@@ -611,6 +615,14 @@ void main() {
     expect(macTheme.fleurReader.titleStyle.fontWeight, FontWeight.w700);
     expect(macTheme.fleurReader.metaStyle.fontWeight, FontWeight.w500);
     expect(macTheme.fleurReader.metaStyle.fontSize, 12);
+  });
+
+  test('Fleur iconography uses desktop-safe optical weights and sizes', () {
+    expect(FleurIconMetrics.compact, 18);
+    expect(FleurIconMetrics.standard, 20);
+    expect(FleurIcons.search.fontFamily, 'Lucide500');
+    expect(FleurIcons.searchSelected.fontFamily, 'Lucide600');
+    expect(FleurIcons.back.fontFamily, 'Lucide500');
   });
 
   test('Desktop window options hide native chrome for Flutter titlebars', () {

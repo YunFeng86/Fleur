@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import '../theme/fleur_icons.dart';
 import 'layout.dart';
 
 // App-wide sidebar sizing/breakpoints.
@@ -22,7 +23,7 @@ const double kSidebarContentDividerWidth = 1;
 const double kWorkspaceSplitHandleHitWidth = 12;
 const double kWorkspaceHeaderHeight = 48;
 const double kShellControlSize = 32;
-const double kShellControlIconSize = 16;
+const double kShellControlIconSize = FleurIconMetrics.compact;
 const double kShellControlCapsuleHeight = kShellControlSize;
 const double kShellControlTopInset =
     (kWorkspaceHeaderHeight - kShellControlSize) / 2;

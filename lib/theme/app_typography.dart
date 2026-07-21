@@ -6,6 +6,8 @@ import '../utils/platform.dart' as platform;
 class AppTypography {
   const AppTypography._();
 
+  static const String bundledCjkSansFamily = 'Fleur Noto Sans SC';
+
   static String? fontFamily() {
     if (platform.isWindows) return 'Segoe UI';
     return null;
@@ -41,6 +43,7 @@ class AppTypography {
         '.SF UI Text',
       ],
       TargetPlatform.windows => const [
+        bundledCjkSansFamily,
         'Microsoft YaHei UI',
         'Microsoft YaHei',
         'DengXian',
@@ -51,6 +54,7 @@ class AppTypography {
         'Arial',
       ],
       TargetPlatform.linux => const [
+        bundledCjkSansFamily,
         'Noto Sans CJK SC',
         'Noto Sans SC',
         'Source Han Sans SC',

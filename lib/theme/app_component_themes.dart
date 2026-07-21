@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'app_theme_profile.dart';
+import 'fleur_icons.dart';
 import 'fleur_theme_extensions.dart';
 
 class AppComponentThemes {
@@ -116,7 +117,7 @@ class AppComponentThemes {
         style: ButtonStyle(
           foregroundColor: WidgetStatePropertyAll(scheme.onSurfaceVariant),
           overlayColor: stateLayer(Colors.transparent),
-          iconSize: const WidgetStatePropertyAll(20),
+          iconSize: const WidgetStatePropertyAll(FleurIconMetrics.standard),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
@@ -208,7 +209,7 @@ class AppComponentThemes {
         style: ButtonStyle(
           foregroundColor: WidgetStatePropertyAll(scheme.onSurface),
           iconColor: WidgetStatePropertyAll(scheme.onSurfaceVariant),
-          iconSize: const WidgetStatePropertyAll(18),
+          iconSize: const WidgetStatePropertyAll(FleurIconMetrics.compact),
           minimumSize: const WidgetStatePropertyAll(Size(156, 40)),
           padding: const WidgetStatePropertyAll(
             EdgeInsetsDirectional.only(start: 14, end: 16),

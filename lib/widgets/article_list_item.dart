@@ -409,7 +409,7 @@ class _ArticleItemActionButton extends StatelessWidget {
       tooltip: tooltip,
       onPressed: onPressed,
       icon: Icon(icon, color: color ?? scheme.onSurfaceVariant),
-      iconSize: 16,
+      iconSize: FleurIconMetrics.compact,
       padding: EdgeInsets.zero,
       constraints: const BoxConstraints.tightFor(width: 32, height: 32),
       style: IconButton.styleFrom(
