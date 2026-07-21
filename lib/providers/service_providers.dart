@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 import 'account_providers.dart';
+import 'backend_content_capabilities_provider.dart';
 import '../services/accounts/account.dart';
 import '../services/accounts/credential_store.dart';
 import '../services/rss/feed_parser.dart';
@@ -239,12 +240,14 @@ final articleContentFetcherProvider = Provider<ArticleContentFetcher>(
   (ref) {
     return ArticleContentFetcher(
       account: ref.watch(activeAccountProvider),
+      contentCapabilities: ref.watch(backendContentCapabilitiesProvider),
       extractor: ref.watch(articleExtractorProvider),
       remoteClients: ref.watch(remoteClientFactoryProvider),
     );
   },
   dependencies: [
     activeAccountProvider,
+    backendContentCapabilitiesProvider,
     articleExtractorProvider,
     remoteClientFactoryProvider,
   ],

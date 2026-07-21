@@ -43,6 +43,9 @@ class BackendContentCapabilities {
   bool get canPrefetchImages =>
       isVisible(BackendContentFeature.syncImagePrefetch);
 
+  bool get canFetchArticleContentFromServer =>
+      isVisible(BackendContentFeature.serverArticleContentFetch);
+
   bool get canChooseServerArticleContentFetchMode =>
       isVisible(BackendContentFeature.serverArticleContentFetch);
 

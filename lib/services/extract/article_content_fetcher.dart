@@ -1,19 +1,23 @@
 import '../../models/article.dart';
 import '../accounts/account.dart';
 import '../settings/app_settings.dart';
+import '../sync/backend_content_capabilities.dart';
 import '../sync/remote_client_factory.dart';
 import 'article_extractor.dart';
 
 class ArticleContentFetcher {
   const ArticleContentFetcher({
     required Account account,
+    required BackendContentCapabilities contentCapabilities,
     required ArticleExtractor extractor,
     required RemoteClientFactory remoteClients,
   }) : _account = account,
+       _contentCapabilities = contentCapabilities,
        _extractor = extractor,
        _remoteClients = remoteClients;
 
   final Account _account;
+  final BackendContentCapabilities _contentCapabilities;
   final ArticleExtractor _extractor;
   final RemoteClientFactory _remoteClients;
 
@@ -21,7 +25,7 @@ class ArticleContentFetcher {
     Article article, {
     required AppSettings settings,
   }) async {
-    if (_account.type == AccountType.miniflux &&
+    if (_contentCapabilities.canFetchArticleContentFromServer &&
         settings.minifluxWebFetchMode ==
             MinifluxWebFetchMode.serverFetchContent) {
       final remoteId = int.tryParse((article.remoteId ?? '').trim());

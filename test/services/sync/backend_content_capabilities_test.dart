@@ -73,21 +73,25 @@ void main() {
 
     expect(local.canFetchWebPages, isTrue);
     expect(local.canPrefetchImages, isTrue);
+    expect(local.canFetchArticleContentFromServer, isFalse);
     expect(local.canChooseServerArticleContentFetchMode, isFalse);
     expect(local.isWebFetchUserAgentApplicable, isTrue);
 
     expect(miniflux.canFetchWebPages, isTrue);
     expect(miniflux.canPrefetchImages, isTrue);
+    expect(miniflux.canFetchArticleContentFromServer, isTrue);
     expect(miniflux.canChooseServerArticleContentFetchMode, isTrue);
     expect(miniflux.isWebFetchUserAgentApplicable, isTrue);
 
     expect(fever.canFetchWebPages, isTrue);
     expect(fever.canPrefetchImages, isTrue);
+    expect(fever.canFetchArticleContentFromServer, isFalse);
     expect(fever.canChooseServerArticleContentFetchMode, isFalse);
     expect(fever.isWebFetchUserAgentApplicable, isTrue);
 
     expect(googleReader.canFetchWebPages, isFalse);
     expect(googleReader.canPrefetchImages, isFalse);
+    expect(googleReader.canFetchArticleContentFromServer, isFalse);
     expect(googleReader.canChooseServerArticleContentFetchMode, isFalse);
     expect(googleReader.isWebFetchUserAgentApplicable, isFalse);
   });

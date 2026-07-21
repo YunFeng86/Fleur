@@ -7,6 +7,7 @@ import 'package:fleur/services/accounts/credential_store.dart';
 import 'package:fleur/services/extract/article_content_fetcher.dart';
 import 'package:fleur/services/extract/article_extractor.dart';
 import 'package:fleur/services/settings/app_settings.dart';
+import 'package:fleur/services/sync/backend_content_capabilities.dart';
 import 'package:fleur/services/sync/remote_client_factory.dart';
 
 class _FakeCredentialStore extends CredentialStore {
@@ -59,8 +60,10 @@ void main() {
         ),
       );
       final extractor = _RecordingExtractor();
+      final account = _minifluxAccount();
       final fetcher = ArticleContentFetcher(
-        account: _minifluxAccount(),
+        account: account,
+        contentCapabilities: BackendContentCapabilities.forAccount(account),
         extractor: extractor,
         remoteClients: RemoteClientFactory(
           dio: dio,
@@ -85,8 +88,10 @@ void main() {
     'client mode uses local extraction with the known article title',
     () async {
       final extractor = _RecordingExtractor();
+      final account = _minifluxAccount();
       final fetcher = ArticleContentFetcher(
-        account: _minifluxAccount(),
+        account: account,
+        contentCapabilities: BackendContentCapabilities.forAccount(account),
         extractor: extractor,
         remoteClients: RemoteClientFactory(
           dio: Dio(),
@@ -122,8 +127,10 @@ void main() {
       ),
     );
     final extractor = _RecordingExtractor();
+    final account = _minifluxAccount();
     final fetcher = ArticleContentFetcher(
-      account: _minifluxAccount(),
+      account: account,
+      contentCapabilities: BackendContentCapabilities.forAccount(account),
       extractor: extractor,
       remoteClients: RemoteClientFactory(
         dio: dio,
@@ -142,6 +149,30 @@ void main() {
     );
     expect(extractor.urls, isEmpty);
   });
+
+  test('unsupported server mode falls back to local extraction', () async {
+    final extractor = _RecordingExtractor();
+    final account = _feverAccount();
+    final fetcher = ArticleContentFetcher(
+      account: account,
+      contentCapabilities: BackendContentCapabilities.forAccount(account),
+      extractor: extractor,
+      remoteClients: RemoteClientFactory(
+        dio: Dio(),
+        credentials: _FakeCredentialStore(),
+      ),
+    );
+
+    final result = await fetcher.fetch(
+      _article(),
+      settings: AppSettings.defaults().copyWith(
+        minifluxWebFetchMode: MinifluxWebFetchMode.serverFetchContent,
+      ),
+    );
+
+    expect(extractor.urls, ['https://example.com/article']);
+    expect(result.contentHtml, contains('Local body'));
+  });
 }
 
 Account _minifluxAccount() {
@@ -151,6 +182,18 @@ Account _minifluxAccount() {
     type: AccountType.miniflux,
     name: 'Miniflux',
     baseUrl: 'https://miniflux.example.com',
+    createdAt: now,
+    updatedAt: now,
+  );
+}
+
+Account _feverAccount() {
+  final now = DateTime(2026);
+  return Account(
+    id: 'fever-test',
+    type: AccountType.fever,
+    name: 'Fever',
+    baseUrl: 'https://fever.example.com',
     createdAt: now,
     updatedAt: now,
   );
