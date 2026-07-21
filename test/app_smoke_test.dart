@@ -4342,7 +4342,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final readTitle = tester.widget<Text>(find.text('Selected Article'));
-    expect(readTitle.style?.fontWeight, FontWeight.w500);
+    expect(readTitle.style?.fontWeight, FontWeight.w400);
     expect(readTitle.style?.shadows, isNull);
   });
 

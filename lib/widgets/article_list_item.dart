@@ -97,7 +97,7 @@ class _ArticleListItemState extends ConsumerState<ArticleListItem> {
       height: 1.1,
     );
     final titleStyle = theme.textTheme.titleSmall?.copyWith(
-      fontWeight: isUnread ? FontWeight.w600 : FontWeight.w500,
+      fontWeight: isUnread ? FontWeight.w600 : FontWeight.w400,
       letterSpacing: 0,
       height: 1.2,
       color: theme.colorScheme.onSurface,
