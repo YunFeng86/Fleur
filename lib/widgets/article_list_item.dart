@@ -151,6 +151,12 @@ class _ArticleListItemState extends ConsumerState<ArticleListItem> {
                               siteUri: siteUri,
                               diameter: _headerHeight,
                               avatarSize: 20,
+                              backgroundColor: _hovered
+                                  ? surfaces.card
+                                  : Color.alphaBlend(
+                                      states.hoverTint,
+                                      surfaces.list,
+                                    ),
                               fallbackIcon: FleurIcons.feed,
                               fallbackColor: metaColor,
                             ),

@@ -64,6 +64,7 @@ import 'package:fleur/utils/desktop_window_options.dart';
 import 'package:fleur/widgets/article_list.dart';
 import 'package:fleur/widgets/article_list_item.dart';
 import 'package:fleur/widgets/app_scrollbar.dart';
+import 'package:fleur/widgets/favicon_circle.dart';
 import 'package:fleur/widgets/overflow_marquee.dart';
 import 'package:fleur/widgets/reader_view.dart';
 import 'package:fleur/widgets/sidebar.dart';
@@ -4223,6 +4224,14 @@ void main() {
         tester.getSize(find.byKey(const Key('article_item_feed_icon'))),
         const Size(32, 32),
       );
+      expect(
+        tester
+            .widget<FaviconCircle>(
+              find.byKey(const Key('article_item_feed_icon')),
+            )
+            .backgroundColor,
+        Color.alphaBlend(theme.fleurState.hoverTint, theme.fleurSurface.list),
+      );
       expect(find.byKey(const Key('article_item_hover_actions')), findsNothing);
     },
   );
@@ -4282,6 +4291,14 @@ void main() {
             as BoxDecoration;
     expect(hoverDecoration.color, Colors.transparent);
     expect(hoverDecoration.boxShadow, isNull);
+    expect(
+      tester
+          .widget<FaviconCircle>(
+            find.byKey(const Key('article_item_feed_icon')),
+          )
+          .backgroundColor,
+      AppTheme.light().fleurSurface.card,
+    );
 
     await tester.tap(find.byKey(const Key('article_item_read_later_button')));
     await tester.tap(find.byKey(const Key('article_item_star_button')));
