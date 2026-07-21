@@ -42,7 +42,6 @@ class ShellControlStrip extends StatelessWidget {
     this.updateManifest,
     this.updateBeforeSearch = false,
     this.navigationToggleFocusNode,
-    this.useTitleBarPriority = false,
     this.availableWidth,
   });
 
@@ -54,7 +53,6 @@ class ShellControlStrip extends StatelessWidget {
   final AppUpdateManifest? updateManifest;
   final bool updateBeforeSearch;
   final FocusNode? navigationToggleFocusNode;
-  final bool useTitleBarPriority;
   final double? availableWidth;
 
   @override
@@ -63,6 +61,7 @@ class ShellControlStrip extends StatelessWidget {
     final sidebarExpanded =
         presentationMode == SidebarPresentationMode.expanded;
     final toggle = _ShellControlData(
+      role: _ShellControlRole.toggle,
       key: const Key('shell_sidebar_button'),
       tooltip: sidebarExpanded ? l10n.collapse : l10n.expand,
       onPressed: commands.onToggleSidebar,
@@ -72,12 +71,14 @@ class ShellControlStrip extends StatelessWidget {
       focusNode: navigationToggleFocusNode,
     );
     final back = _ShellControlData(
+      role: _ShellControlRole.back,
       key: const Key('shell_back_button'),
       tooltip: MaterialLocalizations.of(context).backButtonTooltip,
       onPressed: commands.canGoBack ? commands.onBack : null,
       icon: FleurIcons.back,
     );
     final forward = _ShellControlData(
+      role: _ShellControlRole.forward,
       key: const Key('shell_forward_button'),
       tooltip: l10n.forward,
       onPressed: commands.canGoForward ? commands.onForward : null,
@@ -85,6 +86,7 @@ class ShellControlStrip extends StatelessWidget {
     );
     final search = showSearch
         ? _ShellControlData(
+            role: _ShellControlRole.search,
             key: const Key('shell_search_button'),
             tooltip: l10n.search,
             onPressed: commands.onSearch,
@@ -95,16 +97,14 @@ class ShellControlStrip extends StatelessWidget {
           )
         : null;
     final update = _updateControl(context, l10n);
-    final controls = useTitleBarPriority
-        ? <_ShellControlData>[toggle, back, ?search, forward, ...update]
-        : <_ShellControlData>[
-            toggle,
-            back,
-            forward,
-            if (updateBeforeSearch) ...update,
-            ?search,
-            if (!updateBeforeSearch) ...update,
-          ];
+    final controls = <_ShellControlData>[
+      toggle,
+      back,
+      forward,
+      if (updateBeforeSearch) ...update,
+      ?search,
+      if (!updateBeforeSearch) ...update,
+    ];
 
     if (surface == ShellControlStripSurface.capsule) {
       return FleurCapsuleButtonGroup(
@@ -127,12 +127,11 @@ class ShellControlStrip extends StatelessWidget {
       );
     }
 
-    final visibleControls = _visibleControls(controls);
-    final hiddenControls = controls.skip(visibleControls.length).toList();
+    final visibility = _resolveVisibility(controls);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        for (final control in visibleControls)
+        for (final control in visibility.visible)
           _FlatShellControlButton(
             key: control.key,
             tooltip: control.tooltip,
@@ -141,19 +140,47 @@ class ShellControlStrip extends StatelessWidget {
             selected: control.selected,
             focusNode: control.focusNode,
           ),
-        if (hiddenControls.isNotEmpty)
-          _ShellControlOverflowButton(controls: hiddenControls),
+        if (visibility.hidden.isNotEmpty)
+          _ShellControlOverflowButton(controls: visibility.hidden),
       ],
     );
   }
 
-  List<_ShellControlData> _visibleControls(List<_ShellControlData> controls) {
+  _ShellControlVisibility _resolveVisibility(List<_ShellControlData> controls) {
     final width = availableWidth;
-    if (width == null || !width.isFinite) return controls;
+    if (width == null || !width.isFinite) {
+      return _ShellControlVisibility(visible: controls, hidden: const []);
+    }
     final slotCount = (width / kShellControlSize).floor();
-    if (slotCount >= controls.length) return controls;
-    if (slotCount <= 1) return controls.take(1).toList();
-    return controls.take(slotCount - 1).toList();
+    if (slotCount >= controls.length) {
+      return _ShellControlVisibility(visible: controls, hidden: const []);
+    }
+    if (slotCount <= 1) {
+      return _ShellControlVisibility(
+        visible: controls.take(1).toList(),
+        hidden: const [],
+      );
+    }
+
+    final directControlCount = slotCount - 1;
+    final controlsByPriority = controls.toList()
+      ..sort(
+        (a, b) => a.role.overflowPriority.compareTo(b.role.overflowPriority),
+      );
+    final retainedRoles = controlsByPriority
+        .take(directControlCount)
+        .map((control) => control.role)
+        .toSet();
+    return _ShellControlVisibility(
+      visible: [
+        for (final control in controls)
+          if (retainedRoles.contains(control.role)) control,
+      ],
+      hidden: [
+        for (final control in controls)
+          if (!retainedRoles.contains(control.role)) control,
+      ],
+    );
   }
 
   List<_ShellControlData> _updateControl(
@@ -164,6 +191,7 @@ class ShellControlStrip extends StatelessWidget {
     if (manifest == null) return const [];
     return [
       _ShellControlData(
+        role: _ShellControlRole.update,
         key: const Key('shell_update_button'),
         tooltip: l10n.updateAvailable,
         onPressed: () {
@@ -178,6 +206,7 @@ class ShellControlStrip extends StatelessWidget {
 
 class _ShellControlData {
   const _ShellControlData({
+    required this.role,
     required this.key,
     required this.tooltip,
     required this.onPressed,
@@ -186,12 +215,32 @@ class _ShellControlData {
     this.focusNode,
   });
 
+  final _ShellControlRole role;
   final Key key;
   final String tooltip;
   final VoidCallback? onPressed;
   final IconData icon;
   final bool selected;
   final FocusNode? focusNode;
+}
+
+enum _ShellControlRole {
+  toggle(0),
+  back(1),
+  forward(3),
+  search(2),
+  update(4);
+
+  const _ShellControlRole(this.overflowPriority);
+
+  final int overflowPriority;
+}
+
+class _ShellControlVisibility {
+  const _ShellControlVisibility({required this.visible, required this.hidden});
+
+  final List<_ShellControlData> visible;
+  final List<_ShellControlData> hidden;
 }
 
 class _FlatShellControlButton extends StatelessWidget {

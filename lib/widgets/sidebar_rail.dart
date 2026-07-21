@@ -40,7 +40,10 @@ class _PersistentSidebarChromeState extends State<_PersistentSidebarChrome> {
       return;
     }
 
-    final duration = AppMotion.effectiveDuration(context, AppMotion.short);
+    final duration = AppMotion.effectiveDuration(
+      context,
+      AppMotion.navigationTransitionDuration,
+    );
     if (duration == Duration.zero) {
       setState(() => _detailOffstage = true);
       return;
@@ -59,7 +62,10 @@ class _PersistentSidebarChromeState extends State<_PersistentSidebarChrome> {
 
   @override
   Widget build(BuildContext context) {
-    final duration = AppMotion.effectiveDuration(context, AppMotion.short);
+    final duration = AppMotion.effectiveDuration(
+      context,
+      AppMotion.navigationTransitionDuration,
+    );
     final fullWidth = math.max(widget.expandedWidth, widget.railWidth);
 
     return ClipRect(
@@ -186,7 +192,13 @@ class _SidebarRail extends StatelessWidget {
       ],
     );
 
-    final semanticRail = ExcludeSemantics(excluding: !collapsed, child: rail);
+    Widget semanticRail = ExcludeSemantics(excluding: !collapsed, child: rail);
+    if (showsCapsuleSurface) {
+      semanticRail = KeyedSubtree(
+        key: const Key('app_shell_rail_overlay'),
+        child: semanticRail,
+      );
+    }
     if (!showsPlainDivider) return semanticRail;
 
     return KeyedSubtree(

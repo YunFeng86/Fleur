@@ -408,6 +408,11 @@ void main() {
       findsOneWidget,
     );
     expect(
+      tester.getTopLeft(find.byKey(const Key('shell_search_button'))).dx,
+      tester.getTopLeft(find.byKey(const Key('shell_back_button'))).dx +
+          kShellControlSize,
+    );
+    expect(
       find.byKey(const Key('shell_title_bar_drag_surface')),
       findsOneWidget,
     );

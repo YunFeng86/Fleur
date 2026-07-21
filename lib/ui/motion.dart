@@ -11,6 +11,9 @@ class AppMotion {
   static const Duration medium = Duration(milliseconds: 220);
   static const Duration emphasized = Duration(milliseconds: 300);
   static const Duration selectionTransitionDuration = short;
+  static const Duration navigationTransitionDuration = Duration(
+    milliseconds: 180,
+  );
 
   static const Duration pageTransitionDuration = emphasized;
   static const Duration pageReverseTransitionDuration = Duration(

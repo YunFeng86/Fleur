@@ -271,12 +271,14 @@ When navigation resolves to `offCanvas`, the title bar remains because it is a
 window-chrome requirement. The title-bar shell-control strip provides the
 navigation toggle, and no closed rail width is reserved below it.
 
-Caption controls are never removed or compressed. The navigation toggle is the
-highest-priority leading command, followed by back, search, forward, and the
-update entry. The title bar reserves a draggable span before showing lower
-priority commands; commands that cannot fit move to a shell overflow menu in
-reverse priority order. Disabled back/forward commands may remain visible when
-space permits so control positions do not jump. The current `420px` native
+Caption controls are never removed or compressed. The stable visual order is
+navigation toggle, back, forward, search, and the update entry. Overflow
+priority is a separate concern: navigation toggle is retained first, followed
+by back, search, forward, and update. The title bar reserves a draggable span
+before showing lower priority commands; commands that cannot fit move to a
+shell overflow menu without reordering the commands that remain visible.
+Disabled back/forward commands may remain visible when space permits so control
+positions do not jump. The current `420px` native
 minimum is expected to fit the four core leading commands, the draggable span,
 and all three caption buttons; the overflow rule primarily protects future
 hosts and update states.
@@ -412,6 +414,9 @@ Every migration stage must retain or add focused tests for:
 - Windows/Linux title-bar height, caption hit regions, connected rail geometry,
   content offsets, transition radius, and divider start points.
 - Stable rail icon positions before, during, and after expand/collapse.
+- One navigation instance across `expanded` and `rail`; a platform adapter may
+  change whether that rail is structural or overlays content, but must not swap
+  in a delayed duplicate rail during the transition.
 - Expanded, rail, and off-canvas thresholds derived from content minimums;
   widening after an automatic fallback restores the user's preferred state.
 - The resolver uses total viewport constraints and returns one arrangement;

@@ -510,7 +510,6 @@ class _AppShellState extends ConsumerState<AppShell> {
       listWidth: listWidth,
     );
     final showAccountSyncStatus = !contentLayoutSpec.showsListSyncStatusCapsule;
-    final reserveSidebarHeader = !usesTitleBar;
     final contentSurfaceAppearance = WorkspaceLayerSurfaceAppearance.resolve(
       shellChromeLayout,
       floatingLeadingEdge: WorkspaceLayerEdge.level1,
@@ -624,13 +623,26 @@ class _AppShellState extends ConsumerState<AppShell> {
           child: Stack(
             clipBehavior: Clip.hardEdge,
             children: [
+              AnimatedPositioned(
+                duration: AppMotion.effectiveDuration(
+                  context,
+                  AppMotion.navigationTransitionDuration,
+                ),
+                curve: Curves.easeOutCubic,
+                left: geometry.translatedContentLeft,
+                top: 0,
+                bottom: 0,
+                width: geometry.contentWidth,
+                child: contentLayer,
+              ),
               if (sidebarExpanded ||
                   temporarySidebarOpen ||
-                  geometry.structuralRailVisible)
+                  geometry.structuralRailVisible ||
+                  geometry.railOverlayVisible)
                 AnimatedPositioned(
                   duration: AppMotion.effectiveDuration(
                     context,
-                    kShellContentTranslationDuration,
+                    AppMotion.navigationTransitionDuration,
                   ),
                   curve: Curves.easeOutCubic,
                   left: 0,
@@ -663,18 +675,6 @@ class _AppShellState extends ConsumerState<AppShell> {
                   ),
                 ),
               ],
-              AnimatedPositioned(
-                duration: AppMotion.effectiveDuration(
-                  context,
-                  kShellContentTranslationDuration,
-                ),
-                curve: Curves.easeOutCubic,
-                left: geometry.translatedContentLeft,
-                top: 0,
-                bottom: 0,
-                width: geometry.contentWidth,
-                child: contentLayer,
-              ),
               if (temporarySidebarOpen)
                 Positioned(
                   key: const Key('app_shell_navigation_scrim'),
@@ -692,32 +692,6 @@ class _AppShellState extends ConsumerState<AppShell> {
                     ),
                   ),
                 ),
-              Positioned(
-                left: 0,
-                top: 0,
-                bottom: 0,
-                width: collapsedRailWidth,
-                child: _RailOverlayHost(
-                  visible: geometry.railOverlayVisible,
-                  delay: AppMotion.effectiveDuration(
-                    context,
-                    kShellContentTranslationDuration,
-                  ),
-                  child: Sidebar(
-                    onSelectScope: (scope) => _goToScope(context, scope),
-                    reserveShellHeader: reserveSidebarHeader,
-                    transparentBackground: true,
-                    presentationModeOverride: SidebarPresentationMode.collapsed,
-                    showAccountSyncStatus: showAccountSyncStatus,
-                    currentUri: widget.currentUri,
-                    railSurfaceStyle: shellChromeLayout.railSurfaceStyle,
-                    railWidth: collapsedRailWidth,
-                    expandedWidth: sidebarWidth,
-                    showHeaderActions:
-                        !shellChromeLayout.placesControlsInTitleBar,
-                  ),
-                ),
-              ),
             ],
           ),
         ),

@@ -53,6 +53,7 @@ import 'package:fleur/ui/home/home_scene_panes.dart';
 import 'package:fleur/ui/home/home_scene_shortcuts.dart';
 import 'package:fleur/ui/layout.dart';
 import 'package:fleur/ui/layout_spec.dart';
+import 'package:fleur/ui/motion.dart';
 import 'package:fleur/ui/shell_chrome_layout.dart';
 import 'package:fleur/ui/sidebar_layout.dart';
 import 'package:fleur/ui/sidebar/sidebar_selection_actions.dart';
@@ -370,11 +371,6 @@ Future<HomeSceneCommands> _pumpHomeCommandsHarness(
   );
   await tester.pumpAndSettle();
   return commands;
-}
-
-Future<void> _settleRailOverlayReveal(WidgetTester tester) async {
-  await tester.pump(const Duration(milliseconds: 180));
-  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -918,11 +914,12 @@ void main() {
     final expandedSearchTopLeft = tester.getTopLeft(
       find.byKey(const Key('shell_search_button')),
     );
-    expect(expandedSearchTopLeft.dx, 12 + kShellControlSize * 2);
+    expect(expandedForwardTopLeft.dx, 12 + kShellControlSize * 2);
+    expect(expandedSearchTopLeft.dx, 12 + kShellControlSize * 3);
     expect(expandedSearchTopLeft.dy, kShellControlTopInset);
     expect(
-      expandedForwardTopLeft.dx,
-      expandedSearchTopLeft.dx + kShellControlSize,
+      expandedSearchTopLeft.dx,
+      expandedForwardTopLeft.dx + kShellControlSize,
     );
     final expandedAllDx = tester
         .getCenter(find.byKey(const Key('sidebar_all_button')))
@@ -1490,8 +1487,7 @@ void main() {
     );
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
-    await tester.pump();
-    await _settleRailOverlayReveal(tester);
+    await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
@@ -1937,18 +1933,40 @@ void main() {
 
     await tester.pumpWidget(_buildShellHarness());
     await tester.pumpAndSettle();
+    final sidebarState = tester.state(find.byType(Sidebar));
+    final expandedRailAnchor = tester.getCenter(
+      find.byKey(const Key('sidebar_all_button')),
+    );
     final container = ProviderScope.containerOf(
       tester.element(find.byKey(const Key('app_shell_child'))),
     );
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
+    await tester.pump();
+    await tester.pump(AppMotion.navigationTransitionDuration ~/ 2);
+    expect(find.byType(Sidebar), findsOneWidget);
+    expect(tester.state(find.byType(Sidebar)), same(sidebarState));
+    expect(
+      tester.getCenter(find.byKey(const Key('sidebar_all_button'))),
+      expandedRailAnchor,
+    );
+    final transitioningWidth = tester.getSize(find.byType(Sidebar)).width;
+    expect(transitioningWidth, greaterThan(kSidebarRailWidth));
+    expect(transitioningWidth, lessThan(kDefaultWorkspaceSidebarWidth));
+
     await tester.pumpAndSettle();
-    await _settleRailOverlayReveal(tester);
     expect(
       container.read(sidebarPresentationModeProvider),
       SidebarPresentationMode.collapsed,
     );
     expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
+    expect(find.byKey(const Key('app_shell_rail_overlay')), findsOneWidget);
+    expect(find.byType(Sidebar), findsOneWidget);
+    expect(tester.state(find.byType(Sidebar)), same(sidebarState));
+    expect(
+      tester.getCenter(find.byKey(const Key('sidebar_all_button'))),
+      expandedRailAnchor,
+    );
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
     await tester.pumpAndSettle();
@@ -1960,7 +1978,6 @@ void main() {
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
     await tester.pumpAndSettle();
-    await _settleRailOverlayReveal(tester);
     expect(
       container.read(sidebarPresentationModeProvider),
       SidebarPresentationMode.collapsed,
@@ -2111,7 +2128,6 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await _settleRailOverlayReveal(tester);
 
       expect(find.byKey(const Key('shell_drawer_controls')), findsNothing);
       expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);

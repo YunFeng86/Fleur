@@ -4,8 +4,6 @@ import 'adaptive_workspace_layout.dart';
 import 'shell_chrome_layout.dart';
 import 'sidebar_layout.dart';
 
-const kShellContentTranslationDuration = Duration(milliseconds: 180);
-
 @immutable
 class ShellFrameGeometry {
   const ShellFrameGeometry({

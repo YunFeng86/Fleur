@@ -130,7 +130,6 @@ class _ShellWindowControlsHost extends StatelessWidget {
       searchSelected: searchSelected,
       updateManifest: updateManifest,
       navigationToggleFocusNode: navigationToggleFocusNode,
-      useTitleBarPriority: true,
       availableWidth: availableWidth,
     );
   }

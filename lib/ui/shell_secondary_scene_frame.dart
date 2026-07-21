@@ -127,7 +127,7 @@ class ShellSecondarySceneFrame extends StatelessWidget {
                   width: geometry.contentWidth,
                   duration: AppMotion.effectiveDuration(
                     context,
-                    kShellContentTranslationDuration,
+                    AppMotion.navigationTransitionDuration,
                   ),
                   curve: Curves.easeOutCubic,
                   child: WorkspaceLayerSurface(
