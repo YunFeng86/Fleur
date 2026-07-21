@@ -2345,6 +2345,66 @@ void main() {
     expect(paragraphPosition.dy, greaterThan(headingPosition.dy));
   });
 
+  testWidgets('reader keeps ordinary table pre blocks constraint-safe', (
+    tester,
+  ) async {
+    final article = buildArticle(
+      title: 'Table code article',
+      html: '''
+<article>
+  <p>Before table</p>
+  <table><tbody><tr>
+    <td><pre><code>alpha<br>beta</code></pre></td>
+    <td><pre>plain value</pre></td>
+  </tr></tbody></table>
+  <p>After table</p>
+</article>
+''',
+    );
+
+    await pumpReader(
+      tester,
+      article: article,
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      size: const Size(1000, 900),
+    );
+    await settleReader(tester, rounds: 12);
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(ReaderCodeBlockChrome), findsNothing);
+    expect(find.byType(HtmlWidget), findsOneWidget);
+  });
+
+  testWidgets('reader tolerates code tables with publisher classes removed', (
+    tester,
+  ) async {
+    final article =
+        buildArticle(title: 'Server extracted article', html: '<p>Feed</p>')
+          ..extractedContentHtml = '''
+<article>
+  <p>Before code</p>
+  <table><tbody><tr>
+    <td><pre>1<br>2</pre></td>
+    <td><pre><code>echo ready<br>pwd</code></pre></td>
+  </tr></tbody></table>
+  <p>After code</p>
+</article>
+'''
+          ..preferredContentView = ArticleContentView.extracted;
+
+    await pumpReader(
+      tester,
+      article: article,
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      size: const Size(1000, 900),
+    );
+    await settleReader(tester, rounds: 12);
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(ReaderCodeBlockChrome), findsNothing);
+    expect(find.byType(HtmlWidget), findsOneWidget);
+  });
+
   testWidgets(
     'manage tags dialog keeps 48dp color swatches with semantic labels',
     (tester) async {

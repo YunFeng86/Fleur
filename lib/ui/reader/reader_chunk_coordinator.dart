@@ -565,6 +565,16 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
     final codeCssLineHeight =
         codeStyle.height ?? ReaderSettings.defaultCodeLineHeight;
 
+    bool isInsideTableCell(dom.Element element) {
+      dom.Element? current = element.parent;
+      while (current != null) {
+        final localName = current.localName;
+        if (localName == 'td' || localName == 'th') return true;
+        current = current.parent;
+      }
+      return false;
+    }
+
     Map<String, String>? customStyles(dom.Element element) {
       final localName = element.localName;
       // Search highlight styles
@@ -602,17 +612,19 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
       }
 
       if (localName == 'pre') {
+        final insideTableCell = isInsideTableCell(element);
         return <String, String>{
           'background-color': cssColor(reader.codeBlockSurface),
-          'border': '1px solid ${rgba(theme.fleurSurface.subtleDivider)}',
+          if (!insideTableCell)
+            'border': '1px solid ${rgba(theme.fleurSurface.subtleDivider)}',
           'border-radius': '6px',
           'font-family': codeCssFontFamily,
           'font-size': '${codeCssFontSize.toStringAsFixed(0)}px',
           'font-style': 'normal',
           'font-weight': '400',
           'line-height': codeCssLineHeight.toStringAsFixed(2),
-          'margin': '18px 0',
-          'padding': '14px 16px',
+          'margin': insideTableCell ? '0' : '18px 0',
+          'padding': insideTableCell ? '8px' : '14px 16px',
           'text-decoration': 'none',
           'white-space': reader.codeSoftWrap ? 'pre-wrap' : 'pre',
         };
@@ -698,6 +710,11 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
       }
 
       if (localName == 'pre') {
+        // HTML tables measure cell children with an unbounded width. Keep
+        // table-contained code in the native renderer so it can participate
+        // in intrinsic sizing instead of mounting the full-width code chrome.
+        if (isInsideTableCell(element)) return null;
+
         final codeElement = element.querySelector('code');
         final source = codeElement ?? element;
         final extraction = const ReaderCodeHtmlRenderer().extract(source);
