@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -624,6 +626,23 @@ void main() {
     expect(FleurIcons.search.fontFamily, 'Lucide500');
     expect(FleurIcons.searchSelected.fontFamily, 'Lucide600');
     expect(FleurIcons.back.fontFamily, 'Lucide500');
+  });
+
+  test('bundled CJK sans font exposes explicit static weight faces', () async {
+    final manifest =
+        jsonDecode(await rootBundle.loadString('FontManifest.json'))
+            as List<dynamic>;
+    final family = manifest.cast<Map<String, dynamic>>().singleWhere(
+      (entry) => entry['family'] == AppTypography.bundledCjkSansFamily,
+    );
+    final fonts = (family['fonts'] as List<dynamic>)
+        .cast<Map<String, dynamic>>();
+
+    expect(fonts.map((font) => font['weight']), [400, 500, 600, 700]);
+    expect(
+      fonts.map((font) => font['asset']),
+      everyElement(isNot(contains('VariableFont'))),
+    );
   });
 
   test('Desktop window options hide native chrome for Flutter titlebars', () {
