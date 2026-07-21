@@ -620,12 +620,13 @@ void main() {
     expect(macTheme.fleurReader.metaStyle.fontSize, 12);
   });
 
-  test('Fleur iconography uses desktop-safe optical weights and sizes', () {
+  test('Fleur iconography keeps a restrained optical hierarchy', () {
+    expect(FleurIconMetrics.small, 16);
     expect(FleurIconMetrics.compact, 18);
     expect(FleurIconMetrics.standard, 20);
-    expect(FleurIcons.search.fontFamily, 'Lucide500');
-    expect(FleurIcons.searchSelected.fontFamily, 'Lucide600');
-    expect(FleurIcons.back.fontFamily, 'Lucide500');
+    expect(FleurIcons.search.fontFamily, 'Lucide');
+    expect(FleurIcons.searchSelected.fontFamily, 'Lucide500');
+    expect(FleurIcons.back.fontFamily, 'Lucide');
   });
 
   test('bundled CJK sans font exposes explicit static weight faces', () async {

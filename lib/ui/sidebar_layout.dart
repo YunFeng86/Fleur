@@ -23,7 +23,7 @@ const double kSidebarContentDividerWidth = 1;
 const double kWorkspaceSplitHandleHitWidth = 12;
 const double kWorkspaceHeaderHeight = 48;
 const double kShellControlSize = 32;
-const double kShellControlIconSize = FleurIconMetrics.compact;
+const double kShellControlIconSize = FleurIconMetrics.small;
 const double kShellControlCapsuleHeight = kShellControlSize;
 const double kShellControlTopInset =
     (kWorkspaceHeaderHeight - kShellControlSize) / 2;
