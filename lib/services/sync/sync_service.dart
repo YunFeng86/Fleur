@@ -664,6 +664,7 @@ class SyncService implements SyncServiceBase {
             final extracted = await _extractor.extract(
               a.link,
               userAgent: webUserAgent,
+              expectedTitle: a.title,
             );
             if (extracted.contentHtml.trim().isEmpty) {
               // Mark failure only when we got an empty/invalid extraction result.

@@ -1117,17 +1117,21 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
             // Skip if already extracted (common when re-syncing the same window).
             if ((a.extractedContentHtml ?? '').trim().isNotEmpty) return;
 
-            String html = '';
-            if (preferServerFetch && client != null) {
-              final rid = int.tryParse((a.remoteId ?? '').trim());
-              if (rid != null) {
-                html = await client.fetchEntryContent(rid);
+            late final String html;
+            if (preferServerFetch) {
+              if (client == null) {
+                throw StateError('Miniflux client is unavailable');
               }
-            }
-            if (html.trim().isEmpty) {
+              final rid = int.tryParse((a.remoteId ?? '').trim());
+              if (rid == null) {
+                throw StateError('Miniflux entry id is missing');
+              }
+              html = await client.fetchEntryContent(rid);
+            } else {
               final extracted = await _extractor.extract(
                 a.link,
                 userAgent: webUserAgent,
+                expectedTitle: a.title,
               );
               html = extracted.contentHtml;
             }

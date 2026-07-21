@@ -102,7 +102,11 @@ class _FakeArticleExtractor extends ArticleExtractor {
   final userAgents = <String?>[];
 
   @override
-  Future<ExtractedArticle> extract(String url, {String? userAgent}) async {
+  Future<ExtractedArticle> extract(
+    String url, {
+    String? userAgent,
+    String? expectedTitle,
+  }) async {
     urls.add(url);
     userAgents.add(userAgent);
     final err = error;

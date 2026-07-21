@@ -19,6 +19,7 @@ import '../services/sync/sync_status_reporter.dart';
 import 'sync_status_providers.dart';
 import '../services/actions/article_action_service.dart';
 import '../services/extract/article_extractor.dart';
+import '../services/extract/article_content_fetcher.dart';
 import '../services/ai/ai_request_queue.dart';
 import '../services/ai/ai_service_client.dart';
 import '../services/cache/article_cache_service.dart';
@@ -233,6 +234,21 @@ final syncServiceProvider = Provider<SyncServiceBase>(
 final articleExtractorProvider = Provider<ArticleExtractor>((ref) {
   return createArticleExtractor(dio: ref.watch(dioProvider));
 });
+
+final articleContentFetcherProvider = Provider<ArticleContentFetcher>(
+  (ref) {
+    return ArticleContentFetcher(
+      account: ref.watch(activeAccountProvider),
+      extractor: ref.watch(articleExtractorProvider),
+      remoteClients: ref.watch(remoteClientFactoryProvider),
+    );
+  },
+  dependencies: [
+    activeAccountProvider,
+    articleExtractorProvider,
+    remoteClientFactoryProvider,
+  ],
+);
 
 final aiRequestQueueProvider = Provider<AiRequestQueue>((ref) {
   return AiRequestQueue(maxConcurrent: 2);

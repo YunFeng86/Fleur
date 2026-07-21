@@ -46,10 +46,12 @@ class FullTextController extends AutoDisposeAsyncNotifier<void> {
         state = const AsyncValue.data(null);
         return true;
       }
-      final settings = ref.read(appSettingsProvider).valueOrNull;
+      final settings =
+          ref.read(appSettingsProvider).valueOrNull ??
+          (await ref.read(appSettingsProvider.future))!;
       final extracted = await ref
-          .read(articleExtractorProvider)
-          .extract(article.link, userAgent: settings?.webUserAgent);
+          .read(articleContentFetcherProvider)
+          .fetch(article, settings: settings);
       if (extracted.contentHtml.trim().isEmpty) {
         await repo.markExtractionFailed(articleId);
         throw const ArticleExtractionException(
@@ -112,5 +114,9 @@ class FullTextController extends AutoDisposeAsyncNotifier<void> {
 final fullTextControllerProvider =
     AutoDisposeAsyncNotifierProvider<FullTextController, void>(
       FullTextController.new,
-      dependencies: [articleRepositoryProvider],
+      dependencies: [
+        articleRepositoryProvider,
+        appSettingsProvider,
+        articleContentFetcherProvider,
+      ],
     );

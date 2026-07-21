@@ -605,6 +605,7 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
             final extracted = await _extractor.extract(
               a.link,
               userAgent: webUserAgent,
+              expectedTitle: a.title,
             );
             final html = extracted.contentHtml;
             if (html.trim().isEmpty) {

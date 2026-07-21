@@ -15,10 +15,17 @@ class ArticleExtractor {
 
   final Dio _dio;
 
-  Future<ExtractedArticle> extract(String url, {String? userAgent}) async {
+  Future<ExtractedArticle> extract(
+    String url, {
+    String? userAgent,
+    String? expectedTitle,
+  }) async {
     final html = await _fetchHtml(url, userAgent: userAgent);
     // Use compute to parse HTML in a separate isolate to avoid blocking the UI thread.
-    return compute(_extractInIsolate, _ExtractParams(html: html, url: url));
+    return compute(
+      _extractInIsolate,
+      _ExtractParams(html: html, url: url, expectedTitle: expectedTitle),
+    );
   }
 
   Future<String> _fetchHtml(String url, {String? userAgent}) async {
@@ -40,25 +47,36 @@ class ArticleExtractor {
   }
 
   static ExtractedArticle _extractInIsolate(_ExtractParams params) {
-    return extractFromHtml(html: params.html, url: params.url);
+    return extractFromHtml(
+      html: params.html,
+      url: params.url,
+      expectedTitle: params.expectedTitle,
+    );
   }
 
   static ExtractedArticle extractFromHtml({
     required String html,
     required String url,
+    String? expectedTitle,
   }) {
-    return ArticleExtractorCore.extractFromHtml(html: html, url: url);
+    return ArticleExtractorCore.extractFromHtml(
+      html: html,
+      url: url,
+      expectedTitle: expectedTitle,
+    );
   }
 
   static ArticleExtractionDiagnostics diagnoseFromHtml({
     required String html,
     required String url,
     int? statusCode,
+    String? expectedTitle,
   }) {
     return ArticleExtractorCore.diagnoseFromHtml(
       html: html,
       url: url,
       statusCode: statusCode,
+      expectedTitle: expectedTitle,
     );
   }
 }
@@ -66,5 +84,11 @@ class ArticleExtractor {
 class _ExtractParams {
   final String html;
   final String url;
-  _ExtractParams({required this.html, required this.url});
+  final String? expectedTitle;
+
+  _ExtractParams({
+    required this.html,
+    required this.url,
+    required this.expectedTitle,
+  });
 }

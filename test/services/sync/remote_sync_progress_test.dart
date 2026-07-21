@@ -84,6 +84,25 @@ class _FakeArticleExtractor extends ArticleExtractor {
   _FakeArticleExtractor() : super(Dio());
 }
 
+class _RecordingArticleExtractor extends ArticleExtractor {
+  _RecordingArticleExtractor() : super(Dio());
+
+  final urls = <String>[];
+
+  @override
+  Future<ExtractedArticle> extract(
+    String url, {
+    String? userAgent,
+    String? expectedTitle,
+  }) async {
+    urls.add(url);
+    return const ExtractedArticle(
+      title: 'Local title',
+      contentHtml: '<article><p>Local body</p></article>',
+    );
+  }
+}
+
 class _SyncStatusSnapshot {
   const _SyncStatusSnapshot({
     required this.label,
@@ -685,6 +704,92 @@ void main() {
     ).fetchPage(const ArticleQuery(), offset: 0, limit: 10)).single;
     expect(article.isRead, isTrue);
     expect(article.isStarred, isTrue);
+  });
+
+  test('Miniflux server mode does not fall back to local extraction', () async {
+    final paths = <String>[];
+    final feedId = await FeedRepository(isar!).upsertRemote(
+      remoteId: '10',
+      url: 'https://example.com/feed.xml',
+      title: 'Example Feed',
+    );
+    final dio = Dio();
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          paths.add(options.uri.path);
+          if (options.uri.path == '/v1/feeds/10/entries') {
+            handler.resolve(
+              Response<Object?>(
+                requestOptions: options,
+                data: <String, Object?>{
+                  'total': 1,
+                  'entries': [
+                    {
+                      'id': 100,
+                      'feed_id': 10,
+                      'url': 'https://example.com/articles/100',
+                      'title': 'Server Article',
+                      'content': '<p>feed</p>',
+                      'status': 'unread',
+                      'starred': false,
+                      'published_at': '2026-01-01T00:00:00Z',
+                    },
+                  ],
+                },
+              ),
+            );
+            return;
+          }
+          if (options.uri.path == '/v1/entries/100/fetch-content') {
+            handler.resolve(
+              Response<Object?>(
+                requestOptions: options,
+                data: const <String, Object?>{'content': ''},
+              ),
+            );
+            return;
+          }
+          handler.reject(
+            DioException(
+              requestOptions: options,
+              error: 'unexpected Miniflux request: ${options.uri.path}',
+            ),
+          );
+        },
+      ),
+    );
+    final extractor = _RecordingArticleExtractor();
+    final service = MinifluxSyncService(
+      account: buildTestAccount(
+        type: AccountType.miniflux,
+        baseUrl: 'https://miniflux.example.com',
+      ),
+      dio: dio,
+      credentials: _FakeCredentialStore(),
+      feeds: FeedRepository(isar!),
+      categories: CategoryRepository(isar!),
+      articles: ArticleRepository(isar!),
+      outbox: _MemoryOutboxStore(),
+      appSettingsStore: FakeAppSettingsStore(
+        AppSettings.defaults().copyWith(
+          syncWebPages: true,
+          minifluxWebFetchMode: MinifluxWebFetchMode.serverFetchContent,
+        ),
+      ),
+      cache: _RecordingArticleCacheService(),
+      extractor: extractor,
+    );
+
+    final result = await service.refreshFeedSafe(feedId, notify: false);
+
+    expect(result.ok, isTrue);
+    expect(paths, ['/v1/feeds/10/entries', '/v1/entries/100/fetch-content']);
+    expect(extractor.urls, isEmpty);
+    final article = (await ArticleRepository(
+      isar!,
+    ).fetchPage(const ArticleQuery(), offset: 0, limit: 10)).single;
+    expect(article.extractedContentHtml, isNull);
   });
 
   test('Miniflux scoped feed sync treats empty id list as no-op', () async {

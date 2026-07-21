@@ -257,7 +257,7 @@ void main() {
   });
 
   test(
-    'minimal freeze skips snapshots when redaction changes reason',
+    'minimal freeze preserves empty content without title injection',
     () async {
       final fetcher = _FakeFetcher({
         'https://example.com/empty': const ArticleExtractionAuditFetchResult(
@@ -283,14 +283,13 @@ void main() {
           ),
         );
 
-        expect(result.frozen, isEmpty);
-        expect(result.skipped, hasLength(1));
-        expect(result.skipped.single.message, contains('changed reason'));
+        expect(result.frozen, hasLength(1));
+        expect(result.skipped, isEmpty);
         expect(
           File(
             p.join(outputDirectory.path, 'manifest.json'),
           ).readAsStringSync(),
-          contains('"samples": []'),
+          contains('"expectedReason": "emptyContent"'),
         );
       } finally {
         outputDirectory.deleteSync(recursive: true);

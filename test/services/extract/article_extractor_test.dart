@@ -185,7 +185,7 @@ void main() {
       expect(diagnostics.sanitizedHtml, isNot(contains('sidebar.webp')));
     });
 
-    test('duplicate_title_h1 does not inject a second identical title', () {
+    test('removes a leading h1 that duplicates the article title', () {
       final html = _page('''
 <article>
   <h1>Duplicate Title</h1>
@@ -198,11 +198,12 @@ void main() {
         url: _baseUrl,
       );
 
-      expect(_occurrences(extracted.contentHtml, 'Duplicate Title'), 1);
+      expect(_occurrences(extracted.contentHtml, 'Duplicate Title'), 0);
+      expect(extracted.titleRemoved, isTrue);
       expect(extracted.contentHtml, contains('Duplicate title body'));
     });
 
-    test('duplicate_title_h2_and_paragraph keeps only one title block', () {
+    test('removes consecutive leading title blocks', () {
       final html = _page('''
 <article>
   <h2>Duplicate Title</h2>
@@ -219,9 +220,89 @@ void main() {
           _textFromHtml(diagnostics.sanitizedHtml),
           'Duplicate Title',
         ),
-        1,
+        0,
       );
       expect(diagnostics.sanitizedHtml, contains('Duplicate title body'));
+    });
+
+    test(
+      'uses the known article title when the page title has a site suffix',
+      () {
+        final html = _page('''
+<article>
+  <h1>Known Article Title</h1>
+  <p>${_longText('Known title body remains after heading removal.')}</p>
+</article>
+''', title: 'Known Article Title - Example Site');
+
+        final extracted = ArticleExtractor.extractFromHtml(
+          html: html,
+          url: _baseUrl,
+          expectedTitle: 'Known Article Title',
+        );
+
+        expect(
+          extracted.contentHtml,
+          isNot(contains('<h1>Known Article Title')),
+        );
+        expect(extracted.contentHtml, contains('Known title body remains'));
+      },
+    );
+
+    test('normalizes punctuation differences for leading headings', () {
+      final html = _page('''
+<article>
+  <h1>Article：A Practical Guide</h1>
+  <p>${_longText('Punctuation variant body remains readable.')}</p>
+</article>
+''', title: 'Example Site');
+
+      final extracted = ArticleExtractor.extractFromHtml(
+        html: html,
+        url: _baseUrl,
+        expectedTitle: 'Article: A Practical Guide',
+      );
+
+      expect(
+        extracted.contentHtml,
+        isNot(contains('Article：A Practical Guide')),
+      );
+      expect(extracted.contentHtml, contains('Punctuation variant body'));
+    });
+
+    test('does not remove a matching heading after substantive body text', () {
+      final html = _page('''
+<article>
+  <p>${_longText('Substantive introduction appears before the later heading.')}</p>
+  <h2>Repeated Title</h2>
+  <p>${_longText('Later section content remains intact.')}</p>
+</article>
+''', title: 'Repeated Title');
+
+      final sanitized = _extractAndSanitize(html);
+
+      expect(sanitized, contains('Repeated Title'));
+      expect(sanitized, contains('Later section content'));
+    });
+
+    test('does not inject a title when the extracted body has no heading', () {
+      final html = _page('''
+<article>
+  <p>${_longText('Body without a heading remains body only.')}</p>
+</article>
+''', title: 'Page Title Must Stay Separate');
+
+      final extracted = ArticleExtractor.extractFromHtml(
+        html: html,
+        url: _baseUrl,
+      );
+
+      expect(extracted.title, 'Page Title Must Stay Separate');
+      expect(
+        extracted.contentHtml,
+        isNot(contains('Page Title Must Stay Separate')),
+      );
+      expect(extracted.contentHtml, contains('Body without a heading'));
     });
 
     test('duplicate title cleanup preserves normal body sentences', () {
@@ -491,12 +572,12 @@ void main() {
       expect(diagnostics.sanitizedHtml, contains('Small visible survivor'));
     });
 
-    test('classifies title-only output', () {
+    test('classifies an empty page as empty content', () {
       final html = _page('', title: 'Only Title');
 
       final diagnostics = _diagnose(html);
 
-      expect(diagnostics.reason, ArticleExtractionFailureReason.titleOnly);
+      expect(diagnostics.reason, ArticleExtractionFailureReason.emptyContent);
     });
 
     test('keeps title-only diagnosis when no static body exists', () {

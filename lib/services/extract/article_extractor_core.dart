@@ -5,10 +5,15 @@ import '../feed_html_normalizer.dart';
 import '../html_sanitizer.dart';
 
 class ExtractedArticle {
-  const ExtractedArticle({required this.title, required this.contentHtml});
+  const ExtractedArticle({
+    required this.title,
+    required this.contentHtml,
+    this.titleRemoved = false,
+  });
 
   final String title;
   final String contentHtml;
+  final bool titleRemoved;
 }
 
 class ArticleExtractionDiagnostics {
@@ -42,11 +47,13 @@ class ArticleExtractorCore {
   static ExtractedArticle extractFromHtml({
     required String html,
     required String url,
+    String? expectedTitle,
   }) {
     final base = Uri.tryParse(url);
     final doc = html_parser.parse(html);
 
-    final title = _pickTitle(doc);
+    final titleCandidates = _pickTitleCandidates(doc, expectedTitle);
+    final title = titleCandidates.firstOrNull ?? '';
 
     final body = doc.body;
     if (body == null) {
@@ -63,31 +70,34 @@ class ArticleExtractorCore {
     _stripNoise(candidate);
     _stripBoilerplateByClass(candidate);
     _stripStandaloneNoiseBlocks(candidate);
-    _deduplicateTitleBlocks(candidate, title);
+    final titleRemoved = _removeLeadingTitleBlocks(candidate, titleCandidates);
     _absolutizeUrls(candidate, base);
 
-    final shouldInjectTitle =
-        title.isNotEmpty && !_candidateContainsTitleBlock(candidate, title);
-    final titleHtml = shouldInjectTitle
-        ? '  <h1>${_escapeHtml(title)}</h1>\n'
-        : '';
     final contentHtml =
         '''
 <article>
-$titleHtml
   ${candidate.innerHtml}
 </article>
 ''';
 
-    return ExtractedArticle(title: title, contentHtml: contentHtml);
+    return ExtractedArticle(
+      title: title,
+      contentHtml: contentHtml,
+      titleRemoved: titleRemoved,
+    );
   }
 
   static ArticleExtractionDiagnostics diagnoseFromHtml({
     required String html,
     required String url,
     int? statusCode,
+    String? expectedTitle,
   }) {
-    final article = extractFromHtml(html: html, url: url);
+    final article = extractFromHtml(
+      html: html,
+      url: url,
+      expectedTitle: expectedTitle,
+    );
     final normalizedHtml = FeedHtmlNormalizer.normalize(
       article.contentHtml,
       baseUrl: Uri.tryParse(url),
@@ -120,6 +130,9 @@ $titleHtml
 
     if (_isAccessBlocked(statusCode, pageText)) {
       return ArticleExtractionFailureReason.accessBlocked;
+    }
+    if (article.titleRemoved && sanitizedText.isEmpty) {
+      return ArticleExtractionFailureReason.titleOnly;
     }
     if (article.contentHtml.trim().isEmpty || sanitizedText.isEmpty) {
       return ArticleExtractionFailureReason.emptyContent;
@@ -222,7 +235,10 @@ $titleHtml
     final doc = html_parser.parse(sanitizedHtml);
     final body = doc.body;
     if (body == null) return false;
-    return _titleEquivalentBlocks(body, title).length > 1;
+    final leadingTitles = _titleEquivalentBlocks(body, [
+      title,
+    ]).where((block) => !_hasMeaningfulContentBefore(body, block));
+    return leadingTitles.length > 1;
   }
 
   static bool _hasMissingLazyImage(
@@ -304,15 +320,29 @@ $titleHtml
     return text.replaceAll(RegExp(r'\s+'), ' ').trim();
   }
 
-  static String _pickTitle(dom.Document doc) {
+  static List<String> _pickTitleCandidates(
+    dom.Document doc,
+    String? expectedTitle,
+  ) {
+    final candidates = <String>[];
+
+    void add(String? value) {
+      final trimmed = value?.trim();
+      if (trimmed == null || trimmed.isEmpty) return;
+      if (candidates.any((candidate) => _titlesMatch(candidate, trimmed))) {
+        return;
+      }
+      candidates.add(trimmed);
+    }
+
+    add(expectedTitle);
     final og = doc
         .querySelector('meta[property="og:title"]')
         ?.attributes['content'];
-    if (og != null && og.trim().isNotEmpty) return og.trim();
-    final t = doc.querySelector('title')?.text;
-    if (t != null && t.trim().isNotEmpty) return t.trim();
-    // Keep extracted content locale-agnostic; UI can decide how to display missing titles.
-    return '';
+    add(og);
+    add(doc.querySelector('meta[name="twitter:title"]')?.attributes['content']);
+    add(doc.querySelector('title')?.text);
+    return candidates;
   }
 
   static void _stripNoise(dom.Element root) {
@@ -692,33 +722,43 @@ $titleHtml
     ).hasMatch(lower);
   }
 
-  static void _deduplicateTitleBlocks(dom.Element candidate, String title) {
-    final titleBlocks = _titleEquivalentBlocks(candidate, title);
-    if (titleBlocks.length <= 1) return;
-
-    for (final block in titleBlocks.skip(1)) {
-      block.remove();
-    }
-  }
-
-  static bool _candidateContainsTitleBlock(
+  static bool _removeLeadingTitleBlocks(
     dom.Element candidate,
-    String title,
+    List<String> titles,
   ) {
-    return _titleEquivalentBlocks(candidate, title).isNotEmpty;
+    if (titles.isEmpty) return false;
+
+    var removed = false;
+    for (var i = 0; i < 4; i += 1) {
+      final titleBlocks = _titleEquivalentBlocks(candidate, titles);
+      dom.Element? leadingTitle;
+      for (final block in titleBlocks) {
+        if (!_hasMeaningfulContentBefore(candidate, block)) {
+          leadingTitle = block;
+          break;
+        }
+      }
+      if (leadingTitle == null) break;
+      leadingTitle.remove();
+      removed = true;
+    }
+    return removed;
   }
 
   static List<dom.Element> _titleEquivalentBlocks(
     dom.Element candidate,
-    String title,
+    List<String> titles,
   ) {
-    final normalizedTitle = _normalizeText(title);
-    if (normalizedTitle.isEmpty) return const [];
+    final signatures = titles
+        .map(_TitleSignature.new)
+        .where((signature) => signature.exact.isNotEmpty)
+        .toList(growable: false);
+    if (signatures.isEmpty) return const [];
 
     final blocks = <dom.Element>[];
     for (final element in candidate.querySelectorAll('*')) {
-      if (!_isTitleEquivalentBlock(element, normalizedTitle)) continue;
-      if (_hasTitleEquivalentAncestor(element, candidate, normalizedTitle)) {
+      if (!_isTitleEquivalentBlock(element, signatures)) continue;
+      if (_hasTitleEquivalentAncestor(element, candidate, signatures)) {
         continue;
       }
       blocks.add(element);
@@ -729,11 +769,11 @@ $titleHtml
   static bool _hasTitleEquivalentAncestor(
     dom.Element element,
     dom.Element candidate,
-    String normalizedTitle,
+    List<_TitleSignature> signatures,
   ) {
     dom.Node? current = element.parent;
     while (current is dom.Element && current != candidate) {
-      if (_isTitleEquivalentBlock(current, normalizedTitle)) return true;
+      if (_isTitleEquivalentBlock(current, signatures)) return true;
       current = current.parent;
     }
     return false;
@@ -741,12 +781,20 @@ $titleHtml
 
   static bool _isTitleEquivalentBlock(
     dom.Element element,
-    String normalizedTitle,
+    List<_TitleSignature> signatures,
   ) {
     final tag = element.localName?.toLowerCase();
     if (tag == null) return false;
     if (!_canBeStandaloneTitleBlock(tag)) return false;
-    if (_normalizeText(element.text) != normalizedTitle) return false;
+    final exact = _normalizeText(element.text);
+    if (exact.isEmpty) return false;
+    final exactMatch = signatures.any((signature) => signature.exact == exact);
+    final loose = _normalizeLooseTitle(element.text);
+    final looseMatch =
+        _isHeadingTag(tag) &&
+        loose.length >= 8 &&
+        signatures.any((signature) => signature.loose == loose);
+    if (!exactMatch && !looseMatch) return false;
     if (_isHeadingTag(tag)) return true;
     return !element.children.any((child) {
       final childTag = child.localName?.toLowerCase();
@@ -764,17 +812,71 @@ $titleHtml
   }
 
   static String _normalizeText(String text) {
-    return text.replaceAll(RegExp(r'\s+'), ' ').trim().toLowerCase();
+    return text
+        .replaceAll(RegExp(r'[\u200B-\u200D\uFEFF]'), '')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim()
+        .toLowerCase();
   }
 
-  static String _escapeHtml(String s) {
-    return s
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
+  static String _normalizeLooseTitle(String text) {
+    return _normalizeText(text).replaceAll(
+      RegExp(
+        r'''[\s!"#$%&'()*+,\-./:;<=>?@\[\\\]^_`{|}~，。！？、；：“”‘’（）【】《》〈〉·…—–]+''',
+      ),
+      '',
+    );
   }
+
+  static bool _titlesMatch(String a, String b) {
+    if (_normalizeText(a) == _normalizeText(b)) return true;
+    final looseA = _normalizeLooseTitle(a);
+    final looseB = _normalizeLooseTitle(b);
+    return looseA.length >= 8 && looseA == looseB;
+  }
+
+  static bool _hasMeaningfulContentBefore(
+    dom.Element root,
+    dom.Element target,
+  ) {
+    var foundTarget = false;
+    var foundContent = false;
+
+    void visit(dom.Node node) {
+      if (foundTarget || foundContent) return;
+      if (identical(node, target)) {
+        foundTarget = true;
+        return;
+      }
+      if (node is dom.Text && _normalizeText(node.data).isNotEmpty) {
+        foundContent = true;
+        return;
+      }
+      if (node is dom.Element) {
+        final tag = node.localName?.toLowerCase();
+        if (const {'img', 'video', 'audio', 'picture', 'table'}.contains(tag)) {
+          foundContent = true;
+          return;
+        }
+      }
+      for (final child in node.nodes) {
+        visit(child);
+        if (foundTarget || foundContent) return;
+      }
+    }
+
+    visit(root);
+    return foundContent;
+  }
+}
+
+class _TitleSignature {
+  _TitleSignature(String title)
+    : exact = ArticleExtractorCore._normalizeText(title),
+      loose = ArticleExtractorCore._normalizeLooseTitle(title);
+
+  final String exact;
+  final String loose;
 }
 
 enum _Cms { unknown, wordpress, hexo, hugo, halo }
