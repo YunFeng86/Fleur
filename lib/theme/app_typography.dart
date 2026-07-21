@@ -6,17 +6,13 @@ import '../utils/platform.dart' as platform;
 class AppTypography {
   const AppTypography._();
 
-  /// Windows CJK/system fonts often render one weight visually heavier than the
-  /// same nominal value on macOS. Soften emphasis there to keep hierarchy while
-  /// avoiding the "too black" look in dense reading/list UIs.
+  /// Keep the common Windows title weights aligned with the cross-platform
+  /// hierarchy. Only the uncommon heavy extremes are softened; lowering w700
+  /// to w600 makes CJK titles visibly too light beside the macOS equivalent.
   static FontWeight platformWeight(FontWeight weight) {
     if (!platform.isWindows) return weight;
-
-    return switch (weight.index) {
-      5 => FontWeight.w500,
-      6 || 7 || 8 => FontWeight.w600,
-      _ => weight,
-    };
+    if (weight == FontWeight.w900) return FontWeight.w800;
+    return weight;
   }
 
   static String? fontFamily() {
@@ -54,10 +50,9 @@ class AppTypography {
         '.SF UI Text',
       ],
       TargetPlatform.windows => const [
-        'DengXian',
-        'DengXian Light',
         'Microsoft YaHei UI',
         'Microsoft YaHei',
+        'DengXian',
         'SimHei',
         'SimSun',
         'Noto Sans SC',

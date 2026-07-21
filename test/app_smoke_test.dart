@@ -589,17 +589,18 @@ void main() {
     expect(mobileTheme.navigationBarTheme.height, isNull);
   });
 
-  test('Windows typography uses lighter emphasis than macOS', () {
+  test('Windows typography keeps the same title hierarchy as macOS', () {
     debugFleurTargetPlatformOverride = TargetPlatform.windows;
     addTearDown(() => debugFleurTargetPlatformOverride = null);
 
     final windowsTheme = AppTheme.light();
     expect(AppTypography.fontFamily(), 'Segoe UI');
-    expect(AppTypography.fontFallback().first, 'DengXian');
-    expect(AppTypography.fontFallback()[2], 'Microsoft YaHei UI');
-    expect(windowsTheme.textTheme.titleLarge?.fontWeight, FontWeight.w600);
-    expect(windowsTheme.textTheme.titleMedium?.fontWeight, FontWeight.w500);
-    expect(windowsTheme.fleurReader.titleStyle.fontWeight, FontWeight.w600);
+    expect(AppTypography.fontFallback().first, 'Microsoft YaHei UI');
+    expect(AppTypography.fontFallback()[1], 'Microsoft YaHei');
+    expect(AppTypography.fontFallback(), isNot(contains('DengXian Light')));
+    expect(windowsTheme.textTheme.titleLarge?.fontWeight, FontWeight.w700);
+    expect(windowsTheme.textTheme.titleMedium?.fontWeight, FontWeight.w600);
+    expect(windowsTheme.fleurReader.titleStyle.fontWeight, FontWeight.w700);
     expect(windowsTheme.fleurReader.metaStyle.fontWeight, FontWeight.w500);
 
     debugFleurTargetPlatformOverride = TargetPlatform.macOS;
