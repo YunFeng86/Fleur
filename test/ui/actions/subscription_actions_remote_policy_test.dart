@@ -19,7 +19,7 @@ import 'package:fleur/repositories/category_repository.dart';
 import 'package:fleur/repositories/feed_repository.dart';
 import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/services/accounts/credential_store.dart';
-import 'package:fleur/ui/actions/subscription_actions.dart';
+import 'package:fleur/features/subscriptions/subscriptions.dart';
 
 import '../../test_utils/isar_test_utils.dart';
 

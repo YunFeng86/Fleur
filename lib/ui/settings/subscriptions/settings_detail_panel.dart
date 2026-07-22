@@ -17,7 +17,6 @@ import '../widgets/settings_controls.dart';
 import 'controls/filter_settings_section.dart';
 import 'controls/sync_settings_section.dart';
 import 'controls/user_agent_settings_section.dart';
-import 'subscription_actions.dart';
 
 class SettingsDetailPanel extends ConsumerWidget {
   const SettingsDetailPanel({super.key});

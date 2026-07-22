@@ -1,6 +1,6 @@
-import '../../l10n/app_localizations.dart';
-import '../../services/sync/backend_capabilities.dart';
-import '../../services/sync/backend_sync_semantics.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../../services/sync/backend_capabilities.dart';
+import '../../../services/sync/backend_sync_semantics.dart';
 
 enum SubscriptionRootSyncMode { refreshSources, syncAccount }
 

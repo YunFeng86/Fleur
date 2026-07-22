@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fleur/features/subscriptions/subscriptions.dart';
 
 import '../../../../../l10n/app_localizations.dart';
 import '../../../../../models/category.dart';
@@ -11,7 +12,6 @@ import '../../../../../providers/backend_content_capabilities_provider.dart';
 import '../../../../../services/settings/app_settings.dart';
 import '../../widgets/settings_controls.dart';
 import '../settings_inheritance_helper.dart';
-import '../subscription_actions.dart';
 import 'inherited_bool_setting_tile.dart';
 
 class SubscriptionSyncSettingsSection extends ConsumerWidget {

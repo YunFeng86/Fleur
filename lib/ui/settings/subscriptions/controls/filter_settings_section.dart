@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fleur/features/subscriptions/subscriptions.dart';
 
 import '../../../../../l10n/app_localizations.dart';
 import '../../../../../models/category.dart';
@@ -11,7 +12,6 @@ import '../../../../../services/settings/app_settings.dart';
 import '../../../../../theme/fleur_icons.dart';
 import '../../widgets/settings_controls.dart';
 import '../settings_inheritance_helper.dart';
-import '../subscription_actions.dart';
 import 'inherited_bool_setting_tile.dart';
 
 class SubscriptionFilterSettingsSection extends ConsumerWidget {

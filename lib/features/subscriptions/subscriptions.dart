@@ -34,3 +34,10 @@ export 'application/subscription_feed_browsing.dart'
 export 'presentation/subscription_opml_actions.dart'
     show SubscriptionOpmlActions;
 export 'presentation/add_subscription_screen.dart' show AddSubscriptionScreen;
+export 'presentation/subscription_actions.dart' show SubscriptionActions;
+export 'application/subscription_root_sync_action.dart'
+    show
+        SubscriptionRootSyncMode,
+        resolveSubscriptionRootSyncMode,
+        subscriptionRootSyncLabel,
+        subscriptionRootSyncSuccessLabel;

@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:fleur/l10n/app_localizations.dart';
+import 'package:fleur/features/subscriptions/subscriptions.dart';
 
 import '../providers/backend_capabilities_provider.dart';
 import '../providers/article_list_controller.dart';
@@ -22,7 +23,6 @@ import '../theme/fleur_icons.dart';
 import '../app/article_scope_routes.dart';
 import '../models/article_scope.dart';
 import '../ui/app_menu.dart';
-import '../ui/actions/subscription_actions.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/layout.dart';
 import '../ui/layout_spec.dart';

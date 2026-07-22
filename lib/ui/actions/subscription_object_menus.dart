@@ -11,8 +11,6 @@ import '../../services/sync/backend_capabilities.dart';
 import '../../services/sync/backend_sync_semantics.dart';
 import '../../theme/fleur_icons.dart';
 import '../app_menu.dart';
-import 'root_sync_action.dart';
-import 'subscription_actions.dart';
 
 enum SubscriptionFeedMenuAction { rename, refresh, offlineCache, move, delete }
 

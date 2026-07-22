@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fleur/features/subscriptions/subscriptions.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../providers/account_providers.dart';
@@ -17,7 +18,6 @@ import '../../../theme/fleur_icons.dart';
 import '../../../utils/context_extensions.dart';
 import '../../../widgets/account_avatar.dart';
 import '../../app_menu.dart';
-import '../../actions/subscription_actions.dart';
 import '../../dialogs/add_account_dialogs.dart';
 import '../../dialogs/text_input_dialog.dart';
 import '../settings_targets.dart';

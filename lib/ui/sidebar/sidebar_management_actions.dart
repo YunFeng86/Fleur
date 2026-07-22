@@ -7,7 +7,6 @@ import '../../models/category.dart';
 import '../../models/feed.dart';
 import '../../providers/query_providers.dart';
 import '../../providers/service_providers.dart';
-import '../actions/subscription_actions.dart';
 import 'sidebar_selection_actions.dart';
 
 typedef SidebarDialogPresenter =

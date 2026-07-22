@@ -12,7 +12,6 @@ import '../../../../theme/fleur_icons.dart';
 import '../../../../ui/actions/subscription_object_menus.dart';
 import '../../../../ui/app_menu.dart';
 import '../../../../utils/platform.dart';
-import 'subscription_actions.dart';
 
 class SubscriptionToolbar extends ConsumerWidget {
   const SubscriptionToolbar({super.key, this.showPageTitle = true});

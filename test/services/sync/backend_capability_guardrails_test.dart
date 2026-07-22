@@ -53,7 +53,8 @@ const _operationalCapabilityFiles = <String, String>{
   'lib/providers/background_sync_providers.dart': 'backendCapabilitiesProvider',
   'lib/widgets/outbox_status_action.dart': 'backendCapabilitiesProvider',
   'lib/ui/home/home_scene_commands.dart': 'backendCapabilitiesProvider',
-  'lib/ui/actions/subscription_actions.dart': 'backendCapabilitiesProvider',
+  'lib/features/subscriptions/presentation/subscription_actions.dart':
+      'backendCapabilitiesProvider',
   'lib/features/subscriptions/presentation/subscription_opml_actions.dart':
       'backendCapabilitiesProvider',
   'lib/ui/settings/subscriptions/subscription_toolbar.dart':
