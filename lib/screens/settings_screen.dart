@@ -8,7 +8,8 @@ import 'package:go_router/go_router.dart';
 
 import '../app/settings_routes.dart';
 import '../ui/app_drawer_scope.dart';
-import '../ui/design_system/design_system.dart';
+import '../ui/settings/settings_scene.dart';
+import '../ui/settings/settings_search_view.dart';
 import '../ui/settings/subscriptions/subscriptions_settings_tab.dart';
 import '../ui/settings/tabs/about_tab.dart';
 import '../ui/settings/tabs/app_preferences_tab.dart';
@@ -18,19 +19,13 @@ import '../ui/settings/tabs/services_tab.dart';
 import '../ui/settings/tabs/translation_ai_services_tab.dart';
 import '../ui/settings/settings_search_index.dart';
 import '../ui/settings/settings_targets.dart';
-import '../ui/settings/widgets/settings_controls.dart';
 import '../ui/adaptive_workspace_layout.dart';
-import '../ui/motion.dart';
 import '../ui/shell_chrome_layout.dart';
 import '../ui/sidebar_layout.dart';
 import '../ui/workspace_layers.dart';
 import '../providers/core_providers.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
-import '../widgets/app_scrollbar.dart';
-
-part '../ui/settings/settings_scene.dart';
-part '../ui/settings/settings_search_view.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({
@@ -51,11 +46,6 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  static const _kSettingsSidebarWidth = kDefaultWorkspaceSidebarWidth;
-  static const _kSettingsPaperMaxWidth = 960.0;
-  static const _kSettingsSearchPaperGap = 8.0;
-  static const _kLayerAnimationDuration = Duration(milliseconds: 180);
-
   // Nullable tab: null means "List View" in narrow mode or default first item
   // in wide mode.
   SettingsTab? _selectedTab;
@@ -116,13 +106,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     super.dispose();
   }
 
-  List<_SettingsPageItem> _buildItems(
+  List<SettingsPageItem> _buildItems(
     BuildContext context, {
     required bool showPageTitle,
   }) {
     final l10n = AppLocalizations.of(context)!;
     return [
-      _SettingsPageItem(
+      SettingsPageItem(
         tab: SettingsTab.appPreferences,
         icon: FleurIcons.appPreferences,
         selectedIcon: FleurIcons.appPreferencesSelected,
@@ -132,7 +122,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           targetController: _targetController,
         ),
       ),
-      _SettingsPageItem(
+      SettingsPageItem(
         tab: SettingsTab.appearance,
         icon: FleurIcons.appearance,
         selectedIcon: FleurIcons.appearanceSelected,
@@ -149,14 +139,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           },
         ),
       ),
-      _SettingsPageItem(
+      SettingsPageItem(
         tab: SettingsTab.subscriptions,
         icon: FleurIcons.feeds,
         selectedIcon: FleurIcons.feedsSelected,
         label: l10n.subscriptions,
         content: SubscriptionsSettingsTab(showPageTitle: showPageTitle),
       ),
-      _SettingsPageItem(
+      SettingsPageItem(
         tab: SettingsTab.groupingAndSorting,
         icon: FleurIcons.grouping,
         selectedIcon: FleurIcons.groupingSelected,
@@ -166,7 +156,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           targetController: _targetController,
         ),
       ),
-      _SettingsPageItem(
+      SettingsPageItem(
         tab: SettingsTab.services,
         icon: FleurIcons.services,
         selectedIcon: FleurIcons.servicesSelected,
@@ -176,7 +166,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           targetController: _targetController,
         ),
       ),
-      _SettingsPageItem(
+      SettingsPageItem(
         tab: SettingsTab.translationAndAiServices,
         icon: FleurIcons.translationAi,
         selectedIcon: FleurIcons.translationAiSelected,
@@ -186,7 +176,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           targetController: _targetController,
         ),
       ),
-      _SettingsPageItem(
+      SettingsPageItem(
         tab: SettingsTab.about,
         icon: FleurIcons.about,
         selectedIcon: FleurIcons.aboutSelected,
@@ -196,7 +186,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     ];
   }
 
-  int? _selectedIndexFor(List<_SettingsPageItem> items) {
+  int? _selectedIndexFor(List<SettingsPageItem> items) {
     final selectedTab = _selectedTab;
     if (selectedTab == null) return null;
     final index = items.indexWhere((item) => item.tab == selectedTab);
@@ -447,14 +437,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             }
 
             final content = showingSearchResults
-                ? _SettingsSearchResultsBody(
+                ? SettingsSearchResultsBody(
                     query: trimmedSearchQuery,
                     results: searchResults,
                     tabLabels: tabLabels,
                     onSelected: _selectSearchEntry,
                   )
                 : showingList
-                ? _SettingsListBody(items: items, onSelect: selectTab)
+                ? SettingsListBody(items: items, onSelect: selectTab)
                 : FocusTraversalGroup(child: selectedItem.content);
             void toggleNavigation() {
               final shellToggle = AppDrawerScope.drawerOpenerOf(context);
@@ -474,7 +464,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   result.temporaryNavigationOpen;
             }
 
-            final scene = _SettingsScene(
+            final scene = SettingsScene(
               width: width,
               height: constraints.maxHeight,
               navigationPresentation: navigationPresentation,

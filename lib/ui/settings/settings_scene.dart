@@ -1,7 +1,27 @@
-part of '../../screens/settings_screen.dart';
+import 'package:flutter/material.dart';
 
-class _SettingsScene extends StatelessWidget {
-  const _SettingsScene({
+import '../../app/settings_routes.dart';
+import '../../l10n/app_localizations.dart';
+import '../../theme/fleur_icons.dart';
+import '../../theme/fleur_theme_extensions.dart';
+import '../../widgets/app_scrollbar.dart';
+import '../adaptive_workspace_layout.dart';
+import '../design_system/design_system.dart';
+import '../motion.dart';
+import '../shell_chrome_layout.dart';
+import '../sidebar_layout.dart';
+import '../workspace_layers.dart';
+import 'settings_search_view.dart';
+import 'widgets/settings_controls.dart';
+
+const double _kSettingsSidebarWidth = kDefaultWorkspaceSidebarWidth;
+const double _kSettingsPaperMaxWidth = 960;
+const double _kSettingsSearchPaperGap = 8;
+const Duration _kLayerAnimationDuration = Duration(milliseconds: 180);
+
+class SettingsScene extends StatelessWidget {
+  const SettingsScene({
+    super.key,
     required this.width,
     required this.height,
     required this.navigationPresentation,
@@ -34,7 +54,7 @@ class _SettingsScene extends StatelessWidget {
   final bool showSidebarButton;
   final VoidCallback onToggleSidebar;
   final VoidCallback? onBack;
-  final List<_SettingsPageItem> items;
+  final List<SettingsPageItem> items;
   final int? sidebarSelectedIndex;
   final Key selectedContentKey;
   final Widget content;
@@ -53,13 +73,12 @@ class _SettingsScene extends StatelessWidget {
     final sidebarRail =
         navigationPresentation == WorkspaceNavigationPresentation.rail;
     final structuralContentLeft = sidebarExpanded
-        ? _SettingsScreenState._kSettingsSidebarWidth +
-              kSidebarContentDividerWidth
+        ? _kSettingsSidebarWidth + kSidebarContentDividerWidth
         : sidebarRail
         ? railWidth
         : 0.0;
     final contentLeft = temporaryNavigationOpen
-        ? _SettingsScreenState._kSettingsSidebarWidth
+        ? _kSettingsSidebarWidth
         : structuralContentLeft;
     final contentWidth = (width - structuralContentLeft)
         .clamp(0.0, double.infinity)
@@ -94,7 +113,7 @@ class _SettingsScene extends StatelessWidget {
                 left: 0,
                 top: 0,
                 bottom: 0,
-                width: _SettingsScreenState._kSettingsSidebarWidth,
+                width: _kSettingsSidebarWidth,
                 child: visibleExpandedSidebar,
               ),
             if (sidebarRail && !temporaryNavigationOpen)
@@ -124,7 +143,7 @@ class _SettingsScene extends StatelessWidget {
               key: const Key('settings_content_layer'),
               duration: AppMotion.effectiveDuration(
                 context,
-                _SettingsScreenState._kLayerAnimationDuration,
+                _kLayerAnimationDuration,
               ),
               curve: Curves.easeOutCubic,
               left: contentLeft,
@@ -149,7 +168,7 @@ class _SettingsScene extends StatelessWidget {
             if (temporaryNavigationOpen)
               Positioned(
                 key: const Key('settings_navigation_scrim'),
-                left: _SettingsScreenState._kSettingsSidebarWidth,
+                left: _kSettingsSidebarWidth,
                 top: 0,
                 right: 0,
                 bottom: 0,
@@ -177,7 +196,7 @@ class _SettingsNavigationRail extends StatelessWidget {
   });
 
   final double width;
-  final List<_SettingsPageItem> items;
+  final List<SettingsPageItem> items;
   final int? selectedIndex;
   final ValueChanged<SettingsTab> onSelect;
 
@@ -251,7 +270,7 @@ class _SettingsSidebar extends StatelessWidget {
 
   final String title;
   final double railWidth;
-  final List<_SettingsPageItem> items;
+  final List<SettingsPageItem> items;
   final int? selectedIndex;
   final ValueChanged<SettingsTab> onSelect;
 
@@ -339,10 +358,14 @@ class _SettingsSidebarHeader extends StatelessWidget {
   }
 }
 
-class _SettingsListBody extends StatelessWidget {
-  const _SettingsListBody({required this.items, required this.onSelect});
+class SettingsListBody extends StatelessWidget {
+  const SettingsListBody({
+    super.key,
+    required this.items,
+    required this.onSelect,
+  });
 
-  final List<_SettingsPageItem> items;
+  final List<SettingsPageItem> items;
   final ValueChanged<SettingsTab> onSelect;
 
   @override
@@ -417,7 +440,7 @@ class _SettingsContentLayer extends StatelessWidget {
             navigationToggleFocusNode: navigationToggleFocusNode,
           ),
           if (!sidebarPinned)
-            _SettingsSearchDock(
+            SettingsSearchDock(
               insidePaper: true,
               controller: searchController,
               focusNode: searchFocusNode,
@@ -436,7 +459,7 @@ class _SettingsContentLayer extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final paperWidth = constraints.maxWidth
-            .clamp(0.0, _SettingsScreenState._kSettingsPaperMaxWidth)
+            .clamp(0.0, _kSettingsPaperMaxWidth)
             .toDouble();
 
         return ColoredBox(
@@ -447,15 +470,13 @@ class _SettingsContentLayer extends StatelessWidget {
               width: paperWidth,
               child: Column(
                 children: [
-                  _SettingsSearchDock(
+                  SettingsSearchDock(
                     insidePaper: false,
                     controller: searchController,
                     focusNode: searchFocusNode,
                     focused: searchFocused,
                   ),
-                  const SizedBox(
-                    height: _SettingsScreenState._kSettingsSearchPaperGap,
-                  ),
+                  const SizedBox(height: _kSettingsSearchPaperGap),
                   Expanded(child: paper),
                 ],
               ),
@@ -640,7 +661,7 @@ class _SettingsNavigationTile extends StatelessWidget {
     this.trailing,
   });
 
-  final _SettingsPageItem item;
+  final SettingsPageItem item;
   final double railWidth;
   final VoidCallback onTap;
   final bool selected;
@@ -695,14 +716,14 @@ class _SettingsNavigationTile extends StatelessWidget {
   }
 }
 
-class _SettingsPageItem {
+class SettingsPageItem {
   final SettingsTab tab;
   final IconData icon;
   final IconData selectedIcon;
   final String label;
   final Widget content;
 
-  const _SettingsPageItem({
+  const SettingsPageItem({
     required this.tab,
     required this.icon,
     required this.selectedIcon,

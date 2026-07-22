@@ -1,7 +1,15 @@
-part of '../../screens/settings_screen.dart';
+import 'package:flutter/material.dart';
 
-class _SettingsSearchDock extends StatelessWidget {
-  const _SettingsSearchDock({
+import '../../app/settings_routes.dart';
+import '../../l10n/app_localizations.dart';
+import '../../theme/fleur_icons.dart';
+import '../../theme/fleur_theme_extensions.dart';
+import 'settings_search_index.dart';
+import 'widgets/settings_controls.dart';
+
+class SettingsSearchDock extends StatelessWidget {
+  const SettingsSearchDock({
+    super.key,
     required this.insidePaper,
     required this.controller,
     required this.focusNode,
@@ -153,8 +161,9 @@ class _SettingsSearchField extends StatelessWidget {
   }
 }
 
-class _SettingsSearchResultsBody extends StatelessWidget {
-  const _SettingsSearchResultsBody({
+class SettingsSearchResultsBody extends StatelessWidget {
+  const SettingsSearchResultsBody({
+    super.key,
     required this.query,
     required this.results,
     required this.tabLabels,
