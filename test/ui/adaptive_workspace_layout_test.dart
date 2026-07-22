@@ -1,7 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:fleur/ui/adaptive_workspace_layout.dart';
+import 'package:fleur/ui/layout.dart';
+import 'package:fleur/ui/layout_spec.dart';
 import 'package:fleur/ui/sidebar_layout.dart';
+import 'package:fleur/utils/platform.dart';
 
 void main() {
   const windowsNavigation = WorkspaceNavigationMetrics(
@@ -182,6 +186,82 @@ void main() {
           WorkspaceNavigationPresentation.offCanvas,
         );
       },
+    );
+  });
+
+  test('collapsed desktop sidebar does not consume content width', () {
+    expect(
+      effectiveContentWidth(
+        1200,
+        sidebarPresentationMode: SidebarPresentationMode.collapsed,
+      ),
+      1200,
+    );
+    expect(
+      effectiveContentWidth(
+        1200,
+        sidebarPresentationMode: SidebarPresentationMode.expanded,
+        sidebarWidth: kDefaultWorkspaceSidebarWidth,
+      ),
+      1200 - kDefaultWorkspaceSidebarWidth - kSidebarContentDividerWidth,
+    );
+  });
+
+  test('workspace sidebar width clamps to window and app maximums', () {
+    expect(clampWorkspaceSidebarWidth(999, 1200), kMaxWorkspaceSidebarWidth);
+    expect(
+      clampWorkspaceSidebarWidth(999, 700),
+      700 - kMinWorkspaceContentWidth - kSidebarContentDividerWidth,
+    );
+    expect(clampWorkspaceSidebarWidth(999, 500), kMinWorkspaceSidebarWidth);
+  });
+
+  test('reader embedding stays monotonic while desktop width narrows', () {
+    debugFleurTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    LayoutSpec specFor(double width) => LayoutSpec.fromTotalSize(
+      totalWidth: width,
+      totalHeight: 800,
+      sidebarPresentationMode: SidebarPresentationMode.expanded,
+      sidebarWidth: kDefaultWorkspaceSidebarWidth,
+      listWidth: kDefaultWorkspaceListWidth,
+    );
+
+    const widths = <double>[1200, 1078, 1000, 899, 822, 821];
+
+    expect(
+      widths
+          .map(
+            (width) => shouldEmbedReaderForLayout(
+              specFor(width),
+              listWidth: kHomeListWidth,
+            ),
+          )
+          .toList(),
+      <bool>[true, true, true, false, false, false],
+    );
+    expect(
+      widths
+          .map(
+            (width) => shouldEmbedReaderForLayout(
+              specFor(width),
+              listWidth: kDesktopListWidth,
+            ),
+          )
+          .toList(),
+      <bool>[true, true, true, false, false, false],
+    );
+    expect(
+      widths
+          .map(
+            (width) => shouldCollapseSidebarForReaderLayout(
+              specFor(width),
+              preferredListWidth: kHomeListWidth,
+            ),
+          )
+          .toList(),
+      <bool>[false, true, true, false, false, false],
     );
   });
 }

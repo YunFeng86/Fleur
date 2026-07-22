@@ -1,12 +1,9 @@
-import 'dart:convert';
-
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:window_manager/window_manager.dart';
 
 import 'package:fleur/app/app.dart';
 import 'package:fleur/app/router.dart';
@@ -20,7 +17,6 @@ import 'package:fleur/models/tag.dart';
 import 'package:fleur/providers/account_providers.dart';
 import 'package:fleur/providers/article_list_controller.dart';
 import 'package:fleur/providers/app_settings_providers.dart';
-import 'package:fleur/providers/app_update_providers.dart';
 import 'package:fleur/providers/background_sync_providers.dart';
 import 'package:fleur/providers/core_providers.dart';
 import 'package:fleur/providers/outbox_status_providers.dart';
@@ -42,9 +38,7 @@ import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/settings/reader_settings.dart';
 import 'package:fleur/services/sync/sync_service.dart';
 import 'package:fleur/services/sync/sync_status_reporter.dart';
-import 'package:fleur/services/update/app_update_manifest.dart';
 import 'package:fleur/theme/app_theme.dart';
-import 'package:fleur/theme/app_typography.dart';
 import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
 import 'package:fleur/ui/app_menu.dart';
@@ -54,7 +48,6 @@ import 'package:fleur/ui/home/home_scene_commands.dart';
 import 'package:fleur/ui/home/home_scene_panes.dart';
 import 'package:fleur/ui/home/home_scene_shortcuts.dart';
 import 'package:fleur/ui/layout.dart';
-import 'package:fleur/ui/layout_spec.dart';
 import 'package:fleur/ui/motion.dart';
 import 'package:fleur/ui/shell_chrome_layout.dart';
 import 'package:fleur/ui/sidebar_layout.dart';
@@ -62,16 +55,15 @@ import 'package:fleur/ui/sidebar/sidebar_selection_actions.dart';
 import 'package:fleur/ui/sidebar/sidebar_tree.dart';
 import 'package:fleur/ui/workspace_layers.dart';
 import 'package:fleur/utils/platform.dart';
-import 'package:fleur/utils/desktop_window_options.dart';
 import 'package:fleur/widgets/article_list.dart';
 import 'package:fleur/widgets/article_list_item.dart';
-import 'package:fleur/widgets/app_scrollbar.dart';
 import 'package:fleur/widgets/favicon_circle.dart';
 import 'package:fleur/widgets/overflow_marquee.dart';
 import 'package:fleur/widgets/reader_view.dart';
 import 'package:fleur/widgets/sidebar.dart';
 import 'package:fleur/widgets/sync_status_capsule.dart';
 
+import 'test_utils/app_shell_test_support.dart';
 import 'test_utils/critical_workflow_test_support.dart';
 
 GoRouter _buildRouter() {
@@ -119,44 +111,6 @@ Widget _buildRuntimeHostHarness({
   );
 }
 
-Widget _buildShellHarness({
-  Uri? currentUri,
-  Widget? child,
-  MediaQueryData? mediaQueryData,
-  List<Override> overrides = const [],
-}) {
-  final shell = AppShell(
-    currentUri: currentUri ?? Uri(path: '/'),
-    child:
-        child ??
-        const ColoredBox(
-          key: Key('app_shell_child'),
-          color: Colors.transparent,
-        ),
-  );
-  return ProviderScope(
-    overrides: [
-      activeAccountProvider.overrideWithValue(buildTestAccount()),
-      feedsProvider.overrideWith((ref) => Stream.value(<Feed>[])),
-      categoriesProvider.overrideWith((ref) => Stream.value(<Category>[])),
-      tagsProvider.overrideWith((ref) => Stream.value(<Tag>[])),
-      allUnreadCountsProvider.overrideWith(
-        (ref) => Stream.value(<int?, int>{}),
-      ),
-      outboxPendingCountProvider.overrideWith((ref) async => 0),
-      ...overrides,
-    ],
-    child: MaterialApp(
-      theme: AppTheme.light(),
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      home: mediaQueryData == null
-          ? shell
-          : MediaQuery(data: mediaQueryData, child: shell),
-    ),
-  );
-}
-
 Feed _buildFeed({
   int id = 10,
   String title = 'Fleur Feed',
@@ -167,32 +121,6 @@ Feed _buildFeed({
     ..url = url
     ..title = title
     ..siteUrl = 'https://example.com';
-}
-
-AppUpdateManifest _buildUpdateManifest() {
-  return AppUpdateManifest(
-    schemaVersion: 1,
-    channel: AppUpdateChannel.stable,
-    version: '9.9.9',
-    tag: 'v9.9.9',
-    publishedAt: DateTime.utc(2026, 1, 1),
-    releaseUrl: Uri.parse('https://example.com/releases/v9.9.9'),
-    notes: const {'en': 'Test update'},
-    assets: const {},
-  );
-}
-
-void _expectWorkspaceSurfaceAppearance(
-  WidgetTester tester,
-  Key key, {
-  required BorderRadius borderRadius,
-  required bool showShadow,
-  required WorkspaceLayerEdge leadingEdge,
-}) {
-  final surface = tester.widget<WorkspaceLayerSurface>(find.byKey(key));
-  expect(surface.borderRadius, borderRadius);
-  expect(surface.showShadow, showShadow);
-  expect(surface.leadingEdge, leadingEdge);
 }
 
 void _expectShellIconButtonRadius(WidgetTester tester, Key key) {
@@ -206,15 +134,6 @@ void _expectShellIconButtonRadius(WidgetTester tester, Key key) {
     (shape! as RoundedRectangleBorder).borderRadius,
     BorderRadius.circular(kShellControlSize / 2),
   );
-}
-
-class _TestAppUpdateController extends AppUpdateController {
-  _TestAppUpdateController(this.initialState);
-
-  final AppUpdateState initialState;
-
-  @override
-  AppUpdateState build() => initialState;
 }
 
 Article _buildArticle({
@@ -377,82 +296,6 @@ Future<HomeSceneCommands> _pumpHomeCommandsHarness(
 }
 
 void main() {
-  test('collapsed desktop sidebar does not consume content width', () {
-    expect(
-      effectiveContentWidth(
-        1200,
-        sidebarPresentationMode: SidebarPresentationMode.collapsed,
-      ),
-      1200,
-    );
-    expect(
-      effectiveContentWidth(
-        1200,
-        sidebarPresentationMode: SidebarPresentationMode.expanded,
-        sidebarWidth: kDefaultWorkspaceSidebarWidth,
-      ),
-      1200 - kDefaultWorkspaceSidebarWidth - kSidebarContentDividerWidth,
-    );
-  });
-
-  test('workspace sidebar width clamps to window and app maximums', () {
-    expect(clampWorkspaceSidebarWidth(999, 1200), kMaxWorkspaceSidebarWidth);
-    expect(
-      clampWorkspaceSidebarWidth(999, 700),
-      700 - kMinWorkspaceContentWidth - kSidebarContentDividerWidth,
-    );
-    expect(clampWorkspaceSidebarWidth(999, 500), kMinWorkspaceSidebarWidth);
-  });
-
-  test('reader embedding stays monotonic while desktop width narrows', () {
-    debugFleurTargetPlatformOverride = TargetPlatform.windows;
-    addTearDown(() => debugFleurTargetPlatformOverride = null);
-
-    LayoutSpec specFor(double width) => LayoutSpec.fromTotalSize(
-      totalWidth: width,
-      totalHeight: 800,
-      sidebarPresentationMode: SidebarPresentationMode.expanded,
-      sidebarWidth: kDefaultWorkspaceSidebarWidth,
-      listWidth: kDefaultWorkspaceListWidth,
-    );
-
-    const widths = <double>[1200, 1078, 1000, 899, 822, 821];
-
-    expect(
-      widths
-          .map(
-            (width) => shouldEmbedReaderForLayout(
-              specFor(width),
-              listWidth: kHomeListWidth,
-            ),
-          )
-          .toList(),
-      <bool>[true, true, true, false, false, false],
-    );
-    expect(
-      widths
-          .map(
-            (width) => shouldEmbedReaderForLayout(
-              specFor(width),
-              listWidth: kDesktopListWidth,
-            ),
-          )
-          .toList(),
-      <bool>[true, true, true, false, false, false],
-    );
-    expect(
-      widths
-          .map(
-            (width) => shouldCollapseSidebarForReaderLayout(
-              specFor(width),
-              preferredListWidth: kHomeListWidth,
-            ),
-          )
-          .toList(),
-      <bool>[false, true, true, false, false, false],
-    );
-  });
-
   testWidgets('App builds', (tester) async {
     TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -534,280 +377,13 @@ void main() {
     },
   );
 
-  test('App theme exposes Fleur semantic tokens for desktop and mobile', () {
-    debugFleurTargetPlatformOverride = TargetPlatform.windows;
-    addTearDown(() => debugFleurTargetPlatformOverride = null);
-
-    final desktopTheme = AppTheme.light();
-    expect(desktopTheme.fleurSurface.nav, isNotNull);
-    expect(desktopTheme.fleurState.selectionTint, isNotNull);
-    expect(desktopTheme.fleurReader.maxWidth, greaterThan(0));
-    expect(
-      desktopTheme.scrollbarTheme.thumbVisibility?.resolve(<WidgetState>{}),
-      isTrue,
-    );
-    expect(desktopTheme.scrollbarTheme.thickness?.resolve(<WidgetState>{}), 6);
-    expect(
-      desktopTheme.scrollbarTheme.thickness?.resolve(<WidgetState>{
-        WidgetState.hovered,
-      }),
-      6,
-    );
-    expect(
-      desktopTheme.scrollbarTheme.thickness?.resolve(<WidgetState>{
-        WidgetState.dragged,
-      }),
-      6,
-    );
-    expect(
-      desktopTheme.iconButtonTheme.style?.shape?.resolve(<WidgetState>{}),
-      isNull,
-    );
-    expect(
-      desktopTheme.scrollbarTheme.thumbColor?.resolve(<WidgetState>{}),
-      desktopTheme.fleurState.scrollbarIdle,
-    );
-    expect(
-      desktopTheme.scrollbarTheme.thumbColor?.resolve(<WidgetState>{
-        WidgetState.hovered,
-      }),
-      desktopTheme.fleurState.scrollbarHover,
-    );
-    expect(
-      desktopTheme.scrollbarTheme.thumbColor?.resolve(<WidgetState>{
-        WidgetState.dragged,
-      }),
-      desktopTheme.fleurState.scrollbarDrag,
-    );
-
-    debugFleurTargetPlatformOverride = TargetPlatform.android;
-    final mobileTheme = AppTheme.light();
-    expect(
-      mobileTheme.scrollbarTheme.thumbVisibility?.resolve(<WidgetState>{}),
-      isFalse,
-    );
-    expect(mobileTheme.scrollbarTheme.thickness?.resolve(<WidgetState>{}), 8);
-    expect(desktopTheme.navigationRailTheme.labelType, isNull);
-    expect(desktopTheme.navigationBarTheme.height, isNull);
-    expect(mobileTheme.navigationBarTheme.height, isNull);
-  });
-
-  test('Windows typography uses the shared weight scale', () {
-    debugFleurTargetPlatformOverride = TargetPlatform.windows;
-    addTearDown(() => debugFleurTargetPlatformOverride = null);
-
-    final windowsTheme = AppTheme.light();
-    expect(AppTypography.fontFamily(), 'Segoe UI');
-    expect(
-      AppTypography.fontFallback().first,
-      AppTypography.bundledCjkSansFamily,
-    );
-    expect(AppTypography.fontFallback()[1], 'Microsoft YaHei UI');
-    expect(AppTypography.fontFallback()[2], 'Microsoft YaHei');
-    expect(AppTypography.fontFallback(), isNot(contains('DengXian Light')));
-    expect(windowsTheme.textTheme.titleLarge?.fontWeight, FontWeight.w700);
-    expect(windowsTheme.textTheme.titleMedium?.fontWeight, FontWeight.w600);
-    expect(windowsTheme.fleurReader.titleStyle.fontWeight, FontWeight.w700);
-    expect(windowsTheme.fleurReader.metaStyle.fontWeight, FontWeight.w500);
-
-    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
-    final macTheme = AppTheme.light();
-    expect(AppTypography.fontFamily(), isNull);
-    expect(macTheme.textTheme.titleLarge?.fontWeight, FontWeight.w700);
-    expect(macTheme.textTheme.titleMedium?.fontWeight, FontWeight.w600);
-    expect(macTheme.fleurReader.titleStyle.fontWeight, FontWeight.w700);
-    expect(macTheme.fleurReader.metaStyle.fontWeight, FontWeight.w500);
-    expect(macTheme.fleurReader.metaStyle.fontSize, 12);
-  });
-
-  test('Fleur iconography keeps a restrained optical hierarchy', () {
-    expect(FleurIconMetrics.small, 16);
-    expect(FleurIconMetrics.compact, 18);
-    expect(FleurIconMetrics.standard, 20);
-    expect(FleurIcons.search.fontFamily, 'Lucide');
-    expect(FleurIcons.searchSelected.fontFamily, 'Lucide500');
-    expect(FleurIcons.back.fontFamily, 'Lucide');
-  });
-
-  test('bundled CJK sans font exposes explicit static weight faces', () async {
-    final manifest =
-        jsonDecode(await rootBundle.loadString('FontManifest.json'))
-            as List<dynamic>;
-    final family = manifest.cast<Map<String, dynamic>>().singleWhere(
-      (entry) => entry['family'] == AppTypography.bundledCjkSansFamily,
-    );
-    final fonts = (family['fonts'] as List<dynamic>)
-        .cast<Map<String, dynamic>>();
-
-    expect(fonts.map((font) => font['weight']), [400, 500, 600, 700]);
-    expect(
-      fonts.map((font) => font['asset']),
-      everyElement(isNot(contains('VariableFont'))),
-    );
-  });
-
-  test('Desktop window options hide native chrome for Flutter titlebars', () {
-    addTearDown(() => debugFleurTargetPlatformOverride = null);
-
-    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
-    expect(desktopWindowOptions().titleBarStyle, TitleBarStyle.hidden);
-
-    debugFleurTargetPlatformOverride = TargetPlatform.windows;
-    expect(desktopWindowOptions().titleBarStyle, TitleBarStyle.hidden);
-
-    debugFleurTargetPlatformOverride = TargetPlatform.linux;
-    expect(desktopWindowOptions().titleBarStyle, TitleBarStyle.hidden);
-  });
-
-  test('Reader title scale stays above body text and caps growth', () {
-    final theme = AppTheme.light();
-    final defaultTitle = theme.fleurReader.titleStyleForBodyFontSize(16);
-    final largeTitle = theme.fleurReader.titleStyleForBodyFontSize(28);
-
-    expect(defaultTitle.fontSize, greaterThan(16));
-    expect(largeTitle.fontSize, greaterThan(28));
-    expect(largeTitle.fontSize, lessThanOrEqualTo(40));
-    expect(largeTitle.height, greaterThanOrEqualTo(defaultTitle.height ?? 0));
-  });
-
-  testWidgets('AppScrollbar darkens when hovering the scrollable region', (
-    tester,
-  ) async {
-    debugFleurTargetPlatformOverride = TargetPlatform.windows;
-    addTearDown(() => debugFleurTargetPlatformOverride = null);
-
-    final controller = ScrollController();
-    addTearDown(controller.dispose);
-
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: AppTheme.light(),
-        home: Scaffold(
-          body: SizedBox(
-            width: 240,
-            height: 240,
-            child: AppScrollbar(
-              controller: controller,
-              thumbVisibility: true,
-              interactive: true,
-              child: ListView.builder(
-                controller: controller,
-                itemCount: 50,
-                itemBuilder: (context, index) =>
-                    SizedBox(height: 40, child: Text('Item $index')),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.byType(Scrollbar), findsOneWidget);
-    ScrollbarTheme scrollbarTheme() =>
-        tester.widget<ScrollbarTheme>(find.byType(ScrollbarTheme).first);
-
-    final idleThumbColor = scrollbarTheme().data.thumbColor?.resolve(
-      <WidgetState>{},
-    );
-    final idleThickness = scrollbarTheme().data.thickness?.resolve(
-      <WidgetState>{},
-    );
-
-    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
-    addTearDown(mouse.removePointer);
-    await mouse.addPointer(location: const Offset(1, 1));
-    await mouse.moveTo(tester.getCenter(find.byType(AppScrollbar)));
-    await tester.pumpAndSettle();
-
-    final hoveredThumbColor = scrollbarTheme().data.thumbColor?.resolve(
-      <WidgetState>{},
-    );
-    final draggedThumbColor = scrollbarTheme().data.thumbColor?.resolve(
-      <WidgetState>{WidgetState.dragged},
-    );
-    final hoveredThickness = scrollbarTheme().data.thickness?.resolve(
-      <WidgetState>{},
-    );
-    final theme = Theme.of(tester.element(find.byType(AppScrollbar)));
-
-    expect(idleThumbColor, theme.fleurState.scrollbarIdle);
-    expect(hoveredThumbColor, isNot(idleThumbColor));
-    expect(draggedThumbColor, theme.fleurState.scrollbarDrag);
-    expect(hoveredThickness, idleThickness);
-  });
-
-  testWidgets(
-    'AppScrollbar defers interactive behavior to Flutter by default',
-    (tester) async {
-      debugFleurTargetPlatformOverride = TargetPlatform.windows;
-      addTearDown(() => debugFleurTargetPlatformOverride = null);
-
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light(),
-          home: Scaffold(
-            body: SizedBox(
-              width: 240,
-              height: 240,
-              child: AppScrollbar(
-                child: ListView.builder(
-                  itemCount: 20,
-                  itemBuilder: (context, index) =>
-                      SizedBox(height: 40, child: Text('Item $index')),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.byType(Scrollbar), findsOneWidget);
-      final scrollbar = tester.widget<Scrollbar>(find.byType(Scrollbar).first);
-      expect(scrollbar.controller, isNotNull);
-      expect(scrollbar.interactive, isNull);
-    },
-  );
-
-  testWidgets(
-    'AppScrollbar safely falls back when the child scroll view opts out of primary binding',
-    (tester) async {
-      debugFleurTargetPlatformOverride = TargetPlatform.windows;
-      addTearDown(() => debugFleurTargetPlatformOverride = null);
-
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light(),
-          home: Scaffold(
-            body: SizedBox(
-              width: 240,
-              height: 240,
-              child: AppScrollbar(
-                child: ListView.builder(
-                  primary: false,
-                  itemCount: 20,
-                  itemBuilder: (context, index) =>
-                      SizedBox(height: 40, child: Text('Item $index')),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.byType(Scrollbar), findsOneWidget);
-      final scrollbar = tester.widget<Scrollbar>(find.byType(Scrollbar).first);
-      expect(scrollbar.controller, isNull);
-      expect(scrollbar.thumbVisibility, isFalse);
-      expect(scrollbar.interactive, isFalse);
-    },
-  );
-
   testWidgets('App shell switches between layered sidebar states', (
     tester,
   ) async {
+    final focusManager = FocusManager.instance;
+    final previousStrategy = focusManager.highlightStrategy;
+    focusManager.highlightStrategy = FocusHighlightStrategy.alwaysTraditional;
+    addTearDown(() => focusManager.highlightStrategy = previousStrategy);
     debugFleurTargetPlatformOverride = TargetPlatform.windows;
     addTearDown(() => debugFleurTargetPlatformOverride = null);
     tester.view.devicePixelRatio = 1.0;
@@ -815,7 +391,7 @@ void main() {
 
     tester.view.physicalSize = const Size(1200, 900);
     addTearDown(tester.view.resetPhysicalSize);
-    await tester.pumpWidget(_buildShellHarness());
+    await tester.pumpWidget(buildShellHarness());
     await tester.pumpAndSettle();
     final theme = AppTheme.light();
 
@@ -902,7 +478,7 @@ void main() {
       ),
       findsNothing,
     );
-    _expectWorkspaceSurfaceAppearance(
+    expectWorkspaceSurfaceAppearance(
       tester,
       const Key('app_shell_content_layer'),
       borderRadius: kConnectedWorkspaceLayerRadius,
@@ -1040,7 +616,7 @@ void main() {
       tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
       kTitleBarExpectedSidebarRailWidth,
     );
-    _expectWorkspaceSurfaceAppearance(
+    expectWorkspaceSurfaceAppearance(
       tester,
       const Key('app_shell_content_layer'),
       borderRadius: kConnectedWorkspaceLayerRadius,
@@ -1125,7 +701,7 @@ void main() {
     );
 
     tester.view.physicalSize = const Size(640, 900);
-    await tester.pumpWidget(_buildShellHarness());
+    await tester.pumpWidget(buildShellHarness());
     await tester.pumpAndSettle();
 
     expect(find.byType(NavigationRail), findsNothing);
@@ -1168,7 +744,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetPhysicalSize);
 
-    await tester.pumpWidget(_buildShellHarness());
+    await tester.pumpWidget(buildShellHarness());
     await tester.pumpAndSettle();
 
     final contentLayer = find.byKey(const Key('app_shell_content_layer'));
@@ -1235,7 +811,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
 
     await tester.pumpWidget(
-      _buildShellHarness(
+      buildShellHarness(
         mediaQueryData: const MediaQueryData(disableAnimations: true),
       ),
     );
@@ -1264,7 +840,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetPhysicalSize);
 
-    await tester.pumpWidget(_buildShellHarness());
+    await tester.pumpWidget(buildShellHarness());
     await tester.pumpAndSettle();
 
     final contentLayer = find.byKey(const Key('app_shell_content_layer'));
@@ -1286,57 +862,6 @@ void main() {
     expect(tester.getSize(contentLayer).width, 467);
   });
 
-  testWidgets('Windows shell keeps update and search actions in titlebar', (
-    tester,
-  ) async {
-    debugFleurTargetPlatformOverride = TargetPlatform.windows;
-    addTearDown(() => debugFleurTargetPlatformOverride = null);
-    tester.view.devicePixelRatio = 1.0;
-    tester.view.physicalSize = const Size(1200, 900);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    addTearDown(tester.view.resetPhysicalSize);
-
-    await tester.pumpWidget(
-      _buildShellHarness(
-        overrides: [
-          appUpdateControllerProvider.overrideWith(
-            () => _TestAppUpdateController(
-              AppUpdateState(
-                status: AppUpdateStatus.updateAvailable,
-                manifest: _buildUpdateManifest(),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
-    expect(find.byKey(const Key('shell_update_button')), findsOneWidget);
-    expect(find.byKey(const Key('shell_window_close_button')), findsOneWidget);
-    expect(find.byKey(const Key('sidebar_update_button')), findsNothing);
-    expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
-
-    await tester.tap(find.byKey(const Key('shell_sidebar_button')));
-    await tester.pump();
-
-    expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
-    expect(find.byKey(const Key('shell_update_button')), findsOneWidget);
-    expect(find.byKey(const Key('sidebar_update_button')), findsNothing);
-    expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
-    expect(find.byKey(const Key('app_shell_connected_rail')), findsOneWidget);
-    expect(find.byKey(const Key('app_shell_rail_overlay')), findsNothing);
-    expect(
-      find.byKey(const Key('sidebar_collapsed_rail_surface')),
-      findsNothing,
-    );
-    expect(
-      find.byKey(const Key('sidebar_collapsed_rail_divider')),
-      findsOneWidget,
-    );
-  });
-
   testWidgets('Windows home header actions stay in the content header', (
     tester,
   ) async {
@@ -1348,7 +873,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
 
     await tester.pumpWidget(
-      _buildShellHarness(
+      buildShellHarness(
         currentUri: Uri(path: '/all'),
         child: const HomeScreen(selectedArticleId: null),
         overrides: [
@@ -1412,136 +937,6 @@ void main() {
     );
   });
 
-  testWidgets('macOS narrow expanded sidebar shows update as icon only', (
-    tester,
-  ) async {
-    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
-    addTearDown(() => debugFleurTargetPlatformOverride = null);
-    tester.view.devicePixelRatio = 1.0;
-    tester.view.physicalSize = const Size(1200, 900);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    addTearDown(tester.view.resetPhysicalSize);
-
-    await tester.pumpWidget(
-      _buildShellHarness(
-        overrides: [
-          appUpdateControllerProvider.overrideWith(
-            () => _TestAppUpdateController(
-              AppUpdateState(
-                status: AppUpdateStatus.updateAvailable,
-                manifest: _buildUpdateManifest(),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('shell_update_button')), findsNothing);
-    expect(find.byKey(const Key('sidebar_update_button')), findsOneWidget);
-    expect(
-      find.descendant(
-        of: find.byKey(const Key('sidebar_update_button')),
-        matching: find.text('Update'),
-      ),
-      findsNothing,
-    );
-    expect(
-      find.descendant(
-        of: find.byKey(const Key('sidebar_update_button')),
-        matching: find.byIcon(FleurIcons.download),
-      ),
-      findsOneWidget,
-    );
-  });
-
-  testWidgets('macOS wide expanded sidebar shows update as text', (
-    tester,
-  ) async {
-    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
-    addTearDown(() => debugFleurTargetPlatformOverride = null);
-    tester.view.devicePixelRatio = 1.0;
-    tester.view.physicalSize = const Size(1200, 900);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    addTearDown(tester.view.resetPhysicalSize);
-
-    await tester.pumpWidget(
-      _buildShellHarness(
-        overrides: [
-          workspaceSidebarWidthProvider.overrideWith(
-            (ref) => kMaxWorkspaceSidebarWidth,
-          ),
-          appUpdateControllerProvider.overrideWith(
-            () => _TestAppUpdateController(
-              AppUpdateState(
-                status: AppUpdateStatus.updateAvailable,
-                manifest: _buildUpdateManifest(),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('shell_update_button')), findsNothing);
-    expect(find.byKey(const Key('sidebar_update_button')), findsOneWidget);
-    expect(
-      find.descendant(
-        of: find.byKey(const Key('sidebar_update_button')),
-        matching: find.text('Update'),
-      ),
-      findsOneWidget,
-    );
-  });
-
-  testWidgets('Linux shell uses titlebar controls and a plain collapsed rail', (
-    tester,
-  ) async {
-    debugFleurTargetPlatformOverride = TargetPlatform.linux;
-    addTearDown(() => debugFleurTargetPlatformOverride = null);
-    tester.view.devicePixelRatio = 1.0;
-    tester.view.physicalSize = const Size(1200, 900);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    addTearDown(tester.view.resetPhysicalSize);
-
-    await tester.pumpWidget(_buildShellHarness());
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
-    expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
-    expect(find.byKey(const Key('shell_window_close_button')), findsOneWidget);
-    _expectWorkspaceSurfaceAppearance(
-      tester,
-      const Key('app_shell_content_layer'),
-      borderRadius: kConnectedWorkspaceLayerRadius,
-      showShadow: false,
-      leadingEdge: WorkspaceLayerEdge.none,
-    );
-
-    await tester.tap(find.byKey(const Key('shell_sidebar_button')));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
-    expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
-    expect(
-      find.byKey(const Key('sidebar_collapsed_rail_surface')),
-      findsNothing,
-    );
-    expect(
-      find.byKey(const Key('sidebar_collapsed_rail_divider')),
-      findsOneWidget,
-    );
-    _expectWorkspaceSurfaceAppearance(
-      tester,
-      const Key('app_shell_content_layer'),
-      borderRadius: kConnectedWorkspaceLayerRadius,
-      showShadow: false,
-      leadingEdge: WorkspaceLayerEdge.none,
-    );
-  });
-
   testWidgets('App shell utility routes drive sidebar active states', (
     tester,
   ) async {
@@ -1561,7 +956,7 @@ void main() {
     }
 
     await tester.pumpWidget(
-      _buildShellHarness(
+      buildShellHarness(
         currentUri: Uri.parse('/search/article/42?q=claude&scope=all'),
       ),
     );
@@ -1580,7 +975,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      _buildShellHarness(
+      buildShellHarness(
         currentUri: Uri.parse('/add-subscription?categoryId=7'),
       ),
     );
@@ -1603,55 +998,6 @@ void main() {
     );
   });
 
-  testWidgets('Windows shell titlebar sits above shifted workspace content', (
-    tester,
-  ) async {
-    debugFleurTargetPlatformOverride = TargetPlatform.windows;
-    addTearDown(() => debugFleurTargetPlatformOverride = null);
-    tester.view.devicePixelRatio = 1.0;
-    tester.view.physicalSize = const Size(1200, 900);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    addTearDown(tester.view.resetPhysicalSize);
-
-    await tester.pumpWidget(
-      _buildShellHarness(
-        child: const Column(
-          children: [
-            SizedBox(
-              key: Key('home_scope_header'),
-              height: kWorkspaceHeaderHeight,
-            ),
-            Expanded(
-              child: ColoredBox(
-                key: Key('app_shell_child'),
-                color: Colors.transparent,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    final shellCenter = tester
-        .getCenter(find.byKey(const Key('shell_sidebar_button')))
-        .dy;
-    final shellCenterX = tester
-        .getCenter(find.byKey(const Key('shell_sidebar_button')))
-        .dx;
-    final headerTop = tester
-        .getTopLeft(find.byKey(const Key('home_scope_header')))
-        .dy;
-    final headerCenter = tester
-        .getCenter(find.byKey(const Key('home_scope_header')))
-        .dy;
-
-    expect(shellCenter, kWorkspaceHeaderHeight / 2);
-    expect(shellCenterX, kTitleBarExpectedSidebarRailWidth / 2);
-    expect(headerTop, kWorkspaceHeaderHeight);
-    expect(headerCenter, kWorkspaceHeaderHeight + kWorkspaceHeaderHeight / 2);
-  });
-
   testWidgets('App shell sidebar split handle resizes the content layer', (
     tester,
   ) async {
@@ -1662,7 +1008,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetPhysicalSize);
 
-    await tester.pumpWidget(_buildShellHarness());
+    await tester.pumpWidget(buildShellHarness());
     await tester.pumpAndSettle();
 
     final initialContentLeft = tester
@@ -1701,7 +1047,7 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       addTearDown(tester.view.resetPhysicalSize);
 
-      await tester.pumpWidget(_buildShellHarness());
+      await tester.pumpWidget(buildShellHarness());
       await tester.pumpAndSettle();
 
       final handle = find.byKey(const Key('app_shell_sidebar_split_handle'));
@@ -1743,7 +1089,7 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       addTearDown(tester.view.resetPhysicalSize);
 
-      await tester.pumpWidget(_buildShellHarness());
+      await tester.pumpWidget(buildShellHarness());
       await tester.pumpAndSettle();
 
       await tester.drag(
@@ -1786,7 +1132,7 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       addTearDown(tester.view.resetPhysicalSize);
 
-      await tester.pumpWidget(_buildShellHarness());
+      await tester.pumpWidget(buildShellHarness());
       await tester.pumpAndSettle();
 
       final handle = find.byKey(const Key('app_shell_sidebar_split_handle'));
@@ -1829,7 +1175,7 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       addTearDown(tester.view.resetPhysicalSize);
 
-      await tester.pumpWidget(_buildShellHarness());
+      await tester.pumpWidget(buildShellHarness());
       await tester.pumpAndSettle();
 
       final handle = find.byKey(const Key('app_shell_sidebar_split_handle'));
@@ -1862,99 +1208,6 @@ void main() {
     },
   );
 
-  testWidgets('Windows connected rail gives content headers their full width', (
-    tester,
-  ) async {
-    debugFleurTargetPlatformOverride = TargetPlatform.windows;
-    addTearDown(() => debugFleurTargetPlatformOverride = null);
-    tester.view.devicePixelRatio = 1.0;
-    tester.view.physicalSize = const Size(1200, 900);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    addTearDown(tester.view.resetPhysicalSize);
-
-    await tester.pumpWidget(
-      _buildShellHarness(
-        child: Column(
-          children: [
-            WorkspaceHeader(
-              title: 'All Articles',
-              trailingWidth: kShellControlSize,
-              trailing: const SizedBox.square(
-                dimension: kShellControlSize,
-                key: Key('rail_clear_trailing'),
-              ),
-            ),
-            Builder(
-              builder: (context) {
-                final scope = ShellLayerScope.maybeOf(context);
-                return Text(
-                  'leading:${scope?.contentLeadingInset}',
-                  key: const Key('content_leading_inset_probe'),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const Key('shell_sidebar_button')));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('app_shell_rail_overlay')), findsNothing);
-    expect(find.byKey(const Key('app_shell_connected_rail')), findsOneWidget);
-    expect(
-      tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
-      kTitleBarExpectedSidebarRailWidth,
-    );
-    expect(find.text('leading:0.0'), findsOneWidget);
-  });
-
-  testWidgets('App shell keeps macOS traffic lights clear of sidebar items', (
-    tester,
-  ) async {
-    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
-    addTearDown(() => debugFleurTargetPlatformOverride = null);
-    tester.view.devicePixelRatio = 1.0;
-    tester.view.physicalSize = const Size(1200, 900);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    addTearDown(tester.view.resetPhysicalSize);
-
-    await tester.pumpWidget(_buildShellHarness());
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('shell_title_bar')), findsNothing);
-    expect(find.byKey(const Key('shell_window_close_button')), findsNothing);
-
-    final allButtonTop = tester
-        .getTopLeft(find.byKey(const Key('sidebar_all_button')))
-        .dy;
-    final shellButtonLeft = tester
-        .getTopLeft(find.byKey(const Key('shell_sidebar_button')))
-        .dx;
-    final shellButtonTop = tester
-        .getTopLeft(find.byKey(const Key('shell_sidebar_button')))
-        .dy;
-    final shellButtonCenter = tester
-        .getCenter(find.byKey(const Key('shell_sidebar_button')))
-        .dy;
-
-    expect(kMacOSTrafficLightTargetCenterY, kWorkspaceHeaderHeight / 2);
-    expect(shellButtonLeft, greaterThanOrEqualTo(kMacOSTrafficLightSafeInset));
-    expect(shellButtonTop, kMacOSShellControlTopInset);
-    expect(shellButtonCenter, kMacOSTrafficLightTargetCenterY);
-    expect(
-      tester.getSize(find.byKey(const Key('shell_sidebar_button'))),
-      const Size.square(kShellControlSize),
-    );
-    expect(allButtonTop, greaterThanOrEqualTo(kWorkspaceHeaderHeight));
-    expect(
-      tester.getSize(find.byKey(const Key('app_shell_child'))).height,
-      900,
-    );
-  });
-
   testWidgets('macOS sidebar collapses with one click after re-expanding', (
     tester,
   ) async {
@@ -1965,7 +1218,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetPhysicalSize);
 
-    await tester.pumpWidget(_buildShellHarness());
+    await tester.pumpWidget(buildShellHarness());
     await tester.pumpAndSettle();
     final sidebarState = tester.state(find.byType(Sidebar));
     final expandedRailAnchor = tester.getCenter(
@@ -2019,228 +1272,6 @@ void main() {
     expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
   });
 
-  testWidgets('App shell follows macOS traffic light metrics', (tester) async {
-    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
-    addTearDown(() => debugFleurTargetPlatformOverride = null);
-    tester.view.devicePixelRatio = 1.0;
-    tester.view.physicalSize = const Size(1200, 900);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    addTearDown(tester.view.resetPhysicalSize);
-
-    await tester.pumpWidget(
-      _buildShellHarness(
-        overrides: [
-          macOSWindowChromeMetricsProvider.overrideWith(
-            (ref) => const MacOSWindowChromeMetrics(
-              trafficLightsVisible: true,
-              centerY: 26,
-              safeInset: 96,
-              isFullScreen: false,
-            ),
-          ),
-        ],
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    final shellButtonLeft = tester
-        .getTopLeft(find.byKey(const Key('shell_sidebar_button')))
-        .dx;
-    final shellButtonTop = tester
-        .getTopLeft(find.byKey(const Key('shell_sidebar_button')))
-        .dy;
-    final shellButtonCenter = tester
-        .getCenter(find.byKey(const Key('shell_sidebar_button')))
-        .dy;
-    final shellSearchCenter = tester
-        .getCenter(find.byKey(const Key('shell_search_button')))
-        .dy;
-
-    expect(shellButtonLeft, 96);
-    expect(shellButtonTop, 26 - (kShellControlSize / 2));
-    expect(shellButtonCenter, 26);
-    expect(shellSearchCenter, 26);
-  });
-
-  testWidgets(
-    'App shell returns inline controls to the leading edge fullscreen',
-    (tester) async {
-      debugFleurTargetPlatformOverride = TargetPlatform.macOS;
-      addTearDown(() => debugFleurTargetPlatformOverride = null);
-      tester.view.devicePixelRatio = 1.0;
-      tester.view.physicalSize = const Size(1200, 900);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      addTearDown(tester.view.resetPhysicalSize);
-
-      await tester.pumpWidget(
-        _buildShellHarness(
-          overrides: [
-            macOSWindowChromeMetricsProvider.overrideWith(
-              (ref) => const MacOSWindowChromeMetrics(
-                trafficLightsVisible: false,
-                centerY: kMacOSTrafficLightTargetCenterY,
-                safeInset: 0,
-                isFullScreen: true,
-              ),
-            ),
-          ],
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      final shellButtonLeft = tester
-          .getTopLeft(find.byKey(const Key('shell_sidebar_button')))
-          .dx;
-      final shellButtonCenter = tester
-          .getCenter(find.byKey(const Key('shell_sidebar_button')))
-          .dy;
-
-      expect(shellButtonLeft, 12);
-      expect(shellButtonCenter, kMacOSTrafficLightTargetCenterY);
-    },
-  );
-
-  testWidgets('App shell fullscreen controls respect click-safe top inset', (
-    tester,
-  ) async {
-    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
-    addTearDown(() => debugFleurTargetPlatformOverride = null);
-    tester.view.devicePixelRatio = 1.0;
-    tester.view.physicalSize = const Size(1200, 900);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    addTearDown(tester.view.resetPhysicalSize);
-
-    await tester.pumpWidget(
-      _buildShellHarness(
-        overrides: [
-          macOSWindowChromeMetricsProvider.overrideWith(
-            (ref) => const MacOSWindowChromeMetrics(
-              trafficLightsVisible: false,
-              centerY: kMacOSTrafficLightTargetCenterY,
-              safeInset: 0,
-              isFullScreen: true,
-              clickSafeTopInset: 12,
-            ),
-          ),
-        ],
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(
-      tester.getTopLeft(find.byKey(const Key('shell_sidebar_button'))).dx,
-      12,
-    );
-    expect(
-      tester.getTopLeft(find.byKey(const Key('shell_sidebar_button'))).dy,
-      12,
-    );
-  });
-
-  testWidgets(
-    'App shell returns narrow layered controls to the leading edge fullscreen',
-    (tester) async {
-      debugFleurTargetPlatformOverride = TargetPlatform.macOS;
-      addTearDown(() => debugFleurTargetPlatformOverride = null);
-      tester.view.devicePixelRatio = 1.0;
-      tester.view.physicalSize = const Size(640, 900);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      addTearDown(tester.view.resetPhysicalSize);
-
-      await tester.pumpWidget(
-        _buildShellHarness(
-          overrides: [
-            macOSWindowChromeMetricsProvider.overrideWith(
-              (ref) => const MacOSWindowChromeMetrics(
-                trafficLightsVisible: false,
-                centerY: kMacOSTrafficLightTargetCenterY,
-                safeInset: 0,
-                isFullScreen: true,
-              ),
-            ),
-          ],
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.byKey(const Key('shell_drawer_controls')), findsNothing);
-      expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
-      expect(find.byKey(const Key('app_shell_rail_overlay')), findsOneWidget);
-      expect(
-        find.byKey(const Key('sidebar_collapsed_rail_surface')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const Key('sidebar_collapsed_rail_divider')),
-        findsNothing,
-      );
-      _expectWorkspaceSurfaceAppearance(
-        tester,
-        const Key('app_shell_content_layer'),
-        borderRadius: kWorkspaceLayerRadius,
-        showShadow: true,
-        leadingEdge: WorkspaceLayerEdge.level1,
-      );
-
-      final shellButtonLeft = tester
-          .getTopLeft(find.byKey(const Key('shell_sidebar_button')))
-          .dx;
-
-      expect(shellButtonLeft, 12);
-    },
-  );
-
-  testWidgets('App shell keeps window controls on dedicated reader pages', (
-    tester,
-  ) async {
-    debugFleurTargetPlatformOverride = TargetPlatform.windows;
-    addTearDown(() => debugFleurTargetPlatformOverride = null);
-    tester.view.devicePixelRatio = 1.0;
-    tester.view.physicalSize = const Size(640, 900);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    addTearDown(tester.view.resetPhysicalSize);
-
-    await tester.pumpWidget(
-      _buildShellHarness(currentUri: Uri(path: '/all/article/42')),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
-    expect(find.byKey(const Key('shell_drawer_controls')), findsNothing);
-    expect(find.byKey(const Key('shell_sidebar_button')), findsOneWidget);
-    expect(find.byKey(const Key('shell_back_button')), findsOneWidget);
-    expect(find.byKey(const Key('shell_forward_button')), findsOneWidget);
-    expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
-    expect(find.byKey(const Key('shell_window_close_button')), findsOneWidget);
-    expect(find.byType(Sidebar), findsNothing);
-    expect(find.byKey(const Key('app_shell_child')), findsOneWidget);
-
-    final titleBarLeft = tester
-        .getTopLeft(find.byKey(const Key('shell_title_bar')))
-        .dx;
-    await tester.tap(find.byKey(const Key('shell_sidebar_button')));
-    await tester.pumpAndSettle();
-
-    expect(find.byType(Sidebar), findsOneWidget);
-    expect(find.byKey(const Key('app_shell_navigation_scrim')), findsOneWidget);
-    expect(
-      tester.getTopLeft(find.byKey(const Key('app_shell_secondary_layer'))).dx,
-      kTemporaryWorkspaceSidebarWidth,
-    );
-    expect(
-      tester.getTopLeft(find.byKey(const Key('shell_title_bar'))).dx,
-      titleBarLeft,
-    );
-
-    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-    await tester.pumpAndSettle();
-    expect(find.byType(Sidebar), findsNothing);
-    expect(
-      tester.getTopLeft(find.byKey(const Key('app_shell_secondary_layer'))).dx,
-      0,
-    );
-  });
-
   testWidgets('Content-only reader pages retain off-canvas navigation', (
     tester,
   ) async {
@@ -2252,7 +1283,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
 
     await tester.pumpWidget(
-      _buildShellHarness(currentUri: Uri(path: '/all/article/42')),
+      buildShellHarness(currentUri: Uri(path: '/all/article/42')),
     );
     await tester.pumpAndSettle();
 
@@ -2287,7 +1318,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
 
       await tester.pumpWidget(
-        _buildShellHarness(currentUri: Uri(path: '/all/article/42')),
+        buildShellHarness(currentUri: Uri(path: '/all/article/42')),
       );
       await tester.pump();
 
@@ -2321,7 +1352,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
 
       await tester.pumpWidget(
-        _buildShellHarness(
+        buildShellHarness(
           currentUri: Uri(path: '/all/article/42'),
           overrides: [
             workspaceSidebarWidthProvider.overrideWith(
@@ -4174,6 +3205,10 @@ void main() {
   testWidgets(
     'Article list item reflects selected, unread, and starred states',
     (tester) async {
+      final focusManager = FocusManager.instance;
+      final previousStrategy = focusManager.highlightStrategy;
+      focusManager.highlightStrategy = FocusHighlightStrategy.alwaysTraditional;
+      addTearDown(() => focusManager.highlightStrategy = previousStrategy);
       final feed = _buildFeed();
       final article = _buildArticle(isRead: false, isStarred: true)
         ..contentHtml =
@@ -4259,6 +3294,10 @@ void main() {
   testWidgets('Article list item shows hover actions and calls services', (
     tester,
   ) async {
+    final focusManager = FocusManager.instance;
+    final previousStrategy = focusManager.highlightStrategy;
+    focusManager.highlightStrategy = FocusHighlightStrategy.alwaysTraditional;
+    addTearDown(() => focusManager.highlightStrategy = previousStrategy);
     final feed = _buildFeed();
     final article = _buildArticle(id: 42, isRead: false, isStarred: false);
     final actions = RecordingArticleActionService();
