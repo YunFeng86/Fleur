@@ -6,6 +6,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fleur/services/logging/app_logger.dart';
+import 'package:fleur/services/persistence/durable_json_store.dart';
 import 'package:fleur/services/sync/outbox/outbox_store.dart';
 import 'package:fleur/utils/path_manager.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
@@ -131,6 +132,57 @@ void main() {
     },
   );
 
+  test(
+    'OutboxStore compacts numeric remote entry IDs to the last intent',
+    () async {
+      final store = OutboxStore();
+      const accountId = 'acc_numeric_compaction';
+      final ts = DateTime.utc(2026, 2, 9, 12);
+
+      await store.save(accountId, <OutboxAction>[
+        OutboxAction(
+          type: OutboxActionType.markRead,
+          remoteEntryId: 42,
+          value: true,
+          createdAt: ts,
+        ),
+        OutboxAction(
+          type: OutboxActionType.markRead,
+          remoteEntryId: 42,
+          value: false,
+          createdAt: ts.add(const Duration(seconds: 1)),
+        ),
+        OutboxAction(
+          type: OutboxActionType.bookmark,
+          remoteEntryId: 42,
+          value: true,
+          createdAt: ts,
+        ),
+        OutboxAction(
+          type: OutboxActionType.bookmark,
+          remoteEntryId: 42,
+          value: false,
+          createdAt: ts.add(const Duration(seconds: 2)),
+        ),
+      ]);
+
+      final loaded = await store.load(accountId);
+      expect(loaded, hasLength(2));
+      expect(
+        loaded
+            .singleWhere((action) => action.type == OutboxActionType.markRead)
+            .value,
+        isFalse,
+      );
+      expect(
+        loaded
+            .singleWhere((action) => action.type == OutboxActionType.bookmark)
+            .value,
+        isFalse,
+      );
+    },
+  );
+
   test('OutboxStore recovers from .bak when primary is corrupted', () async {
     final store = OutboxStore();
     const accountId = 'acc_bak';
@@ -164,6 +216,15 @@ void main() {
     final raw = await primary.readAsString(encoding: utf8);
     final decoded = jsonDecode(raw);
     expect(decoded, isA<List>());
+    final backupDecoded = jsonDecode(await bak.readAsString());
+    expect(backupDecoded, isA<List>());
+    final backupAction = (backupDecoded as List<Object?>).single;
+    expect(
+      OutboxAction.fromJson(
+        (backupAction as Map).cast<String, Object?>(),
+      ).remoteEntryId,
+      42,
+    );
   });
 
   test('OutboxStore recovers from .tmp when primary is corrupted', () async {
@@ -198,44 +259,108 @@ void main() {
     expect(await tmp.exists(), isFalse);
   });
 
-  test('OutboxStore logs when all recovery files are damaged', () async {
-    await AppLogger.ensureInitialized();
-    final store = OutboxStore();
-    const accountId = 'acc_damaged';
+  test(
+    'OutboxStore skips a malformed tmp and recovers the valid backup',
+    () async {
+      final store = OutboxStore();
+      const accountId = 'acc_malformed_tmp';
+      final stateDir = await PathManager.getStateDir();
+      final primary = File(
+        '${stateDir.path}${Platform.pathSeparator}outbox_$accountId.json',
+      );
+      final tmp = File('${primary.path}.tmp');
+      final bak = File('${primary.path}.bak');
+      final action = OutboxAction(
+        type: OutboxActionType.bookmark,
+        remoteEntryId: 73,
+        value: true,
+        createdAt: DateTime.utc(2026, 2, 10, 9, 15),
+      );
+      final backupRaw = jsonEncode(<Object?>[action.toJson()]);
 
-    final stateDir = await PathManager.getStateDir();
-    final primary = File(
-      '${stateDir.path}${Platform.pathSeparator}outbox_$accountId.json',
-    );
-    final tmp = File('${primary.path}.tmp');
-    final bak = File('${primary.path}.bak');
+      await primary.writeAsString('[', encoding: utf8);
+      await tmp.writeAsString(
+        jsonEncode(<Object?>[
+          <String, Object?>{
+            'type': 'unknown',
+            'createdAt': DateTime.utc(2026, 2, 10, 9, 16).toIso8601String(),
+          },
+        ]),
+        encoding: utf8,
+      );
+      await bak.writeAsString(backupRaw, encoding: utf8);
 
-    await primary.writeAsString(
-      '[{"feedUrl":"https://feeds.example.com/rss?token=secret"',
-      encoding: utf8,
-    );
-    await tmp.writeAsString(
-      '{"categoryTitle":"Private Category"',
-      encoding: utf8,
-    );
-    await bak.writeAsString('"not a list"', encoding: utf8);
+      final loaded = await store.load(accountId);
 
-    final loaded = await store.load(accountId);
-    final contents = await _readActiveLog();
+      expect(loaded, hasLength(1));
+      expect(loaded.single.remoteEntryId, 73);
+      expect(await primary.readAsString(), backupRaw);
+      expect(await bak.readAsString(), backupRaw);
+      expect(await tmp.exists(), isFalse);
+    },
+  );
 
-    expect(loaded, isEmpty);
-    expect(contents, contains('[W] [outbox] Outbox recovery failed'));
-    expect(contents, contains('accountId=$accountId'));
-    expect(contents, contains('operation=recover'));
-    expect(contents, contains('primaryExists=true'));
-    expect(contents, contains('tmpExists=true'));
-    expect(contents, contains('bakExists=true'));
-    expect(contents, isNot(contains('token=secret')));
-    expect(contents, isNot(contains('Private Category')));
-    expect(contents, isNot(contains(stateDir.path)));
-  });
+  test(
+    'OutboxStore fails closed when all recovery files are damaged',
+    () async {
+      await AppLogger.ensureInitialized();
+      final store = OutboxStore();
+      const accountId = 'acc_damaged';
 
-  test('OutboxStore logs malformed entries without action details', () async {
+      final stateDir = await PathManager.getStateDir();
+      final primary = File(
+        '${stateDir.path}${Platform.pathSeparator}outbox_$accountId.json',
+      );
+      final tmp = File('${primary.path}.tmp');
+      final bak = File('${primary.path}.bak');
+
+      await primary.writeAsString(
+        '[{"feedUrl":"https://feeds.example.com/rss?token=secret"',
+        encoding: utf8,
+      );
+      await tmp.writeAsString(
+        '{"categoryTitle":"Private Category"',
+        encoding: utf8,
+      );
+      await bak.writeAsString('"not a list"', encoding: utf8);
+
+      final primaryRaw = await primary.readAsString();
+      final temporaryRaw = await tmp.readAsString();
+      final backupRaw = await bak.readAsString();
+      await expectLater(
+        store.load(accountId),
+        throwsA(isA<OutboxReadException>()),
+      );
+      await expectLater(
+        store.enqueue(
+          accountId,
+          OutboxAction(
+            type: OutboxActionType.markRead,
+            remoteEntryId: 42,
+            value: true,
+            createdAt: DateTime.utc(2026, 2, 10, 9, 30),
+          ),
+        ),
+        throwsA(isA<OutboxReadException>()),
+      );
+      final contents = await _readActiveLog();
+
+      expect(await primary.readAsString(), primaryRaw);
+      expect(await tmp.readAsString(), temporaryRaw);
+      expect(await bak.readAsString(), backupRaw);
+      expect(contents, contains('[W] [outbox] Outbox recovery failed'));
+      expect(contents, contains('accountId=$accountId'));
+      expect(contents, contains('operation=recover'));
+      expect(contents, contains('primaryExists=true'));
+      expect(contents, contains('tmpExists=true'));
+      expect(contents, contains('bakExists=true'));
+      expect(contents, isNot(contains('token=secret')));
+      expect(contents, isNot(contains('Private Category')));
+      expect(contents, isNot(contains(stateDir.path)));
+    },
+  );
+
+  test('OutboxStore fails closed on malformed action entries', () async {
     await AppLogger.ensureInitialized();
     final store = OutboxStore();
     const accountId = 'acc_malformed';
@@ -245,29 +370,33 @@ void main() {
       '${stateDir.path}${Platform.pathSeparator}outbox_$accountId.json',
     );
     final ts = DateTime.utc(2026, 2, 10, 10, 0, 0);
-    await primary.writeAsString(
-      jsonEncode([
-        OutboxAction(
-          type: OutboxActionType.markRead,
-          remoteEntryId: 42,
-          value: true,
-          createdAt: ts,
-        ).toJson(),
-        {
-          'type': 'unknown',
-          'feedUrl': 'https://feeds.example.com/rss?token=secret',
-          'categoryTitle': 'Private Category',
-          'createdAt': ts.toIso8601String(),
-        },
-      ]),
-      encoding: utf8,
-    );
+    final raw = jsonEncode([
+      OutboxAction(
+        type: OutboxActionType.markRead,
+        remoteEntryId: 42,
+        value: true,
+        createdAt: ts,
+      ).toJson(),
+      {
+        'type': 'unknown',
+        'feedUrl': 'https://feeds.example.com/rss?token=secret',
+        'categoryTitle': 'Private Category',
+        'createdAt': ts.toIso8601String(),
+      },
+    ]);
+    await primary.writeAsString(raw, encoding: utf8);
 
-    final loaded = await store.load(accountId);
+    await expectLater(
+      store.load(accountId),
+      throwsA(isA<OutboxReadException>()),
+    );
     final contents = await _readActiveLog();
 
-    expect(loaded, hasLength(1));
-    expect(contents, contains('[W] [outbox] Outbox malformed entries skipped'));
+    expect(await primary.readAsString(), raw);
+    expect(
+      contents,
+      contains('[W] [outbox] Outbox malformed entries detected'),
+    );
     expect(contents, contains('accountId=$accountId'));
     expect(contents, contains('operation=load'));
     expect(contents, contains('malformedEntryCount=1'));
@@ -276,42 +405,165 @@ void main() {
   });
 
   test(
-    'OutboxStore logs failed writes without feed or category text',
+    'OutboxStore fails closed and retains tmp when recovery cannot commit',
     () async {
-      await AppLogger.ensureInitialized();
       final store = OutboxStore();
-      const accountId = 'acc_unwritable';
-
+      const accountId = 'acc_tmp_recovery_write_failure';
       final stateDir = await PathManager.getStateDir();
       final primaryPath =
           '${stateDir.path}${Platform.pathSeparator}outbox_$accountId.json';
-      await Directory(primaryPath).create(recursive: true);
-      await Directory('$primaryPath.tmp').create(recursive: true);
+      final primaryDirectory = await Directory(primaryPath).create();
+      final tmp = File('$primaryPath.tmp');
+      final action = OutboxAction(
+        type: OutboxActionType.bookmark,
+        remoteEntryId: 7,
+        value: true,
+        createdAt: DateTime.utc(2026, 2, 10, 10, 30),
+      );
+      final raw = jsonEncode(<Object?>[action.toJson()]);
+      await tmp.writeAsString(raw, encoding: utf8);
 
-      await store.save(accountId, [
+      await expectLater(
+        store.load(accountId),
+        throwsA(isA<OutboxReadException>()),
+      );
+
+      expect(await primaryDirectory.exists(), isTrue);
+      expect(await tmp.exists(), isTrue);
+      expect(await tmp.readAsString(), raw);
+    },
+  );
+
+  test('OutboxStore preserves the primary when temp staging fails', () async {
+    await AppLogger.ensureInitialized();
+    final store = OutboxStore();
+    const accountId = 'acc_unwritable';
+
+    final stateDir = await PathManager.getStateDir();
+    final primaryPath =
+        '${stateDir.path}${Platform.pathSeparator}outbox_$accountId.json';
+    final primary = File(primaryPath);
+    final originalAction = OutboxAction(
+      type: OutboxActionType.markRead,
+      remoteEntryId: 41,
+      value: true,
+      createdAt: DateTime.utc(2026, 2, 10, 10, 45),
+    );
+    await store.save(accountId, <OutboxAction>[originalAction]);
+    final originalContents = await primary.readAsString();
+    await Directory('$primaryPath.tmp').create(recursive: true);
+
+    await expectLater(
+      store.enqueue(
+        accountId,
         OutboxAction(
           type: OutboxActionType.markAllRead,
           feedUrl: 'https://feeds.example.com/rss?token=secret',
           categoryTitle: 'Private Category',
           createdAt: DateTime.utc(2026, 2, 10, 11, 0, 0),
         ),
-      ]);
-      final contents = await _readActiveLog();
+      ),
+      throwsA(
+        isA<DurableJsonWriteException>().having(
+          (error) => error.stage,
+          'stage',
+          DurableJsonWriteStage.temporaryWrite,
+        ),
+      ),
+    );
+    final contents = await _readActiveLog();
 
-      expect(contents, contains('[W] [outbox] Outbox temp write failed'));
-      expect(contents, contains('[W] [outbox] Outbox direct write failed'));
-      expect(contents, contains('accountId=$accountId'));
-      expect(contents, contains('actionCount=1'));
-      expect(contents, contains('compactedCount=1'));
-      expect(contents, isNot(contains('token=secret')));
-      expect(contents, isNot(contains('Private Category')));
-      expect(contents, isNot(contains(stateDir.path)));
-    },
-  );
+    expect(await primary.readAsString(), originalContents);
+    final loaded = await store.load(accountId);
+    expect(loaded, hasLength(1));
+    expect(loaded.single.remoteEntryId, 41);
+    expect(contents, contains('[W] [outbox] Outbox write failed'));
+    expect(
+      contents,
+      contains('DurableJsonWriteException(stage=temporaryWrite)'),
+    );
+    expect(contents, contains('accountId=$accountId'));
+    expect(contents, contains('actionCount=2'));
+    expect(contents, contains('compactedCount=2'));
+    expect(contents, isNot(contains('token=secret')));
+    expect(contents, isNot(contains('Private Category')));
+    expect(contents, isNot(contains(stateDir.path)));
+  });
+
+  test('OutboxStore preserves primary when backup rotation fails', () async {
+    final store = OutboxStore(fileSystem: _BackupMoveFailingFileSystem());
+    const accountId = 'acc_backup_failure';
+    final first = OutboxAction(
+      type: OutboxActionType.markRead,
+      remoteEntryId: 91,
+      value: true,
+      createdAt: DateTime.utc(2026, 2, 10, 11, 30),
+    );
+    final second = OutboxAction(
+      type: OutboxActionType.markRead,
+      remoteEntryId: 92,
+      value: true,
+      createdAt: DateTime.utc(2026, 2, 10, 11, 31),
+    );
+    await store.save(accountId, <OutboxAction>[first]);
+    final stateDir = await PathManager.getStateDir();
+    final primary = File(
+      '${stateDir.path}${Platform.pathSeparator}outbox_$accountId.json',
+    );
+    final originalContents = await primary.readAsString();
+
+    await expectLater(
+      store.save(accountId, <OutboxAction>[second]),
+      throwsA(
+        isA<DurableJsonWriteException>().having(
+          (error) => error.stage,
+          'stage',
+          DurableJsonWriteStage.backup,
+        ),
+      ),
+    );
+
+    expect(await primary.readAsString(), originalContents);
+    expect(await File('${primary.path}.tmp').exists(), isFalse);
+    final loaded = await store.load(accountId);
+    expect(loaded, hasLength(1));
+    expect(loaded.single.remoteEntryId, 91);
+  });
 }
 
 Future<String> _readActiveLog() async {
   final logFile = await AppLogger.getActiveLogFile();
   await AppLogger.resetForTests();
   return logFile!.readAsString();
+}
+
+class _BackupMoveFailingFileSystem implements DurableFileSystem {
+  final IoDurableFileSystem _delegate = const IoDurableFileSystem();
+
+  @override
+  Future<void> createParentDirectory(String filePath) {
+    return _delegate.createParentDirectory(filePath);
+  }
+
+  @override
+  Future<void> delete(String path) => _delegate.delete(path);
+
+  @override
+  Future<bool> exists(String path) => _delegate.exists(path);
+
+  @override
+  Future<void> move(String sourcePath, String destinationPath) {
+    if (destinationPath.endsWith('.bak')) {
+      throw FileSystemException('Injected backup move failure');
+    }
+    return _delegate.move(sourcePath, destinationPath);
+  }
+
+  @override
+  Future<String> readAsString(String path) => _delegate.readAsString(path);
+
+  @override
+  Future<void> writeAsString(String path, String contents) {
+    return _delegate.writeAsString(path, contents);
+  }
 }
