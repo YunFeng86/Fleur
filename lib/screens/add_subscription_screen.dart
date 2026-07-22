@@ -107,7 +107,9 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
         if (failure == null) {
           context.showSnack(l10n.subscriptionAddedTitle);
         } else {
-          context.showErrorMessage(_failureMessage(l10n, failure));
+          context.showErrorMessage(
+            _addSubscriptionFailureMessage(l10n, failure),
+          );
         }
         return;
       }
@@ -116,7 +118,7 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
       if (next.phase == AddSubscriptionPhase.error &&
           failure != null &&
           failure != previous?.failure) {
-        context.showErrorMessage(_failureMessage(l10n, failure));
+        context.showErrorMessage(_addSubscriptionFailureMessage(l10n, failure));
       }
     });
 
@@ -182,29 +184,6 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
       body: content,
     );
   }
-
-  String _failureMessage(
-    AppLocalizations l10n,
-    AddSubscriptionFailure failure,
-  ) {
-    return switch (failure.kind) {
-      AddSubscriptionFailureKind.unsupported => l10n.remoteCommandNotSupported,
-      AddSubscriptionFailureKind.validation => l10n.selectCategory,
-      AddSubscriptionFailureKind.noFeedsFound =>
-        '${l10n.noFeedsFound}\n${l10n.noFeedsFoundHint}',
-      AddSubscriptionFailureKind.remoteStructure =>
-        failure.error == null
-            ? l10n.remoteCommandUnavailable
-            : remote_feedback.remoteStructureFailureMessage(
-                l10n,
-                failure.error!,
-              ),
-      AddSubscriptionFailureKind.discovery ||
-      AddSubscriptionFailureKind.category ||
-      AddSubscriptionFailureKind.submit =>
-        failure.error?.toString() ?? l10n.remoteCommandUnavailable,
-    };
-  }
 }
 
 class _AddSubscriptionTask extends ConsumerWidget {
@@ -267,7 +246,9 @@ class _AddSubscriptionTask extends ConsumerWidget {
           ],
           if (failure != null) ...[
             const SizedBox(height: 16),
-            _InlineFailure(message: _failureMessage(l10n, failure)),
+            _InlineFailure(
+              message: _addSubscriptionFailureMessage(l10n, failure),
+            ),
           ],
           if (state.refreshWarning != null) ...[
             const SizedBox(height: 16),
@@ -347,29 +328,26 @@ class _AddSubscriptionTask extends ConsumerWidget {
       AddSubscriptionPhase.error => l10n.addingSubscription,
     };
   }
+}
 
-  String _failureMessage(
-    AppLocalizations l10n,
-    AddSubscriptionFailure failure,
-  ) {
-    return switch (failure.kind) {
-      AddSubscriptionFailureKind.unsupported => l10n.remoteCommandNotSupported,
-      AddSubscriptionFailureKind.validation => l10n.selectCategory,
-      AddSubscriptionFailureKind.noFeedsFound =>
-        '${l10n.noFeedsFound}\n${l10n.noFeedsFoundHint}',
-      AddSubscriptionFailureKind.remoteStructure =>
-        failure.error == null
-            ? l10n.remoteCommandUnavailable
-            : remote_feedback.remoteStructureFailureMessage(
-                l10n,
-                failure.error!,
-              ),
-      AddSubscriptionFailureKind.discovery ||
-      AddSubscriptionFailureKind.category ||
-      AddSubscriptionFailureKind.submit =>
-        failure.error?.toString() ?? l10n.remoteCommandUnavailable,
-    };
-  }
+String _addSubscriptionFailureMessage(
+  AppLocalizations l10n,
+  AddSubscriptionFailure failure,
+) {
+  return switch (failure.kind) {
+    AddSubscriptionFailureKind.unsupported => l10n.remoteCommandNotSupported,
+    AddSubscriptionFailureKind.validation => l10n.selectCategory,
+    AddSubscriptionFailureKind.noFeedsFound =>
+      '${l10n.noFeedsFound}\n${l10n.noFeedsFoundHint}',
+    AddSubscriptionFailureKind.remoteStructure =>
+      failure.error == null
+          ? l10n.remoteCommandUnavailable
+          : remote_feedback.remoteStructureFailureMessage(l10n, failure.error!),
+    AddSubscriptionFailureKind.discovery ||
+    AddSubscriptionFailureKind.category ||
+    AddSubscriptionFailureKind.submit =>
+      failure.error?.toString() ?? l10n.remoteCommandUnavailable,
+  };
 }
 
 class _DiscoveryInput extends StatelessWidget {
