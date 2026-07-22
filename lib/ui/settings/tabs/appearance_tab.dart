@@ -13,9 +13,9 @@ import '../../../theme/fleur_color_engine.dart';
 import '../../../theme/fleur_icons.dart';
 import '../../../theme/fleur_theme_extensions.dart';
 import '../../../theme/seed_color_presets.dart';
-import '../../design_system/design_system.dart';
 import '../appearance/appearance_fonts_page.dart';
 import '../appearance/appearance_preview_options.dart';
+import '../appearance/appearance_theme_color_card.dart';
 import '../settings_targets.dart';
 import '../widgets/settings_controls.dart';
 
@@ -190,7 +190,7 @@ class _AppearanceTabState extends ConsumerState<AppearanceTab> {
                             for (final p in SeedColorPreset.values)
                               Tooltip(
                                 message: seedPresetLabel(p),
-                                child: _ThemeColorCard(
+                                child: AppearanceThemeColorCard(
                                   key: Key(
                                     'appearance_seed_color_${p.name}_card',
                                   ),
@@ -879,144 +879,4 @@ String _lineHeightPresetLabel(
     _ReaderLineHeightPreset.standard => l10n.lineHeightStandard,
     _ReaderLineHeightPreset.relaxed => l10n.lineHeightRelaxed,
   };
-}
-
-class _ThemeColorCard extends StatelessWidget {
-  const _ThemeColorCard({
-    super.key,
-    required this.selected,
-    required this.scheme,
-    required this.onTap,
-    this.semanticLabel,
-  });
-
-  final bool selected;
-  final ColorScheme scheme;
-  final VoidCallback onTap;
-  final String? semanticLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    const tapSize = 72.0;
-    const swatchSize = 54.0;
-    final selectedColor = Theme.of(context).colorScheme.primary;
-    final onSelectedColor = Theme.of(context).colorScheme.onPrimary;
-
-    return Semantics(
-      button: true,
-      selected: selected,
-      label: semanticLabel,
-      child: SizedBox(
-        width: tapSize,
-        height: tapSize,
-        child: Material(
-          type: MaterialType.transparency,
-          child: InkResponse(
-            onTap: onTap,
-            containedInkWell: true,
-            highlightShape: BoxShape.circle,
-            radius: tapSize / 2,
-            child: FleurSelectionTransition(
-              selected: selected,
-              builder: (context, selection, _) {
-                return Stack(
-                  children: [
-                    Center(
-                      child: CustomPaint(
-                        size: const Size.square(swatchSize),
-                        painter: _SchemeSwatchPainter(
-                          scheme,
-                          outlineColor: Color.lerp(
-                            scheme.outline,
-                            selectedColor,
-                            selection,
-                          )!,
-                          outlineWidth: 2 + (selection * 2),
-                        ),
-                      ),
-                    ),
-                    Center(
-                      child: Opacity(
-                        opacity: selection,
-                        child: Container(
-                          width: 26,
-                          height: 26,
-                          decoration: BoxDecoration(
-                            color: selectedColor,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            FleurIcons.check,
-                            size: 18,
-                            color: onSelectedColor,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SchemeSwatchPainter extends CustomPainter {
-  const _SchemeSwatchPainter(
-    this.scheme, {
-    required this.outlineColor,
-    required this.outlineWidth,
-  });
-
-  final ColorScheme scheme;
-  final Color outlineColor;
-  final double outlineWidth;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    final paint = Paint()..style = PaintingStyle.fill;
-
-    final clip = Path()..addOval(rect);
-    canvas.save();
-    canvas.clipPath(clip);
-
-    paint.color = scheme.primary;
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width / 2, size.height), paint);
-
-    paint.color = scheme.secondary;
-    canvas.drawRect(
-      Rect.fromLTWH(size.width / 2, 0, size.width / 2, size.height / 2),
-      paint,
-    );
-
-    paint.color = scheme.tertiary;
-    canvas.drawRect(
-      Rect.fromLTWH(
-        size.width / 2,
-        size.height / 2,
-        size.width / 2,
-        size.height / 2,
-      ),
-      paint,
-    );
-
-    canvas.restore();
-
-    final stroke = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = outlineWidth
-      ..color = outlineColor;
-    canvas.drawOval(rect.deflate(1), stroke);
-  }
-
-  @override
-  bool shouldRepaint(covariant _SchemeSwatchPainter oldDelegate) {
-    return oldDelegate.scheme != scheme ||
-        oldDelegate.outlineColor != outlineColor ||
-        oldDelegate.outlineWidth != outlineWidth;
-  }
 }
