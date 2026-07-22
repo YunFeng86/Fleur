@@ -19,6 +19,7 @@ import '../../utils/platform.dart';
 import '../../widgets/app_scrollbar.dart';
 import '../../widgets/favicon_circle.dart';
 import '../../widgets/fleur_selection_transition.dart';
+import '../../widgets/scroll_anchor_registry.dart';
 import '../../widgets/tree_disclosure_button.dart';
 
 class SidebarNavigationTree extends StatefulWidget {
@@ -69,13 +70,6 @@ class SidebarNavigationTree extends StatefulWidget {
   State<SidebarNavigationTree> createState() => _SidebarNavigationTreeState();
 }
 
-class _SidebarScrollAnchor {
-  const _SidebarScrollAnchor({required this.rowId, required this.top});
-
-  final String rowId;
-  final double top;
-}
-
 class _SidebarTreeRow {
   const _SidebarTreeRow({required this.rowId, required this.builder});
 
@@ -83,54 +77,22 @@ class _SidebarTreeRow {
   final WidgetBuilder builder;
 }
 
-class _SidebarAnchorRegistryRow extends StatefulWidget {
-  const _SidebarAnchorRegistryRow({
-    super.key,
-    required this.rowId,
-    required this.child,
-    required this.onRegister,
-    required this.onUnregister,
-  });
+class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
+  late final ScrollAnchorRegistry _scrollAnchors;
 
-  final String rowId;
-  final Widget child;
-  final void Function(String rowId, BuildContext context) onRegister;
-  final void Function(String rowId, BuildContext context) onUnregister;
-
-  @override
-  State<_SidebarAnchorRegistryRow> createState() =>
-      _SidebarAnchorRegistryRowState();
-}
-
-class _SidebarAnchorRegistryRowState extends State<_SidebarAnchorRegistryRow> {
   @override
   void initState() {
     super.initState();
-    widget.onRegister(widget.rowId, context);
-  }
-
-  @override
-  void didUpdateWidget(covariant _SidebarAnchorRegistryRow oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.rowId != widget.rowId) {
-      oldWidget.onUnregister(oldWidget.rowId, context);
-      widget.onRegister(widget.rowId, context);
-    }
+    _scrollAnchors = ScrollAnchorRegistry(
+      scrollController: () => scrollController,
+    );
   }
 
   @override
   void dispose() {
-    widget.onUnregister(widget.rowId, context);
+    _scrollAnchors.dispose();
     super.dispose();
   }
-
-  @override
-  Widget build(BuildContext context) => widget.child;
-}
-
-class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
-  final GlobalKey _listViewKey = GlobalKey();
-  final Map<String, BuildContext> _rowContexts = <String, BuildContext>{};
 
   SidebarPresentationMode get presentationMode => widget.presentationMode;
   ScrollController get scrollController => widget.scrollController;
@@ -153,75 +115,6 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
   Future<void> Function(Category category) get onShowCategoryMenu =>
       widget.onShowCategoryMenu;
   Future<void> Function(Feed feed) get onShowFeedMenu => widget.onShowFeedMenu;
-
-  void _registerRow(String rowId, BuildContext context) {
-    _rowContexts[rowId] = context;
-  }
-
-  void _unregisterRow(String rowId, BuildContext context) {
-    if (identical(_rowContexts[rowId], context)) {
-      _rowContexts.remove(rowId);
-    }
-  }
-
-  _SidebarScrollAnchor? _captureScrollAnchor() {
-    if (!scrollController.hasClients) return null;
-    final listBox = _listViewKey.currentContext?.findRenderObject();
-    if (listBox is! RenderBox || !listBox.hasSize) return null;
-    final viewportTop = listBox.localToGlobal(Offset.zero).dy;
-    final viewportBottom = viewportTop + listBox.size.height;
-
-    _SidebarScrollAnchor? bestFullyVisible;
-    double bestFullyVisibleTop = double.infinity;
-    _SidebarScrollAnchor? bestPartial;
-    double bestPartialDistance = double.infinity;
-    for (final entry in _rowContexts.entries) {
-      final rowBox = entry.value.findRenderObject();
-      if (rowBox is! RenderBox || !rowBox.attached || !rowBox.hasSize) {
-        continue;
-      }
-      final top = rowBox.localToGlobal(Offset.zero).dy;
-      final bottom = top + rowBox.size.height;
-      if (bottom < viewportTop || top > viewportBottom) continue;
-      if (top >= viewportTop) {
-        if (top < bestFullyVisibleTop) {
-          bestFullyVisibleTop = top;
-          bestFullyVisible = _SidebarScrollAnchor(rowId: entry.key, top: top);
-        }
-      } else {
-        final distance = (top - viewportTop).abs();
-        if (distance < bestPartialDistance) {
-          bestPartialDistance = distance;
-          bestPartial = _SidebarScrollAnchor(rowId: entry.key, top: top);
-        }
-      }
-    }
-    return bestFullyVisible ?? bestPartial;
-  }
-
-  void _restoreScrollAnchor(_SidebarScrollAnchor? anchor) {
-    if (!mounted || anchor == null || !scrollController.hasClients) return;
-    final rowBox = _rowContexts[anchor.rowId]?.findRenderObject();
-    if (rowBox is! RenderBox || !rowBox.attached || !rowBox.hasSize) return;
-    final nextTop = rowBox.localToGlobal(Offset.zero).dy;
-    final delta = nextTop - anchor.top;
-    if (delta.abs() < 0.5) return;
-    final position = scrollController.position;
-    final next = (position.pixels + delta).clamp(
-      position.minScrollExtent,
-      position.maxScrollExtent,
-    );
-    if ((next - position.pixels).abs() < 0.5) return;
-    scrollController.jumpTo(next);
-  }
-
-  void _runWithScrollAnchor(VoidCallback action) {
-    final anchor = _captureScrollAnchor();
-    action();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _restoreScrollAnchor(anchor);
-    });
-  }
 
   Future<void> _showRootContextMenu(
     Offset position,
@@ -346,7 +239,7 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
                     unreadCount: unreadByCategoryId[category.id] ?? 0,
                     expanded: expanded,
                     onExpandedCategoryChanged: (categoryId) {
-                      _runWithScrollAnchor(
+                      _scrollAnchors.runWithAnchor(
                         () => onExpandedCategoryChanged(categoryId),
                       );
                     },
@@ -408,7 +301,7 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
               thumbVisibility: isDesktop,
               interactive: true,
               child: ListView.builder(
-                key: _listViewKey,
+                key: _scrollAnchors.viewportKey,
                 controller: scrollController,
                 padding: const EdgeInsets.only(bottom: 8),
                 itemCount: rows.length,
@@ -420,11 +313,10 @@ class _SidebarNavigationTreeState extends State<SidebarNavigationTree> {
                 },
                 itemBuilder: (context, index) {
                   final row = rows[index];
-                  return _SidebarAnchorRegistryRow(
+                  return ScrollAnchorRegistryRow(
                     key: ValueKey<String>(row.rowId),
+                    registry: _scrollAnchors,
                     rowId: row.rowId,
-                    onRegister: _registerRow,
-                    onUnregister: _unregisterRow,
                     child: row.builder(context),
                   );
                 },

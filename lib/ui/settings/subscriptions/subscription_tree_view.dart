@@ -14,6 +14,7 @@ import '../../../../ui/actions/subscription_object_menus.dart';
 import '../../../../utils/platform.dart';
 import '../../../../widgets/app_scrollbar.dart';
 import '../../../../widgets/favicon_avatar.dart';
+import '../../../../widgets/scroll_anchor_registry.dart';
 import '../../../../widgets/tree_disclosure_button.dart';
 import '../widgets/settings_controls.dart';
 
@@ -34,90 +35,23 @@ class SubscriptionTreeView extends ConsumerStatefulWidget {
 
 class _SubscriptionTreeViewState extends ConsumerState<SubscriptionTreeView> {
   final ScrollController _scrollController = ScrollController();
-  final GlobalKey _listViewKey = GlobalKey();
-  final Map<String, BuildContext> _rowContexts = <String, BuildContext>{};
   final Set<int> _expandedCategoryIds = <int>{};
   final Set<int> _collapsedCategoryIds = <int>{};
+  late final ScrollAnchorRegistry _scrollAnchors;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollAnchors = ScrollAnchorRegistry(
+      scrollController: () => _scrollController,
+    );
+  }
 
   @override
   void dispose() {
+    _scrollAnchors.dispose();
     _scrollController.dispose();
     super.dispose();
-  }
-
-  void _registerRow(String rowId, BuildContext context) {
-    _rowContexts[rowId] = context;
-  }
-
-  void _unregisterRow(String rowId, BuildContext context) {
-    if (identical(_rowContexts[rowId], context)) {
-      _rowContexts.remove(rowId);
-    }
-  }
-
-  _SubscriptionTreeScrollAnchor? _captureScrollAnchor() {
-    if (!_scrollController.hasClients) return null;
-    final listBox = _listViewKey.currentContext?.findRenderObject();
-    if (listBox is! RenderBox || !listBox.hasSize) return null;
-    final viewportTop = listBox.localToGlobal(Offset.zero).dy;
-    final viewportBottom = viewportTop + listBox.size.height;
-
-    _SubscriptionTreeScrollAnchor? bestFullyVisible;
-    double bestFullyVisibleTop = double.infinity;
-    _SubscriptionTreeScrollAnchor? bestPartial;
-    double bestPartialDistance = double.infinity;
-    for (final entry in _rowContexts.entries) {
-      final rowBox = entry.value.findRenderObject();
-      if (rowBox is! RenderBox || !rowBox.attached || !rowBox.hasSize) {
-        continue;
-      }
-      final top = rowBox.localToGlobal(Offset.zero).dy;
-      final bottom = top + rowBox.size.height;
-      if (bottom < viewportTop || top > viewportBottom) continue;
-      if (top >= viewportTop) {
-        if (top < bestFullyVisibleTop) {
-          bestFullyVisibleTop = top;
-          bestFullyVisible = _SubscriptionTreeScrollAnchor(
-            rowId: entry.key,
-            top: top,
-          );
-        }
-      } else {
-        final distance = (top - viewportTop).abs();
-        if (distance < bestPartialDistance) {
-          bestPartialDistance = distance;
-          bestPartial = _SubscriptionTreeScrollAnchor(
-            rowId: entry.key,
-            top: top,
-          );
-        }
-      }
-    }
-    return bestFullyVisible ?? bestPartial;
-  }
-
-  void _restoreScrollAnchor(_SubscriptionTreeScrollAnchor? anchor) {
-    if (!mounted || anchor == null || !_scrollController.hasClients) return;
-    final rowBox = _rowContexts[anchor.rowId]?.findRenderObject();
-    if (rowBox is! RenderBox || !rowBox.attached || !rowBox.hasSize) return;
-    final nextTop = rowBox.localToGlobal(Offset.zero).dy;
-    final delta = nextTop - anchor.top;
-    if (delta.abs() < 0.5) return;
-    final position = _scrollController.position;
-    final next = (position.pixels + delta).clamp(
-      position.minScrollExtent,
-      position.maxScrollExtent,
-    );
-    if ((next - position.pixels).abs() < 0.5) return;
-    _scrollController.jumpTo(next);
-  }
-
-  void _runWithScrollAnchor(VoidCallback action) {
-    final anchor = _captureScrollAnchor();
-    action();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _restoreScrollAnchor(anchor);
-    });
   }
 
   _SubscriptionTreeRow _buildFeedRow({
@@ -134,7 +68,7 @@ class _SubscriptionTreeViewState extends ConsumerState<SubscriptionTreeView> {
         feed: feed,
         selected: selectedFeedId == feed.id,
         indent: indent,
-        onTap: () => _runWithScrollAnchor(
+        onTap: () => _scrollAnchors.runWithAnchor(
           () => notifier.selectFeed(
             feed.id,
             categoryScope: categoryScope,
@@ -223,7 +157,7 @@ class _SubscriptionTreeViewState extends ConsumerState<SubscriptionTreeView> {
               );
               if (!mounted || action == null) return;
               if (action == SubscriptionRootMenuAction.globalDefaults) {
-                _runWithScrollAnchor(
+                _scrollAnchors.runWithAnchor(
                   () => notifier.showGlobalDefaults(
                     showDetailPane: widget.showDetailPaneOnSelection,
                   ),
@@ -272,7 +206,7 @@ class _SubscriptionTreeViewState extends ConsumerState<SubscriptionTreeView> {
                   subtitle: l10n.globalDefaultsDescription,
                   selected: selection.isGlobalDefaults,
                   onSecondaryTapDown: showGlobalDefaultsMenu,
-                  onTap: () => _runWithScrollAnchor(
+                  onTap: () => _scrollAnchors.runWithAnchor(
                     () => notifier.showGlobalDefaults(
                       showDetailPane: widget.showDetailPaneOnSelection,
                     ),
@@ -302,7 +236,7 @@ class _SubscriptionTreeViewState extends ConsumerState<SubscriptionTreeView> {
                         selection.activeCategoryId == category.id &&
                         selection.selectedFeedId == null,
                     onToggleExpanded: () {
-                      _runWithScrollAnchor(() {
+                      _scrollAnchors.runWithAnchor(() {
                         setState(() {
                           if (isExpanded) {
                             _expandedCategoryIds.remove(category.id);
@@ -314,7 +248,7 @@ class _SubscriptionTreeViewState extends ConsumerState<SubscriptionTreeView> {
                         });
                       });
                     },
-                    onSelectCategory: () => _runWithScrollAnchor(
+                    onSelectCategory: () => _scrollAnchors.runWithAnchor(
                       () => notifier.selectCategory(
                         category.id,
                         showDetailPane: widget.showDetailPaneOnSelection,
@@ -382,7 +316,7 @@ class _SubscriptionTreeViewState extends ConsumerState<SubscriptionTreeView> {
               child: AppScrollbar(
                 controller: _scrollController,
                 child: ListView.builder(
-                  key: _listViewKey,
+                  key: _scrollAnchors.viewportKey,
                   controller: _scrollController,
                   padding: const EdgeInsets.only(top: 4, bottom: 12),
                   itemCount: rows.length,
@@ -394,11 +328,10 @@ class _SubscriptionTreeViewState extends ConsumerState<SubscriptionTreeView> {
                   },
                   itemBuilder: (context, index) {
                     final row = rows[index];
-                    return _SubscriptionAnchorRegistryRow(
+                    return ScrollAnchorRegistryRow(
                       key: ValueKey<String>(row.rowId),
+                      registry: _scrollAnchors,
                       rowId: row.rowId,
-                      onRegister: _registerRow,
-                      onUnregister: _unregisterRow,
                       child: row.builder(context),
                     );
                   },
@@ -412,13 +345,6 @@ class _SubscriptionTreeViewState extends ConsumerState<SubscriptionTreeView> {
   }
 }
 
-class _SubscriptionTreeScrollAnchor {
-  const _SubscriptionTreeScrollAnchor({required this.rowId, required this.top});
-
-  final String rowId;
-  final double top;
-}
-
 class _SubscriptionTreeRow {
   const _SubscriptionTreeRow({required this.rowId, required this.builder});
 
@@ -428,52 +354,6 @@ class _SubscriptionTreeRow {
 
 Widget _buildUncategorizedGap(BuildContext context) {
   return const SizedBox(height: 4);
-}
-
-class _SubscriptionAnchorRegistryRow extends StatefulWidget {
-  const _SubscriptionAnchorRegistryRow({
-    super.key,
-    required this.rowId,
-    required this.child,
-    required this.onRegister,
-    required this.onUnregister,
-  });
-
-  final String rowId;
-  final Widget child;
-  final void Function(String rowId, BuildContext context) onRegister;
-  final void Function(String rowId, BuildContext context) onUnregister;
-
-  @override
-  State<_SubscriptionAnchorRegistryRow> createState() =>
-      _SubscriptionAnchorRegistryRowState();
-}
-
-class _SubscriptionAnchorRegistryRowState
-    extends State<_SubscriptionAnchorRegistryRow> {
-  @override
-  void initState() {
-    super.initState();
-    widget.onRegister(widget.rowId, context);
-  }
-
-  @override
-  void didUpdateWidget(covariant _SubscriptionAnchorRegistryRow oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.rowId != widget.rowId) {
-      oldWidget.onUnregister(oldWidget.rowId, context);
-      widget.onRegister(widget.rowId, context);
-    }
-  }
-
-  @override
-  void dispose() {
-    widget.onUnregister(widget.rowId, context);
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => widget.child;
 }
 
 class _ScopeTreeRow extends StatelessWidget {
