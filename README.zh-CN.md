@@ -114,18 +114,24 @@ Fleur 使用接近 Clean Architecture 的 Flutter 结构，并通过 Riverpod �
 ```text
 lib/
 ├── app/          # 应用入口、路由、运行时宿主
+├── features/     # 产品功能及其局部层次
 ├── models/       # Isar 数据模型
 ├── repositories/ # 数据访问层
 ├── providers/    # Riverpod providers 和 controllers
 ├── services/     # RSS、同步、提取、设置、AI、通知
-├── screens/      # 顶层页面
-├── ui/           # 外壳、自适应布局、场景 chrome、对话框与操作
-├── widgets/      # 可复用 UI 组件
+├── ui/           # 应用外壳、共享场景与设计系统
+├── widgets/      # 既有共享 UI 组件，按功能逐步迁移
 ├── theme/        # 主题和设计 token
 ├── l10n/         # 本地化文件
 ├── utils/        # 工具函数
 └── db/           # 数据库初始化
 ```
+
+新增产品代码应归入 `lib/features/<feature>/`，只在能澄清职责时再划分
+`domain`、`data`、`application` 和 `presentation`。每个功能通过小而明确的
+`<feature>.dart` facade 对外暴露；应用装配留在 `app/`，共享外壳和场景 UI
+留在 `ui/`，视觉原语留在 `ui/design_system/`。其余顶层共享目录会按功能逐步
+迁移；不要新增 `screens/` 或泛化的 `widgets/` 条目。
 
 ## 技术栈
 

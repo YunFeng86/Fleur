@@ -56,13 +56,13 @@ This is a **Flutter RSS reader** built with **Clean Architecture** and **Riverpo
 ```
 lib/
 ├── app/          # Entry point, routing configuration (go_router)
+├── features/     # Product features with local domain/data/application/presentation layers
 ├── models/       # Isar data models (@collection)
 ├── repositories/ # Data access layer (CRUD operations)
 ├── providers/    # Riverpod state management
 ├── services/     # Business logic (RSS parsing, article extraction)
-├── screens/      # UI screens (Home, Reader, Settings, Saved, Search)
-├── widgets/      # Reusable UI components
-├── ui/           # Global nav, layout, dialogs, actions
+├── widgets/      # Existing shared UI components, migrated incrementally
+├── ui/           # Application shell, shared scenes, layout, and design system
 ├── theme/        # Material theme configuration
 ├── l10n/         # Internationalization (en, zh, zh_Hant)
 ├── utils/        # Utility functions
@@ -140,18 +140,28 @@ All models in `models/` use `@collection` annotation and require code generation
 ### Adding New Features
 
 **New Model**:
-1. Create in `models/` with `@collection` annotation and `part 'model.g.dart'`
-2. Run `dart run build_runner build`
-3. Create repository in `repositories/`
-4. Add repository provider in `providers/` (if needed)
+1. First decide ownership. Keep only cross-feature Isar models in `models/`.
+2. Put a feature-owned domain model in `features/<feature>/domain/`; keep its
+   persistence adapter and Isar-specific details in `features/<feature>/data/`.
+3. For a shared Isar model, add the `@collection` annotation and
+   `part 'model.g.dart'`, then run `dart run build_runner build`.
+4. Add repositories and providers beside their owning feature unless their
+   contract is genuinely shared.
 
 **New Screen**:
-1. Add screen widget in `screens/`
-2. Register route in `app/router.dart` with proper page transitions
-3. Add to `GlobalNavDestination` enum if it's a top-level destination
-4. Add localization strings in `l10n/app_*.arb`
+1. Decide the owning feature, then add feature pages, dialogs, and controls in
+   `features/<feature>/presentation/`.
+2. Expose the public page through the feature's `<feature>.dart` facade.
+3. Register its route in `app/router.dart` with proper page transitions.
+4. Add to `GlobalNavDestination` if it is a top-level destination, and add
+   localization strings in `l10n/app_*.arb`.
+5. Mirror tests in `test/features/<feature>/...`; keep shell and shared UI
+   tests in `test/ui/`.
 
 **New Provider**:
+- Keep feature-specific controllers and providers in
+  `features/<feature>/application/`; use the top-level `providers/` directory
+  only for cross-feature runtime contracts.
 - Use `StreamProvider` for Isar query watchers
 - Use `StateNotifierProvider` for complex state with mutations
 - Use `Provider` for simple read-only values

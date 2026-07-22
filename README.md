@@ -132,18 +132,25 @@ state management.
 ```text
 lib/
 ├── app/          # App entry, routing, runtime host
+├── features/     # Product features and their local layers
 ├── models/       # Isar models
 ├── repositories/ # Data access
 ├── providers/    # Riverpod providers and controllers
 ├── services/     # RSS, sync, extraction, settings, AI, notifications
-├── screens/      # Top-level screens
-├── ui/           # Shell, adaptive layout, scene chrome, dialogs, actions
-├── widgets/      # Reusable UI components
+├── ui/           # App shell, shared scenes, and design system
+├── widgets/      # Existing shared UI components, migrated incrementally
 ├── theme/        # Theme and design tokens
 ├── l10n/         # Localization files
 ├── utils/        # Utilities
 └── db/           # Database setup
 ```
+
+New product code belongs in `lib/features/<feature>/`, with `domain`, `data`,
+`application`, and `presentation` layers only where they clarify ownership.
+Each feature exposes a small `<feature>.dart` facade. Keep application
+composition in `app/`, shared shell and scene UI in `ui/`, and visual primitives
+in `ui/design_system/`. The remaining top-level shared folders are migrated by
+feature over time; do not add new `screens/` or generic `widgets/` entries.
 
 ## Tech Stack
 

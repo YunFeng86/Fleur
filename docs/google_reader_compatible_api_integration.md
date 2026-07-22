@@ -2,6 +2,10 @@
 
 Last updated: 2026-06-05
 
+> Status: Implemented historical plan. The paths below describe the repository
+> when this plan was written; for the current account feature entry point, see
+> `lib/features/accounts/accounts.dart`.
+
 This document turns the protocol research into an implementation plan for
 Fleur. The target is the modern Google Reader compatible API family, not the
 retired Google Reader service.

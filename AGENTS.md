@@ -1,7 +1,20 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-Source code lives under `lib/` and follows Clean Architecture with Riverpod. Key modules include `app/`, `models/`, `repositories/`, `providers/`, `services/`, `screens/`, `widgets/`, `theme/`, `l10n/`, `utils/`, and `db/`. Assets (icons, images) are in `assets/`. Tests live in `test/` (unit/widget) and `integration_test/` (integration). Platform-specific folders (`android/`, `ios/`, `windows/`, `macos/`, `linux/`, `web/`) contain build targets. Design notes and migration docs are in `docs/`.
+Source code lives under `lib/` and follows Clean Architecture with Riverpod.
+Product code belongs in `features/<feature>/`, which may contain `domain`,
+`data`, `application`, and `presentation` layers and exposes a
+`<feature>.dart` facade. Keep app composition and routing in `app/`, shared
+shell and scene UI in `ui/`, and visual primitives in `ui/design_system/`.
+Feature-specific UI must not be added to `screens/` or a generic `widgets/`
+folder; use the feature's `presentation/` directory instead. Existing shared
+top-level folders (`models/`, `repositories/`, `providers/`, `services/`, and
+`widgets/`) migrate incrementally when a feature owns their responsibility.
+Assets (icons, images) are in `assets/`. Tests mirror ownership: feature tests
+go in `test/features/<feature>/`, shared app or UI tests go in `test/app/` or
+`test/ui/`, and integration tests go in `integration_test/`. Platform-specific
+folders (`android/`, `ios/`, `windows/`, `macos/`, `linux/`, `web/`) contain
+build targets. Design notes and migration docs are in `docs/`.
 
 ## Build, Test, and Development Commands
 - `flutter pub get` — install dependencies.
