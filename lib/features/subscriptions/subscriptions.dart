@@ -31,10 +31,22 @@ export 'application/subscription_selection.dart'
         subscriptionSelectionProvider;
 export 'application/subscription_feed_browsing.dart'
     show SubscriptionFeedBrowsing, SubscriptionProviderRead;
+export 'application/subscription_settings_commands.dart'
+    show SubscriptionSettingsCommands;
+export 'application/subscription_structure_commands.dart'
+    show
+        CategoryNameConflictException,
+        SubscriptionStructureCommands,
+        SubscriptionStructureExecutorFactory;
 export 'presentation/subscription_opml_actions.dart'
     show SubscriptionOpmlActions;
 export 'presentation/add_subscription_screen.dart' show AddSubscriptionScreen;
-export 'presentation/subscription_actions.dart' show SubscriptionActions;
+export 'presentation/subscription_refresh_actions.dart'
+    show SubscriptionRefreshActions;
+export 'presentation/subscription_remote_feedback.dart'
+    show remoteStructureFailureMessage;
+export 'presentation/subscription_structure_actions.dart'
+    show SubscriptionStructureActions, SubscriptionStructureDialogPresenter;
 export 'application/subscription_root_sync_action.dart'
     show
         SubscriptionRootSyncMode,

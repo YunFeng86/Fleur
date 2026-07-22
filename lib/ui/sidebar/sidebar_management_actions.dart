@@ -45,7 +45,7 @@ class SidebarManagementActions {
   }
 
   Future<int?> addFeed({int? initialCategoryId}) async {
-    final id = await SubscriptionActions.addFeed(
+    final id = await SubscriptionStructureActions.addFeed(
       _context,
       _ref,
       navigator: _navigator,
@@ -57,7 +57,7 @@ class SidebarManagementActions {
   }
 
   Future<int?> addCategory() {
-    return SubscriptionActions.addCategory(
+    return SubscriptionStructureActions.addCategory(
       _context,
       _ref,
       dialogPresenter: _showDialog,
@@ -65,7 +65,7 @@ class SidebarManagementActions {
   }
 
   Future<void> renameCategory(Category category) async {
-    await SubscriptionActions.renameCategory(
+    await SubscriptionStructureActions.renameCategory(
       _context,
       _ref,
       categoryId: category.id,
@@ -75,7 +75,7 @@ class SidebarManagementActions {
   }
 
   Future<void> deleteCategory(Category category) async {
-    final deleted = await SubscriptionActions.deleteCategory(
+    final deleted = await SubscriptionStructureActions.deleteCategory(
       _context,
       _ref,
       categoryId: category.id,
@@ -88,7 +88,7 @@ class SidebarManagementActions {
   }
 
   Future<void> editFeedTitle(Feed feed) async {
-    await SubscriptionActions.editFeedTitle(
+    await SubscriptionStructureActions.editFeedTitle(
       _context,
       _ref,
       feedId: feed.id,
@@ -98,15 +98,15 @@ class SidebarManagementActions {
   }
 
   Future<void> refreshFeed(Feed feed) {
-    return SubscriptionActions.refreshFeed(_context, _ref, feed.id);
+    return SubscriptionRefreshActions.refreshFeed(_context, _ref, feed.id);
   }
 
   Future<void> cacheFeedOffline(Feed feed) {
-    return SubscriptionActions.cacheFeedOffline(_context, _ref, feed.id);
+    return SubscriptionRefreshActions.cacheFeedOffline(_context, _ref, feed.id);
   }
 
   Future<void> moveFeedToCategory(Feed feed) async {
-    await SubscriptionActions.moveFeedToCategory(
+    await SubscriptionStructureActions.moveFeedToCategory(
       _context,
       _ref,
       feedId: feed.id,
@@ -115,7 +115,7 @@ class SidebarManagementActions {
   }
 
   Future<void> deleteFeed(Feed feed) async {
-    final deleted = await SubscriptionActions.deleteFeed(
+    final deleted = await SubscriptionStructureActions.deleteFeed(
       _context,
       _ref,
       feedId: feed.id,
@@ -128,7 +128,7 @@ class SidebarManagementActions {
   }
 
   Future<void> refreshAll() {
-    return SubscriptionActions.refreshAll(_context, _ref);
+    return SubscriptionRefreshActions.refreshAll(_context, _ref);
   }
 
   Future<void> markAllRead({int? feedId, int? categoryId}) {

@@ -317,7 +317,7 @@ class _CategorySettings extends ConsumerWidget {
                   SettingsTile(
                     leading: const Icon(FleurIcons.rename),
                     title: Text(l10n.rename),
-                    onTap: () => SubscriptionActions.renameCategory(
+                    onTap: () => SubscriptionStructureActions.renameCategory(
                       context,
                       ref,
                       categoryId: category.id,
@@ -330,11 +330,12 @@ class _CategorySettings extends ConsumerWidget {
                     leading: const Icon(FleurIcons.delete),
                     title: Text(l10n.delete),
                     onTap: () async {
-                      final deleted = await SubscriptionActions.deleteCategory(
-                        context,
-                        ref,
-                        categoryId: category.id,
-                      );
+                      final deleted =
+                          await SubscriptionStructureActions.deleteCategory(
+                            context,
+                            ref,
+                            categoryId: category.id,
+                          );
                       if (!deleted || !context.mounted) return;
                       ref
                           .read(subscriptionSelectionProvider.notifier)
@@ -413,7 +414,7 @@ class _FeedSettings extends ConsumerWidget {
                 SettingsTile(
                   leading: const Icon(FleurIcons.rename),
                   title: Text(l10n.rename),
-                  onTap: () => SubscriptionActions.editFeedTitle(
+                  onTap: () => SubscriptionStructureActions.editFeedTitle(
                     context,
                     ref,
                     feedId: feed.id,
@@ -425,7 +426,7 @@ class _FeedSettings extends ConsumerWidget {
                   leading: const Icon(FleurIcons.moveToCategory),
                   title: Text(l10n.moveToCategory),
                   subtitle: Text(category?.name ?? l10n.uncategorized),
-                  onTap: () => SubscriptionActions.moveFeedToCategory(
+                  onTap: () => SubscriptionStructureActions.moveFeedToCategory(
                     context,
                     ref,
                     feedId: feed.id,
@@ -443,8 +444,11 @@ class _FeedSettings extends ConsumerWidget {
                 SettingsTile(
                   leading: const Icon(FleurIcons.refresh),
                   title: Text(l10n.refresh),
-                  onTap: () =>
-                      SubscriptionActions.refreshFeed(context, ref, feed.id),
+                  onTap: () => SubscriptionRefreshActions.refreshFeed(
+                    context,
+                    ref,
+                    feed.id,
+                  ),
                 ),
               if (capabilities.isVisible(BackendFeature.deleteSubscription))
                 SettingsTile(
@@ -452,11 +456,12 @@ class _FeedSettings extends ConsumerWidget {
                   leading: const Icon(FleurIcons.delete),
                   title: Text(l10n.delete),
                   onTap: () async {
-                    final deleted = await SubscriptionActions.deleteFeed(
-                      context,
-                      ref,
-                      feedId: feed.id,
-                    );
+                    final deleted =
+                        await SubscriptionStructureActions.deleteFeed(
+                          context,
+                          ref,
+                          feedId: feed.id,
+                        );
                     if (!deleted || !context.mounted) return;
                     final selection = ref.read(subscriptionSelectionProvider);
                     ref

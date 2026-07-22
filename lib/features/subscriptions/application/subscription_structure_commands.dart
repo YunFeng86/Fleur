@@ -1,35 +1,37 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-
-import '../../repositories/category_repository.dart';
-import '../../repositories/feed_repository.dart';
 import 'package:fleur/features/accounts/accounts.dart';
-import '../logging/app_logger.dart';
-import '../logging/log_context.dart';
-import 'backend_capabilities.dart';
-import 'remote_subscription_structure_executor.dart';
 
-typedef RemoteSubscriptionStructureExecutorFactory =
+import '../../../repositories/category_repository.dart';
+import '../../../repositories/feed_repository.dart';
+import '../../../services/logging/app_logger.dart';
+import '../../../services/logging/log_context.dart';
+import '../../../services/sync/backend_capabilities.dart';
+import '../../../services/sync/remote_subscription_structure_executor.dart';
+
+typedef SubscriptionStructureExecutorFactory =
     Future<RemoteSubscriptionStructureExecutor> Function();
 
 class CategoryNameConflictException implements Exception {
   const CategoryNameConflictException();
 }
 
-class SubscriptionMirrorService {
-  SubscriptionMirrorService({
+/// Applies a structural subscription command and reconciles local state only
+/// after the remote operation succeeds.
+class SubscriptionStructureCommands {
+  SubscriptionStructureCommands({
     required this.capabilities,
     required this.account,
     required this.feeds,
     required this.categories,
-    required RemoteSubscriptionStructureExecutorFactory buildExecutor,
+    required SubscriptionStructureExecutorFactory buildExecutor,
   }) : _buildExecutor = buildExecutor;
 
   final BackendCapabilities capabilities;
   final Account account;
   final FeedRepository feeds;
   final CategoryRepository categories;
-  final RemoteSubscriptionStructureExecutorFactory _buildExecutor;
+  final SubscriptionStructureExecutorFactory _buildExecutor;
 
   Future<int?> addCategory(String name) async {
     const feature = BackendFeature.addCategory;
@@ -306,7 +308,7 @@ class SubscriptionMirrorService {
         tag: 'subscription',
         error: error,
         stackTrace: stackTrace,
-        context: subscriptionMirrorFailureContext(
+        context: subscriptionStructureFailureContext(
           account,
           capabilities,
           error,
@@ -317,7 +319,7 @@ class SubscriptionMirrorService {
         FlutterErrorDetails(
           exception: error,
           stack: stackTrace,
-          library: 'subscription_actions',
+          library: 'subscription_structure_commands',
           context: ErrorDescription(
             'while reconciling local mirror after remote category deletion',
           ),
@@ -408,7 +410,7 @@ class SubscriptionMirrorService {
   }
 }
 
-Map<String, Object?> subscriptionMirrorFailureContext(
+Map<String, Object?> subscriptionStructureFailureContext(
   Account account,
   BackendCapabilities capabilities,
   Object error,

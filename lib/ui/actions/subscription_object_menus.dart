@@ -371,13 +371,13 @@ class SubscriptionObjectMenus {
   ) async {
     switch (action) {
       case SubscriptionRootMenuAction.addSubscription:
-        await SubscriptionActions.addFeed(context, ref);
+        await SubscriptionStructureActions.addFeed(context, ref);
         return;
       case SubscriptionRootMenuAction.addCategory:
-        await SubscriptionActions.showAddCategoryDialog(context, ref);
+        await SubscriptionStructureActions.addCategory(context, ref);
         return;
       case SubscriptionRootMenuAction.refreshAll:
-        await SubscriptionActions.refreshAll(context, ref);
+        await SubscriptionRefreshActions.refreshAll(context, ref);
         return;
       case SubscriptionRootMenuAction.importOpml:
         await SubscriptionOpmlActions.importOpml(context, ref);
@@ -400,7 +400,7 @@ class SubscriptionObjectMenus {
   ) async {
     switch (action) {
       case SubscriptionFeedMenuAction.rename:
-        await SubscriptionActions.editFeedTitle(
+        await SubscriptionStructureActions.editFeedTitle(
           context,
           ref,
           feedId: feed.id,
@@ -408,20 +408,24 @@ class SubscriptionObjectMenus {
         );
         return;
       case SubscriptionFeedMenuAction.refresh:
-        await SubscriptionActions.refreshFeed(context, ref, feed.id);
+        await SubscriptionRefreshActions.refreshFeed(context, ref, feed.id);
         return;
       case SubscriptionFeedMenuAction.offlineCache:
-        await SubscriptionActions.cacheFeedOffline(context, ref, feed.id);
+        await SubscriptionRefreshActions.cacheFeedOffline(
+          context,
+          ref,
+          feed.id,
+        );
         return;
       case SubscriptionFeedMenuAction.move:
-        await SubscriptionActions.moveFeedToCategory(
+        await SubscriptionStructureActions.moveFeedToCategory(
           context,
           ref,
           feedId: feed.id,
         );
         return;
       case SubscriptionFeedMenuAction.delete:
-        final deleted = await SubscriptionActions.deleteFeed(
+        final deleted = await SubscriptionStructureActions.deleteFeed(
           context,
           ref,
           feedId: feed.id,
@@ -444,7 +448,7 @@ class SubscriptionObjectMenus {
   ) async {
     switch (action) {
       case SubscriptionCategoryMenuAction.rename:
-        await SubscriptionActions.renameCategory(
+        await SubscriptionStructureActions.renameCategory(
           context,
           ref,
           categoryId: category.id,
@@ -452,7 +456,7 @@ class SubscriptionObjectMenus {
         );
         return;
       case SubscriptionCategoryMenuAction.delete:
-        final deleted = await SubscriptionActions.deleteCategory(
+        final deleted = await SubscriptionStructureActions.deleteCategory(
           context,
           ref,
           categoryId: category.id,

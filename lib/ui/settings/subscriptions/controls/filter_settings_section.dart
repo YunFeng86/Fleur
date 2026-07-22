@@ -52,8 +52,7 @@ class SubscriptionFilterSettingsSection extends ConsumerWidget {
               onChanged: (value) {
                 if (feed != null) {
                   unawaited(
-                    SubscriptionActions.updateFeedSettings(
-                      context,
+                    SubscriptionSettingsCommands.updateFeedSettings(
                       ref,
                       feedId: feed!.id,
                       filterEnabled: value,
@@ -62,8 +61,7 @@ class SubscriptionFilterSettingsSection extends ConsumerWidget {
                   );
                 } else if (category != null) {
                   unawaited(
-                    SubscriptionActions.updateCategorySettings(
-                      context,
+                    SubscriptionSettingsCommands.updateCategorySettings(
                       ref,
                       categoryId: category!.id,
                       filterEnabled: value,
@@ -223,8 +221,7 @@ class _FilterKeywordsInputState extends ConsumerState<_FilterKeywordsInput> {
       );
     } else if (widget.feed != null) {
       unawaited(
-        SubscriptionActions.updateFeedSettings(
-          context,
+        SubscriptionSettingsCommands.updateFeedSettings(
           ref,
           feedId: widget.feed!.id,
           filterKeywords: next,
@@ -233,8 +230,7 @@ class _FilterKeywordsInputState extends ConsumerState<_FilterKeywordsInput> {
       );
     } else if (widget.category != null) {
       unawaited(
-        SubscriptionActions.updateCategorySettings(
-          context,
+        SubscriptionSettingsCommands.updateCategorySettings(
           ref,
           categoryId: widget.category!.id,
           filterKeywords: next,

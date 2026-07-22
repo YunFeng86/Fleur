@@ -13,13 +13,13 @@ import '../../../models/article_scope.dart';
 import '../../../services/rss/feed_discovery_service.dart';
 import '../../../theme/fleur_icons.dart';
 import '../../../theme/fleur_theme_extensions.dart';
-import '../../../ui/actions/remote_structure_feedback.dart' as remote_feedback;
 import '../../../ui/app_drawer_scope.dart';
 import '../../../ui/design_system/design_system.dart';
 import '../../../utils/context_extensions.dart';
 import '../../../utils/platform.dart';
 import '../../../widgets/app_scrollbar.dart';
 import '../../../widgets/staggered_reveal.dart';
+import 'subscription_remote_feedback.dart' as remote_feedback;
 
 class AddSubscriptionScreen extends ConsumerStatefulWidget {
   const AddSubscriptionScreen({super.key, this.initialCategoryId});

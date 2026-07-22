@@ -3,9 +3,14 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 
-import '../../l10n/app_localizations.dart';
-import '../../utils/context_extensions.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../../utils/context_extensions.dart';
+import '../application/subscription_structure_commands.dart';
+import '../../../providers/backend_capabilities_provider.dart';
+import '../../../services/logging/app_logger.dart';
 
 bool isRemoteStructureConnectivityFailure(Object error) {
   if (error is DioException) {
@@ -90,4 +95,26 @@ void showRemoteStructureFailure(
 ) {
   if (!context.mounted) return;
   context.showErrorMessage(remoteStructureFailureMessage(l10n, error));
+}
+
+void logSubscriptionFailure(
+  WidgetRef ref,
+  String operation,
+  Object error, [
+  StackTrace? stackTrace,
+]) {
+  final account = ref.read(activeAccountProvider);
+  final capabilities = ref.read(backendCapabilitiesProvider);
+  AppLogger.w(
+    'Subscription operation failed',
+    tag: 'subscription',
+    error: error,
+    stackTrace: stackTrace,
+    context: subscriptionStructureFailureContext(
+      account,
+      capabilities,
+      error,
+      operation,
+    ),
+  );
 }

@@ -697,7 +697,7 @@ class _ArticleListState extends ConsumerState<ArticleList> {
         actions.add(
           FilledButton.tonalIcon(
             onPressed: () =>
-                unawaited(SubscriptionActions.addFeed(context, ref)),
+                unawaited(SubscriptionStructureActions.addFeed(context, ref)),
             icon: const Icon(FleurIcons.add),
             label: Text(l10n.addSubscription),
           ),
@@ -707,7 +707,7 @@ class _ArticleListState extends ConsumerState<ArticleList> {
         actions.add(
           OutlinedButton.icon(
             onPressed: () =>
-                unawaited(SubscriptionActions.refreshAll(context, ref)),
+                unawaited(SubscriptionRefreshActions.refreshAll(context, ref)),
             icon: const Icon(FleurIcons.refresh),
             label: Text(l10n.refreshAll),
           ),

@@ -50,7 +50,7 @@ class SubscriptionSyncSettingsSection extends ConsumerWidget {
                 appSettings,
               ),
               isGlobal: _isGlobal,
-              onChanged: (value) => _setSyncEnabled(context, ref, value),
+              onChanged: (value) => _setSyncEnabled(ref, value),
             ),
             if (contentCapabilities.canPrefetchImages)
               InheritedBoolSettingTile(
@@ -64,7 +64,7 @@ class SubscriptionSyncSettingsSection extends ConsumerWidget {
                   appSettings,
                 ),
                 isGlobal: _isGlobal,
-                onChanged: (value) => _setSyncImages(context, ref, value),
+                onChanged: (value) => _setSyncImages(ref, value),
               ),
             if (contentCapabilities.canFetchWebPages)
               InheritedBoolSettingTile(
@@ -78,7 +78,7 @@ class SubscriptionSyncSettingsSection extends ConsumerWidget {
                   appSettings,
                 ),
                 isGlobal: _isGlobal,
-                onChanged: (value) => _setSyncWebPages(context, ref, value),
+                onChanged: (value) => _setSyncWebPages(ref, value),
               ),
             InheritedBoolSettingTile(
               title: l10n.autoAiSummary,
@@ -91,7 +91,7 @@ class SubscriptionSyncSettingsSection extends ConsumerWidget {
                 appSettings,
               ),
               isGlobal: _isGlobal,
-              onChanged: (value) => _setShowAiSummary(context, ref, value),
+              onChanged: (value) => _setShowAiSummary(ref, value),
             ),
             InheritedBoolSettingTile(
               title: l10n.autoTranslate,
@@ -104,7 +104,7 @@ class SubscriptionSyncSettingsSection extends ConsumerWidget {
                 appSettings,
               ),
               isGlobal: _isGlobal,
-              onChanged: (value) => _setAutoTranslate(context, ref, value),
+              onChanged: (value) => _setAutoTranslate(ref, value),
             ),
           ],
         ),
@@ -112,11 +112,10 @@ class SubscriptionSyncSettingsSection extends ConsumerWidget {
     );
   }
 
-  void _setSyncEnabled(BuildContext context, WidgetRef ref, bool? value) {
+  void _setSyncEnabled(WidgetRef ref, bool? value) {
     if (feed != null) {
       unawaited(
-        SubscriptionActions.updateFeedSettings(
-          context,
+        SubscriptionSettingsCommands.updateFeedSettings(
           ref,
           feedId: feed!.id,
           syncEnabled: value,
@@ -125,8 +124,7 @@ class SubscriptionSyncSettingsSection extends ConsumerWidget {
       );
     } else if (category != null) {
       unawaited(
-        SubscriptionActions.updateCategorySettings(
-          context,
+        SubscriptionSettingsCommands.updateCategorySettings(
           ref,
           categoryId: category!.id,
           syncEnabled: value,
@@ -140,11 +138,10 @@ class SubscriptionSyncSettingsSection extends ConsumerWidget {
     }
   }
 
-  void _setSyncImages(BuildContext context, WidgetRef ref, bool? value) {
+  void _setSyncImages(WidgetRef ref, bool? value) {
     if (feed != null) {
       unawaited(
-        SubscriptionActions.updateFeedSettings(
-          context,
+        SubscriptionSettingsCommands.updateFeedSettings(
           ref,
           feedId: feed!.id,
           syncImages: value,
@@ -153,8 +150,7 @@ class SubscriptionSyncSettingsSection extends ConsumerWidget {
       );
     } else if (category != null) {
       unawaited(
-        SubscriptionActions.updateCategorySettings(
-          context,
+        SubscriptionSettingsCommands.updateCategorySettings(
           ref,
           categoryId: category!.id,
           syncImages: value,
@@ -168,11 +164,10 @@ class SubscriptionSyncSettingsSection extends ConsumerWidget {
     }
   }
 
-  void _setSyncWebPages(BuildContext context, WidgetRef ref, bool? value) {
+  void _setSyncWebPages(WidgetRef ref, bool? value) {
     if (feed != null) {
       unawaited(
-        SubscriptionActions.updateFeedSettings(
-          context,
+        SubscriptionSettingsCommands.updateFeedSettings(
           ref,
           feedId: feed!.id,
           syncWebPages: value,
@@ -181,8 +176,7 @@ class SubscriptionSyncSettingsSection extends ConsumerWidget {
       );
     } else if (category != null) {
       unawaited(
-        SubscriptionActions.updateCategorySettings(
-          context,
+        SubscriptionSettingsCommands.updateCategorySettings(
           ref,
           categoryId: category!.id,
           syncWebPages: value,
@@ -196,11 +190,10 @@ class SubscriptionSyncSettingsSection extends ConsumerWidget {
     }
   }
 
-  void _setShowAiSummary(BuildContext context, WidgetRef ref, bool? value) {
+  void _setShowAiSummary(WidgetRef ref, bool? value) {
     if (feed != null) {
       unawaited(
-        SubscriptionActions.updateFeedSettings(
-          context,
+        SubscriptionSettingsCommands.updateFeedSettings(
           ref,
           feedId: feed!.id,
           showAiSummary: value,
@@ -209,8 +202,7 @@ class SubscriptionSyncSettingsSection extends ConsumerWidget {
       );
     } else if (category != null) {
       unawaited(
-        SubscriptionActions.updateCategorySettings(
-          context,
+        SubscriptionSettingsCommands.updateCategorySettings(
           ref,
           categoryId: category!.id,
           showAiSummary: value,
@@ -224,11 +216,10 @@ class SubscriptionSyncSettingsSection extends ConsumerWidget {
     }
   }
 
-  void _setAutoTranslate(BuildContext context, WidgetRef ref, bool? value) {
+  void _setAutoTranslate(WidgetRef ref, bool? value) {
     if (feed != null) {
       unawaited(
-        SubscriptionActions.updateFeedSettings(
-          context,
+        SubscriptionSettingsCommands.updateFeedSettings(
           ref,
           feedId: feed!.id,
           autoTranslate: value,
@@ -237,8 +228,7 @@ class SubscriptionSyncSettingsSection extends ConsumerWidget {
       );
     } else if (category != null) {
       unawaited(
-        SubscriptionActions.updateCategorySettings(
-          context,
+        SubscriptionSettingsCommands.updateCategorySettings(
           ref,
           categoryId: category!.id,
           autoTranslate: value,

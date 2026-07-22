@@ -133,6 +133,26 @@ void main() {
     },
   );
 
+  test('setUserTitle clears a custom title for an empty value', () async {
+    final now = DateTime.utc(2026, 3, 1, 12);
+    await isar!.writeTxn(() async {
+      await isar!.feeds.put(
+        Feed()
+          ..id = 9
+          ..url = 'https://example.com/custom.xml'
+          ..title = 'Feed'
+          ..userTitle = 'Custom title'
+          ..createdAt = now
+          ..updatedAt = now,
+      );
+    });
+
+    final repo = FeedRepository(isar!);
+    await repo.setUserTitle(feedId: 9, userTitle: '');
+
+    expect((await repo.getById(9))?.userTitle, isNull);
+  });
+
   test('upsertRemote binds equivalent url to preferred local feed', () async {
     final repo = FeedRepository(isar!);
     await seedCategorizedFeed(url: 'https://example.com/feed.xml/');

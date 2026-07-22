@@ -71,7 +71,7 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
       if (_isRefreshing) return;
       setState(() => _isRefreshing = true);
       try {
-        await SubscriptionActions.refreshAll(context, ref);
+        await SubscriptionRefreshActions.refreshAll(context, ref);
       } finally {
         if (mounted) setState(() => _isRefreshing = false);
       }

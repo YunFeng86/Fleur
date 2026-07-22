@@ -4,34 +4,22 @@ import 'package:go_router/go_router.dart';
 import 'package:fleur/features/accounts/accounts.dart';
 
 import '../../../l10n/app_localizations.dart';
-import '../application/subscription_feed_browsing.dart';
-import '../application/subscription_root_sync_action.dart';
-import '../../../providers/app_settings_providers.dart';
+import '../application/subscription_structure_commands.dart';
 import '../../../providers/backend_capabilities_provider.dart';
-import '../../../providers/backend_sync_semantics_provider.dart';
-import '../../../providers/refresh_all_providers.dart';
 import '../../../providers/repository_providers.dart';
 import '../../../providers/service_providers.dart';
-import '../../../services/logging/app_logger.dart';
 import '../../../services/sync/backend_capabilities.dart';
-import '../../../services/sync/refresh_all_coordinator.dart';
 import '../../../services/sync/remote_subscription_structure_executor.dart';
-import '../../../services/sync/subscription_mirror_service.dart';
-import '../../../ui/actions/remote_structure_feedback.dart' as remote_feedback;
 import '../../../utils/context_extensions.dart';
 import 'add_subscription_screen.dart';
+import 'subscription_remote_feedback.dart' as remote_feedback;
 
-typedef ProviderReadCallback = T Function<T>(ProviderListenable<T> provider);
-typedef SubscriptionActionDialogPresenter =
+typedef SubscriptionStructureDialogPresenter =
     Future<T?> Function<T>({required WidgetBuilder builder});
 
-class SubscriptionActions {
+abstract final class SubscriptionStructureActions {
   static BackendCapabilities _capabilities(WidgetRef ref) {
     return ref.read(backendCapabilitiesProvider);
-  }
-
-  static BackendCapabilities _capabilitiesFromRead(ProviderReadCallback read) {
-    return read(backendCapabilitiesProvider);
   }
 
   static bool _isOnlineRequired(
@@ -42,66 +30,32 @@ class SubscriptionActions {
         FeatureAvailability.onlineRequired;
   }
 
-  @visibleForTesting
-  static String remoteStructureFailureMessageForTest(
-    AppLocalizations l10n,
-    Object error,
-  ) {
-    return remote_feedback.remoteStructureFailureMessage(l10n, error);
-  }
-
   static Future<MinifluxRemoteSubscriptionStructureExecutor>
   _buildMinifluxStructureExecutorFromRead(
-    ProviderReadCallback read,
+    WidgetRef ref,
     Account account,
   ) async {
-    final client = await read(remoteClientFactoryProvider).miniflux(account);
+    final client = await ref
+        .read(remoteClientFactoryProvider)
+        .miniflux(account);
     return MinifluxRemoteSubscriptionStructureExecutor(client);
   }
 
-  static void _logSubscriptionFailure(
-    WidgetRef ref,
-    String operation,
-    Object error, [
-    StackTrace? stackTrace,
-  ]) {
+  static SubscriptionStructureCommands _structureCommands(WidgetRef ref) {
     final account = ref.read(activeAccountProvider);
-    final capabilities = _capabilities(ref);
-    AppLogger.w(
-      'Subscription operation failed',
-      tag: 'subscription',
-      error: error,
-      stackTrace: stackTrace,
-      context: subscriptionMirrorFailureContext(
-        account,
-        capabilities,
-        error,
-        operation,
-      ),
-    );
-  }
-
-  static SubscriptionMirrorService _mirrorService(WidgetRef ref) {
-    return _mirrorServiceFromRead(ref.read);
-  }
-
-  static SubscriptionMirrorService _mirrorServiceFromRead(
-    ProviderReadCallback read,
-  ) {
-    final account = read(activeAccountProvider);
-    return SubscriptionMirrorService(
-      capabilities: _capabilitiesFromRead(read),
+    return SubscriptionStructureCommands(
+      capabilities: _capabilities(ref),
       account: account,
-      feeds: read(feedRepositoryProvider),
-      categories: read(categoryRepositoryProvider),
+      feeds: ref.read(feedRepositoryProvider),
+      categories: ref.read(categoryRepositoryProvider),
       buildExecutor: () =>
-          _buildMinifluxStructureExecutorFromRead(read, account),
+          _buildMinifluxStructureExecutorFromRead(ref, account),
     );
   }
 
   static Future<T?> _presentDialog<T>(
     BuildContext context, {
-    SubscriptionActionDialogPresenter? dialogPresenter,
+    SubscriptionStructureDialogPresenter? dialogPresenter,
     required WidgetBuilder builder,
   }) {
     if (dialogPresenter != null) {
@@ -112,7 +66,7 @@ class SubscriptionActions {
 
   static Future<String?> _presentTextInputDialog(
     BuildContext context, {
-    SubscriptionActionDialogPresenter? dialogPresenter,
+    SubscriptionStructureDialogPresenter? dialogPresenter,
     required String title,
     String? labelText,
     String initialText = '',
@@ -154,36 +108,6 @@ class SubscriptionActions {
     } finally {
       controller.dispose();
     }
-  }
-
-  @visibleForTesting
-  static Future<void> reconcileLocalFeedFromRemoteUpdateForTest(
-    ProviderReadCallback read,
-    int localFeedId,
-    Map<String, Object?> remoteFeed, {
-    int? fallbackCategoryId,
-  }) {
-    return _mirrorServiceFromRead(read).reconcileLocalFeedFromRemoteUpdate(
-      localFeedId: localFeedId,
-      remoteFeed: remoteFeed,
-      fallbackCategoryId: fallbackCategoryId,
-    );
-  }
-
-  /// Select a feed for browsing.
-  ///
-  /// When [resetFilters] is true (default), clears global filters/search that
-  /// may not make sense after switching feeds.
-  static void selectFeed(
-    WidgetRef ref,
-    int feedId, {
-    bool resetFilters = true,
-  }) {
-    SubscriptionFeedBrowsing.selectFeed(
-      ref.read,
-      feedId,
-      resetFilters: resetFilters,
-    );
   }
 
   static Future<int?> addFeed(
@@ -230,7 +154,7 @@ class SubscriptionActions {
   static Future<int?> addCategory(
     BuildContext context,
     WidgetRef ref, {
-    SubscriptionActionDialogPresenter? dialogPresenter,
+    SubscriptionStructureDialogPresenter? dialogPresenter,
   }) async {
     final l10n = AppLocalizations.of(context)!;
     final capabilities = _capabilities(ref);
@@ -251,9 +175,14 @@ class SubscriptionActions {
     if (name == null || name.trim().isEmpty) return null;
 
     try {
-      return await _mirrorService(ref).addCategory(name);
+      return await _structureCommands(ref).addCategory(name);
     } catch (error, stackTrace) {
-      _logSubscriptionFailure(ref, 'createCategory', error, stackTrace);
+      remote_feedback.logSubscriptionFailure(
+        ref,
+        'createCategory',
+        error,
+        stackTrace,
+      );
       if (!context.mounted) return null;
       remote_feedback.showRemoteStructureFailure(context, l10n, error);
       return null;
@@ -265,7 +194,7 @@ class SubscriptionActions {
     WidgetRef ref, {
     required int categoryId,
     required String currentName,
-    SubscriptionActionDialogPresenter? dialogPresenter,
+    SubscriptionStructureDialogPresenter? dialogPresenter,
   }) async {
     final l10n = AppLocalizations.of(context)!;
     final capabilities = _capabilities(ref);
@@ -291,7 +220,7 @@ class SubscriptionActions {
 
     if (!_isOnlineRequired(capabilities, feature)) {
       try {
-        await _mirrorService(ref).renameCategory(
+        await _structureCommands(ref).renameCategory(
           categoryId: categoryId,
           currentName: currentName,
           nextName: trimmed,
@@ -307,7 +236,7 @@ class SubscriptionActions {
     }
 
     try {
-      await _mirrorService(ref).renameCategory(
+      await _structureCommands(ref).renameCategory(
         categoryId: categoryId,
         currentName: currentName,
         nextName: trimmed,
@@ -316,7 +245,12 @@ class SubscriptionActions {
       if (!context.mounted) return;
       context.showErrorMessage(l10n.errorMessage(l10n.nameAlreadyExists));
     } catch (error, stackTrace) {
-      _logSubscriptionFailure(ref, 'renameCategory', error, stackTrace);
+      remote_feedback.logSubscriptionFailure(
+        ref,
+        'renameCategory',
+        error,
+        stackTrace,
+      );
       if (!context.mounted) return;
       remote_feedback.showRemoteStructureFailure(context, l10n, error);
     }
@@ -326,7 +260,7 @@ class SubscriptionActions {
     BuildContext context,
     WidgetRef ref, {
     required int categoryId,
-    SubscriptionActionDialogPresenter? dialogPresenter,
+    SubscriptionStructureDialogPresenter? dialogPresenter,
   }) async {
     final l10n = AppLocalizations.of(context)!;
     final capabilities = _capabilities(ref);
@@ -365,11 +299,10 @@ class SubscriptionActions {
     if (!context.mounted) return false;
     if (ok != true) return false;
 
-    return deleteCategoryConfirmed(context, ref, categoryId);
+    return _deleteCategoryConfirmed(context, ref, categoryId);
   }
 
-  @visibleForTesting
-  static Future<bool> deleteCategoryConfirmed(
+  static Future<bool> _deleteCategoryConfirmed(
     BuildContext context,
     WidgetRef ref,
     int categoryId,
@@ -381,32 +314,21 @@ class SubscriptionActions {
     }
 
     try {
-      await deleteCategoryConfirmedCore(ref, categoryId);
+      await _structureCommands(ref).deleteCategory(categoryId);
       if (!context.mounted) return true;
       context.showSnack(l10n.categoryDeleted);
       return true;
     } catch (error, stackTrace) {
-      _logSubscriptionFailure(ref, 'deleteCategory', error, stackTrace);
+      remote_feedback.logSubscriptionFailure(
+        ref,
+        'deleteCategory',
+        error,
+        stackTrace,
+      );
       if (!context.mounted) return false;
       remote_feedback.showRemoteStructureFailure(context, l10n, error);
       return false;
     }
-  }
-
-  @visibleForTesting
-  static Future<void> deleteCategoryConfirmedCore(
-    WidgetRef ref,
-    int categoryId,
-  ) async {
-    return deleteCategoryConfirmedCoreFromRead(ref.read, categoryId);
-  }
-
-  @visibleForTesting
-  static Future<void> deleteCategoryConfirmedCoreFromRead(
-    ProviderReadCallback read,
-    int categoryId,
-  ) async {
-    return _mirrorServiceFromRead(read).deleteCategory(categoryId);
   }
 
   static Future<void> editFeedTitle(
@@ -414,7 +336,7 @@ class SubscriptionActions {
     WidgetRef ref, {
     required int feedId,
     required String? currentTitle,
-    SubscriptionActionDialogPresenter? dialogPresenter,
+    SubscriptionStructureDialogPresenter? dialogPresenter,
   }) async {
     final l10n = AppLocalizations.of(context)!;
     final controller = TextEditingController(text: currentTitle ?? '');
@@ -423,7 +345,7 @@ class SubscriptionActions {
         context,
         dialogPresenter: dialogPresenter,
         builder: (context) {
-          return buildEditFeedTitleDialogForTest(
+          return buildEditFeedTitleDialog(
             context,
             l10n: l10n,
             controller: controller,
@@ -439,8 +361,7 @@ class SubscriptionActions {
     }
   }
 
-  @visibleForTesting
-  static Widget buildEditFeedTitleDialogForTest(
+  static Widget buildEditFeedTitleDialog(
     BuildContext context, {
     required AppLocalizations l10n,
     required TextEditingController controller,
@@ -474,7 +395,7 @@ class SubscriptionActions {
     BuildContext context,
     WidgetRef ref, {
     required int feedId,
-    SubscriptionActionDialogPresenter? dialogPresenter,
+    SubscriptionStructureDialogPresenter? dialogPresenter,
   }) async {
     final l10n = AppLocalizations.of(context)!;
     if (!_capabilities(ref).isVisible(BackendFeature.deleteSubscription)) {
@@ -505,11 +426,10 @@ class SubscriptionActions {
     if (!context.mounted) return false;
     if (ok != true) return false;
 
-    return deleteFeedConfirmed(context, ref, feedId);
+    return _deleteFeedConfirmed(context, ref, feedId);
   }
 
-  @visibleForTesting
-  static Future<bool> deleteFeedConfirmed(
+  static Future<bool> _deleteFeedConfirmed(
     BuildContext context,
     WidgetRef ref,
     int feedId,
@@ -522,217 +442,28 @@ class SubscriptionActions {
     }
 
     try {
-      await deleteFeedConfirmedCore(ref, feedId);
+      await _structureCommands(ref).deleteFeed(feedId);
       if (!context.mounted) return true;
       context.showSnack(l10n.deleted);
       return true;
     } catch (error, stackTrace) {
-      _logSubscriptionFailure(ref, 'deleteFeed', error, stackTrace);
+      remote_feedback.logSubscriptionFailure(
+        ref,
+        'deleteFeed',
+        error,
+        stackTrace,
+      );
       if (!context.mounted) return false;
       remote_feedback.showRemoteStructureFailure(context, l10n, error);
       return false;
     }
   }
 
-  @visibleForTesting
-  static Future<void> deleteFeedConfirmedCore(WidgetRef ref, int feedId) async {
-    return deleteFeedConfirmedCoreFromRead(ref.read, feedId);
-  }
-
-  @visibleForTesting
-  static Future<void> deleteFeedConfirmedCoreFromRead(
-    ProviderReadCallback read,
-    int feedId,
-  ) async {
-    return _mirrorServiceFromRead(read).deleteFeed(feedId);
-  }
-
-  /// Feed settings remain client-only even for remote-backed accounts.
-  static Future<void> updateFeedSettings(
-    BuildContext context,
-    WidgetRef ref, {
-    required int feedId,
-    bool? filterEnabled,
-    bool updateFilterEnabled = false,
-    String? filterKeywords,
-    bool updateFilterKeywords = false,
-    bool? syncEnabled,
-    bool updateSyncEnabled = false,
-    bool? syncImages,
-    bool updateSyncImages = false,
-    bool? syncWebPages,
-    bool updateSyncWebPages = false,
-    bool? showAiSummary,
-    bool updateShowAiSummary = false,
-    bool? autoTranslate,
-    bool updateAutoTranslate = false,
-  }) async {
-    await ref
-        .read(feedRepositoryProvider)
-        .updateSettings(
-          id: feedId,
-          filterEnabled: filterEnabled,
-          updateFilterEnabled: updateFilterEnabled,
-          filterKeywords: filterKeywords,
-          updateFilterKeywords: updateFilterKeywords,
-          syncEnabled: syncEnabled,
-          updateSyncEnabled: updateSyncEnabled,
-          syncImages: syncImages,
-          updateSyncImages: updateSyncImages,
-          syncWebPages: syncWebPages,
-          updateSyncWebPages: updateSyncWebPages,
-          showAiSummary: showAiSummary,
-          updateShowAiSummary: updateShowAiSummary,
-          autoTranslate: autoTranslate,
-          updateAutoTranslate: updateAutoTranslate,
-        );
-  }
-
-  /// Category settings remain client-only even for remote-backed accounts.
-  static Future<void> updateCategorySettings(
-    BuildContext context,
-    WidgetRef ref, {
-    required int categoryId,
-    bool? filterEnabled,
-    bool updateFilterEnabled = false,
-    String? filterKeywords,
-    bool updateFilterKeywords = false,
-    bool? syncEnabled,
-    bool updateSyncEnabled = false,
-    bool? syncImages,
-    bool updateSyncImages = false,
-    bool? syncWebPages,
-    bool updateSyncWebPages = false,
-    bool? showAiSummary,
-    bool updateShowAiSummary = false,
-    bool? autoTranslate,
-    bool updateAutoTranslate = false,
-  }) async {
-    await ref
-        .read(categoryRepositoryProvider)
-        .updateSettings(
-          id: categoryId,
-          filterEnabled: filterEnabled,
-          updateFilterEnabled: updateFilterEnabled,
-          filterKeywords: filterKeywords,
-          updateFilterKeywords: updateFilterKeywords,
-          syncEnabled: syncEnabled,
-          updateSyncEnabled: updateSyncEnabled,
-          syncImages: syncImages,
-          updateSyncImages: updateSyncImages,
-          syncWebPages: syncWebPages,
-          updateSyncWebPages: updateSyncWebPages,
-          showAiSummary: showAiSummary,
-          updateShowAiSummary: updateShowAiSummary,
-          autoTranslate: autoTranslate,
-          updateAutoTranslate: updateAutoTranslate,
-        );
-  }
-
-  // Back-compat alias.
-  static Future<void> showAddCategoryDialog(
-    BuildContext context,
-    WidgetRef ref,
-  ) async {
-    await addCategory(context, ref);
-  }
-
-  static Future<void> refreshFeed(
-    BuildContext context,
-    WidgetRef ref,
-    int feedId,
-  ) async {
-    final l10n = AppLocalizations.of(context)!;
-    final capabilities = _capabilities(ref);
-    const feature = BackendFeature.refreshSubscriptionSource;
-    if (!capabilities.isVisible(feature)) {
-      remote_feedback.showUnsupportedRemoteCommand(context, l10n);
-      return;
-    }
-
-    try {
-      final result = await ref
-          .read(scopedRefreshCoordinatorProvider)
-          .refreshScope(scope: FeedRefreshScope(feedId));
-      if (!context.mounted) return;
-      final err = result.firstError;
-      if (result.error != null) {
-        _logSubscriptionFailure(
-          ref,
-          'refreshFeed',
-          result.error!,
-          result.stackTrace,
-        );
-        remote_feedback.showRemoteStructureFailure(
-          context,
-          l10n,
-          result.error!,
-        );
-        return;
-      }
-      context.showSnack(
-        err == null ? l10n.refreshed : l10n.errorMessage(err.toString()),
-      );
-    } catch (error, stackTrace) {
-      _logSubscriptionFailure(ref, 'refreshFeed', error, stackTrace);
-      if (!context.mounted) return;
-      remote_feedback.showRemoteStructureFailure(context, l10n, error);
-    }
-  }
-
-  static Future<void> cacheFeedOffline(
-    BuildContext context,
-    WidgetRef ref,
-    int feedId,
-  ) async {
-    final l10n = AppLocalizations.of(context)!;
-    final count = await ref.read(syncServiceProvider).offlineCacheFeed(feedId);
-    if (!context.mounted) return;
-    context.showSnack(l10n.cachingArticles(count));
-  }
-
-  static Future<void> refreshAll(BuildContext context, WidgetRef ref) async {
-    final l10n = AppLocalizations.of(context)!;
-    final appSettings = ref.read(appSettingsProvider).valueOrNull;
-    final concurrency = appSettings?.autoRefreshConcurrency ?? 2;
-    final capabilities = _capabilities(ref);
-    final syncSemantics = ref.read(backendSyncSemanticsProvider);
-    final mode = resolveSubscriptionRootSyncMode(capabilities, syncSemantics);
-    if (mode == null) {
-      remote_feedback.showUnsupportedRemoteCommand(context, l10n);
-      return;
-    }
-
-    final result = await ref
-        .read(scopedRefreshCoordinatorProvider)
-        .refreshScope(
-          scope: const AllRefreshScope(),
-          maxConcurrent: concurrency,
-        );
-    if (!context.mounted) return;
-    final err = result.firstError;
-    if (result.error != null) {
-      _logSubscriptionFailure(
-        ref,
-        'refreshAllFeeds',
-        result.error!,
-        result.stackTrace,
-      );
-      remote_feedback.showRemoteStructureFailure(context, l10n, result.error!);
-      return;
-    }
-    context.showSnack(
-      err == null
-          ? subscriptionRootSyncSuccessLabel(l10n, mode)
-          : l10n.errorMessage(err.toString()),
-    );
-  }
-
   static Future<void> moveFeedToCategory(
     BuildContext context,
     WidgetRef ref, {
     required int feedId,
-    SubscriptionActionDialogPresenter? dialogPresenter,
+    SubscriptionStructureDialogPresenter? dialogPresenter,
   }) async {
     final l10n = AppLocalizations.of(context)!;
     final capabilities = _capabilities(ref);
@@ -791,7 +522,7 @@ class SubscriptionActions {
     };
 
     if (!isOnlineRequired) {
-      await _mirrorService(
+      await _structureCommands(
         ref,
       ).moveFeedToCategory(feedId: feedId, categoryId: categoryId);
       return;
@@ -810,11 +541,16 @@ class SubscriptionActions {
     }
 
     try {
-      await _mirrorService(
+      await _structureCommands(
         ref,
       ).moveFeedToCategory(feedId: feedId, categoryId: categoryId);
     } catch (error, stackTrace) {
-      _logSubscriptionFailure(ref, 'moveFeedToCategory', error, stackTrace);
+      remote_feedback.logSubscriptionFailure(
+        ref,
+        'moveFeedToCategory',
+        error,
+        stackTrace,
+      );
       if (!context.mounted) return;
       remote_feedback.showRemoteStructureFailure(context, l10n, error);
     }

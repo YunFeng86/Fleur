@@ -73,7 +73,9 @@ class SubscriptionToolbar extends ConsumerWidget {
                   showAddLabel)
                 FilledButton.icon(
                   onPressed: () {
-                    unawaited(SubscriptionActions.addFeed(context, ref));
+                    unawaited(
+                      SubscriptionStructureActions.addFeed(context, ref),
+                    );
                   },
                   icon: const Icon(FleurIcons.add),
                   label: Text(l10n.addSubscription),
@@ -83,7 +85,9 @@ class SubscriptionToolbar extends ConsumerWidget {
                   tooltip: l10n.addSubscription,
                   icon: const Icon(FleurIcons.add),
                   onPressed: () {
-                    unawaited(SubscriptionActions.addFeed(context, ref));
+                    unawaited(
+                      SubscriptionStructureActions.addFeed(context, ref),
+                    );
                   },
                 ),
               const SizedBox(width: 4),
@@ -93,7 +97,7 @@ class SubscriptionToolbar extends ConsumerWidget {
                   icon: const Icon(FleurIcons.addCategory),
                   onPressed: () {
                     unawaited(
-                      SubscriptionActions.showAddCategoryDialog(context, ref),
+                      SubscriptionStructureActions.addCategory(context, ref),
                     );
                   },
                 ),
