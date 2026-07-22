@@ -44,6 +44,21 @@ class _ArticleListItemState extends ConsumerState<ArticleListItem> {
   static const double _wideImageHeight = 108;
 
   bool _hovered = false;
+  bool _focusWithin = false;
+  late FocusHighlightMode _interactionMode;
+
+  @override
+  void initState() {
+    super.initState();
+    _interactionMode = FocusManager.instance.highlightMode;
+    FocusManager.instance.addHighlightModeListener(_handleInteractionMode);
+  }
+
+  @override
+  void dispose() {
+    FocusManager.instance.removeHighlightModeListener(_handleInteractionMode);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -115,145 +130,163 @@ class _ArticleListItemState extends ConsumerState<ArticleListItem> {
     final borderColor = widget.selected
         ? states.focusRing.withAlpha(78)
         : Colors.transparent;
-    return MouseRegion(
-      onEnter: (_) => _setHovered(true),
-      onExit: (_) => _setHovered(false),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(8, 2, 8, 4),
-        child: Container(
-          key: const Key('article_item_card'),
-          decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: _radius,
-            border: Border.all(color: borderColor),
-          ),
-          child: ClipRRect(
-            borderRadius: _radius,
-            child: Material(
-              type: MaterialType.transparency,
-              child: InkWell(
-                hoverColor: states.hoverTint,
-                highlightColor: states.pressedTint,
-                onHover: _setHovered,
-                onTap: widget.onTap,
-                onSecondaryTapDown: widget.onSecondaryTapDown,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        height: _headerHeight,
-                        child: Row(
-                          children: [
-                            FaviconCircle(
-                              key: const Key('article_item_feed_icon'),
-                              siteUri: siteUri,
-                              diameter: _headerHeight,
-                              avatarSize: 20,
-                              backgroundColor: _hovered
-                                  ? surfaces.card
-                                  : Color.alphaBlend(
-                                      states.hoverTint,
-                                      surfaces.list,
-                                    ),
-                              fallbackIcon: FleurIcons.feed,
-                              fallbackColor: metaColor,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                key: const Key('article_item_feed_label'),
-                                _feedLabel(feed, article),
-                                style: metadataStyle,
-                                maxLines: 1,
-                                softWrap: false,
-                                overflow: _hovered
-                                    ? TextOverflow.fade
-                                    : TextOverflow.ellipsis,
+    final touchMode = _interactionMode == FocusHighlightMode.touch;
+    final showInlineActions = !touchMode && (_hovered || _focusWithin);
+    final actions = _ArticleItemActions(
+      article: article,
+      l10n: l10n,
+      states: states,
+      touchMode: touchMode,
+      onToggleReadLater: _toggleReadLater,
+      onToggleStar: _toggleStar,
+      onToggleRead: _toggleRead,
+    );
+    return Focus(
+      canRequestFocus: false,
+      skipTraversal: true,
+      onFocusChange: _setFocusWithin,
+      child: MouseRegion(
+        onEnter: (_) => _setHovered(true),
+        onExit: (_) => _setHovered(false),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(8, 2, 8, 4),
+          child: Container(
+            key: const Key('article_item_card'),
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: _radius,
+              border: Border.all(color: borderColor),
+            ),
+            child: ClipRRect(
+              borderRadius: _radius,
+              child: Material(
+                type: MaterialType.transparency,
+                child: InkWell(
+                  hoverColor: states.hoverTint,
+                  highlightColor: states.pressedTint,
+                  onHover: _setHovered,
+                  onTap: widget.onTap,
+                  onSecondaryTapDown: widget.onSecondaryTapDown,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          height: _headerHeight,
+                          child: Row(
+                            children: [
+                              FaviconCircle(
+                                key: const Key('article_item_feed_icon'),
+                                siteUri: siteUri,
+                                diameter: _headerHeight,
+                                avatarSize: 20,
+                                backgroundColor: _hovered || _focusWithin
+                                    ? surfaces.card
+                                    : Color.alphaBlend(
+                                        states.hoverTint,
+                                        surfaces.list,
+                                      ),
+                                fallbackIcon: FleurIcons.feed,
+                                fallbackColor: metaColor,
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            SizedBox(
-                              width: _trailingWidth,
-                              height: _headerHeight,
-                              child: _hovered
-                                  ? _ArticleItemActions(
-                                      article: article,
-                                      l10n: l10n,
-                                      states: states,
-                                      onToggleReadLater: _toggleReadLater,
-                                      onToggleStar: _toggleStar,
-                                      onToggleRead: _toggleRead,
-                                    )
-                                  : _ArticleItemTimestamp(
-                                      isUnread: isUnread,
-                                      timeStr: timeStr,
-                                      style: timestampStyle,
-                                      unreadColor: states.unreadAccent,
-                                    ),
-                            ),
-                          ],
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  key: const Key('article_item_feed_label'),
+                                  _feedLabel(feed, article),
+                                  style: metadataStyle,
+                                  maxLines: 1,
+                                  softWrap: false,
+                                  overflow: showInlineActions
+                                      ? TextOverflow.fade
+                                      : TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              SizedBox(
+                                width: _trailingWidth,
+                                height: _headerHeight,
+                                child: showInlineActions
+                                    ? actions
+                                    : _ArticleItemTimestamp(
+                                        isUnread: isUnread,
+                                        timeStr: timeStr,
+                                        style: timestampStyle,
+                                        unreadColor: states.unreadAccent,
+                                      ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        title.isEmpty ? article.link : title,
-                        style: titleStyle,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (previewText.isNotEmpty || imageUrl != null) ...[
                         const SizedBox(height: 6),
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            final canShowImage =
-                                imageUrl != null &&
-                                constraints.maxWidth >= _minImageLayoutWidth;
-                            final imageWidth = constraints.maxWidth >= 520
-                                ? _wideImageWidth
-                                : _compactImageWidth;
-                            final imageHeight = constraints.maxWidth >= 520
-                                ? _wideImageHeight
-                                : _compactImageHeight;
-
-                            final summary = previewText.isEmpty
-                                ? const SizedBox.shrink()
-                                : Text(
-                                    key: const Key('article_item_preview_text'),
-                                    previewText,
-                                    style: previewStyle,
-                                    maxLines: 4,
-                                    overflow: TextOverflow.ellipsis,
-                                  );
-
-                            if (!canShowImage) return summary;
-
-                            final image = _ArticlePreviewImage(
-                              url: imageUrl,
-                              width: imageWidth,
-                              height: imageHeight,
-                            );
-
-                            if (previewText.isEmpty) {
-                              return Align(
-                                alignment: Alignment.centerRight,
-                                child: image,
-                              );
-                            }
-
-                            return Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(child: summary),
-                                const SizedBox(width: 12),
-                                image,
-                              ],
-                            );
-                          },
+                        Text(
+                          title.isEmpty ? article.link : title,
+                          style: titleStyle,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
+                        if (previewText.isNotEmpty || imageUrl != null) ...[
+                          const SizedBox(height: 6),
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              final canShowImage =
+                                  imageUrl != null &&
+                                  constraints.maxWidth >= _minImageLayoutWidth;
+                              final imageWidth = constraints.maxWidth >= 520
+                                  ? _wideImageWidth
+                                  : _compactImageWidth;
+                              final imageHeight = constraints.maxWidth >= 520
+                                  ? _wideImageHeight
+                                  : _compactImageHeight;
+
+                              final summary = previewText.isEmpty
+                                  ? const SizedBox.shrink()
+                                  : Text(
+                                      key: const Key(
+                                        'article_item_preview_text',
+                                      ),
+                                      previewText,
+                                      style: previewStyle,
+                                      maxLines: 4,
+                                      overflow: TextOverflow.ellipsis,
+                                    );
+
+                              if (!canShowImage) return summary;
+
+                              final image = _ArticlePreviewImage(
+                                url: imageUrl,
+                                width: imageWidth,
+                                height: imageHeight,
+                              );
+
+                              if (previewText.isEmpty) {
+                                return Align(
+                                  alignment: Alignment.centerRight,
+                                  child: image,
+                                );
+                              }
+
+                              return Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(child: summary),
+                                  const SizedBox(width: 12),
+                                  image,
+                                ],
+                              );
+                            },
+                          ),
+                        ],
+                        if (touchMode) ...[
+                          const SizedBox(height: 4),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: actions,
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -264,9 +297,19 @@ class _ArticleListItemState extends ConsumerState<ArticleListItem> {
     );
   }
 
+  void _handleInteractionMode(FocusHighlightMode value) {
+    if (_interactionMode == value) return;
+    setState(() => _interactionMode = value);
+  }
+
   void _setHovered(bool value) {
     if (_hovered == value) return;
     setState(() => _hovered = value);
+  }
+
+  void _setFocusWithin(bool value) {
+    if (_focusWithin == value) return;
+    setState(() => _focusWithin = value);
   }
 
   String _feedLabel(Feed? feed, Article article) {
@@ -349,6 +392,7 @@ class _ArticleItemActions extends StatelessWidget {
     required this.article,
     required this.l10n,
     required this.states,
+    required this.touchMode,
     required this.onToggleReadLater,
     required this.onToggleStar,
     required this.onToggleRead,
@@ -357,6 +401,7 @@ class _ArticleItemActions extends StatelessWidget {
   final Article article;
   final AppLocalizations l10n;
   final FleurStateTheme states;
+  final bool touchMode;
   final VoidCallback onToggleReadLater;
   final VoidCallback onToggleStar;
   final VoidCallback onToggleRead;
@@ -365,6 +410,7 @@ class _ArticleItemActions extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       key: const Key('article_item_hover_actions'),
+      mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         _ArticleItemActionButton(
@@ -374,6 +420,7 @@ class _ArticleItemActions extends StatelessWidget {
               ? FleurIcons.readLaterActive
               : FleurIcons.readLater,
           color: article.isReadLater ? states.savedAccent : null,
+          touchMode: touchMode,
           onPressed: onToggleReadLater,
         ),
         _ArticleItemActionButton(
@@ -381,12 +428,14 @@ class _ArticleItemActions extends StatelessWidget {
           tooltip: article.isStarred ? l10n.unstar : l10n.star,
           icon: article.isStarred ? FleurIcons.starActive : FleurIcons.star,
           color: article.isStarred ? states.savedAccent : null,
+          touchMode: touchMode,
           onPressed: onToggleStar,
         ),
         _ArticleItemActionButton(
           key: const Key('article_item_read_button'),
           tooltip: article.isRead ? l10n.markUnread : l10n.markRead,
           icon: article.isRead ? FleurIcons.markUnread : FleurIcons.markRead,
+          touchMode: touchMode,
           onPressed: onToggleRead,
         ),
       ],
@@ -400,26 +449,43 @@ class _ArticleItemActionButton extends StatelessWidget {
     required this.tooltip,
     required this.icon,
     required this.onPressed,
+    required this.touchMode,
     this.color,
   });
 
   final String tooltip;
   final IconData icon;
   final VoidCallback onPressed;
+  final bool touchMode;
   final Color? color;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return IconButton(
-      tooltip: tooltip,
-      onPressed: onPressed,
-      icon: Icon(icon, color: color ?? scheme.onSurfaceVariant),
-      iconSize: FleurIconMetrics.small,
-      padding: EdgeInsets.zero,
-      constraints: const BoxConstraints.tightFor(width: 32, height: 32),
-      style: IconButton.styleFrom(
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    return Semantics(
+      label: tooltip,
+      button: true,
+      enabled: true,
+      onTap: onPressed,
+      excludeSemantics: true,
+      child: IconButton(
+        tooltip: tooltip,
+        onPressed: onPressed,
+        icon: Icon(icon, color: color ?? scheme.onSurfaceVariant),
+        iconSize: FleurIconMetrics.small,
+        padding: EdgeInsets.zero,
+        constraints: BoxConstraints.tightFor(
+          width: touchMode ? 48 : 32,
+          height: touchMode ? 48 : 32,
+        ),
+        style: IconButton.styleFrom(
+          tapTargetSize: touchMode
+              ? MaterialTapTargetSize.padded
+              : MaterialTapTargetSize.shrinkWrap,
+          visualDensity: touchMode
+              ? VisualDensity.standard
+              : VisualDensity.compact,
+        ),
       ),
     );
   }
