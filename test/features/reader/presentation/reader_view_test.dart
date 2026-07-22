@@ -16,6 +16,10 @@ import 'package:isar_community/isar.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 
 import 'package:fleur/l10n/app_localizations.dart';
+import 'package:fleur/features/reader/presentation/code_rendering/reader_code_rendering.dart';
+import 'package:fleur/features/reader/presentation/widgets/reader_bottom_bar.dart';
+import 'package:fleur/features/reader/presentation/widgets/reader_search_bar.dart';
+import 'package:fleur/features/reader/presentation/widgets/reader_selectable_rich_text.dart';
 import 'package:fleur/models/article.dart';
 import 'package:fleur/models/feed.dart';
 import 'package:fleur/models/tag.dart';
@@ -42,16 +46,11 @@ import 'package:fleur/services/html_sanitizer.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
-import 'package:fleur/ui/reader/reader_selectable_rich_text.dart';
-import 'package:fleur/ui/reader/code_rendering/reader_code_rendering.dart';
+import 'package:fleur/features/reader/reader.dart';
 import 'package:fleur/utils/content_hash.dart';
 import 'package:fleur/utils/path_manager.dart';
 import 'package:fleur/utils/tag_colors.dart';
-import 'package:fleur/widgets/reader_bottom_bar.dart';
-import 'package:fleur/widgets/reader_search_bar.dart';
-import 'package:fleur/widgets/reader_view.dart';
-
-import '../test_utils/critical_workflow_test_support.dart';
+import '../../../test_utils/critical_workflow_test_support.dart';
 
 class _FakeFullTextController extends FullTextController {
   static int fetchCalls = 0;

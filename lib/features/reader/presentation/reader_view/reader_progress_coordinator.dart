@@ -1,4 +1,4 @@
-part of '../../widgets/reader_view.dart';
+part of '../reader_view.dart';
 
 final class _ReaderViewportCoordinator {
   _ReaderViewportCoordinator({

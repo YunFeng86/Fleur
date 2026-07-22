@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../theme/fleur_theme_extensions.dart';
+import 'package:fleur/theme/fleur_theme_extensions.dart';
 import 'reader_code_models.dart';
 
 enum ReaderCodeInlineColorPolicy { preserve, ignore }

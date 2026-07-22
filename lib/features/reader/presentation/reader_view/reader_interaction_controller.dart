@@ -1,4 +1,4 @@
-part of '../../widgets/reader_view.dart';
+part of '../reader_view.dart';
 
 enum _ReaderSettingsLineHeightPreset { compact, standard, relaxed }
 

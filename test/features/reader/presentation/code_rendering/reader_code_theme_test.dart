@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fleur/ui/reader/code_rendering/reader_code_rendering.dart';
+import 'package:fleur/features/reader/presentation/code_rendering/reader_code_rendering.dart';
 
 void main() {
   test('default themes expose chrome search diff and token colors', () {

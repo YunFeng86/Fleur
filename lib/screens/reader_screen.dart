@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../widgets/reader_view.dart';
+import '../features/reader/reader.dart';
 
 class ReaderScreen extends StatelessWidget {
   const ReaderScreen({

@@ -2,9 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../l10n/app_localizations.dart';
-import '../../../theme/fleur_icons.dart';
-import '../reader_selectable_rich_text.dart';
+import 'package:fleur/l10n/app_localizations.dart';
+import 'package:fleur/theme/fleur_icons.dart';
+
+import '../widgets/reader_selectable_rich_text.dart';
 import 'reader_code_models.dart';
 import 'reader_code_theme.dart';
 import 'reader_code_token_theme.dart';

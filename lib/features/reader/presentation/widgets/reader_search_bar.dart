@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fleur/l10n/app_localizations.dart';
-
-import '../providers/reader_search_providers.dart';
-import '../theme/fleur_icons.dart';
-import '../theme/fleur_theme_extensions.dart';
-import '../ui/motion.dart';
+import 'package:fleur/providers/reader_search_providers.dart';
+import 'package:fleur/theme/fleur_icons.dart';
+import 'package:fleur/theme/fleur_theme_extensions.dart';
+import 'package:fleur/ui/motion.dart';
 
 class ReaderSearchBar extends ConsumerStatefulWidget {
   const ReaderSearchBar({super.key, required this.articleId});

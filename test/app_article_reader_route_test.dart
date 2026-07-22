@@ -23,7 +23,7 @@ import 'package:fleur/services/settings/reader_settings.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/ui/adaptive_workspace_layout.dart';
 import 'package:fleur/utils/platform.dart';
-import 'package:fleur/widgets/reader_view.dart';
+import 'package:fleur/features/reader/reader.dart';
 
 import 'test_utils/critical_workflow_test_support.dart';
 

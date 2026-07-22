@@ -14,7 +14,7 @@ import '../ui/layout_spec.dart';
 import '../ui/shell_chrome_layout.dart';
 import '../widgets/article_list.dart';
 import '../widgets/fleur_empty_state.dart';
-import '../widgets/reader_view.dart';
+import '../features/reader/reader.dart';
 import '../widgets/staggered_reveal.dart';
 import '../widgets/sync_status_capsule.dart';
 import '../ui/app_drawer_scope.dart';

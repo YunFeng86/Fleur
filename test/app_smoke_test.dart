@@ -58,7 +58,7 @@ import 'package:fleur/widgets/article_list.dart';
 import 'package:fleur/widgets/article_list_item.dart';
 import 'package:fleur/widgets/favicon_circle.dart';
 import 'package:fleur/widgets/overflow_marquee.dart';
-import 'package:fleur/widgets/reader_view.dart';
+import 'package:fleur/features/reader/reader.dart';
 import 'package:fleur/widgets/sidebar.dart';
 import 'package:fleur/widgets/sync_status_capsule.dart';
 

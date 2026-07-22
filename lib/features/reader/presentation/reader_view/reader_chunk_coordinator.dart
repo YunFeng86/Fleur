@@ -1,4 +1,4 @@
-part of '../../widgets/reader_view.dart';
+part of '../reader_view.dart';
 
 extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
   static void registerCodeSearchAnchors(

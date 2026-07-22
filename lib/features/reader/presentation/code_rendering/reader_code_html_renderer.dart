@@ -1,6 +1,6 @@
 import 'package:html/dom.dart' as dom;
 
-import '../../../services/reader_search_service.dart';
+import 'package:fleur/services/reader_search_service.dart';
 import 'reader_code_models.dart';
 import 'reader_code_scope_mapper.dart';
 

@@ -4,25 +4,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fleur/l10n/app_localizations.dart';
+import 'package:fleur/models/article.dart';
+import 'package:fleur/models/tag.dart';
+import 'package:fleur/providers/article_ai_providers.dart';
+import 'package:fleur/providers/query_providers.dart';
+import 'package:fleur/providers/reader_providers.dart';
+import 'package:fleur/providers/repository_providers.dart';
+import 'package:fleur/providers/service_providers.dart';
+import 'package:fleur/services/logging/app_logger.dart';
+import 'package:fleur/services/translation/article_translation.dart';
+import 'package:fleur/theme/fleur_icons.dart';
+import 'package:fleur/theme/fleur_theme_extensions.dart';
+import 'package:fleur/ui/app_menu.dart';
+import 'package:fleur/utils/platform.dart';
+import 'package:fleur/utils/tag_colors.dart';
+import 'package:fleur/widgets/app_scrollbar.dart';
+import 'package:fleur/widgets/favicon_avatar.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-
-import '../providers/repository_providers.dart';
-import '../providers/query_providers.dart';
-import '../providers/reader_providers.dart';
-import '../providers/service_providers.dart';
-import '../providers/article_ai_providers.dart';
-import '../models/article.dart';
-import '../models/tag.dart';
-import '../services/logging/app_logger.dart';
-import '../services/translation/article_translation.dart';
-import '../theme/fleur_icons.dart';
-import '../theme/fleur_theme_extensions.dart';
-import '../ui/app_menu.dart';
-import '../utils/platform.dart';
-import '../utils/tag_colors.dart';
-import 'app_scrollbar.dart';
-import 'favicon_avatar.dart';
 
 class ReaderBottomBar extends ConsumerWidget {
   const ReaderBottomBar({

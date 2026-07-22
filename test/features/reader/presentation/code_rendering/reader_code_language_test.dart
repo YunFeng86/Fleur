@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:html/parser.dart' as html_parser;
 
-import 'package:fleur/ui/reader/code_rendering/reader_code_rendering.dart';
+import 'package:fleur/features/reader/presentation/code_rendering/reader_code_rendering.dart';
 
 void main() {
   const resolver = ReaderCodeLanguageResolver();
