@@ -3,8 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/ui/motion.dart';
-import 'package:fleur/widgets/fleur_selection_transition.dart';
-import 'package:fleur/widgets/fleur_shell_icon_button.dart';
+import 'package:fleur/ui/design_system/design_system.dart';
 
 void main() {
   testWidgets('selection transition starts settled and shares one progress', (

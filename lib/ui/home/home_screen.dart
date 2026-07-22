@@ -10,7 +10,7 @@ import '../../providers/core_providers.dart';
 import '../../providers/query_providers.dart';
 import '../../providers/unread_providers.dart';
 import '../../theme/fleur_icons.dart';
-import '../../widgets/fleur_capsule_button_group.dart';
+import '../design_system/design_system.dart';
 import 'outbox_status_action.dart';
 import '../app_drawer_scope.dart';
 import 'article_reader_workspace_layout.dart';

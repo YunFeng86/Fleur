@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
 import 'package:fleur/ui/motion.dart';
-import 'package:fleur/widgets/fleur_selectable_button.dart';
+import 'package:fleur/ui/design_system/design_system.dart';
 
 void main() {
   testWidgets('keeps selection persistent and press in the state layer', (

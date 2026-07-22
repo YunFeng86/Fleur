@@ -18,7 +18,7 @@ import '../../ui/sidebar/sidebar_selection_actions.dart';
 import '../../utils/platform.dart';
 import '../../widgets/app_scrollbar.dart';
 import '../../widgets/favicon_circle.dart';
-import '../../widgets/fleur_selection_transition.dart';
+import '../design_system/design_system.dart';
 import '../../widgets/scroll_anchor_registry.dart';
 import '../../widgets/tree_disclosure_button.dart';
 

@@ -11,7 +11,7 @@ import '../../providers/service_providers.dart';
 import '../../services/sync/backend_capabilities.dart';
 import '../../services/sync/sync_service.dart';
 import '../../theme/fleur_icons.dart';
-import '../../widgets/fleur_capsule_button_group.dart';
+import '../design_system/design_system.dart';
 
 class OutboxStatusAction extends ConsumerWidget {
   const OutboxStatusAction({super.key, this.compact = false});

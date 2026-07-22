@@ -11,7 +11,7 @@ import 'package:fleur/theme/fleur_theme_extensions.dart';
 import 'package:fleur/ui/dialogs/text_input_dialog.dart';
 import 'package:fleur/utils/context_extensions.dart';
 import 'package:fleur/widgets/app_scrollbar.dart';
-import 'package:fleur/widgets/fleur_selection_transition.dart';
+import 'package:fleur/ui/design_system/design_system.dart';
 
 import '../application/account_providers.dart';
 import '../domain/account.dart';

@@ -6,7 +6,7 @@ import 'package:fleur/features/accounts/accounts.dart';
 import 'package:fleur/l10n/app_localizations.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
-import 'package:fleur/widgets/fleur_selection_transition.dart';
+import 'package:fleur/ui/design_system/design_system.dart';
 
 import '../../../test_utils/critical_workflow_test_support.dart';
 
