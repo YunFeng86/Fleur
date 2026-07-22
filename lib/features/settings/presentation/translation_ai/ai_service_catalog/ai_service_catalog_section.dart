@@ -14,7 +14,7 @@ import 'package:fleur/utils/context_extensions.dart';
 
 import 'ai_service_add_flow.dart';
 import 'ai_service_editor_dialog.dart';
-import 'ai_service_templates.dart';
+import '../ai_service_api_type_display.dart';
 
 enum _AiServiceAction { setDefault, edit, delete }
 

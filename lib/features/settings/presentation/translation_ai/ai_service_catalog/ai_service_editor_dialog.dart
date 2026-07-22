@@ -10,6 +10,7 @@ import 'package:fleur/services/settings/translation_ai_settings.dart';
 import 'package:fleur/utils/context_extensions.dart';
 
 import 'ai_service_templates.dart';
+import '../ai_service_api_type_display.dart';
 
 Future<void> showAiServiceEditorDialog(
   BuildContext context,

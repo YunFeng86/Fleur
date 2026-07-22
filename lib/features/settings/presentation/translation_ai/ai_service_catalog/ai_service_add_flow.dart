@@ -8,6 +8,7 @@ import 'package:fleur/widgets/app_scrollbar.dart';
 
 import 'ai_service_editor_dialog.dart';
 import 'ai_service_templates.dart';
+import '../ai_service_api_type_display.dart';
 
 /// Selects a provider template and opens the editor that persists the service.
 Future<void> showAddAiServiceFlow(BuildContext context, WidgetRef ref) async {

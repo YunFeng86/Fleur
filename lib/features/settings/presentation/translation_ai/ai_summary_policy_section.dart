@@ -15,7 +15,7 @@ import 'package:fleur/utils/prompt_template.dart';
 import 'package:fleur/widgets/app_scrollbar.dart';
 
 import 'ai_service_catalog/ai_service_add_flow.dart';
-import 'ai_service_catalog/ai_service_templates.dart';
+import 'ai_service_api_type_display.dart';
 import 'prompt_template_editor_dialog.dart';
 
 /// Complete workflow for choosing how AI summaries are produced.
