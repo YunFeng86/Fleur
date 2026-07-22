@@ -4,14 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fleur/features/accounts/accounts.dart';
 
-import '../l10n/app_localizations.dart';
-import '../providers/backend_capabilities_provider.dart';
-import '../providers/outbox_status_providers.dart';
-import '../providers/service_providers.dart';
-import '../services/sync/backend_capabilities.dart';
-import '../services/sync/sync_service.dart';
-import '../theme/fleur_icons.dart';
-import 'fleur_capsule_button_group.dart';
+import '../../l10n/app_localizations.dart';
+import '../../providers/backend_capabilities_provider.dart';
+import '../../providers/outbox_status_providers.dart';
+import '../../providers/service_providers.dart';
+import '../../services/sync/backend_capabilities.dart';
+import '../../services/sync/sync_service.dart';
+import '../../theme/fleur_icons.dart';
+import '../../widgets/fleur_capsule_button_group.dart';
 
 class OutboxStatusAction extends ConsumerWidget {
   const OutboxStatusAction({super.key, this.compact = false});

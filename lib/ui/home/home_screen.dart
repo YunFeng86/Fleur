@@ -11,7 +11,7 @@ import '../../providers/query_providers.dart';
 import '../../providers/unread_providers.dart';
 import '../../theme/fleur_icons.dart';
 import '../../widgets/fleur_capsule_button_group.dart';
-import '../../widgets/outbox_status_action.dart';
+import 'outbox_status_action.dart';
 import '../app_drawer_scope.dart';
 import 'article_reader_workspace_layout.dart';
 import 'home_scene_commands.dart';

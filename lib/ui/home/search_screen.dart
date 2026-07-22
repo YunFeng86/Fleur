@@ -18,7 +18,7 @@ import '../../theme/fleur_theme_extensions.dart';
 import 'article_list/article_list.dart';
 import '../../widgets/fleur_empty_state.dart';
 import '../../widgets/staggered_reveal.dart';
-import '../../widgets/sync_status_capsule.dart';
+import 'sync_status_capsule.dart';
 import '../app_drawer_scope.dart';
 import 'article_reader_workspace_layout.dart';
 import 'home_scene_panes.dart';

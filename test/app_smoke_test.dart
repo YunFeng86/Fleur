@@ -59,7 +59,7 @@ import 'package:fleur/ui/home/article_list/article_list_item.dart';
 import 'package:fleur/widgets/favicon_circle.dart';
 import 'package:fleur/widgets/overflow_marquee.dart';
 import 'package:fleur/features/reader/reader.dart';
-import 'package:fleur/widgets/sync_status_capsule.dart';
+import 'package:fleur/ui/home/sync_status_capsule.dart';
 
 import 'test_utils/app_shell_test_support.dart';
 import 'test_utils/critical_workflow_test_support.dart';

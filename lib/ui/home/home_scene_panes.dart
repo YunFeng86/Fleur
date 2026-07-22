@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../theme/fleur_theme_extensions.dart';
 import 'article_list/article_list.dart';
 import '../../features/reader/reader.dart';
-import '../../widgets/sync_status_capsule.dart';
+import 'sync_status_capsule.dart';
 import '../workspace_layers.dart';
 
 class HomeArticleListPane extends StatelessWidget {

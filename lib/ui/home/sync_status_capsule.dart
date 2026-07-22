@@ -3,11 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fleur/l10n/app_localizations.dart';
 
-import '../providers/sync_status_providers.dart';
-import '../services/sync/sync_status_reporter.dart';
-import '../theme/fleur_icons.dart';
-import '../theme/fleur_theme_extensions.dart';
-import '../ui/motion.dart';
+import '../../providers/sync_status_providers.dart';
+import '../../services/sync/sync_status_reporter.dart';
+import '../../theme/fleur_icons.dart';
+import '../../theme/fleur_theme_extensions.dart';
+import '../motion.dart';
 
 const double kSyncStatusCapsuleMaxWidth = 360;
 const double _kSyncStatusCapsuleCenterEdgeMaxWidth = 420;
