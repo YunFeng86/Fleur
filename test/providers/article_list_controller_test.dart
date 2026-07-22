@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,12 +13,50 @@ import 'package:fleur/providers/app_settings_providers.dart';
 import 'package:fleur/providers/article_list_controller.dart';
 import 'package:fleur/providers/core_providers.dart';
 import 'package:fleur/providers/query_providers.dart';
+import 'package:fleur/providers/repository_providers.dart';
 import 'package:fleur/providers/unread_providers.dart';
 import 'package:fleur/repositories/article_repository.dart';
 import 'package:fleur/services/settings/app_settings.dart';
 
 import '../test_utils/critical_workflow_test_support.dart';
 import '../test_utils/isar_test_utils.dart';
+
+class _ControlledArticleRepository extends ArticleRepository {
+  _ControlledArticleRepository(super.isar);
+
+  final List<Completer<List<int>>> idRequests = [];
+  final List<Completer<List<Article>>> pageRequests = [];
+  List<Article> page = const [];
+  bool blockPageRequests = false;
+
+  @override
+  Stream<void> watchQueryChanges(ArticleQuery query) => const Stream.empty();
+
+  @override
+  Future<List<int>> fetchPageIds(
+    ArticleQuery query, {
+    required int offset,
+    required int limit,
+  }) {
+    final request = Completer<List<int>>();
+    idRequests.add(request);
+    return request.future;
+  }
+
+  @override
+  Future<List<Article>> fetchPage(
+    ArticleQuery query, {
+    required int offset,
+    required int limit,
+  }) {
+    if (blockPageRequests) {
+      final request = Completer<List<Article>>();
+      pageRequests.add(request);
+      return request.future;
+    }
+    return Future<List<Article>>.value(page);
+  }
+}
 
 void main() {
   Isar? isar;
@@ -53,6 +92,7 @@ void main() {
     int? selectedArticleId,
     AppSettings? settings,
     ArticleListFilter filter = const ArticleListFilter(),
+    ArticleRepository? repository,
   }) {
     final container = ProviderContainer(
       overrides: [
@@ -65,6 +105,8 @@ void main() {
           (ref) => selectedArticleId,
         ),
         unreadOnlyProvider.overrideWith((ref) => unreadOnly),
+        if (repository != null)
+          articleRepositoryProvider.overrideWithValue(repository),
       ],
     );
     addTearDown(container.dispose);
@@ -156,6 +198,74 @@ void main() {
     expect(state.startOffset, 0);
     expect(state.nextOffset, 100);
     expect(state.hasMore, isTrue);
+  });
+
+  test('an older refresh cannot overwrite a newer refresh result', () async {
+    final repository = _ControlledArticleRepository(isar!);
+    final first = Article()
+      ..id = 1
+      ..title = 'First';
+    final second = Article()
+      ..id = 2
+      ..title = 'Second';
+    repository.page = [first];
+
+    final container = buildContainer(repository: repository);
+    keepArticleListAlive(container);
+    await container.read(appSettingsProvider.future);
+    await container.read(articleListControllerProvider.future);
+
+    final notifier = container.read(articleListControllerProvider.notifier);
+    final olderRefresh = notifier.refresh();
+    await _waitForRequestCount(repository, 1);
+    final newerRefresh = notifier.refresh();
+    await _waitForRequestCount(repository, 2);
+
+    repository.page = [second];
+    repository.idRequests[1].complete([second.id]);
+    await newerRefresh;
+
+    repository.idRequests[0].complete([first.id]);
+    await olderRefresh;
+
+    final state = container.read(articleListControllerProvider).requireValue;
+    expect(articleIds(state), [second.id]);
+  });
+
+  test('a failing refresh releases a superseded load-more state', () async {
+    final repository = _ControlledArticleRepository(isar!)
+      ..page = List<Article>.generate(
+        50,
+        (index) => Article()
+          ..id = index + 1
+          ..title = 'Article ${index + 1}',
+      );
+    final container = buildContainer(repository: repository);
+    keepArticleListAlive(container);
+    await container.read(appSettingsProvider.future);
+    await container.read(articleListControllerProvider.future);
+
+    repository.blockPageRequests = true;
+    final notifier = container.read(articleListControllerProvider.notifier);
+    final loadMore = notifier.loadMore();
+    await _waitForPageRequestCount(repository, 1);
+    expect(
+      container.read(articleListControllerProvider).requireValue.isLoadingMore,
+      isTrue,
+    );
+
+    final refresh = notifier.refresh();
+    await _waitForRequestCount(repository, 1);
+    repository.idRequests.single.completeError(StateError('refresh failed'));
+    await expectLater(refresh, throwsStateError);
+
+    expect(
+      container.read(articleListControllerProvider).requireValue.isLoadingMore,
+      isFalse,
+    );
+
+    repository.pageRequests.single.complete(const <Article>[]);
+    await loadMore;
   });
 
   test(
@@ -297,4 +407,22 @@ void main() {
     );
     expect(articleIds(contentState), [1]);
   });
+}
+
+Future<void> _waitForRequestCount(
+  _ControlledArticleRepository repository,
+  int count,
+) async {
+  while (repository.idRequests.length < count) {
+    await Future<void>.delayed(Duration.zero);
+  }
+}
+
+Future<void> _waitForPageRequestCount(
+  _ControlledArticleRepository repository,
+  int count,
+) async {
+  while (repository.pageRequests.length < count) {
+    await Future<void>.delayed(Duration.zero);
+  }
 }

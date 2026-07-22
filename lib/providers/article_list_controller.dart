@@ -58,6 +58,11 @@ class ArticleListController extends AutoDisposeAsyncNotifier<ArticleListState> {
   bool _sortAscending = false;
   bool _searchInContent = true;
   bool _isMounted = false;
+  int _operationGeneration = 0;
+
+  bool _canCommit(int generation) {
+    return _isMounted && generation == _operationGeneration;
+  }
 
   ArticleQuery _currentQuery() {
     return ArticleQuery(
@@ -76,6 +81,7 @@ class ArticleListController extends AutoDisposeAsyncNotifier<ArticleListState> {
   @override
   Future<ArticleListState> build() async {
     _isMounted = true;
+    _operationGeneration++;
     _scope = ref.watch(currentArticleScopeProvider);
     _unreadOnly = ref.watch(unreadOnlyProvider);
     _searchQuery = ref.watch(articleSearchQueryProvider);
@@ -103,6 +109,7 @@ class ArticleListController extends AutoDisposeAsyncNotifier<ArticleListState> {
     });
     ref.onDispose(() {
       _isMounted = false;
+      _operationGeneration++;
       final sub = _sub;
       if (sub != null) {
         unawaited(sub.cancel());
@@ -119,85 +126,103 @@ class ArticleListController extends AutoDisposeAsyncNotifier<ArticleListState> {
 
   Future<void> refresh() async {
     if (!_isMounted) return;
-    final repo = ref.read(articleRepositoryProvider);
-    final selectedArticleId = ref.read(activeArticleListSelectionProvider);
-    final query = _currentQuery();
-    final current = state.valueOrNull;
-    if (current == null) {
-      final ids = await repo.fetchPageIds(query, offset: 0, limit: _pageSize);
-      if (!_isMounted) return;
-      final hasMore = ids.length == _pageSize;
-      final items = await repo.fetchPage(query, offset: 0, limit: _pageSize);
-      if (!_isMounted) return;
-      state = AsyncValue.data(
-        ArticleListState(
-          items: items,
-          hasMore: hasMore,
-          nextOffset: items.length,
-        ),
-      );
-      return;
-    }
-
-    var offset = current.startOffset;
-    var limit = current.nextOffset - current.startOffset;
-    if (limit <= 0) {
-      limit = current.items.isEmpty ? _pageSize : current.items.length;
-    }
-    var ids = await repo.fetchPageIds(query, offset: offset, limit: limit + 1);
-    if (!_isMounted) return;
-    var hasMore = ids.length > limit;
-    var windowIds = hasMore ? ids.sublist(0, limit) : ids;
-
-    if (offset > 0 && windowIds.isEmpty) {
-      offset = 0;
-      limit = _pageSize;
-      ids = await repo.fetchPageIds(query, offset: offset, limit: limit + 1);
-      if (!_isMounted) return;
-      hasMore = ids.length > limit;
-      windowIds = hasMore ? ids.sublist(0, limit) : ids;
-    }
-
-    final retainedWindow = _retainSelectedArticleInUnreadWindow(
-      query: query,
-      currentItems: current.items,
-      windowIds: windowIds,
-      selectedArticleId: selectedArticleId,
-    );
-    final displayIds = retainedWindow.ids;
-    final nextOffset = offset + windowIds.length;
-    if (_sameIds(current.items, displayIds)) {
-      if (current.hasMore == hasMore &&
-          current.nextOffset == nextOffset &&
-          current.startOffset == offset &&
-          !current.isLoadingMore) {
+    final generation = ++_operationGeneration;
+    try {
+      final repo = ref.read(articleRepositoryProvider);
+      final selectedArticleId = ref.read(activeArticleListSelectionProvider);
+      final query = _currentQuery();
+      final current = state.valueOrNull;
+      if (current == null) {
+        final ids = await repo.fetchPageIds(query, offset: 0, limit: _pageSize);
+        if (!_canCommit(generation)) return;
+        final hasMore = ids.length == _pageSize;
+        final items = await repo.fetchPage(query, offset: 0, limit: _pageSize);
+        if (!_canCommit(generation)) return;
+        state = AsyncValue.data(
+          ArticleListState(
+            items: items,
+            hasMore: hasMore,
+            nextOffset: items.length,
+          ),
+        );
         return;
       }
-      if (!_isMounted) return;
+
+      var offset = current.startOffset;
+      var limit = current.nextOffset - current.startOffset;
+      if (limit <= 0) {
+        limit = current.items.isEmpty ? _pageSize : current.items.length;
+      }
+      var ids = await repo.fetchPageIds(
+        query,
+        offset: offset,
+        limit: limit + 1,
+      );
+      if (!_canCommit(generation)) return;
+      var hasMore = ids.length > limit;
+      var windowIds = hasMore ? ids.sublist(0, limit) : ids;
+
+      if (offset > 0 && windowIds.isEmpty) {
+        offset = 0;
+        limit = _pageSize;
+        ids = await repo.fetchPageIds(query, offset: offset, limit: limit + 1);
+        if (!_canCommit(generation)) return;
+        hasMore = ids.length > limit;
+        windowIds = hasMore ? ids.sublist(0, limit) : ids;
+      }
+
+      final retainedWindow = _retainSelectedArticleInUnreadWindow(
+        query: query,
+        currentItems: current.items,
+        windowIds: windowIds,
+        selectedArticleId: selectedArticleId,
+      );
+      final displayIds = retainedWindow.ids;
+      final nextOffset = offset + windowIds.length;
+      if (_sameIds(current.items, displayIds)) {
+        if (current.hasMore == hasMore &&
+            current.nextOffset == nextOffset &&
+            current.startOffset == offset &&
+            !current.isLoadingMore) {
+          return;
+        }
+        if (!_canCommit(generation)) return;
+        state = AsyncValue.data(
+          current.copyWith(
+            hasMore: hasMore,
+            isLoadingMore: false,
+            startOffset: offset,
+            nextOffset: nextOffset,
+          ),
+        );
+        return;
+      }
+      final queryItems = windowIds.isEmpty
+          ? const <Article>[]
+          : await repo.fetchPage(
+              query,
+              offset: offset,
+              limit: windowIds.length,
+            );
+      if (!_canCommit(generation)) return;
+      final items = retainedWindow.apply(queryItems);
       state = AsyncValue.data(
         current.copyWith(
+          items: items,
           hasMore: hasMore,
           isLoadingMore: false,
           startOffset: offset,
           nextOffset: nextOffset,
         ),
       );
-      return;
+    } finally {
+      if (_canCommit(generation)) {
+        final latest = state.valueOrNull;
+        if (latest != null && latest.isLoadingMore) {
+          state = AsyncValue.data(latest.copyWith(isLoadingMore: false));
+        }
+      }
     }
-    final queryItems = windowIds.isEmpty
-        ? const <Article>[]
-        : await repo.fetchPage(query, offset: offset, limit: windowIds.length);
-    if (!_isMounted) return;
-    final items = retainedWindow.apply(queryItems);
-    state = AsyncValue.data(
-      current.copyWith(
-        items: items,
-        hasMore: hasMore,
-        isLoadingMore: false,
-        startOffset: offset,
-        nextOffset: nextOffset,
-      ),
-    );
   }
 
   _RetainedArticleWindow _retainSelectedArticleInUnreadWindow({
@@ -239,6 +264,7 @@ class ArticleListController extends AutoDisposeAsyncNotifier<ArticleListState> {
     final current = state.valueOrNull;
     if (current == null || current.isLoadingMore || !current.hasMore) return;
 
+    final generation = ++_operationGeneration;
     state = AsyncValue.data(current.copyWith(isLoadingMore: true));
     try {
       final repo = ref.read(articleRepositoryProvider);
@@ -248,6 +274,7 @@ class ArticleListController extends AutoDisposeAsyncNotifier<ArticleListState> {
         offset: current.nextOffset,
         limit: _pageSize,
       );
+      if (!_canCommit(generation)) return;
       final nextOffset = current.nextOffset + more.length;
       var merged = [...current.items, ...more];
       var startOffset = current.startOffset;
@@ -267,6 +294,7 @@ class ArticleListController extends AutoDisposeAsyncNotifier<ArticleListState> {
         ),
       );
     } catch (e, st) {
+      if (!_canCommit(generation)) return;
       AppLogger.w(
         'Article list load more failed',
         tag: 'article_list',
