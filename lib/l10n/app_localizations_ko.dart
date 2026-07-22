@@ -897,6 +897,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get account => '계정';
 
   @override
+  String get connection => '연결';
+
+  @override
   String get addOrRegisterAccount => '계정 추가 또는 등록';
 
   @override

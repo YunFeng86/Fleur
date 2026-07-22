@@ -1177,6 +1177,10 @@
   "@account": {
     "description": "account"
   },
+  "connection": "連線",
+  "@connection": {
+    "description": "Action label for editing an account connection"
+  },
   "addOrRegisterAccount": "新增或註冊帳號",
   "@addOrRegisterAccount": {
     "description": "Action label for adding or registering an account"

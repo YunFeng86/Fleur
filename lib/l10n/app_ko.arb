@@ -1176,6 +1176,10 @@
   "@account": {
     "description": "account"
   },
+  "connection": "연결",
+  "@connection": {
+    "description": "Action label for editing an account connection"
+  },
   "addOrRegisterAccount": "계정 추가 또는 등록",
   "@addOrRegisterAccount": {
     "description": "Action label for adding or registering an account"

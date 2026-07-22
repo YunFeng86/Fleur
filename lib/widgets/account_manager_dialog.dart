@@ -373,7 +373,7 @@ class AccountManagerDialog extends ConsumerWidget {
                                     children: [
                                       if (a.type == AccountType.googleReader)
                                         IconButton(
-                                          tooltip: 'Connection',
+                                          tooltip: l10n.connection,
                                           onPressed: () =>
                                               _editGoogleReaderConnection(
                                                 context,

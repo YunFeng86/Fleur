@@ -882,6 +882,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get account => '账号';
 
   @override
+  String get connection => '连接';
+
+  @override
   String get addOrRegisterAccount => '添加或注册账号';
 
   @override
@@ -2380,6 +2383,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get account => '账号';
 
   @override
+  String get connection => '连接';
+
+  @override
   String get addOrRegisterAccount => '添加或注册账号';
 
   @override
@@ -3876,6 +3882,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get account => '帳號';
+
+  @override
+  String get connection => '連線';
 
   @override
   String get addOrRegisterAccount => '新增或註冊帳號';

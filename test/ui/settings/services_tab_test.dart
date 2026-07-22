@@ -71,6 +71,7 @@ void main() {
     String? activeAccountId,
     AppSettings? appSettings,
     List<Override> overrides = const <Override>[],
+    Locale locale = const Locale('en'),
   }) async {
     final appStore = FakeAppSettingsStore(
       appSettings ?? AppSettings.defaults(),
@@ -96,6 +97,7 @@ void main() {
         ...overrides,
       ],
       size: const Size(900, 1200),
+      locale: locale,
     );
     await tester.pumpAndSettle();
     return (appStore: appStore, accountStore: accountStore);
@@ -382,6 +384,30 @@ void main() {
     expect(find.text('Add Local'), findsOneWidget);
     expect(find.text('Add Miniflux'), findsOneWidget);
     expect(find.text('Add Fever'), findsOneWidget);
+  });
+
+  testWidgets('Google Reader connection menu action is localized', (
+    tester,
+  ) async {
+    final googleReader = buildTestAccount(
+      id: 'google-reader',
+      type: AccountType.googleReader,
+      name: 'FreshRSS',
+      baseUrl: 'https://reader.example.com',
+    );
+    await pumpTabWithStores(
+      tester,
+      accounts: [googleReader],
+      locale: const Locale('zh'),
+    );
+
+    await tester.tap(
+      find.byKey(const Key('services_account_menu_google-reader')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('连接'), findsOneWidget);
+    expect(find.text('Connection'), findsNothing);
   });
 
   testWidgets(

@@ -901,6 +901,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get account => 'アカウント';
 
   @override
+  String get connection => '接続';
+
+  @override
   String get addOrRegisterAccount => 'アカウントの追加または登録';
 
   @override

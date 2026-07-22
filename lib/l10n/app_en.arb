@@ -1176,6 +1176,10 @@
   "@account": {
     "description": "account"
   },
+  "connection": "Connection",
+  "@connection": {
+    "description": "Action label for editing an account connection"
+  },
   "addOrRegisterAccount": "Add or register account",
   "@addOrRegisterAccount": {
     "description": "Action label for adding or registering an account"

@@ -557,7 +557,7 @@ class _AccountSettingsTile extends StatelessWidget {
                   key: Key('services_account_connection_${account.id}'),
                   value: _AccountAction.connection,
                   icon: FleurIcons.googleReaderAccount,
-                  label: 'Connection',
+                  label: l10n.connection,
                 ),
               AppMenuItem(
                 key: Key('services_account_rename_${account.id}'),

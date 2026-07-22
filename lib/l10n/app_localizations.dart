@@ -1793,6 +1793,12 @@ abstract class AppLocalizations {
   /// **'Account'**
   String get account;
 
+  /// Action label for editing an account connection
+  ///
+  /// In en, this message translates to:
+  /// **'Connection'**
+  String get connection;
+
   /// Action label for adding or registering an account
   ///
   /// In en, this message translates to:

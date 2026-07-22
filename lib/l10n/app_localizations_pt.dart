@@ -921,6 +921,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get account => 'Conta';
 
   @override
+  String get connection => 'Ligação';
+
+  @override
   String get addOrRegisterAccount => 'Adicionar ou registrar conta';
 
   @override
@@ -2479,6 +2482,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get account => 'Conta';
+
+  @override
+  String get connection => 'Conexão';
 
   @override
   String get addOrRegisterAccount => 'Adicionar ou registrar conta';

@@ -925,6 +925,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get account => 'Konto';
 
   @override
+  String get connection => 'Verbindung';
+
+  @override
   String get addOrRegisterAccount => 'Konto hinzufügen oder registrieren';
 
   @override

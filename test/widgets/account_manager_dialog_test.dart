@@ -27,7 +27,11 @@ class _FakeAccountStore extends AccountStore {
   }
 }
 
-Future<void> _pumpAccountManagerDialog(WidgetTester tester) async {
+Future<void> _pumpAccountManagerDialog(
+  WidgetTester tester, {
+  Locale locale = const Locale('en'),
+  List<Account>? accounts,
+}) async {
   final local = buildTestAccount(id: 'local', name: 'Local', isPrimary: true);
   final miniflux = buildTestAccount(
     id: 'miniflux',
@@ -35,6 +39,8 @@ Future<void> _pumpAccountManagerDialog(WidgetTester tester) async {
     name: 'Miniflux',
     baseUrl: 'https://rss.example.com',
   );
+  final resolvedAccounts = accounts ?? [local, miniflux];
+  final activeAccount = resolvedAccounts.first;
 
   await tester.pumpWidget(
     ProviderScope(
@@ -43,14 +49,15 @@ Future<void> _pumpAccountManagerDialog(WidgetTester tester) async {
           _FakeAccountStore(
             AccountsState(
               version: AccountStore.currentVersion,
-              activeAccountId: local.id,
-              accounts: [local, miniflux],
+              activeAccountId: activeAccount.id,
+              accounts: resolvedAccounts,
             ),
           ),
         ),
       ],
       child: MaterialApp(
         theme: AppTheme.light(),
+        locale: locale,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: const Scaffold(body: AccountManagerDialog()),
@@ -157,5 +164,23 @@ void main() {
       expect(card.color, surfaces.card);
       expect(shape.side.color, surfaces.subtleDivider);
     }
+  });
+
+  testWidgets('Google Reader connection action is localized', (tester) async {
+    await _pumpAccountManagerDialog(
+      tester,
+      locale: const Locale('zh'),
+      accounts: [
+        buildTestAccount(
+          id: 'google-reader',
+          type: AccountType.googleReader,
+          name: 'FreshRSS',
+          baseUrl: 'https://reader.example.com',
+        ),
+      ],
+    );
+
+    expect(find.byTooltip('连接'), findsOneWidget);
+    expect(find.byTooltip('Connection'), findsNothing);
   });
 }

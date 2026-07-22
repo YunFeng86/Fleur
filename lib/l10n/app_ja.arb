@@ -1176,6 +1176,10 @@
   "@account": {
     "description": "account"
   },
+  "connection": "接続",
+  "@connection": {
+    "description": "Action label for editing an account connection"
+  },
   "addOrRegisterAccount": "アカウントの追加または登録",
   "@addOrRegisterAccount": {
     "description": "Action label for adding or registering an account"
