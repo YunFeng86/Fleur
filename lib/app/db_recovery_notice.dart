@@ -10,7 +10,7 @@ import 'package:path/path.dart' as p;
 
 import '../l10n/app_localizations.dart';
 import '../providers/core_providers.dart';
-import 'app_scrollbar.dart';
+import '../widgets/app_scrollbar.dart';
 
 class DbRecoveryNoticeOverlay extends ConsumerStatefulWidget {
   const DbRecoveryNoticeOverlay({super.key, required this.child});

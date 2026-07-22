@@ -25,7 +25,7 @@ import '../ui/sidebar_layout.dart';
 import '../utils/macos_locale_bridge.dart';
 import '../utils/macos_window_chrome_bridge.dart';
 import '../utils/platform.dart';
-import '../widgets/db_recovery_notice.dart';
+import 'db_recovery_notice.dart';
 
 typedef PreferredLanguageApplier = Future<void> Function(String? localeTag);
 
