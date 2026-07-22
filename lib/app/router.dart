@@ -11,7 +11,7 @@ import '../models/article_scope.dart';
 import '../providers/navigation_history_provider.dart';
 import '../ui/home/reading_workspace_screen.dart';
 import '../ui/home/search_screen.dart';
-import '../screens/settings_screen.dart';
+import '../ui/settings/settings_screen.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/adaptive_workspace_layout.dart';
 import '../ui/app_shell.dart';

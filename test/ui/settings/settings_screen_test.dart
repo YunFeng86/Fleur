@@ -8,7 +8,7 @@ import 'package:fleur/features/accounts/accounts.dart';
 import 'package:fleur/providers/app_settings_providers.dart';
 import 'package:fleur/providers/core_providers.dart';
 import 'package:fleur/providers/settings_providers.dart';
-import 'package:fleur/screens/settings_screen.dart';
+import 'package:fleur/ui/settings/settings_screen.dart';
 import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/settings/reader_settings.dart';
 import 'package:fleur/theme/app_theme.dart';
@@ -20,7 +20,7 @@ import 'package:fleur/ui/settings/widgets/settings_controls.dart';
 import 'package:fleur/ui/sidebar_layout.dart';
 import 'package:fleur/utils/platform.dart';
 
-import '../test_utils/critical_workflow_test_support.dart';
+import '../../test_utils/critical_workflow_test_support.dart';
 
 class _FakeAccountStore extends AccountStore {
   _FakeAccountStore(this.state);

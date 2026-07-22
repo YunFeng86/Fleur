@@ -7,24 +7,24 @@ import 'package:fleur/features/subscriptions/subscriptions.dart';
 import 'package:fleur/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
-import '../app/settings_routes.dart';
-import '../ui/app_drawer_scope.dart';
-import '../ui/settings/settings_scene.dart';
-import '../ui/settings/settings_search_view.dart';
-import '../ui/settings/tabs/about_tab.dart';
-import '../ui/settings/tabs/app_preferences_tab.dart';
-import '../ui/settings/tabs/appearance_tab.dart';
-import '../ui/settings/tabs/grouping_sorting_tab.dart';
-import '../ui/settings/tabs/services_tab.dart';
-import '../ui/settings/settings_search_index.dart';
-import '../ui/settings/settings_targets.dart';
-import '../ui/adaptive_workspace_layout.dart';
-import '../ui/shell_chrome_layout.dart';
-import '../ui/sidebar_layout.dart';
-import '../ui/workspace_layers.dart';
-import '../providers/core_providers.dart';
-import '../theme/fleur_icons.dart';
-import '../theme/fleur_theme_extensions.dart';
+import '../../app/settings_routes.dart';
+import '../../providers/core_providers.dart';
+import '../../theme/fleur_icons.dart';
+import '../../theme/fleur_theme_extensions.dart';
+import '../adaptive_workspace_layout.dart';
+import '../app_drawer_scope.dart';
+import '../shell_chrome_layout.dart';
+import '../sidebar_layout.dart';
+import '../workspace_layers.dart';
+import 'settings_scene.dart';
+import 'settings_search_index.dart';
+import 'settings_search_view.dart';
+import 'settings_targets.dart';
+import 'tabs/about_tab.dart';
+import 'tabs/app_preferences_tab.dart';
+import 'tabs/appearance_tab.dart';
+import 'tabs/grouping_sorting_tab.dart';
+import 'tabs/services_tab.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({
