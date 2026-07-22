@@ -878,6 +878,36 @@ void main() {
     expect(store.settings.seedColorPreset, SeedColorPreset.pink);
   });
 
+  testWidgets('Appearance theme swatch repaints during selection animation', (
+    tester,
+  ) async {
+    await pumpSettingsScreen(
+      tester,
+      1000,
+      initialTab: SettingsTab.appearance,
+      overrides: servicesOverrides(),
+    );
+
+    final pinkCard = find.byKey(const Key('appearance_seed_color_pink_card'));
+    final pinkPaint = find.descendant(
+      of: pinkCard,
+      matching: find.byWidgetPredicate(
+        (widget) =>
+            widget is CustomPaint &&
+            widget.size == const Size.square(54) &&
+            widget.painter != null,
+      ),
+    );
+    final before = tester.widget<CustomPaint>(pinkPaint).painter!;
+
+    await tester.tap(pinkCard);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 70));
+
+    final during = tester.widget<CustomPaint>(pinkPaint).painter!;
+    expect(during.shouldRepaint(before), isTrue);
+  });
+
   testWidgets('Appearance reader controls persist reader appearance', (
     tester,
   ) async {

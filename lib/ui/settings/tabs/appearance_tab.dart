@@ -1585,6 +1585,8 @@ class _SchemeSwatchPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _SchemeSwatchPainter oldDelegate) {
-    return oldDelegate.scheme != scheme;
+    return oldDelegate.scheme != scheme ||
+        oldDelegate.outlineColor != outlineColor ||
+        oldDelegate.outlineWidth != outlineWidth;
   }
 }
