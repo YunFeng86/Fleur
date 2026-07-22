@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+
 import '../../utils/path_manager.dart';
 
 /// A best-effort mutex for sync-related operations.
@@ -21,7 +23,6 @@ class SyncMutex {
   static final Object _heldKeysZoneKey = Object();
 
   final Map<String, Future<void>> _queues = <String, Future<void>>{};
-  final Map<String, Future<File?>> _lockFiles = <String, Future<File?>>{};
 
   Future<T> run<T>(String key, Future<T> Function() op) {
     final held = _heldKeys;
@@ -29,9 +30,23 @@ class SyncMutex {
 
     final prev = _queues[key] ?? Future<void>.value();
     final task = prev.then((_) => _runLocked(key, op, held));
-    _queues[key] = task.then((_) {}).catchError((_) {});
+    final tail = task.then<void>((_) {}).catchError((_) {});
+    _queues[key] = tail;
+    unawaited(
+      tail.then<void>((_) {
+        _queues.removeWhere(
+          (queuedKey, queuedTail) =>
+              queuedKey == key && identical(queuedTail, tail),
+        );
+      }),
+    );
     return task;
   }
+
+  /// Exposes queue presence to focused lifecycle tests without exposing the
+  /// queue implementation itself.
+  @visibleForTesting
+  bool hasPendingKey(String key) => _queues.containsKey(key);
 
   Set<String> get _heldKeys =>
       (Zone.current[_heldKeysZoneKey] as Set<String>?) ?? const <String>{};
@@ -45,7 +60,7 @@ class SyncMutex {
     return runZoned(() async {
       RandomAccessFile? raf;
       try {
-        final lockFile = await _lockFileOrNull(key);
+        final lockFile = await _resolveLockFileOrNull(key);
         if (lockFile != null) {
           try {
             raf = await lockFile.open(mode: FileMode.append);
@@ -78,37 +93,14 @@ class SyncMutex {
     }, zoneValues: <Object, Object?>{_heldKeysZoneKey: nextHeld});
   }
 
-  Future<File?> _lockFileOrNull(String key) {
-    final cached = _lockFiles[key];
-    if (cached != null) return cached;
-
-    final task = _createLockFileOrNull(key);
-    _lockFiles[key] = task;
-    return task;
-  }
-
-  Future<File?> _createLockFileOrNull(String key) async {
+  Future<File?> _resolveLockFileOrNull(String key) async {
     try {
       final safeName = key.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
       final dir = await PathManager.getStateDir();
-      final file = File(
-        '${dir.path}${Platform.pathSeparator}mutex_$safeName.lock',
-      );
-      try {
-        if (!await file.exists()) {
-          await file.create(recursive: true);
-        }
-      } catch (_) {
-        // ignore: best-effort create
-      }
-      return file;
+      return File('${dir.path}${Platform.pathSeparator}mutex_$safeName.lock');
     } catch (_) {
       // If PathProvider is not available (e.g. background isolate init issues),
       // or file IO fails, fall back to in-isolate queuing.
-      final prev = _lockFiles.remove(key);
-      if (prev != null) {
-        unawaited(prev);
-      }
       return null;
     }
   }

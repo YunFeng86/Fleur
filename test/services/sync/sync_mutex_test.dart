@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -54,6 +55,8 @@ void main() {
   });
 
   tearDown(() async {
+    PathManager.resetForTests();
+    PathProviderPlatform.instance = originalPlatform;
     final dir = tempDir;
     tempDir = null;
     try {
@@ -100,4 +103,90 @@ void main() {
     );
     expect(await lockFile.exists(), isTrue);
   });
+
+  test(
+    'SyncMutex resolves a lock path again after the storage root changes',
+    () async {
+      const key = 'sync_mutex_path_refresh_test';
+      final firstRoot = await Directory.systemTemp.createTemp(
+        'fleur_mutex_first_',
+      );
+      final secondRoot = await Directory.systemTemp.createTemp(
+        'fleur_mutex_second_',
+      );
+      addTearDown(() async {
+        if (await firstRoot.exists()) await firstRoot.delete(recursive: true);
+        if (await secondRoot.exists()) await secondRoot.delete(recursive: true);
+      });
+
+      Future<_FakePathProviderPlatform> configureRoot(Directory root) async {
+        final docs = await Directory('${root.path}/documents').create();
+        final support = await Directory('${root.path}/support').create();
+        final cache = await Directory('${root.path}/cache').create();
+        return _FakePathProviderPlatform(
+          documentsPath: docs.path,
+          supportPath: support.path,
+          cachePath: cache.path,
+        );
+      }
+
+      PathProviderPlatform.instance = await configureRoot(firstRoot);
+      PathManager.resetForTests();
+      await SyncMutex.instance.run(key, () async {});
+      final firstStateDir = await PathManager.getStateDir();
+      expect(
+        await File(
+          '${firstStateDir.path}${Platform.pathSeparator}mutex_$key.lock',
+        ).exists(),
+        isTrue,
+      );
+
+      PathProviderPlatform.instance = await configureRoot(secondRoot);
+      PathManager.resetForTests();
+      await SyncMutex.instance.run(key, () async {});
+      final secondStateDir = await PathManager.getStateDir();
+      expect(
+        await File(
+          '${secondStateDir.path}${Platform.pathSeparator}mutex_$key.lock',
+        ).exists(),
+        isTrue,
+      );
+    },
+  );
+
+  test(
+    'SyncMutex removes a completed queue after the last waiter settles',
+    () async {
+      const key = 'sync_mutex_queue_cleanup_test';
+      const failingKey = 'sync_mutex_failed_queue_cleanup_test';
+      final started = Completer<void>();
+      final release = Completer<void>();
+
+      PathProviderPlatform.instance = _FailingPathProviderPlatform();
+      PathManager.resetForTests();
+
+      final first = SyncMutex.instance.run(key, () async {
+        started.complete();
+        await release.future;
+      });
+      await started.future;
+      expect(SyncMutex.instance.hasPendingKey(key), isTrue);
+
+      final second = SyncMutex.instance.run(key, () async {});
+      release.complete();
+      await Future.wait<void>([first, second]);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(SyncMutex.instance.hasPendingKey(key), isFalse);
+
+      await expectLater(
+        SyncMutex.instance.run<void>(failingKey, () async {
+          throw StateError('expected failure');
+        }),
+        throwsStateError,
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(SyncMutex.instance.hasPendingKey(failingKey), isFalse);
+    },
+  );
 }
