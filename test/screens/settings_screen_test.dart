@@ -550,6 +550,10 @@ void main() {
   testWidgets('Windows AppShell owns one title bar above settings', (
     tester,
   ) async {
+    final focusManager = FocusManager.instance;
+    final previousStrategy = focusManager.highlightStrategy;
+    focusManager.highlightStrategy = FocusHighlightStrategy.alwaysTraditional;
+    addTearDown(() => focusManager.highlightStrategy = previousStrategy);
     debugFleurTargetPlatformOverride = TargetPlatform.windows;
     addTearDown(() => debugFleurTargetPlatformOverride = null);
 

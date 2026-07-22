@@ -6,6 +6,7 @@ import 'package:window_manager/window_manager.dart';
 
 import '../services/update/app_update_manifest.dart';
 import '../theme/fleur_theme_extensions.dart';
+import 'design_system/controls/fleur_shell_icon_button.dart';
 import 'shell_control_strip.dart';
 import 'shell_chrome_layout.dart';
 import 'sidebar_layout.dart';
@@ -63,19 +64,14 @@ class ShellWindowTitleBar extends StatelessWidget {
                   ),
                 ),
                 if (commands != null)
-                  Positioned(
+                  _AdaptiveShellWindowControlsHost(
                     left: leadingLeft,
-                    top: kShellControlTopInset,
                     width: controlsWidth,
-                    height: kShellControlSize,
-                    child: _ShellWindowControlsHost(
-                      presentationMode: presentationMode,
-                      commands: commands,
-                      searchSelected: searchSelected,
-                      updateManifest: updateManifest,
-                      navigationToggleFocusNode: navigationToggleFocusNode,
-                      availableWidth: controlsWidth,
-                    ),
+                    presentationMode: presentationMode,
+                    commands: commands,
+                    searchSelected: searchSelected,
+                    updateManifest: updateManifest,
+                    navigationToggleFocusNode: navigationToggleFocusNode,
                   ),
                 const Positioned(
                   key: Key('shell_window_caption_controls_host'),
@@ -104,6 +100,78 @@ class ShellWindowTitleBar extends StatelessWidget {
   }
 }
 
+class _AdaptiveShellWindowControlsHost extends StatefulWidget {
+  const _AdaptiveShellWindowControlsHost({
+    required this.left,
+    required this.width,
+    required this.presentationMode,
+    required this.commands,
+    required this.searchSelected,
+    required this.updateManifest,
+    required this.navigationToggleFocusNode,
+  });
+
+  final double left;
+  final double width;
+  final SidebarPresentationMode presentationMode;
+  final ShellWindowTitleBarCommands commands;
+  final bool searchSelected;
+  final AppUpdateManifest? updateManifest;
+  final FocusNode? navigationToggleFocusNode;
+
+  @override
+  State<_AdaptiveShellWindowControlsHost> createState() =>
+      _AdaptiveShellWindowControlsHostState();
+}
+
+class _AdaptiveShellWindowControlsHostState
+    extends State<_AdaptiveShellWindowControlsHost> {
+  late FocusHighlightMode _interactionMode;
+
+  @override
+  void initState() {
+    super.initState();
+    _interactionMode = FocusManager.instance.highlightMode;
+    FocusManager.instance.addHighlightModeListener(_handleInteractionMode);
+  }
+
+  @override
+  void dispose() {
+    FocusManager.instance.removeHighlightModeListener(_handleInteractionMode);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final targetExtent = FleurShellIconButtonStyle.tapTargetExtent(
+      size: kShellControlSize,
+      adaptiveTapTarget: true,
+      interactionMode: _interactionMode,
+    );
+    return Positioned(
+      left: widget.left,
+      top: (kWorkspaceHeaderHeight - targetExtent) / 2,
+      width: widget.width,
+      height: targetExtent,
+      child: _ShellWindowControlsHost(
+        presentationMode: widget.presentationMode,
+        commands: widget.commands,
+        searchSelected: widget.searchSelected,
+        updateManifest: widget.updateManifest,
+        navigationToggleFocusNode: widget.navigationToggleFocusNode,
+        availableWidth: widget.width,
+        adaptiveTapTargets: true,
+        interactionMode: _interactionMode,
+      ),
+    );
+  }
+
+  void _handleInteractionMode(FocusHighlightMode value) {
+    if (_interactionMode == value) return;
+    setState(() => _interactionMode = value);
+  }
+}
+
 class _ShellWindowControlsHost extends StatelessWidget {
   const _ShellWindowControlsHost({
     required this.presentationMode,
@@ -112,6 +180,8 @@ class _ShellWindowControlsHost extends StatelessWidget {
     required this.updateManifest,
     required this.navigationToggleFocusNode,
     required this.availableWidth,
+    required this.adaptiveTapTargets,
+    required this.interactionMode,
   });
 
   final SidebarPresentationMode presentationMode;
@@ -120,6 +190,8 @@ class _ShellWindowControlsHost extends StatelessWidget {
   final AppUpdateManifest? updateManifest;
   final FocusNode? navigationToggleFocusNode;
   final double availableWidth;
+  final bool adaptiveTapTargets;
+  final FocusHighlightMode interactionMode;
 
   @override
   Widget build(BuildContext context) {
@@ -131,6 +203,8 @@ class _ShellWindowControlsHost extends StatelessWidget {
       updateManifest: updateManifest,
       navigationToggleFocusNode: navigationToggleFocusNode,
       availableWidth: availableWidth,
+      adaptiveTapTargets: adaptiveTapTargets,
+      interactionMode: interactionMode,
     );
   }
 }

@@ -5,9 +5,9 @@ import 'package:fleur/l10n/app_localizations.dart';
 
 import '../services/update/app_update_manifest.dart';
 import '../theme/fleur_icons.dart';
-import '../widgets/fleur_capsule_button_group.dart';
-import '../widgets/fleur_selection_transition.dart';
-import '../widgets/fleur_shell_icon_button.dart';
+import 'design_system/controls/fleur_capsule_button_group.dart';
+import 'design_system/controls/fleur_selection_transition.dart';
+import 'design_system/controls/fleur_shell_icon_button.dart';
 import 'sidebar_layout.dart';
 import 'update/app_update_dialog.dart';
 
@@ -43,6 +43,8 @@ class ShellControlStrip extends StatelessWidget {
     this.updateBeforeSearch = false,
     this.navigationToggleFocusNode,
     this.availableWidth,
+    this.adaptiveTapTargets = false,
+    this.interactionMode,
   });
 
   final ShellWindowTitleBarCommands commands;
@@ -54,6 +56,8 @@ class ShellControlStrip extends StatelessWidget {
   final bool updateBeforeSearch;
   final FocusNode? navigationToggleFocusNode;
   final double? availableWidth;
+  final bool adaptiveTapTargets;
+  final FocusHighlightMode? interactionMode;
 
   @override
   Widget build(BuildContext context) {
@@ -127,7 +131,12 @@ class ShellControlStrip extends StatelessWidget {
       );
     }
 
-    final visibility = _resolveVisibility(controls);
+    final slotExtent = FleurShellIconButtonStyle.tapTargetExtent(
+      size: kShellControlSize,
+      adaptiveTapTarget: adaptiveTapTargets,
+      interactionMode: interactionMode,
+    );
+    final visibility = _resolveVisibility(controls, slotExtent: slotExtent);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -139,19 +148,28 @@ class ShellControlStrip extends StatelessWidget {
             icon: control.icon,
             selected: control.selected,
             focusNode: control.focusNode,
+            adaptiveTapTarget: adaptiveTapTargets,
+            interactionMode: interactionMode,
           ),
         if (visibility.hidden.isNotEmpty)
-          _ShellControlOverflowButton(controls: visibility.hidden),
+          _ShellControlOverflowButton(
+            controls: visibility.hidden,
+            adaptiveTapTarget: adaptiveTapTargets,
+            interactionMode: interactionMode,
+          ),
       ],
     );
   }
 
-  _ShellControlVisibility _resolveVisibility(List<_ShellControlData> controls) {
+  _ShellControlVisibility _resolveVisibility(
+    List<_ShellControlData> controls, {
+    required double slotExtent,
+  }) {
     final width = availableWidth;
     if (width == null || !width.isFinite) {
       return _ShellControlVisibility(visible: controls, hidden: const []);
     }
-    final slotCount = (width / kShellControlSize).floor();
+    final slotCount = (width / slotExtent).floor();
     if (slotCount >= controls.length) {
       return _ShellControlVisibility(visible: controls, hidden: const []);
     }
@@ -251,6 +269,8 @@ class _FlatShellControlButton extends StatelessWidget {
     required this.icon,
     required this.selected,
     this.focusNode,
+    this.adaptiveTapTarget = false,
+    this.interactionMode,
   });
 
   final String tooltip;
@@ -258,30 +278,37 @@ class _FlatShellControlButton extends StatelessWidget {
   final IconData icon;
   final bool selected;
   final FocusNode? focusNode;
+  final bool adaptiveTapTarget;
+  final FocusHighlightMode? interactionMode;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final disabledOpacity = theme.brightness == Brightness.dark ? 0.22 : 0.28;
-    return IconButton(
+    return FleurShellIconButton(
       focusNode: focusNode,
       tooltip: tooltip,
       onPressed: onPressed,
       icon: FleurAnimatedIcon(icon: icon, size: kShellControlIconSize),
-      style: FleurShellIconButtonStyle.styleFor(
-        context,
-        selected: selected,
-        size: kShellControlSize,
-        disabledOpacity: disabledOpacity,
-      ),
+      selected: selected,
+      size: kShellControlSize,
+      disabledOpacity: disabledOpacity,
+      adaptiveTapTarget: adaptiveTapTarget,
+      interactionMode: interactionMode,
     );
   }
 }
 
 class _ShellControlOverflowButton extends StatelessWidget {
-  const _ShellControlOverflowButton({required this.controls});
+  const _ShellControlOverflowButton({
+    required this.controls,
+    required this.adaptiveTapTarget,
+    required this.interactionMode,
+  });
 
   final List<_ShellControlData> controls;
+  final bool adaptiveTapTarget;
+  final FocusHighlightMode? interactionMode;
 
   @override
   Widget build(BuildContext context) {
@@ -293,6 +320,8 @@ class _ShellControlOverflowButton extends StatelessWidget {
       style: FleurShellIconButtonStyle.styleFor(
         context,
         size: kShellControlSize,
+        adaptiveTapTarget: adaptiveTapTarget,
+        interactionMode: interactionMode,
       ),
       onSelected: (index) => controls[index].onPressed?.call(),
       itemBuilder: (context) => [

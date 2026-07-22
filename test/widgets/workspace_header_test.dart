@@ -355,6 +355,11 @@ void main() {
   testWidgets('titlebar preserves drag space and overflows lower priorities', (
     tester,
   ) async {
+    final focusManager = FocusManager.instance;
+    final previousStrategy = focusManager.highlightStrategy;
+    focusManager.highlightStrategy = FocusHighlightStrategy.alwaysTraditional;
+    addTearDown(() => focusManager.highlightStrategy = previousStrategy);
+
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(352, 120);
     addTearDown(tester.view.resetDevicePixelRatio);

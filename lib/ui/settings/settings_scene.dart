@@ -212,26 +212,21 @@ class _SettingsNavigationRail extends StatelessWidget {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 4),
                     child: Center(
-                      child: Semantics(
-                        selected: selected,
-                        child: IconButton(
-                          key: Key('settings_rail_nav_${item.tab.queryValue}'),
-                          tooltip: item.label,
-                          onPressed: () => onSelect(item.tab),
-                          icon: FleurAnimatedIcon(
-                            icon: selected ? item.selectedIcon : item.icon,
-                            size: 18,
-                          ),
-                          style: FleurShellIconButtonStyle.styleFor(
-                            context,
-                            selected: selected,
-                            size: 40,
-                            borderRadius: BorderRadius.circular(8),
-                            selectedBackgroundColor: surfaces.cardSelected,
-                            selectedForegroundColor: scheme.primary,
-                            unselectedForegroundColor: scheme.onSurfaceVariant,
-                          ),
+                      child: FleurShellIconButton(
+                        key: Key('settings_rail_nav_${item.tab.queryValue}'),
+                        tooltip: item.label,
+                        onPressed: () => onSelect(item.tab),
+                        icon: FleurAnimatedIcon(
+                          icon: selected ? item.selectedIcon : item.icon,
+                          size: 18,
                         ),
+                        selected: selected,
+                        size: 40,
+                        borderRadius: BorderRadius.circular(8),
+                        selectedBackgroundColor: surfaces.cardSelected,
+                        selectedForegroundColor: scheme.primary,
+                        unselectedForegroundColor: scheme.onSurfaceVariant,
+                        adaptiveTapTarget: true,
                       ),
                     ),
                   );
