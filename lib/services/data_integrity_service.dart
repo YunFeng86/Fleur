@@ -44,27 +44,32 @@ class DataIntegrityService {
 
       // Batch repair to avoid OOM
       const batchSize = 200;
+      var feedFixedCount = 0;
       for (var i = 0; i < ids.length; i += batchSize) {
         await _isar.writeTxn(() async {
           final end = (i + batchSize > ids.length) ? ids.length : i + batchSize;
           final batch = ids.sublist(i, end);
+          final currentFeed = await _isar.feeds.get(feed.id);
+          if (currentFeed == null) return;
           final articles = await _isar.articles.getAll(batch);
 
           final updates = <Article>[];
           for (final a in articles) {
             if (a == null) continue;
-            a.categoryId = feed.categoryId;
+            if (a.categoryId == currentFeed.categoryId) continue;
+            a.categoryId = currentFeed.categoryId;
             a.updatedAt = DateTime.now();
             updates.add(a);
           }
 
           if (updates.isNotEmpty) {
             await _isar.articles.putAll(updates);
+            feedFixedCount += updates.length;
           }
         });
       }
 
-      fixedCount += ids.length;
+      fixedCount += feedFixedCount;
     }
 
     return fixedCount;

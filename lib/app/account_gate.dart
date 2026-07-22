@@ -16,9 +16,14 @@ import '../widgets/app_scrollbar.dart';
 import 'app.dart';
 
 class AccountGate extends ConsumerStatefulWidget {
-  const AccountGate({super.key, this.dbSessionManager});
+  const AccountGate({
+    super.key,
+    this.dbSessionManager,
+    this.dataIntegrityStartupService = const DataIntegrityStartupService(),
+  });
 
   final AccountDbSessionManager? dbSessionManager;
+  final DataIntegrityStartupService dataIntegrityStartupService;
 
   @override
   ConsumerState<AccountGate> createState() => _AccountGateState();
@@ -27,6 +32,7 @@ class AccountGate extends ConsumerStatefulWidget {
 class _AccountGateState extends ConsumerState<AccountGate> {
   ProviderSubscription<AsyncValue<AccountsState>>? _accountsSubscription;
   AccountDbLease? _lease;
+  Future<void>? _maintenance;
   String? _openedForAccountId;
   Future<void>? _opening;
   String? _openingForAccountId;
@@ -49,7 +55,10 @@ class _AccountGateState extends ConsumerState<AccountGate> {
   void dispose() {
     _openGeneration++;
     _accountsSubscription?.close();
-    unawaited(_lease?.release());
+    final lease = _lease;
+    if (lease != null) {
+      unawaited(_releaseAfterMaintenance(lease, _maintenance));
+    }
     super.dispose();
   }
 
@@ -242,17 +251,50 @@ class _AccountGateState extends ConsumerState<AccountGate> {
       return;
     }
 
-    unawaited(const DataIntegrityStartupService().runIfNeeded(next.isar));
     final prev = _lease;
+    final prevMaintenance = _maintenance;
+    final maintenance = _runMaintenance(next);
     setState(() {
       _lease = next;
+      _maintenance = maintenance;
       _openedForAccountId = account.id;
       _openError = null;
       _openErrorStack = null;
       _openErrorForAccountId = null;
     });
     if (prev != null) {
-      unawaited(prev.release());
+      unawaited(_releaseAfterMaintenance(prev, prevMaintenance));
+    }
+  }
+
+  Future<void> _runMaintenance(AccountDbLease lease) async {
+    try {
+      await widget.dataIntegrityStartupService.runIfNeeded(lease.isar);
+    } catch (error, stackTrace) {
+      AppLogger.w(
+        'Account database maintenance failed',
+        tag: 'integrity',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  static Future<void> _releaseAfterMaintenance(
+    AccountDbLease lease,
+    Future<void>? maintenance,
+  ) async {
+    try {
+      await maintenance;
+    } catch (error, stackTrace) {
+      AppLogger.w(
+        'Account database maintenance failed before lease release',
+        tag: 'integrity',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    } finally {
+      await lease.release();
     }
   }
 

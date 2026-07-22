@@ -4,13 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_community/isar.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:fleur/app/account_gate.dart';
 import 'package:fleur/db/isar_db.dart';
 import 'package:fleur/providers/account_providers.dart';
 import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/services/accounts/account_store.dart';
+import 'package:fleur/services/data_integrity_startup_service.dart';
 
 import '../test_utils/critical_workflow_test_support.dart';
 
@@ -48,6 +48,16 @@ class _FakeIsar extends Fake implements Isar {
     closeCalls++;
     open = false;
     return true;
+  }
+}
+
+class _ControlledDataIntegrityStartupService
+    extends DataIntegrityStartupService {
+  final Map<String, Completer<void>> runs = {};
+
+  @override
+  Future<void> runIfNeeded(Isar isar) {
+    return runs.putIfAbsent(isar.name, Completer<void>.new).future;
   }
 }
 
@@ -134,12 +144,7 @@ void main() {
       name: 'fleur_${second.id}',
       directory: '/tmp/fleur-db',
     );
-    SharedPreferences.setMockInitialValues(<String, Object>{
-      'integrity:last_run:${firstIsar.name}':
-          DateTime.now().millisecondsSinceEpoch,
-      'integrity:last_run:${secondIsar.name}':
-          DateTime.now().millisecondsSinceEpoch,
-    });
+    final maintenance = _ControlledDataIntegrityStartupService();
     final openCompleters = <String, Completer<Isar>>{
       first.id: Completer<Isar>(),
       second.id: Completer<Isar>(),
@@ -161,7 +166,12 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [accountStoreProvider.overrideWithValue(store)],
-        child: MaterialApp(home: AccountGate(dbSessionManager: manager)),
+        child: MaterialApp(
+          home: AccountGate(
+            dbSessionManager: manager,
+            dataIntegrityStartupService: maintenance,
+          ),
+        ),
       ),
     );
     await tester.pump();
@@ -178,10 +188,14 @@ void main() {
     openCompleters[second.id]!.complete(secondIsar);
     await tester.idle();
 
+    expect(firstIsar.closeCalls, 0);
+    maintenance.runs[firstIsar.name]!.complete();
+    await tester.idle();
     expect(firstIsar.closeCalls, 1);
     expect(firstIsar.isOpen, false);
     expect(secondIsar.closeCalls, 0);
 
+    maintenance.runs[secondIsar.name]!.complete();
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.idle();
     expect(secondIsar.closeCalls, 1);

@@ -21,9 +21,6 @@ class DataIntegrityStartupService {
       if (now.difference(last) < _minInterval) return;
     }
 
-    // Record the attempt early to avoid repeated expensive scans on rapid restarts.
-    await prefs.setInt(key, now.millisecondsSinceEpoch);
-
     try {
       final svc = DataIntegrityService(isar);
       final fixed = await svc.repairCategoryIdMismatch();
@@ -40,6 +37,7 @@ class DataIntegrityStartupService {
       } else {
         AppLogger.i('Data integrity check OK', tag: 'integrity');
       }
+      await prefs.setInt(key, now.millisecondsSinceEpoch);
     } on IsarError catch (e) {
       // Account switching can close Isar while tasks are still running.
       if (e.message.toLowerCase().contains('already been closed')) return;
