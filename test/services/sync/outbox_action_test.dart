@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -75,6 +76,34 @@ class _MemoryOutboxStore extends OutboxStore {
     );
     _actions[accountId] = current;
   }
+
+  @override
+  Future<void> acknowledge(
+    String accountId,
+    Iterable<OutboxAction> actions,
+  ) async {
+    for (final action in actions) {
+      await remove(accountId, action);
+    }
+  }
+}
+
+class _BlockingFirstLookupArticleRepository extends ArticleRepository {
+  _BlockingFirstLookupArticleRepository(super.isar);
+
+  final Completer<void> firstLookupStarted = Completer<void>();
+  final Completer<void> allowFirstLookup = Completer<void>();
+  var _lookupCount = 0;
+
+  @override
+  Future<Article?> getById(int id) async {
+    _lookupCount += 1;
+    if (_lookupCount == 1) {
+      firstLookupStarted.complete();
+      await allowFirstLookup.future;
+    }
+    return super.getById(id);
+  }
 }
 
 Account _buildAccount({
@@ -97,12 +126,13 @@ ArticleActionService _buildArticleActionService({
   required Isar isar,
   required Account account,
   required OutboxStore outbox,
+  ArticleRepository? articles,
   Dio? dio,
   CredentialStore? credentials,
 }) {
   return ArticleActionService(
     account: account,
-    articles: ArticleRepository(isar),
+    articles: articles ?? ArticleRepository(isar),
     feeds: FeedRepository(isar),
     categories: CategoryRepository(isar),
     dio: dio ?? Dio(),
@@ -147,6 +177,44 @@ Dio _minifluxMarkAllReadSuccessDio() {
         }
         if (options.method == 'PUT' &&
             options.uri.path == '/v1/feeds/7/mark-all-as-read') {
+          handler.resolve(Response<Object?>(requestOptions: options));
+          return;
+        }
+        handler.reject(
+          DioException(
+            requestOptions: options,
+            error: 'unexpected request: ${options.method} ${options.uri}',
+          ),
+        );
+      },
+    ),
+  );
+  return dio;
+}
+
+Dio _minifluxEntryActionSuccessDio({
+  required Future<void> Function(RequestOptions options) beforeRequest,
+}) {
+  final dio = Dio();
+  dio.interceptors.add(
+    InterceptorsWrapper(
+      onRequest: (options, handler) async {
+        await beforeRequest(options);
+        if (options.method == 'PUT' && options.uri.path == '/v1/entries') {
+          handler.resolve(Response<Object?>(requestOptions: options));
+          return;
+        }
+        if (options.method == 'GET' && options.uri.path == '/v1/entries/123') {
+          handler.resolve(
+            Response<Object?>(
+              requestOptions: options,
+              data: <String, Object?>{'starred': false},
+            ),
+          );
+          return;
+        }
+        if (options.method == 'PUT' &&
+            options.uri.path == '/v1/entries/123/bookmark') {
           handler.resolve(Response<Object?>(requestOptions: options));
           return;
         }
@@ -397,6 +465,92 @@ void main() {
       expect(pending.single.remoteEntryId, 123);
       expect(pending.single.remoteEntryKey, '123');
       expect(pending.single.value, isTrue);
+    },
+  );
+
+  test(
+    'ArticleActionService persists entry actions before remote delivery',
+    () async {
+      await _seedFeedAndArticle(
+        isar!,
+        articleId: 10,
+        remoteId: '123',
+        isRead: false,
+        isStarred: false,
+      );
+
+      const accountId = 'miniflux-persist-first-account';
+      final outbox = _MemoryOutboxStore();
+      final observedTypes = <OutboxActionType>[];
+      final dio = _minifluxEntryActionSuccessDio(
+        beforeRequest: (options) async {
+          final pending = await outbox.load(accountId);
+          expect(pending, hasLength(1));
+          observedTypes.add(pending.single.type);
+        },
+      );
+      final service = _buildArticleActionService(
+        isar: isar!,
+        account: _buildAccount(
+          id: accountId,
+          type: AccountType.miniflux,
+          baseUrl: 'https://miniflux.example.com',
+        ),
+        outbox: outbox,
+        dio: dio,
+      );
+
+      await service.markRead(10, true);
+      expect(await outbox.load(accountId), isEmpty);
+
+      await service.toggleStar(10);
+      expect(await outbox.load(accountId), isEmpty);
+      expect(observedTypes, <OutboxActionType>[
+        OutboxActionType.markRead,
+        OutboxActionType.bookmark,
+        OutboxActionType.bookmark,
+      ]);
+    },
+  );
+
+  test(
+    'ArticleActionService preserves invocation order for concurrent read intents',
+    () async {
+      await _seedFeedAndArticle(
+        isar!,
+        articleId: 10,
+        remoteId: '123',
+        isRead: false,
+      );
+      const accountId = 'miniflux-ordered-read-account';
+      final outbox = _MemoryOutboxStore();
+      final articles = _BlockingFirstLookupArticleRepository(isar!);
+      final service = _buildArticleActionService(
+        isar: isar!,
+        account: _buildAccount(
+          id: accountId,
+          type: AccountType.miniflux,
+          baseUrl: 'https://miniflux.example.com',
+        ),
+        articles: articles,
+        outbox: outbox,
+        credentials: _FakeCredentialStore(),
+      );
+
+      final older = service.markRead(10, true);
+      await articles.firstLookupStarted.future;
+      final newer = service.markRead(10, false);
+      await Future<void>.delayed(Duration.zero);
+      expect((await ArticleRepository(isar!).getById(10))!.isRead, isTrue);
+
+      articles.allowFirstLookup.complete();
+      await Future.wait<void>([older, newer]);
+
+      expect((await ArticleRepository(isar!).getById(10))!.isRead, isFalse);
+      expect(
+        (await outbox.load(accountId)).map((action) => action.value),
+        orderedEquals(<bool?>[true, false]),
+      );
     },
   );
 
