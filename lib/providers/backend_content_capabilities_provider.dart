@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 
 import '../services/sync/backend_content_capabilities.dart';
-import 'account_providers.dart';
 
 final backendContentCapabilitiesProvider = Provider<BackendContentCapabilities>(
   (ref) {

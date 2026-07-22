@@ -4,15 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fleur/l10n/app_localizations.dart';
+import 'package:fleur/providers/dio_provider.dart';
+import 'package:fleur/services/logging/app_logger.dart';
+import 'package:fleur/services/logging/log_context.dart';
+import 'package:fleur/services/sync/google_reader/google_reader_connection_probe.dart';
+import 'package:fleur/services/sync/google_reader/google_reader_provider_profile.dart';
+import 'package:fleur/utils/context_extensions.dart';
 
-import '../../providers/account_providers.dart';
-import '../../providers/service_providers.dart';
-import '../../services/accounts/account.dart';
-import '../../services/logging/app_logger.dart';
-import '../../services/logging/log_context.dart';
-import '../../services/sync/google_reader/google_reader_connection_probe.dart';
-import '../../services/sync/google_reader/google_reader_provider_profile.dart';
-import '../../utils/context_extensions.dart';
+import '../application/account_providers.dart';
+import '../domain/account.dart';
 
 enum _MinifluxAuthMode { apiToken, basicAuth }
 

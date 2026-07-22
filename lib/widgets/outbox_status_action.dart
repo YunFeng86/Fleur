@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 
 import '../l10n/app_localizations.dart';
-import '../providers/account_providers.dart';
 import '../providers/backend_capabilities_provider.dart';
 import '../providers/outbox_status_providers.dart';
 import '../providers/service_providers.dart';

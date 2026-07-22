@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 
 import '../services/sync/backend_capabilities.dart';
 import '../services/sync/outbox/outbox_store.dart';
-import 'account_providers.dart';
 import 'backend_capabilities_provider.dart';
 import 'service_providers.dart';
 

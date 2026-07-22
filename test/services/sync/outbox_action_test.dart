@@ -12,8 +12,7 @@ import 'package:fleur/models/tag.dart';
 import 'package:fleur/repositories/article_repository.dart';
 import 'package:fleur/repositories/category_repository.dart';
 import 'package:fleur/repositories/feed_repository.dart';
-import 'package:fleur/services/accounts/account.dart';
-import 'package:fleur/services/accounts/credential_store.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 import 'package:fleur/services/actions/article_action_service.dart';
 import 'package:fleur/services/sync/outbox/outbox_store.dart';
 

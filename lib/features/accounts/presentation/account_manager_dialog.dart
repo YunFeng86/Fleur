@@ -5,18 +5,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fleur/l10n/app_localizations.dart';
+import 'package:fleur/services/sync/google_reader/google_reader_provider_profile.dart';
+import 'package:fleur/theme/fleur_icons.dart';
+import 'package:fleur/theme/fleur_theme_extensions.dart';
+import 'package:fleur/ui/dialogs/text_input_dialog.dart';
+import 'package:fleur/utils/context_extensions.dart';
+import 'package:fleur/widgets/app_scrollbar.dart';
+import 'package:fleur/widgets/fleur_selection_transition.dart';
 
-import '../providers/account_providers.dart';
-import '../services/accounts/account.dart';
-import '../services/sync/google_reader/google_reader_provider_profile.dart';
-import '../theme/fleur_icons.dart';
-import '../theme/fleur_theme_extensions.dart';
-import '../ui/dialogs/add_account_dialogs.dart';
-import '../ui/dialogs/text_input_dialog.dart';
-import '../utils/context_extensions.dart';
-import 'app_scrollbar.dart';
+import '../application/account_providers.dart';
+import '../domain/account.dart';
 import 'account_avatar.dart';
-import 'fleur_selection_transition.dart';
+import 'add_account_dialogs.dart';
 
 class AccountManagerDialog extends ConsumerWidget {
   const AccountManagerDialog({super.key});

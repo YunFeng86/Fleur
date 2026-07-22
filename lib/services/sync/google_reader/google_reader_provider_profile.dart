@@ -1,4 +1,4 @@
-import '../../accounts/account.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 
 class GoogleReaderProviderProfile {
   const GoogleReaderProviderProfile({

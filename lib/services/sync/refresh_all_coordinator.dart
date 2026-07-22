@@ -1,6 +1,6 @@
 import '../../models/feed.dart';
 import '../../repositories/feed_repository.dart';
-import '../accounts/account.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 import 'backend_capabilities.dart';
 import 'sync_service.dart';
 

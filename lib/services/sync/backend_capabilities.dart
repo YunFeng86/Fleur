@@ -1,6 +1,6 @@
 // Operation capability surface: buttons, menus, actions, outbox, and runtime affordances.
 
-import '../accounts/account.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 
 enum BackendFeature {
   syncNow,

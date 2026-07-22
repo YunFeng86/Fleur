@@ -7,9 +7,7 @@ import 'package:isar_community/isar.dart';
 
 import 'package:fleur/app/account_gate.dart';
 import 'package:fleur/db/isar_db.dart';
-import 'package:fleur/providers/account_providers.dart';
-import 'package:fleur/services/accounts/account.dart';
-import 'package:fleur/services/accounts/account_store.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 import 'package:fleur/services/data_integrity_startup_service.dart';
 
 import '../test_utils/critical_workflow_test_support.dart';

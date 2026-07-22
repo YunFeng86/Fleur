@@ -9,17 +9,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 
-import 'package:fleur/providers/account_providers.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 import 'package:fleur/providers/service_providers.dart';
-import 'package:fleur/services/accounts/account.dart';
-import 'package:fleur/services/accounts/account_store.dart';
-import 'package:fleur/services/accounts/credential_store.dart';
 import 'package:fleur/services/logging/app_logger.dart';
 import 'package:fleur/services/sync/google_reader/google_reader_provider_profile.dart';
-import 'package:fleur/ui/dialogs/add_account_dialogs.dart';
 import 'package:fleur/utils/path_manager.dart';
 
-import '../../test_utils/critical_workflow_test_support.dart';
+import '../../../test_utils/critical_workflow_test_support.dart';
 
 class _FakePathProviderPlatform extends PathProviderPlatform {
   _FakePathProviderPlatform({

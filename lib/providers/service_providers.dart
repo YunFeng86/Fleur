@@ -1,12 +1,12 @@
+export 'dio_provider.dart' show createAppDio, dioProvider;
+
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 
-import 'account_providers.dart';
 import 'backend_content_capabilities_provider.dart';
-import '../services/accounts/account.dart';
-import '../services/accounts/credential_store.dart';
+import 'dio_provider.dart';
 import '../services/rss/feed_parser.dart';
 import '../services/rss/feed_discovery_service.dart';
 import '../services/rss/rss_client.dart';
@@ -36,30 +36,6 @@ import '../repositories/category_repository.dart';
 import '../repositories/feed_repository.dart';
 import 'repository_providers.dart';
 import 'app_settings_providers.dart';
-
-Dio createAppDio() {
-  final dio = Dio(
-    BaseOptions(
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 20),
-      sendTimeout: const Duration(seconds: 10),
-      followRedirects: true,
-      maxRedirects: 5,
-    ),
-  );
-  if (kDebugMode) {
-    dio.interceptors.add(
-      LogInterceptor(
-        requestHeader: false,
-        requestBody: false,
-        responseHeader: false,
-        responseBody: false,
-        error: true,
-      ),
-    );
-  }
-  return dio;
-}
 
 RssClient createRssClient(Dio dio) => RssClient(dio);
 
@@ -165,8 +141,6 @@ SyncServiceBase buildSyncServiceForAccount({
       );
   }
 }
-
-final dioProvider = Provider<Dio>((ref) => createAppDio());
 
 final remoteClientFactoryProvider = Provider<RemoteClientFactory>((ref) {
   return RemoteClientFactory(

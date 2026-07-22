@@ -3,8 +3,7 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 
-import '../accounts/account.dart';
-import '../accounts/credential_store.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 import 'fever/fever_client.dart';
 import 'google_reader/google_reader_client.dart';
 import 'google_reader/google_reader_provider_profile.dart';

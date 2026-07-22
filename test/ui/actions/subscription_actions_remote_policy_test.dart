@@ -12,13 +12,11 @@ import 'package:fleur/models/article.dart';
 import 'package:fleur/models/category.dart';
 import 'package:fleur/models/feed.dart';
 import 'package:fleur/models/tag.dart';
-import 'package:fleur/providers/account_providers.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 import 'package:fleur/providers/core_providers.dart';
 import 'package:fleur/providers/service_providers.dart';
 import 'package:fleur/repositories/category_repository.dart';
 import 'package:fleur/repositories/feed_repository.dart';
-import 'package:fleur/services/accounts/account.dart';
-import 'package:fleur/services/accounts/credential_store.dart';
 import 'package:fleur/features/subscriptions/subscriptions.dart';
 
 import '../../test_utils/isar_test_utils.dart';

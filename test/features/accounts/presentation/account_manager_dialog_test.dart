@@ -2,16 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:fleur/features/accounts/accounts.dart';
 import 'package:fleur/l10n/app_localizations.dart';
-import 'package:fleur/providers/account_providers.dart';
-import 'package:fleur/services/accounts/account.dart';
-import 'package:fleur/services/accounts/account_store.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
-import 'package:fleur/widgets/account_manager_dialog.dart';
 import 'package:fleur/widgets/fleur_selection_transition.dart';
 
-import '../test_utils/critical_workflow_test_support.dart';
+import '../../../test_utils/critical_workflow_test_support.dart';
 
 class _FakeAccountStore extends AccountStore {
   _FakeAccountStore(this.state);

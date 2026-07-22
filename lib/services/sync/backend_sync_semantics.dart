@@ -1,6 +1,6 @@
 // Sync semantics profile: refresh scope, history coverage, remote taxonomy, and notification granularity.
 
-import '../accounts/account.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 
 enum BackendRefreshScope { feed, account }
 

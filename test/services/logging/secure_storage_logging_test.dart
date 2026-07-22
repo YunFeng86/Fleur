@@ -8,8 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 
-import 'package:fleur/services/accounts/account.dart';
-import 'package:fleur/services/accounts/credential_store.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 import 'package:fleur/services/logging/app_logger.dart';
 import 'package:fleur/services/settings/translation_ai_secret_store.dart';
 import 'package:fleur/utils/path_manager.dart';

@@ -5,9 +5,9 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 
 import '../../../l10n/app_localizations.dart';
-import '../../../providers/account_providers.dart';
 import '../../../providers/backend_capabilities_provider.dart';
 import '../../../providers/opml_providers.dart';
 import '../../../providers/repository_providers.dart';

@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 
 import '../services/sync/sync_service.dart';
 import '../utils/platform.dart';
-import 'account_providers.dart';
 import 'backend_capabilities_provider.dart';
 import 'outbox_status_providers.dart';
 import 'service_providers.dart';

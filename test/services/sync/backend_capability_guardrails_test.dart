@@ -39,11 +39,13 @@ const _allowedRawBackendTypeUses = <String, String>{
       'centralizes remote credential lookup and client construction',
   'lib/services/sync/refresh_all_coordinator.dart':
       'keeps Google Reader account-wide refresh semantics explicit',
-  'lib/ui/dialogs/add_account_dialogs.dart': 'creates concrete account types',
+  'lib/features/accounts/presentation/add_account_dialogs.dart':
+      'creates concrete account types',
   'lib/ui/settings/tabs/services_tab.dart':
       'renders account creation and account type labels',
-  'lib/widgets/account_avatar.dart': 'renders account type icons',
-  'lib/widgets/account_manager_dialog.dart':
+  'lib/features/accounts/presentation/account_avatar.dart':
+      'renders account type icons',
+  'lib/features/accounts/presentation/account_manager_dialog.dart':
       'renders and creates concrete account types',
 };
 

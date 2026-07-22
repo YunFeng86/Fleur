@@ -2,13 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 
 import '../db/isar_db.dart';
-import '../providers/account_providers.dart';
 import '../providers/core_providers.dart';
 import '../providers/service_providers.dart';
-import '../services/accounts/account.dart';
-import '../services/accounts/account_store.dart';
 import '../services/data_integrity_startup_service.dart';
 import '../services/logging/app_provider_observer.dart';
 import '../services/logging/app_logger.dart';

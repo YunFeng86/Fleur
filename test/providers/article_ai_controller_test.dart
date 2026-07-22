@@ -13,7 +13,7 @@ import 'package:path_provider_platform_interface/path_provider_platform_interfac
 import 'package:fleur/models/article.dart';
 import 'package:fleur/models/category.dart';
 import 'package:fleur/models/feed.dart';
-import 'package:fleur/providers/account_providers.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 import 'package:fleur/providers/app_settings_providers.dart';
 import 'package:fleur/providers/article_ai_providers.dart';
 import 'package:fleur/providers/query_providers.dart';

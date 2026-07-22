@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/article.dart';
@@ -22,7 +23,6 @@ import '../utils/language_detector.dart';
 import '../utils/language_utils.dart';
 import '../utils/prompt_template.dart';
 import '../utils/token_estimator.dart';
-import 'account_providers.dart';
 import 'app_settings_providers.dart';
 import 'query_providers.dart';
 import 'service_providers.dart';

@@ -36,5 +36,12 @@ void main() {
     expect(credentialStoreProvider, isNotNull);
     expect(accountsControllerProvider, isNotNull);
     expect(activeAccountProvider, isNotNull);
+    expect(AccountAvatar, isA<Type>());
+    expect(AccountManagerDialog, isA<Type>());
+    expect(showAddLocalAccountDialog, isA<Function>());
+    expect(showAddFeverAccountDialog, isA<Function>());
+    expect(showAddMinifluxAccountDialog, isA<Function>());
+    expect(showAddGoogleReaderAccountDialog, isA<Function>());
+    expect(showEditGoogleReaderAccountDialog, isA<Function>());
   });
 }

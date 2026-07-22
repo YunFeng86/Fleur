@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../application/subscription_feed_browsing.dart';
 import '../application/subscription_root_sync_action.dart';
-import '../../../providers/account_providers.dart';
 import '../../../providers/app_settings_providers.dart';
 import '../../../providers/backend_capabilities_provider.dart';
 import '../../../providers/backend_sync_semantics_provider.dart';
 import '../../../providers/refresh_all_providers.dart';
 import '../../../providers/repository_providers.dart';
 import '../../../providers/service_providers.dart';
-import '../../../services/accounts/account.dart';
 import '../../../services/logging/app_logger.dart';
 import '../../../services/sync/backend_capabilities.dart';
 import '../../../services/sync/refresh_all_coordinator.dart';

@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pool/pool.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 
 import '../models/feed.dart';
 import '../services/sync/refresh_all_coordinator.dart';
 import '../services/sync/remote_subscription_structure_executor.dart';
-import 'account_providers.dart';
 import 'backend_capabilities_provider.dart';
 import 'repository_providers.dart';
 import 'service_providers.dart';

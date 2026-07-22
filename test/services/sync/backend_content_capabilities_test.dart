@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fleur/services/accounts/account.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 import 'package:fleur/services/sync/backend_capabilities.dart';
 import 'package:fleur/services/sync/backend_content_capabilities.dart';
 

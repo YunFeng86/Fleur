@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../repositories/category_repository.dart';
 import '../../repositories/feed_repository.dart';
-import '../accounts/account.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 import '../logging/app_logger.dart';
 import '../logging/log_context.dart';
 import 'backend_capabilities.dart';

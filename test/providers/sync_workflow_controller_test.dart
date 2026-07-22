@@ -2,14 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fleur/providers/account_providers.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 import 'package:fleur/providers/app_settings_providers.dart';
 import 'package:fleur/providers/background_sync_providers.dart';
 import 'package:fleur/providers/outbox_flush_providers.dart';
 import 'package:fleur/providers/outbox_status_providers.dart';
 import 'package:fleur/providers/service_providers.dart';
 import 'package:fleur/providers/sync_status_providers.dart';
-import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/sync/outbox/outbox_store.dart';
 import 'package:fleur/services/sync/sync_status_reporter.dart';

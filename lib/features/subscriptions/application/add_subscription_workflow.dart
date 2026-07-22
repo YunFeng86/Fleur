@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart' hide Category;
+import 'package:fleur/features/accounts/accounts.dart';
 
 import '../../../models/category.dart';
 import '../../../models/feed.dart';
 import '../../../repositories/category_repository.dart';
 import '../../../repositories/feed_repository.dart';
-import '../../../services/accounts/account.dart';
 import '../../../services/rss/feed_discovery_service.dart';
 import '../../../services/sync/backend_capabilities.dart';
 import '../../../services/sync/remote_client_factory.dart';

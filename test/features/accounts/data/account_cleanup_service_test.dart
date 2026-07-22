@@ -2,15 +2,13 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fleur/services/accounts/account.dart';
-import 'package:fleur/services/accounts/account_cleanup_service.dart';
-import 'package:fleur/services/accounts/credential_store.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 import 'package:fleur/services/persistence/durable_json_store.dart';
 import 'package:fleur/services/sync/outbox/outbox_store.dart';
 import 'package:fleur/utils/path_manager.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 
-import '../../test_utils/fake_path_provider_platform.dart';
+import '../../../test_utils/fake_path_provider_platform.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

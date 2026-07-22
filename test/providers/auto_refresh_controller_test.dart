@@ -3,14 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:fleur/models/feed.dart';
-import 'package:fleur/providers/account_providers.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 import 'package:fleur/providers/app_settings_providers.dart';
 import 'package:fleur/providers/auto_refresh_providers.dart';
 import 'package:fleur/providers/repository_providers.dart';
 import 'package:fleur/providers/refresh_all_providers.dart';
 import 'package:fleur/providers/service_providers.dart';
 import 'package:fleur/repositories/feed_repository.dart';
-import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/sync/backend_capabilities.dart';
 import 'package:fleur/services/sync/refresh_all_coordinator.dart';

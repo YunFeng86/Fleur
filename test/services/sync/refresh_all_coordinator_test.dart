@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:fleur/models/feed.dart';
 import 'package:fleur/repositories/feed_repository.dart';
-import 'package:fleur/services/accounts/account.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 import 'package:fleur/services/sync/backend_capabilities.dart';
 import 'package:fleur/services/sync/refresh_all_coordinator.dart';
 import 'package:fleur/services/sync/sync_service.dart';

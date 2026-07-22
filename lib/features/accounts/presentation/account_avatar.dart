@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../services/accounts/account.dart';
-import '../theme/fleur_icons.dart';
-import '../theme/fleur_theme_extensions.dart';
+import 'package:fleur/theme/fleur_icons.dart';
+import 'package:fleur/theme/fleur_theme_extensions.dart';
+
+import '../domain/account.dart';
 
 Color _colorForAccount(Account account) {
   // Stable-ish accent per account id; avoids importing more deps.

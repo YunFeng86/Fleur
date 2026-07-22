@@ -8,7 +8,7 @@ import 'package:fleur/models/category.dart';
 import 'package:fleur/models/feed.dart';
 import 'package:fleur/providers/query_providers.dart';
 import 'package:fleur/providers/service_providers.dart';
-import 'package:fleur/services/accounts/account.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 import 'package:fleur/services/sync/backend_capabilities.dart';
 import 'package:fleur/services/sync/backend_sync_semantics.dart';
 import 'package:fleur/theme/app_theme.dart';

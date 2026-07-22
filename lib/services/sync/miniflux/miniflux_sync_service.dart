@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:pool/pool.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 
 import '../../../models/article.dart';
 import '../../../models/category.dart';
@@ -9,8 +10,6 @@ import '../../../models/feed.dart';
 import '../../../repositories/article_repository.dart';
 import '../../../repositories/category_repository.dart';
 import '../../../repositories/feed_repository.dart';
-import '../../accounts/account.dart';
-import '../../accounts/credential_store.dart';
 import '../../cache/article_cache_service.dart';
 import '../../extract/article_extractor.dart';
 import '../../logging/app_logger.dart';

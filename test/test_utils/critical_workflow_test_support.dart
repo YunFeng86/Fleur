@@ -8,7 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fleur/l10n/app_localizations.dart';
 import 'package:fleur/providers/background_sync_providers.dart';
 import 'package:fleur/providers/outbox_flush_providers.dart';
-import 'package:fleur/services/accounts/account.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 import 'package:fleur/services/actions/article_action_service.dart';
 import 'package:fleur/services/ai/ai_request_queue.dart';
 import 'package:fleur/services/ai/ai_service_client.dart';

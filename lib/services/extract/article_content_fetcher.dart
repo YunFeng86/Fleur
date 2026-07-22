@@ -1,5 +1,5 @@
 import '../../models/article.dart';
-import '../accounts/account.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 import '../settings/app_settings.dart';
 import '../sync/backend_content_capabilities.dart';
 import '../sync/remote_client_factory.dart';

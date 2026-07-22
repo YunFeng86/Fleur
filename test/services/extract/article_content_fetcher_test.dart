@@ -2,8 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:fleur/models/article.dart';
-import 'package:fleur/services/accounts/account.dart';
-import 'package:fleur/services/accounts/credential_store.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 import 'package:fleur/services/extract/article_content_fetcher.dart';
 import 'package:fleur/services/extract/article_extractor.dart';
 import 'package:fleur/services/settings/app_settings.dart';

@@ -2,13 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 
-import '../../../providers/account_providers.dart';
 import '../../../providers/app_settings_providers.dart';
 import '../../../providers/backend_capabilities_provider.dart';
 import '../../../providers/repository_providers.dart';
 import '../../../providers/service_providers.dart';
-import '../../../services/accounts/account.dart';
 import '../../../services/logging/app_logger.dart';
 import '../../../services/rss/feed_discovery_service.dart';
 import '../../../services/sync/backend_capabilities.dart';

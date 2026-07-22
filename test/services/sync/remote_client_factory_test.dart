@@ -4,8 +4,7 @@ import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fleur/services/accounts/account.dart';
-import 'package:fleur/services/accounts/credential_store.dart';
+import 'package:fleur/features/accounts/accounts.dart';
 import 'package:fleur/services/sync/remote_client_factory.dart';
 
 void main() {
