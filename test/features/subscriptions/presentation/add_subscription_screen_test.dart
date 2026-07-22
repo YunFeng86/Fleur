@@ -26,7 +26,7 @@ import 'package:fleur/services/sync/sync_service.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/fleur_icons.dart';
 
-import '../test_utils/isar_test_utils.dart';
+import '../../../test_utils/isar_test_utils.dart';
 
 const _asyncUiSettleAttempts = 300;
 
