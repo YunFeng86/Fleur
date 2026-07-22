@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fleur/features/accounts/accounts.dart';
+import 'package:fleur/features/subscriptions/subscriptions.dart';
 import 'package:fleur/l10n/app_localizations.dart';
 
 import '../models/category.dart';
@@ -28,7 +29,6 @@ import '../ui/design_system/design_system.dart';
 import '../ui/motion.dart';
 import '../ui/shell_chrome_layout.dart';
 import '../ui/sidebar_layout.dart';
-import '../ui/actions/subscription_object_menus.dart';
 import '../ui/sidebar/sidebar_management_actions.dart';
 import '../ui/sidebar/sidebar_selection_actions.dart';
 import '../ui/sidebar/sidebar_tree.dart';

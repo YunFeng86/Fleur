@@ -14,10 +14,10 @@ import 'package:fleur/services/sync/backend_capabilities.dart';
 import 'package:fleur/services/sync/refresh_all_coordinator.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/fleur_icons.dart';
-import 'package:fleur/ui/settings/subscriptions/subscription_toolbar.dart';
+import 'package:fleur/features/subscriptions/presentation/settings/subscription_toolbar.dart';
 import 'package:fleur/utils/platform.dart';
 
-import '../../../test_utils/critical_workflow_test_support.dart';
+import '../../../../test_utils/critical_workflow_test_support.dart';
 
 class _FakeFeedRepository extends Fake implements FeedRepository {
   @override

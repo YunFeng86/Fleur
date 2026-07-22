@@ -2,16 +2,17 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fleur/features/subscriptions/subscriptions.dart';
 
+import '../../application/subscription_selection.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../providers/backend_capabilities_provider.dart';
 import '../../../../providers/backend_sync_semantics_provider.dart';
 import '../../../../services/sync/backend_capabilities.dart';
 import '../../../../theme/fleur_icons.dart';
-import '../../../../ui/actions/subscription_object_menus.dart';
 import '../../../../ui/app_menu.dart';
 import '../../../../utils/platform.dart';
+import '../subscription_object_menus.dart';
+import '../subscription_structure_actions.dart';
 
 class SubscriptionToolbar extends ConsumerWidget {
   const SubscriptionToolbar({super.key, this.showPageTitle = true});

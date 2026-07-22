@@ -2,18 +2,18 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fleur/features/subscriptions/subscriptions.dart';
 
+import '../../application/subscription_selection.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/feed.dart';
 import '../../../../providers/query_providers.dart';
 import '../../../../theme/fleur_icons.dart';
 import '../../../../theme/fleur_theme_extensions.dart';
-import '../../../../ui/actions/subscription_object_menus.dart';
+import '../../../../ui/settings/widgets/settings_controls.dart';
 import '../../../../utils/platform.dart';
 import '../../../../widgets/app_scrollbar.dart';
 import '../../../../widgets/favicon_avatar.dart';
-import '../widgets/settings_controls.dart';
+import '../subscription_object_menus.dart';
 
 class CategoryListComponent extends ConsumerWidget {
   const CategoryListComponent({super.key});

@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fleur/features/subscriptions/subscriptions.dart';
 
-import '../../l10n/app_localizations.dart';
-import '../../models/category.dart';
-import '../../models/feed.dart';
-import '../../providers/backend_capabilities_provider.dart';
-import '../../providers/backend_sync_semantics_provider.dart';
-import '../../services/sync/backend_capabilities.dart';
-import '../../services/sync/backend_sync_semantics.dart';
-import '../../theme/fleur_icons.dart';
-import '../app_menu.dart';
+import '../application/subscription_root_sync_action.dart';
+import '../application/subscription_selection.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../../models/category.dart';
+import '../../../models/feed.dart';
+import '../../../providers/backend_capabilities_provider.dart';
+import '../../../providers/backend_sync_semantics_provider.dart';
+import '../../../services/sync/backend_capabilities.dart';
+import '../../../services/sync/backend_sync_semantics.dart';
+import '../../../theme/fleur_icons.dart';
+import '../../../ui/app_menu.dart';
+import 'subscription_opml_actions.dart';
+import 'subscription_refresh_actions.dart';
+import 'subscription_structure_actions.dart';
 
 enum SubscriptionFeedMenuAction { rename, refresh, offlineCache, move, delete }
 

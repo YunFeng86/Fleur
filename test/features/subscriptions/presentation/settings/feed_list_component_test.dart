@@ -10,10 +10,10 @@ import 'package:fleur/features/accounts/accounts.dart';
 import 'package:fleur/providers/query_providers.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/ui/app_menu.dart';
-import 'package:fleur/ui/settings/subscriptions/feed_list_component.dart';
+import 'package:fleur/features/subscriptions/presentation/settings/feed_list_component.dart';
 import 'package:fleur/utils/platform.dart';
 
-import '../../../test_utils/critical_workflow_test_support.dart';
+import '../../../../test_utils/critical_workflow_test_support.dart';
 
 Future<void> _openContextMenuOnText(WidgetTester tester, String text) async {
   await tester.tapAt(

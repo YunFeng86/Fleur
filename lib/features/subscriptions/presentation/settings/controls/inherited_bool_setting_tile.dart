@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../../l10n/app_localizations.dart';
 import '../../../../../theme/fleur_icons.dart';
-import '../../../design_system/design_system.dart';
-import '../../widgets/settings_controls.dart';
+import '../../../../../ui/design_system/design_system.dart';
+import '../../../../../ui/settings/widgets/settings_controls.dart';
 
 class InheritedBoolSettingTile extends StatefulWidget {
   const InheritedBoolSettingTile({

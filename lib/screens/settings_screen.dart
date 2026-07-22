@@ -11,7 +11,6 @@ import '../app/settings_routes.dart';
 import '../ui/app_drawer_scope.dart';
 import '../ui/settings/settings_scene.dart';
 import '../ui/settings/settings_search_view.dart';
-import '../ui/settings/subscriptions/subscriptions_settings_tab.dart';
 import '../ui/settings/tabs/about_tab.dart';
 import '../ui/settings/tabs/app_preferences_tab.dart';
 import '../ui/settings/tabs/appearance_tab.dart';

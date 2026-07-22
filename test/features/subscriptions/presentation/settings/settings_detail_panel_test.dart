@@ -16,11 +16,10 @@ import 'package:fleur/repositories/feed_repository.dart';
 import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/fleur_icons.dart';
-import 'package:fleur/ui/settings/subscriptions/subscription_layout_manager.dart';
-import 'package:fleur/ui/settings/subscriptions/settings_detail_panel.dart';
+import 'package:fleur/features/subscriptions/presentation/settings/settings_detail_panel.dart';
 import 'package:fleur/ui/settings/widgets/settings_controls.dart';
 
-import '../../../test_utils/critical_workflow_test_support.dart';
+import '../../../../test_utils/critical_workflow_test_support.dart';
 
 class _FakeFeedRepository extends Fake implements FeedRepository {
   _FakeFeedRepository(this.controller, this.currentFeed);
@@ -117,7 +116,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Future<void> pumpLayoutManager(
+  Future<void> pumpSettingsTab(
     WidgetTester tester, {
     required FakeAppSettingsStore appStore,
     required Feed feed,
@@ -132,7 +131,7 @@ void main() {
         theme: AppTheme.light(),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: const Scaffold(body: SubscriptionLayoutManager()),
+        home: const Scaffold(body: SubscriptionsSettingsTab()),
       ),
       overrides: [
         activeAccountProvider.overrideWithValue(account ?? buildTestAccount()),
@@ -521,7 +520,7 @@ void main() {
       final fakeRepo = _FakeFeedRepository(feedController, feed);
       final appStore = FakeAppSettingsStore(AppSettings.defaults());
 
-      await pumpLayoutManager(
+      await pumpSettingsTab(
         tester,
         appStore: appStore,
         feed: feed,

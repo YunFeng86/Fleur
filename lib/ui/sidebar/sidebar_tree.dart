@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fleur/features/subscriptions/subscriptions.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../models/category.dart';
@@ -14,7 +15,6 @@ import '../sidebar_layout.dart';
 import '../app_menu.dart';
 import '../../ui/sidebar/sidebar_management_actions.dart';
 import '../../ui/sidebar/sidebar_selection_actions.dart';
-import '../actions/subscription_object_menus.dart';
 import '../../utils/platform.dart';
 import '../../widgets/app_scrollbar.dart';
 import '../../widgets/favicon_circle.dart';

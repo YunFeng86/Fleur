@@ -61,16 +61,16 @@ const _operationalCapabilityFiles = <String, String>{
       'backendCapabilitiesProvider',
   'lib/features/subscriptions/presentation/subscription_opml_actions.dart':
       'backendCapabilitiesProvider',
-  'lib/ui/settings/subscriptions/subscription_toolbar.dart':
+  'lib/features/subscriptions/presentation/settings/subscription_toolbar.dart':
       'backendCapabilitiesProvider',
   'lib/ui/sidebar/sidebar_tree.dart': 'BackendCapabilities',
   'lib/widgets/sidebar.dart': 'backendCapabilitiesProvider',
-  'lib/ui/settings/subscriptions/settings_detail_panel.dart':
+  'lib/features/subscriptions/presentation/settings/settings_detail_panel.dart':
       'backendCapabilitiesProvider',
 };
 
 const _contentCapabilityFiles = <String, String>{
-  'lib/ui/settings/subscriptions/controls/sync_settings_section.dart':
+  'lib/features/subscriptions/presentation/settings/controls/sync_settings_section.dart':
       'backendContentCapabilitiesProvider',
   'lib/ui/settings/tabs/services_tab.dart':
       'backendContentCapabilitiesProvider',
@@ -79,9 +79,9 @@ const _contentCapabilityFiles = <String, String>{
 const _syncSemanticsFiles = <String, String>{
   'lib/screens/home_screen.dart': 'backendSyncSemanticsProvider',
   'lib/ui/home/home_scene_commands.dart': 'backendSyncSemanticsProvider',
-  'lib/ui/settings/subscriptions/subscription_toolbar.dart':
+  'lib/features/subscriptions/presentation/settings/subscription_toolbar.dart':
       'backendSyncSemanticsProvider',
-  'lib/ui/settings/subscriptions/settings_detail_panel.dart':
+  'lib/features/subscriptions/presentation/settings/settings_detail_panel.dart':
       'backendSyncSemanticsProvider',
   'lib/ui/sidebar/sidebar_tree.dart': 'BackendSyncSemantics',
   'lib/ui/settings/tabs/services_tab.dart': 'backendSyncSemanticsProvider',

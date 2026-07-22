@@ -11,11 +11,11 @@ import 'package:fleur/providers/query_providers.dart';
 import 'package:fleur/features/subscriptions/subscriptions.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/ui/app_menu.dart';
-import 'package:fleur/ui/settings/subscriptions/category_list_component.dart';
+import 'package:fleur/features/subscriptions/presentation/settings/category_list_component.dart';
 import 'package:fleur/utils/platform.dart';
 import 'package:fleur/widgets/app_scrollbar.dart';
 
-import '../../../test_utils/critical_workflow_test_support.dart';
+import '../../../../test_utils/critical_workflow_test_support.dart';
 
 Future<void> _openContextMenuOnText(WidgetTester tester, String text) async {
   await _openContextMenu(tester, find.text(text).first);

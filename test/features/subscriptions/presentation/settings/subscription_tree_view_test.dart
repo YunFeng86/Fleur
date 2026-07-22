@@ -13,13 +13,13 @@ import 'package:fleur/features/subscriptions/subscriptions.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/ui/app_menu.dart';
 import 'package:fleur/theme/fleur_icons.dart';
-import 'package:fleur/ui/settings/subscriptions/subscription_tree_view.dart';
+import 'package:fleur/features/subscriptions/presentation/settings/subscription_tree_view.dart';
 import 'package:fleur/ui/settings/widgets/settings_controls.dart';
 import 'package:fleur/utils/platform.dart';
 import 'package:fleur/widgets/app_scrollbar.dart';
 import 'package:fleur/widgets/tree_disclosure_button.dart';
 
-import '../../../test_utils/critical_workflow_test_support.dart';
+import '../../../../test_utils/critical_workflow_test_support.dart';
 
 List<Category> _buildCategories(int count) {
   return List<Category>.generate(

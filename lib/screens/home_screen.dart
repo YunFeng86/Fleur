@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fleur/l10n/app_localizations.dart';
+import 'package:fleur/features/subscriptions/subscriptions.dart';
 
 import '../app/article_scope_routes.dart';
 import '../providers/backend_capabilities_provider.dart';
@@ -9,7 +10,6 @@ import '../providers/core_providers.dart';
 import '../providers/query_providers.dart';
 import '../providers/unread_providers.dart';
 import '../theme/fleur_icons.dart';
-import '../ui/actions/subscription_object_menus.dart';
 import '../ui/app_drawer_scope.dart';
 import '../ui/home/article_reader_workspace_layout.dart';
 import '../ui/home/home_scene_commands.dart';

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fleur/features/subscriptions/subscriptions.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
+import '../../application/subscription_selection.dart';
 import '../../../../providers/app_settings_providers.dart';
 import '../../../../providers/backend_capabilities_provider.dart';
 import '../../../../providers/backend_sync_semantics_provider.dart';
@@ -12,8 +12,10 @@ import '../../../../models/feed.dart';
 import '../../../../models/category.dart';
 import '../../../../services/sync/backend_capabilities.dart';
 import '../../../../theme/fleur_icons.dart';
+import '../../../../ui/settings/widgets/settings_controls.dart';
 import '../../../../utils/timeago_locale.dart';
-import '../widgets/settings_controls.dart';
+import '../subscription_refresh_actions.dart';
+import '../subscription_structure_actions.dart';
 import 'controls/filter_settings_section.dart';
 import 'controls/sync_settings_section.dart';
 import 'controls/user_agent_settings_section.dart';

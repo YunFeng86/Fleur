@@ -40,6 +40,13 @@ export 'application/subscription_structure_commands.dart'
         SubscriptionStructureExecutorFactory;
 export 'presentation/subscription_opml_actions.dart'
     show SubscriptionOpmlActions;
+export 'presentation/subscription_object_menus.dart'
+    show
+        SubscriptionCategoryMenuAction,
+        SubscriptionFeedMenuAction,
+        SubscriptionObjectMenuItem,
+        SubscriptionObjectMenus,
+        SubscriptionRootMenuAction;
 export 'presentation/add_subscription_screen.dart' show AddSubscriptionScreen;
 export 'presentation/subscription_refresh_actions.dart'
     show SubscriptionRefreshActions;
@@ -47,6 +54,8 @@ export 'presentation/subscription_remote_feedback.dart'
     show remoteStructureFailureMessage;
 export 'presentation/subscription_structure_actions.dart'
     show SubscriptionStructureActions, SubscriptionStructureDialogPresenter;
+export 'presentation/settings/subscriptions_settings_tab.dart'
+    show SubscriptionsSettingsTab;
 export 'application/subscription_root_sync_action.dart'
     show
         SubscriptionRootSyncMode,

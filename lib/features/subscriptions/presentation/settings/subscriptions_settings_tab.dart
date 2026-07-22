@@ -2,19 +2,19 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fleur/features/subscriptions/subscriptions.dart';
 
+import '../../application/subscription_selection.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../theme/fleur_theme_extensions.dart';
+import '../../../../ui/settings/widgets/settings_controls.dart';
 import 'category_list_component.dart';
 import 'feed_list_component.dart';
 import 'settings_detail_panel.dart';
 import 'subscription_toolbar.dart';
 import 'subscription_tree_view.dart';
-import '../widgets/settings_controls.dart';
 
-class SubscriptionLayoutManager extends ConsumerWidget {
-  const SubscriptionLayoutManager({super.key, this.showPageTitle = true});
+class SubscriptionsSettingsTab extends ConsumerWidget {
+  const SubscriptionsSettingsTab({super.key, this.showPageTitle = true});
 
   final bool showPageTitle;
 

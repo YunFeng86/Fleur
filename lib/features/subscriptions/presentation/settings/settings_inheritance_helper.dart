@@ -1,6 +1,6 @@
-import '../../../models/feed.dart';
-import '../../../models/category.dart';
-import '../../../services/settings/app_settings.dart';
+import '../../../../models/category.dart';
+import '../../../../models/feed.dart';
+import '../../../../services/settings/app_settings.dart';
 
 class SettingsInheritanceHelper {
   static bool resolveFilterEnabled(

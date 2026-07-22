@@ -8,7 +8,7 @@ import '../../../../../providers/app_settings_providers.dart';
 import '../../../../../services/network/user_agents.dart';
 import '../../../../../services/settings/app_settings.dart';
 import '../../../../../theme/fleur_icons.dart';
-import '../../widgets/settings_controls.dart';
+import '../../../../../ui/settings/widgets/settings_controls.dart';
 
 class SubscriptionUserAgentSettingsSection extends ConsumerStatefulWidget {
   const SubscriptionUserAgentSettingsSection({
