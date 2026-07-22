@@ -2,11 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fleur/features/subscriptions/subscriptions.dart';
 import 'package:fleur/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
 import '../app/settings_routes.dart';
 import '../ui/app_drawer_scope.dart';
+import '../ui/design_system/design_system.dart';
 import '../ui/settings/subscriptions/subscriptions_settings_tab.dart';
 import '../ui/settings/tabs/about_tab.dart';
 import '../ui/settings/tabs/app_preferences_tab.dart';
@@ -23,13 +25,9 @@ import '../ui/shell_chrome_layout.dart';
 import '../ui/sidebar_layout.dart';
 import '../ui/workspace_layers.dart';
 import '../providers/core_providers.dart';
-import '../providers/subscription_settings_provider.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../widgets/app_scrollbar.dart';
-import '../widgets/fleur_selectable_button.dart';
-import '../widgets/fleur_selection_transition.dart';
-import '../widgets/fleur_shell_icon_button.dart';
 
 part '../ui/settings/settings_scene.dart';
 part '../ui/settings/settings_search_view.dart';

@@ -1,4 +1,4 @@
-export '../features/subscriptions/application/subscription_selection.dart'
+export 'application/subscription_selection.dart'
     show
         SubscriptionCategoryAll,
         SubscriptionCategoryId,
@@ -12,3 +12,5 @@ export '../features/subscriptions/application/subscription_selection.dart'
         SubscriptionSelectionNotifier,
         SubscriptionState,
         subscriptionSelectionProvider;
+export 'application/subscription_feed_browsing.dart'
+    show SubscriptionFeedBrowsing, SubscriptionProviderRead;

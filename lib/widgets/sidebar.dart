@@ -25,6 +25,7 @@ import '../services/update/app_update_manifest.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/app_menu.dart';
+import '../ui/design_system/design_system.dart';
 import '../ui/motion.dart';
 import '../ui/shell_chrome_layout.dart';
 import '../ui/sidebar_layout.dart';
@@ -35,9 +36,6 @@ import '../ui/sidebar/sidebar_tree.dart';
 import '../ui/update/app_update_dialog.dart';
 import '../utils/platform.dart';
 import 'account_avatar.dart';
-import 'fleur_capsule_button_group.dart';
-import 'fleur_selectable_button.dart';
-import 'fleur_selection_transition.dart';
 import 'overflow_marquee.dart';
 
 part 'sidebar_chrome.dart';

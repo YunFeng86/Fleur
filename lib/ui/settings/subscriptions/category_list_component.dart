@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fleur/features/subscriptions/subscriptions.dart';
 
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/feed.dart';
 import '../../../../providers/query_providers.dart';
-import '../../../../providers/subscription_settings_provider.dart';
 import '../../../../theme/fleur_icons.dart';
 import '../../../../theme/fleur_theme_extensions.dart';
 import '../../../../ui/actions/subscription_object_menus.dart';

@@ -9,7 +9,7 @@ import 'package:fleur/models/category.dart';
 import 'package:fleur/models/feed.dart';
 import 'package:fleur/providers/account_providers.dart';
 import 'package:fleur/providers/query_providers.dart';
-import 'package:fleur/providers/subscription_settings_provider.dart';
+import 'package:fleur/features/subscriptions/subscriptions.dart';
 import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/ui/app_menu.dart';

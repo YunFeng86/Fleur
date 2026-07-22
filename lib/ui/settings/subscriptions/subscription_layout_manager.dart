@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
 
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fleur/features/subscriptions/subscriptions.dart';
+
 import '../../../../l10n/app_localizations.dart';
-import '../../../../providers/subscription_settings_provider.dart';
 import '../../../../theme/fleur_theme_extensions.dart';
 import 'category_list_component.dart';
 import 'feed_list_component.dart';

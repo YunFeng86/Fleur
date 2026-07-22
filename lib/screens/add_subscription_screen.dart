@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../app/article_scope_routes.dart';
+import '../features/subscriptions/subscriptions.dart';
 import '../l10n/app_localizations.dart';
 import '../models/article_scope.dart';
 import '../providers/add_subscription_controller.dart';
@@ -12,12 +13,11 @@ import '../services/rss/feed_discovery_service.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';
 import '../ui/actions/remote_structure_feedback.dart' as remote_feedback;
-import '../ui/actions/subscription_actions.dart';
 import '../ui/app_drawer_scope.dart';
+import '../ui/design_system/design_system.dart';
 import '../utils/context_extensions.dart';
 import '../utils/platform.dart';
 import '../widgets/app_scrollbar.dart';
-import '../widgets/fleur_select_field.dart';
 import '../widgets/staggered_reveal.dart';
 
 class AddSubscriptionScreen extends ConsumerStatefulWidget {
@@ -76,7 +76,7 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
   }
 
   void _viewSubscription(int feedId) {
-    SubscriptionActions.selectFeed(ref, feedId);
+    SubscriptionFeedBrowsing.selectFeed(ref.read, feedId);
     context.go(scopeLocation(ArticleScope.feed(feedId)));
   }
 

@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../theme/fleur_theme_extensions.dart';
 import '../../../widgets/app_scrollbar.dart';
-import '../../../widgets/fleur_select_field.dart';
-import '../../../widgets/fleur_selectable_button.dart';
+import '../../design_system/design_system.dart';
 
 const double _kSettingsControlBreakpoint = 680;
 const double _kSettingsControlMinWidth = 220;

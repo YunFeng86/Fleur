@@ -9,13 +9,12 @@ import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../../models/article_scope.dart';
+import '../../features/subscriptions/subscriptions.dart';
 import '../../providers/account_providers.dart';
 import '../../providers/app_settings_providers.dart';
 import '../../providers/backend_capabilities_provider.dart';
 import '../../providers/backend_sync_semantics_provider.dart';
 import '../../providers/opml_providers.dart';
-import '../../providers/query_providers.dart';
 import '../../providers/refresh_all_providers.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/service_providers.dart';
@@ -190,15 +189,11 @@ class SubscriptionActions {
     int feedId, {
     bool resetFilters = true,
   }) {
-    if (resetFilters) {
-      ref
-          .read(articleListFilterProvider.notifier)
-          .update((filter) => filter.selectFeed(feedId));
-      return;
-    }
-    ref
-        .read(articleListFilterProvider.notifier)
-        .update((filter) => filter.copyWith(scope: ArticleScope.feed(feedId)));
+    SubscriptionFeedBrowsing.selectFeed(
+      ref.read,
+      feedId,
+      resetFilters: resetFilters,
+    );
   }
 
   static Future<int?> addFeed(

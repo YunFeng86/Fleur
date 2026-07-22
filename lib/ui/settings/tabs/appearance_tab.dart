@@ -13,11 +13,10 @@ import '../../../theme/fleur_color_engine.dart';
 import '../../../theme/fleur_icons.dart';
 import '../../../theme/fleur_theme_extensions.dart';
 import '../../../theme/seed_color_presets.dart';
+import '../../design_system/design_system.dart';
 import '../settings_targets.dart';
 import '../widgets/section_header.dart';
 import '../widgets/slider_tile.dart';
-import '../../../widgets/fleur_selectable_button.dart';
-import '../../../widgets/fleur_selection_transition.dart';
 
 enum AppearanceDetailPage { fonts }
 

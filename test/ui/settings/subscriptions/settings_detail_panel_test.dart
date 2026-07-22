@@ -11,7 +11,7 @@ import 'package:fleur/providers/account_providers.dart';
 import 'package:fleur/providers/app_settings_providers.dart';
 import 'package:fleur/providers/query_providers.dart';
 import 'package:fleur/providers/repository_providers.dart';
-import 'package:fleur/providers/subscription_settings_provider.dart';
+import 'package:fleur/features/subscriptions/subscriptions.dart';
 import 'package:fleur/repositories/feed_repository.dart';
 import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/services/settings/app_settings.dart';
