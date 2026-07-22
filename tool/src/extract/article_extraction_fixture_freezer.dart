@@ -5,9 +5,9 @@ import 'package:crypto/crypto.dart';
 import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
 import 'package:path/path.dart' as p;
+import 'package:fleur/services/extract/article_extractor_core.dart';
 
 import 'article_extraction_audit.dart';
-import 'article_extractor_core.dart';
 
 class ArticleExtractionFixtureFreezeOptions {
   const ArticleExtractionFixtureFreezeOptions({

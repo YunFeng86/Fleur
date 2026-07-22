@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:fleur/services/extract/article_extraction_audit.dart';
 import 'package:fleur/services/extract/article_extractor.dart';
+
+import '../../../tool/src/extract/article_extraction_audit.dart';
 
 void main() {
   test('audits OPML feeds and aggregates extraction diagnostics', () async {

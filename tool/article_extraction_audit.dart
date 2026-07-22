@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
-import 'package:fleur/services/extract/article_extraction_audit.dart';
+import 'src/extract/article_extraction_tooling.dart';
 
 Future<void> main(List<String> args) async {
   final cli = _CliOptions.parse(args);

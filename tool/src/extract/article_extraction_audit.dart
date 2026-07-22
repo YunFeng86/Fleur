@@ -1,9 +1,9 @@
 import 'package:pool/pool.dart';
 
-import '../opml/opml_service.dart';
-import '../rss/feed_parser.dart';
-import '../rss/parsed_feed.dart';
-import 'article_extractor_core.dart';
+import 'package:fleur/services/extract/article_extractor_core.dart';
+import 'package:fleur/services/opml/opml_service.dart';
+import 'package:fleur/services/rss/feed_parser.dart';
+import 'package:fleur/services/rss/parsed_feed.dart';
 
 typedef ArticleExtractionAuditFetcher =
     Future<ArticleExtractionAuditFetchResult> Function(
