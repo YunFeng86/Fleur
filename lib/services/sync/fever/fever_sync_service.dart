@@ -19,6 +19,7 @@ import '../../notifications/notification_service.dart';
 import '../../settings/app_settings.dart';
 import '../../settings/app_settings_store.dart';
 import '../effective_feed_settings.dart';
+import '../outbox/outbox_delivery.dart';
 import '../outbox/outbox_store.dart';
 import '../remote_article_action_executor.dart';
 import '../remote_client_factory.dart';
@@ -633,34 +634,24 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
   }
 
   Future<void> _flushOutbox(FeverClient client) async {
-    final pending = await _outbox.load(account.id);
-    if (pending.isEmpty) return;
-
     final executor = FeverRemoteArticleActionExecutor(client);
-    final remaining = <OutboxAction>[];
-    for (final a in pending) {
-      try {
-        await executor.apply(a);
-      } catch (e, s) {
+    await OutboxDelivery(_outbox).flush(
+      accountId: account.id,
+      apply: executor.apply,
+      onActionError: (action, error, stackTrace) {
         AppLogger.w(
           'Fever outbox action failed',
           tag: 'sync',
-          error: e,
-          stackTrace: s,
+          error: error,
+          stackTrace: stackTrace,
           context: _outboxFailureContext(
-            e,
+            error,
             operation: 'flushOutbox',
-            action: a,
+            action: action,
           ),
         );
-        // Keep it for next sync attempt.
-        remaining.add(a);
-      }
-    }
-
-    if (remaining.length != pending.length) {
-      await _outbox.save(account.id, remaining);
-    }
+      },
+    );
   }
 
   Map<String, Object?> _outboxFailureContext(

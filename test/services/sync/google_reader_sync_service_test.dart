@@ -486,6 +486,18 @@ class _MemoryOutboxStore extends OutboxStore {
   Future<void> save(String accountId, List<OutboxAction> actions) async {
     this.actions = [...actions];
   }
+
+  @override
+  Future<void> acknowledge(
+    String accountId,
+    Iterable<OutboxAction> delivered,
+  ) async {
+    final remaining = [...actions];
+    for (final action in delivered) {
+      remaining.remove(action);
+    }
+    actions = remaining;
+  }
 }
 
 class _UnusedCacheManager extends Fake implements BaseCacheManager {}

@@ -14,6 +14,7 @@ import '../../logging/log_context.dart';
 import '../../settings/app_settings.dart';
 import '../../settings/app_settings_store.dart';
 import '../effective_feed_settings.dart';
+import '../outbox/outbox_delivery.dart';
 import '../outbox/outbox_store.dart';
 import '../remote_article_action_executor.dart';
 import '../remote_client_factory.dart';
@@ -705,74 +706,30 @@ class GoogleReaderSyncService implements SyncServiceBase, OutboxFlushCapable {
   }
 
   Future<void> _flushOutbox(GoogleReaderClient client) async {
-    final pending = await _outbox.load(account.id);
-    if (pending.isEmpty) return;
-
     final executor = GoogleReaderRemoteArticleActionExecutor(client);
-    final remaining = <OutboxAction>[];
-    var index = 0;
-    while (index < pending.length) {
-      final action = pending[index];
-      if (GoogleReaderRemoteArticleActionExecutor.isBatchable(action)) {
-        final batch = <OutboxAction>[action];
-        var nextIndex = index + 1;
-        while (nextIndex < pending.length &&
-            batch.length < _profile.editTagBatchSize &&
-            _isCompatibleOutboxBatchAction(action, pending[nextIndex])) {
-          batch.add(pending[nextIndex]);
-          nextIndex += 1;
-        }
-        if (!await _tryFlushOutboxBatch(executor, batch)) {
-          for (final item in batch) {
-            await _tryFlushOutboxAction(executor, item, remaining);
-          }
-        }
-        index = nextIndex;
-        continue;
-      }
-      await _tryFlushOutboxAction(executor, action, remaining);
-      index += 1;
-    }
-
-    if (remaining.length != pending.length) {
-      await _outbox.save(account.id, remaining);
-    }
-  }
-
-  Future<bool> _tryFlushOutboxBatch(
-    GoogleReaderRemoteArticleActionExecutor executor,
-    List<OutboxAction> batch,
-  ) async {
-    try {
-      return await executor.applyBatch(batch);
-    } catch (_) {
-      return false;
-    }
-  }
-
-  Future<void> _tryFlushOutboxAction(
-    GoogleReaderRemoteArticleActionExecutor executor,
-    OutboxAction action,
-    List<OutboxAction> remaining,
-  ) async {
-    try {
-      if (!await executor.apply(action)) {
-        remaining.add(action);
-      }
-    } catch (e, s) {
-      AppLogger.w(
-        'Google Reader outbox action failed',
-        tag: 'sync',
-        error: e,
-        stackTrace: s,
-        context: _accountFailureContext(
-          e,
-          operation: 'flushOutbox',
-          action: action,
-        ),
-      );
-      remaining.add(action);
-    }
+    await OutboxDelivery(_outbox).flush(
+      accountId: account.id,
+      apply: executor.apply,
+      onActionError: (action, error, stackTrace) {
+        AppLogger.w(
+          'Google Reader outbox action failed',
+          tag: 'sync',
+          error: error,
+          stackTrace: stackTrace,
+          context: _accountFailureContext(
+            error,
+            operation: 'flushOutbox',
+            action: action,
+          ),
+        );
+      },
+      batching: OutboxBatching(
+        maxSize: _profile.editTagBatchSize,
+        isBatchable: GoogleReaderRemoteArticleActionExecutor.isBatchable,
+        isCompatible: _isCompatibleOutboxBatchAction,
+        apply: executor.applyBatch,
+      ),
+    );
   }
 
   static bool _isCompatibleOutboxBatchAction(
