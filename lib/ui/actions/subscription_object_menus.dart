@@ -382,10 +382,10 @@ class SubscriptionObjectMenus {
         await SubscriptionActions.refreshAll(context, ref);
         return;
       case SubscriptionRootMenuAction.importOpml:
-        await SubscriptionActions.importOpml(context, ref);
+        await SubscriptionOpmlActions.importOpml(context, ref);
         return;
       case SubscriptionRootMenuAction.exportOpml:
-        await SubscriptionActions.exportOpml(context, ref);
+        await SubscriptionOpmlActions.exportOpml(context, ref);
         return;
       case SubscriptionRootMenuAction.showAll:
       case SubscriptionRootMenuAction.globalDefaults:

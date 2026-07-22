@@ -31,3 +31,5 @@ export 'application/subscription_selection.dart'
         subscriptionSelectionProvider;
 export 'application/subscription_feed_browsing.dart'
     show SubscriptionFeedBrowsing, SubscriptionProviderRead;
+export 'presentation/subscription_opml_actions.dart'
+    show SubscriptionOpmlActions;

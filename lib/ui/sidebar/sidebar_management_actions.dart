@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/subscriptions/subscriptions.dart';
 import '../../models/category.dart';
 import '../../models/feed.dart';
 import '../../providers/query_providers.dart';
@@ -141,10 +142,10 @@ class SidebarManagementActions {
   }
 
   Future<void> importOpml() {
-    return SubscriptionActions.importOpml(_context, _ref);
+    return SubscriptionOpmlActions.importOpml(_context, _ref);
   }
 
   Future<void> exportOpml() {
-    return SubscriptionActions.exportOpml(_context, _ref);
+    return SubscriptionOpmlActions.exportOpml(_context, _ref);
   }
 }

@@ -1,12 +1,6 @@
-import 'dart:async';
-import 'dart:convert';
-
-import 'package:file_selector/file_selector.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../features/subscriptions/subscriptions.dart';
@@ -14,13 +8,11 @@ import '../../providers/account_providers.dart';
 import '../../providers/app_settings_providers.dart';
 import '../../providers/backend_capabilities_provider.dart';
 import '../../providers/backend_sync_semantics_provider.dart';
-import '../../providers/opml_providers.dart';
 import '../../providers/refresh_all_providers.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/service_providers.dart';
 import '../../services/accounts/account.dart';
 import '../../services/logging/app_logger.dart';
-import '../../services/opml/opml_service.dart';
 import '../../services/sync/backend_capabilities.dart';
 import '../../services/sync/refresh_all_coordinator.dart';
 import '../../services/sync/remote_subscription_structure_executor.dart';
@@ -28,7 +20,6 @@ import '../../services/sync/subscription_mirror_service.dart';
 import '../../screens/add_subscription_screen.dart';
 import '../../ui/actions/remote_structure_feedback.dart' as remote_feedback;
 import '../../utils/context_extensions.dart';
-import '../../utils/platform.dart';
 import 'root_sync_action.dart';
 
 typedef ProviderReadCallback = T Function<T>(ProviderListenable<T> provider);
@@ -828,167 +819,6 @@ class SubscriptionActions {
       if (!context.mounted) return;
       remote_feedback.showRemoteStructureFailure(context, l10n, error);
     }
-  }
-
-  static Future<void> importOpml(BuildContext context, WidgetRef ref) async {
-    final l10n = AppLocalizations.of(context)!;
-    if (!_capabilities(ref).isVisible(BackendFeature.importOpml)) {
-      remote_feedback.showUnsupportedRemoteCommand(context, l10n);
-      return;
-    }
-
-    final group = XTypeGroup(
-      label: 'OPML',
-      extensions: ['opml', 'xml'],
-      mimeTypes: ['text/xml', 'application/xml'],
-      // iPadOS: some .opml files are marked as public.data rather than public.xml.
-      // Loosen UTI on iOS and validate after selection.
-      uniformTypeIdentifiers: isIOS
-          ? ['public.xml', 'public.text', 'public.data']
-          : ['public.xml'],
-    );
-
-    XFile? file;
-    try {
-      file = await openFile(acceptedTypeGroups: [group]);
-    } catch (e, s) {
-      _logSubscriptionFailure(ref, 'importOpml.openFile', e, s);
-      if (!context.mounted) return;
-      context.showErrorMessage(l10n.errorMessage(e.toString()));
-      return;
-    }
-    if (file == null) return;
-
-    final nameOrPath = file.name.isNotEmpty ? file.name : file.path;
-    final dot = nameOrPath.lastIndexOf('.');
-    final ext = dot == -1 ? '' : nameOrPath.substring(dot).toLowerCase();
-    // Allow files without extension (some providers do that).
-    if (ext.isNotEmpty && ext != '.opml' && ext != '.xml') {
-      if (!context.mounted) return;
-      context.showErrorMessage(l10n.errorMessage(l10n.opmlParseFailed));
-      return;
-    }
-
-    String xml;
-    try {
-      xml = await file.readAsString();
-    } catch (e, s) {
-      _logSubscriptionFailure(ref, 'importOpml.readFile', e, s);
-      if (!context.mounted) return;
-      context.showErrorMessage(l10n.errorMessage(e.toString()));
-      return;
-    }
-
-    List<OpmlEntry> entries;
-    try {
-      entries = ref.read(opmlServiceProvider).parseEntries(xml);
-    } catch (e, s) {
-      _logSubscriptionFailure(ref, 'importOpml.parse', e, s);
-      if (!context.mounted) return;
-      context.showErrorMessage(l10n.errorMessage(l10n.opmlParseFailed));
-      return;
-    }
-    if (entries.isEmpty) {
-      if (!context.mounted) return;
-      context.showSnack(l10n.noFeedsFoundInOpml);
-      return;
-    }
-
-    var added = 0;
-    for (final e in entries) {
-      final feedId = await ref.read(feedRepositoryProvider).upsertUrl(e.url);
-      if (e.category != null && e.category!.trim().isNotEmpty) {
-        final catId = await ref
-            .read(categoryRepositoryProvider)
-            .upsertByName(e.category!);
-        await ref
-            .read(feedRepositoryProvider)
-            .setCategory(feedId: feedId, categoryId: catId);
-      }
-      added += 1;
-    }
-    if (!context.mounted) return;
-    context.showSnack(l10n.importedFeeds(added));
-  }
-
-  static Future<void> exportOpml(BuildContext context, WidgetRef ref) async {
-    final l10n = AppLocalizations.of(context)!;
-    if (!_capabilities(ref).isVisible(BackendFeature.exportOpml)) {
-      remote_feedback.showUnsupportedRemoteCommand(context, l10n);
-      return;
-    }
-
-    final feeds = await ref.read(feedRepositoryProvider).getAll();
-    if (feeds.isEmpty) return;
-
-    final cats = await ref.read(categoryRepositoryProvider).getAll();
-    final names = {for (final c in cats) c.id: c.name};
-
-    final xml = ref
-        .read(opmlServiceProvider)
-        .buildOpml(feeds: feeds, categoryNames: names);
-
-    final bytes = Uint8List.fromList(utf8.encode(xml));
-    // file_selector_ios may throw UnimplementedError for save dialogs.
-    // On iOS we export via the system share sheet so users can "Save to Files".
-    if (isIOS) {
-      final xfile = XFile.fromData(
-        bytes,
-        mimeType: 'text/xml',
-        name: 'subscriptions.opml',
-      );
-      final tmpDir = await getTemporaryDirectory();
-      final tmpPath = '${tmpDir.path}/subscriptions.opml';
-      try {
-        await xfile.saveTo(tmpPath);
-        await IosShareBridge.shareFile(
-          path: tmpPath,
-          mimeType: 'text/xml',
-          name: 'subscriptions.opml',
-        );
-      } catch (e, s) {
-        _logSubscriptionFailure(ref, 'exportOpml.share', e, s);
-        if (!context.mounted) return;
-        context.showErrorMessage(l10n.errorMessage(e.toString()));
-        return;
-      }
-      if (!context.mounted) return;
-      context.showSnack(l10n.exportedOpml);
-      return;
-    }
-
-    const group = XTypeGroup(
-      label: 'OPML',
-      extensions: ['opml', 'xml'],
-      mimeTypes: ['text/xml', 'application/xml'],
-      uniformTypeIdentifiers: ['public.xml'],
-    );
-
-    FileSaveLocation? loc;
-    try {
-      loc = await getSaveLocation(
-        suggestedName: 'subscriptions.opml',
-        acceptedTypeGroups: [group],
-      );
-    } catch (e, s) {
-      _logSubscriptionFailure(ref, 'exportOpml.pickPath', e, s);
-      if (!context.mounted) return;
-      context.showErrorMessage(l10n.errorMessage(e.toString()));
-      return;
-    }
-    if (loc == null) return;
-
-    final file = XFile.fromData(bytes, mimeType: 'text/xml', name: loc.path);
-    try {
-      await file.saveTo(loc.path);
-    } catch (e, s) {
-      _logSubscriptionFailure(ref, 'exportOpml.saveFile', e, s);
-      if (!context.mounted) return;
-      context.showErrorMessage(l10n.errorMessage(e.toString()));
-      return;
-    }
-    if (!context.mounted) return;
-    context.showSnack(l10n.exportedOpml);
   }
 }
 
