@@ -18,9 +18,9 @@ import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/ui/app_menu.dart';
 import 'package:fleur/utils/platform.dart';
-import 'package:fleur/widgets/article_list.dart';
+import 'package:fleur/ui/home/article_list/article_list.dart';
 
-import '../test_utils/critical_workflow_test_support.dart';
+import '../../../test_utils/critical_workflow_test_support.dart';
 
 class _FixedArticleListController extends ArticleListController {
   static List<Article> items = <Article>[];

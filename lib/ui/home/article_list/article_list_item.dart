@@ -2,18 +2,18 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fleur/l10n/app_localizations.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
-import '../models/article.dart';
-import '../models/feed.dart';
-import '../providers/query_providers.dart';
-import '../providers/service_providers.dart';
-import '../theme/fleur_icons.dart';
-import '../theme/fleur_theme_extensions.dart';
-import '../utils/html_utils.dart';
-import '../utils/timeago_locale.dart';
-import 'favicon_circle.dart';
+import 'package:fleur/l10n/app_localizations.dart';
+import 'package:fleur/models/article.dart';
+import 'package:fleur/models/feed.dart';
+import 'package:fleur/providers/query_providers.dart';
+import 'package:fleur/providers/service_providers.dart';
+import 'package:fleur/theme/fleur_icons.dart';
+import 'package:fleur/theme/fleur_theme_extensions.dart';
+import 'package:fleur/utils/html_utils.dart';
+import 'package:fleur/utils/timeago_locale.dart';
+import 'package:fleur/widgets/favicon_circle.dart';
 
 class ArticleListItem extends ConsumerStatefulWidget {
   const ArticleListItem({

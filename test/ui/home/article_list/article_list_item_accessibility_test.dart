@@ -9,9 +9,9 @@ import 'package:fleur/models/feed.dart';
 import 'package:fleur/providers/query_providers.dart';
 import 'package:fleur/providers/service_providers.dart';
 import 'package:fleur/theme/app_theme.dart';
-import 'package:fleur/widgets/article_list_item.dart';
+import 'package:fleur/ui/home/article_list/article_list_item.dart';
 
-import '../test_utils/critical_workflow_test_support.dart';
+import '../../../test_utils/critical_workflow_test_support.dart';
 
 Article _article() {
   return Article()

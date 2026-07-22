@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../ui/motion.dart';
+import 'package:fleur/ui/motion.dart';
 
 /// A lightweight "play once" insertion effect (fade + slight slide).
 ///

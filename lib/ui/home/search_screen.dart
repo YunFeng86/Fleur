@@ -15,7 +15,7 @@ import '../../providers/navigation_history_provider.dart';
 import '../../providers/query_providers.dart';
 import '../../theme/fleur_icons.dart';
 import '../../theme/fleur_theme_extensions.dart';
-import '../../widgets/article_list.dart';
+import 'article_list/article_list.dart';
 import '../../widgets/fleur_empty_state.dart';
 import '../../widgets/staggered_reveal.dart';
 import '../../widgets/sync_status_capsule.dart';
