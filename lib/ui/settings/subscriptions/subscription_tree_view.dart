@@ -120,6 +120,41 @@ class _SubscriptionTreeViewState extends ConsumerState<SubscriptionTreeView> {
     });
   }
 
+  _SubscriptionTreeRow _buildFeedRow({
+    required BuildContext context,
+    required Feed feed,
+    required int? selectedFeedId,
+    required SubscriptionCategoryScope categoryScope,
+    required double indent,
+    required SubscriptionSelectionNotifier notifier,
+  }) {
+    return _SubscriptionTreeRow(
+      rowId: 'feed:${feed.id}',
+      builder: (_) => _FeedTreeRow(
+        feed: feed,
+        selected: selectedFeedId == feed.id,
+        indent: indent,
+        onTap: () => _runWithScrollAnchor(
+          () => notifier.selectFeed(
+            feed.id,
+            categoryScope: categoryScope,
+            showDetailPane: widget.showDetailPaneOnSelection,
+          ),
+        ),
+        onSecondaryTapDown: isDesktop
+            ? (details) => unawaited(
+                SubscriptionObjectMenus.showSettingsFeedContextMenu(
+                  context,
+                  ref,
+                  feed: feed,
+                  position: details.globalPosition,
+                ),
+              )
+            : null,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final feedsAsync = ref.watch(feedsProvider);
@@ -301,30 +336,13 @@ class _SubscriptionTreeViewState extends ConsumerState<SubscriptionTreeView> {
               if (!isExpanded) continue;
               for (final feed in categoryFeeds) {
                 rows.add(
-                  _SubscriptionTreeRow(
-                    rowId: 'feed:${feed.id}',
-                    builder: (_) => _FeedTreeRow(
-                      feed: feed,
-                      selected: selection.selectedFeedId == feed.id,
-                      indent: 24,
-                      onTap: () => _runWithScrollAnchor(
-                        () => notifier.selectFeed(
-                          feed.id,
-                          categoryScope: SubscriptionCategoryId(category.id),
-                          showDetailPane: widget.showDetailPaneOnSelection,
-                        ),
-                      ),
-                      onSecondaryTapDown: isDesktop
-                          ? (details) => unawaited(
-                              SubscriptionObjectMenus.showSettingsFeedContextMenu(
-                                context,
-                                ref,
-                                feed: feed,
-                                position: details.globalPosition,
-                              ),
-                            )
-                          : null,
-                    ),
+                  _buildFeedRow(
+                    context: context,
+                    feed: feed,
+                    selectedFeedId: selection.selectedFeedId,
+                    categoryScope: SubscriptionCategoryId(category.id),
+                    indent: 24,
+                    notifier: notifier,
                   ),
                 );
               }
@@ -339,30 +357,13 @@ class _SubscriptionTreeViewState extends ConsumerState<SubscriptionTreeView> {
             }
             for (final feed in uncategorizedFeeds) {
               rows.add(
-                _SubscriptionTreeRow(
-                  rowId: 'feed:${feed.id}',
-                  builder: (_) => _FeedTreeRow(
-                    feed: feed,
-                    selected: selection.selectedFeedId == feed.id,
-                    indent: 0,
-                    onTap: () => _runWithScrollAnchor(
-                      () => notifier.selectFeed(
-                        feed.id,
-                        categoryScope: const SubscriptionCategoryAll(),
-                        showDetailPane: widget.showDetailPaneOnSelection,
-                      ),
-                    ),
-                    onSecondaryTapDown: isDesktop
-                        ? (details) => unawaited(
-                            SubscriptionObjectMenus.showSettingsFeedContextMenu(
-                              context,
-                              ref,
-                              feed: feed,
-                              position: details.globalPosition,
-                            ),
-                          )
-                        : null,
-                  ),
+                _buildFeedRow(
+                  context: context,
+                  feed: feed,
+                  selectedFeedId: selection.selectedFeedId,
+                  categoryScope: const SubscriptionCategoryAll(),
+                  indent: 0,
+                  notifier: notifier,
                 ),
               );
             }
