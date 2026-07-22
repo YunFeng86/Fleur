@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../services/settings/translation_ai_settings.dart';
-import '../../../theme/fleur_icons.dart';
+import 'package:fleur/services/settings/translation_ai_settings.dart';
+import 'package:fleur/theme/fleur_icons.dart';
 
 class AiServiceTemplate {
   const AiServiceTemplate({

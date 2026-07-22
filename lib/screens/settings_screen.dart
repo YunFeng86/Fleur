@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fleur/features/settings/settings.dart';
 import 'package:fleur/features/subscriptions/subscriptions.dart';
 import 'package:fleur/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
@@ -16,7 +17,6 @@ import '../ui/settings/tabs/app_preferences_tab.dart';
 import '../ui/settings/tabs/appearance_tab.dart';
 import '../ui/settings/tabs/grouping_sorting_tab.dart';
 import '../ui/settings/tabs/services_tab.dart';
-import '../ui/settings/tabs/translation_ai_services_tab.dart';
 import '../ui/settings/settings_search_index.dart';
 import '../ui/settings/settings_targets.dart';
 import '../ui/adaptive_workspace_layout.dart';
