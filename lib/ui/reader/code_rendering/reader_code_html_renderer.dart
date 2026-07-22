@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:html/dom.dart' as dom;
 
 import '../../../services/reader_search_service.dart';
@@ -135,19 +134,6 @@ final class ReaderCodeHtmlRenderer {
     );
   }
 
-  TextSpan spanFromExtraction(
-    ReaderCodeExtraction extraction,
-    TextStyle baseStyle,
-  ) {
-    return TextSpan(
-      style: baseStyle,
-      children: [
-        for (final token in extraction.tokens)
-          TextSpan(text: token.text, style: _styleForToken(token, baseStyle)),
-      ],
-    );
-  }
-
   static List<ReaderCodeToken> _trimTrailingNewline(
     List<ReaderCodeToken> tokens,
   ) {
@@ -184,34 +170,5 @@ final class ReaderCodeHtmlRenderer {
       role: overlay.role,
       colorOverride: overlay.colorOverride,
     );
-  }
-
-  static TextStyle? _styleForToken(ReaderCodeToken token, TextStyle baseStyle) {
-    final color = token.colorOverride ?? _colorForRole(token.role);
-    if (color == null) return null;
-    return TextStyle(color: color);
-  }
-
-  static Color? _colorForRole(ReaderCodeTokenRole role) {
-    return switch (role) {
-      ReaderCodeTokenRole.keyword => const Color(0xFF00009F),
-      ReaderCodeTokenRole.string ||
-      ReaderCodeTokenRole.regex => const Color(0xFFE3116C),
-      ReaderCodeTokenRole.number ||
-      ReaderCodeTokenRole.constant ||
-      ReaderCodeTokenRole.property ||
-      ReaderCodeTokenRole.attribute => const Color(0xFF36ACAA),
-      ReaderCodeTokenRole.comment => const Color(0xFF6A737D),
-      ReaderCodeTokenRole.function ||
-      ReaderCodeTokenRole.type ||
-      ReaderCodeTokenRole.builtin => const Color(0xFFD73A49),
-      ReaderCodeTokenRole.tag ||
-      ReaderCodeTokenRole.namespace => const Color(0xFF00009F),
-      ReaderCodeTokenRole.operator ||
-      ReaderCodeTokenRole.punctuation => const Color(0xFF393A34),
-      ReaderCodeTokenRole.diffInserted => const Color(0xFF116329),
-      ReaderCodeTokenRole.diffDeleted => const Color(0xFFD1242F),
-      _ => null,
-    };
   }
 }
