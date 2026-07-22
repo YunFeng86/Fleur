@@ -19,7 +19,6 @@ import 'package:fleur/providers/core_providers.dart';
 import 'package:fleur/providers/service_providers.dart';
 import 'package:fleur/repositories/category_repository.dart';
 import 'package:fleur/repositories/feed_repository.dart';
-import 'package:fleur/screens/add_subscription_screen.dart';
 import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/services/accounts/credential_store.dart';
 import 'package:fleur/services/rss/feed_discovery_service.dart';

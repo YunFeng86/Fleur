@@ -33,3 +33,4 @@ export 'application/subscription_feed_browsing.dart'
     show SubscriptionFeedBrowsing, SubscriptionProviderRead;
 export 'presentation/subscription_opml_actions.dart'
     show SubscriptionOpmlActions;
+export 'presentation/add_subscription_screen.dart' show AddSubscriptionScreen;

@@ -17,7 +17,6 @@ import '../../services/sync/backend_capabilities.dart';
 import '../../services/sync/refresh_all_coordinator.dart';
 import '../../services/sync/remote_subscription_structure_executor.dart';
 import '../../services/sync/subscription_mirror_service.dart';
-import '../../screens/add_subscription_screen.dart';
 import '../../ui/actions/remote_structure_feedback.dart' as remote_feedback;
 import '../../utils/context_extensions.dart';
 import 'root_sync_action.dart';

@@ -4,20 +4,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../app/article_scope_routes.dart';
-import '../features/subscriptions/subscriptions.dart';
-import '../l10n/app_localizations.dart';
-import '../models/article_scope.dart';
-import '../services/rss/feed_discovery_service.dart';
-import '../theme/fleur_icons.dart';
-import '../theme/fleur_theme_extensions.dart';
-import '../ui/actions/remote_structure_feedback.dart' as remote_feedback;
-import '../ui/app_drawer_scope.dart';
-import '../ui/design_system/design_system.dart';
-import '../utils/context_extensions.dart';
-import '../utils/platform.dart';
-import '../widgets/app_scrollbar.dart';
-import '../widgets/staggered_reveal.dart';
+import '../../../app/article_scope_routes.dart';
+import '../application/add_subscription_controller.dart';
+import '../application/add_subscription_workflow.dart';
+import '../application/subscription_feed_browsing.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../../models/article_scope.dart';
+import '../../../services/rss/feed_discovery_service.dart';
+import '../../../theme/fleur_icons.dart';
+import '../../../theme/fleur_theme_extensions.dart';
+import '../../../ui/actions/remote_structure_feedback.dart' as remote_feedback;
+import '../../../ui/app_drawer_scope.dart';
+import '../../../ui/design_system/design_system.dart';
+import '../../../utils/context_extensions.dart';
+import '../../../utils/platform.dart';
+import '../../../widgets/app_scrollbar.dart';
+import '../../../widgets/staggered_reveal.dart';
 
 class AddSubscriptionScreen extends ConsumerStatefulWidget {
   const AddSubscriptionScreen({super.key, this.initialCategoryId});

@@ -29,7 +29,7 @@ import 'package:fleur/providers/settings_providers.dart';
 import 'package:fleur/providers/sync_status_providers.dart';
 import 'package:fleur/providers/unread_providers.dart';
 import 'package:fleur/repositories/feed_repository.dart';
-import 'package:fleur/screens/add_subscription_screen.dart';
+import 'package:fleur/features/subscriptions/subscriptions.dart';
 import 'package:fleur/screens/home_screen.dart';
 import 'package:fleur/screens/saved_screen.dart';
 import 'package:fleur/screens/search_screen.dart';
