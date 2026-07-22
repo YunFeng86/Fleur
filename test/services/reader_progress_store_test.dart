@@ -71,6 +71,78 @@ void main() {
     expect(loaded.updatedAt.toIso8601String(), now.toIso8601String());
   });
 
+  test('concurrent stores preserve progress for different articles', () async {
+    final now = DateTime(2026, 2, 4, 10, 30, 0);
+    final firstStore = ReaderProgressStore();
+    final secondStore = ReaderProgressStore();
+
+    await Future.wait([
+      firstStore.saveProgress(
+        ReaderProgress(
+          articleId: 1,
+          contentHash: 'hash-1',
+          pixels: 120,
+          progress: 0.4,
+          updatedAt: now,
+        ),
+      ),
+      secondStore.saveProgress(
+        ReaderProgress(
+          articleId: 2,
+          contentHash: 'hash-2',
+          pixels: 240,
+          progress: 0.8,
+          updatedAt: now.add(const Duration(seconds: 1)),
+        ),
+      ),
+    ]);
+
+    final reloaded = ReaderProgressStore();
+    expect(
+      await reloaded.getProgress(articleId: 1, contentHash: 'hash-1'),
+      isNotNull,
+    );
+    expect(
+      await reloaded.getProgress(articleId: 2, contentHash: 'hash-2'),
+      isNotNull,
+    );
+  });
+
+  test('recovers progress from backup when primary is corrupt', () async {
+    final store = ReaderProgressStore();
+    final now = DateTime(2026, 2, 4, 10, 30, 0);
+    await store.saveProgress(
+      ReaderProgress(
+        articleId: 1,
+        contentHash: 'hash-1',
+        pixels: 120,
+        progress: 0.4,
+        updatedAt: now,
+      ),
+    );
+    await store.saveProgress(
+      ReaderProgress(
+        articleId: 2,
+        contentHash: 'hash-2',
+        pixels: 240,
+        progress: 0.8,
+        updatedAt: now.add(const Duration(seconds: 1)),
+      ),
+    );
+
+    final primary = await PathManager.readerProgressFile();
+    expect(await File('${primary.path}.bak').exists(), isTrue);
+    await primary.writeAsString('{');
+
+    final restored = await ReaderProgressStore().getProgress(
+      articleId: 1,
+      contentHash: 'hash-1',
+    );
+
+    expect(restored, isNotNull);
+    expect(restored!.pixels, 120);
+  });
+
   test('serializes optional anchor fields and accepts legacy json', () {
     final now = DateTime(2026, 2, 4, 10, 30, 0);
     final progress = ReaderProgress(

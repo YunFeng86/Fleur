@@ -1,6 +1,6 @@
-import 'dart:convert';
 import 'dart:io';
 
+import '../persistence/durable_json_store.dart';
 import '../../utils/path_manager.dart';
 
 class ReaderProgress {
@@ -71,7 +71,6 @@ class ReaderProgress {
 
 class ReaderProgressStore {
   static const int _maxEntries = 240;
-  Map<String, ReaderProgress>? _cache;
 
   Future<ReaderProgress?> getProgress({
     required int articleId,
@@ -84,57 +83,71 @@ class ReaderProgressStore {
 
   Future<void> saveProgress(ReaderProgress progress) async {
     if (progress.contentHash.trim().isEmpty) return;
-    final all = await _loadAll();
-    final next = Map<String, ReaderProgress>.from(all);
-    next[_keyFor(progress.articleId, progress.contentHash)] = progress;
-    _trimIfNeeded(next);
-    _cache = next;
-    await _writeAll(next);
+    final store = await _store();
+    await store.runExclusive(() async {
+      final all = await _loadAllFrom(store);
+      final next = Map<String, ReaderProgress>.from(all);
+      next[_keyFor(progress.articleId, progress.contentHash)] = progress;
+      _trimIfNeeded(next);
+      await store.write(next);
+    });
   }
 
   Future<Map<String, ReaderProgress>> _loadAll() async {
-    final cached = _cache;
-    if (cached != null) return cached;
+    final store = await _store();
+    return _loadAllFrom(store);
+  }
+
+  Future<Map<String, ReaderProgress>> _loadAllFrom(
+    DurableJsonStore<Map<String, ReaderProgress>> store,
+  ) async {
     try {
-      var f = await _file();
-      if (!await f.exists() && !PathManager.isMigrationComplete) {
+      final snapshot = await store.read();
+      if (snapshot != null) return snapshot.value;
+      if (!PathManager.isMigrationComplete) {
         final legacy = await PathManager.legacyReaderProgressFile();
-        if (legacy != null) f = legacy;
+        if (legacy != null) {
+          return (await _storeFor(legacy).read())?.value ??
+              <String, ReaderProgress>{};
+        }
       }
-      if (!await f.exists()) {
-        _cache = <String, ReaderProgress>{};
-        return _cache!;
-      }
-      final raw = await f.readAsString();
-      final decoded = jsonDecode(raw);
-      if (decoded is! Map) {
-        _cache = <String, ReaderProgress>{};
-        return _cache!;
-      }
-      final out = <String, ReaderProgress>{};
-      for (final entry in decoded.entries) {
-        if (entry.key is! String) continue;
-        if (entry.value is! Map) continue;
-        final data = (entry.value as Map).cast<String, Object?>();
-        final parsed = ReaderProgress.fromJson(data);
-        if (parsed == null) continue;
-        out[entry.key as String] = parsed;
-      }
-      _cache = out;
-      return out;
+      return <String, ReaderProgress>{};
     } catch (_) {
-      _cache = <String, ReaderProgress>{};
-      return _cache!;
+      return <String, ReaderProgress>{};
     }
   }
 
-  Future<void> _writeAll(Map<String, ReaderProgress> data) async {
-    final f = await _file();
-    final encoded = <String, Object?>{};
-    for (final entry in data.entries) {
-      encoded[entry.key] = entry.value.toJson();
+  Map<String, ReaderProgress> _decode(Object? decoded) {
+    if (decoded is! Map) {
+      throw const FormatException('Reader progress JSON root is not an object');
     }
-    await f.writeAsString(jsonEncode(encoded), encoding: utf8);
+    final out = <String, ReaderProgress>{};
+    for (final entry in decoded.entries) {
+      if (entry.key is! String || entry.value is! Map) continue;
+      final parsed = ReaderProgress.fromJson(
+        (entry.value as Map).cast<String, Object?>(),
+      );
+      if (parsed != null) out[entry.key as String] = parsed;
+    }
+    return out;
+  }
+
+  Object? _encode(Map<String, ReaderProgress> data) {
+    return <String, Object?>{
+      for (final entry in data.entries) entry.key: entry.value.toJson(),
+    };
+  }
+
+  Future<DurableJsonStore<Map<String, ReaderProgress>>> _store() async {
+    return _storeFor(await _file());
+  }
+
+  DurableJsonStore<Map<String, ReaderProgress>> _storeFor(File file) {
+    return DurableJsonStore<Map<String, ReaderProgress>>(
+      file: file,
+      decode: _decode,
+      encode: _encode,
+    );
   }
 
   Future<File> _file() async {
