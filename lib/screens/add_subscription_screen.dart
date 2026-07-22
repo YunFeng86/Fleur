@@ -8,7 +8,6 @@ import '../app/article_scope_routes.dart';
 import '../features/subscriptions/subscriptions.dart';
 import '../l10n/app_localizations.dart';
 import '../models/article_scope.dart';
-import '../providers/add_subscription_controller.dart';
 import '../services/rss/feed_discovery_service.dart';
 import '../theme/fleur_icons.dart';
 import '../theme/fleur_theme_extensions.dart';

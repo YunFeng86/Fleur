@@ -8,12 +8,12 @@ import 'package:go_router/go_router.dart';
 import 'package:isar_community/isar.dart';
 
 import 'package:fleur/l10n/app_localizations.dart';
+import 'package:fleur/features/subscriptions/subscriptions.dart';
 import 'package:fleur/models/article.dart';
 import 'package:fleur/models/category.dart';
 import 'package:fleur/models/feed.dart';
 import 'package:fleur/models/tag.dart';
 import 'package:fleur/providers/account_providers.dart';
-import 'package:fleur/providers/add_subscription_controller.dart';
 import 'package:fleur/providers/app_settings_providers.dart';
 import 'package:fleur/providers/core_providers.dart';
 import 'package:fleur/providers/service_providers.dart';

@@ -1,3 +1,20 @@
+export 'application/add_subscription_controller.dart'
+    show
+        AddSubscriptionController,
+        AddSubscriptionPhase,
+        AddSubscriptionState,
+        addSubscriptionControllerProvider,
+        addSubscriptionWorkflowProvider;
+export 'application/add_subscription_workflow.dart'
+    show
+        AddSubscriptionCandidate,
+        AddSubscriptionCategoryLoadResult,
+        AddSubscriptionCategoryOption,
+        AddSubscriptionFailure,
+        AddSubscriptionFailureKind,
+        AddSubscriptionSelectionResult,
+        AddSubscriptionWorkflow,
+        AddSubscriptionWorkflowResult;
 export 'application/subscription_selection.dart'
     show
         SubscriptionCategoryAll,

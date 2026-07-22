@@ -13,7 +13,7 @@ const _allowedRawBackendTypeUses = <String, String>{
       'logs account database open failures for diagnostics only',
   'lib/features/accounts/application/account_providers.dart':
       'creates the default local account state',
-  'lib/providers/add_subscription_controller.dart':
+  'lib/features/subscriptions/application/add_subscription_controller.dart':
       'logs add-subscription failures with concrete account type metadata',
   'lib/providers/service_providers.dart':
       'selects the concrete sync service implementation',
@@ -25,7 +25,7 @@ const _allowedRawBackendTypeUses = <String, String>{
       'creates and normalizes local account records',
   'lib/services/actions/article_action_service.dart':
       'uses concrete remote clients after capability gating',
-  'lib/services/subscriptions/add_subscription_workflow.dart':
+  'lib/features/subscriptions/application/add_subscription_workflow.dart':
       'constructs the Miniflux add-subscription executor after capability gating',
   'lib/services/sync/backend_capabilities.dart':
       'declares the backend capability matrix',
@@ -63,7 +63,7 @@ const _operationalCapabilityFiles = <String, String>{
 };
 
 const _contentCapabilityFiles = <String, String>{
-  'lib/ui/settings/subscriptions/settings_detail_panel.dart':
+  'lib/ui/settings/subscriptions/controls/sync_settings_section.dart':
       'backendContentCapabilitiesProvider',
   'lib/ui/settings/tabs/services_tab.dart':
       'backendContentCapabilitiesProvider',
@@ -197,7 +197,9 @@ void main() {
   test(
     'add subscription controller keeps operation dispatch capability-driven',
     () {
-      const path = 'lib/providers/add_subscription_controller.dart';
+      const path =
+          'lib/features/subscriptions/application/'
+          'add_subscription_controller.dart';
       final contents = File(path).readAsStringSync();
 
       expect(
