@@ -15,7 +15,7 @@ import 'package:fleur/providers/outbox_status_providers.dart';
 import 'package:fleur/providers/query_providers.dart';
 import 'package:fleur/providers/settings_providers.dart';
 import 'package:fleur/providers/unread_providers.dart';
-import 'package:fleur/screens/reading_workspace_screen.dart';
+import 'package:fleur/ui/home/reading_workspace_screen.dart';
 import 'package:fleur/screens/settings_screen.dart';
 import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/settings/reader_settings.dart';

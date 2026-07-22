@@ -77,7 +77,7 @@ const _contentCapabilityFiles = <String, String>{
 };
 
 const _syncSemanticsFiles = <String, String>{
-  'lib/screens/home_screen.dart': 'backendSyncSemanticsProvider',
+  'lib/ui/home/home_screen.dart': 'backendSyncSemanticsProvider',
   'lib/ui/home/home_scene_commands.dart': 'backendSyncSemanticsProvider',
   'lib/features/subscriptions/presentation/settings/subscription_toolbar.dart':
       'backendSyncSemanticsProvider',

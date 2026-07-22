@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/article_scope.dart';
-import '../providers/query_providers.dart';
+import '../../models/article_scope.dart';
+import '../../providers/query_providers.dart';
 import 'home_screen.dart';
 
 class ReadingWorkspaceScreen extends ConsumerStatefulWidget {
