@@ -21,7 +21,7 @@ import '../../dialogs/text_input_dialog.dart';
 import '../translation_ai/ai_service_editor_dialog.dart';
 import '../translation_ai/ai_service_templates.dart';
 import '../settings_targets.dart';
-import '../widgets/section_header.dart';
+import '../widgets/settings_controls.dart';
 
 enum _AiServiceAction { setDefault, edit, delete }
 

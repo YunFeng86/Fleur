@@ -18,7 +18,7 @@ import 'package:fleur/theme/fleur_theme_extensions.dart';
 import 'package:fleur/theme/seed_color_presets.dart';
 import 'package:fleur/ui/app_shell.dart';
 import 'package:fleur/ui/shell_chrome_layout.dart';
-import 'package:fleur/ui/settings/widgets/section_header.dart';
+import 'package:fleur/ui/settings/widgets/settings_controls.dart';
 import 'package:fleur/ui/sidebar_layout.dart';
 import 'package:fleur/utils/platform.dart';
 

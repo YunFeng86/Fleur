@@ -9,7 +9,7 @@ import '../../../../../models/feed.dart';
 import '../../../../../providers/app_settings_providers.dart';
 import '../../../../../services/settings/app_settings.dart';
 import '../../../../../theme/fleur_icons.dart';
-import '../../widgets/section_header.dart';
+import '../../widgets/settings_controls.dart';
 import '../settings_inheritance_helper.dart';
 import '../subscription_actions.dart';
 import 'inherited_bool_setting_tile.dart';

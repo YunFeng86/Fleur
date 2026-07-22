@@ -12,7 +12,7 @@ import '../../../utils/context_extensions.dart';
 import '../../../utils/language_utils.dart';
 import '../../../utils/platform.dart';
 import '../settings_targets.dart';
-import '../widgets/section_header.dart';
+import '../widgets/settings_controls.dart';
 
 class AppPreferencesTab extends ConsumerWidget {
   const AppPreferencesTab({

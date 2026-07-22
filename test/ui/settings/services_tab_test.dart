@@ -17,7 +17,7 @@ import 'package:fleur/services/sync/refresh_all_coordinator.dart';
 import 'package:fleur/services/sync/sync_service.dart';
 import 'package:fleur/ui/settings/settings_targets.dart';
 import 'package:fleur/ui/settings/tabs/services_tab.dart';
-import 'package:fleur/ui/settings/widgets/section_header.dart';
+import 'package:fleur/ui/settings/widgets/settings_controls.dart';
 
 import '../../test_utils/critical_workflow_test_support.dart';
 

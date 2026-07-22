@@ -15,7 +15,7 @@ import '../../../theme/fleur_theme_extensions.dart';
 import '../../../theme/seed_color_presets.dart';
 import '../../design_system/design_system.dart';
 import '../settings_targets.dart';
-import '../widgets/section_header.dart';
+import '../widgets/settings_controls.dart';
 import '../widgets/slider_tile.dart';
 
 enum AppearanceDetailPage { fonts }

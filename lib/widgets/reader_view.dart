@@ -49,7 +49,7 @@ import '../ui/app_drawer_scope.dart';
 import '../ui/workspace_layers.dart';
 import '../ui/reader/code_rendering/reader_code_rendering.dart';
 import '../ui/reader/reader_selectable_rich_text.dart';
-import '../ui/settings/widgets/section_header.dart';
+import '../ui/settings/widgets/settings_controls.dart';
 
 part '../ui/reader/reader_session_coordinator.dart';
 part '../ui/reader/reader_progress_coordinator.dart';

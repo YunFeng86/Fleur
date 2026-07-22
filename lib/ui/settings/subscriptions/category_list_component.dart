@@ -13,7 +13,7 @@ import '../../../../ui/actions/subscription_object_menus.dart';
 import '../../../../utils/platform.dart';
 import '../../../../widgets/app_scrollbar.dart';
 import '../../../../widgets/favicon_avatar.dart';
-import '../widgets/section_header.dart';
+import '../widgets/settings_controls.dart';
 
 class CategoryListComponent extends ConsumerWidget {
   const CategoryListComponent({super.key});

@@ -11,7 +11,7 @@ import 'feed_list_component.dart';
 import 'settings_detail_panel.dart';
 import 'subscription_toolbar.dart';
 import 'subscription_tree_view.dart';
-import '../widgets/section_header.dart';
+import '../widgets/settings_controls.dart';
 
 class SubscriptionLayoutManager extends ConsumerWidget {
   const SubscriptionLayoutManager({super.key, this.showPageTitle = true});

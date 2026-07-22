@@ -19,7 +19,7 @@ import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/ui/settings/subscriptions/subscription_layout_manager.dart';
 import 'package:fleur/ui/settings/subscriptions/settings_detail_panel.dart';
-import 'package:fleur/ui/settings/widgets/section_header.dart';
+import 'package:fleur/ui/settings/widgets/settings_controls.dart';
 
 import '../../../test_utils/critical_workflow_test_support.dart';
 

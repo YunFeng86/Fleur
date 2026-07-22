@@ -21,7 +21,7 @@ import '../../actions/subscription_actions.dart';
 import '../../dialogs/add_account_dialogs.dart';
 import '../../dialogs/text_input_dialog.dart';
 import '../settings_targets.dart';
-import '../widgets/section_header.dart';
+import '../widgets/settings_controls.dart';
 
 class ServicesTab extends ConsumerStatefulWidget {
   const ServicesTab({

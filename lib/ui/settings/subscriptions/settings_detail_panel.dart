@@ -13,7 +13,7 @@ import '../../../../models/category.dart';
 import '../../../../services/sync/backend_capabilities.dart';
 import '../../../../theme/fleur_icons.dart';
 import '../../../../utils/timeago_locale.dart';
-import '../widgets/section_header.dart';
+import '../widgets/settings_controls.dart';
 import 'controls/filter_settings_section.dart';
 import 'controls/sync_settings_section.dart';
 import 'controls/user_agent_settings_section.dart';

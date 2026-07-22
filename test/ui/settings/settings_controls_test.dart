@@ -4,7 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
-import 'package:fleur/ui/settings/widgets/section_header.dart';
+import 'package:fleur/ui/settings/widgets/section_header.dart' as legacy;
+import 'package:fleur/ui/settings/widgets/settings_controls.dart';
 import 'package:fleur/ui/settings/widgets/slider_tile.dart';
 
 Future<void> _pumpControl(
@@ -27,6 +28,14 @@ Future<void> _pumpControl(
 }
 
 void main() {
+  test('settings facade preserves the legacy section-header export', () {
+    expect(const legacy.SectionHeader(title: 'Legacy'), isA<SectionHeader>());
+    expect(
+      const legacy.SettingsCompactSwitch(value: false, onChanged: null),
+      isA<SettingsCompactSwitch>(),
+    );
+  });
+
   testWidgets('Fleur menu theme keeps popover height content-sized', (
     tester,
   ) async {

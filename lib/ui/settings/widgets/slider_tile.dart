@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'section_header.dart';
+import 'settings_controls.dart';
 
 class SliderTile extends StatelessWidget {
   const SliderTile({

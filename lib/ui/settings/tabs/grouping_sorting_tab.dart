@@ -7,7 +7,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../providers/app_settings_providers.dart';
 import '../../../services/settings/app_settings.dart';
 import '../settings_targets.dart';
-import '../widgets/section_header.dart';
+import '../widgets/settings_controls.dart';
 
 class GroupingSortingTab extends ConsumerWidget {
   const GroupingSortingTab({

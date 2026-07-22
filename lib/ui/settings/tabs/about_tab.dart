@@ -19,7 +19,7 @@ import '../../../utils/context_extensions.dart';
 import '../../../utils/path_manager.dart';
 import '../../../utils/platform.dart';
 import '../../../widgets/app_scrollbar.dart';
-import '../widgets/section_header.dart';
+import '../widgets/settings_controls.dart';
 
 class AboutTab extends ConsumerStatefulWidget {
   const AboutTab({super.key, this.showPageTitle = true});

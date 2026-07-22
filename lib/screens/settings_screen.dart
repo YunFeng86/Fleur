@@ -18,7 +18,7 @@ import '../ui/settings/tabs/services_tab.dart';
 import '../ui/settings/tabs/translation_ai_services_tab.dart';
 import '../ui/settings/settings_search_index.dart';
 import '../ui/settings/settings_targets.dart';
-import '../ui/settings/widgets/section_header.dart';
+import '../ui/settings/widgets/settings_controls.dart';
 import '../ui/adaptive_workspace_layout.dart';
 import '../ui/motion.dart';
 import '../ui/shell_chrome_layout.dart';

@@ -15,7 +15,7 @@ import '../../../../utils/platform.dart';
 import '../../../../widgets/app_scrollbar.dart';
 import '../../../../widgets/favicon_avatar.dart';
 import '../../../../widgets/tree_disclosure_button.dart';
-import '../widgets/section_header.dart';
+import '../widgets/settings_controls.dart';
 
 class SubscriptionTreeView extends ConsumerStatefulWidget {
   const SubscriptionTreeView({

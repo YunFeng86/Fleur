@@ -15,7 +15,7 @@ import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/ui/app_menu.dart';
 import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/ui/settings/subscriptions/subscription_tree_view.dart';
-import 'package:fleur/ui/settings/widgets/section_header.dart';
+import 'package:fleur/ui/settings/widgets/settings_controls.dart';
 import 'package:fleur/utils/platform.dart';
 import 'package:fleur/widgets/app_scrollbar.dart';
 import 'package:fleur/widgets/tree_disclosure_button.dart';
