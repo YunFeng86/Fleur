@@ -11,16 +11,17 @@ final _rawBackendTypeRegex = RegExp(_rawBackendTypePattern);
 const _allowedRawBackendTypeUses = <String, String>{
   'lib/app/account_gate.dart':
       'logs account database open failures for diagnostics only',
-  'lib/providers/account_providers.dart':
+  'lib/features/accounts/application/account_providers.dart':
       'creates the default local account state',
   'lib/providers/add_subscription_controller.dart':
       'logs add-subscription failures with concrete account type metadata',
   'lib/providers/service_providers.dart':
       'selects the concrete sync service implementation',
-  'lib/services/accounts/account.dart': 'defines AccountType serialization',
-  'lib/services/accounts/account_cleanup_service.dart':
+  'lib/features/accounts/domain/account.dart':
+      'defines AccountType serialization',
+  'lib/features/accounts/data/account_cleanup_service.dart':
       'deletes credentials by concrete account type',
-  'lib/services/accounts/account_store.dart':
+  'lib/features/accounts/data/account_store.dart':
       'creates and normalizes local account records',
   'lib/services/actions/article_action_service.dart':
       'uses concrete remote clients after capability gating',

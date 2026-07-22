@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fleur/services/accounts/account.dart';
 import 'package:fleur/services/accounts/account_store.dart';
+import 'package:fleur/services/persistence/durable_json_store.dart';
 import 'package:fleur/utils/path_manager.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 
@@ -52,34 +53,33 @@ void main() {
     }
   });
 
-  test('AccountsState.fromJson skips malformed account entries', () {
+  test('AccountsState.fromJson rejects a partially corrupt account list', () {
     final now = DateTime.utc(2026, 1, 1).toIso8601String();
 
-    final state = AccountsState.fromJson(<String, Object?>{
-      'version': AccountStore.currentVersion,
-      'activeAccountId': 'valid-account',
-      'accounts': <Object?>[
-        <String, Object?>{
-          'id': 'valid-account',
-          'type': 'local',
-          'name': 'Valid',
-          'isPrimary': true,
-          'createdAt': now,
-          'updatedAt': now,
-        },
-        <String, Object?>{
-          'id': 'broken-account',
-          'type': 'unknown',
-          'name': 'Broken',
-          'createdAt': now,
-          'updatedAt': now,
-        },
-      ],
-    });
-
-    expect(state.accounts, hasLength(1));
-    expect(state.accounts.single.id, 'valid-account');
-    expect(state.activeAccountId, 'valid-account');
+    expect(
+      () => AccountsState.fromJson(<String, Object?>{
+        'version': AccountStore.currentVersion,
+        'activeAccountId': 'valid-account',
+        'accounts': <Object?>[
+          <String, Object?>{
+            'id': 'valid-account',
+            'type': 'local',
+            'name': 'Valid',
+            'isPrimary': true,
+            'createdAt': now,
+            'updatedAt': now,
+          },
+          <String, Object?>{
+            'id': 'broken-account',
+            'type': 'unknown',
+            'name': 'Broken',
+            'createdAt': now,
+            'updatedAt': now,
+          },
+        ],
+      }),
+      throwsArgumentError,
+    );
   });
 
   test('Google Reader profileId defaults and round trips', () {
@@ -169,4 +169,94 @@ void main() {
     expect(state.activeAccountId, 'valid-account');
     expect(state.version, AccountStore.currentVersion);
   });
+
+  test('AccountStore repairs a truncated primary from backup', () async {
+    final stateDir = await PathManager.getStateDir();
+    final file = File('${stateDir.path}${Platform.pathSeparator}accounts.json');
+    final backup = File('${file.path}.bak');
+    final expected = _accountStateJson(accountId: 'recovered');
+    await backup.writeAsString(jsonEncode(expected));
+    await file.writeAsString('{"version":1,"accounts":[');
+
+    final state = await AccountStore().loadOrCreate();
+
+    expect(state.activeAccountId, 'recovered');
+    expect(state.accounts.single.id, 'recovered');
+    expect(jsonDecode(await file.readAsString()), expected);
+    expect(jsonDecode(await backup.readAsString()), expected);
+  });
+
+  test(
+    'AccountStore does not replace an unrecoverable file with defaults',
+    () async {
+      final stateDir = await PathManager.getStateDir();
+      final file = File(
+        '${stateDir.path}${Platform.pathSeparator}accounts.json',
+      );
+      const truncated = '{"version":1,"accounts":[';
+      await file.writeAsString(truncated);
+
+      await expectLater(
+        AccountStore().loadOrCreate(),
+        throwsA(isA<DurableJsonReadException>()),
+      );
+
+      expect(await file.readAsString(), truncated);
+      expect(await File('${file.path}.bak').exists(), isFalse);
+    },
+  );
+
+  test('AccountStore preserves a partially corrupt account file', () async {
+    final stateDir = await PathManager.getStateDir();
+    final file = File('${stateDir.path}${Platform.pathSeparator}accounts.json');
+    final now = DateTime.utc(2026, 1, 1).toIso8601String();
+    final raw = jsonEncode(<String, Object?>{
+      'version': AccountStore.currentVersion,
+      'activeAccountId': 'valid-account',
+      'accounts': <Object?>[
+        <String, Object?>{
+          'id': 'valid-account',
+          'type': 'local',
+          'name': 'Valid',
+          'isPrimary': true,
+          'createdAt': now,
+          'updatedAt': now,
+        },
+        <String, Object?>{
+          'id': 'broken-account',
+          'type': 'unknown',
+          'name': 'Broken',
+          'createdAt': now,
+          'updatedAt': now,
+        },
+      ],
+    });
+    await file.writeAsString(raw);
+
+    await expectLater(
+      AccountStore().loadOrCreate(),
+      throwsA(isA<DurableJsonReadException>()),
+    );
+
+    expect(await file.readAsString(), raw);
+    expect(await File('${file.path}.bak').exists(), isFalse);
+  });
+}
+
+Map<String, Object?> _accountStateJson({required String accountId}) {
+  final now = DateTime.utc(2026, 1, 1).toIso8601String();
+  return <String, Object?>{
+    'version': AccountStore.currentVersion,
+    'activeAccountId': accountId,
+    'accounts': <Object?>[
+      <String, Object?>{
+        'id': accountId,
+        'type': 'local',
+        'name': 'Recovered',
+        'isPrimary': true,
+        'createdAt': now,
+        'updatedAt': now,
+      },
+    ],
+  };
 }
