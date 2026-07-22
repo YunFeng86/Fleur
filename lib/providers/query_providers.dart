@@ -111,10 +111,6 @@ class ArticleListFilter {
     );
   }
 
-  ArticleListFilter savedOnly({required bool starred}) {
-    return selectScope(starred ? ArticleScope.starred : ArticleScope.readLater);
-  }
-
   ArticleListFilter toggleUnreadOnly() {
     return copyWith(unreadOnly: !unreadOnly);
   }

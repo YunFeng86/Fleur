@@ -508,13 +508,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Open an article from the list to read it here.';
 
   @override
-  String get savedReaderEmptyTitle => 'Select a saved article';
-
-  @override
-  String get savedReaderEmptySubtitle =>
-      'Open an article from Saved or Read Later.';
-
-  @override
   String get searchReaderEmptyTitle => 'Select a search result';
 
   @override
@@ -730,12 +723,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noArticles => 'No articles';
 
   @override
-  String get noStarredArticles => 'No starred articles yet';
-
-  @override
-  String get noReadLaterArticles => 'No read-later articles yet';
-
-  @override
   String get noUnreadArticles => 'No unread articles';
 
   @override
@@ -745,9 +732,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get unreadEmptySubtitle =>
       'Everything in the current scope has been read.';
-
-  @override
-  String get savedSearchEmptySubtitle => 'No saved articles match this search.';
 
   @override
   String get star => 'Star';

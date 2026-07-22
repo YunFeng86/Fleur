@@ -641,14 +641,6 @@
   "@readerEmptySubtitle": {
     "description": "Reader pane helper text when no article is selected"
   },
-  "savedReaderEmptyTitle": "選擇一篇收藏",
-  "@savedReaderEmptyTitle": {
-    "description": "Reader pane title when the saved section has no selected article"
-  },
-  "savedReaderEmptySubtitle": "從已收藏或稍後讀列表中打開文章。",
-  "@savedReaderEmptySubtitle": {
-    "description": "Reader pane helper text for the saved section"
-  },
   "searchReaderEmptyTitle": "選擇一條搜尋結果",
   "@searchReaderEmptyTitle": {
     "description": "Reader pane title when the search section has no selected article"
@@ -952,14 +944,6 @@
   "@noArticles": {
     "description": "noArticles"
   },
-  "noStarredArticles": "暫無收藏文章",
-  "@noStarredArticles": {
-    "description": "Empty state message for the starred articles view"
-  },
-  "noReadLaterArticles": "暫無稍後讀文章",
-  "@noReadLaterArticles": {
-    "description": "Empty state message for the read-later articles view"
-  },
   "noUnreadArticles": "暫無未讀文章",
   "@noUnreadArticles": {
     "description": "noUnreadArticles"
@@ -971,10 +955,6 @@
   "unreadEmptySubtitle": "目前篩選範圍內的文章都已讀完。",
   "@unreadEmptySubtitle": {
     "description": "Article list empty state helper text when the unread filter has no results"
-  },
-  "savedSearchEmptySubtitle": "目前收藏中沒有符合的結果。",
-  "@savedSearchEmptySubtitle": {
-    "description": "Saved section empty state helper text when searching saved articles has no results"
   },
   "star": "收藏",
   "@star": {

@@ -512,14 +512,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'Öffnen Sie einen Artikel aus der Liste, um ihn hier zu lesen.';
 
   @override
-  String get savedReaderEmptyTitle =>
-      'Wählen Sie einen gespeicherten Artikel aus';
-
-  @override
-  String get savedReaderEmptySubtitle =>
-      'Öffnen Sie einen Artikel über „Gespeichert“ oder „Später lesen“.';
-
-  @override
   String get searchReaderEmptyTitle => 'Wählen Sie ein Suchergebnis aus';
 
   @override
@@ -736,12 +728,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get noArticles => 'Keine Artikel';
 
   @override
-  String get noStarredArticles => 'Noch keine markierten Artikel';
-
-  @override
-  String get noReadLaterArticles => 'Noch keine Artikel zum späteren Lesen';
-
-  @override
   String get noUnreadArticles => 'Keine ungelesenen Artikel';
 
   @override
@@ -750,10 +736,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get unreadEmptySubtitle => 'Alles im aktuellen Umfang wurde gelesen.';
-
-  @override
-  String get savedSearchEmptySubtitle =>
-      'Zu dieser Suche passen keine gespeicherten Artikel.';
 
   @override
   String get star => 'Markieren';

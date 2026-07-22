@@ -641,14 +641,6 @@
   "@readerEmptySubtitle": {
     "description": "Reader pane helper text when no article is selected"
   },
-  "savedReaderEmptyTitle": "Wählen Sie einen gespeicherten Artikel aus",
-  "@savedReaderEmptyTitle": {
-    "description": "Reader pane title when the saved section has no selected article"
-  },
-  "savedReaderEmptySubtitle": "Öffnen Sie einen Artikel über „Gespeichert“ oder „Später lesen“.",
-  "@savedReaderEmptySubtitle": {
-    "description": "Reader pane helper text for the saved section"
-  },
   "searchReaderEmptyTitle": "Wählen Sie ein Suchergebnis aus",
   "@searchReaderEmptyTitle": {
     "description": "Reader pane title when the search section has no selected article"
@@ -923,14 +915,6 @@
   "@noArticles": {
     "description": "noArticles"
   },
-  "noStarredArticles": "Noch keine markierten Artikel",
-  "@noStarredArticles": {
-    "description": "Empty state message for the starred articles view"
-  },
-  "noReadLaterArticles": "Noch keine Artikel zum späteren Lesen",
-  "@noReadLaterArticles": {
-    "description": "Empty state message for the read-later articles view"
-  },
   "noUnreadArticles": "Keine ungelesenen Artikel",
   "@noUnreadArticles": {
     "description": "noUnreadArticles"
@@ -942,10 +926,6 @@
   "unreadEmptySubtitle": "Alles im aktuellen Umfang wurde gelesen.",
   "@unreadEmptySubtitle": {
     "description": "Article list empty state helper text when the unread filter has no results"
-  },
-  "savedSearchEmptySubtitle": "Zu dieser Suche passen keine gespeicherten Artikel.",
-  "@savedSearchEmptySubtitle": {
-    "description": "Saved section empty state helper text when searching saved articles has no results"
   },
   "star": "Markieren",
   "@star": {

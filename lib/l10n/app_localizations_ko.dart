@@ -498,12 +498,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get readerEmptySubtitle => '여기에서 읽으려면 목록에서 기사를 엽니다.';
 
   @override
-  String get savedReaderEmptyTitle => '저장된 기사 선택';
-
-  @override
-  String get savedReaderEmptySubtitle => '저장됨 또는 나중에 읽기에서 기사를 엽니다.';
-
-  @override
   String get searchReaderEmptyTitle => '검색결과를 선택하세요';
 
   @override
@@ -712,12 +706,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get noArticles => '기사 없음';
 
   @override
-  String get noStarredArticles => '아직 별표표시된 기사가 없습니다.';
-
-  @override
-  String get noReadLaterArticles => '아직 나중에 읽을 기사가 없습니다.';
-
-  @override
   String get noUnreadArticles => '읽지 않은 기사 없음';
 
   @override
@@ -725,9 +713,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get unreadEmptySubtitle => '현재 범위의 모든 내용을 읽었습니다.';
-
-  @override
-  String get savedSearchEmptySubtitle => '이 검색과 일치하는 저장된 기사가 없습니다.';
 
   @override
   String get star => '별표 표시';

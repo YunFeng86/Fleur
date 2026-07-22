@@ -641,14 +641,6 @@
   "@readerEmptySubtitle": {
     "description": "Reader pane helper text when no article is selected"
   },
-  "savedReaderEmptyTitle": "保存した記事を選択する",
-  "@savedReaderEmptyTitle": {
-    "description": "Reader pane title when the saved section has no selected article"
-  },
-  "savedReaderEmptySubtitle": "[保存] または [後で読む] から記事を開きます。",
-  "@savedReaderEmptySubtitle": {
-    "description": "Reader pane helper text for the saved section"
-  },
   "searchReaderEmptyTitle": "検索結果を選択してください",
   "@searchReaderEmptyTitle": {
     "description": "Reader pane title when the search section has no selected article"
@@ -923,14 +915,6 @@
   "@noArticles": {
     "description": "noArticles"
   },
-  "noStarredArticles": "スター付きの記事はまだありません",
-  "@noStarredArticles": {
-    "description": "Empty state message for the starred articles view"
-  },
-  "noReadLaterArticles": "後で読む記事はまだありません",
-  "@noReadLaterArticles": {
-    "description": "Empty state message for the read-later articles view"
-  },
   "noUnreadArticles": "未読の記事はありません",
   "@noUnreadArticles": {
     "description": "noUnreadArticles"
@@ -942,10 +926,6 @@
   "unreadEmptySubtitle": "現在のスコープ内のすべてが読み取られています。",
   "@unreadEmptySubtitle": {
     "description": "Article list empty state helper text when the unread filter has no results"
-  },
-  "savedSearchEmptySubtitle": "この検索に一致する保存済み記事はありません。",
-  "@savedSearchEmptySubtitle": {
-    "description": "Saved section empty state helper text when searching saved articles has no results"
   },
   "star": "スターを付ける",
   "@star": {

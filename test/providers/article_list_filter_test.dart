@@ -58,7 +58,7 @@ void main() {
     expect(search.readLaterOnly, isFalse);
     expect(search.searchQuery, 'needle');
 
-    final saved = filter.savedOnly(starred: false);
+    final saved = filter.selectReadLater();
     expect(saved.scope, ArticleScope.readLater);
     expect(saved.selectedFeedId, isNull);
     expect(saved.selectedCategoryId, isNull);

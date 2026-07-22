@@ -511,13 +511,6 @@ class AppLocalizationsEs extends AppLocalizations {
       'Abra un artículo de la lista para leerlo aquí.';
 
   @override
-  String get savedReaderEmptyTitle => 'Seleccione un artículo guardado';
-
-  @override
-  String get savedReaderEmptySubtitle =>
-      'Abra un artículo guardado o leído más tarde.';
-
-  @override
   String get searchReaderEmptyTitle => 'Seleccione un resultado de búsqueda';
 
   @override
@@ -734,12 +727,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get noArticles => 'Sin artículos';
 
   @override
-  String get noStarredArticles => 'Aún no hay artículos destacados';
-
-  @override
-  String get noReadLaterArticles => 'Aún no hay artículos para leer más tarde';
-
-  @override
   String get noUnreadArticles => 'No hay artículos sin leer';
 
   @override
@@ -749,10 +736,6 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get unreadEmptySubtitle =>
       'Se ha leído todo lo que está en el alcance actual.';
-
-  @override
-  String get savedSearchEmptySubtitle =>
-      'Ningún artículo guardado coincide con esta búsqueda.';
 
   @override
   String get star => 'Marcar con estrella';

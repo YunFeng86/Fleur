@@ -641,14 +641,6 @@
   "@readerEmptySubtitle": {
     "description": "Reader pane helper text when no article is selected"
   },
-  "savedReaderEmptyTitle": "Selecione um artigo salvo",
-  "@savedReaderEmptyTitle": {
-    "description": "Reader pane title when the saved section has no selected article"
-  },
-  "savedReaderEmptySubtitle": "Abra um artigo em Salvo ou Ler mais tarde.",
-  "@savedReaderEmptySubtitle": {
-    "description": "Reader pane helper text for the saved section"
-  },
   "searchReaderEmptyTitle": "Selecione um resultado de pesquisa",
   "@searchReaderEmptyTitle": {
     "description": "Reader pane title when the search section has no selected article"
@@ -923,14 +915,6 @@
   "@noArticles": {
     "description": "noArticles"
   },
-  "noStarredArticles": "Ainda não há artigos marcados com estrela",
-  "@noStarredArticles": {
-    "description": "Empty state message for the starred articles view"
-  },
-  "noReadLaterArticles": "Ainda não há artigos para ler mais tarde",
-  "@noReadLaterArticles": {
-    "description": "Empty state message for the read-later articles view"
-  },
   "noUnreadArticles": "Nenhum artigo não lido",
   "@noUnreadArticles": {
     "description": "noUnreadArticles"
@@ -942,10 +926,6 @@
   "unreadEmptySubtitle": "Tudo no escopo atual foi lido.",
   "@unreadEmptySubtitle": {
     "description": "Article list empty state helper text when the unread filter has no results"
-  },
-  "savedSearchEmptySubtitle": "Nenhum artigo salvo corresponde a esta pesquisa.",
-  "@savedSearchEmptySubtitle": {
-    "description": "Saved section empty state helper text when searching saved articles has no results"
   },
   "star": "Marcar como favorito",
   "@star": {

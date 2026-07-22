@@ -31,7 +31,6 @@ import 'package:fleur/providers/unread_providers.dart';
 import 'package:fleur/repositories/feed_repository.dart';
 import 'package:fleur/features/subscriptions/subscriptions.dart';
 import 'package:fleur/ui/home/home_screen.dart';
-import 'package:fleur/screens/saved_screen.dart';
 import 'package:fleur/ui/home/search_screen.dart';
 import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/settings/reader_settings.dart';
@@ -4201,78 +4200,6 @@ void main() {
           ?.text,
       'claude',
     );
-  });
-
-  testWidgets('Saved reader route uses the sliding workspace layout', (
-    tester,
-  ) async {
-    debugFleurTargetPlatformOverride = TargetPlatform.windows;
-    addTearDown(() => debugFleurTargetPlatformOverride = null);
-    tester.view.devicePixelRatio = 1.0;
-    tester.view.physicalSize = const Size(1200, 800);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    addTearDown(tester.view.resetPhysicalSize);
-
-    final article = _buildArticle(
-      id: 42,
-      title: 'Starred Result',
-      isStarred: true,
-    );
-    final feed = _buildFeed(id: article.feedId);
-    _FixedArticleListController.items = <Article>[article];
-    addTearDown(() => _FixedArticleListController.items = <Article>[]);
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          articleListControllerProvider.overrideWith(
-            _FixedArticleListController.new,
-          ),
-          articleProvider(42).overrideWith((ref) => Stream.value(article)),
-          appSettingsStoreProvider.overrideWithValue(
-            FakeAppSettingsStore(AppSettings.defaults()),
-          ),
-          readerSettingsStoreProvider.overrideWithValue(
-            FakeReaderSettingsStore(const ReaderSettings()),
-          ),
-          readerProgressStoreProvider.overrideWithValue(
-            InMemoryReaderProgressStore(),
-          ),
-          imageMetaStoreProvider.overrideWithValue(InMemoryImageMetaStore()),
-          articleActionServiceProvider.overrideWithValue(
-            RecordingArticleActionService(),
-          ),
-          feedsProvider.overrideWith((ref) => Stream.value([feed])),
-          categoriesProvider.overrideWith((ref) => Stream.value(<Category>[])),
-          tagsProvider.overrideWith((ref) => Stream.value(<Tag>[])),
-          starredCountProvider.overrideWith((ref) => Stream.value(1)),
-          readLaterCountProvider.overrideWith((ref) => Stream.value(0)),
-        ],
-        child: MaterialApp(
-          theme: AppTheme.light(),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: const SavedScreen(selectedArticleId: 42),
-        ),
-      ),
-    );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 240));
-
-    expect(
-      find.byKey(const Key('article_reader_workspace_layout')),
-      findsOneWidget,
-    );
-    expect(find.byKey(const Key('reading_pane_surface')), findsOneWidget);
-    expect(
-      find.descendant(
-        of: find.byKey(const Key('reading_pane_surface')),
-        matching: find.byKey(const Key('workspace_layer_leading_edge')),
-      ),
-      findsOneWidget,
-    );
-    expect(tester.getSize(find.byType(ArticleList)).width, kDesktopListWidth);
-    expect(find.byType(ReaderView), findsOneWidget);
   });
 }
 

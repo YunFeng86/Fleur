@@ -512,13 +512,6 @@ class AppLocalizationsFr extends AppLocalizations {
       'Ouvrez un article de la liste pour le lire ici.';
 
   @override
-  String get savedReaderEmptyTitle => 'Sélectionnez un article enregistré';
-
-  @override
-  String get savedReaderEmptySubtitle =>
-      'Ouvrez un article depuis Enregistré ou Lire plus tard.';
-
-  @override
   String get searchReaderEmptyTitle => 'Sélectionnez un résultat de recherche';
 
   @override
@@ -734,12 +727,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get noArticles => 'Aucun article';
 
   @override
-  String get noStarredArticles => 'Aucun article favori pour l\'instant';
-
-  @override
-  String get noReadLaterArticles => 'Pas encore d\'articles à lire plus tard';
-
-  @override
   String get noUnreadArticles => 'Aucun article non lu';
 
   @override
@@ -748,10 +735,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get unreadEmptySubtitle => 'Tout dans le périmètre actuel a été lu.';
-
-  @override
-  String get savedSearchEmptySubtitle =>
-      'Aucun article enregistré ne correspond à cette recherche.';
 
   @override
   String get star => 'Marquer comme favori';

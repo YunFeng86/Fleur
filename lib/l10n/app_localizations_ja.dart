@@ -500,12 +500,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get readerEmptySubtitle => 'リストから記事を開いて、ここで読んでください。';
 
   @override
-  String get savedReaderEmptyTitle => '保存した記事を選択する';
-
-  @override
-  String get savedReaderEmptySubtitle => '[保存] または [後で読む] から記事を開きます。';
-
-  @override
   String get searchReaderEmptyTitle => '検索結果を選択してください';
 
   @override
@@ -715,12 +709,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get noArticles => '記事がありません';
 
   @override
-  String get noStarredArticles => 'スター付きの記事はまだありません';
-
-  @override
-  String get noReadLaterArticles => '後で読む記事はまだありません';
-
-  @override
   String get noUnreadArticles => '未読の記事はありません';
 
   @override
@@ -729,9 +717,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get unreadEmptySubtitle => '現在のスコープ内のすべてが読み取られています。';
-
-  @override
-  String get savedSearchEmptySubtitle => 'この検索に一致する保存済み記事はありません。';
 
   @override
   String get star => 'スターを付ける';

@@ -1055,18 +1055,6 @@ abstract class AppLocalizations {
   /// **'Open an article from the list to read it here.'**
   String get readerEmptySubtitle;
 
-  /// Reader pane title when the saved section has no selected article
-  ///
-  /// In en, this message translates to:
-  /// **'Select a saved article'**
-  String get savedReaderEmptyTitle;
-
-  /// Reader pane helper text for the saved section
-  ///
-  /// In en, this message translates to:
-  /// **'Open an article from Saved or Read Later.'**
-  String get savedReaderEmptySubtitle;
-
   /// Reader pane title when the search section has no selected article
   ///
   /// In en, this message translates to:
@@ -1439,18 +1427,6 @@ abstract class AppLocalizations {
   /// **'No articles'**
   String get noArticles;
 
-  /// Empty state message for the starred articles view
-  ///
-  /// In en, this message translates to:
-  /// **'No starred articles yet'**
-  String get noStarredArticles;
-
-  /// Empty state message for the read-later articles view
-  ///
-  /// In en, this message translates to:
-  /// **'No read-later articles yet'**
-  String get noReadLaterArticles;
-
   /// noUnreadArticles
   ///
   /// In en, this message translates to:
@@ -1468,12 +1444,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Everything in the current scope has been read.'**
   String get unreadEmptySubtitle;
-
-  /// Saved section empty state helper text when searching saved articles has no results
-  ///
-  /// In en, this message translates to:
-  /// **'No saved articles match this search.'**
-  String get savedSearchEmptySubtitle;
 
   /// star
   ///

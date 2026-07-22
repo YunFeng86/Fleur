@@ -510,13 +510,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get readerEmptySubtitle => 'Abra um artigo da lista para lê-lo aqui.';
 
   @override
-  String get savedReaderEmptyTitle => 'Selecione um artigo salvo';
-
-  @override
-  String get savedReaderEmptySubtitle =>
-      'Abra um artigo em Salvo ou Ler mais tarde.';
-
-  @override
   String get searchReaderEmptyTitle => 'Selecione um resultado de pesquisa';
 
   @override
@@ -732,12 +725,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get noArticles => 'Nenhum artigo';
 
   @override
-  String get noStarredArticles => 'Ainda não há artigos marcados com estrela';
-
-  @override
-  String get noReadLaterArticles => 'Ainda não há artigos para ler mais tarde';
-
-  @override
   String get noUnreadArticles => 'Nenhum artigo não lido';
 
   @override
@@ -746,10 +733,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get unreadEmptySubtitle => 'Tudo no escopo atual foi lido.';
-
-  @override
-  String get savedSearchEmptySubtitle =>
-      'Nenhum artigo salvo corresponde a esta pesquisa.';
 
   @override
   String get star => 'Marcar como favorito';
@@ -2073,13 +2056,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get readerEmptySubtitle => 'Abra um artigo da lista para lê-lo aqui.';
 
   @override
-  String get savedReaderEmptyTitle => 'Selecione um artigo salvo';
-
-  @override
-  String get savedReaderEmptySubtitle =>
-      'Abra um artigo em Salvo ou Ler mais tarde.';
-
-  @override
   String get searchReaderEmptyTitle => 'Selecione um resultado de pesquisa';
 
   @override
@@ -2295,12 +2271,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get noArticles => 'Nenhum artigo';
 
   @override
-  String get noStarredArticles => 'Ainda não há artigos marcados com estrela';
-
-  @override
-  String get noReadLaterArticles => 'Ainda não há artigos para ler mais tarde';
-
-  @override
   String get noUnreadArticles => 'Nenhum artigo não lido';
 
   @override
@@ -2309,10 +2279,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get unreadEmptySubtitle => 'Tudo no escopo atual foi lido.';
-
-  @override
-  String get savedSearchEmptySubtitle =>
-      'Nenhum artigo salvo corresponde a esta pesquisa.';
 
   @override
   String get star => 'Marcar como favorito';

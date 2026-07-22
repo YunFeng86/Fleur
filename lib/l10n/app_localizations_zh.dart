@@ -488,12 +488,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get readerEmptySubtitle => '从左侧列表打开文章后，会在这里阅读。';
 
   @override
-  String get savedReaderEmptyTitle => '选择一篇收藏';
-
-  @override
-  String get savedReaderEmptySubtitle => '从已收藏或稍后读列表中打开文章。';
-
-  @override
   String get searchReaderEmptyTitle => '选择一条搜索结果';
 
   @override
@@ -697,12 +691,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noArticles => '暂无文章';
 
   @override
-  String get noStarredArticles => '暂无收藏文章';
-
-  @override
-  String get noReadLaterArticles => '暂无稍后读文章';
-
-  @override
   String get noUnreadArticles => '暂无未读文章';
 
   @override
@@ -710,9 +698,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get unreadEmptySubtitle => '当前筛选范围内的文章都已读完。';
-
-  @override
-  String get savedSearchEmptySubtitle => '当前收藏中没有匹配结果。';
 
   @override
   String get star => '收藏';
@@ -1989,12 +1974,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get readerEmptySubtitle => '从左侧列表打开文章后，会在这里阅读。';
 
   @override
-  String get savedReaderEmptyTitle => '选择一篇收藏';
-
-  @override
-  String get savedReaderEmptySubtitle => '从已收藏或稍后读列表中打开文章。';
-
-  @override
   String get searchReaderEmptyTitle => '选择一条搜索结果';
 
   @override
@@ -2198,12 +2177,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get noArticles => '暂无文章';
 
   @override
-  String get noStarredArticles => '暂无收藏文章';
-
-  @override
-  String get noReadLaterArticles => '暂无稍后读文章';
-
-  @override
   String get noUnreadArticles => '暂无未读文章';
 
   @override
@@ -2211,9 +2184,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get unreadEmptySubtitle => '当前筛选范围内的文章都已读完。';
-
-  @override
-  String get savedSearchEmptySubtitle => '当前收藏中没有匹配结果。';
 
   @override
   String get star => '收藏';
@@ -3490,12 +3460,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get readerEmptySubtitle => '從左側列表打開文章後，會在這裡閱讀。';
 
   @override
-  String get savedReaderEmptyTitle => '選擇一篇收藏';
-
-  @override
-  String get savedReaderEmptySubtitle => '從已收藏或稍後讀列表中打開文章。';
-
-  @override
   String get searchReaderEmptyTitle => '選擇一條搜尋結果';
 
   @override
@@ -3699,12 +3663,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get noArticles => '暫無文章';
 
   @override
-  String get noStarredArticles => '暫無收藏文章';
-
-  @override
-  String get noReadLaterArticles => '暫無稍後讀文章';
-
-  @override
   String get noUnreadArticles => '暫無未讀文章';
 
   @override
@@ -3712,9 +3670,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get unreadEmptySubtitle => '目前篩選範圍內的文章都已讀完。';
-
-  @override
-  String get savedSearchEmptySubtitle => '目前收藏中沒有符合的結果。';
 
   @override
   String get star => '收藏';
