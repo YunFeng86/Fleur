@@ -64,7 +64,7 @@ const _operationalCapabilityFiles = <String, String>{
   'lib/features/subscriptions/presentation/settings/subscription_toolbar.dart':
       'backendCapabilitiesProvider',
   'lib/ui/sidebar/sidebar_tree.dart': 'BackendCapabilities',
-  'lib/widgets/sidebar.dart': 'backendCapabilitiesProvider',
+  'lib/ui/sidebar/sidebar.dart': 'backendCapabilitiesProvider',
   'lib/features/subscriptions/presentation/settings/settings_detail_panel.dart':
       'backendCapabilitiesProvider',
 };
@@ -85,7 +85,7 @@ const _syncSemanticsFiles = <String, String>{
       'backendSyncSemanticsProvider',
   'lib/ui/sidebar/sidebar_tree.dart': 'BackendSyncSemantics',
   'lib/ui/settings/tabs/services_tab.dart': 'backendSyncSemanticsProvider',
-  'lib/widgets/sidebar.dart': 'backendSyncSemanticsProvider',
+  'lib/ui/sidebar/sidebar.dart': 'backendSyncSemanticsProvider',
 };
 
 void main() {

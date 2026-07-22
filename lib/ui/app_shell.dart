@@ -12,7 +12,7 @@ import '../providers/core_providers.dart';
 import '../providers/navigation_history_provider.dart';
 import '../services/update/app_update_manifest.dart';
 import '../theme/fleur_theme_extensions.dart';
-import '../widgets/sidebar.dart';
+import 'sidebar/sidebar.dart';
 import '../utils/platform.dart';
 import 'adaptive_workspace_layout.dart';
 import 'app_drawer_scope.dart';

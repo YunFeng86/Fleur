@@ -49,6 +49,7 @@ import 'package:fleur/ui/home/home_scene_shortcuts.dart';
 import 'package:fleur/ui/layout.dart';
 import 'package:fleur/ui/motion.dart';
 import 'package:fleur/ui/shell_chrome_layout.dart';
+import 'package:fleur/ui/sidebar/sidebar.dart';
 import 'package:fleur/ui/sidebar_layout.dart';
 import 'package:fleur/ui/sidebar/sidebar_selection_actions.dart';
 import 'package:fleur/ui/sidebar/sidebar_tree.dart';
@@ -59,7 +60,6 @@ import 'package:fleur/widgets/article_list_item.dart';
 import 'package:fleur/widgets/favicon_circle.dart';
 import 'package:fleur/widgets/overflow_marquee.dart';
 import 'package:fleur/features/reader/reader.dart';
-import 'package:fleur/widgets/sidebar.dart';
 import 'package:fleur/widgets/sync_status_capsule.dart';
 
 import 'test_utils/app_shell_test_support.dart';

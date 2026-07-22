@@ -8,11 +8,11 @@ import 'package:fleur/providers/core_providers.dart';
 import 'package:fleur/services/update/app_update_manifest.dart';
 import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/ui/shell_chrome_layout.dart';
+import 'package:fleur/ui/sidebar/sidebar.dart';
 import 'package:fleur/ui/sidebar_layout.dart';
 import 'package:fleur/ui/workspace_layers.dart';
 import 'package:fleur/utils/desktop_window_options.dart';
 import 'package:fleur/utils/platform.dart';
-import 'package:fleur/widgets/sidebar.dart';
 
 import '../test_utils/app_shell_test_support.dart';
 
