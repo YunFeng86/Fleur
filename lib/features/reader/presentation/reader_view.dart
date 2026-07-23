@@ -33,6 +33,7 @@ import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
 import 'package:fleur/ui/app_drawer_scope.dart';
 import 'package:fleur/ui/layout.dart';
+import 'package:fleur/ui/motion.dart';
 import 'package:fleur/ui/settings/widgets/settings_controls.dart';
 import 'package:fleur/ui/workspace_layers.dart';
 import 'package:fleur/utils/content_hash.dart';

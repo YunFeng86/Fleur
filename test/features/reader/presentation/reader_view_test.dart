@@ -47,6 +47,7 @@ import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
 import 'package:fleur/features/reader/reader.dart';
+import 'package:fleur/ui/motion.dart';
 import 'package:fleur/utils/content_hash.dart';
 import 'package:fleur/utils/path_manager.dart';
 import 'package:fleur/utils/tag_colors.dart';
@@ -212,6 +213,7 @@ void main() {
     FakeTranslationAiSecretStore? secretStore,
     List<Override> extraOverrides = const <Override>[],
     Size size = const Size(800, 1200),
+    bool disableAnimations = false,
   }) async {
     _FakeFullTextController.onFetch = null;
     _FakeFullTextController.fetchCalls = 0;
@@ -219,7 +221,14 @@ void main() {
 
     await pumpLocalizedTestApp(
       tester,
-      home: ReaderView(articleId: articleId),
+      home: Builder(
+        builder: (context) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(disableAnimations: disableAnimations),
+          child: const ReaderView(articleId: articleId),
+        ),
+      ),
       overrides: [
         appSettingsStoreProvider.overrideWithValue(
           FakeAppSettingsStore(appSettings ?? AppSettings.defaults()),
@@ -1390,8 +1399,12 @@ void main() {
     );
     expect(firstCurrent.style?.backgroundColor, isNotNull);
 
+    readerScrollable.position.jumpTo(0);
     controller.nextMatch();
-    await settleReader(tester, rounds: 8);
+    await tester.pump();
+
+    expect(readerScrollable.position.isScrollingNotifier.value, isTrue);
+    await tester.pump(AppMotion.navigationTransitionDuration);
 
     final targetSpans = readerCodeTextSpans(tester)
         .where(
@@ -1405,6 +1418,65 @@ void main() {
       targetSpans.map((span) => span.style?.backgroundColor).toSet(),
       hasLength(2),
     );
+  });
+
+  testWidgets('reader code search positioning honors reduced motion', (
+    tester,
+  ) async {
+    final leadingHtml = List<String>.generate(
+      18,
+      (index) => '<p>Intro paragraph ${index + 1} ${'content ' * 24}</p>',
+    ).join();
+
+    await pumpReader(
+      tester,
+      article: buildArticle(
+        title: 'A',
+        html:
+            '$leadingHtml'
+            '<pre class="language-jsx"><code>'
+            '<span class="token-line"><span>const targetAlpha = 1;</span><br></span>'
+            '<span class="token-line"><span>const targetBeta = 2;</span><br></span>'
+            '</code></pre>',
+      ),
+      appSettings: AppSettings.defaults().copyWith(autoMarkRead: false),
+      size: const Size(560, 320),
+      disableAnimations: true,
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await settleReader(tester, rounds: 20);
+
+    final readerScrollable = verticalReaderScrollable(tester);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(ReaderView)),
+    );
+    final controller = container.read(
+      readerSearchControllerProvider(articleId).notifier,
+    );
+    controller.open();
+    controller.setQuery('target');
+    await pumpUntil(
+      tester,
+      () =>
+          container
+              .read(readerSearchControllerProvider(articleId))
+              .totalMatches ==
+          2,
+      attempts: 80,
+    );
+    await pumpUntil(
+      tester,
+      () => find.byKey(const Key('reader_code_block')).evaluate().isNotEmpty,
+    );
+
+    readerScrollable.position.jumpTo(0);
+    controller.nextMatch();
+    await tester.pump();
+
+    expect(readerScrollable.position.pixels, greaterThan(0));
+    expect(readerScrollable.position.isScrollingNotifier.value, isFalse);
   });
 
   testWidgets('reader handles many code block fallbacks during search', (

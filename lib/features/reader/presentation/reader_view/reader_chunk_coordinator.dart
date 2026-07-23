@@ -378,7 +378,10 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
     if (!ctx.mounted) return;
     await Scrollable.ensureVisible(
       ctx,
-      duration: const Duration(milliseconds: 180),
+      duration: AppMotion.effectiveDuration(
+        context,
+        AppMotion.navigationTransitionDuration,
+      ),
       curve: Curves.easeOut,
       alignment: 0.1,
     );
@@ -433,10 +436,14 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
       position.maxScrollExtent,
     );
     if ((next - position.pixels).abs() < 0.5) return true;
+    if (AppMotion.reduceMotion(context)) {
+      _scrollController.jumpTo(next);
+      return true;
+    }
     unawaited(
       _scrollController.animateTo(
         next,
-        duration: const Duration(milliseconds: 180),
+        duration: AppMotion.navigationTransitionDuration,
         curve: Curves.easeOut,
       ),
     );
@@ -480,7 +487,10 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
         if (!ctx.mounted) return;
         await Scrollable.ensureVisible(
           ctx,
-          duration: const Duration(milliseconds: 200),
+          duration: AppMotion.effectiveDuration(
+            context,
+            const Duration(milliseconds: 200),
+          ),
           curve: Curves.easeOut,
           alignment: 0.1,
         );
