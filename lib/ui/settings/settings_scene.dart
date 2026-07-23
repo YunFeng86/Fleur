@@ -10,6 +10,7 @@ import '../design_system/design_system.dart';
 import '../motion.dart';
 import '../shell_chrome_layout.dart';
 import '../shell_frame_geometry.dart';
+import '../shell_temporary_navigation.dart';
 import '../sidebar_layout.dart';
 import '../workspace_layers.dart';
 import 'settings_search_view.dart';
@@ -143,24 +144,27 @@ class SettingsScene extends StatelessWidget {
               top: 0,
               bottom: 0,
               width: frameGeometry.contentWidth,
-              child: Padding(
-                key: const Key('settings_content_avoidance'),
-                padding: EdgeInsets.only(
-                  left: frameGeometry.contentLeadingInset,
-                ),
-                child: _SettingsContentLayer(
-                  sidebarPinned: sidebarPinned,
-                  sidebarOpen: temporaryNavigationOpen,
-                  title: title,
-                  showSidebarButton: showSidebarButton,
-                  onToggleSidebar: onToggleSidebar,
-                  onBack: onBack,
-                  selectedContentKey: selectedContentKey,
-                  searchController: searchController,
-                  searchFocusNode: searchFocusNode,
-                  searchFocused: searchFocused,
-                  navigationToggleFocusNode: navigationToggleFocusNode,
-                  child: content,
+              child: ShellTemporarySceneGate(
+                navigationOpen: temporaryNavigationOpen,
+                child: Padding(
+                  key: const Key('settings_content_avoidance'),
+                  padding: EdgeInsets.only(
+                    left: frameGeometry.contentLeadingInset,
+                  ),
+                  child: _SettingsContentLayer(
+                    sidebarPinned: sidebarPinned,
+                    sidebarOpen: temporaryNavigationOpen,
+                    title: title,
+                    showSidebarButton: showSidebarButton,
+                    onToggleSidebar: onToggleSidebar,
+                    onBack: onBack,
+                    selectedContentKey: selectedContentKey,
+                    searchController: searchController,
+                    searchFocusNode: searchFocusNode,
+                    searchFocused: searchFocused,
+                    navigationToggleFocusNode: navigationToggleFocusNode,
+                    child: content,
+                  ),
                 ),
               ),
             ),
@@ -171,12 +175,9 @@ class SettingsScene extends StatelessWidget {
                 top: 0,
                 right: 0,
                 bottom: 0,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: onToggleSidebar,
-                  child: ColoredBox(
-                    color: Colors.black.withValues(alpha: 0.08),
-                  ),
+                child: ShellNavigationDismissScrim(
+                  onDismiss: onToggleSidebar,
+                  color: Colors.black.withValues(alpha: 0.08),
                 ),
               ),
           ],

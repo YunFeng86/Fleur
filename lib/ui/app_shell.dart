@@ -24,6 +24,7 @@ import 'shell_chrome_layout.dart';
 import 'shell_control_strip.dart';
 import 'shell_frame_geometry.dart';
 import 'shell_secondary_scene_frame.dart';
+import 'shell_temporary_navigation.dart';
 import 'shell_window_frame.dart';
 import 'sidebar_layout.dart';
 import 'workspace_layers.dart';
@@ -594,7 +595,10 @@ class _AppShellState extends ConsumerState<AppShell> {
                 top: 0,
                 bottom: 0,
                 width: geometry.contentWidth,
-                child: contentLayer,
+                child: ShellTemporarySceneGate(
+                  navigationOpen: temporarySidebarOpen,
+                  child: contentLayer,
+                ),
               ),
               if (sidebarExpanded ||
                   temporarySidebarOpen ||
@@ -643,14 +647,11 @@ class _AppShellState extends ConsumerState<AppShell> {
                   top: 0,
                   right: 0,
                   bottom: 0,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: _closeTemporarySidebar,
-                    child: ColoredBox(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.scrim.withValues(alpha: 0.12),
-                    ),
+                  child: ShellNavigationDismissScrim(
+                    onDismiss: _closeTemporarySidebar,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.scrim.withValues(alpha: 0.12),
                   ),
                 ),
             ],

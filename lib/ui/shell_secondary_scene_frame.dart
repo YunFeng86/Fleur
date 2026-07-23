@@ -9,6 +9,7 @@ import 'motion.dart';
 import 'shell_chrome_layout.dart';
 import 'shell_frame_geometry.dart';
 import 'shell_title_bar.dart';
+import 'shell_temporary_navigation.dart';
 import 'shell_window_frame.dart';
 import 'sidebar_layout.dart';
 import 'workspace_layers.dart';
@@ -127,13 +128,16 @@ class ShellSecondarySceneFrame extends StatelessWidget {
                     AppMotion.navigationTransitionDuration,
                   ),
                   curve: Curves.easeOutCubic,
-                  child: WorkspaceLayerSurface(
-                    key: const Key('app_shell_secondary_layer'),
-                    color: surfaces.reader,
-                    borderRadius: surfaceAppearance.borderRadius,
-                    showShadow: surfaceAppearance.showShadow,
-                    leadingEdge: surfaceAppearance.leadingEdge,
-                    child: child,
+                  child: ShellTemporarySceneGate(
+                    navigationOpen: temporaryNavigationOpen,
+                    child: WorkspaceLayerSurface(
+                      key: const Key('app_shell_secondary_layer'),
+                      color: surfaces.reader,
+                      borderRadius: surfaceAppearance.borderRadius,
+                      showShadow: surfaceAppearance.showShadow,
+                      leadingEdge: surfaceAppearance.leadingEdge,
+                      child: child,
+                    ),
                   ),
                 ),
                 if (temporaryNavigationOpen)
@@ -143,14 +147,11 @@ class ShellSecondarySceneFrame extends StatelessWidget {
                     top: 0,
                     right: 0,
                     bottom: 0,
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: onDismissNavigation,
-                      child: ColoredBox(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.scrim.withValues(alpha: 0.12),
-                      ),
+                    child: ShellNavigationDismissScrim(
+                      onDismiss: onDismissNavigation,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.scrim.withValues(alpha: 0.12),
                     ),
                   ),
               ],
