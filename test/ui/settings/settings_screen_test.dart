@@ -730,6 +730,34 @@ void main() {
     );
   });
 
+  testWidgets(
+    'Settings resize closes temporary navigation and restores focus',
+    (tester) async {
+      debugFleurTargetPlatformOverride = TargetPlatform.windows;
+      addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+      final container = await pumpSettingsShell(tester, 650);
+      await tester.tap(find.byKey(const Key('shell_sidebar_button')));
+      await tester.pumpAndSettle();
+
+      expect(container.read(settingsTemporaryNavigationOpenProvider), isTrue);
+      expect(
+        FocusManager.instance.primaryFocus?.debugLabel,
+        'shell-temporary-navigation',
+      );
+
+      tester.view.physicalSize = const Size(1000, 800);
+      await tester.pumpAndSettle();
+
+      expect(container.read(settingsTemporaryNavigationOpenProvider), isFalse);
+      expect(find.byKey(const Key('settings_navigation_scrim')), findsNothing);
+      expect(
+        FocusManager.instance.primaryFocus?.debugLabel,
+        'shell-navigation-toggle',
+      );
+    },
+  );
+
   testWidgets('Settings title-bar toggle collapses after inline re-expansion', (
     tester,
   ) async {

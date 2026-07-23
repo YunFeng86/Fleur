@@ -70,10 +70,11 @@ class _AppShellState extends ConsumerState<AppShell> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final size = MediaQuery.sizeOf(context);
-    if (_lastWindowSize != null &&
-        _lastWindowSize != size &&
-        _temporarySidebarOpen) {
-      _temporarySidebarOpen = false;
+    final windowSizeChanged =
+        _lastWindowSize != null && _lastWindowSize != size;
+    if (windowSizeChanged) {
+      _closeTemporarySidebarFromLifecycle();
+      _closeSettingsTemporaryNavigationFromLifecycle();
     }
     _lastWindowSize = size;
   }
@@ -82,11 +83,11 @@ class _AppShellState extends ConsumerState<AppShell> {
   void didUpdateWidget(covariant AppShell oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.currentUri != widget.currentUri && _temporarySidebarOpen) {
-      _temporarySidebarOpen = false;
+      _closeTemporarySidebarFromLifecycle();
     }
     if (oldWidget.currentUri != widget.currentUri &&
         ref.read(settingsTemporaryNavigationOpenProvider)) {
-      ref.read(settingsTemporaryNavigationOpenProvider.notifier).state = false;
+      _closeSettingsTemporaryNavigationFromLifecycle();
     }
   }
 
@@ -145,6 +146,16 @@ class _AppShellState extends ConsumerState<AppShell> {
   void _closeTemporarySidebar() {
     if (!_temporarySidebarOpen) return;
     setState(() => _temporarySidebarOpen = false);
+    _scheduleNavigationToggleFocus();
+  }
+
+  void _closeTemporarySidebarFromLifecycle() {
+    if (!_temporarySidebarOpen) return;
+    _temporarySidebarOpen = false;
+    _scheduleNavigationToggleFocus();
+  }
+
+  void _scheduleNavigationToggleFocus() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_navigationToggleFocusNode.canRequestFocus) return;
       _navigationToggleFocusNode.requestFocus();
@@ -160,6 +171,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 
   void _setSettingsTemporaryNavigation(WidgetRef ref, bool open) {
+    if (ref.read(settingsTemporaryNavigationOpenProvider) == open) return;
     ref.read(settingsTemporaryNavigationOpenProvider.notifier).state = open;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -167,6 +179,14 @@ class _AppShellState extends ConsumerState<AppShell> {
           ? _temporaryNavigationFocusNode
           : _navigationToggleFocusNode;
       if (target.canRequestFocus) target.requestFocus();
+    });
+  }
+
+  void _closeSettingsTemporaryNavigationFromLifecycle() {
+    if (!ref.read(settingsTemporaryNavigationOpenProvider)) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _setSettingsTemporaryNavigation(ref, false);
     });
   }
 

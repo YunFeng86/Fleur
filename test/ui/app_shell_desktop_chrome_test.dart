@@ -675,4 +675,52 @@ void main() {
       globalToolAreaTopLeft.dx,
     );
   });
+
+  testWidgets('App shell restores navigation focus after automatic closes', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(640, 900);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(buildShellHarness());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('shell_sidebar_button')));
+    await tester.pumpAndSettle();
+
+    expect(
+      FocusManager.instance.primaryFocus?.debugLabel,
+      'shell-temporary-navigation',
+    );
+
+    tester.view.physicalSize = const Size(641, 900);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('app_shell_navigation_scrim')), findsNothing);
+    expect(
+      FocusManager.instance.primaryFocus?.debugLabel,
+      'shell-navigation-toggle',
+    );
+
+    await tester.tap(find.byKey(const Key('shell_sidebar_button')));
+    await tester.pumpAndSettle();
+    expect(
+      FocusManager.instance.primaryFocus?.debugLabel,
+      'shell-temporary-navigation',
+    );
+
+    await tester.pumpWidget(
+      buildShellHarness(currentUri: Uri(path: '/search')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('app_shell_navigation_scrim')), findsNothing);
+    expect(
+      FocusManager.instance.primaryFocus?.debugLabel,
+      'shell-navigation-toggle',
+    );
+  });
 }
