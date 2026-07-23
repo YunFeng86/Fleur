@@ -24,6 +24,7 @@ import 'article_reader_workspace_layout.dart';
 import 'home_scene_panes.dart';
 import '../layout.dart';
 import '../layout_spec.dart';
+import '../motion.dart';
 import '../shell_chrome_layout.dart';
 import '../sidebar_layout.dart';
 
@@ -551,7 +552,11 @@ class _SearchFilterBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 180),
+      key: const Key('search_filter_switcher'),
+      duration: AppMotion.effectiveDuration(
+        context,
+        AppMotion.navigationTransitionDuration,
+      ),
       child: visible
           ? Padding(
               key: const Key('search_advanced_filters'),
