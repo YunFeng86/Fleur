@@ -98,7 +98,7 @@ void main() {
     expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
     expect(
       _buttonRadius(tester, const Key('shell_search_button')),
-      BorderRadius.circular(8),
+      BorderRadius.circular(16),
     );
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
@@ -112,7 +112,7 @@ void main() {
     expect(find.byKey(const Key('app_shell_rail_overlay')), findsNothing);
     expect(
       _buttonRadius(tester, const Key('sidebar_all_button')),
-      BorderRadius.circular(8),
+      BorderRadius.circular(16),
     );
     expect(
       find.byKey(const Key('sidebar_collapsed_rail_surface')),
@@ -563,7 +563,7 @@ void main() {
       );
       expect(
         _buttonRadius(tester, const Key('sidebar_all_button')),
-        BorderRadius.circular(8),
+        BorderRadius.circular(16),
       );
       expectWorkspaceSurfaceAppearance(
         tester,

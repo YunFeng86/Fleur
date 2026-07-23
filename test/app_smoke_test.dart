@@ -449,7 +449,7 @@ void main() {
     _expectShellIconButtonRadius(
       tester,
       const Key('shell_sidebar_button'),
-      BorderRadius.circular(8),
+      BorderRadius.circular(16),
     );
     final expandedSidebarIcon = tester.widget<Icon>(
       find.descendant(
@@ -640,7 +640,7 @@ void main() {
     _expectShellIconButtonRadius(
       tester,
       const Key('shell_sidebar_button'),
-      BorderRadius.circular(8),
+      BorderRadius.circular(16),
     );
     expect(
       tester.getTopLeft(find.byKey(const Key('shell_sidebar_button'))).dy,

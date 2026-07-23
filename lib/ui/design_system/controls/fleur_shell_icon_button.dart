@@ -3,15 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../theme/fleur_theme_extensions.dart';
 import '../../motion.dart';
 
-enum FleurShellIconButtonShape { circular, roundedSquare }
-
-extension FleurShellIconButtonShapeX on FleurShellIconButtonShape {
-  BorderRadius borderRadiusFor(double size) => switch (this) {
-    FleurShellIconButtonShape.circular => BorderRadius.circular(size / 2),
-    FleurShellIconButtonShape.roundedSquare => BorderRadius.circular(8),
-  };
-}
-
 class FleurShellIconButton extends StatefulWidget {
   const FleurShellIconButton({
     super.key,
@@ -23,7 +14,6 @@ class FleurShellIconButton extends StatefulWidget {
     this.iconSize,
     this.focusNode,
     this.disabledOpacity = 0.38,
-    this.shape = FleurShellIconButtonShape.circular,
     this.borderRadius,
     this.selectedBackgroundColor,
     this.selectedForegroundColor,
@@ -40,7 +30,6 @@ class FleurShellIconButton extends StatefulWidget {
   final double? iconSize;
   final FocusNode? focusNode;
   final double disabledOpacity;
-  final FleurShellIconButtonShape shape;
   final BorderRadius? borderRadius;
   final Color? selectedBackgroundColor;
   final Color? selectedForegroundColor;
@@ -88,7 +77,6 @@ class _FleurShellIconButtonState extends State<FleurShellIconButton> {
           selected: widget.selected,
           size: widget.size,
           disabledOpacity: widget.disabledOpacity,
-          shape: widget.shape,
           borderRadius: widget.borderRadius,
           selectedBackgroundColor: widget.selectedBackgroundColor,
           selectedForegroundColor: widget.selectedForegroundColor,
@@ -114,7 +102,6 @@ class FleurShellIconButtonStyle {
     bool selected = false,
     double size = 32,
     double disabledOpacity = 0.38,
-    FleurShellIconButtonShape shape = FleurShellIconButtonShape.circular,
     BorderRadius? borderRadius,
     Color? selectedBackgroundColor,
     Color? selectedForegroundColor,
@@ -125,7 +112,7 @@ class FleurShellIconButtonStyle {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final states = theme.fleurState;
-    final radius = borderRadius ?? shape.borderRadiusFor(size);
+    final radius = borderRadius ?? BorderRadius.circular(size / 2);
     final touchMode =
         adaptiveTapTarget &&
         (interactionMode ?? FocusManager.instance.highlightMode) ==

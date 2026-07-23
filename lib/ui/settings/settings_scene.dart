@@ -288,7 +288,6 @@ class _SettingsNavigationRail extends StatelessWidget {
                 ),
                 selected: selected,
                 size: 40,
-                shape: FleurShellIconButtonShape.roundedSquare,
                 selectedBackgroundColor: surfaces.cardSelected,
                 selectedForegroundColor: scheme.primary,
                 unselectedForegroundColor: scheme.onSurfaceVariant,

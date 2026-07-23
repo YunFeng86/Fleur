@@ -14,7 +14,4 @@ export 'controls/fleur_selection_transition.dart'
         FleurSelectionTransition,
         FleurSelectionTransitionBuilder;
 export 'controls/fleur_shell_icon_button.dart'
-    show
-        FleurShellIconButton,
-        FleurShellIconButtonShape,
-        FleurShellIconButtonStyle;
+    show FleurShellIconButton, FleurShellIconButtonStyle;

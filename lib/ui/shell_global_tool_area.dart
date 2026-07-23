@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../services/update/app_update_manifest.dart';
-import 'design_system/controls/fleur_shell_icon_button.dart';
 import 'shell_control_strip.dart';
 import 'shell_frame_topology.dart';
 import 'sidebar_layout.dart';
@@ -48,9 +47,6 @@ class ShellGlobalToolArea extends StatelessWidget {
         surface: surface == ShellGlobalToolSurface.floatingIsland
             ? ShellControlStripSurface.capsule
             : ShellControlStripSurface.flat,
-        buttonShape: surface == ShellGlobalToolSurface.windowFrame
-            ? FleurShellIconButtonShape.roundedSquare
-            : FleurShellIconButtonShape.circular,
         searchSelected: searchSelected,
         showSearch: showSearch,
         updateManifest: updateManifest,

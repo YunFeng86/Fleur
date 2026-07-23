@@ -55,7 +55,6 @@ class FleurCapsuleIconButton extends StatelessWidget {
     this.size = 32,
     this.iconSize = 16,
     this.focusNode,
-    this.shape = FleurShellIconButtonShape.circular,
   });
 
   final String tooltip;
@@ -65,19 +64,16 @@ class FleurCapsuleIconButton extends StatelessWidget {
   final double size;
   final double iconSize;
   final FocusNode? focusNode;
-  final FleurShellIconButtonShape shape;
 
   static ButtonStyle styleFor(
     BuildContext context, {
     bool selected = false,
     double size = 32,
-    FleurShellIconButtonShape shape = FleurShellIconButtonShape.circular,
   }) {
     return FleurShellIconButtonStyle.styleFor(
       context,
       selected: selected,
       size: size,
-      shape: shape,
     );
   }
 
@@ -91,7 +87,6 @@ class FleurCapsuleIconButton extends StatelessWidget {
       iconSize: iconSize,
       selected: selected,
       size: size,
-      shape: shape,
     );
   }
 }

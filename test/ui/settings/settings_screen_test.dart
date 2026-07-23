@@ -387,7 +387,7 @@ void main() {
     );
     expect(
       buttonRadius(tester, const Key('settings_rail_nav_app-preferences')),
-      BorderRadius.circular(8),
+      BorderRadius.circular(20),
     );
     expect(
       tester.getTopLeft(find.byKey(const Key('settings_content_layer'))).dx,

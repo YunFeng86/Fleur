@@ -65,7 +65,7 @@ void main() {
     );
   });
 
-  testWidgets('window-frame presentation uses soft-square controls', (
+  testWidgets('window-frame presentation keeps circular controls', (
     tester,
   ) async {
     await pumpArea(tester, surface: ShellGlobalToolSurface.windowFrame);
@@ -73,7 +73,7 @@ void main() {
     expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
     expect(
       buttonRadius(tester, const Key('shell_sidebar_button')),
-      BorderRadius.circular(8),
+      BorderRadius.circular(16),
     );
   });
 
