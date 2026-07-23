@@ -1568,6 +1568,12 @@ void main() {
                 body: Center(child: Text('Services settings')),
               ),
             ),
+            GoRoute(
+              path: '/settings/:tab',
+              builder: (context, state) => const Scaffold(
+                body: Center(child: Text('Services settings')),
+              ),
+            ),
           ],
         ),
       ],
