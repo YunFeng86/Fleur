@@ -49,6 +49,35 @@ class _FakeIsar extends Fake implements Isar {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  group('database open failure classification', () {
+    test('treats MDBX resource unavailable as a transient lock conflict', () {
+      final kind = debugClassifyDbOpenFailure(
+        IsarError(
+          'Cannot open Environment: MdbxError (35): '
+          'Resource temporarily unavailable',
+        ),
+      );
+
+      expect(kind, DbOpenFailureKind.transient);
+    });
+
+    test('preserves the database for unknown Isar errors', () {
+      final kind = debugClassifyDbOpenFailure(
+        IsarError('Unexpected database open failure'),
+      );
+
+      expect(kind, DbOpenFailureKind.environmental);
+    });
+
+    test('allows recovery only for explicit corruption signals', () {
+      final kind = debugClassifyDbOpenFailure(
+        IsarError('Database file is corrupt'),
+      );
+
+      expect(kind, isNull);
+    });
+  });
+
   group('AccountDbSessionManager', () {
     test(
       'coalesces concurrent acquires and closes after all leases release',

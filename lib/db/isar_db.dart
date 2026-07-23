@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:isar_community/isar.dart';
 import 'package:path/path.dart' as p;
 
@@ -547,6 +548,7 @@ DbOpenFailureKind? _classifyNonRecoveryOpenFailure(Object error) {
     'lock',
     'locked',
     'resource busy',
+    'resource temporarily unavailable',
     'device or resource busy',
     'text file busy',
     'being used by another process',
@@ -554,6 +556,7 @@ DbOpenFailureKind? _classifyNonRecoveryOpenFailure(Object error) {
     'already opened',
     'already been opened',
     'another instance',
+    'mdbxerror (35)',
   ])) {
     return DbOpenFailureKind.transient;
   }
@@ -571,12 +574,25 @@ DbOpenFailureKind? _classifyNonRecoveryOpenFailure(Object error) {
     return DbOpenFailureKind.environmental;
   }
 
-  // If Isar reports a failure that isn't an obvious lock/permission issue, it
-  // is usually a DB-level problem where recovery can help (backup + move + re-open).
-  if (error is IsarError) return null;
+  // Destructive recovery is only allowed for explicit corruption signals.
+  // Unknown Isar errors must preserve the original database and fail closed.
+  if (_containsAny(text, <String>[
+    'corrupt',
+    'checksum mismatch',
+    'invalid database',
+    'malformed database',
+    'mdbx_corrupted',
+  ])) {
+    return null;
+  }
 
-  // Default: be conservative and avoid destructive recovery.
+  // Default: preserve user data and avoid destructive recovery.
   return DbOpenFailureKind.environmental;
+}
+
+@visibleForTesting
+DbOpenFailureKind? debugClassifyDbOpenFailure(Object error) {
+  return _classifyNonRecoveryOpenFailure(error);
 }
 
 Future<Isar> _openWithBackupAndRecovery({
