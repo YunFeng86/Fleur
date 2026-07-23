@@ -121,17 +121,18 @@ Feed _buildFeed({
     ..siteUrl = 'https://example.com';
 }
 
-void _expectShellIconButtonRadius(WidgetTester tester, Key key) {
+void _expectShellIconButtonRadius(
+  WidgetTester tester,
+  Key key,
+  BorderRadius expected,
+) {
   final iconButton = tester.widget<IconButton>(
     find.descendant(of: find.byKey(key), matching: find.byType(IconButton)),
   );
   final shape = iconButton.style?.shape?.resolve(<WidgetState>{});
 
   expect(shape, isA<RoundedRectangleBorder>());
-  expect(
-    (shape! as RoundedRectangleBorder).borderRadius,
-    BorderRadius.circular(kShellControlSize / 2),
-  );
+  expect((shape! as RoundedRectangleBorder).borderRadius, expected);
 }
 
 Article _buildArticle({
@@ -445,7 +446,11 @@ void main() {
       tester.getSize(find.byKey(const Key('shell_sidebar_button'))),
       const Size.square(kShellControlSize),
     );
-    _expectShellIconButtonRadius(tester, const Key('shell_sidebar_button'));
+    _expectShellIconButtonRadius(
+      tester,
+      const Key('shell_sidebar_button'),
+      BorderRadius.circular(8),
+    );
     final expandedSidebarIcon = tester.widget<Icon>(
       find.descendant(
         of: find.byKey(const Key('shell_sidebar_button')),
@@ -632,7 +637,11 @@ void main() {
       tester.getTopLeft(find.byKey(const Key('shell_sidebar_button'))).dx,
       12,
     );
-    _expectShellIconButtonRadius(tester, const Key('shell_sidebar_button'));
+    _expectShellIconButtonRadius(
+      tester,
+      const Key('shell_sidebar_button'),
+      BorderRadius.circular(8),
+    );
     expect(
       tester.getTopLeft(find.byKey(const Key('shell_sidebar_button'))).dy,
       expandedToggleTopLeft.dy,
