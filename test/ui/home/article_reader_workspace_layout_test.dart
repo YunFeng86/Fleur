@@ -3,10 +3,121 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:fleur/ui/home/article_reader_workspace_layout.dart';
 import 'package:fleur/ui/home/home_scene_panes.dart';
+import 'package:fleur/ui/motion.dart';
 import 'package:fleur/ui/sidebar_layout.dart';
 import 'package:fleur/ui/workspace_layers.dart';
 
 void main() {
+  testWidgets('retiring reader leaves focus and semantics immediately', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    final readerFocusNode = FocusNode(debugLabel: 'test reader focus');
+    addTearDown(readerFocusNode.dispose);
+
+    Future<void> pumpLayout({required int? selectedArticleId}) {
+      return tester.pumpWidget(
+        MaterialApp(
+          home: SizedBox(
+            width: 1000,
+            height: 600,
+            child: ArticleReaderWorkspaceLayout(
+              selectedArticleId: selectedArticleId,
+              contentWidth: 1000,
+              listWidth: 600,
+              listPane: const ColoredBox(color: Colors.white),
+              readerPane: Semantics(
+                label: 'Reader content',
+                child: Focus(
+                  focusNode: readerFocusNode,
+                  autofocus: true,
+                  child: const SizedBox(key: Key('retained_reader_content')),
+                ),
+              ),
+              onResizeList: (_) {},
+              showSplitHandle: true,
+            ),
+          ),
+        ),
+      );
+    }
+
+    await pumpLayout(selectedArticleId: 1);
+    await tester.pumpAndSettle();
+
+    expect(readerFocusNode.hasFocus, isTrue);
+    expect(find.bySemanticsLabel('Reader content'), findsOneWidget);
+
+    await pumpLayout(selectedArticleId: null);
+    await tester.pump(const Duration(milliseconds: 1));
+
+    expect(find.byKey(const Key('retained_reader_content')), findsOneWidget);
+    expect(readerFocusNode.hasFocus, isFalse);
+    expect(
+      tester
+          .widget<ExcludeSemantics>(
+            find.byKey(
+              const Key('article_reader_workspace_reader_semantics_gate'),
+            ),
+          )
+          .excluding,
+      isTrue,
+    );
+    expect(
+      tester
+          .getSemantics(find.byKey(const Key('retained_reader_content')))
+          .parent,
+      isNull,
+    );
+
+    await tester.pump(AppMotion.medium);
+    expect(find.byKey(const Key('retained_reader_content')), findsNothing);
+    semantics.dispose();
+  });
+
+  testWidgets('reduced motion removes retiring reader immediately', (
+    tester,
+  ) async {
+    Future<void> pumpLayout({required int? selectedArticleId}) {
+      return tester.pumpWidget(
+        MaterialApp(
+          home: MediaQuery(
+            data: const MediaQueryData(disableAnimations: true),
+            child: SizedBox(
+              width: 1000,
+              height: 600,
+              child: ArticleReaderWorkspaceLayout(
+                selectedArticleId: selectedArticleId,
+                contentWidth: 1000,
+                listWidth: 600,
+                listPane: const ColoredBox(color: Colors.white),
+                readerPane: const SizedBox(
+                  key: Key('reduced_motion_reader_content'),
+                ),
+                onResizeList: (_) {},
+                showSplitHandle: true,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    await pumpLayout(selectedArticleId: 1);
+    await tester.pump();
+    expect(
+      find.byKey(const Key('reduced_motion_reader_content')),
+      findsOneWidget,
+    );
+
+    await pumpLayout(selectedArticleId: null);
+    await tester.pump();
+    expect(
+      find.byKey(const Key('reduced_motion_reader_content')),
+      findsNothing,
+    );
+  });
+
   testWidgets('reader pane keeps final layout width during reveal animation', (
     tester,
   ) async {

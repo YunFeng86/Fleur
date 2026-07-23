@@ -146,23 +146,33 @@ class _ArticleReaderWorkspaceLayoutState
                 top: 0,
                 bottom: 0,
                 width: revealWidth,
-                child: IgnorePointer(
-                  ignoring: !readerInteractive,
-                  child: Opacity(
-                    opacity: readerOpacity,
-                    child: finalReaderWidth <= 0
-                        ? const SizedBox.shrink()
-                        : ClipRect(
-                            child: OverflowBox(
-                              alignment: Alignment.centerRight,
-                              minWidth: finalReaderWidth,
-                              maxWidth: finalReaderWidth,
-                              child: SizedBox(
-                                width: finalReaderWidth,
-                                child: readerPane,
+                child: ExcludeFocus(
+                  key: const Key('article_reader_workspace_reader_focus_gate'),
+                  excluding: !readerInteractive,
+                  child: ExcludeSemantics(
+                    key: const Key(
+                      'article_reader_workspace_reader_semantics_gate',
+                    ),
+                    excluding: !readerInteractive,
+                    child: IgnorePointer(
+                      ignoring: !readerInteractive,
+                      child: Opacity(
+                        opacity: readerOpacity,
+                        child: finalReaderWidth <= 0
+                            ? const SizedBox.shrink()
+                            : ClipRect(
+                                child: OverflowBox(
+                                  alignment: Alignment.centerRight,
+                                  minWidth: finalReaderWidth,
+                                  maxWidth: finalReaderWidth,
+                                  child: SizedBox(
+                                    width: finalReaderWidth,
+                                    child: readerPane,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -173,14 +183,20 @@ class _ArticleReaderWorkspaceLayoutState
                   top: kWorkspaceHeaderHeight,
                   bottom: 0,
                   width: handleWidth,
-                  child: IgnorePointer(
-                    ignoring: !readerInteractive,
-                    child: Opacity(
-                      opacity: readerOpacity,
-                      child: WorkspaceSplitHandle(
-                        key: const Key('workspace_list_split_handle'),
-                        onDragDelta: widget.onResizeList!,
-                        showDivider: false,
+                  child: ExcludeFocus(
+                    excluding: !readerInteractive,
+                    child: ExcludeSemantics(
+                      excluding: !readerInteractive,
+                      child: IgnorePointer(
+                        ignoring: !readerInteractive,
+                        child: Opacity(
+                          opacity: readerOpacity,
+                          child: WorkspaceSplitHandle(
+                            key: const Key('workspace_list_split_handle'),
+                            onDragDelta: widget.onResizeList!,
+                            showDivider: false,
+                          ),
+                        ),
                       ),
                     ),
                   ),
