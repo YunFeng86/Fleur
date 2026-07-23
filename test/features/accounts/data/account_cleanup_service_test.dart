@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fleur/features/accounts/accounts.dart';
+import 'package:fleur/features/data_safety/data_safety.dart';
 import 'package:fleur/services/persistence/durable_json_store.dart';
 import 'package:fleur/services/sync/outbox/outbox_store.dart';
 import 'package:fleur/utils/path_manager.dart';
@@ -72,7 +73,7 @@ void main() {
 
       await AccountCleanupService(
         credentials: _FakeCredentialStore(),
-        databaseCleanup: (_) async {},
+        databaseLifecycle: _FakeAccountDatabaseLifecycle(),
       ).deleteAccountData(_remoteAccount(accountId));
 
       for (final file in snapshots) {
@@ -104,7 +105,7 @@ void main() {
           AccountCleanupService(
                 credentials: _FakeCredentialStore(),
                 outbox: outbox,
-                databaseCleanup: (_) async {},
+                databaseLifecycle: _FakeAccountDatabaseLifecycle(),
               )
               .deleteAccountData(_remoteAccount(accountId))
               .then((_) => cleanupCompleted = true);
@@ -143,9 +144,12 @@ void main() {
       AccountCleanupService(
         credentials: _FakeCredentialStore(),
         outbox: outbox,
-        databaseCleanup: (_) async {
-          throw StateError('database still in use');
-        },
+        databaseLifecycle: _FakeAccountDatabaseLifecycle(
+          result: const AccountDatabaseDeletionBlocked(
+            reason: AccountDatabaseDeletionBlockReason.activeLease,
+            supportCode: 'delete:remote:activeLease',
+          ),
+        ),
       ).deleteAccountData(_remoteAccount(accountId)),
       throwsStateError,
     );
@@ -171,6 +175,19 @@ class _FakeCredentialStore extends CredentialStore {
 
   @override
   Future<void> deleteBasicAuth(String accountId, AccountType type) async {}
+}
+
+class _FakeAccountDatabaseLifecycle implements AccountDatabaseLifecycle {
+  _FakeAccountDatabaseLifecycle({AccountDatabaseDeletionResult? result})
+    : _result =
+          result ?? const AccountDatabaseDeleted(auditId: 'test-deletion');
+
+  final AccountDatabaseDeletionResult _result;
+
+  @override
+  Future<AccountDatabaseDeletionResult> deleteForAccountRemoval(
+    AccountDatabaseDeletionIntent intent,
+  ) async => _result;
 }
 
 class _BlockingOutboxFileSystem implements DurableFileSystem {

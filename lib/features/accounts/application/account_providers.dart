@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data_safety/data_safety.dart';
 import '../data/account_cleanup_service.dart';
 import '../data/account_store.dart';
 import '../data/credential_store.dart';
@@ -15,8 +16,15 @@ final credentialStoreProvider = Provider<CredentialStore>(
 );
 
 final accountCleanupProvider = Provider<AccountCleanupService>(
-  (ref) =>
-      AccountCleanupService(credentials: ref.read(credentialStoreProvider)),
+  (ref) => AccountCleanupService(
+    credentials: ref.read(credentialStoreProvider),
+    databaseLifecycle: createAccountDatabaseLifecycle(
+      findAccount: (accountId) async {
+        final state = await ref.read(accountStoreProvider).loadOrCreate();
+        return state.findById(accountId);
+      },
+    ),
+  ),
 );
 
 class AccountsController extends AsyncNotifier<AccountsState> {

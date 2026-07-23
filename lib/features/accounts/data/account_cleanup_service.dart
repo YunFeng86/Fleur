@@ -1,24 +1,24 @@
 import 'dart:io';
 
-import '../../../db/isar_db.dart';
 import '../../../services/logging/app_logger.dart';
 import '../../../services/sync/outbox/outbox_store.dart';
 import '../../../utils/path_manager.dart';
+import '../../data_safety/data_safety.dart';
 import '../domain/account.dart';
 import 'credential_store.dart';
 
 class AccountCleanupService {
   AccountCleanupService({
     required CredentialStore credentials,
+    required AccountDatabaseLifecycle databaseLifecycle,
     OutboxStore? outbox,
-    Future<void> Function(Account account)? databaseCleanup,
   }) : _credentials = credentials,
        _outbox = outbox ?? OutboxStore(),
-       _databaseCleanup = databaseCleanup;
+       _databaseLifecycle = databaseLifecycle;
 
   final CredentialStore _credentials;
   final OutboxStore _outbox;
-  final Future<void> Function(Account account)? _databaseCleanup;
+  final AccountDatabaseLifecycle _databaseLifecycle;
 
   Future<void> deleteAccountData(Account account) async {
     // Never delete primary DB automatically; keep a safe fallback.
@@ -26,12 +26,7 @@ class AccountCleanupService {
 
     // Delete the ownership-checked database first. If this fails, keep account
     // metadata and reconstructable state visible so the operation can retry.
-    final databaseCleanup = _databaseCleanup;
-    if (databaseCleanup == null) {
-      await _deleteIsarWithRetry(account);
-    } else {
-      await databaseCleanup(account);
-    }
+    await _deleteAccountDatabase(account);
 
     // Credentials (best-effort).
     try {
@@ -117,37 +112,22 @@ class AccountCleanupService {
     }
   }
 
-  Future<void> _deleteIsarWithRetry(Account account) async {
-    const attempts = 5;
-    Object? lastError;
-    StackTrace? lastStackTrace;
-    for (var i = 0; i < attempts; i++) {
-      try {
-        await AccountDbSessionManager.instance.deleteIdleForAccount(
-          accountId: account.id,
-          dbName: account.dbName,
-          isPrimary: account.isPrimary,
-        );
-        return;
-      } catch (e, st) {
-        lastError = e;
-        lastStackTrace = st;
-        if (i == attempts - 1) {
-          _logCleanupFailure(
-            account,
-            operation: 'deleteDb',
-            fileKind: 'isar',
-            attempt: i + 1,
-            error: e,
-            stackTrace: st,
-          );
-        }
-        // Backoff: 150ms, 300ms, 600ms...
-        final delayMs = 150 * (1 << i);
-        await Future<void>.delayed(Duration(milliseconds: delayMs));
-      }
-    }
-    Error.throwWithStackTrace(lastError!, lastStackTrace!);
+  Future<void> _deleteAccountDatabase(Account account) async {
+    final result = await _databaseLifecycle.deleteForAccountRemoval(
+      AccountDatabaseDeletionIntent(
+        accountId: account.id,
+        operationId:
+            'delete:${account.id}:${account.updatedAt.microsecondsSinceEpoch}',
+      ),
+    );
+    if (result.permitsDatasetCleanup) return;
+
+    final supportCode = switch (result) {
+      AccountDatabaseDeletionBlocked(:final supportCode) => supportCode,
+      AccountDatabaseDeletionFailed(:final supportCode) => supportCode,
+      _ => 'delete:${account.id}:unexpected-result',
+    };
+    throw StateError('Account database deletion blocked: $supportCode');
   }
 
   static void _logCleanupFailure(

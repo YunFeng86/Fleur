@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:fleur/features/accounts/accounts.dart';
+import 'package:fleur/features/data_safety/data_safety.dart';
 import 'package:fleur/services/sync/google_reader/google_reader_provider_profile.dart';
 
 void main() {
@@ -289,7 +290,13 @@ class _ThrowingAccountStore extends AccountStore {
 }
 
 class _FailingAccountCleanup extends AccountCleanupService {
-  _FailingAccountCleanup() : super(credentials: CredentialStore());
+  _FailingAccountCleanup()
+    : super(
+        credentials: CredentialStore(),
+        databaseLifecycle: createAccountDatabaseLifecycle(
+          findAccount: (_) async => null,
+        ),
+      );
 
   @override
   Future<void> deleteAccountData(Account account) async {

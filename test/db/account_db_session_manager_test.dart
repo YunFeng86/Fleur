@@ -165,7 +165,7 @@ void main() {
           isA<DbOpenFailure>().having(
             (e) => e.kind,
             'kind',
-            DbOpenFailureKind.environmental,
+            DbOpenFailureKind.ownershipMismatch,
           ),
         ),
       );
@@ -204,7 +204,7 @@ void main() {
           isA<DbOpenFailure>().having(
             (error) => error.kind,
             'kind',
-            DbOpenFailureKind.environmental,
+            DbOpenFailureKind.ownershipMismatch,
           ),
         ),
       );

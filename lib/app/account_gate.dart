@@ -162,6 +162,8 @@ class _AccountGateState extends ConsumerState<AccountGate> {
           '检测到数据库可能已损坏。原始数据已保留，应用不会自动创建空库；请稍后通过恢复流程处理。',
         DbOpenFailureKind.dataMissing =>
           '账户记录仍然存在，但对应数据库文件缺失。应用不会自动创建空库，请检查数据目录或使用恢复流程。',
+        DbOpenFailureKind.ownershipMismatch =>
+          '账户数据库所有权与当前账户不一致。应用已阻止访问，请检查账户配置或使用恢复流程。',
         _ => '数据库打开失败，请重试或重启应用。',
       };
       final details = [

@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:fleur/features/accounts/accounts.dart';
+import 'package:fleur/features/data_safety/data_safety.dart';
 
 void main() {
   test('accounts facade exposes the feature public API', () {
@@ -21,7 +22,7 @@ void main() {
     final credentials = CredentialStore();
     final cleanup = AccountCleanupService(
       credentials: credentials,
-      databaseCleanup: (_) async {},
+      databaseLifecycle: _DeletedDatabaseLifecycle(),
     );
     final AccountsController Function() createController =
         AccountsController.new;
@@ -44,4 +45,11 @@ void main() {
     expect(showAddGoogleReaderAccountDialog, isA<Function>());
     expect(showEditGoogleReaderAccountDialog, isA<Function>());
   });
+}
+
+class _DeletedDatabaseLifecycle implements AccountDatabaseLifecycle {
+  @override
+  Future<AccountDatabaseDeletionResult> deleteForAccountRemoval(
+    AccountDatabaseDeletionIntent intent,
+  ) async => AccountDatabaseDeleted(auditId: intent.operationId);
 }

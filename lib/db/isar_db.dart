@@ -19,6 +19,7 @@ enum DbOpenFailureKind {
   environmental,
   recoveryRequired,
   dataMissing,
+  ownershipMismatch,
 }
 
 enum AccountDbOpenMode { existing, initialize }
@@ -189,7 +190,7 @@ class AccountDbSessionManager {
     return _acquire(target, AccountDbOpenMode.initialize);
   }
 
-  Future<void> deleteIdleForAccount({
+  Future<bool> deleteIdleForAccount({
     required String accountId,
     String? dbName,
     required bool isPrimary,
@@ -216,10 +217,11 @@ class AccountDbSessionManager {
     }
 
     final dbFile = File(p.join(target.directory, '${target.name}.isar'));
-    if (!await dbFile.exists()) return;
+    if (!await dbFile.exists()) return false;
 
     final isar = await _openTarget(target, AccountDbOpenMode.existing);
     await isar.close(deleteFromDisk: true);
+    return true;
   }
 
   Future<AccountDbLease> _acquire(
@@ -322,7 +324,7 @@ class AccountDbSessionManager {
       return;
     }
     throw DbOpenFailure(
-      kind: DbOpenFailureKind.environmental,
+      kind: DbOpenFailureKind.ownershipMismatch,
       directory: requested.directory,
       name: requested.name,
       error: StateError(
