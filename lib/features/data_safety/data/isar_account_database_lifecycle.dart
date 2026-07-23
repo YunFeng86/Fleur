@@ -1,12 +1,13 @@
 import 'dart:io';
 
-import '../../../db/isar_db.dart';
 import 'package:isar_community/isar.dart';
 
 import '../../accounts/domain/account.dart';
 import '../application/account_database_lifecycle.dart';
 import '../domain/account_database_access.dart';
 import '../domain/account_database_deletion.dart';
+import 'account_database_session_pool.dart';
+import 'isar_account_database_driver.dart';
 
 class IsarAccountDatabaseLifecycle implements AccountDatabaseLifecycle {
   IsarAccountDatabaseLifecycle({

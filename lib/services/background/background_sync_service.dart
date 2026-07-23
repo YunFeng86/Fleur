@@ -7,7 +7,8 @@ import 'package:isar_community/isar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 
-import '../../db/isar_db.dart';
+import '../../features/data_safety/data/account_database_session_pool.dart';
+import '../../features/data_safety/data/isar_account_database_driver.dart';
 import '../../models/feed.dart';
 import '../../providers/service_providers.dart';
 import '../../repositories/article_repository.dart';

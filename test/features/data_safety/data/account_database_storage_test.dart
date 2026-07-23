@@ -6,15 +6,16 @@ import 'package:isar_community/isar.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:fleur/db/isar_db.dart';
+import 'package:fleur/features/data_safety/data/account_database_session_pool.dart';
+import 'package:fleur/features/data_safety/data/isar_account_database_driver.dart';
 import 'package:fleur/models/article.dart';
 import 'package:fleur/models/category.dart';
 import 'package:fleur/models/feed.dart';
 import 'package:fleur/models/tag.dart';
 import 'package:fleur/utils/path_manager.dart';
 
-import '../test_utils/fake_path_provider_platform.dart';
-import '../test_utils/isar_test_utils.dart';
+import '../../../test_utils/fake_path_provider_platform.dart';
+import '../../../test_utils/isar_test_utils.dart';
 
 class _FakeIsar extends Fake implements Isar {
   _FakeIsar({required this.name, required this.directory});

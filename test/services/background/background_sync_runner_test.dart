@@ -4,8 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_community/isar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:fleur/db/isar_db.dart';
 import 'package:fleur/features/accounts/accounts.dart';
+import 'package:fleur/features/data_safety/data/account_database_session_pool.dart';
+import 'package:fleur/features/data_safety/data/isar_account_database_driver.dart';
 import 'package:fleur/features/data_safety/data/isar_account_database_lifecycle.dart';
 import 'package:fleur/features/data_safety/data_safety.dart';
 import 'package:fleur/models/feed.dart';
