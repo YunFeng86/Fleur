@@ -36,6 +36,7 @@ Account buildTestAccount({
   String? profileId,
   String? dbName,
   bool isPrimary = false,
+  bool databaseInitialized = true,
 }) {
   final now = DateTime.utc(2026, 1, 1);
   return Account(
@@ -46,6 +47,7 @@ Account buildTestAccount({
     profileId: profileId,
     dbName: dbName,
     isPrimary: isPrimary,
+    databaseInitialized: databaseInitialized,
     createdAt: now,
     updatedAt: now,
   );

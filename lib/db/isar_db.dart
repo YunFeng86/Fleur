@@ -14,7 +14,14 @@ import 'migrations.dart';
 
 const String kPrimaryAccountId = 'local';
 
-enum DbOpenFailureKind { transient, environmental, recoveryRequired }
+enum DbOpenFailureKind {
+  transient,
+  environmental,
+  recoveryRequired,
+  dataMissing,
+}
+
+enum AccountDbOpenMode { existing, initialize }
 
 class DbOpenFailure implements Exception {
   const DbOpenFailure({
@@ -62,7 +69,8 @@ typedef AccountDbTargetResolver =
       required bool isPrimary,
     });
 
-typedef AccountDbTargetOpener = Future<Isar> Function(AccountDbTarget target);
+typedef AccountDbTargetOpener =
+    Future<Isar> Function(AccountDbTarget target, AccountDbOpenMode mode);
 typedef PendingMigrationsRunner = Future<void> Function(Isar isar);
 typedef IsarOpenFn =
     Future<Isar> Function(
@@ -155,7 +163,7 @@ class AccountDbSessionManager {
   final AccountDbTargetOpener _openTarget;
   final Map<String, _AccountDbSession> _sessions = {};
 
-  Future<AccountDbLease> acquireForAccount({
+  Future<AccountDbLease> acquireExistingForAccount({
     required String accountId,
     String? dbName,
     required bool isPrimary,
@@ -165,7 +173,20 @@ class AccountDbSessionManager {
       dbName: dbName,
       isPrimary: isPrimary,
     );
-    return _acquire(target);
+    return _acquire(target, AccountDbOpenMode.existing);
+  }
+
+  Future<AccountDbLease> initializeForAccount({
+    required String accountId,
+    String? dbName,
+    required bool isPrimary,
+  }) async {
+    final target = await _resolveTarget(
+      accountId: accountId,
+      dbName: dbName,
+      isPrimary: isPrimary,
+    );
+    return _acquire(target, AccountDbOpenMode.initialize);
   }
 
   Future<void> deleteIdleForAccount({
@@ -194,11 +215,17 @@ class AccountDbSessionManager {
       _sessions.remove(target.name);
     }
 
-    final isar = await _openTarget(target);
+    final dbFile = File(p.join(target.directory, '${target.name}.isar'));
+    if (!await dbFile.exists()) return;
+
+    final isar = await _openTarget(target, AccountDbOpenMode.existing);
     await isar.close(deleteFromDisk: true);
   }
 
-  Future<AccountDbLease> _acquire(AccountDbTarget target) async {
+  Future<AccountDbLease> _acquire(
+    AccountDbTarget target,
+    AccountDbOpenMode mode,
+  ) async {
     final key = target.name;
     var session = _sessions[key];
     if (session != null) {
@@ -206,7 +233,7 @@ class AccountDbSessionManager {
       final closing = session.closing;
       if (closing != null) {
         await closing;
-        return _acquire(target);
+        return _acquire(target, mode);
       }
       final isar = session.isar;
       if (isar != null && _isIsarOpen(isar)) {
@@ -232,7 +259,7 @@ class AccountDbSessionManager {
 
     session = _AccountDbSession(target: target)..leases = 1;
     _sessions[key] = session;
-    final opening = _openTarget(target);
+    final opening = _openTarget(target, mode);
     session.opening = opening;
 
     try {
@@ -325,7 +352,7 @@ class _AccountDbSession {
 ///   loss during migrations/legacy fallback.
 /// - Other accounts always live under the new Support/db directory with a
 ///   stable per-account db name.
-Future<Isar> openIsarForAccount({
+Future<Isar> openExistingIsarForAccount({
   required String accountId,
   String? dbName,
   required bool isPrimary,
@@ -335,11 +362,39 @@ Future<Isar> openIsarForAccount({
     dbName: dbName,
     isPrimary: isPrimary,
   );
-  return _openIsarForTarget(target);
+  return _openIsarForTarget(target, AccountDbOpenMode.existing);
 }
 
-Future<Isar> _openIsarForTarget(AccountDbTarget target) async {
+Future<Isar> initializeIsarForAccount({
+  required String accountId,
+  String? dbName,
+  required bool isPrimary,
+}) async {
+  final target = await resolveAccountDbTarget(
+    accountId: accountId,
+    dbName: dbName,
+    isPrimary: isPrimary,
+  );
+  return _openIsarForTarget(target, AccountDbOpenMode.initialize);
+}
+
+Future<Isar> _openIsarForTarget(
+  AccountDbTarget target,
+  AccountDbOpenMode mode,
+) async {
   final schemas = [FeedSchema, ArticleSchema, CategorySchema, TagSchema];
+
+  if (mode == AccountDbOpenMode.existing) {
+    final dbFile = File(p.join(target.directory, '${target.name}.isar'));
+    if (!await dbFile.exists()) {
+      throw DbOpenFailure(
+        kind: DbOpenFailureKind.dataMissing,
+        directory: target.directory,
+        name: target.name,
+        error: StateError('Existing account database is missing.'),
+      );
+    }
+  }
 
   final isar = await _openPreservingAccountData(
     schemas: schemas,

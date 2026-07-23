@@ -59,12 +59,14 @@ void main() {
     String id = 'remote-account',
     String? baseUrl = 'https://example.com',
     bool isPrimary = true,
+    bool databaseInitialized = true,
   }) {
     final account = buildTestAccount(
       id: id,
       type: type,
       baseUrl: baseUrl,
       isPrimary: isPrimary,
+      databaseInitialized: databaseInitialized,
     );
     return AccountsState(
       version: AccountStore.currentVersion,
@@ -109,6 +111,36 @@ void main() {
             required appSettingsStore,
           }) {
             throw UnimplementedError('syncServiceBuilder should not be called');
+          },
+    );
+
+    await runner.run(
+      taskName: kBackgroundSyncTaskName,
+      inputData: const <String, dynamic>{},
+    );
+
+    expect(openCalls, 0);
+  });
+
+  testWidgets('does not initialize a pending account in the background', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.iOS;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+
+    var openCalls = 0;
+    final runner = BackgroundSyncRunner(
+      accounts: buildAccountsState(databaseInitialized: false),
+      appSettingsStore: buildAppSettingsStore(
+        AppSettings.defaults().copyWith(syncEnabled: true),
+      ),
+      outboxStore: FakeOutboxStore(),
+      runWithMutex: _runWithoutMutex,
+      openIsarForAccountFn:
+          ({required accountId, required dbName, required isPrimary}) async {
+            openCalls++;
+            throw UnimplementedError('pending database must not be opened');
           },
     );
 

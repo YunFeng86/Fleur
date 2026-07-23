@@ -107,6 +107,47 @@ void main() {
     expect(freshRss.toJson()['profileId'], 'freshRss');
   });
 
+  test('legacy account JSON defaults databaseInitialized to true', () {
+    final now = DateTime.utc(2026, 1, 1).toIso8601String();
+
+    final account = Account.fromJson(<String, Object?>{
+      'id': 'legacy',
+      'type': 'local',
+      'name': 'Legacy',
+      'isPrimary': true,
+      'createdAt': now,
+      'updatedAt': now,
+    });
+
+    expect(account.databaseInitialized, isTrue);
+  });
+
+  test('databaseInitialized false round trips through account JSON', () {
+    final now = DateTime.utc(2026, 1, 1);
+    final account = Account(
+      id: 'fresh',
+      type: AccountType.miniflux,
+      name: 'Fresh',
+      databaseInitialized: false,
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    final json = account.toJson();
+    final decoded = Account.fromJson(json);
+
+    expect(json['databaseInitialized'], isFalse);
+    expect(decoded.databaseInitialized, isFalse);
+  });
+
+  test('AccountStore creates an uninitialized primary account', () async {
+    final state = await AccountStore().loadOrCreate();
+
+    expect(state.accounts, hasLength(1));
+    expect(state.accounts.single.isPrimary, isTrue);
+    expect(state.accounts.single.databaseInitialized, isFalse);
+  });
+
   test(
     'AccountStore keeps valid accounts when active id is malformed',
     () async {

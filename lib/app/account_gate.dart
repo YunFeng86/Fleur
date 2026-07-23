@@ -160,6 +160,8 @@ class _AccountGateState extends ConsumerState<AccountGate> {
           '数据库目录可能没有权限/磁盘空间不足/路径异常。请检查系统权限与存储空间后重试。',
         DbOpenFailureKind.recoveryRequired =>
           '检测到数据库可能已损坏。原始数据已保留，应用不会自动创建空库；请稍后通过恢复流程处理。',
+        DbOpenFailureKind.dataMissing =>
+          '账户记录仍然存在，但对应数据库文件缺失。应用不会自动创建空库，请检查数据目录或使用恢复流程。',
         _ => '数据库打开失败，请重试或重启应用。',
       };
       final details = [
@@ -241,11 +243,27 @@ class _AccountGateState extends ConsumerState<AccountGate> {
 
   Future<void> _openFor(Account account, int generation) async {
     final manager = widget.dbSessionManager ?? AccountDbSessionManager.instance;
-    final next = await manager.acquireForAccount(
-      accountId: account.id,
-      dbName: account.dbName,
-      isPrimary: account.isPrimary,
-    );
+    final next = account.databaseInitialized
+        ? await manager.acquireExistingForAccount(
+            accountId: account.id,
+            dbName: account.dbName,
+            isPrimary: account.isPrimary,
+          )
+        : await manager.initializeForAccount(
+            accountId: account.id,
+            dbName: account.dbName,
+            isPrimary: account.isPrimary,
+          );
+    if (!account.databaseInitialized) {
+      try {
+        await ref
+            .read(accountsControllerProvider.notifier)
+            .markDatabaseInitialized(account.id);
+      } catch (_) {
+        await next.release();
+        rethrow;
+      }
+    }
     if (!mounted || generation != _openGeneration) {
       await next.release();
       return;

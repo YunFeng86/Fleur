@@ -9,6 +9,7 @@ class Account {
     this.profileId,
     this.dbName,
     this.isPrimary = false,
+    this.databaseInitialized = true,
   });
 
   static const googleReaderGenericProfileId = 'googleReaderGeneric';
@@ -32,6 +33,10 @@ class Account {
   // avoid silent data loss during migration.
   final bool isPrimary;
 
+  // Existing serialized accounts default to true. Only explicitly new
+  // accounts may initialize a missing database.
+  final bool databaseInitialized;
+
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -43,6 +48,7 @@ class Account {
     String? profileId,
     String? dbName,
     bool? isPrimary,
+    bool? databaseInitialized,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -54,6 +60,7 @@ class Account {
       profileId: profileId ?? this.profileId,
       dbName: dbName ?? this.dbName,
       isPrimary: isPrimary ?? this.isPrimary,
+      databaseInitialized: databaseInitialized ?? this.databaseInitialized,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -70,6 +77,7 @@ class Account {
       profileId: _profileIdFromJson(type, rawProfileId),
       dbName: json['dbName'] as String?,
       isPrimary: (json['isPrimary'] as bool?) ?? false,
+      databaseInitialized: (json['databaseInitialized'] as bool?) ?? true,
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
     );
@@ -84,6 +92,7 @@ class Account {
       'profileId': profileId,
       'dbName': dbName,
       'isPrimary': isPrimary,
+      'databaseInitialized': databaseInitialized,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };

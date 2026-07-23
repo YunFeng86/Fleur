@@ -56,6 +56,7 @@ class AccountsController extends AsyncNotifier<AccountsState> {
         baseUrl: baseUrl?.trim(),
         profileId: profileId?.trim(),
         dbName: dbName,
+        databaseInitialized: false,
         createdAt: now,
         updatedAt: now,
       );
@@ -66,6 +67,27 @@ class AccountsController extends AsyncNotifier<AccountsState> {
       );
       await _persistAndPublish(next);
       return id;
+    });
+  }
+
+  Future<void> markDatabaseInitialized(String accountId) {
+    return _serializeMutation<void>(() async {
+      final cur = state.valueOrNull ?? await future;
+      final idx = cur.accounts.indexWhere((account) => account.id == accountId);
+      if (idx < 0 || cur.accounts[idx].databaseInitialized) return;
+
+      final nextAccounts = [...cur.accounts];
+      nextAccounts[idx] = nextAccounts[idx].copyWith(
+        databaseInitialized: true,
+        updatedAt: DateTime.now(),
+      );
+      await _persistAndPublish(
+        AccountsState(
+          version: cur.version,
+          activeAccountId: cur.activeAccountId,
+          accounts: nextAccounts,
+        ),
+      );
     });
   }
 

@@ -157,7 +157,7 @@ class BackgroundSyncRunner {
        _openIsarForAccountFn = openIsarForAccountFn,
        _acquireIsarLeaseForAccountFn =
            acquireIsarLeaseForAccountFn ??
-           AccountDbSessionManager.instance.acquireForAccount,
+           AccountDbSessionManager.instance.acquireExistingForAccount,
        _runWithMutex = runWithMutex ?? SyncMutex.instance.run,
        _refreshAllRemoteFeeds = refreshAllRemoteFeeds,
        _loadAllFeeds = loadAllFeeds,
@@ -257,6 +257,15 @@ class BackgroundSyncRunner {
           capabilities.isOutboxCapable &&
           (await _outboxStore.load(activeAccount.id)).isNotEmpty;
       if (!shouldRefreshSources && !shouldSyncAccount && !hasPendingOutbox) {
+        return;
+      }
+
+      if (!activeAccount.databaseInitialized) {
+        AppLogger.i(
+          'Background sync skipped: account database is not initialized',
+          tag: 'sync',
+          context: <String, Object?>{'accountId': activeAccount.id},
+        );
         return;
       }
 

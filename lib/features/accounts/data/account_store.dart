@@ -117,6 +117,7 @@ class AccountStore {
       type: AccountType.local,
       name: 'Local',
       isPrimary: true,
+      databaseInitialized: false,
       createdAt: now,
       updatedAt: now,
     );

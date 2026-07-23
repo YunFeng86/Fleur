@@ -94,18 +94,18 @@ void main() {
                   isPrimary: isPrimary,
                 );
               },
-          openTarget: (target) {
+          openTarget: (target, mode) {
             openCalls++;
             return completer.future;
           },
         );
 
-        final firstFuture = manager.acquireForAccount(
+        final firstFuture = manager.acquireExistingForAccount(
           accountId: 'a',
           dbName: 'same',
           isPrimary: false,
         );
-        final secondFuture = manager.acquireForAccount(
+        final secondFuture = manager.acquireExistingForAccount(
           accountId: 'a',
           dbName: 'same',
           isPrimary: false,
@@ -143,12 +143,12 @@ void main() {
                 isPrimary: isPrimary,
               );
             },
-        openTarget: (target) async {
+        openTarget: (target, mode) async {
           return _FakeIsar(name: target.name, directory: target.directory);
         },
       );
 
-      final lease = await manager.acquireForAccount(
+      final lease = await manager.acquireExistingForAccount(
         accountId: 'a',
         dbName: 'same',
         isPrimary: false,
@@ -156,7 +156,7 @@ void main() {
       addTearDown(lease.release);
 
       await expectLater(
-        manager.acquireForAccount(
+        manager.acquireExistingForAccount(
           accountId: 'b',
           dbName: 'same',
           isPrimary: false,
@@ -184,12 +184,12 @@ void main() {
                   isPrimary: isPrimary,
                 );
               },
-          openTarget: (target) async {
+          openTarget: (target, mode) async {
             return _FakeIsar(name: target.name, directory: target.directory);
           },
         );
 
-        final lease = await manager.acquireForAccount(
+        final lease = await manager.acquireExistingForAccount(
           accountId: 'a',
           dbName: 'same',
           isPrimary: false,
@@ -235,7 +235,7 @@ void main() {
                 isPrimary: isPrimary,
               );
             },
-        openTarget: (target) async {
+        openTarget: (target, mode) async {
           openCalls++;
           final isar = _FakeIsar(
             name: target.name,
@@ -246,7 +246,7 @@ void main() {
         },
       );
 
-      final firstLease = await manager.acquireForAccount(
+      final firstLease = await manager.acquireExistingForAccount(
         accountId: 'a',
         dbName: 'same',
         isPrimary: false,
@@ -258,7 +258,7 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       expect(firstIsar.closeCalls, 1);
 
-      final secondLeaseFuture = manager.acquireForAccount(
+      final secondLeaseFuture = manager.acquireExistingForAccount(
         accountId: 'a',
         dbName: 'same',
         isPrimary: false,
@@ -342,6 +342,52 @@ void main() {
           ),
         ];
 
+    test('existing mode does not create a missing account database', () async {
+      var openCalled = false;
+      debugSetIsarOpenForTests((
+        schemas, {
+        required directory,
+        required name,
+      }) async {
+        openCalled = true;
+        throw StateError('opener must not be called');
+      });
+
+      await expectLater(
+        openExistingIsarForAccount(
+          accountId: 'missing-account',
+          dbName: 'missing_account',
+          isPrimary: false,
+        ),
+        throwsA(
+          isA<DbOpenFailure>().having(
+            (error) => error.kind,
+            'kind',
+            DbOpenFailureKind.dataMissing,
+          ),
+        ),
+      );
+
+      expect(openCalled, isFalse);
+      final dbDir = await PathManager.getDbDir();
+      expect(
+        await File('${dbDir.path}/missing_account.isar').exists(),
+        isFalse,
+      );
+    });
+
+    test('initialize mode may create a new account database', () async {
+      final isar = await initializeIsarForAccount(
+        accountId: 'new-account',
+        dbName: 'new_account',
+        isPrimary: false,
+      );
+      await isar.close();
+
+      final dbDir = await PathManager.getDbDir();
+      expect(await File('${dbDir.path}/new_account.isar').exists(), isTrue);
+    });
+
     for (final failureCase in preservingFailureCases) {
       test(
         '${failureCase.label} preserve the original database without fallback',
@@ -363,7 +409,7 @@ void main() {
           });
 
           await expectLater(
-            openIsarForAccount(
+            openExistingIsarForAccount(
               accountId: 'account-preserved',
               dbName: dbName,
               isPrimary: false,
@@ -397,7 +443,7 @@ void main() {
         });
 
         await expectLater(
-          openIsarForAccount(
+          initializeIsarForAccount(
             accountId: 'account-a',
             dbName: 'migration_failure_cleanup',
             isPrimary: false,

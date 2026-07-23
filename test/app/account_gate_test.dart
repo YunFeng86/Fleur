@@ -86,7 +86,7 @@ void main() {
           isPrimary: isPrimary,
         );
       },
-      openTarget: (target) {
+      openTarget: (target, mode) {
         openCalls++;
         return openCompleter.future;
       },
@@ -113,6 +113,58 @@ void main() {
     await tester.pump();
 
     expect(openCalls, 1);
+  });
+
+  testWidgets('initializes a pending account and persists completion', (
+    tester,
+  ) async {
+    final account = buildTestAccount(
+      id: 'new-account',
+      type: AccountType.local,
+      databaseInitialized: false,
+    );
+    final store = _FakeAccountStore(
+      AccountsState(
+        version: AccountStore.currentVersion,
+        activeAccountId: account.id,
+        accounts: [account],
+      ),
+    );
+    AccountDbOpenMode? requestedMode;
+    final isar = _FakeIsar(
+      name: 'fleur_${account.id}',
+      directory: '/tmp/fleur-db',
+    );
+    final openCompleter = Completer<Isar>();
+    final manager = AccountDbSessionManager(
+      resolveTarget: ({required accountId, dbName, required isPrimary}) async {
+        return AccountDbTarget(
+          accountId: accountId,
+          directory: '/tmp/fleur-db',
+          name: 'fleur_$accountId',
+          isPrimary: isPrimary,
+        );
+      },
+      openTarget: (target, mode) async {
+        requestedMode = mode;
+        return openCompleter.future;
+      },
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [accountStoreProvider.overrideWithValue(store)],
+        child: MaterialApp(home: AccountGate(dbSessionManager: manager)),
+      ),
+    );
+    openCompleter.complete(isar);
+    await tester.idle();
+
+    expect(requestedMode, AccountDbOpenMode.initialize);
+    expect(store.state.accounts.single.databaseInitialized, isTrue);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.idle();
   });
 
   testWidgets('switching accounts releases the previous DB lease', (
@@ -156,7 +208,7 @@ void main() {
           isPrimary: isPrimary,
         );
       },
-      openTarget: (target) async {
+      openTarget: (target, mode) async {
         return openCompleters[target.accountId]!.future;
       },
     );
