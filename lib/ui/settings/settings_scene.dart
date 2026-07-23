@@ -20,7 +20,52 @@ import 'widgets/settings_controls.dart';
 const double _kSettingsSidebarWidth = kDefaultWorkspaceSidebarWidth;
 const double _kSettingsPaperMaxWidth = 960;
 const double _kSettingsSearchPaperGap = 8;
+const double _kSettingsPinnedHeaderInset = 14;
 const Duration _kLayerAnimationDuration = Duration(milliseconds: 180);
+
+double _settingsHeaderLeadingInset({
+  required BuildContext context,
+  required double sceneWidth,
+  required ShellFrameGeometry frameGeometry,
+  required bool sidebarPinned,
+}) {
+  final availableWidth =
+      (frameGeometry.contentWidth - frameGeometry.contentLeadingInset)
+          .clamp(0.0, double.infinity)
+          .toDouble();
+  final paperWidth = sidebarPinned
+      ? availableWidth.clamp(0.0, _kSettingsPaperMaxWidth).toDouble()
+      : availableWidth;
+  final paperLeft =
+      frameGeometry.translatedContentLeft +
+      frameGeometry.contentLeadingInset +
+      (availableWidth - paperWidth) / 2;
+  final scope = ShellLayerScope.maybeOf(context);
+  final shellAvoidanceLeft =
+      frameGeometry.translatedContentLeft + (scope?.headerLeadingInset ?? 0);
+  var leadingInset = shellAvoidanceLeft - paperLeft;
+
+  if (sidebarPinned) {
+    final referenceContentLeft =
+        (kDefaultWorkspaceSidebarWidth + kSidebarContentDividerWidth)
+            .clamp(0.0, sceneWidth)
+            .toDouble();
+    final referenceContentWidth = sceneWidth - referenceContentLeft;
+    final referencePaperWidth = referenceContentWidth
+        .clamp(0.0, _kSettingsPaperMaxWidth)
+        .toDouble();
+    final referencePaperLeft =
+        referenceContentLeft +
+        (referenceContentWidth - referencePaperWidth) / 2;
+    final stableLeadingInset =
+        referencePaperLeft + _kSettingsPinnedHeaderInset - paperLeft;
+    if (stableLeadingInset > leadingInset) {
+      leadingInset = stableLeadingInset;
+    }
+  }
+
+  return leadingInset.clamp(0.0, double.infinity).toDouble();
+}
 
 class SettingsScene extends StatelessWidget {
   const SettingsScene({
@@ -78,6 +123,12 @@ class SettingsScene extends StatelessWidget {
     final sidebarRail =
         navigationPresentation == WorkspaceNavigationPresentation.rail;
     final sidebarPinned = sidebarExpanded || sidebarRail;
+    final headerLeadingInset = _settingsHeaderLeadingInset(
+      context: context,
+      sceneWidth: width,
+      frameGeometry: frameGeometry,
+      sidebarPinned: sidebarPinned,
+    );
     final expandedSidebar = _SettingsSidebar(
       title: sidebarTitle,
       railWidth: railWidth,
@@ -158,6 +209,7 @@ class SettingsScene extends StatelessWidget {
                   child: _SettingsContentLayer(
                     sidebarPinned: sidebarPinned,
                     sidebarOpen: temporaryNavigationOpen,
+                    headerLeadingInset: headerLeadingInset,
                     title: title,
                     showSidebarButton: showSidebarButton,
                     onToggleSidebar: onToggleSidebar,
@@ -447,6 +499,7 @@ class _SettingsContentLayer extends StatelessWidget {
   const _SettingsContentLayer({
     required this.sidebarPinned,
     required this.sidebarOpen,
+    required this.headerLeadingInset,
     required this.title,
     required this.showSidebarButton,
     required this.onToggleSidebar,
@@ -461,6 +514,7 @@ class _SettingsContentLayer extends StatelessWidget {
 
   final bool sidebarPinned;
   final bool sidebarOpen;
+  final double headerLeadingInset;
   final String title;
   final bool showSidebarButton;
   final VoidCallback onToggleSidebar;
@@ -488,6 +542,7 @@ class _SettingsContentLayer extends StatelessWidget {
             title: title,
             sidebarPinned: sidebarPinned,
             sidebarOpen: sidebarOpen,
+            headerLeadingInset: headerLeadingInset,
             showSidebarButton: showSidebarButton,
             onToggleSidebar: onToggleSidebar,
             onBack: onBack,
@@ -547,6 +602,7 @@ class _SettingsSceneHeader extends StatelessWidget {
     required this.title,
     required this.sidebarPinned,
     required this.sidebarOpen,
+    required this.headerLeadingInset,
     required this.showSidebarButton,
     required this.onToggleSidebar,
     required this.onBack,
@@ -556,6 +612,7 @@ class _SettingsSceneHeader extends StatelessWidget {
   final String title;
   final bool sidebarPinned;
   final bool sidebarOpen;
+  final double headerLeadingInset;
   final bool showSidebarButton;
   final VoidCallback onToggleSidebar;
   final VoidCallback? onBack;
@@ -577,12 +634,8 @@ class _SettingsSceneHeader extends StatelessWidget {
         integratedCorner &&
         metrics.trafficLightsVisible;
     final baseLeadingLeft = avoidTrafficLights ? metrics.safeInset : 8.0;
-    final scopedLeadingLeft =
-        ((scope?.headerLeadingInset ?? 0) - (scope?.contentLeadingInset ?? 0))
-            .clamp(0.0, double.infinity)
-            .toDouble();
-    final leadingLeft = scopedLeadingLeft > baseLeadingLeft
-        ? scopedLeadingLeft
+    final leadingLeft = headerLeadingInset > baseLeadingLeft
+        ? headerLeadingInset
         : baseLeadingLeft;
     final rowTop = integratedCorner
         ? metrics.shellControlTopInset
@@ -627,6 +680,7 @@ class _SettingsSceneHeader extends StatelessWidget {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       title,
+                      key: const Key('settings_scene_title'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleSmall?.copyWith(

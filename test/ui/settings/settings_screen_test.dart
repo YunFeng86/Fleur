@@ -621,6 +621,37 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('macOS settings title stays fixed when navigation collapses', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    await pumpSettingsShell(tester, 1000);
+
+    final title = find.byKey(const Key('settings_scene_title'));
+    final expandedTitleLeft = tester.getTopLeft(title).dx;
+
+    await tester.tap(find.byKey(const Key('shell_sidebar_button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('settings_navigation_rail')), findsOneWidget);
+    expect(tester.getTopLeft(title).dx, closeTo(expandedTitleLeft, 1));
+
+    await tester.tap(find.byKey(const Key('shell_sidebar_button')));
+    await tester.pumpAndSettle();
+    tester.view.physicalSize = const Size(1400, 800);
+    await tester.pumpAndSettle();
+
+    final wideExpandedTitleLeft = tester.getTopLeft(title).dx;
+
+    await tester.tap(find.byKey(const Key('shell_sidebar_button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('settings_navigation_rail')), findsOneWidget);
+    expect(tester.getTopLeft(title).dx, closeTo(wideExpandedTitleLeft, 1));
+  });
+
   testWidgets('macOS settings rail avoids L3 without shifting L2', (
     tester,
   ) async {
@@ -667,6 +698,8 @@ void main() {
       ),
       findsNothing,
     );
+    final title = find.byKey(const Key('settings_scene_title'));
+    final closedTitleLeft = tester.getTopLeft(title).dx;
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
     await tester.pumpAndSettle();
@@ -680,6 +713,13 @@ void main() {
       find.byKey(const Key('settings_content_avoidance')),
     );
     expect(openPadding.padding.resolve(TextDirection.ltr).left, 0);
+    expect(tester.getTopLeft(title).dx, closeTo(closedTitleLeft, 1));
+
+    await tester.tap(find.byKey(const Key('shell_sidebar_button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('settings_navigation_rail')), findsOneWidget);
+    expect(tester.getTopLeft(title).dx, closeTo(closedTitleLeft, 1));
   });
 
   testWidgets('Settings title-bar toggle keeps feed preference independent', (

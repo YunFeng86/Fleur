@@ -414,7 +414,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     final controlsRight =
         controlsLeft +
         _shellControlsGroupWidth(hasUpdate: updateManifest != null);
-    final overlapWithContent = controlsRight - geometry.contentLeft;
+    final overlapWithContent = controlsRight - geometry.translatedContentLeft;
     final headerLeadingInset = shellChromeLayout.placesControlsInTitleBar
         ? 14.0
         : math.max(14.0, overlapWithContent + 12.0);
