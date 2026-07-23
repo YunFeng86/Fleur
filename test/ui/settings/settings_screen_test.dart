@@ -633,6 +633,16 @@ void main() {
     );
 
     expect(find.byKey(const Key('settings_navigation_rail')), findsOneWidget);
+    final island = find.byKey(const Key('settings_collapsed_rail_surface'));
+    expect(island, findsOneWidget);
+    expect(
+      tester.getTopLeft(island).dy,
+      greaterThanOrEqualTo(kWorkspaceHeaderHeight),
+    );
+    expect(
+      tester.getSize(island).height,
+      lessThan(800 - kWorkspaceHeaderHeight),
+    );
     expect(
       tester.getTopLeft(find.byKey(const Key('settings_content_layer'))).dx,
       0,
@@ -684,6 +694,10 @@ void main() {
     );
 
     expect(find.byKey(const Key('settings_navigation_rail')), findsOneWidget);
+    expect(
+      find.byKey(const Key('settings_collapsed_rail_surface')),
+      findsNothing,
+    );
     expect(
       tester.getTopLeft(find.byKey(const Key('settings_content_layer'))).dx,
       kTitleBarExpectedSidebarRailWidth,

@@ -10,6 +10,7 @@ import '../design_system/design_system.dart';
 import '../motion.dart';
 import '../shell_chrome_layout.dart';
 import '../shell_frame_geometry.dart';
+import '../shell_frame_topology.dart';
 import '../shell_temporary_navigation.dart';
 import '../sidebar_layout.dart';
 import '../workspace_layers.dart';
@@ -118,6 +119,9 @@ class SettingsScene extends StatelessWidget {
                 width: railWidth,
                 child: _SettingsNavigationRail(
                   width: railWidth,
+                  floating:
+                      frameGeometry.topology.navigationSurface ==
+                      ShellNavigationSurface.floatingIsland,
                   items: items,
                   selectedIndex: sidebarSelectedIndex,
                   onSelect: onSelect,
@@ -190,12 +194,14 @@ class SettingsScene extends StatelessWidget {
 class _SettingsNavigationRail extends StatelessWidget {
   const _SettingsNavigationRail({
     required this.width,
+    required this.floating,
     required this.items,
     required this.selectedIndex,
     required this.onSelect,
   });
 
   final double width;
+  final bool floating;
   final List<SettingsPageItem> items;
   final int? selectedIndex;
   final ValueChanged<SettingsTab> onSelect;
@@ -210,8 +216,40 @@ class _SettingsNavigationRail extends StatelessWidget {
         scope != null &&
         scope.shellChromeLayout?.profile == ShellChromeProfile.integratedCorner;
 
+    final navigationList = AppScrollbar(
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        itemCount: items.length,
+        itemBuilder: (context, index) {
+          final item = items[index];
+          final selected = index == selectedIndex;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Center(
+              child: FleurShellIconButton(
+                key: Key('settings_rail_nav_${item.tab.queryValue}'),
+                tooltip: item.label,
+                onPressed: () => onSelect(item.tab),
+                icon: FleurAnimatedIcon(
+                  icon: selected ? item.selectedIcon : item.icon,
+                  size: 18,
+                ),
+                selected: selected,
+                size: 40,
+                borderRadius: BorderRadius.circular(8),
+                selectedBackgroundColor: surfaces.cardSelected,
+                selectedForegroundColor: scheme.primary,
+                unselectedForegroundColor: scheme.onSurfaceVariant,
+                adaptiveTapTarget: true,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+
     return Material(
-      color: surfaces.sidebar,
+      color: floating ? Colors.transparent : surfaces.sidebar,
       child: Column(
         children: [
           SizedBox(
@@ -228,37 +266,40 @@ class _SettingsNavigationRail extends StatelessWidget {
                   ),
           ),
           Expanded(
-            child: AppScrollbar(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                itemCount: items.length,
-                itemBuilder: (context, index) {
-                  final item = items[index];
-                  final selected = index == selectedIndex;
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Center(
-                      child: FleurShellIconButton(
-                        key: Key('settings_rail_nav_${item.tab.queryValue}'),
-                        tooltip: item.label,
-                        onPressed: () => onSelect(item.tab),
-                        icon: FleurAnimatedIcon(
-                          icon: selected ? item.selectedIcon : item.icon,
-                          size: 18,
-                        ),
-                        selected: selected,
-                        size: 40,
-                        borderRadius: BorderRadius.circular(8),
-                        selectedBackgroundColor: surfaces.cardSelected,
-                        selectedForegroundColor: scheme.primary,
-                        unselectedForegroundColor: scheme.onSurfaceVariant,
-                        adaptiveTapTarget: true,
-                      ),
+            child: floating
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final desiredHeight = items.length * 44.0 + 8;
+                        final islandHeight = desiredHeight
+                            .clamp(0.0, constraints.maxHeight)
+                            .toDouble();
+                        const radius = BorderRadius.all(Radius.circular(999));
+                        return Align(
+                          alignment: Alignment.topCenter,
+                          child: SizedBox(
+                            height: islandHeight,
+                            child: DecoratedBox(
+                              key: const Key('settings_collapsed_rail_surface'),
+                              decoration: BoxDecoration(
+                                color: surfaces.floating,
+                                border: Border.all(
+                                  color: surfaces.subtleDivider,
+                                ),
+                                borderRadius: radius,
+                              ),
+                              child: ClipRRect(
+                                borderRadius: radius,
+                                child: navigationList,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
-            ),
+                  )
+                : navigationList,
           ),
         ],
       ),
