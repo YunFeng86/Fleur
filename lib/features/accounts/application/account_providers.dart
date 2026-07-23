@@ -14,6 +14,11 @@ final credentialStoreProvider = Provider<CredentialStore>(
   (ref) => CredentialStore(),
 );
 
+final accountCleanupProvider = Provider<AccountCleanupService>(
+  (ref) =>
+      AccountCleanupService(credentials: ref.read(credentialStoreProvider)),
+);
+
 class AccountsController extends AsyncNotifier<AccountsState> {
   Future<void> _mutationTail = Future<void>.value();
 
@@ -181,12 +186,8 @@ class AccountsController extends AsyncNotifier<AccountsState> {
         activeAccountId: nextActiveId,
         accounts: remaining,
       );
+      await ref.read(accountCleanupProvider).deleteAccountData(target);
       await _persistAndPublish(next);
-
-      // Complete best-effort cleanup before reporting account deletion done.
-      await AccountCleanupService(
-        credentials: ref.read(credentialStoreProvider),
-      ).deleteAccountData(target).catchError((_) {});
     });
   }
 

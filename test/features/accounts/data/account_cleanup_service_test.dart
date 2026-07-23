@@ -126,6 +126,32 @@ void main() {
       expect(await File('$primaryPath.lock').exists(), isTrue);
     },
   );
+
+  test('database cleanup failure preserves outbox state', () async {
+    const accountId = 'remote';
+    final outbox = OutboxStore();
+    await outbox.save(accountId, <OutboxAction>[
+      OutboxAction(
+        type: OutboxActionType.markRead,
+        remoteEntryId: 1,
+        value: true,
+        createdAt: DateTime.utc(2026, 7, 22),
+      ),
+    ]);
+
+    await expectLater(
+      AccountCleanupService(
+        credentials: _FakeCredentialStore(),
+        outbox: outbox,
+        databaseCleanup: (_) async {
+          throw StateError('database still in use');
+        },
+      ).deleteAccountData(_remoteAccount(accountId)),
+      throwsStateError,
+    );
+
+    expect(await outbox.load(accountId), hasLength(1));
+  });
 }
 
 Account _remoteAccount(String accountId) {

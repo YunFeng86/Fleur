@@ -24,6 +24,15 @@ class AccountCleanupService {
     // Never delete primary DB automatically; keep a safe fallback.
     if (account.isPrimary) return;
 
+    // Delete the ownership-checked database first. If this fails, keep account
+    // metadata and reconstructable state visible so the operation can retry.
+    final databaseCleanup = _databaseCleanup;
+    if (databaseCleanup == null) {
+      await _deleteIsarWithRetry(account);
+    } else {
+      await databaseCleanup(account);
+    }
+
     // Credentials (best-effort).
     try {
       await _credentials.deleteApiToken(account.id, account.type);
@@ -49,15 +58,6 @@ class AccountCleanupService {
     }
 
     await _deleteOutboxState(account);
-
-    // Per-account Isar DB (best-effort; may fail on Windows if the DB is still
-    // closing after a fast account switch).
-    final databaseCleanup = _databaseCleanup;
-    if (databaseCleanup == null) {
-      await _deleteIsarWithRetry(account);
-    } else {
-      await databaseCleanup(account);
-    }
   }
 
   Future<void> _deleteOutboxState(Account account) async {
@@ -119,6 +119,8 @@ class AccountCleanupService {
 
   Future<void> _deleteIsarWithRetry(Account account) async {
     const attempts = 5;
+    Object? lastError;
+    StackTrace? lastStackTrace;
     for (var i = 0; i < attempts; i++) {
       try {
         await AccountDbSessionManager.instance.deleteIdleForAccount(
@@ -128,6 +130,8 @@ class AccountCleanupService {
         );
         return;
       } catch (e, st) {
+        lastError = e;
+        lastStackTrace = st;
         if (i == attempts - 1) {
           _logCleanupFailure(
             account,
@@ -143,52 +147,7 @@ class AccountCleanupService {
         await Future<void>.delayed(Duration(milliseconds: delayMs));
       }
     }
-
-    // Final fallback: attempt a best-effort manual delete of known files.
-    // If Isar still holds a handle, the OS will deny deletion; we ignore.
-    try {
-      final dir = await PathManager.getDbDir();
-      final sanitized = account.id.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_');
-      final name = (account.dbName == null || account.dbName!.trim().isEmpty)
-          ? 'fleur_$sanitized'
-          : account.dbName!.trim();
-      final candidates = <String>[
-        '${dir.path}${Platform.pathSeparator}$name.isar',
-        '${dir.path}${Platform.pathSeparator}$name.isar.lock',
-        '${dir.path}${Platform.pathSeparator}$name.isar.txs',
-      ];
-      for (final p in candidates) {
-        final f = File(p);
-        if (await f.exists()) {
-          try {
-            await f.delete();
-          } catch (e, st) {
-            _logCleanupFailure(
-              account,
-              operation: 'deleteDb',
-              fileKind: _isarFileKind(p),
-              error: e,
-              stackTrace: st,
-            );
-          }
-        }
-      }
-    } catch (e, st) {
-      _logCleanupFailure(
-        account,
-        operation: 'deleteDb',
-        fileKind: 'manualDelete',
-        error: e,
-        stackTrace: st,
-      );
-    }
-  }
-
-  static String _isarFileKind(String path) {
-    if (path.endsWith('.isar.lock')) return 'isarLock';
-    if (path.endsWith('.isar.txs')) return 'isarTxs';
-    if (path.endsWith('.isar')) return 'isar';
-    return 'isarFile';
+    Error.throwWithStackTrace(lastError!, lastStackTrace!);
   }
 
   static void _logCleanupFailure(

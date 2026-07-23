@@ -1,6 +1,7 @@
 export 'application/account_providers.dart'
     show
         AccountsController,
+        accountCleanupProvider,
         accountStoreProvider,
         accountsControllerProvider,
         activeAccountProvider,

@@ -150,6 +150,48 @@ void main() {
     expect(store.saveCalls, 1);
   });
 
+  test('failed cleanup keeps the account visible', () async {
+    final initial = _localState();
+    final remote = Account(
+      id: 'remote',
+      type: AccountType.miniflux,
+      name: 'Remote',
+      createdAt: DateTime.utc(2026, 1, 1),
+      updatedAt: DateTime.utc(2026, 1, 1),
+    );
+    final store = _MemoryAccountStore(
+      AccountsState(
+        version: initial.version,
+        activeAccountId: initial.activeAccountId,
+        accounts: [...initial.accounts, remote],
+      ),
+    );
+    final container = ProviderContainer(
+      overrides: [
+        accountStoreProvider.overrideWithValue(store),
+        accountCleanupProvider.overrideWithValue(_FailingAccountCleanup()),
+      ],
+    );
+    addTearDown(container.dispose);
+    await container.read(accountsControllerProvider.future);
+
+    await expectLater(
+      container
+          .read(accountsControllerProvider.notifier)
+          .deleteAccount(remote.id),
+      throwsStateError,
+    );
+
+    expect(store.state.findById(remote.id), isNotNull);
+    expect(
+      container
+          .read(accountsControllerProvider)
+          .requireValue
+          .findById(remote.id),
+      isNotNull,
+    );
+  });
+
   test(
     'failed active-account save keeps the previous active account',
     () async {
@@ -243,5 +285,14 @@ class _ThrowingAccountStore extends AccountStore {
   @override
   Future<void> save(AccountsState state) async {
     throw StateError('Injected account save failure');
+  }
+}
+
+class _FailingAccountCleanup extends AccountCleanupService {
+  _FailingAccountCleanup() : super(credentials: CredentialStore());
+
+  @override
+  Future<void> deleteAccountData(Account account) async {
+    throw StateError('Injected cleanup failure');
   }
 }
