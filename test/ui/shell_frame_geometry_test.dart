@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fleur/ui/adaptive_workspace_layout.dart';
 import 'package:fleur/ui/shell_chrome_layout.dart';
 import 'package:fleur/ui/shell_frame_geometry.dart';
+import 'package:fleur/ui/shell_frame_topology.dart';
 import 'package:fleur/ui/sidebar_layout.dart';
 
 void main() {
@@ -25,6 +26,15 @@ void main() {
     expect(geometry.contentWidth, 944);
     expect(geometry.structuralRailVisible, isTrue);
     expect(geometry.railOverlayVisible, isFalse);
+    expect(geometry.topology.surfaceMode, ShellFrameSurfaceMode.fragmented);
+    expect(
+      geometry.topology.navigationSurface,
+      ShellNavigationSurface.structuralRail,
+    );
+    expect(
+      geometry.topology.globalToolSurface,
+      ShellGlobalToolSurface.windowFrame,
+    );
   });
 
   test('temporary navigation translates content without relayout', () {
@@ -52,6 +62,11 @@ void main() {
     expect(open.translatedContentLeft, kTemporaryWorkspaceSidebarWidth);
     expect(open.dividerLeadingInset, kTemporaryWorkspaceSidebarWidth);
     expect(open.structuralRailVisible, isFalse);
+    expect(open.topology.surfaceMode, ShellFrameSurfaceMode.continuous);
+    expect(
+      open.topology.navigationSurface,
+      ShellNavigationSurface.temporaryOverlay,
+    );
   });
 
   test('macOS rail remains an overlay with a content inset', () {
@@ -73,6 +88,15 @@ void main() {
       kSidebarRailWidth + kRailOverlayContentGap,
     );
     expect(geometry.railOverlayVisible, isTrue);
+    expect(geometry.topology.surfaceMode, ShellFrameSurfaceMode.fragmented);
+    expect(
+      geometry.topology.navigationSurface,
+      ShellNavigationSurface.floatingIsland,
+    );
+    expect(
+      geometry.topology.globalToolSurface,
+      ShellGlobalToolSurface.floatingIsland,
+    );
   });
 
   test('content-only off-canvas reserves no closed navigation width', () {
@@ -90,5 +114,7 @@ void main() {
     expect(geometry.contentWidth, size.width);
     expect(geometry.structuralRailVisible, isFalse);
     expect(geometry.railOverlayVisible, isFalse);
+    expect(geometry.topology.surfaceMode, ShellFrameSurfaceMode.continuous);
+    expect(geometry.topology.navigationSurface, ShellNavigationSurface.absent);
   });
 }

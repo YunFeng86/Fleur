@@ -12,6 +12,7 @@ import '../utils/macos_window_chrome_bridge.dart';
 import '../utils/platform.dart';
 import 'adaptive_workspace_layout.dart';
 import 'shell_chrome_layout.dart';
+import 'shell_frame_topology.dart';
 import 'sidebar_layout.dart';
 
 const BorderRadius kWorkspaceLayerRadius = BorderRadius.only(
@@ -66,6 +67,7 @@ class WorkspaceLayerSurfaceAppearance {
 class ShellLayerScope extends InheritedWidget {
   const ShellLayerScope({
     super.key,
+    required this.topology,
     required this.totalSize,
     required this.contentSize,
     required this.sidebarLayoutMode,
@@ -84,6 +86,7 @@ class ShellLayerScope extends InheritedWidget {
     required super.child,
   });
 
+  final ShellFrameTopology topology;
   final Size totalSize;
   final Size contentSize;
   final SidebarLayoutMode sidebarLayoutMode;
@@ -106,7 +109,8 @@ class ShellLayerScope extends InheritedWidget {
 
   @override
   bool updateShouldNotify(ShellLayerScope oldWidget) {
-    return totalSize != oldWidget.totalSize ||
+    return topology != oldWidget.topology ||
+        totalSize != oldWidget.totalSize ||
         contentSize != oldWidget.contentSize ||
         sidebarLayoutMode != oldWidget.sidebarLayoutMode ||
         contentLeft != oldWidget.contentLeft ||

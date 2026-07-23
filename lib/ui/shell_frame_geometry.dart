@@ -2,11 +2,13 @@ import 'package:flutter/widgets.dart';
 
 import 'adaptive_workspace_layout.dart';
 import 'shell_chrome_layout.dart';
+import 'shell_frame_topology.dart';
 import 'sidebar_layout.dart';
 
 @immutable
 class ShellFrameGeometry {
   const ShellFrameGeometry({
+    required this.topology,
     required this.titleBarHeight,
     required this.workspaceHeight,
     required this.leftChromeWidth,
@@ -19,6 +21,7 @@ class ShellFrameGeometry {
     required this.structuralRailVisible,
   });
 
+  final ShellFrameTopology topology;
   final double titleBarHeight;
   final double workspaceHeight;
   final double leftChromeWidth;
@@ -41,6 +44,11 @@ class ShellFrameGeometry {
     required double railWidth,
     required double temporaryNavigationWidth,
   }) {
+    final topology = ShellFrameTopology.resolve(
+      shellChromeLayout: shellChromeLayout,
+      navigationPresentation: navigationPresentation,
+      temporaryNavigationOpen: temporaryNavigationOpen,
+    );
     final usesTitleBar = shellChromeLayout.placesControlsInTitleBar;
     final titleBarHeight = usesTitleBar ? kWorkspaceHeaderHeight : 0.0;
     final workspaceHeight = (size.height - titleBarHeight)
@@ -78,6 +86,7 @@ class ShellFrameGeometry {
         : 0.0;
 
     return ShellFrameGeometry(
+      topology: topology,
       titleBarHeight: titleBarHeight,
       workspaceHeight: workspaceHeight,
       leftChromeWidth: leftChromeWidth,

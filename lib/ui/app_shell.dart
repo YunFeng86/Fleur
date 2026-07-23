@@ -382,6 +382,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       fallback: (railWidth - kShellControlSize) / 2,
     );
     final scope = ShellLayerScope(
+      topology: geometry.topology,
       totalSize: size,
       contentSize: Size(size.width, geometry.workspaceHeight),
       sidebarLayoutMode: sidebarLayoutModeForWidth(size.width),
@@ -557,6 +558,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         : sidebar;
 
     final contentLayer = ShellLayerScope(
+      topology: geometry.topology,
       totalSize: size,
       contentSize: Size(geometry.contentWidth, geometry.workspaceHeight),
       sidebarLayoutMode: sidebarLayoutMode,

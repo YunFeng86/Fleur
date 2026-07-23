@@ -6,10 +6,19 @@ import 'package:fleur/l10n/app_localizations.dart';
 import 'package:fleur/services/update/app_update_manifest.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/ui/shell_chrome_layout.dart';
+import 'package:fleur/ui/shell_frame_topology.dart';
 import 'package:fleur/ui/shell_title_bar.dart';
 import 'package:fleur/ui/sidebar_layout.dart';
 import 'package:fleur/ui/workspace_layers.dart';
 import 'package:fleur/utils/platform.dart';
+
+const _testShellTopology = ShellFrameTopology(
+  surfaceMode: ShellFrameSurfaceMode.continuous,
+  navigationSurface: ShellNavigationSurface.inline,
+  globalToolSurface: ShellGlobalToolSurface.integrated,
+  temporaryNavigationOpen: false,
+  shellCanvasPaintsFullViewport: true,
+);
 
 Future<void> _pumpHeader(
   WidgetTester tester, {
@@ -31,6 +40,7 @@ Future<void> _pumpHeader(
       theme: AppTheme.light(),
       home: Scaffold(
         body: ShellLayerScope(
+          topology: _testShellTopology,
           totalSize: size,
           contentSize: size,
           sidebarLayoutMode: SidebarLayoutMode.inline,
@@ -190,6 +200,7 @@ void main() {
         MaterialApp(
           theme: AppTheme.light(),
           home: ShellLayerScope(
+            topology: _testShellTopology,
             totalSize: const Size(520, 120),
             contentSize: const Size(520, 120),
             sidebarLayoutMode: SidebarLayoutMode.inline,
@@ -221,6 +232,7 @@ void main() {
         MaterialApp(
           theme: AppTheme.light(),
           home: ShellLayerScope(
+            topology: _testShellTopology,
             totalSize: const Size(520, 120),
             contentSize: const Size(520, 120),
             sidebarLayoutMode: SidebarLayoutMode.inline,
@@ -279,6 +291,7 @@ void main() {
       MaterialApp(
         theme: AppTheme.light(),
         home: ShellLayerScope(
+          topology: _testShellTopology,
           totalSize: const Size(520, 120),
           contentSize: const Size(520, 120),
           sidebarLayoutMode: SidebarLayoutMode.inline,
