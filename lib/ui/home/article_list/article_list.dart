@@ -75,6 +75,10 @@ class _ArticleListState extends ConsumerState<ArticleList> {
   int _pendingArticleCount = 0;
   double? _averageArticleExtent;
   bool _activeSelectionSyncScheduled = false;
+  bool _focusRestoreScheduled = false;
+  late final FocusNode _articleAnchorFocusNode;
+  late final FocusNode _listFallbackFocusNode;
+  int? _focusAnchorArticleId;
 
   int? _lastContextKey;
   Set<int> _seenArticleIds = <int>{};
@@ -89,6 +93,11 @@ class _ArticleListState extends ConsumerState<ArticleList> {
   void initState() {
     super.initState();
     _controller = ScrollController()..addListener(_handleScroll);
+    _articleAnchorFocusNode = FocusNode(
+      debugLabel: 'article-list-article-anchor',
+    );
+    _listFallbackFocusNode = FocusNode(debugLabel: 'article-list-fallback');
+    _focusAnchorArticleId = widget.selectedArticleId;
     _syncActiveSelection();
   }
 
@@ -98,6 +107,38 @@ class _ArticleListState extends ConsumerState<ArticleList> {
     if (oldWidget.selectedArticleId != widget.selectedArticleId) {
       _syncActiveSelection();
     }
+    if (widget.selectedArticleId != null) {
+      _focusAnchorArticleId = widget.selectedArticleId;
+    } else if (oldWidget.selectedArticleId != null) {
+      _scheduleFocusRestore();
+    }
+  }
+
+  @override
+  void dispose() {
+    _articleAnchorFocusNode.dispose();
+    _listFallbackFocusNode.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _scheduleFocusRestore() {
+    if (_focusRestoreScheduled) return;
+    _focusRestoreScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focusRestoreScheduled = false;
+      if (!mounted || widget.selectedArticleId != null) return;
+      final anchorId = _focusAnchorArticleId;
+      final items = ref.read(articleListControllerProvider).valueOrNull?.items;
+      final anchorAvailable =
+          anchorId != null &&
+          items?.any((article) => article.id == anchorId) == true &&
+          _articleAnchorFocusNode.context != null;
+      final target = anchorAvailable
+          ? _articleAnchorFocusNode
+          : _listFallbackFocusNode;
+      if (target.canRequestFocus) target.requestFocus();
+    });
   }
 
   void _syncActiveSelection() {
@@ -220,12 +261,6 @@ class _ArticleListState extends ConsumerState<ArticleList> {
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
   }
 
   Widget _withTopBar(Widget child) {
@@ -443,7 +478,7 @@ class _ArticleListState extends ConsumerState<ArticleList> {
       groupMode,
     );
 
-    return state.when(
+    final content = state.when(
       loading: () =>
           _withTopBar(const Center(child: CircularProgressIndicator())),
       error: (e, _) =>
@@ -557,6 +592,9 @@ class _ArticleListState extends ConsumerState<ArticleList> {
                     Widget child = ArticleListItem(
                       article: live,
                       selected: live.id == widget.selectedArticleId,
+                      focusNode: live.id == _focusAnchorArticleId
+                          ? _articleAnchorFocusNode
+                          : null,
                       onTap: () => _openArticle(
                         context,
                         live,
@@ -657,6 +695,13 @@ class _ArticleListState extends ConsumerState<ArticleList> {
           ),
         );
       },
+    );
+
+    return Focus(
+      key: const Key('article_list_focus_fallback'),
+      focusNode: _listFallbackFocusNode,
+      skipTraversal: true,
+      child: content,
     );
   }
 

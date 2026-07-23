@@ -20,12 +20,14 @@ class ArticleListItem extends ConsumerStatefulWidget {
     super.key,
     required this.article,
     required this.selected,
+    this.focusNode,
     this.onTap,
     this.onSecondaryTapDown,
   });
 
   final Article article;
   final bool selected;
+  final FocusNode? focusNode;
   final VoidCallback? onTap;
   final GestureTapDownCallback? onSecondaryTapDown;
 
@@ -162,6 +164,7 @@ class _ArticleListItemState extends ConsumerState<ArticleListItem> {
               child: Material(
                 type: MaterialType.transparency,
                 child: InkWell(
+                  focusNode: widget.focusNode,
                   hoverColor: states.hoverTint,
                   highlightColor: states.pressedTint,
                   onHover: _setHovered,
