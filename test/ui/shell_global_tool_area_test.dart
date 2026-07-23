@@ -9,6 +9,16 @@ import 'package:fleur/ui/shell_global_tool_area.dart';
 import 'package:fleur/ui/sidebar_layout.dart';
 
 void main() {
+  BorderRadius buttonRadius(WidgetTester tester, Key key) {
+    final button = tester.widget<IconButton>(
+      find.descendant(of: find.byKey(key), matching: find.byType(IconButton)),
+    );
+    final shape = button.style!.shape!.resolve(const <WidgetState>{});
+    return (shape! as RoundedRectangleBorder).borderRadius.resolve(
+      TextDirection.ltr,
+    );
+  }
+
   Future<void> pumpArea(
     WidgetTester tester, {
     required ShellGlobalToolSurface surface,
@@ -49,6 +59,22 @@ void main() {
     expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
     expect(find.byKey(const Key('shell_sidebar_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
+    expect(
+      buttonRadius(tester, const Key('shell_sidebar_button')),
+      BorderRadius.circular(16),
+    );
+  });
+
+  testWidgets('window-frame presentation uses soft-square controls', (
+    tester,
+  ) async {
+    await pumpArea(tester, surface: ShellGlobalToolSurface.windowFrame);
+
+    expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
+    expect(
+      buttonRadius(tester, const Key('shell_sidebar_button')),
+      BorderRadius.circular(8),
+    );
   });
 
   testWidgets('floating presentation uses the L1 island treatment', (
@@ -63,6 +89,10 @@ void main() {
     expect(find.byKey(const Key('shell_global_tool_area')), findsOneWidget);
     expect(find.byKey(const Key('shell_controls_capsule')), findsOneWidget);
     expect(find.byKey(const Key('shell_search_button')), findsNothing);
+    expect(
+      buttonRadius(tester, const Key('shell_sidebar_button')),
+      BorderRadius.circular(16),
+    );
   });
 
   testWidgets('caller key is not reused by the internal focus group', (

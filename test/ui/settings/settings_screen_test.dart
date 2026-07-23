@@ -160,6 +160,16 @@ void main() {
     );
   }
 
+  BorderRadius buttonRadius(WidgetTester tester, Key key) {
+    final button = tester.widget<IconButton>(
+      find.descendant(of: find.byKey(key), matching: find.byType(IconButton)),
+    );
+    final shape = button.style!.shape!.resolve(const <WidgetState>{});
+    return (shape! as RoundedRectangleBorder).borderRadius.resolve(
+      TextDirection.ltr,
+    );
+  }
+
   testWidgets('Settings Screen starts with List in Narrow Mode', (
     tester,
   ) async {
@@ -371,6 +381,14 @@ void main() {
     expect(find.byKey(const Key('settings_sidebar')), findsNothing);
     expect(find.byKey(const Key('settings_navigation_rail')), findsOneWidget);
     expect(find.byKey(const Key('settings_sidebar_button')), findsOneWidget);
+    expect(
+      buttonRadius(tester, const Key('settings_sidebar_button')),
+      BorderRadius.circular(16),
+    );
+    expect(
+      buttonRadius(tester, const Key('settings_rail_nav_app-preferences')),
+      BorderRadius.circular(8),
+    );
     expect(
       tester.getTopLeft(find.byKey(const Key('settings_content_layer'))).dx,
       kSidebarRailWidth,

@@ -37,6 +37,7 @@ class ShellControlStrip extends StatelessWidget {
     required this.commands,
     required this.presentationMode,
     required this.surface,
+    required this.buttonShape,
     this.searchSelected = false,
     this.showSearch = true,
     this.updateManifest,
@@ -50,6 +51,7 @@ class ShellControlStrip extends StatelessWidget {
   final ShellWindowTitleBarCommands commands;
   final SidebarPresentationMode presentationMode;
   final ShellControlStripSurface surface;
+  final FleurShellIconButtonShape buttonShape;
   final bool searchSelected;
   final bool showSearch;
   final AppUpdateManifest? updateManifest;
@@ -126,6 +128,7 @@ class ShellControlStrip extends StatelessWidget {
               size: kShellControlSize,
               iconSize: kShellControlIconSize,
               focusNode: control.focusNode,
+              shape: buttonShape,
             ),
         ],
       );
@@ -150,12 +153,14 @@ class ShellControlStrip extends StatelessWidget {
             focusNode: control.focusNode,
             adaptiveTapTarget: adaptiveTapTargets,
             interactionMode: interactionMode,
+            shape: buttonShape,
           ),
         if (visibility.hidden.isNotEmpty)
           _ShellControlOverflowButton(
             controls: visibility.hidden,
             adaptiveTapTarget: adaptiveTapTargets,
             interactionMode: interactionMode,
+            shape: buttonShape,
           ),
       ],
     );
@@ -271,6 +276,7 @@ class _FlatShellControlButton extends StatelessWidget {
     this.focusNode,
     this.adaptiveTapTarget = false,
     this.interactionMode,
+    required this.shape,
   });
 
   final String tooltip;
@@ -280,6 +286,7 @@ class _FlatShellControlButton extends StatelessWidget {
   final FocusNode? focusNode;
   final bool adaptiveTapTarget;
   final FocusHighlightMode? interactionMode;
+  final FleurShellIconButtonShape shape;
 
   @override
   Widget build(BuildContext context) {
@@ -295,6 +302,7 @@ class _FlatShellControlButton extends StatelessWidget {
       disabledOpacity: disabledOpacity,
       adaptiveTapTarget: adaptiveTapTarget,
       interactionMode: interactionMode,
+      shape: shape,
     );
   }
 }
@@ -304,11 +312,13 @@ class _ShellControlOverflowButton extends StatelessWidget {
     required this.controls,
     required this.adaptiveTapTarget,
     required this.interactionMode,
+    required this.shape,
   });
 
   final List<_ShellControlData> controls;
   final bool adaptiveTapTarget;
   final FocusHighlightMode? interactionMode;
+  final FleurShellIconButtonShape shape;
 
   @override
   Widget build(BuildContext context) {
@@ -322,6 +332,7 @@ class _ShellControlOverflowButton extends StatelessWidget {
         size: kShellControlSize,
         adaptiveTapTarget: adaptiveTapTarget,
         interactionMode: interactionMode,
+        shape: shape,
       ),
       onSelected: (index) => controls[index].onPressed?.call(),
       itemBuilder: (context) => [

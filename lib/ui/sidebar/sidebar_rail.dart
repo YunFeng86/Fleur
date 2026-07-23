@@ -308,6 +308,7 @@ class _SidebarRailIconButton extends StatelessWidget {
         context,
         selected: selected,
         size: _kSidebarRailButtonSize,
+        shape: FleurShellIconButtonShape.roundedSquare,
       ),
     );
   }

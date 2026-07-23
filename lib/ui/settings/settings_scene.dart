@@ -288,7 +288,7 @@ class _SettingsNavigationRail extends StatelessWidget {
                 ),
                 selected: selected,
                 size: 40,
-                borderRadius: BorderRadius.circular(8),
+                shape: FleurShellIconButtonShape.roundedSquare,
                 selectedBackgroundColor: surfaces.cardSelected,
                 selectedForegroundColor: scheme.primary,
                 unselectedForegroundColor: scheme.onSurfaceVariant,
@@ -751,17 +751,12 @@ class _SettingsHeaderButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
+    return FleurShellIconButton(
       focusNode: focusNode,
       tooltip: tooltip,
       onPressed: onPressed,
       icon: Icon(icon, size: kShellControlIconSize),
-      style: IconButton.styleFrom(
-        fixedSize: const Size.square(kShellControlSize),
-        minimumSize: const Size.square(kShellControlSize),
-        padding: EdgeInsets.zero,
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      ),
+      size: kShellControlSize,
     );
   }
 }

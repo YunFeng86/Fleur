@@ -40,6 +40,16 @@ class _TestAppUpdateController extends AppUpdateController {
   AppUpdateState build() => initialState;
 }
 
+BorderRadius _buttonRadius(WidgetTester tester, Key key) {
+  final button = tester.widget<IconButton>(
+    find.descendant(of: find.byKey(key), matching: find.byType(IconButton)),
+  );
+  final shape = button.style!.shape!.resolve(const <WidgetState>{});
+  return (shape! as RoundedRectangleBorder).borderRadius.resolve(
+    TextDirection.ltr,
+  );
+}
+
 void main() {
   test('Desktop window options hide native chrome for Flutter titlebars', () {
     addTearDown(() => debugFleurTargetPlatformOverride = null);
@@ -86,6 +96,10 @@ void main() {
     expect(find.byKey(const Key('shell_window_close_button')), findsOneWidget);
     expect(find.byKey(const Key('sidebar_update_button')), findsNothing);
     expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
+    expect(
+      _buttonRadius(tester, const Key('shell_search_button')),
+      BorderRadius.circular(8),
+    );
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
     await tester.pump();
@@ -96,6 +110,10 @@ void main() {
     expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
     expect(find.byKey(const Key('app_shell_connected_rail')), findsOneWidget);
     expect(find.byKey(const Key('app_shell_rail_overlay')), findsNothing);
+    expect(
+      _buttonRadius(tester, const Key('sidebar_all_button')),
+      BorderRadius.circular(8),
+    );
     expect(
       find.byKey(const Key('sidebar_collapsed_rail_surface')),
       findsNothing,
@@ -135,6 +153,10 @@ void main() {
     expect(find.byKey(const Key('shell_update_button')), findsOneWidget);
     expect(find.byKey(const Key('sidebar_update_button')), findsNothing);
     expect(find.byKey(const Key('shell_global_tool_area')), findsOneWidget);
+    expect(
+      _buttonRadius(tester, const Key('shell_update_button')),
+      BorderRadius.circular(16),
+    );
     expect(
       find.descendant(
         of: find.byKey(const Key('shell_update_button')),
@@ -538,6 +560,10 @@ void main() {
       expect(
         find.byKey(const Key('sidebar_collapsed_rail_divider')),
         findsNothing,
+      );
+      expect(
+        _buttonRadius(tester, const Key('sidebar_all_button')),
+        BorderRadius.circular(8),
       );
       expectWorkspaceSurfaceAppearance(
         tester,
