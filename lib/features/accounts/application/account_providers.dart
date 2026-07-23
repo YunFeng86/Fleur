@@ -60,6 +60,19 @@ class AccountsController extends AsyncNotifier<AccountsState> {
         createdAt: now,
         updatedAt: now,
       );
+      final conflictingOwner = cur.accounts
+          .where((existing) => !existing.isPrimary)
+          .where(
+            (existing) =>
+                existing.isolatedDatabaseName == account.isolatedDatabaseName,
+          )
+          .firstOrNull;
+      if (conflictingOwner != null) {
+        throw StateError(
+          'Database ${account.isolatedDatabaseName} is already owned by '
+          '${conflictingOwner.id}.',
+        );
+      }
       final next = AccountsState(
         version: cur.version,
         activeAccountId: cur.activeAccountId,

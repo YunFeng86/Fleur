@@ -37,6 +37,12 @@ class Account {
   // accounts may initialize a missing database.
   final bool databaseInitialized;
 
+  String get isolatedDatabaseName {
+    final explicit = dbName?.trim();
+    if (explicit != null && explicit.isNotEmpty) return explicit;
+    return 'fleur_$id';
+  }
+
   final DateTime createdAt;
   final DateTime updatedAt;
 

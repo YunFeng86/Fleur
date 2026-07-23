@@ -107,6 +107,19 @@ class AccountStore {
     if (state.accounts.isEmpty) {
       throw const FormatException('Account JSON has no valid accounts');
     }
+    final databaseOwners = <String, String>{};
+    for (final account in state.accounts.where(
+      (account) => !account.isPrimary,
+    )) {
+      final name = account.isolatedDatabaseName;
+      final existingOwner = databaseOwners[name];
+      if (existingOwner != null && existingOwner != account.id) {
+        throw FormatException(
+          'Accounts $existingOwner and ${account.id} share database $name',
+        );
+      }
+      databaseOwners[name] = account.id;
+    }
     return state;
   }
 

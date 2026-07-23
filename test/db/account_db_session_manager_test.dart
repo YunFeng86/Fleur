@@ -171,6 +171,45 @@ void main() {
       );
     });
 
+    test('rejects same database target owned by another account', () async {
+      final manager = AccountDbSessionManager(
+        resolveTarget:
+            ({required accountId, dbName, required isPrimary}) async {
+              return AccountDbTarget(
+                accountId: accountId,
+                directory: '/tmp/shared',
+                name: 'same',
+                isPrimary: isPrimary,
+              );
+            },
+        openTarget: (target, mode) async {
+          return _FakeIsar(name: target.name, directory: target.directory);
+        },
+      );
+
+      final lease = await manager.acquireExistingForAccount(
+        accountId: 'account-a',
+        dbName: 'same',
+        isPrimary: false,
+      );
+      addTearDown(lease.release);
+
+      await expectLater(
+        manager.acquireExistingForAccount(
+          accountId: 'account-b',
+          dbName: 'same',
+          isPrimary: false,
+        ),
+        throwsA(
+          isA<DbOpenFailure>().having(
+            (error) => error.kind,
+            'kind',
+            DbOpenFailureKind.environmental,
+          ),
+        ),
+      );
+    });
+
     test(
       'deleteIdleForAccount refuses active leases and deletes when idle',
       () async {

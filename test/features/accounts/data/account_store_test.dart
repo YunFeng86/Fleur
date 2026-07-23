@@ -281,6 +281,42 @@ void main() {
     expect(await file.readAsString(), raw);
     expect(await File('${file.path}.bak').exists(), isFalse);
   });
+
+  test('AccountStore rejects accounts sharing one database target', () async {
+    final stateDir = await PathManager.getStateDir();
+    final file = File('${stateDir.path}${Platform.pathSeparator}accounts.json');
+    final now = DateTime.utc(2026, 1, 1).toIso8601String();
+    final raw = jsonEncode(<String, Object?>{
+      'version': AccountStore.currentVersion,
+      'activeAccountId': 'account-a',
+      'accounts': <Object?>[
+        <String, Object?>{
+          'id': 'account-a',
+          'type': 'miniflux',
+          'name': 'Account A',
+          'dbName': 'shared_database',
+          'createdAt': now,
+          'updatedAt': now,
+        },
+        <String, Object?>{
+          'id': 'account-b',
+          'type': 'fever',
+          'name': 'Account B',
+          'dbName': 'shared_database',
+          'createdAt': now,
+          'updatedAt': now,
+        },
+      ],
+    });
+    await file.writeAsString(raw);
+
+    await expectLater(
+      AccountStore().loadOrCreate(),
+      throwsA(isA<DurableJsonReadException>()),
+    );
+
+    expect(await file.readAsString(), raw);
+  });
 }
 
 Map<String, Object?> _accountStateJson({required String accountId}) {

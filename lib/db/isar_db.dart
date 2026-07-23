@@ -315,14 +315,19 @@ class AccountDbSessionManager {
   }
 
   void _ensureSameTarget(AccountDbTarget current, AccountDbTarget requested) {
-    if (p.equals(current.directory, requested.directory)) return;
+    if (current.accountId == requested.accountId &&
+        current.name == requested.name &&
+        current.isPrimary == requested.isPrimary &&
+        p.equals(current.directory, requested.directory)) {
+      return;
+    }
     throw DbOpenFailure(
       kind: DbOpenFailureKind.environmental,
       directory: requested.directory,
       name: requested.name,
       error: StateError(
-        'Isar instance name "${requested.name}" is already held for '
-        '"${current.directory}", not "${requested.directory}".',
+        'Database target "${requested.name}" is already owned by account '
+        '"${current.accountId}" at "${current.directory}".',
       ),
     );
   }

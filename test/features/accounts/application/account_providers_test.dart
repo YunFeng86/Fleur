@@ -88,6 +88,46 @@ void main() {
     expect(added!.databaseInitialized, isFalse);
   });
 
+  test(
+    'addAccount rejects a database target owned by another account',
+    () async {
+      final initial = _localState();
+      final existing = Account(
+        id: 'existing',
+        type: AccountType.miniflux,
+        name: 'Existing',
+        dbName: 'shared_database',
+        createdAt: DateTime.utc(2026, 1, 1),
+        updatedAt: DateTime.utc(2026, 1, 1),
+      );
+      final store = _MemoryAccountStore(
+        AccountsState(
+          version: initial.version,
+          activeAccountId: initial.activeAccountId,
+          accounts: [...initial.accounts, existing],
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [accountStoreProvider.overrideWithValue(store)],
+      );
+      addTearDown(container.dispose);
+      await container.read(accountsControllerProvider.future);
+
+      await expectLater(
+        container
+            .read(accountsControllerProvider.notifier)
+            .addAccount(
+              type: AccountType.fever,
+              name: 'Conflicting',
+              dbName: 'shared_database',
+            ),
+        throwsStateError,
+      );
+
+      expect(store.state.accounts, hasLength(2));
+    },
+  );
+
   test('markDatabaseInitialized persists true only once', () async {
     final initial = _localState(databaseInitialized: false);
     final store = _MemoryAccountStore(initial);
