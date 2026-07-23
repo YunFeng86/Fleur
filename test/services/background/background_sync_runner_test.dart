@@ -29,26 +29,17 @@ import '../../test_utils/critical_workflow_test_support.dart';
 Future<T> _runWithoutMutex<T>(String key, Future<T> Function() op) => op();
 
 class _FakeIsar extends Fake implements Isar {
+  _FakeIsar({this.closeError});
+
+  final Object? closeError;
   var closeCalls = 0;
 
   @override
   Future<bool> close({bool deleteFromDisk = false}) async {
     closeCalls++;
+    final error = closeError;
+    if (error != null) throw error;
     return true;
-  }
-}
-
-class _FakeIsarLease implements IsarLease {
-  _FakeIsarLease(this.isar);
-
-  var releaseCalls = 0;
-
-  @override
-  final Isar isar;
-
-  @override
-  Future<void> release() async {
-    releaseCalls++;
   }
 }
 
@@ -122,6 +113,27 @@ void main() {
     return FakeAppSettingsStore(settings);
   }
 
+  IsarAccountDatabaseLifecycle buildDatabaseLifecycle(
+    AccountsState accounts, {
+    required AccountDbTargetOpener openTarget,
+  }) {
+    return IsarAccountDatabaseLifecycle(
+      findAccount: (accountId) async => accounts.findById(accountId),
+      sessions: AccountDbSessionManager(
+        resolveTarget:
+            ({required accountId, dbName, required isPrimary}) async {
+              return AccountDbTarget(
+                accountId: accountId,
+                directory: '/test/database',
+                name: dbName ?? accountId,
+                isPrimary: isPrimary,
+              );
+            },
+        openTarget: openTarget,
+      ),
+    );
+  }
+
   testWidgets('returns early without opening DB when there is no work', (
     tester,
   ) async {
@@ -129,8 +141,9 @@ void main() {
     addTearDown(() => debugFleurTargetPlatformOverride = null);
 
     var openCalls = 0;
+    final accounts = buildAccountsState();
     final runner = BackgroundSyncRunner(
-      accounts: buildAccountsState(),
+      accounts: accounts,
       appSettingsStore: buildAppSettingsStore(
         AppSettings.defaults().copyWith(
           sourceRefreshMinutes: null,
@@ -139,11 +152,13 @@ void main() {
       ),
       outboxStore: FakeOutboxStore(),
       runWithMutex: _runWithoutMutex,
-      openIsarForAccountFn:
-          ({required accountId, required dbName, required isPrimary}) async {
-            openCalls++;
-            throw UnimplementedError('DB should not be opened');
-          },
+      databaseLifecycle: buildDatabaseLifecycle(
+        accounts,
+        openTarget: (target, mode) async {
+          openCalls++;
+          throw UnimplementedError('DB should not be opened');
+        },
+      ),
       syncServiceBuilder:
           ({
             required account,
@@ -173,18 +188,21 @@ void main() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
 
     var openCalls = 0;
+    final accounts = buildAccountsState(databaseInitialized: false);
     final runner = BackgroundSyncRunner(
-      accounts: buildAccountsState(databaseInitialized: false),
+      accounts: accounts,
       appSettingsStore: buildAppSettingsStore(
         AppSettings.defaults().copyWith(syncEnabled: true),
       ),
       outboxStore: FakeOutboxStore(),
       runWithMutex: _runWithoutMutex,
-      openIsarForAccountFn:
-          ({required accountId, required dbName, required isPrimary}) async {
-            openCalls++;
-            throw UnimplementedError('pending database must not be opened');
-          },
+      databaseLifecycle: buildDatabaseLifecycle(
+        accounts,
+        openTarget: (target, mode) async {
+          openCalls++;
+          throw UnimplementedError('pending database must not be opened');
+        },
+      ),
     );
 
     await runner.run(
@@ -200,7 +218,8 @@ void main() {
     addTearDown(() => debugFleurTargetPlatformOverride = null);
 
     final outbox = FakeOutboxStore();
-    final accountId = buildAccountsState().activeAccountId;
+    final accounts = buildAccountsState();
+    final accountId = accounts.activeAccountId;
     await outbox.save(accountId, [
       OutboxAction(
         type: OutboxActionType.markRead,
@@ -212,7 +231,7 @@ void main() {
     final syncService = FakeSyncService();
     final isar = _FakeIsar();
     final runner = BackgroundSyncRunner(
-      accounts: buildAccountsState(),
+      accounts: accounts,
       appSettingsStore: buildAppSettingsStore(
         AppSettings.defaults().copyWith(
           sourceRefreshMinutes: null,
@@ -222,9 +241,10 @@ void main() {
       outboxStore: outbox,
       runWithMutex: _runWithoutMutex,
       refreshAllRemoteFeeds: (_) async {},
-      openIsarForAccountFn:
-          ({required accountId, required dbName, required isPrimary}) async =>
-              isar,
+      databaseLifecycle: buildDatabaseLifecycle(
+        accounts,
+        openTarget: (target, mode) async => isar,
+      ),
       syncServiceBuilder:
           ({
             required account,
@@ -247,64 +267,6 @@ void main() {
     expect(syncService.refreshCalls, isEmpty);
     expect(isar.closeCalls, 1);
   });
-
-  testWidgets(
-    'default DB session path releases lease instead of closing Isar',
-    (tester) async {
-      debugFleurTargetPlatformOverride = TargetPlatform.iOS;
-      addTearDown(() => debugFleurTargetPlatformOverride = null);
-
-      final outbox = FakeOutboxStore();
-      final accountId = buildAccountsState().activeAccountId;
-      await outbox.save(accountId, [
-        OutboxAction(
-          type: OutboxActionType.markRead,
-          remoteEntryId: 1,
-          value: true,
-          createdAt: DateTime.utc(2026, 1, 1),
-        ),
-      ]);
-      final syncService = FakeSyncService();
-      final isar = _FakeIsar();
-      final lease = _FakeIsarLease(isar);
-
-      final runner = BackgroundSyncRunner(
-        accounts: buildAccountsState(),
-        appSettingsStore: buildAppSettingsStore(
-          AppSettings.defaults().copyWith(
-            sourceRefreshMinutes: null,
-            syncEnabled: false,
-          ),
-        ),
-        outboxStore: outbox,
-        runWithMutex: _runWithoutMutex,
-        refreshAllRemoteFeeds: (_) async {},
-        acquireIsarLeaseForAccountFn:
-            ({required accountId, required dbName, required isPrimary}) async =>
-                lease,
-        syncServiceBuilder:
-            ({
-              required account,
-              required feeds,
-              required categories,
-              required articles,
-              required outbox,
-              required appSettingsStore,
-            }) {
-              return syncService;
-            },
-      );
-
-      await runner.run(
-        taskName: kBackgroundSyncTaskName,
-        inputData: const <String, dynamic>{},
-      );
-
-      expect(syncService.flushCalls, 1);
-      expect(lease.releaseCalls, 1);
-      expect(isar.closeCalls, 0);
-    },
-  );
 
   testWidgets('lifecycle path skips work on semantic database failure', (
     tester,
@@ -474,6 +436,67 @@ void main() {
     expect(isar.closeCalls, 1);
   });
 
+  testWidgets('database release failure does not replace the work failure', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.iOS;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    final accounts = buildAccountsState();
+    final accountId = accounts.activeAccountId;
+    final outbox = FakeOutboxStore();
+    await outbox.save(accountId, [
+      OutboxAction(
+        type: OutboxActionType.markRead,
+        remoteEntryId: 1,
+        value: true,
+        createdAt: DateTime.utc(2026, 1, 1),
+      ),
+    ]);
+    final isar = _FakeIsar(closeError: StateError('release failed'));
+    final runner = BackgroundSyncRunner(
+      accounts: accounts,
+      appSettingsStore: buildAppSettingsStore(
+        AppSettings.defaults().copyWith(
+          sourceRefreshMinutes: null,
+          syncEnabled: false,
+        ),
+      ),
+      outboxStore: outbox,
+      databaseLifecycle: buildDatabaseLifecycle(
+        accounts,
+        openTarget: (target, mode) async => isar,
+      ),
+      runWithMutex: _runWithoutMutex,
+      syncServiceBuilder:
+          ({
+            required account,
+            required feeds,
+            required categories,
+            required articles,
+            required outbox,
+            required appSettingsStore,
+          }) {
+            throw StateError('work failed');
+          },
+    );
+
+    await expectLater(
+      runner.run(
+        taskName: kBackgroundSyncTaskName,
+        inputData: const <String, dynamic>{},
+      ),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          'work failed',
+        ),
+      ),
+    );
+    expect(isar.closeCalls, 1);
+  });
+
   testWidgets(
     'local accounts ignore outbox-only background work and keep DB closed',
     (tester) async {
@@ -506,11 +529,13 @@ void main() {
         ),
         outboxStore: outbox,
         runWithMutex: _runWithoutMutex,
-        openIsarForAccountFn:
-            ({required accountId, required dbName, required isPrimary}) async {
-              openCalls++;
-              throw UnimplementedError('DB should not be opened');
-            },
+        databaseLifecycle: buildDatabaseLifecycle(
+          accounts,
+          openTarget: (target, mode) async {
+            openCalls++;
+            throw UnimplementedError('DB should not be opened');
+          },
+        ),
         syncServiceBuilder:
             ({
               required account,
@@ -543,7 +568,8 @@ void main() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
 
     final outbox = FakeOutboxStore();
-    final accountId = buildAccountsState().activeAccountId;
+    final accounts = buildAccountsState();
+    final accountId = accounts.activeAccountId;
     await outbox.save(accountId, [
       OutboxAction(
         type: OutboxActionType.markRead,
@@ -559,7 +585,7 @@ void main() {
       ..url = 'https://example.com/feed.xml'
       ..title = 'Feed 1';
     final runner = BackgroundSyncRunner(
-      accounts: buildAccountsState(),
+      accounts: accounts,
       appSettingsStore: buildAppSettingsStore(
         AppSettings.defaults().copyWith(
           sourceRefreshMinutes: null,
@@ -569,9 +595,10 @@ void main() {
       outboxStore: outbox,
       runWithMutex: _runWithoutMutex,
       refreshAllRemoteFeeds: (_) async {},
-      openIsarForAccountFn:
-          ({required accountId, required dbName, required isPrimary}) async =>
-              isar,
+      databaseLifecycle: buildDatabaseLifecycle(
+        accounts,
+        openTarget: (target, mode) async => isar,
+      ),
       loadAllFeeds: (feeds, account) async => [feed],
       syncServiceBuilder:
           ({
@@ -607,8 +634,9 @@ void main() {
 
       final syncService = FakeSyncService();
       final isar = _FakeIsar();
+      final accounts = buildAccountsState();
       final runner = BackgroundSyncRunner(
-        accounts: buildAccountsState(),
+        accounts: accounts,
         appSettingsStore: buildAppSettingsStore(
           AppSettings.defaults().copyWith(
             sourceRefreshMinutes: null,
@@ -618,9 +646,10 @@ void main() {
         outboxStore: FakeOutboxStore(),
         runWithMutex: _runWithoutMutex,
         refreshAllRemoteFeeds: (_) async {},
-        openIsarForAccountFn:
-            ({required accountId, required dbName, required isPrimary}) async =>
-                isar,
+        databaseLifecycle: buildDatabaseLifecycle(
+          accounts,
+          openTarget: (target, mode) async => isar,
+        ),
         loadAllFeeds: (feeds, account) async => <Feed>[],
         syncServiceBuilder:
             ({
@@ -658,12 +687,13 @@ void main() {
       ..id = 1
       ..url = 'https://example.com/feed.xml'
       ..title = 'Feed 1';
+    final accounts = buildAccountsState(
+      type: AccountType.local,
+      id: 'local-account',
+      baseUrl: null,
+    );
     final runner = BackgroundSyncRunner(
-      accounts: buildAccountsState(
-        type: AccountType.local,
-        id: 'local-account',
-        baseUrl: null,
-      ),
+      accounts: accounts,
       appSettingsStore: buildAppSettingsStore(
         AppSettings.defaults().copyWith(
           sourceRefreshMinutes: 30,
@@ -672,9 +702,10 @@ void main() {
       ),
       outboxStore: FakeOutboxStore(),
       runWithMutex: _runWithoutMutex,
-      openIsarForAccountFn:
-          ({required accountId, required dbName, required isPrimary}) async =>
-              isar,
+      databaseLifecycle: buildDatabaseLifecycle(
+        accounts,
+        openTarget: (target, mode) async => isar,
+      ),
       loadAllFeeds: (feeds, account) async => [feed],
       syncServiceBuilder:
           ({
@@ -719,8 +750,9 @@ void main() {
         ..id = 1
         ..url = 'https://example.com/feed.xml'
         ..title = 'Feed 1';
+      final accounts = buildAccountsState(type: AccountType.miniflux);
       final runner = BackgroundSyncRunner(
-        accounts: buildAccountsState(type: AccountType.miniflux),
+        accounts: accounts,
         appSettingsStore: buildAppSettingsStore(
           AppSettings.defaults().copyWith(
             sourceRefreshMinutes: 30,
@@ -732,9 +764,10 @@ void main() {
         refreshAllRemoteFeeds: (_) async {
           events.add('upstream');
         },
-        openIsarForAccountFn:
-            ({required accountId, required dbName, required isPrimary}) async =>
-                isar,
+        databaseLifecycle: buildDatabaseLifecycle(
+          accounts,
+          openTarget: (target, mode) async => isar,
+        ),
         loadAllFeeds: (feeds, account) async => [feed],
         syncServiceBuilder:
             ({
@@ -779,12 +812,13 @@ void main() {
       });
 
       var openCalls = 0;
+      final accounts = buildAccountsState(
+        type: AccountType.local,
+        id: 'local-account',
+        baseUrl: null,
+      );
       final runner = BackgroundSyncRunner(
-        accounts: buildAccountsState(
-          type: AccountType.local,
-          id: 'local-account',
-          baseUrl: null,
-        ),
+        accounts: accounts,
         appSettingsStore: buildAppSettingsStore(
           AppSettings.defaults().copyWith(
             sourceRefreshMinutes: 30,
@@ -794,11 +828,13 @@ void main() {
         outboxStore: FakeOutboxStore(),
         runWithMutex: _runWithoutMutex,
         nowProvider: () => DateTime.utc(2026, 1, 1, 0, 20),
-        openIsarForAccountFn:
-            ({required accountId, required dbName, required isPrimary}) async {
-              openCalls++;
-              throw UnimplementedError('DB should not be opened');
-            },
+        databaseLifecycle: buildDatabaseLifecycle(
+          accounts,
+          openTarget: (target, mode) async {
+            openCalls++;
+            throw UnimplementedError('DB should not be opened');
+          },
+        ),
         syncServiceBuilder:
             ({
               required account,
@@ -833,8 +869,9 @@ void main() {
     var upstreamCalls = 0;
     final syncService = FakeSyncService();
     final isar = _FakeIsar();
+    final accounts = buildAccountsState(type: AccountType.fever);
     final runner = BackgroundSyncRunner(
-      accounts: buildAccountsState(type: AccountType.fever),
+      accounts: accounts,
       appSettingsStore: buildAppSettingsStore(
         AppSettings.defaults().copyWith(
           sourceRefreshMinutes: null,
@@ -846,9 +883,10 @@ void main() {
       refreshAllRemoteFeeds: (_) async {
         upstreamCalls++;
       },
-      openIsarForAccountFn:
-          ({required accountId, required dbName, required isPrimary}) async =>
-              isar,
+      databaseLifecycle: buildDatabaseLifecycle(
+        accounts,
+        openTarget: (target, mode) async => isar,
+      ),
       loadAllFeeds: (feeds, account) async => <Feed>[],
       syncServiceBuilder:
           ({
@@ -890,7 +928,8 @@ void main() {
       });
 
       final outbox = FakeOutboxStore();
-      final accountId = buildAccountsState().activeAccountId;
+      final accounts = buildAccountsState();
+      final accountId = accounts.activeAccountId;
       await outbox.save(accountId, [
         OutboxAction(
           type: OutboxActionType.markRead,
@@ -902,7 +941,7 @@ void main() {
       final syncService = FakeSyncService();
       final isar = _FakeIsar();
       final runner = BackgroundSyncRunner(
-        accounts: buildAccountsState(),
+        accounts: accounts,
         appSettingsStore: buildAppSettingsStore(
           AppSettings.defaults().copyWith(
             sourceRefreshMinutes: null,
@@ -912,9 +951,10 @@ void main() {
         outboxStore: outbox,
         runWithMutex: _runWithoutMutex,
         nowProvider: () => DateTime.utc(2026, 1, 1, 0, 20),
-        openIsarForAccountFn:
-            ({required accountId, required dbName, required isPrimary}) async =>
-                isar,
+        databaseLifecycle: buildDatabaseLifecycle(
+          accounts,
+          openTarget: (target, mode) async => isar,
+        ),
         syncServiceBuilder:
             ({
               required account,

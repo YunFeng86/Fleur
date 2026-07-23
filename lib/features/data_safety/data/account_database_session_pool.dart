@@ -5,13 +5,7 @@ import 'package:path/path.dart' as p;
 
 import 'isar_account_database_driver.dart';
 
-abstract interface class IsarLease {
-  Isar get isar;
-
-  Future<void> release();
-}
-
-class AccountDbLease implements IsarLease {
+class AccountDbLease {
   AccountDbLease._({
     required AccountDbSessionManager manager,
     required String name,
@@ -23,10 +17,8 @@ class AccountDbLease implements IsarLease {
   final String _name;
   bool _released = false;
 
-  @override
   final Isar isar;
 
-  @override
   Future<void> release() async {
     if (_released) return;
     _released = true;
