@@ -1,5 +1,11 @@
+import 'dart:io';
+
 import '../../../db/isar_db.dart';
+import 'package:isar_community/isar.dart';
+
+import '../../accounts/domain/account.dart';
 import '../application/account_database_lifecycle.dart';
+import '../domain/account_database_access.dart';
 import '../domain/account_database_deletion.dart';
 
 class IsarAccountDatabaseLifecycle implements AccountDatabaseLifecycle {
@@ -14,6 +20,138 @@ class IsarAccountDatabaseLifecycle implements AccountDatabaseLifecycle {
   final AccountDatabaseAccountLookup _findAccount;
   final AccountDbSessionManager _sessions;
   final Future<void> Function(Duration duration) _sleep;
+
+  @override
+  Future<AccountDatabaseAcquireResult> acquireExisting(
+    AccountDatabaseRef accountRef,
+  ) {
+    return _withAccount(accountRef.accountId, (account) {
+      if (!account.databaseInitialized) {
+        return Future<AccountDatabaseAcquireResult>.value(
+          _accessFailure(
+            account.id,
+            AccountDatabaseAccessFailureKind.initializationRequired,
+          ),
+        );
+      }
+      return _acquire(
+        account.id,
+        initializedNow: false,
+        acquire: () {
+          return _sessions.acquireExistingForAccount(
+            accountId: account.id,
+            dbName: account.dbName,
+            isPrimary: account.isPrimary,
+          );
+        },
+      );
+    });
+  }
+
+  Future<AccountDatabaseAcquireResult> _withAccount(
+    String accountId,
+    Future<AccountDatabaseAcquireResult> Function(Account account) operation,
+  ) async {
+    try {
+      final account = await _findAccount(accountId);
+      if (account == null) {
+        return _accessFailure(
+          accountId,
+          AccountDatabaseAccessFailureKind.dataMissing,
+        );
+      }
+      return operation(account);
+    } catch (_) {
+      return _accessFailure(
+        accountId,
+        AccountDatabaseAccessFailureKind.storageUnavailable,
+      );
+    }
+  }
+
+  @override
+  Future<AccountDatabaseAcquireResult> initialize(
+    AccountDatabaseInitialization intent,
+  ) {
+    return _withAccount(intent.accountId, (account) {
+      if (account.databaseInitialized) {
+        return _acquire(
+          account.id,
+          initializedNow: false,
+          acquire: () {
+            return _sessions.acquireExistingForAccount(
+              accountId: account.id,
+              dbName: account.dbName,
+              isPrimary: account.isPrimary,
+            );
+          },
+        );
+      }
+      return _acquire(
+        account.id,
+        initializedNow: true,
+        acquire: () {
+          return _sessions.initializeForAccount(
+            accountId: account.id,
+            dbName: account.dbName,
+            isPrimary: account.isPrimary,
+          );
+        },
+      );
+    });
+  }
+
+  Future<AccountDatabaseAcquireResult> _acquire(
+    String accountId, {
+    required bool initializedNow,
+    required Future<AccountDbLease> Function() acquire,
+  }) async {
+    try {
+      final lease = await acquire();
+      return AccountDatabaseReady(
+        lease: IsarAccountDatabaseLease(accountId: accountId, lease: lease),
+        initializedNow: initializedNow,
+      );
+    } on DbOpenFailure catch (error) {
+      return _accessFailure(accountId, _mapAccessFailure(error.kind));
+    } on FileSystemException catch (_) {
+      return _accessFailure(
+        accountId,
+        AccountDatabaseAccessFailureKind.storageUnavailable,
+      );
+    } catch (_) {
+      return _accessFailure(
+        accountId,
+        AccountDatabaseAccessFailureKind.migrationFailed,
+      );
+    }
+  }
+
+  AccountDatabaseAccessFailure _accessFailure(
+    String accountId,
+    AccountDatabaseAccessFailureKind kind,
+  ) {
+    return AccountDatabaseAccessFailure(
+      kind: kind,
+      accountId: accountId,
+      supportCode: 'database-access:$accountId:${kind.name}',
+    );
+  }
+
+  AccountDatabaseAccessFailureKind _mapAccessFailure(DbOpenFailureKind kind) {
+    return switch (kind) {
+      DbOpenFailureKind.transient =>
+        AccountDatabaseAccessFailureKind.blockedByAnotherProcess,
+      DbOpenFailureKind.environmental =>
+        AccountDatabaseAccessFailureKind.storageUnavailable,
+      DbOpenFailureKind.recoveryRequired =>
+        AccountDatabaseAccessFailureKind.recoveryRequired,
+      DbOpenFailureKind.dataMissing =>
+        AccountDatabaseAccessFailureKind.dataMissing,
+      DbOpenFailureKind.ownershipMismatch =>
+        AccountDatabaseAccessFailureKind.ownershipMismatch,
+    };
+  }
 
   @override
   Future<AccountDatabaseDeletionResult> deleteForAccountRemoval(
@@ -80,4 +218,24 @@ class IsarAccountDatabaseLifecycle implements AccountDatabaseLifecycle {
       supportCode: '${intent.operationId}:${reason.name}',
     );
   }
+}
+
+class IsarAccountDatabaseLease implements AccountDatabaseLease {
+  IsarAccountDatabaseLease({required this.accountId, required this.lease});
+
+  @override
+  final String accountId;
+  final AccountDbLease lease;
+
+  Isar get isar => lease.isar;
+
+  @override
+  Future<void> release() => lease.release();
+}
+
+Isar bindIsarAccountDatabaseLease(AccountDatabaseLease lease) {
+  if (lease is! IsarAccountDatabaseLease) {
+    throw StateError('Account database lease is not backed by Isar.');
+  }
+  return lease.isar;
 }

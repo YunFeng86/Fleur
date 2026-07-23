@@ -3,6 +3,15 @@ import 'data/isar_account_database_lifecycle.dart';
 
 export 'application/account_database_lifecycle.dart'
     show AccountDatabaseAccountLookup, AccountDatabaseLifecycle;
+export 'domain/account_database_access.dart'
+    show
+        AccountDatabaseAccessFailure,
+        AccountDatabaseAccessFailureKind,
+        AccountDatabaseAcquireResult,
+        AccountDatabaseInitialization,
+        AccountDatabaseLease,
+        AccountDatabaseReady,
+        AccountDatabaseRef;
 export 'domain/account_database_deletion.dart'
     show
         AccountDatabaseAlreadyDeleted,

@@ -5,12 +5,14 @@ import 'package:isar_community/isar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:fleur/db/isar_db.dart';
+import 'package:fleur/features/accounts/accounts.dart';
+import 'package:fleur/features/data_safety/data/isar_account_database_lifecycle.dart';
+import 'package:fleur/features/data_safety/data_safety.dart';
 import 'package:fleur/models/feed.dart';
 import 'package:fleur/providers/service_providers.dart';
 import 'package:fleur/repositories/article_repository.dart';
 import 'package:fleur/repositories/category_repository.dart';
 import 'package:fleur/repositories/feed_repository.dart';
-import 'package:fleur/features/accounts/accounts.dart';
 import 'package:fleur/services/background/background_sync_service.dart';
 import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/settings/app_settings_store.dart';
@@ -46,6 +48,46 @@ class _FakeIsarLease implements IsarLease {
   @override
   Future<void> release() async {
     releaseCalls++;
+  }
+}
+
+class _OpaqueAccountDatabaseLease implements AccountDatabaseLease {
+  _OpaqueAccountDatabaseLease(this.accountId);
+
+  @override
+  final String accountId;
+  var releaseCalls = 0;
+
+  @override
+  Future<void> release() async {
+    releaseCalls++;
+  }
+}
+
+class _ReadyAccountDatabaseLifecycle implements AccountDatabaseLifecycle {
+  _ReadyAccountDatabaseLifecycle(this.lease);
+
+  final AccountDatabaseLease lease;
+
+  @override
+  Future<AccountDatabaseAcquireResult> acquireExisting(
+    AccountDatabaseRef account,
+  ) async {
+    return AccountDatabaseReady(lease: lease, initializedNow: false);
+  }
+
+  @override
+  Future<AccountDatabaseAcquireResult> initialize(
+    AccountDatabaseInitialization intent,
+  ) async {
+    return AccountDatabaseReady(lease: lease, initializedNow: true);
+  }
+
+  @override
+  Future<AccountDatabaseDeletionResult> deleteForAccountRemoval(
+    AccountDatabaseDeletionIntent intent,
+  ) {
+    throw UnimplementedError();
   }
 }
 
@@ -262,6 +304,174 @@ void main() {
       expect(isar.closeCalls, 0);
     },
   );
+
+  testWidgets('lifecycle path skips work on semantic database failure', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.iOS;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    final accounts = buildAccountsState();
+    final accountId = accounts.activeAccountId;
+    final outbox = FakeOutboxStore();
+    await outbox.save(accountId, [
+      OutboxAction(
+        type: OutboxActionType.markRead,
+        remoteEntryId: 1,
+        value: true,
+        createdAt: DateTime.utc(2026, 1, 1),
+      ),
+    ]);
+    var openCalls = 0;
+    final lifecycle = IsarAccountDatabaseLifecycle(
+      findAccount: (id) async => accounts.findById(id),
+      sessions: AccountDbSessionManager(
+        resolveTarget:
+            ({required accountId, dbName, required isPrimary}) async {
+              return AccountDbTarget(
+                accountId: accountId,
+                directory: '/test/database',
+                name: dbName ?? accountId,
+                isPrimary: isPrimary,
+              );
+            },
+        openTarget: (target, mode) async {
+          openCalls++;
+          throw DbOpenFailure(
+            kind: DbOpenFailureKind.transient,
+            directory: target.directory,
+            name: target.name,
+            error: StateError('database locked'),
+          );
+        },
+      ),
+    );
+    final runner = BackgroundSyncRunner(
+      accounts: accounts,
+      appSettingsStore: buildAppSettingsStore(
+        AppSettings.defaults().copyWith(
+          sourceRefreshMinutes: null,
+          syncEnabled: false,
+        ),
+      ),
+      outboxStore: outbox,
+      databaseLifecycle: lifecycle,
+      runWithMutex: _runWithoutMutex,
+    );
+
+    await runner.run(
+      taskName: kBackgroundSyncTaskName,
+      inputData: const <String, dynamic>{},
+    );
+
+    expect(openCalls, 1);
+    expect((await outbox.load(accountId)).length, 1);
+  });
+
+  testWidgets('lifecycle path releases a lease when runtime binding fails', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.iOS;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    final accounts = buildAccountsState();
+    final accountId = accounts.activeAccountId;
+    final outbox = FakeOutboxStore();
+    await outbox.save(accountId, [
+      OutboxAction(
+        type: OutboxActionType.markRead,
+        remoteEntryId: 1,
+        value: true,
+        createdAt: DateTime.utc(2026, 1, 1),
+      ),
+    ]);
+    final lease = _OpaqueAccountDatabaseLease(accountId);
+    final runner = BackgroundSyncRunner(
+      accounts: accounts,
+      appSettingsStore: buildAppSettingsStore(
+        AppSettings.defaults().copyWith(
+          sourceRefreshMinutes: null,
+          syncEnabled: false,
+        ),
+      ),
+      outboxStore: outbox,
+      databaseLifecycle: _ReadyAccountDatabaseLifecycle(lease),
+      runWithMutex: _runWithoutMutex,
+    );
+
+    await runner.run(
+      taskName: kBackgroundSyncTaskName,
+      inputData: const <String, dynamic>{},
+    );
+
+    expect(lease.releaseCalls, 1);
+    expect((await outbox.load(accountId)).length, 1);
+  });
+
+  testWidgets('lifecycle path releases its database lease after work', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.iOS;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    final accounts = buildAccountsState();
+    final accountId = accounts.activeAccountId;
+    final outbox = FakeOutboxStore();
+    await outbox.save(accountId, [
+      OutboxAction(
+        type: OutboxActionType.markRead,
+        remoteEntryId: 1,
+        value: true,
+        createdAt: DateTime.utc(2026, 1, 1),
+      ),
+    ]);
+    final isar = _FakeIsar();
+    final lifecycle = IsarAccountDatabaseLifecycle(
+      findAccount: (id) async => accounts.findById(id),
+      sessions: AccountDbSessionManager(
+        resolveTarget:
+            ({required accountId, dbName, required isPrimary}) async {
+              return AccountDbTarget(
+                accountId: accountId,
+                directory: '/test/database',
+                name: dbName ?? accountId,
+                isPrimary: isPrimary,
+              );
+            },
+        openTarget: (target, mode) async => isar,
+      ),
+    );
+    final syncService = FakeSyncService();
+    final runner = BackgroundSyncRunner(
+      accounts: accounts,
+      appSettingsStore: buildAppSettingsStore(
+        AppSettings.defaults().copyWith(
+          sourceRefreshMinutes: null,
+          syncEnabled: false,
+        ),
+      ),
+      outboxStore: outbox,
+      databaseLifecycle: lifecycle,
+      runWithMutex: _runWithoutMutex,
+      syncServiceBuilder:
+          ({
+            required account,
+            required feeds,
+            required categories,
+            required articles,
+            required outbox,
+            required appSettingsStore,
+          }) => syncService,
+    );
+
+    await runner.run(
+      taskName: kBackgroundSyncTaskName,
+      inputData: const <String, dynamic>{},
+    );
+
+    expect(syncService.flushCalls, 1);
+    expect(isar.closeCalls, 1);
+  });
 
   testWidgets(
     'local accounts ignore outbox-only background work and keep DB closed',

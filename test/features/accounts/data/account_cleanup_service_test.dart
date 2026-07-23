@@ -185,6 +185,24 @@ class _FakeAccountDatabaseLifecycle implements AccountDatabaseLifecycle {
   final AccountDatabaseDeletionResult _result;
 
   @override
+  Future<AccountDatabaseAcquireResult> acquireExisting(
+    AccountDatabaseRef account,
+  ) async => AccountDatabaseAccessFailure(
+    kind: AccountDatabaseAccessFailureKind.dataMissing,
+    accountId: account.accountId,
+    supportCode: 'test:not-used',
+  );
+
+  @override
+  Future<AccountDatabaseAcquireResult> initialize(
+    AccountDatabaseInitialization intent,
+  ) async => AccountDatabaseAccessFailure(
+    kind: AccountDatabaseAccessFailureKind.dataMissing,
+    accountId: intent.accountId,
+    supportCode: 'test:not-used',
+  );
+
+  @override
   Future<AccountDatabaseDeletionResult> deleteForAccountRemoval(
     AccountDatabaseDeletionIntent intent,
   ) async => _result;

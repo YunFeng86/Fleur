@@ -1,16 +1,18 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:fleur/features/accounts/accounts.dart';
+import 'package:fleur/features/data_safety/data/isar_account_database_lifecycle.dart';
+import 'package:fleur/features/data_safety/data_safety.dart';
 import 'package:isar_community/isar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 
-import '../../providers/service_providers.dart';
 import '../../db/isar_db.dart';
 import '../../models/feed.dart';
+import '../../providers/service_providers.dart';
 import '../../repositories/article_repository.dart';
 import '../../repositories/category_repository.dart';
 import '../../repositories/feed_repository.dart';
-import 'package:fleur/features/accounts/accounts.dart';
 import '../logging/app_logger.dart';
 import '../settings/app_settings.dart';
 import '../settings/app_settings_store.dart';
@@ -133,6 +135,7 @@ class BackgroundSyncRunner {
       required bool isPrimary,
     })?
     acquireIsarLeaseForAccountFn,
+    AccountDatabaseLifecycle? databaseLifecycle,
     Future<T> Function<T>(String key, Future<T> Function() op)? runWithMutex,
     Future<void> Function(Account account)? refreshAllRemoteFeeds,
     Future<List<Feed>> Function(FeedRepository feeds, Account account)?
@@ -155,9 +158,8 @@ class BackgroundSyncRunner {
            sharedPreferencesLoader ?? SharedPreferences.getInstance,
        _nowProvider = nowProvider ?? DateTime.now,
        _openIsarForAccountFn = openIsarForAccountFn,
-       _acquireIsarLeaseForAccountFn =
-           acquireIsarLeaseForAccountFn ??
-           AccountDbSessionManager.instance.acquireExistingForAccount,
+       _acquireIsarLeaseForAccountFn = acquireIsarLeaseForAccountFn,
+       _databaseLifecycle = databaseLifecycle,
        _runWithMutex = runWithMutex ?? SyncMutex.instance.run,
        _refreshAllRemoteFeeds = refreshAllRemoteFeeds,
        _loadAllFeeds = loadAllFeeds,
@@ -180,8 +182,9 @@ class BackgroundSyncRunner {
     required String accountId,
     required String? dbName,
     required bool isPrimary,
-  })
+  })?
   _acquireIsarLeaseForAccountFn;
+  final AccountDatabaseLifecycle? _databaseLifecycle;
   final Future<T> Function<T>(String key, Future<T> Function() op)
   _runWithMutex;
   final Future<void> Function(Account account)? _refreshAllRemoteFeeds;
@@ -269,41 +272,70 @@ class BackgroundSyncRunner {
         return;
       }
 
-      late final Isar isar;
+      Isar? rawIsar;
       IsarLease? lease;
+      AccountDatabaseLease? lifecycleLease;
       try {
-        final openIsarForAccountFn = _openIsarForAccountFn;
-        if (openIsarForAccountFn == null) {
-          lease = await _acquireIsarLeaseForAccountFn(
-            accountId: activeAccount.id,
-            dbName: activeAccount.dbName,
-            isPrimary: activeAccount.isPrimary,
+        late final Isar isar;
+        try {
+          final openIsarForAccountFn = _openIsarForAccountFn;
+          if (openIsarForAccountFn == null) {
+            final acquireLegacyLease = _acquireIsarLeaseForAccountFn;
+            if (acquireLegacyLease != null) {
+              lease = await acquireLegacyLease(
+                accountId: activeAccount.id,
+                dbName: activeAccount.dbName,
+                isPrimary: activeAccount.isPrimary,
+              );
+              isar = lease.isar;
+            } else {
+              final lifecycle =
+                  _databaseLifecycle ??
+                  createAccountDatabaseLifecycle(
+                    findAccount: (accountId) async =>
+                        accounts.findById(accountId),
+                  );
+              final result = await lifecycle.acquireExisting(
+                AccountDatabaseRef(accountId: activeAccount.id),
+              );
+              if (result is AccountDatabaseAccessFailure) {
+                AppLogger.w(
+                  'Background sync skipped: database ${result.kind.name}',
+                  tag: 'sync',
+                  context: <String, Object?>{
+                    'accountId': activeAccount.id,
+                    'supportCode': result.supportCode,
+                  },
+                );
+                return;
+              }
+              lifecycleLease = (result as AccountDatabaseReady).lease;
+              isar = bindIsarAccountDatabaseLease(lifecycleLease);
+            }
+          } else {
+            rawIsar = await openIsarForAccountFn(
+              accountId: activeAccount.id,
+              dbName: activeAccount.dbName,
+              isPrimary: activeAccount.isPrimary,
+            );
+            isar = rawIsar;
+          }
+        } on DbOpenFailure catch (e) {
+          AppLogger.w(
+            'Background sync skipped: failed to open DB (${e.kind})',
+            tag: 'sync',
+            error: e.error,
           );
-          isar = lease.isar;
-        } else {
-          isar = await openIsarForAccountFn(
-            accountId: activeAccount.id,
-            dbName: activeAccount.dbName,
-            isPrimary: activeAccount.isPrimary,
+          return;
+        } catch (e) {
+          AppLogger.w(
+            'Background sync skipped: failed to open DB',
+            tag: 'sync',
+            error: e,
           );
+          return;
         }
-      } on DbOpenFailure catch (e) {
-        AppLogger.w(
-          'Background sync skipped: failed to open DB (${e.kind})',
-          tag: 'sync',
-          error: e.error,
-        );
-        return;
-      } catch (e) {
-        AppLogger.w(
-          'Background sync skipped: failed to open DB',
-          tag: 'sync',
-          error: e,
-        );
-        return;
-      }
 
-      try {
         final feeds = FeedRepository(isar);
         final categories = CategoryRepository(isar);
         final articles = ArticleRepository(isar);
@@ -403,14 +435,39 @@ class BackgroundSyncRunner {
           );
         }
       } finally {
-        final dbLease = lease;
-        if (dbLease != null) {
-          await dbLease.release();
-        } else {
-          await isar.close();
-        }
+        await _releaseDatabaseOwnership(
+          lifecycleLease: lifecycleLease,
+          legacyLease: lease,
+          rawIsar: rawIsar,
+          accountId: activeAccount.id,
+        );
       }
     });
+  }
+
+  Future<void> _releaseDatabaseOwnership({
+    required AccountDatabaseLease? lifecycleLease,
+    required IsarLease? legacyLease,
+    required Isar? rawIsar,
+    required String accountId,
+  }) async {
+    try {
+      if (lifecycleLease != null) {
+        await lifecycleLease.release();
+      } else if (legacyLease != null) {
+        await legacyLease.release();
+      } else if (rawIsar != null) {
+        await rawIsar.close();
+      }
+    } catch (error, stackTrace) {
+      AppLogger.e(
+        'Background database release failed',
+        tag: 'db',
+        error: error,
+        stackTrace: stackTrace,
+        context: <String, Object?>{'accountId': accountId},
+      );
+    }
   }
 
   Future<bool> _shouldRunInterval({

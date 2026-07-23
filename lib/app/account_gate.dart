@@ -3,8 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fleur/features/accounts/accounts.dart';
+import 'package:fleur/features/data_safety/data/isar_account_database_lifecycle.dart';
+import 'package:fleur/features/data_safety/data_safety.dart';
 
-import '../db/isar_db.dart';
 import '../providers/core_providers.dart';
 import '../providers/service_providers.dart';
 import '../services/data_integrity_startup_service.dart';
@@ -16,11 +17,11 @@ import 'app.dart';
 class AccountGate extends ConsumerStatefulWidget {
   const AccountGate({
     super.key,
-    this.dbSessionManager,
+    this.databaseLifecycle,
     this.dataIntegrityStartupService = const DataIntegrityStartupService(),
   });
 
-  final AccountDbSessionManager? dbSessionManager;
+  final AccountDatabaseLifecycle? databaseLifecycle;
   final DataIntegrityStartupService dataIntegrityStartupService;
 
   @override
@@ -29,7 +30,8 @@ class AccountGate extends ConsumerStatefulWidget {
 
 class _AccountGateState extends ConsumerState<AccountGate> {
   ProviderSubscription<AsyncValue<AccountsState>>? _accountsSubscription;
-  AccountDbLease? _lease;
+  AccountDatabaseLease? _lease;
+  AccountDatabaseLifecycle? _defaultDatabaseLifecycle;
   Future<void>? _maintenance;
   String? _openedForAccountId;
   Future<void>? _opening;
@@ -152,18 +154,26 @@ class _AccountGateState extends ConsumerState<AccountGate> {
 
     final openError = _openError;
     if (openError != null && hasErrorForActive) {
-      final kind = openError is DbOpenFailure ? openError.kind : null;
+      final kind = openError is AccountDatabaseAccessFailure
+          ? openError.kind
+          : null;
       final hint = switch (kind) {
-        DbOpenFailureKind.transient =>
+        AccountDatabaseAccessFailureKind.blockedByAnotherProcess =>
           '数据库可能正在被占用（例如同时打开了两个应用实例），或正在关闭中。请关闭其他实例后重试。',
-        DbOpenFailureKind.environmental =>
+        AccountDatabaseAccessFailureKind.storageUnavailable =>
           '数据库目录可能没有权限/磁盘空间不足/路径异常。请检查系统权限与存储空间后重试。',
-        DbOpenFailureKind.recoveryRequired =>
+        AccountDatabaseAccessFailureKind.recoveryRequired =>
           '检测到数据库可能已损坏。原始数据已保留，应用不会自动创建空库；请稍后通过恢复流程处理。',
-        DbOpenFailureKind.dataMissing =>
+        AccountDatabaseAccessFailureKind.dataMissing =>
           '账户记录仍然存在，但对应数据库文件缺失。应用不会自动创建空库，请检查数据目录或使用恢复流程。',
-        DbOpenFailureKind.ownershipMismatch =>
+        AccountDatabaseAccessFailureKind.ownershipMismatch =>
           '账户数据库所有权与当前账户不一致。应用已阻止访问，请检查账户配置或使用恢复流程。',
+        AccountDatabaseAccessFailureKind.migrationFailed =>
+          '数据库迁移未能完成。原始数据已保留，修复迁移问题后可以重试。',
+        AccountDatabaseAccessFailureKind.validationFailed =>
+          '数据库验证未能通过。原始数据已保留，请先完成诊断或恢复后再重试。',
+        AccountDatabaseAccessFailureKind.initializationRequired =>
+          '账户数据库尚未完成初始化，请重试初始化流程。',
         _ => '数据库打开失败，请重试或重启应用。',
       };
       final details = [
@@ -224,13 +234,14 @@ class _AccountGateState extends ConsumerState<AccountGate> {
       );
     }
 
-    final isar = _lease?.isar;
-    if (isar == null) {
+    final lease = _lease;
+    if (lease == null) {
       return const MaterialApp(
         debugShowCheckedModeBanner: false,
         home: Scaffold(body: Center(child: CircularProgressIndicator())),
       );
     }
+    final isar = bindIsarAccountDatabaseLease(lease);
 
     return ProviderScope(
       key: ValueKey('account:${activeAccount.id}'),
@@ -244,26 +255,30 @@ class _AccountGateState extends ConsumerState<AccountGate> {
   }
 
   Future<void> _openFor(Account account, int generation) async {
-    final manager = widget.dbSessionManager ?? AccountDbSessionManager.instance;
-    final next = account.databaseInitialized
-        ? await manager.acquireExistingForAccount(
-            accountId: account.id,
-            dbName: account.dbName,
-            isPrimary: account.isPrimary,
+    final lifecycle = widget.databaseLifecycle ?? _defaultLifecycle();
+    final result = account.databaseInitialized
+        ? await lifecycle.acquireExisting(
+            AccountDatabaseRef(accountId: account.id),
           )
-        : await manager.initializeForAccount(
-            accountId: account.id,
-            dbName: account.dbName,
-            isPrimary: account.isPrimary,
+        : await lifecycle.initialize(
+            AccountDatabaseInitialization(
+              accountId: account.id,
+              operationId:
+                  'initialize:${account.id}:'
+                  '${account.updatedAt.microsecondsSinceEpoch}',
+            ),
           );
-    if (!account.databaseInitialized) {
+    if (result is AccountDatabaseAccessFailure) throw result;
+    final ready = result as AccountDatabaseReady;
+    final next = ready.lease;
+    if (ready.initializedNow) {
       try {
         await ref
             .read(accountsControllerProvider.notifier)
             .markDatabaseInitialized(account.id);
-      } catch (_) {
-        await next.release();
-        rethrow;
+      } catch (error, stackTrace) {
+        await _releaseLease(next);
+        Error.throwWithStackTrace(error, stackTrace);
       }
     }
     if (!mounted || generation != _openGeneration) {
@@ -287,9 +302,22 @@ class _AccountGateState extends ConsumerState<AccountGate> {
     }
   }
 
-  Future<void> _runMaintenance(AccountDbLease lease) async {
+  AccountDatabaseLifecycle _defaultLifecycle() {
+    return _defaultDatabaseLifecycle ??= createAccountDatabaseLifecycle(
+      findAccount: (accountId) async {
+        final current = ref.read(accountsControllerProvider).valueOrNull;
+        final state =
+            current ?? await ref.read(accountsControllerProvider.future);
+        return state?.findById(accountId);
+      },
+    );
+  }
+
+  Future<void> _runMaintenance(AccountDatabaseLease lease) async {
     try {
-      await widget.dataIntegrityStartupService.runIfNeeded(lease.isar);
+      await widget.dataIntegrityStartupService.runIfNeeded(
+        bindIsarAccountDatabaseLease(lease),
+      );
     } catch (error, stackTrace) {
       AppLogger.w(
         'Account database maintenance failed',
@@ -301,7 +329,7 @@ class _AccountGateState extends ConsumerState<AccountGate> {
   }
 
   static Future<void> _releaseAfterMaintenance(
-    AccountDbLease lease,
+    AccountDatabaseLease lease,
     Future<void>? maintenance,
   ) async {
     try {
@@ -314,7 +342,21 @@ class _AccountGateState extends ConsumerState<AccountGate> {
         stackTrace: stackTrace,
       );
     } finally {
+      await _releaseLease(lease);
+    }
+  }
+
+  static Future<void> _releaseLease(AccountDatabaseLease lease) async {
+    try {
       await lease.release();
+    } catch (error, stackTrace) {
+      AppLogger.e(
+        'Account database lease release failed',
+        tag: 'db',
+        error: error,
+        stackTrace: stackTrace,
+        context: <String, Object?>{'accountId': lease.accountId},
+      );
     }
   }
 
@@ -323,7 +365,7 @@ class _AccountGateState extends ConsumerState<AccountGate> {
     Object error,
     StackTrace? stackTrace,
   ) {
-    final kind = error is DbOpenFailure ? error.kind.name : null;
+    final kind = error is AccountDatabaseAccessFailure ? error.kind.name : null;
     AppLogger.e(
       'Account database open failed',
       tag: 'db',

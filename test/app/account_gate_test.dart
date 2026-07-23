@@ -8,6 +8,8 @@ import 'package:isar_community/isar.dart';
 import 'package:fleur/app/account_gate.dart';
 import 'package:fleur/db/isar_db.dart';
 import 'package:fleur/features/accounts/accounts.dart';
+import 'package:fleur/features/data_safety/data/isar_account_database_lifecycle.dart';
+import 'package:fleur/features/data_safety/data_safety.dart';
 import 'package:fleur/services/data_integrity_startup_service.dart';
 
 import '../test_utils/critical_workflow_test_support.dart';
@@ -102,7 +104,11 @@ void main() {
         overrides: [
           accountStoreProvider.overrideWithValue(_FakeAccountStore(state)),
         ],
-        child: MaterialApp(home: AccountGate(dbSessionManager: manager)),
+        child: MaterialApp(
+          home: AccountGate(
+            databaseLifecycle: _ManagerBackedLifecycle(manager),
+          ),
+        ),
       ),
     );
     await tester.pump();
@@ -154,7 +160,11 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [accountStoreProvider.overrideWithValue(store)],
-        child: MaterialApp(home: AccountGate(dbSessionManager: manager)),
+        child: MaterialApp(
+          home: AccountGate(
+            databaseLifecycle: _ManagerBackedLifecycle(manager),
+          ),
+        ),
       ),
     );
     openCompleter.complete(isar);
@@ -218,7 +228,7 @@ void main() {
         overrides: [accountStoreProvider.overrideWithValue(store)],
         child: MaterialApp(
           home: AccountGate(
-            dbSessionManager: manager,
+            databaseLifecycle: _ManagerBackedLifecycle(manager),
             dataIntegrityStartupService: maintenance,
           ),
         ),
@@ -250,4 +260,51 @@ void main() {
     await tester.idle();
     expect(secondIsar.closeCalls, 1);
   });
+}
+
+class _ManagerBackedLifecycle implements AccountDatabaseLifecycle {
+  _ManagerBackedLifecycle(this.manager);
+
+  final AccountDbSessionManager manager;
+
+  @override
+  Future<AccountDatabaseAcquireResult> acquireExisting(
+    AccountDatabaseRef account,
+  ) async {
+    final lease = await manager.acquireExistingForAccount(
+      accountId: account.accountId,
+      isPrimary: false,
+    );
+    return AccountDatabaseReady(
+      lease: IsarAccountDatabaseLease(
+        accountId: account.accountId,
+        lease: lease,
+      ),
+      initializedNow: false,
+    );
+  }
+
+  @override
+  Future<AccountDatabaseAcquireResult> initialize(
+    AccountDatabaseInitialization intent,
+  ) async {
+    final lease = await manager.initializeForAccount(
+      accountId: intent.accountId,
+      isPrimary: false,
+    );
+    return AccountDatabaseReady(
+      lease: IsarAccountDatabaseLease(
+        accountId: intent.accountId,
+        lease: lease,
+      ),
+      initializedNow: true,
+    );
+  }
+
+  @override
+  Future<AccountDatabaseDeletionResult> deleteForAccountRemoval(
+    AccountDatabaseDeletionIntent intent,
+  ) {
+    throw UnimplementedError();
+  }
 }
