@@ -372,14 +372,9 @@ class _AppShellState extends ConsumerState<AppShell> {
         ? 14.0
         : math.max(14.0, overlapWithContent + 12.0);
     final scope = ShellLayerScope(
-      topology: geometry.topology,
       frameGeometry: geometry,
       totalSize: size,
-      contentSize: Size(geometry.contentWidth, geometry.workspaceHeight),
       sidebarLayoutMode: sidebarLayoutModeForWidth(size.width),
-      contentLeft: geometry.contentLeft,
-      contentLeadingInset: geometry.contentLeadingInset,
-      railOverlayVisible: geometry.railOverlayVisible,
       sidebarWidth: visibleLeftChromeWidth,
       listWidth: listWidth,
       headerLeadingInset: headerLeadingInset,
@@ -535,14 +530,9 @@ class _AppShellState extends ConsumerState<AppShell> {
         : sidebar;
 
     final contentLayer = ShellLayerScope(
-      topology: geometry.topology,
       frameGeometry: geometry,
       totalSize: size,
-      contentSize: Size(geometry.contentWidth, geometry.workspaceHeight),
       sidebarLayoutMode: sidebarLayoutMode,
-      contentLeft: geometry.contentLeft,
-      contentLeadingInset: geometry.contentLeadingInset,
-      railOverlayVisible: geometry.railOverlayVisible,
       sidebarWidth: sidebarExpanded || temporarySidebarOpen
           ? visibleSidebarWidth
           : collapsedRailWidth,

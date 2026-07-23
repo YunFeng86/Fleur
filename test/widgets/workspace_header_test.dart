@@ -6,6 +6,7 @@ import 'package:fleur/l10n/app_localizations.dart';
 import 'package:fleur/services/update/app_update_manifest.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/ui/shell_chrome_layout.dart';
+import 'package:fleur/ui/shell_frame_geometry.dart';
 import 'package:fleur/ui/shell_frame_topology.dart';
 import 'package:fleur/ui/shell_title_bar.dart';
 import 'package:fleur/ui/sidebar_layout.dart';
@@ -19,6 +20,25 @@ const _testShellTopology = ShellFrameTopology(
   temporaryNavigationOpen: false,
   shellCanvasPaintsFullViewport: true,
 );
+
+ShellFrameGeometry _testShellGeometry(
+  Size size, {
+  double contentLeadingInset = 0,
+}) {
+  return ShellFrameGeometry(
+    topology: _testShellTopology,
+    titleBarHeight: 0,
+    workspaceHeight: size.height,
+    leftChromeWidth: 0,
+    contentLeft: 0,
+    contentWidth: size.width,
+    contentLeadingInset: contentLeadingInset,
+    contentTranslation: 0,
+    dividerLeadingInset: 0,
+    railOverlayVisible: contentLeadingInset > 0,
+    structuralRailVisible: false,
+  );
+}
 
 Future<void> _pumpHeader(
   WidgetTester tester, {
@@ -40,13 +60,12 @@ Future<void> _pumpHeader(
       theme: AppTheme.light(),
       home: Scaffold(
         body: ShellLayerScope(
-          topology: _testShellTopology,
+          frameGeometry: _testShellGeometry(
+            size,
+            contentLeadingInset: contentLeadingInset,
+          ),
           totalSize: size,
-          contentSize: size,
           sidebarLayoutMode: SidebarLayoutMode.inline,
-          contentLeft: 0,
-          contentLeadingInset: contentLeadingInset,
-          railOverlayVisible: false,
           sidebarWidth: kDefaultWorkspaceSidebarWidth,
           listWidth: kDefaultWorkspaceListWidth,
           headerLeadingInset: leadingInset,
@@ -200,13 +219,9 @@ void main() {
         MaterialApp(
           theme: AppTheme.light(),
           home: ShellLayerScope(
-            topology: _testShellTopology,
+            frameGeometry: _testShellGeometry(const Size(520, 120)),
             totalSize: const Size(520, 120),
-            contentSize: const Size(520, 120),
             sidebarLayoutMode: SidebarLayoutMode.inline,
-            contentLeft: 0,
-            contentLeadingInset: 0,
-            railOverlayVisible: false,
             sidebarWidth: kDefaultWorkspaceSidebarWidth,
             listWidth: kDefaultWorkspaceListWidth,
             headerLeadingInset: 14,
@@ -232,13 +247,9 @@ void main() {
         MaterialApp(
           theme: AppTheme.light(),
           home: ShellLayerScope(
-            topology: _testShellTopology,
+            frameGeometry: _testShellGeometry(const Size(520, 120)),
             totalSize: const Size(520, 120),
-            contentSize: const Size(520, 120),
             sidebarLayoutMode: SidebarLayoutMode.inline,
-            contentLeft: 0,
-            contentLeadingInset: 0,
-            railOverlayVisible: false,
             sidebarWidth: kDefaultWorkspaceSidebarWidth,
             listWidth: kDefaultWorkspaceListWidth,
             headerLeadingInset: 14,
@@ -291,13 +302,9 @@ void main() {
       MaterialApp(
         theme: AppTheme.light(),
         home: ShellLayerScope(
-          topology: _testShellTopology,
+          frameGeometry: _testShellGeometry(const Size(520, 120)),
           totalSize: const Size(520, 120),
-          contentSize: const Size(520, 120),
           sidebarLayoutMode: SidebarLayoutMode.inline,
-          contentLeft: 0,
-          contentLeadingInset: 0,
-          railOverlayVisible: false,
           sidebarWidth: kDefaultWorkspaceSidebarWidth,
           listWidth: kDefaultWorkspaceListWidth,
           headerLeadingInset: 14,

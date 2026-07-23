@@ -68,14 +68,9 @@ class WorkspaceLayerSurfaceAppearance {
 class ShellLayerScope extends InheritedWidget {
   const ShellLayerScope({
     super.key,
-    required this.topology,
-    this.frameGeometry,
+    required this.frameGeometry,
     required this.totalSize,
-    required this.contentSize,
     required this.sidebarLayoutMode,
-    required this.contentLeft,
-    required this.contentLeadingInset,
-    required this.railOverlayVisible,
     required this.sidebarWidth,
     required this.listWidth,
     required this.headerLeadingInset,
@@ -88,14 +83,9 @@ class ShellLayerScope extends InheritedWidget {
     required super.child,
   });
 
-  final ShellFrameTopology topology;
-  final ShellFrameGeometry? frameGeometry;
+  final ShellFrameGeometry frameGeometry;
   final Size totalSize;
-  final Size contentSize;
   final SidebarLayoutMode sidebarLayoutMode;
-  final double contentLeft;
-  final double contentLeadingInset;
-  final bool railOverlayVisible;
   final double sidebarWidth;
   final double listWidth;
   final double headerLeadingInset;
@@ -106,20 +96,22 @@ class ShellLayerScope extends InheritedWidget {
   final SidebarPresentationMode preferredSidebarPresentationMode;
   final AdaptiveWorkspaceArrangement? workspaceArrangement;
 
+  ShellFrameTopology get topology => frameGeometry.topology;
+  Size get contentSize =>
+      Size(frameGeometry.contentWidth, frameGeometry.workspaceHeight);
+  double get contentLeft => frameGeometry.contentLeft;
+  double get contentLeadingInset => frameGeometry.contentLeadingInset;
+  bool get railOverlayVisible => frameGeometry.railOverlayVisible;
+
   static ShellLayerScope? maybeOf(BuildContext context) {
     return context.dependOnInheritedWidgetOfExactType<ShellLayerScope>();
   }
 
   @override
   bool updateShouldNotify(ShellLayerScope oldWidget) {
-    return topology != oldWidget.topology ||
-        frameGeometry != oldWidget.frameGeometry ||
+    return frameGeometry != oldWidget.frameGeometry ||
         totalSize != oldWidget.totalSize ||
-        contentSize != oldWidget.contentSize ||
         sidebarLayoutMode != oldWidget.sidebarLayoutMode ||
-        contentLeft != oldWidget.contentLeft ||
-        contentLeadingInset != oldWidget.contentLeadingInset ||
-        railOverlayVisible != oldWidget.railOverlayVisible ||
         sidebarWidth != oldWidget.sidebarWidth ||
         listWidth != oldWidget.listWidth ||
         headerLeadingInset != oldWidget.headerLeadingInset ||
