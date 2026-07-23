@@ -349,191 +349,211 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       });
     }
 
+    final shellChromeLayout =
+        shellScope?.shellChromeLayout ?? ShellChromeLayout.resolve();
+    final shellOwnsNativeInsets =
+        shellScope != null &&
+        shellChromeLayout.profile != ShellChromeProfile.contentOnly;
+    final settingsBody = LayoutBuilder(
+      builder: (context, constraints) {
+        return _buildSettingsScene(
+          context,
+          constraints,
+          l10n: l10n,
+          searchEntries: searchEntries,
+          shellScope: shellScope,
+          shellChromeLayout: shellChromeLayout,
+          navigationToggleFocusNode: navigationToggleFocusNode,
+          temporaryNavigationFocusNode: temporaryNavigationFocusNode,
+        );
+      },
+    );
+
     return Scaffold(
       backgroundColor: theme.fleurSurface.chrome,
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.maxWidth;
-            final scope = shellScope;
-            final shellChromeLayout =
-                scope?.shellChromeLayout ?? ShellChromeLayout.resolve();
-            final shellOwnsGlobalTools =
-                scope != null &&
-                (shellChromeLayout.placesControlsInTitleBar ||
-                    shellChromeLayout.usesFloatingLeadingControls);
-            final preferredNavigation = ref.watch(
-              settingsSidebarPresentationModeProvider,
-            );
-            final arrangement =
-                scope?.workspaceArrangement ??
-                AdaptiveWorkspaceArrangement.resolve(
-                  totalWidth: width,
-                  preferredNavigation: preferredNavigation,
-                  navigationMetrics:
-                      shellChromeLayout.workspaceNavigationMetrics,
-                  requirements: WorkspaceLayoutRequirements.settings,
-                  hasReader: false,
-                );
-            final navigationPresentation = arrangement.navigationPresentation;
-            final sidebarExpanded =
-                navigationPresentation ==
-                WorkspaceNavigationPresentation.expanded;
-            final sidebarRail =
-                navigationPresentation == WorkspaceNavigationPresentation.rail;
-            final temporaryNavigationOpen = ref.watch(
-              settingsTemporaryNavigationOpenProvider,
-            );
-            final railWidth = shellChromeLayout.placesControlsInTitleBar
-                ? kTitleBarExpectedSidebarRailWidth
-                : kSidebarRailWidth;
-            final frameGeometry =
-                scope?.frameGeometry ??
-                ShellFrameGeometry.resolve(
-                  size: Size(width, constraints.maxHeight),
-                  shellChromeLayout: shellChromeLayout,
-                  navigationPresentation: navigationPresentation,
-                  temporaryNavigationOpen: temporaryNavigationOpen,
-                  expandedNavigationWidth: kDefaultWorkspaceSidebarWidth,
-                  railWidth: railWidth,
-                  temporaryNavigationWidth: kTemporaryWorkspaceSidebarWidth,
-                );
-            final items = _buildItems(context, showPageTitle: false);
-            final trimmedSearchQuery = _searchQuery.trim();
-            final showingSearchResults = trimmedSearchQuery.isNotEmpty;
-            final currentSelectedIndex = _selectedIndexFor(items);
-            final showingList =
-                navigationPresentation ==
-                    WorkspaceNavigationPresentation.offCanvas &&
-                currentSelectedIndex == null;
-            final selectedIndex = currentSelectedIndex ?? 0;
-            final selectedItem = items[selectedIndex];
-            final tabLabels = {for (final item in items) item.tab: item.label};
-            final searchResults = showingSearchResults
-                ? searchSettingsEntries(searchEntries, trimmedSearchQuery)
-                : const <SettingsSearchEntry>[];
-
-            void selectTab(SettingsTab tab) {
-              setState(() {
-                _selectedTab = tab;
-                _appearanceDetailPage = null;
-              });
-              ref.read(settingsTemporaryNavigationOpenProvider.notifier).state =
-                  false;
-            }
-
-            void handleDetailBack() {
-              if (selectedItem.tab == SettingsTab.appearance &&
-                  _appearanceDetailPage != null) {
-                setState(() => _appearanceDetailPage = null);
-                return;
-              }
-              // Subscriptions has its own internal list/detail back stack.
-              if (selectedItem.tab == SettingsTab.subscriptions) {
-                final notifier = ref.read(
-                  subscriptionSelectionProvider.notifier,
-                );
-                final shouldPop = notifier.handleBack();
-                if (!shouldPop) return;
-              }
-              setState(() {
-                _selectedTab = null;
-                _appearanceDetailPage = null;
-              });
-            }
-
-            void handleChromeBack() {
-              if (selectedItem.tab == SettingsTab.appearance &&
-                  _appearanceDetailPage != null) {
-                setState(() => _appearanceDetailPage = null);
-                return;
-              }
-              _closeSettings();
-            }
-
-            final content = showingSearchResults
-                ? SettingsSearchResultsBody(
-                    query: trimmedSearchQuery,
-                    results: searchResults,
-                    tabLabels: tabLabels,
-                    onSelected: _selectSearchEntry,
-                  )
-                : showingList
-                ? SettingsListBody(items: items, onSelect: selectTab)
-                : FocusTraversalGroup(child: selectedItem.content);
-            void toggleNavigation() {
-              final shellToggle = AppDrawerScope.drawerOpenerOf(context);
-              if (shellToggle != null) {
-                shellToggle();
-                return;
-              }
-              final result = WorkspaceNavigationToggleResult.resolve(
-                presentation: navigationPresentation,
-                preferredNavigation: preferredNavigation,
-                temporaryNavigationOpen: temporaryNavigationOpen,
-                canExpandInline: arrangement.canExpandInline,
-              );
-              ref.read(settingsSidebarPresentationModeProvider.notifier).state =
-                  result.preferredNavigation;
-              ref.read(settingsTemporaryNavigationOpenProvider.notifier).state =
-                  result.temporaryNavigationOpen;
-            }
-
-            final scene = SettingsScene(
-              width: width,
-              height: constraints.maxHeight,
-              navigationPresentation: navigationPresentation,
-              temporaryNavigationOpen: temporaryNavigationOpen,
-              railWidth: railWidth,
-              frameGeometry: frameGeometry,
-              title: showingSearchResults || showingList
-                  ? l10n.settings
-                  : selectedItem.label,
-              sidebarTitle: l10n.settings,
-              showSidebarButton: !shellOwnsGlobalTools,
-              onToggleSidebar: toggleNavigation,
-              onBack: !sidebarExpanded && !sidebarRail && !showingList
-                  ? handleDetailBack
-                  : shellOwnsGlobalTools
-                  ? null
-                  : sidebarExpanded || sidebarRail
-                  ? (widget.showBack ? handleChromeBack : null)
-                  : widget.showBack
-                  ? _closeSettings
-                  : null,
-              items: items,
-              sidebarSelectedIndex: sidebarExpanded || sidebarRail
-                  ? selectedIndex
-                  : currentSelectedIndex,
-              selectedContentKey: showingSearchResults
-                  ? const ValueKey('settings-search-results')
-                  : showingList
-                  ? const ValueKey('settings-list')
-                  : ValueKey(selectedItem.tab),
-              content: content,
-              onSelect: selectTab,
-              searchController: _searchController,
-              searchFocusNode: _searchFocusNode,
-              searchFocused: _searchFocused,
-              navigationToggleFocusNode: navigationToggleFocusNode,
-              temporaryNavigationFocusNode: temporaryNavigationFocusNode,
-            );
-
-            if (!sidebarExpanded && !sidebarRail && !showingList) {
-              return PopScope(
-                canPop: false,
-                onPopInvokedWithResult: (didPop, _) {
-                  if (didPop) return;
-                  handleDetailBack();
-                },
-                child: scene,
-              );
-            }
-
-            return scene;
-          },
-        ),
-      ),
+      body: shellOwnsNativeInsets
+          ? settingsBody
+          : SafeArea(child: settingsBody),
     );
+  }
+
+  Widget _buildSettingsScene(
+    BuildContext context,
+    BoxConstraints constraints, {
+    required AppLocalizations l10n,
+    required List<SettingsSearchEntry> searchEntries,
+    required ShellLayerScope? shellScope,
+    required ShellChromeLayout shellChromeLayout,
+    required FocusNode navigationToggleFocusNode,
+    required FocusScopeNode temporaryNavigationFocusNode,
+  }) {
+    final width = constraints.maxWidth;
+    final scope = shellScope;
+    final shellOwnsGlobalTools =
+        scope != null &&
+        (shellChromeLayout.placesControlsInTitleBar ||
+            shellChromeLayout.usesFloatingLeadingControls);
+    final preferredNavigation = ref.watch(
+      settingsSidebarPresentationModeProvider,
+    );
+    final arrangement =
+        scope?.workspaceArrangement ??
+        AdaptiveWorkspaceArrangement.resolve(
+          totalWidth: width,
+          preferredNavigation: preferredNavigation,
+          navigationMetrics: shellChromeLayout.workspaceNavigationMetrics,
+          requirements: WorkspaceLayoutRequirements.settings,
+          hasReader: false,
+        );
+    final navigationPresentation = arrangement.navigationPresentation;
+    final sidebarExpanded =
+        navigationPresentation == WorkspaceNavigationPresentation.expanded;
+    final sidebarRail =
+        navigationPresentation == WorkspaceNavigationPresentation.rail;
+    final temporaryNavigationOpen = ref.watch(
+      settingsTemporaryNavigationOpenProvider,
+    );
+    final railWidth = shellChromeLayout.placesControlsInTitleBar
+        ? kTitleBarExpectedSidebarRailWidth
+        : kSidebarRailWidth;
+    final frameGeometry =
+        scope?.frameGeometry ??
+        ShellFrameGeometry.resolve(
+          size: Size(width, constraints.maxHeight),
+          shellChromeLayout: shellChromeLayout,
+          navigationPresentation: navigationPresentation,
+          temporaryNavigationOpen: temporaryNavigationOpen,
+          expandedNavigationWidth: kDefaultWorkspaceSidebarWidth,
+          railWidth: railWidth,
+          temporaryNavigationWidth: kTemporaryWorkspaceSidebarWidth,
+        );
+    final items = _buildItems(context, showPageTitle: false);
+    final trimmedSearchQuery = _searchQuery.trim();
+    final showingSearchResults = trimmedSearchQuery.isNotEmpty;
+    final currentSelectedIndex = _selectedIndexFor(items);
+    final showingList =
+        navigationPresentation == WorkspaceNavigationPresentation.offCanvas &&
+        currentSelectedIndex == null;
+    final selectedIndex = currentSelectedIndex ?? 0;
+    final selectedItem = items[selectedIndex];
+    final tabLabels = {for (final item in items) item.tab: item.label};
+    final searchResults = showingSearchResults
+        ? searchSettingsEntries(searchEntries, trimmedSearchQuery)
+        : const <SettingsSearchEntry>[];
+
+    void selectTab(SettingsTab tab) {
+      setState(() {
+        _selectedTab = tab;
+        _appearanceDetailPage = null;
+      });
+      ref.read(settingsTemporaryNavigationOpenProvider.notifier).state = false;
+    }
+
+    void handleDetailBack() {
+      if (selectedItem.tab == SettingsTab.appearance &&
+          _appearanceDetailPage != null) {
+        setState(() => _appearanceDetailPage = null);
+        return;
+      }
+      if (selectedItem.tab == SettingsTab.subscriptions) {
+        final notifier = ref.read(subscriptionSelectionProvider.notifier);
+        final shouldPop = notifier.handleBack();
+        if (!shouldPop) return;
+      }
+      setState(() {
+        _selectedTab = null;
+        _appearanceDetailPage = null;
+      });
+    }
+
+    void handleChromeBack() {
+      if (selectedItem.tab == SettingsTab.appearance &&
+          _appearanceDetailPage != null) {
+        setState(() => _appearanceDetailPage = null);
+        return;
+      }
+      _closeSettings();
+    }
+
+    final content = showingSearchResults
+        ? SettingsSearchResultsBody(
+            query: trimmedSearchQuery,
+            results: searchResults,
+            tabLabels: tabLabels,
+            onSelected: _selectSearchEntry,
+          )
+        : showingList
+        ? SettingsListBody(items: items, onSelect: selectTab)
+        : FocusTraversalGroup(child: selectedItem.content);
+    void toggleNavigation() {
+      final shellToggle = AppDrawerScope.drawerOpenerOf(context);
+      if (shellToggle != null) {
+        shellToggle();
+        return;
+      }
+      final result = WorkspaceNavigationToggleResult.resolve(
+        presentation: navigationPresentation,
+        preferredNavigation: preferredNavigation,
+        temporaryNavigationOpen: temporaryNavigationOpen,
+        canExpandInline: arrangement.canExpandInline,
+      );
+      ref.read(settingsSidebarPresentationModeProvider.notifier).state =
+          result.preferredNavigation;
+      ref.read(settingsTemporaryNavigationOpenProvider.notifier).state =
+          result.temporaryNavigationOpen;
+    }
+
+    final scene = SettingsScene(
+      width: width,
+      height: constraints.maxHeight,
+      navigationPresentation: navigationPresentation,
+      temporaryNavigationOpen: temporaryNavigationOpen,
+      railWidth: railWidth,
+      frameGeometry: frameGeometry,
+      title: showingSearchResults || showingList
+          ? l10n.settings
+          : selectedItem.label,
+      sidebarTitle: l10n.settings,
+      showSidebarButton: !shellOwnsGlobalTools,
+      onToggleSidebar: toggleNavigation,
+      onBack: !sidebarExpanded && !sidebarRail && !showingList
+          ? handleDetailBack
+          : shellOwnsGlobalTools
+          ? null
+          : sidebarExpanded || sidebarRail
+          ? (widget.showBack ? handleChromeBack : null)
+          : widget.showBack
+          ? _closeSettings
+          : null,
+      items: items,
+      sidebarSelectedIndex: sidebarExpanded || sidebarRail
+          ? selectedIndex
+          : currentSelectedIndex,
+      selectedContentKey: showingSearchResults
+          ? const ValueKey('settings-search-results')
+          : showingList
+          ? const ValueKey('settings-list')
+          : ValueKey(selectedItem.tab),
+      content: content,
+      onSelect: selectTab,
+      searchController: _searchController,
+      searchFocusNode: _searchFocusNode,
+      searchFocused: _searchFocused,
+      navigationToggleFocusNode: navigationToggleFocusNode,
+      temporaryNavigationFocusNode: temporaryNavigationFocusNode,
+    );
+
+    if (!sidebarExpanded && !sidebarRail && !showingList) {
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop) return;
+          handleDetailBack();
+        },
+        child: scene,
+      );
+    }
+
+    return scene;
   }
 }

@@ -525,6 +525,7 @@ void main() {
     await pumpSettingsScreen(tester, 1000, showBack: true);
 
     expect(find.byKey(const Key('shell_title_bar')), findsNothing);
+    expect(find.byType(SafeArea), findsOneWidget);
     expect(
       tester.getTopLeft(find.byKey(const Key('settings_content_layer'))).dy,
       0,
@@ -558,6 +559,7 @@ void main() {
     await pumpSettingsShell(tester, 1000);
 
     expect(find.byKey(const Key('shell_title_bar')), findsOneWidget);
+    expect(find.byType(SafeArea), findsNothing);
     expect(find.byKey(const Key('shell_sidebar_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_back_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_forward_button')), findsOneWidget);
@@ -597,6 +599,7 @@ void main() {
     await pumpSettingsShell(tester, 1000);
 
     expect(find.byKey(const Key('shell_global_tool_area')), findsOneWidget);
+    expect(find.byType(SafeArea), findsNothing);
     expect(find.byKey(const Key('shell_sidebar_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
     expect(find.byKey(const Key('settings_sidebar_button')), findsNothing);
@@ -770,6 +773,7 @@ void main() {
     final container = await pumpSettingsShell(tester, 1200);
 
     expect(find.byKey(const Key('shell_title_bar')), findsNothing);
+    expect(find.byType(SafeArea), findsOneWidget);
     expect(find.byKey(const Key('shell_window_close_button')), findsNothing);
     expect(find.byKey(const Key('settings_sidebar')), findsOneWidget);
     expect(find.byKey(const Key('settings_sidebar_button')), findsOneWidget);
