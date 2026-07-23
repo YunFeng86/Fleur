@@ -7,7 +7,9 @@ import 'package:fleur/providers/app_update_providers.dart';
 import 'package:fleur/providers/core_providers.dart';
 import 'package:fleur/services/update/app_update_manifest.dart';
 import 'package:fleur/theme/fleur_icons.dart';
+import 'package:fleur/ui/adaptive_workspace_layout.dart';
 import 'package:fleur/ui/shell_chrome_layout.dart';
+import 'package:fleur/ui/shell_frame_topology.dart';
 import 'package:fleur/ui/sidebar/sidebar.dart';
 import 'package:fleur/ui/sidebar_layout.dart';
 import 'package:fleur/ui/workspace_layers.dart';
@@ -563,10 +565,38 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetPhysicalSize);
 
+    ShellLayerScope? readerScope;
     await tester.pumpWidget(
-      buildShellHarness(currentUri: Uri(path: '/all/article/42')),
+      buildShellHarness(
+        currentUri: Uri(path: '/all/article/42'),
+        child: Builder(
+          builder: (context) {
+            readerScope = ShellLayerScope.maybeOf(context);
+            return const ColoredBox(
+              key: Key('app_shell_child'),
+              color: Colors.transparent,
+            );
+          },
+        ),
+      ),
     );
     await tester.pumpAndSettle();
+
+    expect(readerScope, isNotNull);
+    expect(
+      readerScope!.workspaceArrangement!.navigationPresentation,
+      WorkspaceNavigationPresentation.offCanvas,
+    );
+    expect(
+      readerScope!.workspaceArrangement!.readerPresentation,
+      WorkspaceReaderPresentation.secondaryPage,
+    );
+    expect(
+      readerScope!.frameGeometry.topology.navigationSurface,
+      ShellNavigationSurface.absent,
+    );
+    expect(readerScope!.frameGeometry.contentLeft, 0);
+    expect(readerScope!.frameGeometry.contentWidth, 640);
 
     expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
     expect(find.byKey(const Key('shell_drawer_controls')), findsNothing);
@@ -578,29 +608,71 @@ void main() {
     expect(find.byType(Sidebar), findsNothing);
     expect(find.byKey(const Key('app_shell_child')), findsOneWidget);
 
+    final sceneCanvas = find.byKey(
+      const Key('app_shell_secondary_scene_canvas'),
+    );
+    expect(sceneCanvas, findsOneWidget);
+    final canvasTopLeft = tester.getTopLeft(sceneCanvas);
+    final canvasSize = tester.getSize(sceneCanvas);
+    expect(canvasTopLeft.dx, 0);
+    expect(canvasSize.width, 640);
+    expect(canvasSize.height, readerScope!.frameGeometry.workspaceHeight);
+
     final titleBarLeft = tester
         .getTopLeft(find.byKey(const Key('shell_title_bar')))
         .dx;
+    final globalToolAreaTopLeft = tester.getTopLeft(
+      find.byKey(const Key('shell_global_tool_area')),
+    );
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
     await tester.pumpAndSettle();
 
     expect(find.byType(Sidebar), findsOneWidget);
     expect(find.byKey(const Key('app_shell_navigation_scrim')), findsOneWidget);
     expect(
+      readerScope!.workspaceArrangement!.navigationPresentation,
+      WorkspaceNavigationPresentation.offCanvas,
+    );
+    expect(readerScope!.frameGeometry.topology.temporaryNavigationOpen, isTrue);
+    expect(
+      readerScope!.frameGeometry.topology.navigationSurface,
+      ShellNavigationSurface.temporaryOverlay,
+    );
+    expect(
       tester.getTopLeft(find.byKey(const Key('app_shell_secondary_layer'))).dx,
       kTemporaryWorkspaceSidebarWidth,
     );
+    expect(tester.getTopLeft(sceneCanvas), canvasTopLeft);
+    expect(tester.getSize(sceneCanvas), canvasSize);
     expect(
       tester.getTopLeft(find.byKey(const Key('shell_title_bar'))).dx,
       titleBarLeft,
+    );
+    expect(
+      tester.getTopLeft(find.byKey(const Key('shell_global_tool_area'))),
+      globalToolAreaTopLeft,
     );
 
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
     expect(find.byType(Sidebar), findsNothing);
     expect(
+      readerScope!.frameGeometry.topology.temporaryNavigationOpen,
+      isFalse,
+    );
+    expect(
+      readerScope!.frameGeometry.topology.navigationSurface,
+      ShellNavigationSurface.absent,
+    );
+    expect(
       tester.getTopLeft(find.byKey(const Key('app_shell_secondary_layer'))).dx,
       0,
+    );
+    expect(tester.getTopLeft(sceneCanvas), canvasTopLeft);
+    expect(tester.getSize(sceneCanvas), canvasSize);
+    expect(
+      tester.getTopLeft(find.byKey(const Key('shell_global_tool_area'))).dx,
+      globalToolAreaTopLeft.dx,
     );
   });
 }

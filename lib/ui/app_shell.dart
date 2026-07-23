@@ -242,6 +242,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   Widget _buildDesktopSecondaryLayer({
     required BuildContext context,
     required WidgetRef ref,
+    required Size size,
     required MacOSWindowChromeMetrics macOSWindowChromeMetrics,
     required ShellChromeLayout shellChromeLayout,
     required double sidebarWidth,
@@ -251,6 +252,23 @@ class _AppShellState extends ConsumerState<AppShell> {
     required NavigationHistoryState history,
   }) {
     final temporaryNavigationOpen = _temporarySidebarOpen;
+    final geometry = ShellFrameGeometry.resolve(
+      size: size,
+      shellChromeLayout: shellChromeLayout,
+      navigationPresentation: WorkspaceNavigationPresentation.offCanvas,
+      temporaryNavigationOpen: temporaryNavigationOpen,
+      expandedNavigationWidth: sidebarWidth,
+      railWidth: shellChromeLayout.sidebarRailWidth,
+      temporaryNavigationWidth: kTemporaryWorkspaceSidebarWidth,
+    );
+    final secondaryArrangement = AdaptiveWorkspaceArrangement(
+      navigationPresentation: WorkspaceNavigationPresentation.offCanvas,
+      readerPresentation: WorkspaceReaderPresentation.secondaryPage,
+      navigationTemporarilyCollapsed:
+          arrangement.navigationPresentation !=
+          WorkspaceNavigationPresentation.offCanvas,
+      canExpandInline: arrangement.canExpandInline,
+    );
     final updateManifest = ref.watch(
       appUpdateControllerProvider.select(
         (state) => state.hasUpdate ? state.manifest : null,
@@ -283,16 +301,24 @@ class _AppShellState extends ConsumerState<AppShell> {
       shellChromeLayout: shellChromeLayout,
       fallback: (shellChromeLayout.sidebarRailWidth - kShellControlSize) / 2,
     );
+    final controlsRight =
+        controlsLeft +
+        _shellControlsGroupWidth(hasUpdate: updateManifest != null);
+    final headerLeadingInset = shellChromeLayout.placesControlsInTitleBar
+        ? 14.0
+        : math.max(14.0, controlsRight - geometry.contentLeft + 12.0);
     return ShellSecondarySceneFrame(
+      totalSize: size,
+      geometry: geometry,
       shellChromeLayout: shellChromeLayout,
       macOSWindowChromeMetrics: macOSWindowChromeMetrics,
       sidebarWidth: sidebarWidth,
       listWidth: listWidth,
       preferredNavigation: preferredNavigation,
-      arrangement: arrangement,
-      temporaryNavigationOpen: temporaryNavigationOpen,
+      arrangement: secondaryArrangement,
       titleBarCommands: commands.toTitleBarCommands(),
       controlsLeading: controlsLeft,
+      headerLeadingInset: headerLeadingInset,
       updateManifest: updateManifest,
       navigationToggleFocusNode: _navigationToggleFocusNode,
       globalToolAreaKey: _globalToolAreaKey,
@@ -751,6 +777,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         child: _buildDesktopSecondaryLayer(
           context: context,
           ref: ref,
+          size: size,
           macOSWindowChromeMetrics: macOSWindowChromeMetrics,
           shellChromeLayout: shellChromeLayout,
           sidebarWidth: sidebarWidth,

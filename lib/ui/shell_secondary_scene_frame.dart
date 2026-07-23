@@ -19,15 +19,17 @@ import 'workspace_layers.dart';
 class ShellSecondarySceneFrame extends StatelessWidget {
   const ShellSecondarySceneFrame({
     super.key,
+    required this.totalSize,
+    required this.geometry,
     required this.shellChromeLayout,
     required this.macOSWindowChromeMetrics,
     required this.sidebarWidth,
     required this.listWidth,
     required this.preferredNavigation,
     required this.arrangement,
-    required this.temporaryNavigationOpen,
     required this.titleBarCommands,
     required this.controlsLeading,
+    required this.headerLeadingInset,
     required this.updateManifest,
     required this.navigationToggleFocusNode,
     required this.globalToolAreaKey,
@@ -37,15 +39,17 @@ class ShellSecondarySceneFrame extends StatelessWidget {
     required this.child,
   });
 
+  final Size totalSize;
+  final ShellFrameGeometry geometry;
   final ShellChromeLayout shellChromeLayout;
   final MacOSWindowChromeMetrics macOSWindowChromeMetrics;
   final double sidebarWidth;
   final double listWidth;
   final SidebarPresentationMode preferredNavigation;
   final AdaptiveWorkspaceArrangement arrangement;
-  final bool temporaryNavigationOpen;
   final ShellWindowTitleBarCommands titleBarCommands;
   final double controlsLeading;
+  final double headerLeadingInset;
   final AppUpdateManifest? updateManifest;
   final FocusNode navigationToggleFocusNode;
   final Key globalToolAreaKey;
@@ -56,17 +60,8 @@ class ShellSecondarySceneFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
+    final temporaryNavigationOpen = geometry.topology.temporaryNavigationOpen;
     final temporaryNavigationWidth = kTemporaryWorkspaceSidebarWidth;
-    final geometry = ShellFrameGeometry.resolve(
-      size: size,
-      shellChromeLayout: shellChromeLayout,
-      navigationPresentation: WorkspaceNavigationPresentation.offCanvas,
-      temporaryNavigationOpen: temporaryNavigationOpen,
-      expandedNavigationWidth: sidebarWidth,
-      railWidth: shellChromeLayout.sidebarRailWidth,
-      temporaryNavigationWidth: temporaryNavigationWidth,
-    );
     final controlsPresentationMode = temporaryNavigationOpen
         ? SidebarPresentationMode.expanded
         : SidebarPresentationMode.collapsed;
@@ -78,11 +73,11 @@ class ShellSecondarySceneFrame extends StatelessWidget {
     return AppMenuHost(
       child: ShellLayerScope(
         frameGeometry: geometry,
-        totalSize: size,
-        sidebarLayoutMode: sidebarLayoutModeForWidth(size.width),
+        totalSize: totalSize,
+        sidebarLayoutMode: sidebarLayoutModeForWidth(totalSize.width),
         sidebarWidth: sidebarWidth,
         listWidth: listWidth,
-        headerLeadingInset: 14,
+        headerLeadingInset: headerLeadingInset,
         macOSWindowChromeMetrics: macOSWindowChromeMetrics,
         shellChromeLayout: shellChromeLayout,
         navigationToggleFocusNode: navigationToggleFocusNode,
@@ -106,6 +101,12 @@ class ShellSecondarySceneFrame extends StatelessWidget {
             child: Stack(
               clipBehavior: Clip.hardEdge,
               children: [
+                Positioned.fill(
+                  child: ColoredBox(
+                    key: const Key('app_shell_secondary_scene_canvas'),
+                    color: surfaces.list,
+                  ),
+                ),
                 if (temporaryNavigationOpen)
                   Positioned(
                     left: 0,
