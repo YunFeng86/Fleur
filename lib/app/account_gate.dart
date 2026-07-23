@@ -158,6 +158,8 @@ class _AccountGateState extends ConsumerState<AccountGate> {
           '数据库可能正在被占用（例如同时打开了两个应用实例），或正在关闭中。请关闭其他实例后重试。',
         DbOpenFailureKind.environmental =>
           '数据库目录可能没有权限/磁盘空间不足/路径异常。请检查系统权限与存储空间后重试。',
+        DbOpenFailureKind.recoveryRequired =>
+          '检测到数据库可能已损坏。原始数据已保留，应用不会自动创建空库；请稍后通过恢复流程处理。',
         _ => '数据库打开失败，请重试或重启应用。',
       };
       final details = [

@@ -69,12 +69,12 @@ void main() {
       expect(kind, DbOpenFailureKind.environmental);
     });
 
-    test('allows recovery only for explicit corruption signals', () {
+    test('requires explicit recovery for corruption signals', () {
       final kind = debugClassifyDbOpenFailure(
         IsarError('Database file is corrupt'),
       );
 
-      expect(kind, isNull);
+      expect(kind, DbOpenFailureKind.recoveryRequired);
     });
   });
 
@@ -311,6 +311,7 @@ void main() {
     });
 
     tearDown(() async {
+      debugResetIsarOpenForTests();
       debugResetPendingMigrationsRunnerForTests();
       PathManager.resetForTests();
       PathProviderPlatform.instance = originalPlatform;
@@ -318,6 +319,75 @@ void main() {
         await tempDir.delete(recursive: true);
       }
     });
+
+    final preservingFailureCases =
+        <({String label, IsarError error, DbOpenFailureKind expectedKind})>[
+          (
+            label: 'lock conflicts',
+            error: IsarError(
+              'Cannot open Environment: MdbxError (35): '
+              'Resource temporarily unavailable',
+            ),
+            expectedKind: DbOpenFailureKind.transient,
+          ),
+          (
+            label: 'unknown open errors',
+            error: IsarError('Unexpected database open failure'),
+            expectedKind: DbOpenFailureKind.environmental,
+          ),
+          (
+            label: 'explicit corruption errors',
+            error: IsarError('Database file is corrupt'),
+            expectedKind: DbOpenFailureKind.recoveryRequired,
+          ),
+        ];
+
+    for (final failureCase in preservingFailureCases) {
+      test(
+        '${failureCase.label} preserve the original database without fallback',
+        () async {
+          const dbName = 'preserved_account';
+          const originalContents = 'sentinel account database contents';
+          final dbDir = await PathManager.getDbDir();
+          final originalFile = File('${dbDir.path}/$dbName.isar');
+          await originalFile.writeAsString(originalContents);
+          final openedNames = <String>[];
+
+          debugSetIsarOpenForTests((
+            schemas, {
+            required directory,
+            required name,
+          }) async {
+            openedNames.add(name);
+            throw failureCase.error;
+          });
+
+          await expectLater(
+            openIsarForAccount(
+              accountId: 'account-preserved',
+              dbName: dbName,
+              isPrimary: false,
+            ),
+            throwsA(
+              isA<DbOpenFailure>().having(
+                (error) => error.kind,
+                'kind',
+                failureCase.expectedKind,
+              ),
+            ),
+          );
+
+          expect(openedNames, isNotEmpty);
+          expect(openedNames, everyElement(dbName));
+          expect(await originalFile.exists(), isTrue);
+          expect(await originalFile.readAsString(), originalContents);
+
+          final entries = await dbDir.list(recursive: true).toList();
+          expect(entries, hasLength(1));
+          expect(entries.single.path, originalFile.path);
+        },
+      );
+    }
 
     test(
       'closes Isar when migration setup fails after a successful open',
