@@ -72,6 +72,25 @@ final routerProvider = Provider<GoRouter>((ref) {
     );
   }
 
+  Page<void> settingsPage({
+    required GoRouterState state,
+    SettingsTab? tab,
+    SettingsDetail? detail,
+  }) {
+    final settingId = state.uri.queryParameters['setting'];
+    // Settings changes the shell's navigation geometry. Keeping the old scene
+    // alive during a page transition briefly renders it inside the new shell
+    // profile, so every settings boundary is atomic.
+    return NoTransitionPage<void>(
+      key: state.pageKey,
+      child: SettingsScreen(
+        initialTab: tab,
+        initialDetail: detail,
+        initialSettingId: settingId,
+      ),
+    );
+  }
+
   final router = GoRouter(
     navigatorKey: _rootNavigatorKey,
     errorPageBuilder: (context, state) {
@@ -291,25 +310,59 @@ final routerProvider = Provider<GoRouter>((ref) {
             },
           ),
           GoRoute(
-            path: '/settings',
-            name: 'settings',
+            path: '/settings/:tab/:detail',
+            redirect: (context, state) {
+              final tab = settingsTabFromQueryValue(
+                state.pathParameters['tab'],
+              );
+              if (tab == null) return '/settings';
+              final detail = settingsDetailFromPath(
+                tab,
+                state.pathParameters['detail'],
+              );
+              return detail == null ? settingsLocation(tab: tab) : null;
+            },
             pageBuilder: (context, state) {
               final tab = settingsTabFromQueryValue(
+                state.pathParameters['tab'],
+              )!;
+              final detail = settingsDetailFromPath(
+                tab,
+                state.pathParameters['detail'],
+              )!;
+              return settingsPage(state: state, tab: tab, detail: detail);
+            },
+          ),
+          GoRoute(
+            path: '/settings/:tab',
+            redirect: (context, state) {
+              final tab = settingsTabFromQueryValue(
+                state.pathParameters['tab'],
+              );
+              return tab == null ? '/settings' : null;
+            },
+            pageBuilder: (context, state) {
+              final tab = settingsTabFromQueryValue(
+                state.pathParameters['tab'],
+              )!;
+              return settingsPage(state: state, tab: tab);
+            },
+          ),
+          GoRoute(
+            path: '/settings',
+            name: 'settings',
+            redirect: (context, state) {
+              final legacyTab = settingsTabFromQueryValue(
                 state.uri.queryParameters['tab'],
               );
-              final settingId = state.uri.queryParameters['setting'];
-              // Settings changes the shell's navigation geometry. Keeping the
-              // old scene alive during a page transition briefly renders it
-              // inside the new shell profile, so this boundary is atomic.
-              return NoTransitionPage<void>(
-                key: state.pageKey,
-                child: SettingsScreen(
-                  initialTab: tab,
-                  initialSettingId: settingId,
-                  showBack: true,
-                  fallbackBackLocation: '/all',
-                ),
+              if (legacyTab == null) return null;
+              return settingsLocation(
+                tab: legacyTab,
+                setting: state.uri.queryParameters['setting'],
               );
+            },
+            pageBuilder: (context, state) {
+              return settingsPage(state: state);
             },
           ),
         ],

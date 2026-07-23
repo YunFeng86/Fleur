@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:fleur/app/router.dart';
+import 'package:fleur/app/settings_routes.dart';
 import 'package:fleur/l10n/app_localizations.dart';
 import 'package:fleur/models/category.dart';
 import 'package:fleur/models/feed.dart';
@@ -88,22 +89,78 @@ void main() {
       expect(globalToolArea, findsOneWidget);
       final globalToolElement = tester.element(globalToolArea);
 
-      final settingsRoute = router.push<void>('/settings');
+      router.go('/settings');
       await tester.pump();
 
       expect(find.byType(SettingsScreen), findsOneWidget);
       expect(find.byType(ReadingWorkspaceScreen), findsNothing);
       expect(tester.element(globalToolArea), same(globalToolElement));
+      await tester.pumpAndSettle();
 
-      router.pop();
-      await settingsRoute;
-      await tester.pump();
+      await tester.tap(find.byKey(const Key('settings_nav_appearance')));
+      await tester.pumpAndSettle();
+
+      expect(
+        router.routerDelegate.currentConfiguration.uri.toString(),
+        '/settings/appearance',
+      );
+      await tester.ensureVisible(
+        find.byKey(const Key('appearance_advanced_fonts_tile')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('appearance_advanced_fonts_tile')));
+      await tester.pumpAndSettle();
+
+      expect(
+        router.routerDelegate.currentConfiguration.uri.toString(),
+        '/settings/appearance/fonts',
+      );
+      expect(
+        find.byKey(const Key('appearance_fonts_back_button')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const Key('appearance_fonts_back_button')));
+      await tester.pumpAndSettle();
+
+      expect(
+        router.routerDelegate.currentConfiguration.uri.toString(),
+        '/settings/appearance',
+      );
+
+      router.go(
+        settingsLocation(
+          tab: SettingsTab.appearance,
+          detail: SettingsDetail.appearanceFonts,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('shell_back_button')));
+      await tester.pumpAndSettle();
+
+      expect(
+        router.routerDelegate.currentConfiguration.uri.toString(),
+        '/settings/appearance',
+      );
+      expect(tester.element(globalToolArea), same(globalToolElement));
+
+      await tester.tap(find.byKey(const Key('shell_back_button')));
+      await tester.pumpAndSettle();
+
+      expect(
+        router.routerDelegate.currentConfiguration.uri.toString(),
+        '/settings',
+      );
+
+      await tester.tap(find.byKey(const Key('shell_back_button')));
+      await tester.pumpAndSettle();
+
+      expect(router.routerDelegate.currentConfiguration.uri.toString(), '/all');
 
       expect(find.byType(SettingsScreen), findsNothing);
       expect(find.byType(ReadingWorkspaceScreen), findsOneWidget);
       expect(tester.element(globalToolArea), same(globalToolElement));
       expect(tester.takeException(), isNull);
-      await tester.pumpAndSettle();
     },
   );
 }

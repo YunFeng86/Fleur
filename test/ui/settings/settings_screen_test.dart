@@ -75,8 +75,8 @@ void main() {
     double width, {
     double height = 800,
     SettingsTab? initialTab,
+    SettingsDetail? initialDetail,
     String? initialSettingId,
-    bool showBack = false,
     bool dynamicColorAvailable = false,
     bool disableAnimations = false,
     FakeReaderSettingsStore? readerSettingsStore,
@@ -109,8 +109,8 @@ void main() {
               : null,
           home: SettingsScreen(
             initialTab: initialTab,
+            initialDetail: initialDetail,
             initialSettingId: initialSettingId,
-            showBack: showBack,
           ),
         ),
       ),
@@ -142,7 +142,7 @@ void main() {
           supportedLocales: AppLocalizations.supportedLocales,
           home: AppShell(
             currentUri: Uri(path: '/settings'),
-            child: const SettingsScreen(showBack: true),
+            child: const SettingsScreen(),
           ),
         ),
       ),
@@ -297,8 +297,13 @@ void main() {
       find.byKey(const Key('appearance_standard_font_stack_input')),
       findsOneWidget,
     );
+    expect(find.byKey(const Key('settings_back_button')), findsNothing);
+    expect(
+      find.byKey(const Key('appearance_fonts_back_button')),
+      findsOneWidget,
+    );
 
-    await tester.tap(find.byKey(const Key('settings_back_button')));
+    await tester.tap(find.byKey(const Key('appearance_fonts_back_button')));
     await tester.pumpAndSettle();
 
     expect(
@@ -515,14 +520,14 @@ void main() {
     );
   });
 
-  testWidgets('Settings Screen shows close back button in wide route mode', (
+  testWidgets('Settings Screen does not reuse local back to close the route', (
     tester,
   ) async {
-    await pumpSettingsScreen(tester, 1000, showBack: true);
+    await pumpSettingsScreen(tester, 1000);
 
     expect(find.byKey(const Key('settings_sidebar')), findsOneWidget);
     expect(find.byKey(const Key('settings_sidebar_button')), findsOneWidget);
-    expect(find.byKey(const Key('settings_back_button')), findsOneWidget);
+    expect(find.byKey(const Key('settings_back_button')), findsNothing);
   });
 
   testWidgets('Settings Screen does not own native window chrome', (
@@ -531,7 +536,7 @@ void main() {
     debugFleurTargetPlatformOverride = TargetPlatform.windows;
     addTearDown(() => debugFleurTargetPlatformOverride = null);
 
-    await pumpSettingsScreen(tester, 1000, showBack: true);
+    await pumpSettingsScreen(tester, 1000);
 
     expect(find.byKey(const Key('shell_title_bar')), findsNothing);
     expect(find.byType(SafeArea), findsOneWidget);

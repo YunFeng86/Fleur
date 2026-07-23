@@ -32,15 +32,13 @@ class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({
     super.key,
     this.initialTab,
+    this.initialDetail,
     this.initialSettingId,
-    this.showBack = false,
-    this.fallbackBackLocation = '/all',
   });
 
   final SettingsTab? initialTab;
+  final SettingsDetail? initialDetail;
   final String? initialSettingId;
-  final bool showBack;
-  final String fallbackBackLocation;
 
   @override
   ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
@@ -50,7 +48,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   // Nullable tab: null means "List View" in narrow mode or default first item
   // in wide mode.
   SettingsTab? _selectedTab;
-  AppearanceDetailPage? _appearanceDetailPage;
+  SettingsDetail? _selectedDetail;
   final SettingsTargetController _targetController = SettingsTargetController();
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
@@ -76,7 +74,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _searchFocusNode.addListener(_handleSearchFocusChanged);
     _selectedTab =
         widget.initialTab ?? _tabForSettingId(widget.initialSettingId);
-    _appearanceDetailPage = null;
+    _selectedDetail = widget.initialDetail;
     _pendingInitialSettingId = widget.initialSettingId;
   }
 
@@ -84,12 +82,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void didUpdateWidget(covariant SettingsScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.initialTab == widget.initialTab &&
+        oldWidget.initialDetail == widget.initialDetail &&
         oldWidget.initialSettingId == widget.initialSettingId) {
       return;
     }
     _selectedTab =
         widget.initialTab ?? _tabForSettingId(widget.initialSettingId);
-    _appearanceDetailPage = null;
+    _selectedDetail = widget.initialDetail;
     _pendingInitialSettingId = widget.initialSettingId;
   }
 
@@ -131,12 +130,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         content: AppearanceTab(
           showPageTitle: showPageTitle,
           targetController: _targetController,
-          detailPage: _appearanceDetailPage,
+          detailPage: _selectedDetail == SettingsDetail.appearanceFonts
+              ? AppearanceDetailPage.fonts
+              : null,
           onOpenFontsDetail: () {
-            setState(() => _appearanceDetailPage = AppearanceDetailPage.fonts);
+            _openSettingsDetail(SettingsDetail.appearanceFonts);
           },
           onCloseDetail: () {
-            setState(() => _appearanceDetailPage = null);
+            _returnToSettingsTab(SettingsTab.appearance);
           },
         ),
       ),
@@ -294,22 +295,67 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void _selectSearchEntry(SettingsSearchEntry entry) {
     _searchFocusNode.unfocus();
     if (_searchController.text.isNotEmpty) _searchController.clear();
+    ref.read(settingsTemporaryNavigationOpenProvider.notifier).state = false;
+    final router = GoRouter.maybeOf(context);
+    if (router != null) {
+      router.go(settingsLocation(tab: entry.tab, setting: entry.targetId));
+      return;
+    }
     setState(() {
       _selectedTab = entry.tab;
-      _appearanceDetailPage = null;
+      _selectedDetail = null;
       _searchQuery = '';
     });
-    ref.read(settingsTemporaryNavigationOpenProvider.notifier).state = false;
     final targetId = entry.targetId;
     if (targetId != null) _queueRevealTarget(targetId);
   }
 
-  void _closeSettings() {
-    if (context.canPop()) {
-      context.pop();
+  void _selectSettingsTab(SettingsTab tab) {
+    final router = GoRouter.maybeOf(context);
+    if (router != null) {
+      router.go(settingsLocation(tab: tab));
       return;
     }
-    context.go(widget.fallbackBackLocation);
+    setState(() {
+      _selectedTab = tab;
+      _selectedDetail = null;
+    });
+  }
+
+  void _openSettingsDetail(SettingsDetail detail) {
+    final router = GoRouter.maybeOf(context);
+    if (router != null) {
+      router.go(settingsLocation(tab: detail.tab, detail: detail));
+      return;
+    }
+    setState(() {
+      _selectedTab = detail.tab;
+      _selectedDetail = detail;
+    });
+  }
+
+  void _returnToSettingsTab(SettingsTab tab) {
+    final router = GoRouter.maybeOf(context);
+    if (router != null) {
+      router.go(settingsLocation(tab: tab));
+      return;
+    }
+    setState(() {
+      _selectedTab = tab;
+      _selectedDetail = null;
+    });
+  }
+
+  void _returnToSettingsOverview() {
+    final router = GoRouter.maybeOf(context);
+    if (router != null) {
+      router.go(settingsLocation());
+      return;
+    }
+    setState(() {
+      _selectedTab = null;
+      _selectedDetail = null;
+    });
   }
 
   @override
@@ -443,37 +489,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         : const <SettingsSearchEntry>[];
 
     void selectTab(SettingsTab tab) {
-      setState(() {
-        _selectedTab = tab;
-        _appearanceDetailPage = null;
-      });
+      _selectSettingsTab(tab);
       ref.read(settingsTemporaryNavigationOpenProvider.notifier).state = false;
     }
 
     void handleDetailBack() {
-      if (selectedItem.tab == SettingsTab.appearance &&
-          _appearanceDetailPage != null) {
-        setState(() => _appearanceDetailPage = null);
-        return;
-      }
       if (selectedItem.tab == SettingsTab.subscriptions) {
         final notifier = ref.read(subscriptionSelectionProvider.notifier);
         final shouldPop = notifier.handleBack();
         if (!shouldPop) return;
       }
-      setState(() {
-        _selectedTab = null;
-        _appearanceDetailPage = null;
-      });
-    }
-
-    void handleChromeBack() {
-      if (selectedItem.tab == SettingsTab.appearance &&
-          _appearanceDetailPage != null) {
-        setState(() => _appearanceDetailPage = null);
-        return;
-      }
-      _closeSettings();
+      _returnToSettingsOverview();
     }
 
     final content = showingSearchResults
@@ -517,14 +543,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       sidebarTitle: l10n.settings,
       showSidebarButton: !shellOwnsGlobalTools,
       onToggleSidebar: toggleNavigation,
-      onBack: !sidebarExpanded && !sidebarRail && !showingList
+      onBack:
+          !sidebarExpanded &&
+              !sidebarRail &&
+              !showingList &&
+              _selectedDetail == null
           ? handleDetailBack
-          : shellOwnsGlobalTools
-          ? null
-          : sidebarExpanded || sidebarRail
-          ? (widget.showBack ? handleChromeBack : null)
-          : widget.showBack
-          ? _closeSettings
           : null,
       items: items,
       sidebarSelectedIndex: sidebarExpanded || sidebarRail

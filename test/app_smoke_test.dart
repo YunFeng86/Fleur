@@ -1428,7 +1428,12 @@ void main() {
             ),
             GoRoute(
               path: '/settings',
-              builder: (context, state) => const Text('settings page'),
+              builder: (context, state) => const Text('settings page root'),
+            ),
+            GoRoute(
+              path: '/settings/:tab',
+              builder: (context, state) =>
+                  Text('settings page ${state.pathParameters['tab']}'),
             ),
           ],
         ),
@@ -1523,7 +1528,7 @@ void main() {
     await tester.tap(find.byKey(const Key('sidebar_account_menu_account')));
     await tester.pumpAndSettle();
 
-    expect(find.text('settings page'), findsOneWidget);
+    expect(find.text('settings page services'), findsOneWidget);
     expect(router.canPop(), isTrue);
     router.pop();
     await tester.pumpAndSettle();
@@ -1532,7 +1537,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('sidebar_account_menu_settings')));
     await tester.pumpAndSettle();
-    expect(find.text('settings page'), findsOneWidget);
+    expect(find.text('settings page root'), findsOneWidget);
   });
 
   testWidgets('App shell drawer account menu closes before opening services', (
