@@ -273,6 +273,38 @@ void main() {
     },
   );
 
+  testWidgets('page header can reserve chrome without a local back action', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: ShellLayerScope(
+          frameGeometry: _testShellGeometry(const Size(520, 120)),
+          totalSize: const Size(520, 120),
+          sidebarLayoutMode: SidebarLayoutMode.inline,
+          sidebarWidth: kDefaultWorkspaceSidebarWidth,
+          listWidth: kDefaultWorkspaceListWidth,
+          headerLeadingInset: 14,
+          macOSWindowChromeMetrics: MacOSWindowChromeMetrics.fallback,
+          shellChromeLayout: ShellChromeLayout.integratedCorner,
+          child: WorkspacePageHeader(
+            title: '',
+            onBack: () {},
+            showBackButton: false,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byKey(const Key('workspace_page_header')), findsOneWidget);
+    expect(find.byKey(const Key('workspace_page_back_button')), findsNothing);
+    expect(find.byKey(const Key('window_page_drag_surface')), findsOneWidget);
+  });
+
   testWidgets('macOS fullscreen controls respect the click-safe top inset', (
     tester,
   ) async {

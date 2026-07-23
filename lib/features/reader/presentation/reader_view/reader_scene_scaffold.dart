@@ -94,6 +94,10 @@ extension _ReaderSceneScaffold on _ReaderViewState {
     final showAppBar = !isDesktop
         ? (!widget.embedded || widget.showBack)
         : widget.showBack;
+    final shellScope = ShellLayerScope.maybeOf(context);
+    final shellOwnsGlobalTools =
+        shellScope?.shellChromeLayout?.placesControlsInTitleBar == true ||
+        shellScope?.shellChromeLayout?.usesFloatingLeadingControls == true;
 
     final paddedContentWidget = widget.embedded
         ? Padding(padding: const EdgeInsets.only(top: 10), child: contentWidget)
@@ -134,6 +138,7 @@ extension _ReaderSceneScaffold on _ReaderViewState {
               WorkspacePageHeader(
                 title: '',
                 onBack: handleBack,
+                showBackButton: !shellOwnsGlobalTools,
                 backgroundColor: sceneTheme.fleurSurface.reader,
               ),
               Expanded(child: body),

@@ -554,11 +554,13 @@ class WorkspacePageHeader extends StatelessWidget {
     super.key,
     required this.title,
     required this.onBack,
+    this.showBackButton = true,
     this.backgroundColor,
   });
 
   final String title;
   final VoidCallback onBack;
+  final bool showBackButton;
   final Color? backgroundColor;
 
   @override
@@ -620,26 +622,27 @@ class WorkspacePageHeader extends StatelessWidget {
                       key: Key('window_page_drag_surface'),
                     ),
                   ),
-                Positioned(
-                  left: rowLeft,
-                  top: rowTop,
-                  width: kShellControlSize,
-                  height: kShellControlSize,
-                  child: IconButton(
-                    key: const Key('workspace_page_back_button'),
-                    tooltip: MaterialLocalizations.of(
-                      context,
-                    ).backButtonTooltip,
-                    icon: const Icon(FleurIcons.back),
-                    onPressed: onBack,
-                    style: IconButton.styleFrom(
-                      fixedSize: const Size.square(kShellControlSize),
-                      minimumSize: const Size.square(kShellControlSize),
-                      padding: EdgeInsets.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                if (showBackButton)
+                  Positioned(
+                    left: rowLeft,
+                    top: rowTop,
+                    width: kShellControlSize,
+                    height: kShellControlSize,
+                    child: IconButton(
+                      key: const Key('workspace_page_back_button'),
+                      tooltip: MaterialLocalizations.of(
+                        context,
+                      ).backButtonTooltip,
+                      icon: const Icon(FleurIcons.back),
+                      onPressed: onBack,
+                      style: IconButton.styleFrom(
+                        fixedSize: const Size.square(kShellControlSize),
+                        minimumSize: const Size.square(kShellControlSize),
+                        padding: EdgeInsets.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
                     ),
                   ),
-                ),
                 if (title.isNotEmpty)
                   Positioned(
                     left: rowLeft + kShellControlSize + 8,
