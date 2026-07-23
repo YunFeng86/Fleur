@@ -125,19 +125,40 @@ void main() {
       expect(router.routerDelegate.currentConfiguration.uri.toString(), '/all');
       expect(tester.takeException(), isNull);
       expect(find.text(article.title!), findsOneWidget);
+      final globalToolArea = find.byKey(const Key('shell_global_tool_area'));
+      expect(globalToolArea, findsOneWidget);
+      final globalToolElement = tester.element(globalToolArea);
 
       final opened = router.push<void>(
         '/all/article/42',
         extra: WorkspaceReaderPresentation.secondaryPage,
       );
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 16));
 
-      final readerLeftDuringTransition = tester
-          .getTopLeft(find.byType(ReaderView))
-          .dx;
-      expect(readerLeftDuringTransition, greaterThan(0));
-      expect(readerLeftDuringTransition, lessThan(640));
+      expect(find.byKey(const Key('app_shell_content_layer')), findsNothing);
+      expect(
+        find.byKey(const Key('app_shell_secondary_scene_canvas')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('app_shell_secondary_layer')),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .getTopLeft(
+              find.byKey(const Key('app_shell_secondary_scene_canvas')),
+            )
+            .dx,
+        0,
+      );
+      expect(
+        tester
+            .getTopLeft(find.byKey(const Key('app_shell_secondary_layer')))
+            .dx,
+        0,
+      );
+      expect(tester.element(globalToolArea), same(globalToolElement));
 
       await tester.pumpAndSettle();
 
@@ -171,10 +192,18 @@ void main() {
 
       router.pop();
       await opened;
-      await tester.pumpAndSettle();
+      await tester.pump();
 
       expect(router.routerDelegate.currentConfiguration.uri.toString(), '/all');
+      expect(find.byKey(const Key('app_shell_content_layer')), findsOneWidget);
+      expect(
+        find.byKey(const Key('app_shell_secondary_scene_canvas')),
+        findsNothing,
+      );
+      expect(find.byKey(const Key('app_shell_secondary_layer')), findsNothing);
+      expect(tester.element(globalToolArea), same(globalToolElement));
       expect(tester.takeException(), isNull);
+      await tester.pumpAndSettle();
     },
   );
 }

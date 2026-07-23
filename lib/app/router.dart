@@ -12,7 +12,6 @@ import '../providers/navigation_history_provider.dart';
 import '../ui/home/reading_workspace_screen.dart';
 import '../ui/home/search_screen.dart';
 import '../ui/settings/settings_screen.dart';
-import '../theme/fleur_theme_extensions.dart';
 import '../ui/adaptive_workspace_layout.dart';
 import '../ui/app_shell.dart';
 import '../ui/motion.dart';
@@ -54,28 +53,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     required GoRouterState state,
     required Widget child,
   }) {
-    return CustomTransitionPage<void>(
-      key: state.pageKey,
-      opaque: true,
-      transitionDuration: AppMotion.pageTransitionDuration,
-      reverseTransitionDuration: AppMotion.pageReverseTransitionDuration,
-      child: _ReaderPageSurface(child: child),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        if (AppMotion.reduceMotion(context)) return child;
-        final curved = CurvedAnimation(
-          parent: animation,
-          curve: AppMotion.emphasizedDecelerate,
-          reverseCurve: AppMotion.emphasizedAccelerate,
-        );
-        return SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(1, 0),
-            end: Offset.zero,
-          ).animate(curved),
-          child: child,
-        );
-      },
-    );
+    return NoTransitionPage<void>(key: state.pageKey, child: child);
   }
 
   Page<void> workspaceArticlePage(GoRouterState state) {
@@ -349,19 +327,5 @@ class _NotFoundScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(body: Center(child: Text(l10n.notFound)));
-  }
-}
-
-class _ReaderPageSurface extends StatelessWidget {
-  const _ReaderPageSurface({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return ColoredBox(
-      color: Theme.of(context).fleurSurface.reader,
-      child: child,
-    );
   }
 }
