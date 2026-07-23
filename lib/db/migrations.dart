@@ -82,8 +82,7 @@ Future<void> runPendingMigrations(Isar isar) async {
           error: e,
           stackTrace: stackTrace,
         );
-        // Don't rethrow - allow app to start even if migration fails
-        // Users can still use the app with potentially stale data
+        Error.throwWithStackTrace(e, stackTrace);
       }
     }
   }
