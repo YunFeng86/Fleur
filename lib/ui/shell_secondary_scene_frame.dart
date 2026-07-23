@@ -77,6 +77,7 @@ class ShellSecondarySceneFrame extends StatelessWidget {
     return AppMenuHost(
       child: ShellLayerScope(
         topology: geometry.topology,
+        frameGeometry: geometry,
         totalSize: size,
         contentSize: Size(geometry.contentWidth, geometry.workspaceHeight),
         sidebarLayoutMode: sidebarLayoutModeForWidth(size.width),

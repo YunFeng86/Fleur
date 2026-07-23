@@ -99,6 +99,23 @@ void main() {
     );
   });
 
+  test('macOS temporary navigation replaces the rail avoidance inset', () {
+    final geometry = ShellFrameGeometry.resolve(
+      size: size,
+      shellChromeLayout: ShellChromeLayout.integratedCorner,
+      navigationPresentation: WorkspaceNavigationPresentation.rail,
+      temporaryNavigationOpen: true,
+      expandedNavigationWidth: kDefaultWorkspaceSidebarWidth,
+      railWidth: kSidebarRailWidth,
+      temporaryNavigationWidth: kTemporaryWorkspaceSidebarWidth,
+    );
+
+    expect(geometry.contentLeft, 0);
+    expect(geometry.translatedContentLeft, kTemporaryWorkspaceSidebarWidth);
+    expect(geometry.contentLeadingInset, 0);
+    expect(geometry.railOverlayVisible, isFalse);
+  });
+
   test('content-only off-canvas reserves no closed navigation width', () {
     final geometry = ShellFrameGeometry.resolve(
       size: size,

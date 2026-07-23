@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -363,17 +364,25 @@ class _AppShellState extends ConsumerState<AppShell> {
       shellChromeLayout: shellChromeLayout,
       fallback: (railWidth - kShellControlSize) / 2,
     );
+    final controlsRight =
+        controlsLeft +
+        _shellControlsGroupWidth(hasUpdate: updateManifest != null);
+    final overlapWithContent = controlsRight - geometry.contentLeft;
+    final headerLeadingInset = shellChromeLayout.placesControlsInTitleBar
+        ? 14.0
+        : math.max(14.0, overlapWithContent + 12.0);
     final scope = ShellLayerScope(
       topology: geometry.topology,
+      frameGeometry: geometry,
       totalSize: size,
-      contentSize: Size(size.width, geometry.workspaceHeight),
+      contentSize: Size(geometry.contentWidth, geometry.workspaceHeight),
       sidebarLayoutMode: sidebarLayoutModeForWidth(size.width),
-      contentLeft: 0,
-      contentLeadingInset: 0,
-      railOverlayVisible: false,
+      contentLeft: geometry.contentLeft,
+      contentLeadingInset: geometry.contentLeadingInset,
+      railOverlayVisible: geometry.railOverlayVisible,
       sidebarWidth: visibleLeftChromeWidth,
       listWidth: listWidth,
-      headerLeadingInset: 14,
+      headerLeadingInset: headerLeadingInset,
       macOSWindowChromeMetrics: macOSWindowChromeMetrics,
       shellChromeLayout: shellChromeLayout,
       navigationToggleFocusNode: _navigationToggleFocusNode,
@@ -527,6 +536,7 @@ class _AppShellState extends ConsumerState<AppShell> {
 
     final contentLayer = ShellLayerScope(
       topology: geometry.topology,
+      frameGeometry: geometry,
       totalSize: size,
       contentSize: Size(geometry.contentWidth, geometry.workspaceHeight),
       sidebarLayoutMode: sidebarLayoutMode,

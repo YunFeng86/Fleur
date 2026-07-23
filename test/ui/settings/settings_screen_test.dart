@@ -604,6 +604,57 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('macOS settings rail avoids L3 without shifting L2', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    await pumpSettingsShell(
+      tester,
+      800,
+      overrides: [
+        settingsSidebarPresentationModeProvider.overrideWith(
+          (ref) => SidebarPresentationMode.collapsed,
+        ),
+      ],
+    );
+
+    expect(find.byKey(const Key('settings_navigation_rail')), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.byKey(const Key('settings_content_layer'))).dx,
+      0,
+    );
+    final closedPadding = tester.widget<Padding>(
+      find.byKey(const Key('settings_content_avoidance')),
+    );
+    expect(
+      closedPadding.padding.resolve(TextDirection.ltr).left,
+      kSidebarRailWidth + kRailOverlayContentGap,
+    );
+    expect(find.byKey(const Key('settings_sidebar_divider')), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('settings_rail_header')),
+        matching: find.byType(Icon),
+      ),
+      findsNothing,
+    );
+
+    await tester.tap(find.byKey(const Key('shell_sidebar_button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('settings_sidebar')), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.byKey(const Key('settings_content_layer'))).dx,
+      kTemporaryWorkspaceSidebarWidth,
+    );
+    final openPadding = tester.widget<Padding>(
+      find.byKey(const Key('settings_content_avoidance')),
+    );
+    expect(openPadding.padding.resolve(TextDirection.ltr).left, 0);
+  });
+
   testWidgets('Settings title-bar toggle keeps feed preference independent', (
     tester,
   ) async {
@@ -621,6 +672,11 @@ void main() {
     );
 
     expect(find.byKey(const Key('settings_navigation_rail')), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.byKey(const Key('settings_content_layer'))).dx,
+      kTitleBarExpectedSidebarRailWidth,
+    );
+    expect(find.byKey(const Key('settings_sidebar_divider')), findsOneWidget);
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
     await tester.pumpAndSettle();
 

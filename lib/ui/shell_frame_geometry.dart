@@ -71,7 +71,7 @@ class ShellFrameGeometry {
     final contentWidth = (size.width - leftChromeWidth)
         .clamp(0.0, double.infinity)
         .toDouble();
-    final contentLeadingInset = railOverlay
+    final contentLeadingInset = railOverlay && !temporaryNavigationOpen
         ? railWidth + kRailOverlayContentGap
         : 0.0;
     final contentTranslation = temporaryNavigationOpen

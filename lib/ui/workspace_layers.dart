@@ -12,6 +12,7 @@ import '../utils/macos_window_chrome_bridge.dart';
 import '../utils/platform.dart';
 import 'adaptive_workspace_layout.dart';
 import 'shell_chrome_layout.dart';
+import 'shell_frame_geometry.dart';
 import 'shell_frame_topology.dart';
 import 'sidebar_layout.dart';
 
@@ -68,6 +69,7 @@ class ShellLayerScope extends InheritedWidget {
   const ShellLayerScope({
     super.key,
     required this.topology,
+    this.frameGeometry,
     required this.totalSize,
     required this.contentSize,
     required this.sidebarLayoutMode,
@@ -87,6 +89,7 @@ class ShellLayerScope extends InheritedWidget {
   });
 
   final ShellFrameTopology topology;
+  final ShellFrameGeometry? frameGeometry;
   final Size totalSize;
   final Size contentSize;
   final SidebarLayoutMode sidebarLayoutMode;
@@ -110,6 +113,7 @@ class ShellLayerScope extends InheritedWidget {
   @override
   bool updateShouldNotify(ShellLayerScope oldWidget) {
     return topology != oldWidget.topology ||
+        frameGeometry != oldWidget.frameGeometry ||
         totalSize != oldWidget.totalSize ||
         contentSize != oldWidget.contentSize ||
         sidebarLayoutMode != oldWidget.sidebarLayoutMode ||

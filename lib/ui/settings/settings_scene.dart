@@ -9,6 +9,7 @@ import '../adaptive_workspace_layout.dart';
 import '../design_system/design_system.dart';
 import '../motion.dart';
 import '../shell_chrome_layout.dart';
+import '../shell_frame_geometry.dart';
 import '../sidebar_layout.dart';
 import '../workspace_layers.dart';
 import 'settings_search_view.dart';
@@ -27,6 +28,7 @@ class SettingsScene extends StatelessWidget {
     required this.navigationPresentation,
     required this.temporaryNavigationOpen,
     required this.railWidth,
+    required this.frameGeometry,
     required this.title,
     required this.sidebarTitle,
     required this.showSidebarButton,
@@ -49,6 +51,7 @@ class SettingsScene extends StatelessWidget {
   final WorkspaceNavigationPresentation navigationPresentation;
   final bool temporaryNavigationOpen;
   final double railWidth;
+  final ShellFrameGeometry frameGeometry;
   final String title;
   final String sidebarTitle;
   final bool showSidebarButton;
@@ -72,17 +75,6 @@ class SettingsScene extends StatelessWidget {
         navigationPresentation == WorkspaceNavigationPresentation.expanded;
     final sidebarRail =
         navigationPresentation == WorkspaceNavigationPresentation.rail;
-    final structuralContentLeft = sidebarExpanded
-        ? _kSettingsSidebarWidth + kSidebarContentDividerWidth
-        : sidebarRail
-        ? railWidth
-        : 0.0;
-    final contentLeft = temporaryNavigationOpen
-        ? _kSettingsSidebarWidth
-        : structuralContentLeft;
-    final contentWidth = (width - structuralContentLeft)
-        .clamp(0.0, double.infinity)
-        .toDouble();
     final sidebarPinned = sidebarExpanded || sidebarRail;
     final expandedSidebar = _SettingsSidebar(
       title: sidebarTitle,
@@ -130,10 +122,11 @@ class SettingsScene extends StatelessWidget {
                   onSelect: onSelect,
                 ),
               ),
-            if ((sidebarExpanded || sidebarRail) && !temporaryNavigationOpen)
+            if (!temporaryNavigationOpen &&
+                (sidebarExpanded || frameGeometry.structuralRailVisible))
               Positioned(
                 key: const Key('settings_sidebar_divider'),
-                left: structuralContentLeft - kSidebarContentDividerWidth,
+                left: frameGeometry.contentLeft - kSidebarContentDividerWidth,
                 top: 0,
                 bottom: 0,
                 width: kSidebarContentDividerWidth,
@@ -146,23 +139,29 @@ class SettingsScene extends StatelessWidget {
                 _kLayerAnimationDuration,
               ),
               curve: Curves.easeOutCubic,
-              left: contentLeft,
+              left: frameGeometry.translatedContentLeft,
               top: 0,
               bottom: 0,
-              width: contentWidth,
-              child: _SettingsContentLayer(
-                sidebarPinned: sidebarPinned,
-                sidebarOpen: temporaryNavigationOpen,
-                title: title,
-                showSidebarButton: showSidebarButton,
-                onToggleSidebar: onToggleSidebar,
-                onBack: onBack,
-                selectedContentKey: selectedContentKey,
-                searchController: searchController,
-                searchFocusNode: searchFocusNode,
-                searchFocused: searchFocused,
-                navigationToggleFocusNode: navigationToggleFocusNode,
-                child: content,
+              width: frameGeometry.contentWidth,
+              child: Padding(
+                key: const Key('settings_content_avoidance'),
+                padding: EdgeInsets.only(
+                  left: frameGeometry.contentLeadingInset,
+                ),
+                child: _SettingsContentLayer(
+                  sidebarPinned: sidebarPinned,
+                  sidebarOpen: temporaryNavigationOpen,
+                  title: title,
+                  showSidebarButton: showSidebarButton,
+                  onToggleSidebar: onToggleSidebar,
+                  onBack: onBack,
+                  selectedContentKey: selectedContentKey,
+                  searchController: searchController,
+                  searchFocusNode: searchFocusNode,
+                  searchFocused: searchFocused,
+                  navigationToggleFocusNode: navigationToggleFocusNode,
+                  child: content,
+                ),
               ),
             ),
             if (temporaryNavigationOpen)
@@ -205,20 +204,27 @@ class _SettingsNavigationRail extends StatelessWidget {
     final theme = Theme.of(context);
     final surfaces = theme.fleurSurface;
     final scheme = theme.colorScheme;
+    final scope = ShellLayerScope.maybeOf(context);
+    final reserveShellTools =
+        scope != null &&
+        scope.shellChromeLayout?.profile == ShellChromeProfile.integratedCorner;
 
     return Material(
       color: surfaces.sidebar,
       child: Column(
         children: [
           SizedBox(
+            key: const Key('settings_rail_header'),
             height: kWorkspaceHeaderHeight,
-            child: Center(
-              child: Icon(
-                FleurIcons.settingsSelected,
-                size: 18,
-                color: scheme.primary,
-              ),
-            ),
+            child: reserveShellTools
+                ? null
+                : Center(
+                    child: Icon(
+                      FleurIcons.settingsSelected,
+                      size: 18,
+                      color: scheme.primary,
+                    ),
+                  ),
           ),
           Expanded(
             child: AppScrollbar(
@@ -327,33 +333,39 @@ class _SettingsSidebarHeader extends StatelessWidget {
         chromeLayout.profile == ShellChromeProfile.integratedCorner &&
         metrics.trafficLightsVisible;
     final leadingLeft = avoidTrafficLights ? metrics.safeInset : 16.0;
+    final reserveShellTools =
+        scope != null &&
+        chromeLayout.profile == ShellChromeProfile.integratedCorner;
 
     return SizedBox(
+      key: const Key('settings_sidebar_header'),
       height: kWorkspaceHeaderHeight,
-      child: Padding(
-        padding: EdgeInsets.only(left: leadingLeft, right: 12),
-        child: Row(
-          children: [
-            Icon(
-              FleurIcons.settingsSelected,
-              size: 18,
-              color: theme.colorScheme.primary,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0,
-                ),
+      child: reserveShellTools
+          ? null
+          : Padding(
+              padding: EdgeInsets.only(left: leadingLeft, right: 12),
+              child: Row(
+                children: [
+                  Icon(
+                    FleurIcons.settingsSelected,
+                    size: 18,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -522,7 +534,14 @@ class _SettingsSceneHeader extends StatelessWidget {
         !sidebarOpen &&
         integratedCorner &&
         metrics.trafficLightsVisible;
-    final leadingLeft = avoidTrafficLights ? metrics.safeInset : 8.0;
+    final baseLeadingLeft = avoidTrafficLights ? metrics.safeInset : 8.0;
+    final scopedLeadingLeft =
+        ((scope?.headerLeadingInset ?? 0) - (scope?.contentLeadingInset ?? 0))
+            .clamp(0.0, double.infinity)
+            .toDouble();
+    final leadingLeft = scopedLeadingLeft > baseLeadingLeft
+        ? scopedLeadingLeft
+        : baseLeadingLeft;
     final rowTop = integratedCorner
         ? metrics.shellControlTopInset
         : kShellControlTopInset;

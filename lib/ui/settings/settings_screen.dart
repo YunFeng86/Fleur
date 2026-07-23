@@ -14,6 +14,7 @@ import '../../theme/fleur_theme_extensions.dart';
 import '../adaptive_workspace_layout.dart';
 import '../app_drawer_scope.dart';
 import '../shell_chrome_layout.dart';
+import '../shell_frame_geometry.dart';
 import '../sidebar_layout.dart';
 import '../workspace_layers.dart';
 import 'settings_scene.dart';
@@ -386,6 +387,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             final railWidth = shellChromeLayout.placesControlsInTitleBar
                 ? kTitleBarExpectedSidebarRailWidth
                 : kSidebarRailWidth;
+            final frameGeometry =
+                scope?.frameGeometry ??
+                ShellFrameGeometry.resolve(
+                  size: Size(width, constraints.maxHeight),
+                  shellChromeLayout: shellChromeLayout,
+                  navigationPresentation: navigationPresentation,
+                  temporaryNavigationOpen: temporaryNavigationOpen,
+                  expandedNavigationWidth: kDefaultWorkspaceSidebarWidth,
+                  railWidth: railWidth,
+                  temporaryNavigationWidth: kTemporaryWorkspaceSidebarWidth,
+                );
             final items = _buildItems(context, showPageTitle: false);
             final trimmedSearchQuery = _searchQuery.trim();
             final showingSearchResults = trimmedSearchQuery.isNotEmpty;
@@ -473,6 +485,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               navigationPresentation: navigationPresentation,
               temporaryNavigationOpen: temporaryNavigationOpen,
               railWidth: railWidth,
+              frameGeometry: frameGeometry,
               title: showingSearchResults || showingList
                   ? l10n.settings
                   : selectedItem.label,
