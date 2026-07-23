@@ -13,6 +13,7 @@ import '../../theme/fleur_icons.dart';
 import '../../theme/fleur_theme_extensions.dart';
 import '../adaptive_workspace_layout.dart';
 import '../app_drawer_scope.dart';
+import '../motion.dart';
 import '../shell_chrome_layout.dart';
 import '../shell_frame_geometry.dart';
 import '../sidebar_layout.dart';
@@ -276,7 +277,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   ) async {
     await Scrollable.ensureVisible(
       targetContext,
-      duration: const Duration(milliseconds: 220),
+      duration: AppMotion.effectiveDuration(context, AppMotion.medium),
       curve: Curves.easeOutCubic,
       alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtStart,
     );

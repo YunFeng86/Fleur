@@ -78,6 +78,7 @@ void main() {
     String? initialSettingId,
     bool showBack = false,
     bool dynamicColorAvailable = false,
+    bool disableAnimations = false,
     FakeReaderSettingsStore? readerSettingsStore,
     List<Override> overrides = const [],
   }) async {
@@ -98,6 +99,14 @@ void main() {
           theme: AppTheme.light(dynamicColorAvailable: dynamicColorAvailable),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
+          builder: disableAnimations
+              ? (context, child) => MediaQuery(
+                  data: MediaQuery.of(
+                    context,
+                  ).copyWith(disableAnimations: true),
+                  child: child!,
+                )
+              : null,
           home: SettingsScreen(
             initialTab: initialTab,
             initialSettingId: initialSettingId,
@@ -1393,6 +1402,45 @@ void main() {
     expect(
       find.byKey(const Key('settings_target_appearance.reader.width')),
       findsOneWidget,
+    );
+  });
+
+  testWidgets('Settings search positioning honors reduced motion', (
+    tester,
+  ) async {
+    await pumpSettingsScreen(
+      tester,
+      1000,
+      height: 400,
+      disableAnimations: true,
+      overrides: servicesOverrides(),
+    );
+
+    await tester.tap(find.byKey(const Key('settings_search_placeholder')));
+    await tester.enterText(find.byType(TextField), 'width');
+    await tester.pump();
+
+    await tester.tap(
+      find.byKey(const Key('settings_search_result_appearance.reader.width')),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    final target = find.byKey(
+      const Key('settings_target_appearance.reader.width'),
+    );
+    expect(target, findsOneWidget);
+    final highlight = tester.widget<AnimatedContainer>(
+      find
+          .descendant(of: target, matching: find.byType(AnimatedContainer))
+          .first,
+    );
+    expect(highlight.duration, Duration.zero);
+    expect(
+      tester
+          .stateList<ScrollableState>(find.byType(Scrollable))
+          .every((state) => !state.position.isScrollingNotifier.value),
+      isTrue,
     );
   });
 
