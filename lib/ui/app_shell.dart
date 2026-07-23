@@ -10,7 +10,6 @@ import '../models/article_scope.dart';
 import '../providers/app_update_providers.dart';
 import '../providers/core_providers.dart';
 import '../providers/navigation_history_provider.dart';
-import '../services/update/app_update_manifest.dart';
 import '../theme/fleur_theme_extensions.dart';
 import 'sidebar/sidebar.dart';
 import '../utils/platform.dart';
@@ -48,6 +47,9 @@ class _AppShellState extends ConsumerState<AppShell> {
   Size? _lastWindowSize;
   final FocusNode _navigationToggleFocusNode = FocusNode(
     debugLabel: 'shell-navigation-toggle',
+  );
+  final GlobalKey _globalToolAreaKey = GlobalKey(
+    debugLabel: 'shell-global-tool-area',
   );
   final FocusScopeNode _temporaryNavigationFocusNode = FocusScopeNode(
     debugLabel: 'shell-temporary-navigation',
@@ -213,9 +215,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     double? expandedWidth,
     required bool showAccountSyncStatus,
     required Uri currentUri,
-    required MacOSWindowChromeMetrics macOSWindowChromeMetrics,
     required ShellChromeLayout shellChromeLayout,
-    VoidCallback? onSearch,
     SidebarPresentationMode? presentationModeOverride,
     bool transparentBackground = false,
   }) {
@@ -230,12 +230,9 @@ class _AppShellState extends ConsumerState<AppShell> {
         presentationModeOverride: presentationModeOverride,
         showAccountSyncStatus: showAccountSyncStatus,
         currentUri: currentUri,
-        onSearch: onSearch,
-        macOSWindowChromeMetrics: macOSWindowChromeMetrics,
         railSurfaceStyle: shellChromeLayout.railSurfaceStyle,
         railWidth: shellChromeLayout.sidebarRailWidth,
         expandedWidth: expandedWidth ?? width,
-        showHeaderActions: !shellChromeLayout.placesControlsInTitleBar,
       ),
     );
   }
@@ -251,11 +248,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     required AdaptiveWorkspaceArrangement arrangement,
     required NavigationHistoryState history,
   }) {
-    final usesTitleBar = shellChromeLayout.placesControlsInTitleBar;
     final temporaryNavigationOpen = _temporarySidebarOpen;
-    final controlsPresentationMode = temporaryNavigationOpen
-        ? SidebarPresentationMode.expanded
-        : SidebarPresentationMode.collapsed;
     final updateManifest = ref.watch(
       appUpdateControllerProvider.select(
         (state) => state.hasUpdate ? state.manifest : null,
@@ -300,27 +293,16 @@ class _AppShellState extends ConsumerState<AppShell> {
       controlsLeading: controlsLeft,
       updateManifest: updateManifest,
       navigationToggleFocusNode: _navigationToggleFocusNode,
+      globalToolAreaKey: _globalToolAreaKey,
       temporaryNavigationFocusNode: _temporaryNavigationFocusNode,
       navigationPane: _desktopSidebar(
         context: context,
         width: kTemporaryWorkspaceSidebarWidth,
         showAccountSyncStatus: true,
         currentUri: widget.currentUri,
-        macOSWindowChromeMetrics: macOSWindowChromeMetrics,
         shellChromeLayout: shellChromeLayout,
-        onSearch: !usesTitleBar ? () => _goToSearch(context) : null,
         presentationModeOverride: SidebarPresentationMode.expanded,
       ),
-      floatingLeadingControls: shellChromeLayout.usesFloatingLeadingControls
-          ? _InlineShellControlsHost(
-              presentationMode: controlsPresentationMode,
-              shellChromeLayout: shellChromeLayout,
-              commands: commands,
-              searchSelected: false,
-              updateManifest: updateManifest,
-              navigationToggleFocusNode: _navigationToggleFocusNode,
-            )
-          : null,
       onDismissNavigation: _closeTemporarySidebar,
       child: widget.child,
     );
@@ -432,7 +414,7 @@ class _AppShellState extends ConsumerState<AppShell> {
           updateManifest: updateManifest,
           controlsLeading: controlsLeft,
           navigationToggleFocusNode: _navigationToggleFocusNode,
-          floatingLeadingControls: null,
+          globalToolAreaKey: _globalToolAreaKey,
           child: scope,
         ),
       ),
@@ -481,10 +463,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         (state) => state.hasUpdate ? state.manifest : null,
       ),
     );
-    final shellShowsUpdate =
-        updateManifest != null &&
-        (shellChromeLayout.placesControlsInTitleBar ||
-            controlsPresentationMode != SidebarPresentationMode.expanded);
+    final shellShowsUpdate = updateManifest != null;
     final controlsLeft = _shellControlsLeftInset(
       macOSWindowChromeMetrics,
       shellChromeLayout: shellChromeLayout,
@@ -493,12 +472,7 @@ class _AppShellState extends ConsumerState<AppShell> {
           : 12,
     );
     final controlsRight =
-        controlsLeft +
-        _shellControlsGroupWidth(
-          controlsPresentationMode,
-          shellChromeLayout: shellChromeLayout,
-          hasUpdate: shellShowsUpdate,
-        );
+        controlsLeft + _shellControlsGroupWidth(hasUpdate: shellShowsUpdate);
     final overlapWithContent = controlsRight - geometry.contentLeft;
     final headerLeadingInset = usesTitleBar
         ? 14.0
@@ -537,13 +511,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       expandedWidth: sidebarWidth,
       showAccountSyncStatus: showAccountSyncStatus,
       currentUri: widget.currentUri,
-      macOSWindowChromeMetrics: macOSWindowChromeMetrics,
       shellChromeLayout: shellChromeLayout,
-      onSearch:
-          !shellChromeLayout.placesControlsInTitleBar &&
-              (sidebarExpanded || temporarySidebarOpen)
-          ? () => _goToSearch(context)
-          : null,
       presentationModeOverride: sidebarExpanded || temporarySidebarOpen
           ? SidebarPresentationMode.expanded
           : SidebarPresentationMode.collapsed,
@@ -612,16 +580,7 @@ class _AppShellState extends ConsumerState<AppShell> {
           updateManifest: shellShowsUpdate ? updateManifest : null,
           controlsLeading: controlsLeft,
           navigationToggleFocusNode: _navigationToggleFocusNode,
-          floatingLeadingControls: shellChromeLayout.usesFloatingLeadingControls
-              ? _InlineShellControlsHost(
-                  presentationMode: controlsPresentationMode,
-                  shellChromeLayout: shellChromeLayout,
-                  commands: commands,
-                  searchSelected: _isSearchRoute(widget.currentUri),
-                  updateManifest: shellShowsUpdate ? updateManifest : null,
-                  navigationToggleFocusNode: _navigationToggleFocusNode,
-                )
-              : null,
+          globalToolAreaKey: _globalToolAreaKey,
           child: Stack(
             clipBehavior: Clip.hardEdge,
             children: [
@@ -827,13 +786,7 @@ class _AppShellState extends ConsumerState<AppShell> {
 
 const double _kSidebarCollapseThresholdWidth = kMinWorkspaceSidebarWidth / 2;
 
-double _shellControlsGroupWidth(
-  SidebarPresentationMode mode, {
-  required ShellChromeLayout shellChromeLayout,
-  required bool hasUpdate,
-}) {
-  final baseControlCount = shellChromeLayout.placesControlsInTitleBar
-      ? 4
-      : (mode == SidebarPresentationMode.expanded ? 3 : 4);
+double _shellControlsGroupWidth({required bool hasUpdate}) {
+  const baseControlCount = 4;
   return kShellControlSize * (baseControlCount + (hasUpdate ? 1 : 0));
 }

@@ -84,12 +84,16 @@ void main() {
 
       expect(find.byType(ReadingWorkspaceScreen), findsOneWidget);
       expect(find.byType(SettingsScreen), findsNothing);
+      final globalToolArea = find.byKey(const Key('shell_global_tool_area'));
+      expect(globalToolArea, findsOneWidget);
+      final globalToolElement = tester.element(globalToolArea);
 
       final settingsRoute = router.push<void>('/settings');
       await tester.pump();
 
       expect(find.byType(SettingsScreen), findsOneWidget);
       expect(find.byType(ReadingWorkspaceScreen), findsNothing);
+      expect(tester.element(globalToolArea), same(globalToolElement));
 
       router.pop();
       await settingsRoute;
@@ -97,6 +101,7 @@ void main() {
 
       expect(find.byType(SettingsScreen), findsNothing);
       expect(find.byType(ReadingWorkspaceScreen), findsOneWidget);
+      expect(tester.element(globalToolArea), same(globalToolElement));
       expect(tester.takeException(), isNull);
       await tester.pumpAndSettle();
     },

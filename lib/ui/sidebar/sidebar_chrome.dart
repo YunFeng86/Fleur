@@ -99,10 +99,6 @@ class _SidebarPanel extends StatelessWidget {
     required this.showSyncStatus,
     required this.onAccountTap,
     required this.reserveShellHeader,
-    required this.searchSelected,
-    required this.onSearch,
-    required this.macOSWindowChromeMetrics,
-    required this.showHeaderActions,
     required this.navigationTree,
     required this.navigationScrollController,
     required this.showRailAnchors,
@@ -114,10 +110,6 @@ class _SidebarPanel extends StatelessWidget {
   final bool showSyncStatus;
   final VoidCallback onAccountTap;
   final bool reserveShellHeader;
-  final bool searchSelected;
-  final VoidCallback? onSearch;
-  final MacOSWindowChromeMetrics macOSWindowChromeMetrics;
-  final bool showHeaderActions;
   final Widget navigationTree;
   final ScrollController navigationScrollController;
   final bool showRailAnchors;
@@ -126,13 +118,7 @@ class _SidebarPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        if (reserveShellHeader)
-          _SidebarPanelHeader(
-            searchSelected: searchSelected,
-            onSearch: onSearch,
-            macOSWindowChromeMetrics: macOSWindowChromeMetrics,
-            showActions: showHeaderActions,
-          ),
+        if (reserveShellHeader) const _SidebarPanelHeader(),
         _SidebarPanelFixedItems(
           items: fixedItems,
           scrollController: navigationScrollController,
@@ -151,217 +137,14 @@ class _SidebarPanel extends StatelessWidget {
   }
 }
 
-class _SidebarPanelHeader extends ConsumerWidget {
-  const _SidebarPanelHeader({
-    required this.searchSelected,
-    required this.onSearch,
-    required this.macOSWindowChromeMetrics,
-    required this.showActions,
-  });
-
-  final bool searchSelected;
-  final VoidCallback? onSearch;
-  final MacOSWindowChromeMetrics macOSWindowChromeMetrics;
-  final bool showActions;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (!showActions) {
-      return const SizedBox(
-        key: Key('app_shell_sidebar_header'),
-        height: kWorkspaceHeaderHeight,
-      );
-    }
-
-    final l10n = AppLocalizations.of(context)!;
-    final onPressed = onSearch;
-    final updateManifest = ref.watch(
-      appUpdateControllerProvider.select(
-        (state) => state.hasUpdate ? state.manifest : null,
-      ),
-    );
-    final controlTop = isMacOS
-        ? macOSWindowChromeMetrics.shellControlTopInset
-        : kShellControlTopInset;
-
-    return SizedBox(
-      key: const Key('app_shell_sidebar_header'),
-      height: kWorkspaceHeaderHeight,
-      child: onPressed == null && updateManifest == null
-          ? const SizedBox.shrink()
-          : LayoutBuilder(
-              builder: (context, constraints) {
-                const rightInset = 8.0;
-                const controlGap = 6.0;
-                final hasSearch = onPressed != null;
-                final updateRight =
-                    rightInset +
-                    (hasSearch ? kShellControlSize + controlGap : 0);
-                final reservedLeadingWidth = _sidebarHeaderReservedLeadingWidth(
-                  macOSWindowChromeMetrics,
-                );
-                final updateSpace =
-                    constraints.maxWidth - updateRight - reservedLeadingWidth;
-                final updateTextWidth = _measureUpdateButtonWidth(context);
-                final showUpdateLabel =
-                    !searchSelected && updateSpace >= updateTextWidth;
-                final updateWidth = showUpdateLabel
-                    ? updateTextWidth
-                    : kShellControlSize;
-
-                return Stack(
-                  children: [
-                    if (updateManifest != null)
-                      Positioned(
-                        right: updateRight,
-                        top: controlTop,
-                        width: updateWidth,
-                        height: kShellControlSize,
-                        child: _SidebarUpdateButton(
-                          manifest: updateManifest,
-                          showLabel: showUpdateLabel,
-                          labelWidth: updateTextWidth,
-                        ),
-                      ),
-                    if (hasSearch)
-                      Positioned(
-                        right: rightInset,
-                        top: controlTop,
-                        width: kShellControlSize,
-                        height: kShellControlSize,
-                        child: Semantics(
-                          button: true,
-                          selected: searchSelected,
-                          label: l10n.search,
-                          child: IconButton(
-                            key: const Key('shell_search_button'),
-                            tooltip: l10n.search,
-                            onPressed: onPressed,
-                            icon: Icon(
-                              searchSelected
-                                  ? FleurIcons.searchSelected
-                                  : FleurIcons.search,
-                            ),
-                            iconSize: kShellControlIconSize,
-                            style: FleurCapsuleIconButton.styleFor(
-                              context,
-                              selected: searchSelected,
-                              size: kShellControlSize,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
-    );
-  }
-}
-
-double _measureUpdateButtonWidth(BuildContext context) {
-  final l10n = AppLocalizations.of(context)!;
-  final theme = Theme.of(context);
-  final style = (theme.textTheme.labelLarge ?? const TextStyle()).copyWith(
-    fontWeight: FontWeight.w600,
-  );
-  final painter = TextPainter(
-    text: TextSpan(text: l10n.updateAvailable, style: style),
-    maxLines: 1,
-    textDirection: Directionality.of(context),
-    textScaler: MediaQuery.textScalerOf(context),
-  )..layout();
-  return math.max(64.0, painter.width.ceilToDouble() + 28);
-}
-
-double _sidebarHeaderReservedLeadingWidth(
-  MacOSWindowChromeMetrics macOSWindowChromeMetrics,
-) {
-  if (!isMacOS) return 8;
-  final controlLeft = macOSWindowChromeMetrics.trafficLightsVisible
-      ? macOSWindowChromeMetrics.safeInset
-      : 12.0;
-  const shellControlCount = 3;
-  return controlLeft + shellControlCount * kShellControlSize + 6;
-}
-
-class _SidebarUpdateButton extends StatelessWidget {
-  const _SidebarUpdateButton({
-    required this.manifest,
-    required this.showLabel,
-    required this.labelWidth,
-  });
-
-  final AppUpdateManifest manifest;
-  final bool showLabel;
-  final double labelWidth;
+class _SidebarPanelHeader extends StatelessWidget {
+  const _SidebarPanelHeader();
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    if (!showLabel) {
-      return Semantics(
-        button: true,
-        label: l10n.updateAvailable,
-        child: IconButton(
-          key: const Key('sidebar_update_button'),
-          tooltip: l10n.updateAvailable,
-          onPressed: () {
-            unawaited(showAppUpdateDialog(context, manifest: manifest));
-          },
-          icon: const Icon(FleurIcons.download),
-          iconSize: kShellControlIconSize,
-          style: FleurCapsuleIconButton.styleFor(
-            context,
-            selected: true,
-            size: kShellControlSize,
-          ),
-        ),
-      );
-    }
-
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final states = theme.fleurState;
-    return TextButton(
-      key: const Key('sidebar_update_button'),
-      onPressed: () {
-        unawaited(showAppUpdateDialog(context, manifest: manifest));
-      },
-      style: ButtonStyle(
-        fixedSize: WidgetStatePropertyAll(Size(labelWidth, kShellControlSize)),
-        minimumSize: WidgetStatePropertyAll(
-          Size(labelWidth, kShellControlSize),
-        ),
-        maximumSize: WidgetStatePropertyAll(
-          Size(labelWidth, kShellControlSize),
-        ),
-        padding: const WidgetStatePropertyAll(
-          EdgeInsets.symmetric(horizontal: 10),
-        ),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        visualDensity: VisualDensity.compact,
-        shape: WidgetStatePropertyAll(
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-        ),
-        backgroundColor: WidgetStatePropertyAll(states.selectionTint),
-        foregroundColor: WidgetStatePropertyAll(scheme.primary),
-        overlayColor: WidgetStateProperty.resolveWith((stateSet) {
-          if (stateSet.contains(WidgetState.pressed)) {
-            return states.pressedTint;
-          }
-          if (stateSet.contains(WidgetState.hovered) ||
-              stateSet.contains(WidgetState.focused)) {
-            return states.hoverTint;
-          }
-          return null;
-        }),
-      ),
-      child: Text(
-        l10n.updateAvailable,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
+    return const SizedBox(
+      key: Key('app_shell_sidebar_header'),
+      height: kWorkspaceHeaderHeight,
     );
   }
 }

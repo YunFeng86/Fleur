@@ -7,8 +7,10 @@ import 'package:window_manager/window_manager.dart';
 import '../services/update/app_update_manifest.dart';
 import '../theme/fleur_theme_extensions.dart';
 import 'design_system/controls/fleur_shell_icon_button.dart';
-import 'shell_control_strip.dart';
 import 'shell_chrome_layout.dart';
+import 'shell_control_strip.dart';
+import 'shell_frame_topology.dart';
+import 'shell_global_tool_area.dart';
 import 'sidebar_layout.dart';
 import 'workspace_layers.dart';
 
@@ -22,7 +24,9 @@ class ShellWindowTitleBar extends StatelessWidget {
     this.commands,
     this.presentationMode = SidebarPresentationMode.expanded,
     this.searchSelected = false,
+    this.showSearch = true,
     this.updateManifest,
+    this.globalToolAreaKey,
     this.leadingLeft = 0,
     this.dividerLeadingInset = 0,
     this.navigationToggleFocusNode,
@@ -31,7 +35,9 @@ class ShellWindowTitleBar extends StatelessWidget {
   final ShellWindowTitleBarCommands? commands;
   final SidebarPresentationMode presentationMode;
   final bool searchSelected;
+  final bool showSearch;
   final AppUpdateManifest? updateManifest;
+  final Key? globalToolAreaKey;
   final double leadingLeft;
   final double dividerLeadingInset;
   final FocusNode? navigationToggleFocusNode;
@@ -70,7 +76,9 @@ class ShellWindowTitleBar extends StatelessWidget {
                     presentationMode: presentationMode,
                     commands: commands,
                     searchSelected: searchSelected,
+                    showSearch: showSearch,
                     updateManifest: updateManifest,
+                    globalToolAreaKey: globalToolAreaKey,
                     navigationToggleFocusNode: navigationToggleFocusNode,
                   ),
                 const Positioned(
@@ -107,7 +115,9 @@ class _AdaptiveShellWindowControlsHost extends StatefulWidget {
     required this.presentationMode,
     required this.commands,
     required this.searchSelected,
+    required this.showSearch,
     required this.updateManifest,
+    required this.globalToolAreaKey,
     required this.navigationToggleFocusNode,
   });
 
@@ -116,7 +126,9 @@ class _AdaptiveShellWindowControlsHost extends StatefulWidget {
   final SidebarPresentationMode presentationMode;
   final ShellWindowTitleBarCommands commands;
   final bool searchSelected;
+  final bool showSearch;
   final AppUpdateManifest? updateManifest;
+  final Key? globalToolAreaKey;
   final FocusNode? navigationToggleFocusNode;
 
   @override
@@ -157,7 +169,9 @@ class _AdaptiveShellWindowControlsHostState
         presentationMode: widget.presentationMode,
         commands: widget.commands,
         searchSelected: widget.searchSelected,
+        showSearch: widget.showSearch,
         updateManifest: widget.updateManifest,
+        globalToolAreaKey: widget.globalToolAreaKey,
         navigationToggleFocusNode: widget.navigationToggleFocusNode,
         availableWidth: widget.width,
         adaptiveTapTargets: true,
@@ -177,7 +191,9 @@ class _ShellWindowControlsHost extends StatelessWidget {
     required this.presentationMode,
     required this.commands,
     required this.searchSelected,
+    required this.showSearch,
     required this.updateManifest,
+    required this.globalToolAreaKey,
     required this.navigationToggleFocusNode,
     required this.availableWidth,
     required this.adaptiveTapTargets,
@@ -187,7 +203,9 @@ class _ShellWindowControlsHost extends StatelessWidget {
   final SidebarPresentationMode presentationMode;
   final ShellWindowTitleBarCommands commands;
   final bool searchSelected;
+  final bool showSearch;
   final AppUpdateManifest? updateManifest;
+  final Key? globalToolAreaKey;
   final FocusNode? navigationToggleFocusNode;
   final double availableWidth;
   final bool adaptiveTapTargets;
@@ -195,11 +213,13 @@ class _ShellWindowControlsHost extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ShellControlStrip(
+    return ShellGlobalToolArea(
+      key: globalToolAreaKey,
       commands: commands,
       presentationMode: presentationMode,
-      surface: ShellControlStripSurface.flat,
+      surface: ShellGlobalToolSurface.windowFrame,
       searchSelected: searchSelected,
+      showSearch: showSearch,
       updateManifest: updateManifest,
       navigationToggleFocusNode: navigationToggleFocusNode,
       availableWidth: availableWidth,

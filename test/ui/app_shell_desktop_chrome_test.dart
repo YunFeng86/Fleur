@@ -80,6 +80,7 @@ void main() {
 
     expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_update_button')), findsOneWidget);
+    expect(find.byKey(const Key('shell_global_tool_area')), findsOneWidget);
     expect(find.byKey(const Key('shell_window_close_button')), findsOneWidget);
     expect(find.byKey(const Key('sidebar_update_button')), findsNothing);
     expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
@@ -103,7 +104,7 @@ void main() {
     );
   });
 
-  testWidgets('macOS narrow expanded sidebar shows update as icon only', (
+  testWidgets('macOS expanded sidebar keeps update in global tools', (
     tester,
   ) async {
     debugFleurTargetPlatformOverride = TargetPlatform.macOS;
@@ -129,25 +130,26 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('shell_update_button')), findsNothing);
-    expect(find.byKey(const Key('sidebar_update_button')), findsOneWidget);
+    expect(find.byKey(const Key('shell_update_button')), findsOneWidget);
+    expect(find.byKey(const Key('sidebar_update_button')), findsNothing);
+    expect(find.byKey(const Key('shell_global_tool_area')), findsOneWidget);
     expect(
       find.descendant(
-        of: find.byKey(const Key('sidebar_update_button')),
+        of: find.byKey(const Key('shell_update_button')),
         matching: find.text('Update'),
       ),
       findsNothing,
     );
     expect(
       find.descendant(
-        of: find.byKey(const Key('sidebar_update_button')),
+        of: find.byKey(const Key('shell_update_button')),
         matching: find.byIcon(FleurIcons.download),
       ),
       findsOneWidget,
     );
   });
 
-  testWidgets('macOS wide expanded sidebar shows update as text', (
+  testWidgets('macOS sidebar width does not move update ownership', (
     tester,
   ) async {
     debugFleurTargetPlatformOverride = TargetPlatform.macOS;
@@ -176,14 +178,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('shell_update_button')), findsNothing);
-    expect(find.byKey(const Key('sidebar_update_button')), findsOneWidget);
+    expect(find.byKey(const Key('shell_update_button')), findsOneWidget);
+    expect(find.byKey(const Key('sidebar_update_button')), findsNothing);
+    expect(find.byKey(const Key('shell_global_tool_area')), findsOneWidget);
     expect(
       find.descendant(
-        of: find.byKey(const Key('sidebar_update_button')),
+        of: find.byKey(const Key('shell_update_button')),
         matching: find.text('Update'),
       ),
-      findsOneWidget,
+      findsNothing,
     );
   });
 

@@ -357,6 +357,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             final scope = shellScope;
             final shellChromeLayout =
                 scope?.shellChromeLayout ?? ShellChromeLayout.resolve();
+            final shellOwnsGlobalTools =
+                scope != null &&
+                (shellChromeLayout.placesControlsInTitleBar ||
+                    shellChromeLayout.usesFloatingLeadingControls);
             final preferredNavigation = ref.watch(
               settingsSidebarPresentationModeProvider,
             );
@@ -473,13 +477,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ? l10n.settings
                   : selectedItem.label,
               sidebarTitle: l10n.settings,
-              showSidebarButton: !shellChromeLayout.placesControlsInTitleBar,
+              showSidebarButton: !shellOwnsGlobalTools,
               onToggleSidebar: toggleNavigation,
-              onBack: sidebarExpanded || sidebarRail
+              onBack: !sidebarExpanded && !sidebarRail && !showingList
+                  ? handleDetailBack
+                  : shellOwnsGlobalTools
+                  ? null
+                  : sidebarExpanded || sidebarRail
                   ? (widget.showBack ? handleChromeBack : null)
-                  : showingList
-                  ? (widget.showBack ? _closeSettings : null)
-                  : handleDetailBack,
+                  : widget.showBack
+                  ? _closeSettings
+                  : null,
               items: items,
               sidebarSelectedIndex: sidebarExpanded || sidebarRail
                   ? selectedIndex

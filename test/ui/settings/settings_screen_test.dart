@@ -588,6 +588,22 @@ void main() {
     );
   });
 
+  testWidgets('macOS AppShell owns one global tool area above settings', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    await pumpSettingsShell(tester, 1000);
+
+    expect(find.byKey(const Key('shell_global_tool_area')), findsOneWidget);
+    expect(find.byKey(const Key('shell_sidebar_button')), findsOneWidget);
+    expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
+    expect(find.byKey(const Key('settings_sidebar_button')), findsNothing);
+    expect(find.byKey(const Key('settings_back_button')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Settings title-bar toggle keeps feed preference independent', (
     tester,
   ) async {

@@ -12,7 +12,6 @@ import '../../app/settings_routes.dart';
 import '../../models/article_scope.dart';
 import '../../models/category.dart';
 import '../../models/feed.dart';
-import '../../providers/app_update_providers.dart';
 import '../../providers/backend_capabilities_provider.dart';
 import '../../providers/backend_sync_semantics_provider.dart';
 import '../../providers/core_providers.dart';
@@ -21,7 +20,6 @@ import '../../providers/sync_status_providers.dart';
 import '../../providers/unread_providers.dart';
 import '../../services/sync/backend_capabilities.dart';
 import '../../services/sync/sync_status_reporter.dart';
-import '../../services/update/app_update_manifest.dart';
 import '../../theme/fleur_icons.dart';
 import '../../theme/fleur_theme_extensions.dart';
 import '../../utils/platform.dart';
@@ -31,7 +29,6 @@ import '../design_system/design_system.dart';
 import '../motion.dart';
 import '../shell_chrome_layout.dart';
 import '../sidebar_layout.dart';
-import '../update/app_update_dialog.dart';
 import 'sidebar_management_actions.dart';
 import 'sidebar_selection_actions.dart';
 import 'sidebar_tree.dart';
@@ -49,12 +46,9 @@ class Sidebar extends ConsumerStatefulWidget {
     this.transparentBackground = false,
     this.showAccountSyncStatus = true,
     this.currentUri,
-    this.onSearch,
-    this.macOSWindowChromeMetrics = MacOSWindowChromeMetrics.fallback,
     this.railSurfaceStyle = SidebarRailSurfaceStyle.capsule,
     this.railWidth = kSidebarRailWidth,
     this.expandedWidth = kDefaultWorkspaceSidebarWidth,
-    this.showHeaderActions = true,
   });
 
   final ValueChanged<ArticleScope> onSelectScope;
@@ -64,12 +58,9 @@ class Sidebar extends ConsumerStatefulWidget {
   final bool transparentBackground;
   final bool showAccountSyncStatus;
   final Uri? currentUri;
-  final VoidCallback? onSearch;
-  final MacOSWindowChromeMetrics macOSWindowChromeMetrics;
   final SidebarRailSurfaceStyle railSurfaceStyle;
   final double railWidth;
   final double expandedWidth;
-  final bool showHeaderActions;
 
   @override
   ConsumerState<Sidebar> createState() => _SidebarState();
@@ -324,10 +315,6 @@ class _SidebarState extends ConsumerState<Sidebar> {
             showSyncStatus: widget.showAccountSyncStatus,
             onAccountTap: () => unawaited(_showAccountMenu()),
             reserveShellHeader: widget.reserveShellHeader,
-            searchSelected: searchSelected,
-            onSearch: widget.onSearch,
-            macOSWindowChromeMetrics: widget.macOSWindowChromeMetrics,
-            showHeaderActions: widget.showHeaderActions,
             navigationTree: navigationTree,
             navigationScrollController: _scrollController,
             showRailAnchors: !collapsed,

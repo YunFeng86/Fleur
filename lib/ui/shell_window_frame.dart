@@ -4,6 +4,7 @@ import '../services/update/app_update_manifest.dart';
 import '../theme/fleur_theme_extensions.dart';
 import 'shell_chrome_layout.dart';
 import 'shell_frame_geometry.dart';
+import 'shell_global_tool_area.dart';
 import 'shell_title_bar.dart';
 import 'sidebar_layout.dart';
 
@@ -24,7 +25,7 @@ class ShellWindowFrame extends StatelessWidget {
     required this.updateManifest,
     required this.controlsLeading,
     required this.navigationToggleFocusNode,
-    required this.floatingLeadingControls,
+    this.globalToolAreaKey,
     required this.child,
   });
 
@@ -37,7 +38,7 @@ class ShellWindowFrame extends StatelessWidget {
   final AppUpdateManifest? updateManifest;
   final double controlsLeading;
   final FocusNode navigationToggleFocusNode;
-  final Widget? floatingLeadingControls;
+  final Key? globalToolAreaKey;
   final Widget child;
 
   @override
@@ -58,7 +59,9 @@ class ShellWindowFrame extends StatelessWidget {
                 commands: titleBarCommands,
                 presentationMode: controlsPresentationMode,
                 searchSelected: searchSelected,
+                showSearch: true,
                 updateManifest: updateManifest,
+                globalToolAreaKey: globalToolAreaKey,
                 leadingLeft: controlsLeading,
                 dividerLeadingInset: geometry.dividerLeadingInset,
                 navigationToggleFocusNode: navigationToggleFocusNode,
@@ -71,11 +74,20 @@ class ShellWindowFrame extends StatelessWidget {
             bottom: 0,
             child: child,
           ),
-          if (floatingLeadingControls != null)
+          if (shellChromeLayout.usesFloatingLeadingControls)
             Positioned(
               left: controlsLeading,
               top: _floatingControlsTop,
-              child: floatingLeadingControls!,
+              child: ShellGlobalToolArea(
+                key: globalToolAreaKey,
+                commands: titleBarCommands,
+                presentationMode: controlsPresentationMode,
+                surface: geometry.topology.globalToolSurface,
+                searchSelected: searchSelected,
+                updateManifest: updateManifest,
+                updateBeforeSearch: true,
+                navigationToggleFocusNode: navigationToggleFocusNode,
+              ),
             ),
         ],
       ),

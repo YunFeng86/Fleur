@@ -29,9 +29,9 @@ class ShellSecondarySceneFrame extends StatelessWidget {
     required this.controlsLeading,
     required this.updateManifest,
     required this.navigationToggleFocusNode,
+    required this.globalToolAreaKey,
     required this.temporaryNavigationFocusNode,
     required this.navigationPane,
-    required this.floatingLeadingControls,
     required this.onDismissNavigation,
     required this.child,
   });
@@ -47,9 +47,9 @@ class ShellSecondarySceneFrame extends StatelessWidget {
   final double controlsLeading;
   final AppUpdateManifest? updateManifest;
   final FocusNode navigationToggleFocusNode;
+  final Key globalToolAreaKey;
   final FocusScopeNode temporaryNavigationFocusNode;
   final Widget navigationPane;
-  final Widget? floatingLeadingControls;
   final VoidCallback onDismissNavigation;
   final Widget child;
 
@@ -105,7 +105,7 @@ class ShellSecondarySceneFrame extends StatelessWidget {
             updateManifest: updateManifest,
             controlsLeading: controlsLeading,
             navigationToggleFocusNode: navigationToggleFocusNode,
-            floatingLeadingControls: floatingLeadingControls,
+            globalToolAreaKey: globalToolAreaKey,
             child: Stack(
               clipBehavior: Clip.hardEdge,
               children: [
