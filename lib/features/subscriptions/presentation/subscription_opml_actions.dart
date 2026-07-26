@@ -8,7 +8,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../providers/backend_capabilities_provider.dart';
-import '../../../providers/opml_providers.dart';
+import '../application/opml_providers.dart';
 import '../../../providers/repository_providers.dart';
 import '../../../services/opml/opml_service.dart';
 import '../../../services/sync/backend_capabilities.dart';
