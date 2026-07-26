@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../services/reader_document/reader_document_handle.dart';
-import '../services/reader_document/reader_document_models.dart';
-import '../services/reader_document/reader_document_pipeline.dart';
-import '../services/reader_search_service.dart';
+import 'package:fleur/services/reader_document/reader_document_handle.dart';
+import 'package:fleur/services/reader_document/reader_document_models.dart';
+import 'package:fleur/services/reader_document/reader_document_pipeline.dart';
+import 'package:fleur/services/reader_search_service.dart';
 
 final readerSearchServiceProvider = Provider<ReaderSearchService>((ref) {
   return ReaderSearchService();

@@ -1,11 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'repository_providers.dart';
-import 'app_settings_providers.dart';
-import 'service_providers.dart';
-import '../services/logging/app_logger.dart';
-import '../services/logging/log_context.dart';
-import '../services/settings/reader_progress_store.dart';
+import 'package:fleur/providers/repository_providers.dart';
+import 'package:fleur/providers/app_settings_providers.dart';
+import 'package:fleur/providers/service_providers.dart';
+import 'package:fleur/services/logging/app_logger.dart';
+import 'package:fleur/services/logging/log_context.dart';
+import 'package:fleur/services/settings/reader_progress_store.dart';
 
 final readerProgressStoreProvider = Provider<ReaderProgressStore>((ref) {
   return ReaderProgressStore();

@@ -15,7 +15,7 @@ import 'package:fleur/models/category.dart';
 import 'package:fleur/models/feed.dart';
 import 'package:fleur/features/accounts/accounts.dart';
 import 'package:fleur/providers/app_settings_providers.dart';
-import 'package:fleur/providers/article_ai_providers.dart';
+import 'package:fleur/features/reader/application/article_ai_providers.dart';
 import 'package:fleur/providers/query_providers.dart';
 import 'package:fleur/providers/service_providers.dart';
 import 'package:fleur/providers/translation_ai_settings_providers.dart';
@@ -30,7 +30,7 @@ import 'package:fleur/utils/language_detector.dart';
 import 'package:fleur/utils/language_utils.dart';
 import 'package:fleur/utils/path_manager.dart';
 
-import '../test_utils/critical_workflow_test_support.dart';
+import '../../../test_utils/critical_workflow_test_support.dart';
 
 class _FakePathProviderPlatform extends PathProviderPlatform {
   _FakePathProviderPlatform({

@@ -147,7 +147,19 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
       if (settings.syncImages && unread.isNotEmpty) {
         return await _cache.cacheArticles(unread);
       }
-    } catch (_) {}
+    } catch (e, s) {
+      AppLogger.w(
+        'Miniflux offline cache failed',
+        tag: 'sync',
+        error: e,
+        stackTrace: s,
+        context: _accountFailureContext(
+          e,
+          operation: 'offlineCacheFeed',
+          feedCount: 1,
+        ),
+      );
+    }
     return 0;
   }
 

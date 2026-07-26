@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fleur/l10n/app_localizations.dart';
-import 'package:fleur/providers/reader_search_providers.dart';
+import 'package:fleur/features/reader/application/reader_search_providers.dart';
 import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
 import 'package:fleur/ui/motion.dart';
