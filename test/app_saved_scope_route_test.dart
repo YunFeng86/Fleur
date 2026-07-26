@@ -16,7 +16,7 @@ import 'package:fleur/providers/article_list_controller.dart';
 import 'package:fleur/providers/navigation_history_provider.dart';
 import 'package:fleur/providers/outbox_status_providers.dart';
 import 'package:fleur/providers/query_providers.dart';
-import 'package:fleur/features/reader/application/reader_providers.dart';
+import 'package:fleur/features/reader/reader.dart';
 import 'package:fleur/providers/service_providers.dart';
 import 'package:fleur/providers/settings_providers.dart';
 import 'package:fleur/providers/unread_providers.dart';

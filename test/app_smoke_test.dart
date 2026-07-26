@@ -21,7 +21,6 @@ import 'package:fleur/providers/background_sync_providers.dart';
 import 'package:fleur/providers/core_providers.dart';
 import 'package:fleur/providers/outbox_status_providers.dart';
 import 'package:fleur/providers/query_providers.dart';
-import 'package:fleur/features/reader/application/reader_providers.dart';
 import 'package:fleur/providers/refresh_all_providers.dart';
 import 'package:fleur/providers/repository_providers.dart';
 import 'package:fleur/providers/service_providers.dart';

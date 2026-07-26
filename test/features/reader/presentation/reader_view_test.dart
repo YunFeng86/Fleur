@@ -27,7 +27,6 @@ import 'package:fleur/providers/app_settings_providers.dart';
 import 'package:fleur/features/reader/application/article_ai_providers.dart';
 import 'package:fleur/providers/favicon_providers.dart';
 import 'package:fleur/providers/query_providers.dart';
-import 'package:fleur/features/reader/application/reader_providers.dart';
 import 'package:fleur/features/reader/application/reader_search_providers.dart';
 import 'package:fleur/providers/repository_providers.dart';
 import 'package:fleur/providers/service_providers.dart';
