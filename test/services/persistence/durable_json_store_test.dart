@@ -37,6 +37,50 @@ void main() {
     },
   );
 
+  test('monotonic write does not retain the previous recovery value', () async {
+    final store = _store(primary);
+    await store.write(<String, Object?>{'initialized': false});
+
+    await store.writeReplacingPreviousSnapshots(<String, Object?>{
+      'initialized': true,
+    });
+
+    expect(jsonDecode(await primary.readAsString()), <String, Object?>{
+      'initialized': true,
+    });
+    expect(await File('${primary.path}.bak').exists(), isFalse);
+    expect(await File('${primary.path}.tmp').exists(), isFalse);
+  });
+
+  test(
+    'monotonic write keeps the new snapshot when replacement fails',
+    () async {
+      await _store(primary).write(<String, Object?>{'initialized': false});
+      final store = _store(primary, fileSystem: _ReplaceFailingFileSystem());
+
+      await expectLater(
+        store.writeReplacingPreviousSnapshots(<String, Object?>{
+          'initialized': true,
+        }),
+        throwsA(
+          isA<DurableJsonWriteException>().having(
+            (error) => error.stage,
+            'stage',
+            DurableJsonWriteStage.replace,
+          ),
+        ),
+      );
+
+      expect(await primary.exists(), isFalse);
+      expect(await File('${primary.path}.bak').exists(), isFalse);
+      expect(await File('${primary.path}.tmp').exists(), isTrue);
+
+      final recovered = await _store(primary).read();
+      expect(recovered?.source, DurableJsonSource.temporary);
+      expect(recovered?.value, <String, Object?>{'initialized': true});
+    },
+  );
+
   test(
     'read repairs a corrupt primary from backup without consuming it',
     () async {

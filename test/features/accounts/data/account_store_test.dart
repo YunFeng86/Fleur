@@ -168,6 +168,37 @@ void main() {
   });
 
   test(
+    'initialization completion cannot recover the previous false value',
+    () async {
+      final store = AccountStore();
+      final initial = await store.loadOrCreate();
+      final account = initial.accounts.single.copyWith(
+        databaseInitialized: true,
+      );
+      final initialized = AccountsState(
+        version: initial.version,
+        activeAccountId: initial.activeAccountId,
+        accounts: <Account>[account],
+      );
+
+      await store.saveInitializationCompletion(initialized);
+
+      final stateDir = await PathManager.getStateDir();
+      final file = File(
+        '${stateDir.path}${Platform.pathSeparator}accounts.json',
+      );
+      expect(await File('${file.path}.bak').exists(), isFalse);
+      expect(
+        AccountsState.fromJson(
+          (jsonDecode(await file.readAsString()) as Map)
+              .cast<String, Object?>(),
+        ).accounts.single.databaseInitialized,
+        isTrue,
+      );
+    },
+  );
+
+  test(
     'AccountStore keeps valid accounts when active id is malformed',
     () async {
       final now = DateTime.utc(2026, 1, 1).toIso8601String();

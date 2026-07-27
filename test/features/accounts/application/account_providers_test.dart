@@ -355,6 +355,11 @@ class _MemoryAccountStore extends AccountStore {
     saveCalls++;
     this.state = state;
   }
+
+  @override
+  Future<void> saveInitializationCompletion(AccountsState state) {
+    return save(state);
+  }
 }
 
 class _ThrowingAccountStore extends AccountStore {

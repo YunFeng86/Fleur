@@ -27,6 +27,11 @@ class _FakeAccountStore extends AccountStore {
   Future<void> save(AccountsState next) async {
     state = next;
   }
+
+  @override
+  Future<void> saveInitializationCompletion(AccountsState next) {
+    return save(next);
+  }
 }
 
 class _FakeIsar extends Fake implements Isar {

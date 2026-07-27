@@ -138,13 +138,13 @@ class AccountsController extends AsyncNotifier<AccountsState> {
         databaseInitialized: true,
         updatedAt: DateTime.now(),
       );
-      await _persistAndPublish(
-        AccountsState(
-          version: cur.version,
-          activeAccountId: cur.activeAccountId,
-          accounts: nextAccounts,
-        ),
+      final next = AccountsState(
+        version: cur.version,
+        activeAccountId: cur.activeAccountId,
+        accounts: nextAccounts,
       );
+      await ref.read(accountStoreProvider).saveInitializationCompletion(next);
+      state = AsyncValue.data(next);
     });
   }
 

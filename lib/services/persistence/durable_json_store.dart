@@ -14,6 +14,7 @@ enum DurableJsonWriteStage {
   temporaryVerify,
   inspectPrimary,
   backup,
+  discardPreviousSnapshots,
   removeCorruptPrimary,
   replace,
   replaceVerify,
@@ -223,6 +224,17 @@ class DurableJsonStore<T extends Object> {
     return runExclusive(() => _writeUnlocked(value));
   }
 
+  /// Commits a monotonic state transition without retaining an older value as
+  /// a recovery candidate.
+  ///
+  /// The verified temporary snapshot remains recoverable if replacement is
+  /// interrupted after the previous snapshots have been discarded.
+  Future<void> writeReplacingPreviousSnapshots(T value) {
+    return runExclusive(
+      () => _writeUnlocked(value, discardPreviousSnapshots: true),
+    );
+  }
+
   /// Deletes the document snapshots while retaining the adjacent lock file.
   ///
   /// Lock files must remain stable: unlinking one while another process is
@@ -248,7 +260,10 @@ class DurableJsonStore<T extends Object> {
     });
   }
 
-  Future<void> _writeUnlocked(T value) async {
+  Future<void> _writeUnlocked(
+    T value, {
+    bool discardPreviousSnapshots = false,
+  }) async {
     late final String contents;
     try {
       contents = jsonEncode(_encode(value));
@@ -296,7 +311,23 @@ class DurableJsonStore<T extends Object> {
       );
     }
 
-    if (primary.value != null) {
+    if (discardPreviousSnapshots) {
+      try {
+        if (await _fileSystem.exists(_backupPath)) {
+          await _fileSystem.delete(_backupPath);
+        }
+        if (primary.existed) {
+          await _fileSystem.delete(_primaryPath);
+        }
+      } catch (error) {
+        final rollbackError = await _rollbackFailedWrite();
+        throw DurableJsonWriteException(
+          stage: DurableJsonWriteStage.discardPreviousSnapshots,
+          cause: error,
+          rollbackError: rollbackError,
+        );
+      }
+    } else if (primary.value != null) {
       try {
         if (await _fileSystem.exists(_backupPath)) {
           await _fileSystem.delete(_backupPath);

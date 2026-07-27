@@ -65,9 +65,24 @@ class AccountStore {
   }
 
   Future<void> save(AccountsState state) async {
+    return _save(state, replacePreviousSnapshots: false);
+  }
+
+  Future<void> saveInitializationCompletion(AccountsState state) async {
+    return _save(state, replacePreviousSnapshots: true);
+  }
+
+  Future<void> _save(
+    AccountsState state, {
+    required bool replacePreviousSnapshots,
+  }) async {
     final store = await _store();
     try {
-      await store.write(state);
+      if (replacePreviousSnapshots) {
+        await store.writeReplacingPreviousSnapshots(state);
+      } else {
+        await store.write(state);
+      }
     } catch (e, s) {
       AppLogger.w(
         'Account save failed',
