@@ -247,16 +247,9 @@ class AccountsController extends AsyncNotifier<AccountsState> {
         await _persistAndPublish(pending);
       }
 
-      try {
-        await ref
-            .read(accountCleanupProvider)
-            .deleteAccountData(pending.findById(accountId)!);
-      } catch (error, stackTrace) {
-        if (!wasAlreadyPending) {
-          await _persistAndPublish(cur);
-        }
-        Error.throwWithStackTrace(error, stackTrace);
-      }
+      await ref
+          .read(accountCleanupProvider)
+          .deleteAccountData(pending.findById(accountId)!);
 
       final next = AccountsState(
         version: cur.version,

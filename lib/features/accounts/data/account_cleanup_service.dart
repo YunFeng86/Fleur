@@ -7,6 +7,35 @@ import '../../data_safety/data_safety.dart';
 import '../domain/account.dart';
 import 'credential_store.dart';
 
+class AccountCleanupFailure {
+  const AccountCleanupFailure({
+    required this.operation,
+    required this.fileKind,
+    required this.error,
+    required this.stackTrace,
+  });
+
+  final String operation;
+  final String fileKind;
+  final Object error;
+  final StackTrace stackTrace;
+}
+
+class AccountCleanupException implements Exception {
+  AccountCleanupException(Iterable<AccountCleanupFailure> failures)
+    : failures = List<AccountCleanupFailure>.unmodifiable(failures);
+
+  final List<AccountCleanupFailure> failures;
+
+  @override
+  String toString() {
+    final steps = failures
+        .map((failure) => '${failure.operation}:${failure.fileKind}')
+        .join(', ');
+    return 'AccountCleanupException: cleanup failed for $steps';
+  }
+}
+
 class AccountCleanupService {
   AccountCleanupService({
     required CredentialStore credentials,
@@ -28,45 +57,37 @@ class AccountCleanupService {
     // metadata and reconstructable state visible so the operation can retry.
     await _deleteAccountDatabase(account);
 
-    // Credentials (best-effort).
-    try {
-      await _credentials.deleteApiToken(account.id, account.type);
-    } catch (e, st) {
-      _logCleanupFailure(
-        account,
-        operation: 'deleteCredentials',
-        fileKind: 'apiToken',
-        error: e,
-        stackTrace: st,
-      );
-    }
-    try {
-      await _credentials.deleteBasicAuth(account.id, account.type);
-    } catch (e, st) {
-      _logCleanupFailure(
-        account,
-        operation: 'deleteCredentials',
-        fileKind: 'basicAuth',
-        error: e,
-        stackTrace: st,
-      );
-    }
+    final failures = <AccountCleanupFailure>[];
+    await _runCleanupStep(
+      account,
+      failures,
+      operation: 'deleteCredentials',
+      fileKind: 'apiToken',
+      action: () => _credentials.deleteApiToken(account.id, account.type),
+    );
+    await _runCleanupStep(
+      account,
+      failures,
+      operation: 'deleteCredentials',
+      fileKind: 'basicAuth',
+      action: () => _credentials.deleteBasicAuth(account.id, account.type),
+    );
+    await _deleteOutboxState(account, failures);
 
-    await _deleteOutboxState(account);
+    if (failures.isNotEmpty) throw AccountCleanupException(failures);
   }
 
-  Future<void> _deleteOutboxState(Account account) async {
-    try {
-      await _outbox.clear(account.id);
-    } catch (e, st) {
-      _logCleanupFailure(
-        account,
-        operation: 'deleteOutbox',
-        fileKind: 'outboxSnapshots',
-        error: e,
-        stackTrace: st,
-      );
-    }
+  Future<void> _deleteOutboxState(
+    Account account,
+    List<AccountCleanupFailure> failures,
+  ) async {
+    await _runCleanupStep(
+      account,
+      failures,
+      operation: 'deleteOutbox',
+      fileKind: 'outboxSnapshots',
+      action: () => _outbox.clear(account.id),
+    );
 
     // This lock name belonged to the previous SyncMutex-based outbox path and
     // is no longer opened by current code. DurableJsonStore's adjacent lock is
@@ -75,8 +96,9 @@ class AccountCleanupService {
     try {
       dir = await PathManager.getStateDir();
     } catch (e, st) {
-      _logCleanupFailure(
+      _recordCleanupFailure(
         account,
+        failures,
         operation: 'resolveOutboxDirectory',
         fileKind: 'outboxDirectory',
         error: e,
@@ -95,21 +117,65 @@ class AccountCleanupService {
     ];
 
     for (final candidate in candidates) {
-      try {
-        final file = File(candidate.path);
-        if (await file.exists()) {
-          await file.delete();
-        }
-      } catch (e, st) {
-        _logCleanupFailure(
-          account,
-          operation: 'deleteOutbox',
-          fileKind: candidate.kind,
-          error: e,
-          stackTrace: st,
-        );
-      }
+      await _runCleanupStep(
+        account,
+        failures,
+        operation: 'deleteOutbox',
+        fileKind: candidate.kind,
+        action: () async {
+          final file = File(candidate.path);
+          if (await file.exists()) {
+            await file.delete();
+          }
+        },
+      );
     }
+  }
+
+  Future<void> _runCleanupStep(
+    Account account,
+    List<AccountCleanupFailure> failures, {
+    required String operation,
+    required String fileKind,
+    required Future<void> Function() action,
+  }) async {
+    try {
+      await action();
+    } catch (error, stackTrace) {
+      _recordCleanupFailure(
+        account,
+        failures,
+        operation: operation,
+        fileKind: fileKind,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  static void _recordCleanupFailure(
+    Account account,
+    List<AccountCleanupFailure> failures, {
+    required String operation,
+    required String fileKind,
+    required Object error,
+    required StackTrace stackTrace,
+  }) {
+    failures.add(
+      AccountCleanupFailure(
+        operation: operation,
+        fileKind: fileKind,
+        error: error,
+        stackTrace: stackTrace,
+      ),
+    );
+    _logCleanupFailure(
+      account,
+      operation: operation,
+      fileKind: fileKind,
+      error: error,
+      stackTrace: stackTrace,
+    );
   }
 
   Future<void> _deleteAccountDatabase(Account account) async {

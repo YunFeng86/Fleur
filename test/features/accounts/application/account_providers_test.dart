@@ -151,7 +151,7 @@ void main() {
     expect(store.saveCalls, 1);
   });
 
-  test('failed cleanup restores the account and previous active id', () async {
+  test('failed cleanup keeps the account pending and inactive', () async {
     final initial = _twoAccountState(activeRemote: true);
     final store = _MemoryAccountStore(initial);
     final container = ProviderContainer(
@@ -172,11 +172,11 @@ void main() {
 
     final persisted = store.state;
     final visible = container.read(accountsControllerProvider).requireValue;
-    expect(persisted.activeAccountId, 'remote');
-    expect(persisted.findById('remote')!.deletionPending, isFalse);
-    expect(visible.activeAccountId, 'remote');
-    expect(visible.findById('remote')!.deletionPending, isFalse);
-    expect(store.saveCalls, 2);
+    expect(persisted.activeAccountId, 'local');
+    expect(persisted.findById('remote')!.deletionPending, isTrue);
+    expect(visible.activeAccountId, 'local');
+    expect(visible.findById('remote')!.deletionPending, isTrue);
+    expect(store.saveCalls, 1);
   });
 
   test('final save failure leaves a retryable pending deletion', () async {

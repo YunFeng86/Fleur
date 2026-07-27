@@ -6,7 +6,8 @@ export 'application/account_providers.dart'
         accountsControllerProvider,
         activeAccountProvider,
         credentialStoreProvider;
-export 'data/account_cleanup_service.dart' show AccountCleanupService;
+export 'data/account_cleanup_service.dart'
+    show AccountCleanupException, AccountCleanupFailure, AccountCleanupService;
 export 'data/account_store.dart' show AccountStore;
 export 'data/credential_store.dart' show CredentialStore;
 export 'domain/account.dart' show Account, AccountType, AccountTypeX;

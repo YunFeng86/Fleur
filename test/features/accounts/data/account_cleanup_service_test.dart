@@ -156,6 +156,114 @@ void main() {
 
     expect(await outbox.load(accountId), hasLength(1));
   });
+
+  test(
+    'api token failure is reported after other datasets are tried',
+    () async {
+      final credentials = _FakeCredentialStore(failApiToken: true);
+      final outbox = _FakeOutboxStore();
+
+      await expectLater(
+        AccountCleanupService(
+          credentials: credentials,
+          outbox: outbox,
+          databaseLifecycle: _FakeAccountDatabaseLifecycle(),
+        ).deleteAccountData(_remoteAccount('remote')),
+        throwsA(
+          isA<AccountCleanupException>().having(
+            (error) => error.failures.map((failure) => failure.fileKind),
+            'failed datasets',
+            <String>['apiToken'],
+          ),
+        ),
+      );
+
+      expect(credentials.apiTokenDeleteCalls, 1);
+      expect(credentials.basicAuthDeleteCalls, 1);
+      expect(outbox.clearCalls, 1);
+    },
+  );
+
+  test(
+    'basic auth failure is reported after other datasets are tried',
+    () async {
+      final credentials = _FakeCredentialStore(failBasicAuth: true);
+      final outbox = _FakeOutboxStore();
+
+      await expectLater(
+        AccountCleanupService(
+          credentials: credentials,
+          outbox: outbox,
+          databaseLifecycle: _FakeAccountDatabaseLifecycle(),
+        ).deleteAccountData(_remoteAccount('remote')),
+        throwsA(
+          isA<AccountCleanupException>().having(
+            (error) => error.failures.map((failure) => failure.fileKind),
+            'failed datasets',
+            <String>['basicAuth'],
+          ),
+        ),
+      );
+
+      expect(credentials.apiTokenDeleteCalls, 1);
+      expect(credentials.basicAuthDeleteCalls, 1);
+      expect(outbox.clearCalls, 1);
+    },
+  );
+
+  test(
+    'outbox failure is reported after credential cleanup completes',
+    () async {
+      final credentials = _FakeCredentialStore();
+      final outbox = _FakeOutboxStore(failClear: true);
+
+      await expectLater(
+        AccountCleanupService(
+          credentials: credentials,
+          outbox: outbox,
+          databaseLifecycle: _FakeAccountDatabaseLifecycle(),
+        ).deleteAccountData(_remoteAccount('remote')),
+        throwsA(
+          isA<AccountCleanupException>().having(
+            (error) => error.failures.map((failure) => failure.fileKind),
+            'failed datasets',
+            <String>['outboxSnapshots'],
+          ),
+        ),
+      );
+
+      expect(credentials.apiTokenDeleteCalls, 1);
+      expect(credentials.basicAuthDeleteCalls, 1);
+      expect(outbox.clearCalls, 1);
+    },
+  );
+
+  test('multiple dataset failures are aggregated', () async {
+    final credentials = _FakeCredentialStore(
+      failApiToken: true,
+      failBasicAuth: true,
+    );
+    final outbox = _FakeOutboxStore(failClear: true);
+
+    await expectLater(
+      AccountCleanupService(
+        credentials: credentials,
+        outbox: outbox,
+        databaseLifecycle: _FakeAccountDatabaseLifecycle(),
+      ).deleteAccountData(_remoteAccount('remote')),
+      throwsA(
+        isA<AccountCleanupException>().having(
+          (error) => error.failures.map((failure) => failure.fileKind),
+          'failed datasets',
+          <String>['apiToken', 'basicAuth', 'outboxSnapshots'],
+        ),
+      ),
+    );
+
+    expect(credentials.apiTokenDeleteCalls, 1);
+    expect(credentials.basicAuthDeleteCalls, 1);
+    expect(outbox.clearCalls, 1);
+  });
 }
 
 Account _remoteAccount(String accountId) {
@@ -170,11 +278,37 @@ Account _remoteAccount(String accountId) {
 }
 
 class _FakeCredentialStore extends CredentialStore {
-  @override
-  Future<void> deleteApiToken(String accountId, AccountType type) async {}
+  _FakeCredentialStore({this.failApiToken = false, this.failBasicAuth = false});
+
+  final bool failApiToken;
+  final bool failBasicAuth;
+  int apiTokenDeleteCalls = 0;
+  int basicAuthDeleteCalls = 0;
 
   @override
-  Future<void> deleteBasicAuth(String accountId, AccountType type) async {}
+  Future<void> deleteApiToken(String accountId, AccountType type) async {
+    apiTokenDeleteCalls++;
+    if (failApiToken) throw StateError('Injected API token delete failure');
+  }
+
+  @override
+  Future<void> deleteBasicAuth(String accountId, AccountType type) async {
+    basicAuthDeleteCalls++;
+    if (failBasicAuth) throw StateError('Injected basic auth delete failure');
+  }
+}
+
+class _FakeOutboxStore extends OutboxStore {
+  _FakeOutboxStore({this.failClear = false});
+
+  final bool failClear;
+  int clearCalls = 0;
+
+  @override
+  Future<void> clear(String accountId) async {
+    clearCalls++;
+    if (failClear) throw StateError('Injected outbox clear failure');
+  }
 }
 
 class _FakeAccountDatabaseLifecycle implements AccountDatabaseLifecycle {
