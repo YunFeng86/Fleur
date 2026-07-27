@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_community/isar.dart';
+import 'package:path/path.dart' as p;
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -211,56 +212,171 @@ void main() {
       );
     });
 
-    test(
-      'deleteIdleForAccount refuses active leases and deletes when idle',
-      () async {
-        final manager = AccountDbSessionManager(
-          resolveTarget:
-              ({required accountId, dbName, required isPrimary}) async {
-                return AccountDbTarget(
-                  accountId: accountId,
-                  directory: '/tmp/fleur-db',
-                  name: dbName ?? 'fleur_$accountId',
-                  isPrimary: isPrimary,
-                );
-              },
-          openTarget: (target, mode) async {
-            return _FakeIsar(name: target.name, directory: target.directory);
-          },
-        );
+    test('deletion waits for leases and rejects new acquires', () async {
+      final tempDir = await Directory.systemTemp.createTemp(
+        'fleur_delete_reservation_',
+      );
+      addTearDown(() => tempDir.delete(recursive: true));
+      await File(p.join(tempDir.path, 'same.isar')).writeAsBytes([1]);
+      final opened = <_FakeIsar>[];
+      final manager = AccountDbSessionManager(
+        resolveTarget:
+            ({required accountId, dbName, required isPrimary}) async {
+              return AccountDbTarget(
+                accountId: accountId,
+                directory: tempDir.path,
+                name: dbName ?? 'fleur_$accountId',
+                isPrimary: isPrimary,
+              );
+            },
+        openTarget: (target, mode) async {
+          final isar = _FakeIsar(
+            name: target.name,
+            directory: target.directory,
+          );
+          opened.add(isar);
+          return isar;
+        },
+      );
 
-        final lease = await manager.acquireExistingForAccount(
-          accountId: 'a',
-          dbName: 'same',
-          isPrimary: false,
-        );
-
-        await expectLater(
-          manager.deleteIdleForAccount(
+      final lease = await manager.acquireExistingForAccount(
+        accountId: 'a',
+        dbName: 'same',
+        isPrimary: false,
+      );
+      var deletionCompleted = false;
+      final deletion = manager
+          .deleteIdleForAccount(
             accountId: 'a',
             dbName: 'same',
             isPrimary: false,
-          ),
-          throwsA(
-            isA<DbOpenFailure>().having(
-              (e) => e.kind,
-              'kind',
-              DbOpenFailureKind.transient,
-            ),
-          ),
-        );
+          )
+          .whenComplete(() => deletionCompleted = true);
+      await Future<void>.delayed(Duration.zero);
+      expect(deletionCompleted, isFalse);
 
-        final held = lease.isar as _FakeIsar;
-        await lease.release();
-        expect(held.closeCalls, 1);
-
-        await manager.deleteIdleForAccount(
+      await expectLater(
+        manager.acquireExistingForAccount(
           accountId: 'a',
           dbName: 'same',
           isPrimary: false,
-        );
-      },
-    );
+        ),
+        throwsA(
+          isA<DbOpenFailure>().having(
+            (error) => error.kind,
+            'kind',
+            DbOpenFailureKind.transient,
+          ),
+        ),
+      );
+
+      final held = lease.isar as _FakeIsar;
+      await lease.release();
+      expect(await deletion, isTrue);
+      expect(held.closeCalls, 1);
+      expect(opened, hasLength(2));
+      expect(opened.last.deleteCalls, 1);
+    });
+
+    test('deletion reservation covers database open and disk close', () async {
+      final tempDir = await Directory.systemTemp.createTemp(
+        'fleur_delete_open_',
+      );
+      addTearDown(() => tempDir.delete(recursive: true));
+      await File(p.join(tempDir.path, 'same.isar')).writeAsBytes([1]);
+      final openStarted = Completer<void>();
+      final deleteIsar = _FakeIsar(name: 'same', directory: tempDir.path)
+        ..closeCompleter = Completer<void>();
+      final manager = AccountDbSessionManager(
+        resolveTarget:
+            ({required accountId, dbName, required isPrimary}) async {
+              return AccountDbTarget(
+                accountId: accountId,
+                directory: tempDir.path,
+                name: dbName ?? 'fleur_$accountId',
+                isPrimary: isPrimary,
+              );
+            },
+        openTarget: (target, mode) async {
+          if (!openStarted.isCompleted) openStarted.complete();
+          return deleteIsar;
+        },
+      );
+
+      final deletion = manager.deleteIdleForAccount(
+        accountId: 'a',
+        dbName: 'same',
+        isPrimary: false,
+      );
+      await openStarted.future;
+      await Future<void>.delayed(Duration.zero);
+      expect(deleteIsar.deleteCalls, 1);
+
+      await expectLater(
+        manager.initializeForAccount(
+          accountId: 'a',
+          dbName: 'same',
+          isPrimary: false,
+        ),
+        throwsA(
+          isA<DbOpenFailure>().having(
+            (error) => error.kind,
+            'kind',
+            DbOpenFailureKind.transient,
+          ),
+        ),
+      );
+
+      deleteIsar.closeCompleter!.complete();
+      expect(await deletion, isTrue);
+    });
+
+    test('deletion timeout releases its reservation', () async {
+      final manager = AccountDbSessionManager(
+        deletionWaitTimeout: const Duration(milliseconds: 20),
+        resolveTarget:
+            ({required accountId, dbName, required isPrimary}) async {
+              return AccountDbTarget(
+                accountId: accountId,
+                directory: '/tmp/fleur-db',
+                name: dbName ?? 'fleur_$accountId',
+                isPrimary: isPrimary,
+              );
+            },
+        openTarget: (target, mode) async {
+          return _FakeIsar(name: target.name, directory: target.directory);
+        },
+      );
+
+      final lease = await manager.acquireExistingForAccount(
+        accountId: 'a',
+        dbName: 'same',
+        isPrimary: false,
+      );
+
+      await expectLater(
+        manager.deleteIdleForAccount(
+          accountId: 'a',
+          dbName: 'same',
+          isPrimary: false,
+        ),
+        throwsA(
+          isA<DbOpenFailure>().having(
+            (e) => e.kind,
+            'kind',
+            DbOpenFailureKind.transient,
+          ),
+        ),
+      );
+
+      final secondLease = await manager.acquireExistingForAccount(
+        accountId: 'a',
+        dbName: 'same',
+        isPrimary: false,
+      );
+      await secondLease.release();
+      await lease.release();
+    });
 
     test('waits for close before reopening the same Isar name', () async {
       var openCalls = 0;

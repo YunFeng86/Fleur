@@ -120,6 +120,7 @@ void main() {
     });
 
     expect(account.databaseInitialized, isTrue);
+    expect(account.deletionPending, isFalse);
   });
 
   test('databaseInitialized false round trips through account JSON', () {
@@ -138,6 +139,24 @@ void main() {
 
     expect(json['databaseInitialized'], isFalse);
     expect(decoded.databaseInitialized, isFalse);
+  });
+
+  test('deletionPending round trips through account JSON', () {
+    final now = DateTime.utc(2026, 1, 1);
+    final account = Account(
+      id: 'pending',
+      type: AccountType.miniflux,
+      name: 'Pending',
+      deletionPending: true,
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    final json = account.toJson();
+    final decoded = Account.fromJson(json);
+
+    expect(json['deletionPending'], isTrue);
+    expect(decoded.deletionPending, isTrue);
   });
 
   test('AccountStore creates an uninitialized primary account', () async {
@@ -180,6 +199,41 @@ void main() {
       expect(state.activeAccountId, 'valid-account');
     },
   );
+
+  test('AccountStore moves active id away from a pending deletion', () async {
+    final now = DateTime.utc(2026, 1, 1).toIso8601String();
+    final stateDir = await PathManager.getStateDir();
+    final file = File('${stateDir.path}${Platform.pathSeparator}accounts.json');
+    await file.writeAsString(
+      jsonEncode(<String, Object?>{
+        'version': AccountStore.currentVersion,
+        'activeAccountId': 'pending',
+        'accounts': <Object?>[
+          <String, Object?>{
+            'id': 'local',
+            'type': 'local',
+            'name': 'Local',
+            'isPrimary': true,
+            'createdAt': now,
+            'updatedAt': now,
+          },
+          <String, Object?>{
+            'id': 'pending',
+            'type': 'miniflux',
+            'name': 'Pending',
+            'deletionPending': true,
+            'createdAt': now,
+            'updatedAt': now,
+          },
+        ],
+      }),
+    );
+
+    final state = await AccountStore().loadOrCreate();
+
+    expect(state.activeAccountId, 'local');
+    expect(state.findById('pending')!.deletionPending, isTrue);
+  });
 
   test('AccountStore keeps valid accounts when version is malformed', () async {
     final now = DateTime.utc(2026, 1, 1).toIso8601String();

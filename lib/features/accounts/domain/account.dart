@@ -10,6 +10,7 @@ class Account {
     this.dbName,
     this.isPrimary = false,
     this.databaseInitialized = true,
+    this.deletionPending = false,
   });
 
   static const googleReaderGenericProfileId = 'googleReaderGeneric';
@@ -37,6 +38,10 @@ class Account {
   // accounts may initialize a missing database.
   final bool databaseInitialized;
 
+  // Persisted before destructive cleanup so an interrupted deletion can be
+  // resumed without exposing an account whose database may already be gone.
+  final bool deletionPending;
+
   String get isolatedDatabaseName {
     final explicit = dbName?.trim();
     if (explicit != null && explicit.isNotEmpty) return explicit;
@@ -55,6 +60,7 @@ class Account {
     String? dbName,
     bool? isPrimary,
     bool? databaseInitialized,
+    bool? deletionPending,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -67,6 +73,7 @@ class Account {
       dbName: dbName ?? this.dbName,
       isPrimary: isPrimary ?? this.isPrimary,
       databaseInitialized: databaseInitialized ?? this.databaseInitialized,
+      deletionPending: deletionPending ?? this.deletionPending,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -84,6 +91,7 @@ class Account {
       dbName: json['dbName'] as String?,
       isPrimary: (json['isPrimary'] as bool?) ?? false,
       databaseInitialized: (json['databaseInitialized'] as bool?) ?? true,
+      deletionPending: (json['deletionPending'] as bool?) ?? false,
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
     );
@@ -99,6 +107,7 @@ class Account {
       'dbName': dbName,
       'isPrimary': isPrimary,
       'databaseInitialized': databaseInitialized,
+      'deletionPending': deletionPending,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };

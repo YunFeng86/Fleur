@@ -119,7 +119,7 @@ class AccountManagerDialog extends ConsumerWidget {
     Account account,
   ) async {
     final l10n = AppLocalizations.of(context)!;
-    if (account.isPrimary) return;
+    if (account.isPrimary || account.deletionPending) return;
 
     final ok = await showDialog<bool>(
       context: context,
@@ -373,26 +373,43 @@ class AccountManagerDialog extends ConsumerWidget {
                                     children: [
                                       if (a.type == AccountType.googleReader)
                                         IconButton(
+                                          key: Key(
+                                            'account_manager_connection_${a.id}',
+                                          ),
                                           tooltip: l10n.connection,
-                                          onPressed: () =>
-                                              _editGoogleReaderConnection(
-                                                context,
-                                                ref,
-                                                a,
-                                              ),
+                                          onPressed: a.deletionPending
+                                              ? null
+                                              : () =>
+                                                    _editGoogleReaderConnection(
+                                                      context,
+                                                      ref,
+                                                      a,
+                                                    ),
                                           icon: const Icon(
                                             FleurIcons.googleReaderAccount,
                                           ),
                                         ),
                                       IconButton(
+                                        key: Key(
+                                          'account_manager_rename_${a.id}',
+                                        ),
                                         tooltip: l10n.rename,
-                                        onPressed: () =>
-                                            _renameAccount(context, ref, a),
+                                        onPressed: a.deletionPending
+                                            ? null
+                                            : () => _renameAccount(
+                                                context,
+                                                ref,
+                                                a,
+                                              ),
                                         icon: const Icon(FleurIcons.rename),
                                       ),
                                       IconButton(
+                                        key: Key(
+                                          'account_manager_delete_${a.id}',
+                                        ),
                                         tooltip: l10n.delete,
-                                        onPressed: a.isPrimary
+                                        onPressed:
+                                            a.isPrimary || a.deletionPending
                                             ? null
                                             : () => _deleteAccount(
                                                 context,
@@ -403,16 +420,19 @@ class AccountManagerDialog extends ConsumerWidget {
                                       ),
                                     ],
                                   ),
-                                  onTap: () async {
-                                    if (isActive) return;
-                                    await ref
-                                        .read(
-                                          accountsControllerProvider.notifier,
-                                        )
-                                        .setActive(a.id);
-                                    if (!context.mounted) return;
-                                    Navigator.of(context).pop();
-                                  },
+                                  enabled: !a.deletionPending,
+                                  onTap: isActive || a.deletionPending
+                                      ? null
+                                      : () async {
+                                          await ref
+                                              .read(
+                                                accountsControllerProvider
+                                                    .notifier,
+                                              )
+                                              .setActive(a.id);
+                                          if (!context.mounted) return;
+                                          Navigator.of(context).pop();
+                                        },
                                 ),
                               );
                             },

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:fleur/features/accounts/accounts.dart';
+import 'package:fleur/features/data_safety/data_safety.dart';
 import 'package:fleur/l10n/app_localizations.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
@@ -28,6 +29,7 @@ Future<void> _pumpAccountManagerDialog(
   WidgetTester tester, {
   Locale locale = const Locale('en'),
   List<Account>? accounts,
+  AccountCleanupService? cleanup,
 }) async {
   final local = buildTestAccount(id: 'local', name: 'Local', isPrimary: true);
   final miniflux = buildTestAccount(
@@ -51,6 +53,7 @@ Future<void> _pumpAccountManagerDialog(
             ),
           ),
         ),
+        if (cleanup != null) accountCleanupProvider.overrideWithValue(cleanup),
       ],
       child: MaterialApp(
         theme: AppTheme.light(),
@@ -180,4 +183,67 @@ void main() {
     expect(find.byTooltip('连接'), findsOneWidget);
     expect(find.byTooltip('Connection'), findsNothing);
   });
+
+  testWidgets('pending deletion disables account interactions', (tester) async {
+    final local = buildTestAccount(id: 'local', name: 'Local', isPrimary: true);
+    final pending = buildTestAccount(
+      id: 'pending',
+      type: AccountType.googleReader,
+      name: 'Pending',
+      deletionPending: true,
+    );
+    await _pumpAccountManagerDialog(
+      tester,
+      accounts: [local, pending],
+      cleanup: _FailingCleanup(),
+    );
+
+    expect(
+      tester
+          .widget<IconButton>(
+            find.byKey(const Key('account_manager_connection_pending')),
+          )
+          .onPressed,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<IconButton>(
+            find.byKey(const Key('account_manager_rename_pending')),
+          )
+          .onPressed,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<IconButton>(
+            find.byKey(const Key('account_manager_delete_pending')),
+          )
+          .onPressed,
+      isNull,
+    );
+    final tile = tester.widget<ListTile>(
+      find.descendant(
+        of: find.byKey(const Key('account_manager_account_pending')),
+        matching: find.byType(ListTile),
+      ),
+    );
+    expect(tile.enabled, isFalse);
+    expect(tile.onTap, isNull);
+  });
+}
+
+class _FailingCleanup extends AccountCleanupService {
+  _FailingCleanup()
+    : super(
+        credentials: CredentialStore(),
+        databaseLifecycle: createAccountDatabaseLifecycle(
+          findAccount: (_) async => null,
+        ),
+      );
+
+  @override
+  Future<void> deleteAccountData(Account account) async {
+    throw StateError('Keep pending account visible');
+  }
 }

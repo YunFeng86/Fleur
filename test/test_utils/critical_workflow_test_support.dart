@@ -37,6 +37,7 @@ Account buildTestAccount({
   String? dbName,
   bool isPrimary = false,
   bool databaseInitialized = true,
+  bool deletionPending = false,
 }) {
   final now = DateTime.utc(2026, 1, 1);
   return Account(
@@ -48,6 +49,7 @@ Account buildTestAccount({
     dbName: dbName,
     isPrimary: isPrimary,
     databaseInitialized: databaseInitialized,
+    deletionPending: deletionPending,
     createdAt: now,
     updatedAt: now,
   );

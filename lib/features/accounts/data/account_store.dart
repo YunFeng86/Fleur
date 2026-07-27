@@ -150,10 +150,14 @@ class AccountStore {
     // Decoding already enforces a non-empty account list. Only repair the
     // active pointer here so defaults are created exclusively for a new file.
     final active = state.findById(state.activeAccountId);
-    if (active == null) {
+    if (active == null || active.deletionPending) {
+      final fallback = state.accounts
+          .where((account) => !account.deletionPending)
+          .firstOrNull;
+      if (fallback == null) return null;
       return AccountsState(
         version: state.version,
-        activeAccountId: state.accounts.first.id,
+        activeAccountId: fallback.id,
         accounts: state.accounts,
       );
     }

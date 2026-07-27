@@ -32,7 +32,31 @@ class AccountsController extends AsyncNotifier<AccountsState> {
 
   @override
   Future<AccountsState> build() async {
-    return ref.read(accountStoreProvider).loadOrCreate();
+    final store = ref.read(accountStoreProvider);
+    final loaded = await store.loadOrCreate();
+    var recovered = loaded;
+    var changed = false;
+
+    for (final account in loaded.accounts) {
+      if (!account.deletionPending || account.isPrimary) continue;
+      try {
+        await ref.read(accountCleanupProvider).deleteAccountData(account);
+        recovered = _withoutAccount(recovered, account.id);
+        changed = true;
+      } catch (_) {
+        // Keep the persisted marker. A later startup can safely retry.
+      }
+    }
+
+    if (!changed) return recovered;
+    try {
+      await store.save(recovered);
+      return recovered;
+    } catch (_) {
+      // Cleanup is idempotent. Keep the durable pending state visible so the
+      // next startup retries instead of failing the whole application boot.
+      return loaded;
+    }
   }
 
   Future<void> setActive(String accountId) {
@@ -40,8 +64,8 @@ class AccountsController extends AsyncNotifier<AccountsState> {
       final cur = state.valueOrNull;
       if (cur == null) return;
       if (cur.activeAccountId == accountId) return;
-      final exists = cur.findById(accountId) != null;
-      if (!exists) return;
+      final target = cur.findById(accountId);
+      if (target == null || target.deletionPending) return;
       final next = AccountsState(
         version: cur.version,
         activeAccountId: accountId,
@@ -100,7 +124,11 @@ class AccountsController extends AsyncNotifier<AccountsState> {
     return _serializeMutation<void>(() async {
       final cur = state.valueOrNull ?? await future;
       final idx = cur.accounts.indexWhere((account) => account.id == accountId);
-      if (idx < 0 || cur.accounts[idx].databaseInitialized) return;
+      if (idx < 0 ||
+          cur.accounts[idx].databaseInitialized ||
+          cur.accounts[idx].deletionPending) {
+        return;
+      }
 
       final nextAccounts = [...cur.accounts];
       nextAccounts[idx] = nextAccounts[idx].copyWith(
@@ -124,7 +152,7 @@ class AccountsController extends AsyncNotifier<AccountsState> {
 
       final cur = state.valueOrNull ?? await future;
       final idx = cur.accounts.indexWhere((a) => a.id == accountId);
-      if (idx < 0) return;
+      if (idx < 0 || cur.accounts[idx].deletionPending) return;
 
       final now = DateTime.now();
       final nextAccounts = [...cur.accounts];
@@ -149,7 +177,7 @@ class AccountsController extends AsyncNotifier<AccountsState> {
     return _serializeMutation<void>(() async {
       final cur = state.valueOrNull ?? await future;
       final idx = cur.accounts.indexWhere((a) => a.id == accountId);
-      if (idx < 0) return;
+      if (idx < 0 || cur.accounts[idx].deletionPending) return;
 
       final current = cur.accounts[idx];
       final trimmedBaseUrl = baseUrl?.trim();
@@ -181,12 +209,50 @@ class AccountsController extends AsyncNotifier<AccountsState> {
       if (target == null) return;
       if (target.isPrimary) return;
 
-      final remaining = cur.accounts.where((a) => a.id != accountId).toList();
-      if (remaining.isEmpty) return;
+      final remaining = cur.accounts
+          .where((account) => account.id != accountId)
+          .toList();
+      final activeCandidates = remaining
+          .where((account) => !account.deletionPending)
+          .toList();
+      if (activeCandidates.isEmpty) return;
 
       var nextActiveId = cur.activeAccountId;
-      if (nextActiveId == accountId) {
-        nextActiveId = remaining.first.id;
+      final active = cur.findById(nextActiveId);
+      if (nextActiveId == accountId ||
+          active == null ||
+          active.deletionPending) {
+        nextActiveId = activeCandidates.first.id;
+      }
+
+      final wasAlreadyPending = target.deletionPending;
+      var pending = cur;
+      if (!wasAlreadyPending || nextActiveId != cur.activeAccountId) {
+        final pendingAccounts = [...cur.accounts];
+        final targetIndex = pendingAccounts.indexWhere(
+          (account) => account.id == accountId,
+        );
+        pendingAccounts[targetIndex] = target.copyWith(
+          deletionPending: true,
+          updatedAt: wasAlreadyPending ? target.updatedAt : DateTime.now(),
+        );
+        pending = AccountsState(
+          version: cur.version,
+          activeAccountId: nextActiveId,
+          accounts: pendingAccounts,
+        );
+        await _persistAndPublish(pending);
+      }
+
+      try {
+        await ref
+            .read(accountCleanupProvider)
+            .deleteAccountData(pending.findById(accountId)!);
+      } catch (error, stackTrace) {
+        if (!wasAlreadyPending) {
+          await _persistAndPublish(cur);
+        }
+        Error.throwWithStackTrace(error, stackTrace);
       }
 
       final next = AccountsState(
@@ -194,7 +260,6 @@ class AccountsController extends AsyncNotifier<AccountsState> {
         activeAccountId: nextActiveId,
         accounts: remaining,
       );
-      await ref.read(accountCleanupProvider).deleteAccountData(target);
       await _persistAndPublish(next);
     });
   }
@@ -214,6 +279,23 @@ class AccountsController extends AsyncNotifier<AccountsState> {
       }
     });
     return completer.future;
+  }
+
+  AccountsState _withoutAccount(AccountsState current, String accountId) {
+    final accounts = current.accounts
+        .where((account) => account.id != accountId)
+        .toList();
+    if (accounts.isEmpty) return current;
+    final active = current.findById(current.activeAccountId);
+    final nextActiveId =
+        active == null || active.id == accountId || active.deletionPending
+        ? accounts.firstWhere((account) => !account.deletionPending).id
+        : active.id;
+    return AccountsState(
+      version: current.version,
+      activeAccountId: nextActiveId,
+      accounts: accounts,
+    );
   }
 }
 
@@ -236,5 +318,6 @@ final activeAccountProvider = Provider<Account>((ref) {
     );
   }
   final active = state.findById(state.activeAccountId);
-  return active ?? state.accounts.first;
+  if (active != null && !active.deletionPending) return active;
+  return state.accounts.firstWhere((account) => !account.deletionPending);
 });

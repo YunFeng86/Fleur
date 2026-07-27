@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:isar_community/isar.dart';
@@ -30,14 +31,19 @@ class AccountDbSessionManager {
   AccountDbSessionManager({
     AccountDbTargetResolver? resolveTarget,
     AccountDbTargetOpener? openTarget,
+    Duration deletionWaitTimeout = const Duration(seconds: 10),
   }) : _resolveTarget = resolveTarget ?? resolveAccountDbTarget,
-       _openTarget = openTarget ?? openAccountDbTarget;
+       _openTarget = openTarget ?? openAccountDbTarget,
+       _deletionWaitTimeout = deletionWaitTimeout;
 
   static final AccountDbSessionManager instance = AccountDbSessionManager();
 
   final AccountDbTargetResolver _resolveTarget;
   final AccountDbTargetOpener _openTarget;
+  final Duration _deletionWaitTimeout;
   final Map<String, _AccountDbSession> _sessions = {};
+  final Map<String, AccountDbTarget> _deletionReservations = {};
+  final Map<String, Completer<void>> _stateChanges = {};
 
   Future<AccountDbLease> acquireExistingForAccount({
     required String accountId,
@@ -75,35 +81,43 @@ class AccountDbSessionManager {
       dbName: dbName,
       isPrimary: isPrimary,
     );
-    final existing = _sessions[target.name];
-    if (existing != null) {
-      _ensureSameTarget(existing.target, target);
-      if (existing.leases > 0 ||
-          existing.opening != null ||
-          existing.closing != null) {
-        throw DbOpenFailure(
-          kind: DbOpenFailureKind.transient,
-          directory: target.directory,
-          name: target.name,
-          error: StateError('Database is currently in use.'),
-        );
-      }
-      _sessions.remove(target.name);
+    final key = _sessionKey(target.name);
+    final existingReservation = _deletionReservations[key];
+    if (existingReservation != null) {
+      _ensureSameTarget(existingReservation, target);
+      throw _transientFailure(
+        target,
+        'Database deletion is already in progress.',
+      );
     }
+    _deletionReservations[key] = target;
 
-    final dbFile = File(p.join(target.directory, '${target.name}.isar'));
-    if (!await dbFile.exists()) return false;
+    try {
+      await _waitUntilIdle(target, key);
 
-    final isar = await _openTarget(target, AccountDbOpenMode.existing);
-    await isar.close(deleteFromDisk: true);
-    return true;
+      final dbFile = File(p.join(target.directory, '${target.name}.isar'));
+      if (!await dbFile.exists()) return false;
+
+      final isar = await _openTarget(target, AccountDbOpenMode.existing);
+      await isar.close(deleteFromDisk: true);
+      return true;
+    } finally {
+      if (identical(_deletionReservations[key], target)) {
+        _deletionReservations.remove(key);
+      }
+    }
   }
 
   Future<AccountDbLease> _acquire(
     AccountDbTarget target,
     AccountDbOpenMode mode,
   ) async {
-    final key = target.name;
+    final key = _sessionKey(target.name);
+    final deletion = _deletionReservations[key];
+    if (deletion != null) {
+      _ensureSameTarget(deletion, target);
+      throw _transientFailure(target, 'Database deletion is in progress.');
+    }
     var session = _sessions[key];
     if (session != null) {
       _ensureSameTarget(session.target, target);
@@ -127,6 +141,7 @@ class AccountDbSessionManager {
           session.leases--;
           if (session.leases <= 0 && identical(_sessions[key], session)) {
             _sessions.remove(key);
+            _notifyStateChanged(key);
           }
           rethrow;
         }
@@ -147,6 +162,7 @@ class AccountDbSessionManager {
       session.leases--;
       if (session.leases <= 0 && identical(_sessions[key], session)) {
         _sessions.remove(key);
+        _notifyStateChanged(key);
       }
       rethrow;
     } finally {
@@ -157,10 +173,12 @@ class AccountDbSessionManager {
   }
 
   Future<void> _release(String name) async {
-    final session = _sessions[name];
+    final key = _sessionKey(name);
+    final session = _sessions[key];
     if (session == null) return;
     if (session.leases > 0) {
       session.leases--;
+      _notifyStateChanged(key);
     }
     if (session.leases > 0) return;
     if (session.opening != null) return;
@@ -173,23 +191,71 @@ class AccountDbSessionManager {
     final isar = session.isar;
     session.isar = null;
     if (isar == null || !_isIsarOpen(isar)) {
-      if (identical(_sessions[name], session)) {
-        _sessions.remove(name);
+      if (identical(_sessions[key], session)) {
+        _sessions.remove(key);
+        _notifyStateChanged(key);
       }
       return;
     }
 
     late final Future<void> closeFuture;
     closeFuture = isar.close().whenComplete(() {
-      if (identical(_sessions[name], session) &&
+      if (identical(_sessions[key], session) &&
           identical(session.closing, closeFuture)) {
         session.closing = null;
-        _sessions.remove(name);
+        _sessions.remove(key);
+        _notifyStateChanged(key);
       }
     });
     session.closing = closeFuture;
     await closeFuture;
   }
+
+  Future<void> _waitUntilIdle(AccountDbTarget target, String key) async {
+    final deadline = DateTime.now().add(_deletionWaitTimeout);
+    while (true) {
+      final session = _sessions[key];
+      if (session == null) return;
+      _ensureSameTarget(session.target, target);
+
+      final remaining = deadline.difference(DateTime.now());
+      if (remaining <= Duration.zero) {
+        throw _transientFailure(
+          target,
+          'Timed out waiting for database leases to release.',
+        );
+      }
+
+      final changed = _stateChanges.putIfAbsent(key, Completer<void>.new);
+      try {
+        await changed.future.timeout(remaining);
+      } on TimeoutException {
+        if (identical(_stateChanges[key], changed)) {
+          _stateChanges.remove(key);
+        }
+        throw _transientFailure(
+          target,
+          'Timed out waiting for database leases to release.',
+        );
+      }
+    }
+  }
+
+  void _notifyStateChanged(String key) {
+    final changed = _stateChanges.remove(key);
+    if (changed != null && !changed.isCompleted) changed.complete();
+  }
+
+  DbOpenFailure _transientFailure(AccountDbTarget target, String message) {
+    return DbOpenFailure(
+      kind: DbOpenFailureKind.transient,
+      directory: target.directory,
+      name: target.name,
+      error: StateError(message),
+    );
+  }
+
+  String _sessionKey(String name) => name.trim();
 
   void _ensureSameTarget(AccountDbTarget current, AccountDbTarget requested) {
     if (current.accountId == requested.accountId &&

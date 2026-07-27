@@ -151,22 +151,9 @@ void main() {
     expect(store.saveCalls, 1);
   });
 
-  test('failed cleanup keeps the account visible', () async {
-    final initial = _localState();
-    final remote = Account(
-      id: 'remote',
-      type: AccountType.miniflux,
-      name: 'Remote',
-      createdAt: DateTime.utc(2026, 1, 1),
-      updatedAt: DateTime.utc(2026, 1, 1),
-    );
-    final store = _MemoryAccountStore(
-      AccountsState(
-        version: initial.version,
-        activeAccountId: initial.activeAccountId,
-        accounts: [...initial.accounts, remote],
-      ),
-    );
+  test('failed cleanup restores the account and previous active id', () async {
+    final initial = _twoAccountState(activeRemote: true);
+    final store = _MemoryAccountStore(initial);
     final container = ProviderContainer(
       overrides: [
         accountStoreProvider.overrideWithValue(store),
@@ -179,17 +166,91 @@ void main() {
     await expectLater(
       container
           .read(accountsControllerProvider.notifier)
-          .deleteAccount(remote.id),
+          .deleteAccount('remote'),
       throwsStateError,
     );
 
-    expect(store.state.findById(remote.id), isNotNull);
+    final persisted = store.state;
+    final visible = container.read(accountsControllerProvider).requireValue;
+    expect(persisted.activeAccountId, 'remote');
+    expect(persisted.findById('remote')!.deletionPending, isFalse);
+    expect(visible.activeAccountId, 'remote');
+    expect(visible.findById('remote')!.deletionPending, isFalse);
+    expect(store.saveCalls, 2);
+  });
+
+  test('final save failure leaves a retryable pending deletion', () async {
+    final store = _FailOnSaveAccountStore(
+      _twoAccountState(activeRemote: true),
+      failOnCalls: {2},
+    );
+    final cleanup = _RecordingAccountCleanup();
+    final container = ProviderContainer(
+      overrides: [
+        accountStoreProvider.overrideWithValue(store),
+        accountCleanupProvider.overrideWithValue(cleanup),
+      ],
+    );
+    addTearDown(container.dispose);
+    await container.read(accountsControllerProvider.future);
+    final controller = container.read(accountsControllerProvider.notifier);
+
+    await expectLater(controller.deleteAccount('remote'), throwsStateError);
+
+    final pending = container.read(accountsControllerProvider).requireValue;
+    expect(pending.activeAccountId, 'local');
+    expect(pending.findById('remote')!.deletionPending, isTrue);
+    expect(store.state.findById('remote')!.deletionPending, isTrue);
+
+    await controller.deleteAccount('remote');
+
+    expect(store.state.findById('remote'), isNull);
     expect(
-      container
-          .read(accountsControllerProvider)
-          .requireValue
-          .findById(remote.id),
-      isNotNull,
+      container.read(accountsControllerProvider).requireValue.accounts,
+      hasLength(1),
+    );
+    expect(cleanup.calls, 2);
+  });
+
+  test('build resumes a persisted pending deletion', () async {
+    final store = _MemoryAccountStore(_twoAccountState(pendingRemote: true));
+    final cleanup = _RecordingAccountCleanup();
+    final container = ProviderContainer(
+      overrides: [
+        accountStoreProvider.overrideWithValue(store),
+        accountCleanupProvider.overrideWithValue(cleanup),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final loaded = await container.read(accountsControllerProvider.future);
+
+    expect(loaded.findById('remote'), isNull);
+    expect(store.state.findById('remote'), isNull);
+    expect(cleanup.calls, 1);
+  });
+
+  test('failed startup recovery keeps pending account inactive', () async {
+    final store = _MemoryAccountStore(_twoAccountState(pendingRemote: true));
+    final container = ProviderContainer(
+      overrides: [
+        accountStoreProvider.overrideWithValue(store),
+        accountCleanupProvider.overrideWithValue(_FailingAccountCleanup()),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final loaded = await container.read(accountsControllerProvider.future);
+    expect(loaded.activeAccountId, 'local');
+    expect(loaded.findById('remote')!.deletionPending, isTrue);
+
+    await container
+        .read(accountsControllerProvider.notifier)
+        .setActive('remote');
+
+    expect(
+      container.read(accountsControllerProvider).requireValue.activeAccountId,
+      'local',
     );
   });
 
@@ -259,6 +320,27 @@ AccountsState _localState({bool databaseInitialized = true}) {
   );
 }
 
+AccountsState _twoAccountState({
+  bool activeRemote = false,
+  bool pendingRemote = false,
+}) {
+  final local = _localState().accounts.single;
+  final now = DateTime.utc(2026, 1, 1);
+  final remote = Account(
+    id: 'remote',
+    type: AccountType.miniflux,
+    name: 'Remote',
+    deletionPending: pendingRemote,
+    createdAt: now,
+    updatedAt: now,
+  );
+  return AccountsState(
+    version: AccountStore.currentVersion,
+    activeAccountId: activeRemote ? remote.id : local.id,
+    accounts: [local, remote],
+  );
+}
+
 class _MemoryAccountStore extends AccountStore {
   _MemoryAccountStore(this.state);
 
@@ -286,6 +368,38 @@ class _ThrowingAccountStore extends AccountStore {
   @override
   Future<void> save(AccountsState state) async {
     throw StateError('Injected account save failure');
+  }
+}
+
+class _FailOnSaveAccountStore extends _MemoryAccountStore {
+  _FailOnSaveAccountStore(super.state, {required this.failOnCalls});
+
+  final Set<int> failOnCalls;
+
+  @override
+  Future<void> save(AccountsState state) async {
+    saveCalls++;
+    if (failOnCalls.contains(saveCalls)) {
+      throw StateError('Injected account save failure');
+    }
+    this.state = state;
+  }
+}
+
+class _RecordingAccountCleanup extends AccountCleanupService {
+  _RecordingAccountCleanup()
+    : super(
+        credentials: CredentialStore(),
+        databaseLifecycle: createAccountDatabaseLifecycle(
+          findAccount: (_) async => null,
+        ),
+      );
+
+  int calls = 0;
+
+  @override
+  Future<void> deleteAccountData(Account account) async {
+    calls++;
   }
 }
 
