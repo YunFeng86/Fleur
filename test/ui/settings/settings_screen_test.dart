@@ -307,13 +307,10 @@ void main() {
       find.byKey(const Key('appearance_standard_font_stack_input')),
       findsOneWidget,
     );
-    expect(find.byKey(const Key('settings_back_button')), findsNothing);
-    expect(
-      find.byKey(const Key('appearance_fonts_back_button')),
-      findsOneWidget,
-    );
+    expect(find.byKey(const Key('settings_back_button')), findsOneWidget);
+    expect(find.byKey(const Key('appearance_fonts_back_button')), findsNothing);
 
-    await tester.tap(find.byKey(const Key('appearance_fonts_back_button')));
+    await tester.tap(find.byKey(const Key('settings_back_button')));
     await tester.pumpAndSettle();
 
     expect(
@@ -1180,7 +1177,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(store.settings.minimumFontSize, 13);
 
-    await tester.tap(find.byKey(const Key('appearance_fonts_back_button')));
+    await tester.tap(find.byKey(const Key('settings_back_button')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('appearance_reader_reset_button')));
     await tester.pumpAndSettle();
@@ -1333,7 +1330,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(store.settings.codeLineHeight, 1.7);
 
-    await tester.tap(find.byKey(const Key('appearance_fonts_back_button')));
+    await tester.tap(find.byKey(const Key('settings_back_button')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('appearance_reader_reset_button')));
     await tester.pumpAndSettle();

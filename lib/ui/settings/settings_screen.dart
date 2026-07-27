@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/settings_routes.dart';
 import '../../providers/core_providers.dart';
+import '../../providers/navigation_history_provider.dart';
 import '../../theme/fleur_icons.dart';
 import '../../theme/fleur_theme_extensions.dart';
 import '../adaptive_workspace_layout.dart';
@@ -135,9 +136,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               : null,
           onOpenFontsDetail: () {
             _openSettingsDetail(SettingsDetail.appearanceFonts);
-          },
-          onCloseDetail: () {
-            _returnToSettingsTab(SettingsTab.appearance);
           },
         ),
       ),
@@ -298,7 +296,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     ref.read(settingsTemporaryNavigationOpenProvider.notifier).state = false;
     final router = GoRouter.maybeOf(context);
     if (router != null) {
-      router.go(settingsLocation(tab: entry.tab, setting: entry.targetId));
+      ref
+          .read(navigationHistoryControllerProvider.notifier)
+          .visit(
+            settingsLocation(tab: entry.tab, setting: entry.targetId),
+            router: router,
+          );
       return;
     }
     setState(() {
@@ -313,7 +316,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void _selectSettingsTab(SettingsTab tab) {
     final router = GoRouter.maybeOf(context);
     if (router != null) {
-      router.go(settingsLocation(tab: tab));
+      ref
+          .read(navigationHistoryControllerProvider.notifier)
+          .visit(settingsLocation(tab: tab), router: router);
       return;
     }
     setState(() {
@@ -325,7 +330,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void _openSettingsDetail(SettingsDetail detail) {
     final router = GoRouter.maybeOf(context);
     if (router != null) {
-      router.go(settingsLocation(tab: detail.tab, detail: detail));
+      ref
+          .read(navigationHistoryControllerProvider.notifier)
+          .visit(
+            settingsLocation(tab: detail.tab, detail: detail),
+            router: router,
+          );
       return;
     }
     setState(() {
@@ -337,7 +347,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void _returnToSettingsTab(SettingsTab tab) {
     final router = GoRouter.maybeOf(context);
     if (router != null) {
-      router.go(settingsLocation(tab: tab));
+      ref
+          .read(navigationHistoryControllerProvider.notifier)
+          .visit(settingsLocation(tab: tab), router: router);
       return;
     }
     setState(() {
@@ -349,13 +361,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void _returnToSettingsOverview() {
     final router = GoRouter.maybeOf(context);
     if (router != null) {
-      router.go(settingsLocation());
+      ref
+          .read(navigationHistoryControllerProvider.notifier)
+          .visit(settingsLocation(), router: router);
       return;
     }
     setState(() {
       _selectedTab = null;
       _selectedDetail = null;
     });
+  }
+
+  void _exitSettings(GoRouter router) {
+    final history = ref.read(navigationHistoryControllerProvider.notifier);
+    final foundOutsideSettings = history.goBackToPreviousWhere((location) {
+      final segments = Uri.tryParse(location)?.pathSegments;
+      return segments == null ||
+          segments.isEmpty ||
+          segments.first != 'settings';
+    });
+    if (!foundOutsideSettings) history.visit('/all', router: router);
   }
 
   @override
@@ -493,13 +518,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ref.read(settingsTemporaryNavigationOpenProvider.notifier).state = false;
     }
 
-    void handleDetailBack() {
+    final router = GoRouter.maybeOf(context);
+
+    void handleLocalBack() {
+      final detail = _selectedDetail;
+      if (detail != null) {
+        _returnToSettingsTab(detail.tab);
+        return;
+      }
       if (selectedItem.tab == SettingsTab.subscriptions) {
         final notifier = ref.read(subscriptionSelectionProvider.notifier);
         final shouldPop = notifier.handleBack();
         if (!shouldPop) return;
       }
-      _returnToSettingsOverview();
+      if (!sidebarExpanded && !sidebarRail) {
+        _returnToSettingsOverview();
+        return;
+      }
+      if (router != null) _exitSettings(router);
     }
 
     final content = showingSearchResults
@@ -544,11 +580,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       showSidebarButton: !shellOwnsGlobalTools,
       onToggleSidebar: toggleNavigation,
       onBack:
-          !sidebarExpanded &&
-              !sidebarRail &&
-              !showingList &&
-              _selectedDetail == null
-          ? handleDetailBack
+          !showingList &&
+              (_selectedDetail != null ||
+                  (!sidebarExpanded && !sidebarRail) ||
+                  router != null)
+          ? handleLocalBack
           : null,
       items: items,
       sidebarSelectedIndex: sidebarExpanded || sidebarRail
@@ -568,12 +604,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       temporaryNavigationFocusNode: temporaryNavigationFocusNode,
     );
 
-    if (!sidebarExpanded && !sidebarRail && !showingList) {
+    if (!showingList &&
+        (_selectedDetail != null ||
+            (!sidebarExpanded && !sidebarRail) ||
+            router != null)) {
       return PopScope(
         canPop: false,
         onPopInvokedWithResult: (didPop, _) {
           if (didPop) return;
-          handleDetailBack();
+          handleLocalBack();
         },
         child: scene,
       );

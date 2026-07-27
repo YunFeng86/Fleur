@@ -42,9 +42,9 @@ class SidebarManagementActions {
   Future<void> openSettings() async {
     final target = _router ?? GoRouter.maybeOf(_context);
     if (target == null) return;
-    await _ref
+    _ref
         .read(navigationHistoryControllerProvider.notifier)
-        .push<void>('/settings', router: target);
+        .visit('/settings', router: target);
   }
 
   Future<int?> addFeed({int? initialCategoryId}) async {

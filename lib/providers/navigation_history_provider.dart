@@ -121,6 +121,15 @@ class NavigationHistoryController extends Notifier<NavigationHistoryState> {
     _goToHistoryIndex(state.index + 1);
   }
 
+  bool goBackToPreviousWhere(bool Function(String location) test) {
+    for (var index = state.index - 1; index >= 0; index--) {
+      if (!test(state.entries[index])) continue;
+      _goToHistoryIndex(index);
+      return true;
+    }
+    return false;
+  }
+
   void _goToHistoryIndex(int index) {
     if (index < 0 || index >= state.entries.length) return;
     final location = state.entries[index];

@@ -14,10 +14,12 @@ import '../ui/settings/settings_screen.dart';
 import '../ui/adaptive_workspace_layout.dart';
 import '../ui/app_shell.dart';
 import '../ui/motion.dart';
+import '../ui/shell_scene_scope.dart';
 
 const _workspaceSectionKey = ValueKey<String>('workspace-section');
 const _searchSectionKey = ValueKey<String>('search-section');
 const _addSubscriptionSectionKey = ValueKey<String>('add-subscription-section');
+const _settingsSectionKey = ValueKey<String>('settings-section');
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>(
   debugLabel: 'root-navigator',
@@ -36,7 +38,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       key: pageKey ?? state.pageKey,
       transitionDuration: AppMotion.pageTransitionDuration,
       reverseTransitionDuration: AppMotion.pageReverseTransitionDuration,
-      child: child,
+      child: ShellSceneGate(scene: ShellSceneKind.workspace, child: child),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         return AppMotion.sectionTransition(
           context: context,
@@ -52,7 +54,10 @@ final routerProvider = Provider<GoRouter>((ref) {
     required GoRouterState state,
     required Widget child,
   }) {
-    return NoTransitionPage<void>(key: state.pageKey, child: child);
+    return NoTransitionPage<void>(
+      key: state.pageKey,
+      child: ShellSceneGate(scene: ShellSceneKind.workspace, child: child),
+    );
   }
 
   Page<void> workspaceArticlePage(GoRouterState state) {
@@ -81,11 +86,14 @@ final routerProvider = Provider<GoRouter>((ref) {
     // alive during a page transition briefly renders it inside the new shell
     // profile, so every settings boundary is atomic.
     return NoTransitionPage<void>(
-      key: state.pageKey,
-      child: SettingsScreen(
-        initialTab: tab,
-        initialDetail: detail,
-        initialSettingId: settingId,
+      key: _settingsSectionKey,
+      child: ShellSceneGate(
+        scene: ShellSceneKind.settings,
+        child: SettingsScreen(
+          initialTab: tab,
+          initialDetail: detail,
+          initialSettingId: settingId,
+        ),
       ),
     );
   }

@@ -95,6 +95,7 @@ void main() {
       expect(find.byType(SettingsScreen), findsOneWidget);
       expect(find.byType(ReadingWorkspaceScreen), findsNothing);
       expect(tester.element(globalToolArea), same(globalToolElement));
+      final settingsScreenElement = tester.element(find.byType(SettingsScreen));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const Key('settings_nav_appearance')));
@@ -103,6 +104,10 @@ void main() {
       expect(
         router.routerDelegate.currentConfiguration.uri.toString(),
         '/settings/appearance',
+      );
+      expect(
+        tester.element(find.byType(SettingsScreen)),
+        same(settingsScreenElement),
       );
       await tester.ensureVisible(
         find.byKey(const Key('appearance_advanced_fonts_tile')),
@@ -115,18 +120,39 @@ void main() {
         router.routerDelegate.currentConfiguration.uri.toString(),
         '/settings/appearance/fonts',
       );
+      expect(find.byKey(const Key('settings_back_button')), findsOneWidget);
       expect(
         find.byKey(const Key('appearance_fonts_back_button')),
-        findsOneWidget,
+        findsNothing,
+      );
+      expect(
+        tester.element(find.byType(SettingsScreen)),
+        same(settingsScreenElement),
       );
 
-      await tester.tap(find.byKey(const Key('appearance_fonts_back_button')));
+      await tester.tap(find.byKey(const Key('settings_back_button')));
       await tester.pumpAndSettle();
 
       expect(
         router.routerDelegate.currentConfiguration.uri.toString(),
         '/settings/appearance',
       );
+
+      router.go(
+        settingsLocation(
+          tab: SettingsTab.appearance,
+          detail: SettingsDetail.appearanceFonts,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(await tester.binding.handlePopRoute(), isTrue);
+      await tester.pumpAndSettle();
+
+      expect(
+        router.routerDelegate.currentConfiguration.uri.toString(),
+        '/settings/appearance',
+      );
+      expect(tester.element(globalToolArea), same(globalToolElement));
 
       router.go(
         settingsLocation(
@@ -142,7 +168,6 @@ void main() {
         router.routerDelegate.currentConfiguration.uri.toString(),
         '/settings/appearance',
       );
-      expect(tester.element(globalToolArea), same(globalToolElement));
 
       await tester.tap(find.byKey(const Key('shell_back_button')));
       await tester.pumpAndSettle();
@@ -153,6 +178,25 @@ void main() {
       );
 
       await tester.tap(find.byKey(const Key('shell_back_button')));
+      for (var frame = 0; frame < 4; frame++) {
+        await tester.pump(const Duration(milliseconds: 16));
+        final settingsVisible = find
+            .byType(SettingsScreen)
+            .evaluate()
+            .isNotEmpty;
+        final workspaceVisible = find
+            .byType(ReadingWorkspaceScreen)
+            .evaluate()
+            .isNotEmpty;
+        expect(settingsVisible && workspaceVisible, isFalse);
+        if (workspaceVisible) {
+          expect(find.byKey(const Key('settings_sidebar')), findsNothing);
+          expect(
+            find.byKey(const Key('settings_navigation_rail')),
+            findsNothing,
+          );
+        }
+      }
       await tester.pumpAndSettle();
 
       expect(router.routerDelegate.currentConfiguration.uri.toString(), '/all');

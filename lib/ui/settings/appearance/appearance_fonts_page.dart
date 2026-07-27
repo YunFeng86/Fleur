@@ -7,16 +7,13 @@ import '../../../l10n/app_localizations.dart';
 import '../../../providers/settings_providers.dart';
 import '../../../services/settings/reader_settings.dart';
 import '../../../theme/app_theme.dart';
-import '../../../theme/fleur_icons.dart';
 import '../../../theme/fleur_theme_extensions.dart';
 import '../widgets/settings_controls.dart';
 import '../widgets/slider_tile.dart';
 import 'appearance_preview_options.dart';
 
 class AppearanceFontsPage extends ConsumerWidget {
-  const AppearanceFontsPage({super.key, required this.onBack});
-
-  final VoidCallback onBack;
+  const AppearanceFontsPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -27,15 +24,7 @@ class AppearanceFontsPage extends ConsumerWidget {
 
     return SettingsPageBody(
       children: [
-        SettingsDetailHeader(
-          title: l10n.advancedFontSettings,
-          trailing: SettingsActionButton(
-            key: const Key('appearance_fonts_back_button'),
-            onPressed: onBack,
-            icon: const Icon(FleurIcons.back),
-            label: Text(l10n.back),
-          ),
-        ),
+        SettingsDetailHeader(title: l10n.advancedFontSettings),
         SettingsSection(
           title: l10n.fontSize,
           child: SettingsCard(

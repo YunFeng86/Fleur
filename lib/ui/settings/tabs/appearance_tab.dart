@@ -36,14 +36,12 @@ class AppearanceTab extends ConsumerStatefulWidget {
     required this.targetController,
     required this.detailPage,
     required this.onOpenFontsDetail,
-    required this.onCloseDetail,
     this.showPageTitle = true,
   });
 
   final SettingsTargetController targetController;
   final AppearanceDetailPage? detailPage;
   final VoidCallback onOpenFontsDetail;
-  final VoidCallback onCloseDetail;
   final bool showPageTitle;
 
   @override
@@ -56,7 +54,7 @@ class _AppearanceTabState extends ConsumerState<AppearanceTab> {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     if (widget.detailPage == AppearanceDetailPage.fonts) {
-      return AppearanceFontsPage(onBack: widget.onCloseDetail);
+      return const AppearanceFontsPage();
     }
 
     final appSettings =

@@ -24,6 +24,7 @@ import 'shell_chrome_layout.dart';
 import 'shell_control_strip.dart';
 import 'shell_frame_geometry.dart';
 import 'shell_secondary_scene_frame.dart';
+import 'shell_scene_scope.dart';
 import 'shell_temporary_navigation.dart';
 import 'shell_window_frame.dart';
 import 'sidebar_layout.dart';
@@ -778,59 +779,68 @@ class _AppShellState extends ConsumerState<AppShell> {
     final hideNavForReaderPage = arrangement.showsSecondaryReader;
 
     if (settingsScene) {
-      return _buildSettingsShell(
-        context: context,
-        ref: ref,
-        size: size,
-        preferredNavigation: preferredNavigation,
-        arrangement: arrangement,
-        canExpandInline: canExpandInline,
-        macOSWindowChromeMetrics: macOSWindowChromeMetrics,
-        shellChromeLayout: shellChromeLayout,
-        listWidth: listWidth,
-        history: history,
-      );
-    }
-
-    if (hideNavForReaderPage) {
-      return _ShellHistoryShortcuts(
-        commands: shortcutCommands,
-        onDismissNavigation: _temporarySidebarOpen
-            ? _closeTemporarySidebar
-            : null,
-        child: _buildDesktopSecondaryLayer(
+      return ShellSceneScope(
+        activeScene: ShellSceneKind.settings,
+        child: _buildSettingsShell(
           context: context,
           ref: ref,
           size: size,
-          macOSWindowChromeMetrics: macOSWindowChromeMetrics,
-          shellChromeLayout: shellChromeLayout,
-          sidebarWidth: sidebarWidth,
-          listWidth: listWidth,
           preferredNavigation: preferredNavigation,
           arrangement: arrangement,
+          canExpandInline: canExpandInline,
+          macOSWindowChromeMetrics: macOSWindowChromeMetrics,
+          shellChromeLayout: shellChromeLayout,
+          listWidth: listWidth,
           history: history,
         ),
       );
     }
 
-    return _ShellHistoryShortcuts(
-      commands: shortcutCommands,
-      onDismissNavigation: _temporarySidebarOpen
-          ? _closeTemporarySidebar
-          : null,
-      child: _buildDesktopLayeredShell(
-        context: context,
-        ref: ref,
-        size: size,
-        preferredNavigation: preferredNavigation,
-        arrangement: arrangement,
-        canExpandInline: canExpandInline,
-        macOSWindowChromeMetrics: macOSWindowChromeMetrics,
-        shellChromeLayout: shellChromeLayout,
-        surfaces: surfaces,
-        sidebarWidth: sidebarWidth,
-        listWidth: listWidth,
-        history: history,
+    if (hideNavForReaderPage) {
+      return ShellSceneScope(
+        activeScene: ShellSceneKind.workspace,
+        child: _ShellHistoryShortcuts(
+          commands: shortcutCommands,
+          onDismissNavigation: _temporarySidebarOpen
+              ? _closeTemporarySidebar
+              : null,
+          child: _buildDesktopSecondaryLayer(
+            context: context,
+            ref: ref,
+            size: size,
+            macOSWindowChromeMetrics: macOSWindowChromeMetrics,
+            shellChromeLayout: shellChromeLayout,
+            sidebarWidth: sidebarWidth,
+            listWidth: listWidth,
+            preferredNavigation: preferredNavigation,
+            arrangement: arrangement,
+            history: history,
+          ),
+        ),
+      );
+    }
+
+    return ShellSceneScope(
+      activeScene: ShellSceneKind.workspace,
+      child: _ShellHistoryShortcuts(
+        commands: shortcutCommands,
+        onDismissNavigation: _temporarySidebarOpen
+            ? _closeTemporarySidebar
+            : null,
+        child: _buildDesktopLayeredShell(
+          context: context,
+          ref: ref,
+          size: size,
+          preferredNavigation: preferredNavigation,
+          arrangement: arrangement,
+          canExpandInline: canExpandInline,
+          macOSWindowChromeMetrics: macOSWindowChromeMetrics,
+          shellChromeLayout: shellChromeLayout,
+          surfaces: surfaces,
+          sidebarWidth: sidebarWidth,
+          listWidth: listWidth,
+          history: history,
+        ),
       ),
     );
   }

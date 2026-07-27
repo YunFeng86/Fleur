@@ -94,30 +94,16 @@ class _SidebarState extends ConsumerState<Sidebar> {
         .visit(location, router: contextRouter);
   }
 
-  void _pushLocation(String location) {
-    _closeSidebarIfDrawerOpen();
-    final router = widget.router ?? GoRouter.maybeOf(context);
-    if (router != null) {
-      unawaited(
-        ref
-            .read(navigationHistoryControllerProvider.notifier)
-            .push<void>(location, router: router),
-      );
-      return;
-    }
-    unawaited(Navigator.of(context).pushNamed(location));
-  }
-
   void _openAddSubscriptionPage() {
     _goLocation('/add-subscription');
   }
 
   void _openAccountSettings() {
-    _pushLocation(settingsLocation(tab: SettingsTab.services));
+    _goLocation(settingsLocation(tab: SettingsTab.services));
   }
 
   void _openSettings() {
-    _pushLocation(settingsLocation());
+    _goLocation(settingsLocation());
   }
 
   @override

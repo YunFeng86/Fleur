@@ -19,6 +19,7 @@ import 'package:fleur/providers/article_list_controller.dart';
 import 'package:fleur/providers/app_settings_providers.dart';
 import 'package:fleur/providers/background_sync_providers.dart';
 import 'package:fleur/providers/core_providers.dart';
+import 'package:fleur/providers/navigation_history_provider.dart';
 import 'package:fleur/providers/outbox_status_providers.dart';
 import 'package:fleur/providers/query_providers.dart';
 import 'package:fleur/providers/refresh_all_providers.dart';
@@ -1537,9 +1538,16 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('settings page services'), findsOneWidget);
-    expect(router.canPop(), isTrue);
-    router.pop();
+    expect(router.canPop(), isFalse);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(AppShell)),
+    );
+    container.read(navigationHistoryControllerProvider.notifier).goBack();
     await tester.pumpAndSettle();
+    expect(
+      router.routerDelegate.currentConfiguration.uri.toString(),
+      '/add-subscription',
+    );
 
     await tester.tap(find.byKey(const Key('sidebar_account_button')));
     await tester.pumpAndSettle();
