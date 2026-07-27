@@ -46,10 +46,7 @@ final navigationHistoryControllerProvider =
 class NavigationHistoryController extends Notifier<NavigationHistoryState> {
   GoRouter? _router;
   VoidCallback? _routerListener;
-  bool _replaceNextNavigation = false;
-  bool _recordScheduled = false;
-  String? _pendingLocation;
-  String? _replayingLocation;
+  final List<String> _expectedLocations = <String>[];
 
   @override
   NavigationHistoryState build() {
@@ -59,7 +56,6 @@ class NavigationHistoryController extends Notifier<NavigationHistoryState> {
 
   void bindRouter(GoRouter router) {
     if (_router == router) {
-      _scheduleCurrentRouterLocationRecord();
       return;
     }
 
@@ -67,11 +63,52 @@ class NavigationHistoryController extends Notifier<NavigationHistoryState> {
     _router = router;
     _routerListener = _handleRouteChanged;
     router.routerDelegate.addListener(_routerListener!);
-    _scheduleCurrentRouterLocationRecord();
+    unawaited(
+      Future<void>(() {
+        if (_router == router) _recordCurrentRouterLocation();
+      }),
+    );
   }
 
-  void markNextNavigationAsReplacement() {
-    _replaceNextNavigation = true;
+  void visit(String location, {GoRouter? router}) {
+    final target = _resolveRouter(router);
+    if (target == null || location.isEmpty) return;
+    if (state.currentLocation == location) return;
+
+    final entries = <String>[...state.entries.take(state.index + 1), location];
+    state = NavigationHistoryState(
+      entries: List<String>.unmodifiable(entries),
+      index: entries.length - 1,
+    );
+    _expect(location);
+    target.go(location);
+  }
+
+  void replaceCurrent(String location, {GoRouter? router}) {
+    final target = _resolveRouter(router);
+    if (target == null || location.isEmpty) return;
+    if (state.currentLocation == location) return;
+
+    _replaceCurrentLocation(location);
+    _expect(location);
+    unawaited(target.replace(location));
+  }
+
+  Future<T?> push<T>(String location, {GoRouter? router, Object? extra}) {
+    final target = _resolveRouter(router);
+    if (target == null ||
+        location.isEmpty ||
+        state.currentLocation == location) {
+      return Future<T?>.value();
+    }
+
+    final entries = <String>[...state.entries.take(state.index + 1), location];
+    state = NavigationHistoryState(
+      entries: List<String>.unmodifiable(entries),
+      index: entries.length - 1,
+    );
+    _expect(location);
+    return target.push<T>(location, extra: extra);
   }
 
   void goBack() {
@@ -87,56 +124,48 @@ class NavigationHistoryController extends Notifier<NavigationHistoryState> {
   void _goToHistoryIndex(int index) {
     if (index < 0 || index >= state.entries.length) return;
     final location = state.entries[index];
-    _replaceNextNavigation = false;
-    _replayingLocation = location;
     state = state.copyWith(index: index);
-    _router?.go(location);
+    final router = _router;
+    if (router == null) return;
+    _expect(location);
+    router.go(location);
   }
 
   void _handleRouteChanged() {
-    _scheduleCurrentRouterLocationRecord();
+    _recordCurrentRouterLocation();
   }
 
-  void _scheduleCurrentRouterLocationRecord() {
+  void _recordCurrentRouterLocation() {
     final router = _router;
     if (router == null) return;
 
     final configuration = router.routerDelegate.currentConfiguration;
     if (configuration.isEmpty) return;
-    _pendingLocation = configuration.uri.toString();
-    if (_recordScheduled) return;
-
-    _recordScheduled = true;
-    unawaited(
-      Future<void>(() {
-        _recordScheduled = false;
-        if (_router == null) return;
-        final location = _pendingLocation;
-        _pendingLocation = null;
-        if (location == null) return;
-        _recordLocation(location);
-      }),
-    );
+    _recordLocation(configuration.uri.toString());
   }
 
   void _recordLocation(String location) {
     if (location.isEmpty) return;
 
-    final replayingLocation = _replayingLocation;
-    if (replayingLocation == location) {
-      _replayingLocation = null;
+    final expectedIndex = _expectedLocations.indexOf(location);
+    if (expectedIndex >= 0) {
+      _expectedLocations.removeRange(0, expectedIndex + 1);
+      return;
+    }
+
+    if (_expectedLocations.isNotEmpty) {
+      _expectedLocations.clear();
+      _replaceCurrentLocation(location);
       return;
     }
 
     final currentLocation = state.currentLocation;
     if (currentLocation == location) {
-      _replaceNextNavigation = false;
       return;
     }
 
     final previousIndex = state.index - 1;
     if (previousIndex >= 0 && state.entries[previousIndex] == location) {
-      _replaceNextNavigation = false;
       state = state.copyWith(index: previousIndex);
       return;
     }
@@ -144,14 +173,7 @@ class NavigationHistoryController extends Notifier<NavigationHistoryState> {
     final nextIndex = state.index + 1;
     if (nextIndex < state.entries.length &&
         state.entries[nextIndex] == location) {
-      _replaceNextNavigation = false;
       state = state.copyWith(index: nextIndex);
-      return;
-    }
-
-    if (_replaceNextNavigation) {
-      _replaceNextNavigation = false;
-      _replaceCurrentLocation(location);
       return;
     }
 
@@ -188,6 +210,15 @@ class NavigationHistoryController extends Notifier<NavigationHistoryState> {
     );
   }
 
+  GoRouter? _resolveRouter(GoRouter? router) {
+    if (router != null && router != _router) bindRouter(router);
+    return router ?? _router;
+  }
+
+  void _expect(String location) {
+    _expectedLocations.add(location);
+  }
+
   void _unbindRouter() {
     final router = _router;
     final listener = _routerListener;
@@ -196,9 +227,6 @@ class NavigationHistoryController extends Notifier<NavigationHistoryState> {
     }
     _router = null;
     _routerListener = null;
-    _replaceNextNavigation = false;
-    _recordScheduled = false;
-    _pendingLocation = null;
-    _replayingLocation = null;
+    _expectedLocations.clear();
   }
 }

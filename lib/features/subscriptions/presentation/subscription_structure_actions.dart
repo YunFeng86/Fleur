@@ -7,6 +7,7 @@ import '../../../l10n/app_localizations.dart';
 import '../application/subscription_structure_commands.dart';
 import '../../../providers/backend_capabilities_provider.dart';
 import '../../../providers/repository_providers.dart';
+import '../../../providers/navigation_history_provider.dart';
 import '../../../providers/service_providers.dart';
 import '../../../services/sync/backend_capabilities.dart';
 import '../../../services/sync/remote_subscription_structure_executor.dart';
@@ -128,7 +129,9 @@ abstract final class SubscriptionStructureActions {
     );
     final router = GoRouter.maybeOf(context);
     if (router != null) {
-      router.go(location);
+      ref
+          .read(navigationHistoryControllerProvider.notifier)
+          .visit(location, router: router);
       return null;
     }
 

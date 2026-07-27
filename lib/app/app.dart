@@ -15,6 +15,7 @@ import '../providers/app_update_providers.dart';
 import '../providers/auto_refresh_providers.dart';
 import '../providers/background_sync_providers.dart';
 import '../providers/outbox_flush_providers.dart';
+import '../providers/navigation_history_provider.dart';
 import '../providers/service_providers.dart';
 import '../services/logging/app_logger.dart';
 import '../services/notifications/notification_service.dart';
@@ -194,12 +195,16 @@ class _AppRuntimeHostState extends ConsumerState<AppRuntimeHost> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         final router = ref.read(routerProvider);
+        final history = ref.read(navigationHistoryControllerProvider.notifier);
         switch (tap) {
           case NotificationTapHome():
-            router.go('/');
+            history.visit('/', router: router);
             return;
           case NotificationTapArticle(articleId: final articleId):
-            router.go(scopedArticleLocation(ArticleScope.all, articleId));
+            history.visit(
+              scopedArticleLocation(ArticleScope.all, articleId),
+              router: router,
+            );
             return;
         }
       });

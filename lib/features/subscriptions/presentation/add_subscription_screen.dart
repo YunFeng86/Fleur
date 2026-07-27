@@ -10,6 +10,7 @@ import '../application/add_subscription_workflow.dart';
 import '../application/subscription_feed_browsing.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/article_scope.dart';
+import '../../../providers/navigation_history_provider.dart';
 import '../../../services/rss/feed_discovery_service.dart';
 import '../../../theme/fleur_icons.dart';
 import '../../../theme/fleur_theme_extensions.dart';
@@ -78,7 +79,12 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
 
   void _viewSubscription(int feedId) {
     SubscriptionFeedBrowsing.selectFeed(ref.read, feedId);
-    context.go(scopeLocation(ArticleScope.feed(feedId)));
+    ref
+        .read(navigationHistoryControllerProvider.notifier)
+        .visit(
+          scopeLocation(ArticleScope.feed(feedId)),
+          router: GoRouter.of(context),
+        );
   }
 
   void _continueAdding() {
@@ -88,7 +94,9 @@ class _AddSubscriptionScreenState extends ConsumerState<AddSubscriptionScreen> {
   }
 
   void _finish() {
-    context.go('/');
+    ref
+        .read(navigationHistoryControllerProvider.notifier)
+        .visit('/', router: GoRouter.of(context));
   }
 
   @override

@@ -12,6 +12,7 @@ import '../../providers/app_settings_providers.dart';
 import '../../providers/backend_capabilities_provider.dart';
 import '../../providers/backend_sync_semantics_provider.dart';
 import '../../providers/query_providers.dart';
+import '../../providers/navigation_history_provider.dart';
 import '../../providers/refresh_all_providers.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/service_providers.dart';
@@ -215,7 +216,9 @@ class HomeSceneCommands {
   }
 
   void goToSearch() {
-    _context.go('/search');
+    _ref
+        .read(navigationHistoryControllerProvider.notifier)
+        .visit('/search', router: GoRouter.of(_context));
   }
 
   void _goToArticle(int articleId) {
@@ -228,20 +231,27 @@ class HomeSceneCommands {
     );
 
     if (!openAsSecondaryPage) {
-      _context.go(location);
+      _ref
+          .read(navigationHistoryControllerProvider.notifier)
+          .visit(location, router: GoRouter.of(_context));
       return;
     }
 
     if (selectedArticleId == null) {
       unawaited(
-        _context.push<void>(
-          location,
-          extra: WorkspaceReaderPresentation.secondaryPage,
-        ),
+        _ref
+            .read(navigationHistoryControllerProvider.notifier)
+            .push<void>(
+              location,
+              router: GoRouter.of(_context),
+              extra: WorkspaceReaderPresentation.secondaryPage,
+            ),
       );
       return;
     }
-    _context.replace(location);
+    _ref
+        .read(navigationHistoryControllerProvider.notifier)
+        .replaceCurrent(location, router: GoRouter.of(_context));
   }
 
   void goToNextArticle() {

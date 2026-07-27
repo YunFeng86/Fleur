@@ -17,6 +17,7 @@ import 'package:fleur/providers/app_settings_providers.dart';
 import 'package:fleur/providers/article_list_controller.dart';
 import 'package:fleur/providers/backend_capabilities_provider.dart';
 import 'package:fleur/providers/query_providers.dart';
+import 'package:fleur/providers/navigation_history_provider.dart';
 import 'package:fleur/providers/service_providers.dart';
 import 'package:fleur/providers/unread_providers.dart';
 import 'package:fleur/services/settings/app_settings.dart';
@@ -330,7 +331,12 @@ class _ArticleListState extends ConsumerState<ArticleList> {
   }) async {
     if (article.id == widget.selectedArticleId) {
       if (closeIfSelected) {
-        context.go(widget.baseLocation ?? scopeLocation(scope));
+        ref
+            .read(navigationHistoryControllerProvider.notifier)
+            .visit(
+              widget.baseLocation ?? scopeLocation(scope),
+              router: GoRouter.of(context),
+            );
       }
       return;
     }
@@ -352,9 +358,17 @@ class _ArticleListState extends ConsumerState<ArticleList> {
             : '${widget.articleRoutePrefix}/article/${article.id}');
 
     if (openAsSecondaryPage) {
-      await context.push(loc, extra: WorkspaceReaderPresentation.secondaryPage);
+      await ref
+          .read(navigationHistoryControllerProvider.notifier)
+          .push<void>(
+            loc,
+            router: GoRouter.of(context),
+            extra: WorkspaceReaderPresentation.secondaryPage,
+          );
     } else {
-      context.go(loc);
+      ref
+          .read(navigationHistoryControllerProvider.notifier)
+          .visit(loc, router: GoRouter.of(context));
     }
   }
 

@@ -111,13 +111,18 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 
-  void _goToSearchState(SearchRouteState state) {
+  void _goToSearchState(SearchRouteState state, {bool replaceHistory = false}) {
     final location = searchLocation(state);
     final router = GoRouter.maybeOf(context);
     final current = router?.routerDelegate.currentConfiguration.uri.toString();
     if (current == location) return;
     if (router != null) {
-      router.go(location);
+      final history = ref.read(navigationHistoryControllerProvider.notifier);
+      if (replaceHistory) {
+        history.replaceCurrent(location, router: router);
+      } else {
+        history.visit(location, router: router);
+      }
       return;
     }
     context.go(location);
@@ -130,17 +135,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }) {
     _routeDebounce?.cancel();
     if (immediate) {
-      _goToSearchState(state);
+      _goToSearchState(state, replaceHistory: replaceHistory);
       return;
     }
     _routeDebounce = Timer(_routeDebounceDuration, () {
       if (!mounted) return;
-      if (replaceHistory) {
-        ref
-            .read(navigationHistoryControllerProvider.notifier)
-            .markNextNavigationAsReplacement();
-      }
-      _goToSearchState(state);
+      _goToSearchState(state, replaceHistory: replaceHistory);
     });
   }
 

@@ -15,6 +15,7 @@ import 'package:fleur/models/article.dart';
 import 'package:fleur/providers/app_settings_providers.dart';
 import 'package:fleur/features/reader/application/article_ai_providers.dart';
 import 'package:fleur/providers/query_providers.dart';
+import 'package:fleur/providers/navigation_history_provider.dart';
 import 'package:fleur/features/reader/application/reader_document_providers.dart';
 import 'package:fleur/features/reader/application/reader_providers.dart';
 import 'package:fleur/features/reader/application/reader_search_providers.dart';

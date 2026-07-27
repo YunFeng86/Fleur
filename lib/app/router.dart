@@ -8,7 +8,6 @@ import 'search_routes.dart';
 import 'settings_routes.dart';
 import '../features/subscriptions/subscriptions.dart';
 import '../models/article_scope.dart';
-import '../providers/navigation_history_provider.dart';
 import '../ui/home/reading_workspace_screen.dart';
 import '../ui/home/search_screen.dart';
 import '../ui/settings/settings_screen.dart';
@@ -369,7 +368,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
-  ref.read(navigationHistoryControllerProvider.notifier).bindRouter(router);
   return router;
 });
 

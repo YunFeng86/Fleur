@@ -60,11 +60,14 @@ void main() {
       '/all',
     ]);
 
-    router.go('/feed/10');
+    final controller = container.read(
+      navigationHistoryControllerProvider.notifier,
+    );
+    controller.visit('/feed/10');
     await tester.pumpAndSettle();
-    router.go('/feed/10');
+    controller.visit('/feed/10');
     await tester.pumpAndSettle();
-    router.go('/feed/10/article/42');
+    controller.visit('/feed/10/article/42');
     await tester.pumpAndSettle();
 
     expect(container.read(navigationHistoryControllerProvider).entries, [
@@ -73,7 +76,7 @@ void main() {
       '/feed/10/article/42',
     ]);
 
-    container.read(navigationHistoryControllerProvider.notifier).goBack();
+    controller.goBack();
     await tester.pumpAndSettle();
 
     expect(
@@ -85,7 +88,7 @@ void main() {
       isTrue,
     );
 
-    container.read(navigationHistoryControllerProvider.notifier).goForward();
+    controller.goForward();
     await tester.pumpAndSettle();
 
     expect(
@@ -94,31 +97,106 @@ void main() {
     );
   });
 
-  testWidgets('moves the cursor for adjacent external route changes', (
+  testWidgets(
+    'reconciles adjacent external route changes as back and forward',
+    (tester) async {
+      final router = _buildRouter();
+      addTearDown(router.dispose);
+      final container = await _pumpHistoryHarness(tester, router);
+
+      router.go('/feed/10');
+      await tester.pumpAndSettle();
+      router.go('/feed/10/article/42');
+      await tester.pumpAndSettle();
+      router.go('/feed/10');
+      await tester.pumpAndSettle();
+
+      final state = container.read(navigationHistoryControllerProvider);
+      expect(state.entries, ['/all', '/feed/10', '/feed/10/article/42']);
+      expect(state.index, 1);
+      expect(state.canGoForward, isTrue);
+
+      router.go('/feed/10/article/42');
+      await tester.pumpAndSettle();
+
+      final nextState = container.read(navigationHistoryControllerProvider);
+      expect(nextState.entries, ['/all', '/feed/10', '/feed/10/article/42']);
+      expect(nextState.index, 2);
+    },
+  );
+
+  testWidgets('ordinary visits to an earlier URI truncate the forward tail', (
     tester,
   ) async {
     final router = _buildRouter();
     addTearDown(router.dispose);
     final container = await _pumpHistoryHarness(tester, router);
+    final controller = container.read(
+      navigationHistoryControllerProvider.notifier,
+    );
 
-    router.go('/feed/10');
+    controller.visit('/feed/10');
     await tester.pumpAndSettle();
-    router.go('/feed/10/article/42');
+    controller.visit('/feed/10/article/42');
     await tester.pumpAndSettle();
-    router.go('/feed/10');
+    controller.visit('/feed/10');
+    await tester.pumpAndSettle();
+
+    final state = container.read(navigationHistoryControllerProvider);
+    expect(state.entries, [
+      '/all',
+      '/feed/10',
+      '/feed/10/article/42',
+      '/feed/10',
+    ]);
+    expect(state.index, 3);
+    expect(state.canGoForward, isFalse);
+  });
+
+  testWidgets('records rapid visits issued before a frame settles', (
+    tester,
+  ) async {
+    final router = _buildRouter();
+    addTearDown(router.dispose);
+    final container = await _pumpHistoryHarness(tester, router);
+    final controller = container.read(
+      navigationHistoryControllerProvider.notifier,
+    );
+
+    controller.visit('/feed/10');
+    controller.visit('/feed/10/article/42');
     await tester.pumpAndSettle();
 
     final state = container.read(navigationHistoryControllerProvider);
     expect(state.entries, ['/all', '/feed/10', '/feed/10/article/42']);
-    expect(state.index, 1);
-    expect(state.canGoForward, isTrue);
+    expect(state.index, 2);
+    expect(state.canGoForward, isFalse);
+  });
 
-    router.go('/feed/10/article/42');
+  testWidgets('replays every rapid back command before a frame settles', (
+    tester,
+  ) async {
+    final router = _buildRouter();
+    addTearDown(router.dispose);
+    final container = await _pumpHistoryHarness(tester, router);
+    final controller = container.read(
+      navigationHistoryControllerProvider.notifier,
+    );
+
+    controller.visit('/feed/10');
+    await tester.pumpAndSettle();
+    controller.visit('/feed/10/article/42');
     await tester.pumpAndSettle();
 
-    final nextState = container.read(navigationHistoryControllerProvider);
-    expect(nextState.entries, ['/all', '/feed/10', '/feed/10/article/42']);
-    expect(nextState.index, 2);
+    controller.goBack();
+    controller.goBack();
+    await tester.pumpAndSettle();
+
+    final state = container.read(navigationHistoryControllerProvider);
+    expect(router.routerDelegate.currentConfiguration.uri.toString(), '/all');
+    expect(state.index, 0);
+    expect(state.canGoBack, isFalse);
+    expect(state.canGoForward, isTrue);
   });
 
   testWidgets('replaces the current entry for debounced search updates', (
@@ -131,13 +209,11 @@ void main() {
       navigationHistoryControllerProvider.notifier,
     );
 
-    router.go('/search');
+    controller.visit('/search');
     await tester.pumpAndSettle();
-    controller.markNextNavigationAsReplacement();
-    router.go('/search?q=f');
+    controller.replaceCurrent('/search?q=f');
     await tester.pumpAndSettle();
-    controller.markNextNavigationAsReplacement();
-    router.go('/search?q=flutter');
+    controller.replaceCurrent('/search?q=flutter');
     await tester.pumpAndSettle();
 
     expect(container.read(navigationHistoryControllerProvider).entries, [
@@ -166,14 +242,17 @@ void main() {
     addTearDown(router.dispose);
     final container = await _pumpHistoryHarness(tester, router);
 
-    router.go('/feed/10');
+    final controller = container.read(
+      navigationHistoryControllerProvider.notifier,
+    );
+    controller.visit('/feed/10');
     await tester.pumpAndSettle();
-    router.go('/feed/10/article/42');
+    controller.visit('/feed/10/article/42');
     await tester.pumpAndSettle();
-    container.read(navigationHistoryControllerProvider.notifier).goBack();
+    controller.goBack();
     await tester.pumpAndSettle();
 
-    router.go('/search?q=flutter');
+    controller.visit('/search?q=flutter');
     await tester.pumpAndSettle();
 
     expect(container.read(navigationHistoryControllerProvider).entries, [
@@ -185,5 +264,37 @@ void main() {
       container.read(navigationHistoryControllerProvider).canGoForward,
       isFalse,
     );
+  });
+
+  testWidgets('visit during replay cannot leave a stale replay marker', (
+    tester,
+  ) async {
+    final router = _buildRouter();
+    addTearDown(router.dispose);
+    final container = await _pumpHistoryHarness(tester, router);
+    final controller = container.read(
+      navigationHistoryControllerProvider.notifier,
+    );
+
+    controller.visit('/feed/10');
+    await tester.pumpAndSettle();
+    controller.visit('/feed/10/article/42');
+    await tester.pumpAndSettle();
+
+    controller.goBack();
+    controller.visit('/search?q=flutter');
+    await tester.pumpAndSettle();
+    controller.visit('/feed/10');
+    await tester.pumpAndSettle();
+
+    final state = container.read(navigationHistoryControllerProvider);
+    expect(state.entries, [
+      '/all',
+      '/feed/10',
+      '/search?q=flutter',
+      '/feed/10',
+    ]);
+    expect(state.index, 3);
+    expect(state.canGoForward, isFalse);
   });
 }

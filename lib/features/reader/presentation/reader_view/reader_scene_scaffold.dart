@@ -125,7 +125,9 @@ extension _ReaderSceneScaffold on _ReaderViewState {
       if (context.canPop()) {
         context.pop();
       } else {
-        context.go(widget.fallbackBackLocation);
+        ref
+            .read(navigationHistoryControllerProvider.notifier)
+            .visit(widget.fallbackBackLocation, router: GoRouter.of(context));
       }
     }
 

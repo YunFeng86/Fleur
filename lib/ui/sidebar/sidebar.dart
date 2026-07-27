@@ -15,6 +15,7 @@ import '../../models/feed.dart';
 import '../../providers/backend_capabilities_provider.dart';
 import '../../providers/backend_sync_semantics_provider.dart';
 import '../../providers/core_providers.dart';
+import '../../providers/navigation_history_provider.dart';
 import '../../providers/query_providers.dart';
 import '../../providers/sync_status_providers.dart';
 import '../../providers/unread_providers.dart';
@@ -22,7 +23,6 @@ import '../../services/sync/backend_capabilities.dart';
 import '../../services/sync/sync_status_reporter.dart';
 import '../../theme/fleur_icons.dart';
 import '../../theme/fleur_theme_extensions.dart';
-import '../../utils/platform.dart';
 import '../../widgets/overflow_marquee.dart';
 import '../app_menu.dart';
 import '../design_system/design_system.dart';
@@ -77,25 +77,32 @@ class _SidebarState extends ConsumerState<Sidebar> {
       scaffold.closeDrawer();
       return;
     }
-    final router = widget.router;
-    if (isDesktop && router != null && router.canPop()) router.pop();
   }
 
   void _goLocation(String location) {
     _closeSidebarIfDrawerOpen();
     final router = widget.router;
     if (router != null) {
-      router.go(location);
+      ref
+          .read(navigationHistoryControllerProvider.notifier)
+          .visit(location, router: router);
       return;
     }
-    context.go(location);
+    final contextRouter = GoRouter.of(context);
+    ref
+        .read(navigationHistoryControllerProvider.notifier)
+        .visit(location, router: contextRouter);
   }
 
   void _pushLocation(String location) {
     _closeSidebarIfDrawerOpen();
     final router = widget.router ?? GoRouter.maybeOf(context);
     if (router != null) {
-      unawaited(router.push<void>(location));
+      unawaited(
+        ref
+            .read(navigationHistoryControllerProvider.notifier)
+            .push<void>(location, router: router),
+      );
       return;
     }
     unawaited(Navigator.of(context).pushNamed(location));

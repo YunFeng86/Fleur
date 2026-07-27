@@ -109,7 +109,9 @@ class _AppShellState extends ConsumerState<AppShell> {
     final router = GoRouter.maybeOf(context);
     final location = scopeLocation(scope);
     if (router != null) {
-      router.go(location);
+      ref
+          .read(navigationHistoryControllerProvider.notifier)
+          .visit(location, router: router);
       return;
     }
     unawaited(Navigator.of(context).pushNamed(location));
@@ -119,7 +121,9 @@ class _AppShellState extends ConsumerState<AppShell> {
     _closeTemporarySidebar();
     final router = GoRouter.maybeOf(context);
     if (router != null) {
-      router.go('/search');
+      ref
+          .read(navigationHistoryControllerProvider.notifier)
+          .visit('/search', router: router);
       return;
     }
     unawaited(Navigator.of(context).pushNamed('/search'));

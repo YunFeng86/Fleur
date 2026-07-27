@@ -6,6 +6,7 @@ import '../../features/subscriptions/subscriptions.dart';
 import '../../models/category.dart';
 import '../../models/feed.dart';
 import '../../providers/query_providers.dart';
+import '../../providers/navigation_history_provider.dart';
 import '../../providers/service_providers.dart';
 import 'sidebar_selection_actions.dart';
 
@@ -41,7 +42,9 @@ class SidebarManagementActions {
   Future<void> openSettings() async {
     final target = _router ?? GoRouter.maybeOf(_context);
     if (target == null) return;
-    await target.push('/settings');
+    await _ref
+        .read(navigationHistoryControllerProvider.notifier)
+        .push<void>('/settings', router: target);
   }
 
   Future<int?> addFeed({int? initialCategoryId}) async {
