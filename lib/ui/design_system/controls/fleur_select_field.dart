@@ -324,12 +324,10 @@ class _FleurSelectMenuState<T> extends State<_FleurSelectMenu<T>> {
     final filteredOptions = _filteredOptions;
     final searchHeight = widget.enableSearch ? 49.0 : 0.0;
     final maxListHeight = math.max(0.0, widget.maxHeight - searchHeight);
+    final listContentHeight = filteredOptions.length * widget.itemHeight + 8;
     final listHeight = filteredOptions.isEmpty
         ? math.min(44.0, maxListHeight)
-        : math.min(
-            filteredOptions.length * widget.itemHeight + 8,
-            maxListHeight,
-          );
+        : math.min(listContentHeight, maxListHeight);
 
     return Material(
       color: surfaces.floating,
@@ -374,9 +372,7 @@ class _FleurSelectMenuState<T> extends State<_FleurSelectMenu<T>> {
                   ? const SizedBox.shrink()
                   : Scrollbar(
                       controller: _scrollController,
-                      thumbVisibility:
-                          filteredOptions.length * widget.itemHeight >
-                          maxListHeight,
+                      thumbVisibility: listContentHeight > maxListHeight,
                       child: ListView.builder(
                         controller: _scrollController,
                         padding: const EdgeInsets.symmetric(vertical: 4),

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fleur/theme/app_theme.dart';
 import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
+import 'package:fleur/ui/design_system/controls/fleur_select_field.dart';
 import 'package:fleur/ui/settings/widgets/section_header.dart' as legacy;
 import 'package:fleur/ui/settings/widgets/settings_controls.dart';
 import 'package:fleur/ui/settings/widgets/slider_tile.dart';
@@ -147,6 +148,42 @@ void main() {
     expect(selected, 2);
     expect(tester.getSize(find.byKey(const Key('settings_select'))).height, 36);
     expect(find.text('Two'), findsOneWidget);
+  });
+
+  testWidgets('FleurSelectField shows scrollbar for padding-only overflow', (
+    tester,
+  ) async {
+    await _pumpControl(
+      tester,
+      child: SizedBox(
+        width: 360,
+        child: FleurSelectField<int>(
+          key: const Key('boundary_select'),
+          value: 1,
+          options: const [
+            FleurSelectOption(value: 1, label: Text('One')),
+            FleurSelectOption(value: 2, label: Text('Two')),
+          ],
+          onChanged: (_) {},
+          itemHeight: 36,
+          menuMaxHeight: 76,
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('boundary_select')));
+    await tester.pumpAndSettle();
+
+    final scrollbar = tester.widget<Scrollbar>(find.byType(Scrollbar));
+    final scrollable = tester.state<ScrollableState>(
+      find.descendant(
+        of: find.byType(Scrollbar),
+        matching: find.byType(Scrollable),
+      ),
+    );
+
+    expect(scrollbar.thumbVisibility, isTrue);
+    expect(scrollable.position.maxScrollExtent, 4);
   });
 
   testWidgets('SliderTile drag reports changed value', (tester) async {
