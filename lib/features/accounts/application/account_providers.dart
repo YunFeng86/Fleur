@@ -101,7 +101,10 @@ class AccountsController extends AsyncNotifier<AccountsState> {
           .where((existing) => !existing.isPrimary)
           .where(
             (existing) =>
-                existing.isolatedDatabaseName == account.isolatedDatabaseName,
+                Account.databaseNameCollisionKey(
+                  existing.isolatedDatabaseName,
+                ) ==
+                Account.databaseNameCollisionKey(account.isolatedDatabaseName),
           )
           .firstOrNull;
       if (conflictingOwner != null) {

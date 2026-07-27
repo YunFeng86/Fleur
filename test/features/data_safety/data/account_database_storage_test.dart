@@ -532,6 +532,26 @@ void main() {
       );
     });
 
+    test(
+      'remote accounts cannot resolve to the primary database name',
+      () async {
+        await expectLater(
+          resolveAccountDbTarget(
+            accountId: 'remote',
+            dbName: 'FLEUR',
+            isPrimary: false,
+          ),
+          throwsA(
+            isA<DbOpenFailure>().having(
+              (error) => error.kind,
+              'kind',
+              DbOpenFailureKind.ownershipMismatch,
+            ),
+          ),
+        );
+      },
+    );
+
     test('initialize mode may create a new account database', () async {
       final isar = await initializeIsarForAccount(
         accountId: 'new-account',

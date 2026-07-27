@@ -112,13 +112,14 @@ class AccountStore {
       (account) => !account.isPrimary,
     )) {
       final name = account.isolatedDatabaseName;
-      final existingOwner = databaseOwners[name];
+      final key = Account.databaseNameCollisionKey(name);
+      final existingOwner = databaseOwners[key];
       if (existingOwner != null && existingOwner != account.id) {
         throw FormatException(
           'Accounts $existingOwner and ${account.id} share database $name',
         );
       }
-      databaseOwners[name] = account.id;
+      databaseOwners[key] = account.id;
     }
     return state;
   }

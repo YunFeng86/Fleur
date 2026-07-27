@@ -371,6 +371,78 @@ void main() {
 
     expect(await file.readAsString(), raw);
   });
+
+  test(
+    'AccountStore rejects a remote account using the primary name',
+    () async {
+      final stateDir = await PathManager.getStateDir();
+      final file = File(
+        '${stateDir.path}${Platform.pathSeparator}accounts.json',
+      );
+      final now = DateTime.utc(2026, 1, 1).toIso8601String();
+      final raw = jsonEncode(<String, Object?>{
+        'version': AccountStore.currentVersion,
+        'activeAccountId': 'local',
+        'accounts': <Object?>[
+          <String, Object?>{
+            'id': 'local',
+            'type': 'local',
+            'name': 'Local',
+            'isPrimary': true,
+            'createdAt': now,
+            'updatedAt': now,
+          },
+          <String, Object?>{
+            'id': 'remote',
+            'type': 'miniflux',
+            'name': 'Remote',
+            'dbName': 'FLEUR',
+            'createdAt': now,
+            'updatedAt': now,
+          },
+        ],
+      });
+      await file.writeAsString(raw);
+
+      await expectLater(
+        AccountStore().loadOrCreate(),
+        throwsA(isA<DurableJsonReadException>()),
+      );
+      expect(await file.readAsString(), raw);
+    },
+  );
+
+  test(
+    'AccountStore rejects account ids that normalize to one target',
+    () async {
+      final stateDir = await PathManager.getStateDir();
+      final file = File(
+        '${stateDir.path}${Platform.pathSeparator}accounts.json',
+      );
+      final now = DateTime.utc(2026, 1, 1).toIso8601String();
+      final raw = jsonEncode(<String, Object?>{
+        'version': AccountStore.currentVersion,
+        'activeAccountId': 'account-a',
+        'accounts': <Object?>[
+          for (final id in <String>['account-a', 'account_a'])
+            <String, Object?>{
+              'id': id,
+              'type': 'miniflux',
+              'name': id,
+              'createdAt': now,
+              'updatedAt': now,
+            },
+        ],
+      });
+      await file.writeAsString(raw);
+
+      await expectLater(
+        AccountStore().loadOrCreate(),
+        throwsA(isA<DurableJsonReadException>()),
+      );
+      expect(await file.readAsString(), raw);
+    },
+  );
 }
 
 Map<String, Object?> _accountStateJson({required String accountId}) {

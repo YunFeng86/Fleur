@@ -5,6 +5,7 @@ import 'package:isar_community/isar.dart';
 import 'package:path/path.dart' as p;
 
 import '../../../db/migrations.dart';
+import '../../accounts/domain/account.dart';
 import '../../../models/article.dart';
 import '../../../models/category.dart';
 import '../../../models/feed.dart';
@@ -109,9 +110,20 @@ Future<AccountDbTarget> resolveAccountDbTarget({
   }
 
   final dir = await PathManager.getDbDir();
-  final name = (dbName == null || dbName.trim().isEmpty)
-      ? _dbNameForAccount(accountId)
-      : dbName.trim();
+  late final String name;
+  try {
+    name = Account.isolatedDatabaseNameFor(
+      accountId: accountId,
+      dbName: dbName,
+    );
+  } on FormatException catch (error) {
+    throw DbOpenFailure(
+      kind: DbOpenFailureKind.ownershipMismatch,
+      directory: dir.path,
+      name: dbName?.trim() ?? '',
+      error: error,
+    );
+  }
   return AccountDbTarget(
     accountId: accountId,
     directory: dir.path,
@@ -191,11 +203,6 @@ Future<Isar> openAccountDbTarget(
     }
     Error.throwWithStackTrace(e, s);
   }
-}
-
-String _dbNameForAccount(String accountId) {
-  final sanitized = accountId.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_');
-  return 'fleur_$sanitized';
 }
 
 bool _containsAny(String haystack, List<String> needles) {

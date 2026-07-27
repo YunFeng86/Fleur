@@ -14,6 +14,8 @@ class Account {
   });
 
   static const googleReaderGenericProfileId = 'googleReaderGeneric';
+  static const _reservedDatabaseNames = <String>{'fleur', 'flutter_reader'};
+  static final _validDatabaseName = RegExp(r'^[a-zA-Z0-9._-]+$');
 
   final String id;
   final AccountType type;
@@ -43,10 +45,36 @@ class Account {
   final bool deletionPending;
 
   String get isolatedDatabaseName {
-    final explicit = dbName?.trim();
-    if (explicit != null && explicit.isNotEmpty) return explicit;
-    return 'fleur_$id';
+    return isolatedDatabaseNameFor(accountId: id, dbName: dbName);
   }
+
+  static String isolatedDatabaseNameFor({
+    required String accountId,
+    String? dbName,
+  }) {
+    final explicit = dbName?.trim();
+    if (explicit != null && explicit.isNotEmpty) {
+      final collisionKey = databaseNameCollisionKey(explicit);
+      if (!_validDatabaseName.hasMatch(explicit) ||
+          explicit == '.' ||
+          explicit == '..') {
+        throw FormatException('Invalid account database name: $explicit');
+      }
+      if (_reservedDatabaseNames.contains(collisionKey)) {
+        throw FormatException(
+          'Account database name is reserved for the primary account: '
+          '$explicit',
+        );
+      }
+      return explicit;
+    }
+
+    final sanitized = accountId.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_');
+    return 'fleur_$sanitized';
+  }
+
+  static String databaseNameCollisionKey(String name) =>
+      name.trim().toLowerCase();
 
   final DateTime createdAt;
   final DateTime updatedAt;
