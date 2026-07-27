@@ -30,6 +30,7 @@ class _FakeIsar extends Fake implements Isar {
   var closeCalls = 0;
   var deleteCalls = 0;
   var open = true;
+  var closeFailuresRemaining = 0;
   Completer<void>? closeCompleter;
 
   @override
@@ -42,6 +43,10 @@ class _FakeIsar extends Fake implements Isar {
     final completer = closeCompleter;
     if (completer != null) {
       await completer.future;
+    }
+    if (closeFailuresRemaining > 0) {
+      closeFailuresRemaining--;
+      throw StateError('Injected close failure');
     }
     open = false;
     return true;
@@ -330,6 +335,70 @@ void main() {
       deleteIsar.closeCompleter!.complete();
       expect(await deletion, isTrue);
     });
+
+    test(
+      'close failure keeps deletion waiting until release retries',
+      () async {
+        final tempDir = await Directory.systemTemp.createTemp(
+          'fleur_close_retry_',
+        );
+        addTearDown(() => tempDir.delete(recursive: true));
+        await File(p.join(tempDir.path, 'same.isar')).writeAsBytes([1]);
+        final opened = <_FakeIsar>[];
+        final manager = AccountDbSessionManager(
+          resolveTarget:
+              ({required accountId, dbName, required isPrimary}) async {
+                return AccountDbTarget(
+                  accountId: accountId,
+                  directory: tempDir.path,
+                  name: dbName ?? 'fleur_$accountId',
+                  isPrimary: isPrimary,
+                );
+              },
+          openTarget: (target, mode) async {
+            final isar = _FakeIsar(
+              name: target.name,
+              directory: target.directory,
+            );
+            opened.add(isar);
+            return isar;
+          },
+        );
+
+        final lease = await manager.acquireExistingForAccount(
+          accountId: 'a',
+          dbName: 'same',
+          isPrimary: false,
+        );
+        final held = lease.isar as _FakeIsar;
+        held.closeFailuresRemaining = 1;
+
+        var deletionCompleted = false;
+        final deletion = manager
+            .deleteIdleForAccount(
+              accountId: 'a',
+              dbName: 'same',
+              isPrimary: false,
+            )
+            .whenComplete(() => deletionCompleted = true);
+        await Future<void>.delayed(Duration.zero);
+
+        await expectLater(lease.release(), throwsStateError);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(held.closeCalls, 1);
+        expect(held.isOpen, isTrue);
+        expect(deletionCompleted, isFalse);
+        expect(opened, hasLength(1));
+
+        await lease.release();
+
+        expect(await deletion, isTrue);
+        expect(held.closeCalls, 2);
+        expect(opened, hasLength(2));
+        expect(opened.last.deleteCalls, 1);
+      },
+    );
 
     test('deletion timeout releases its reservation', () async {
       final manager = AccountDbSessionManager(

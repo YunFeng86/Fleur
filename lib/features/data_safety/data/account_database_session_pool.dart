@@ -17,13 +17,27 @@ class AccountDbLease {
   final AccountDbSessionManager _manager;
   final String _name;
   bool _released = false;
+  Future<void>? _releaseFuture;
 
   final Isar isar;
 
-  Future<void> release() async {
-    if (_released) return;
-    _released = true;
-    await _manager._release(_name);
+  Future<void> release() {
+    if (_released) return Future<void>.value();
+    final inFlight = _releaseFuture;
+    if (inFlight != null) return inFlight;
+
+    final release = _releaseAndMarkReleased();
+    _releaseFuture = release;
+    return release;
+  }
+
+  Future<void> _releaseAndMarkReleased() async {
+    try {
+      await _manager._release(_name);
+      _released = true;
+    } finally {
+      _releaseFuture = null;
+    }
   }
 }
 
@@ -178,7 +192,6 @@ class AccountDbSessionManager {
     if (session == null) return;
     if (session.leases > 0) {
       session.leases--;
-      _notifyStateChanged(key);
     }
     if (session.leases > 0) return;
     if (session.opening != null) return;
@@ -199,14 +212,26 @@ class AccountDbSessionManager {
     }
 
     late final Future<void> closeFuture;
-    closeFuture = isar.close().whenComplete(() {
+    closeFuture = () async {
+      try {
+        await isar.close();
+      } catch (error, stackTrace) {
+        if (identical(_sessions[key], session) &&
+            identical(session.closing, closeFuture)) {
+          session.closing = null;
+          session.isar = isar;
+          session.leases++;
+        }
+        Error.throwWithStackTrace(error, stackTrace);
+      }
+
       if (identical(_sessions[key], session) &&
           identical(session.closing, closeFuture)) {
         session.closing = null;
         _sessions.remove(key);
         _notifyStateChanged(key);
       }
-    });
+    }();
     session.closing = closeFuture;
     await closeFuture;
   }
