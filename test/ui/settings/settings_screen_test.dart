@@ -694,6 +694,10 @@ void main() {
       tester.getSize(island).height,
       lessThan(800 - kWorkspaceHeaderHeight),
     );
+    final railScrollable = tester.state<ScrollableState>(
+      find.descendant(of: island, matching: find.byType(Scrollable)),
+    );
+    expect(railScrollable.position.maxScrollExtent, 0);
     expect(
       tester.getTopLeft(find.byKey(const Key('settings_content_layer'))).dx,
       0,
@@ -735,6 +739,30 @@ void main() {
 
     expect(find.byKey(const Key('settings_navigation_rail')), findsOneWidget);
     expect(tester.getTopLeft(title).dx, closeTo(closedTitleLeft, 1));
+  });
+
+  testWidgets('macOS settings rail scrolls only when its items overflow', (
+    tester,
+  ) async {
+    debugFleurTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugFleurTargetPlatformOverride = null);
+
+    await pumpSettingsShell(
+      tester,
+      800,
+      height: 300,
+      overrides: [
+        settingsSidebarPresentationModeProvider.overrideWith(
+          (ref) => SidebarPresentationMode.collapsed,
+        ),
+      ],
+    );
+
+    final island = find.byKey(const Key('settings_collapsed_rail_surface'));
+    final railScrollable = tester.state<ScrollableState>(
+      find.descendant(of: island, matching: find.byType(Scrollable)),
+    );
+    expect(railScrollable.position.maxScrollExtent, greaterThan(0));
   });
 
   testWidgets('Settings title-bar toggle keeps feed preference independent', (

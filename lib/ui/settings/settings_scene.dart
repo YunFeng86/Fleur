@@ -21,6 +21,9 @@ const double _kSettingsSidebarWidth = kDefaultWorkspaceSidebarWidth;
 const double _kSettingsPaperMaxWidth = 960;
 const double _kSettingsSearchPaperGap = 8;
 const double _kSettingsPinnedHeaderInset = 14;
+const double _kSettingsRailButtonSize = 40;
+const double _kSettingsRailItemGap = 4;
+const double _kSettingsRailListVerticalPadding = 12;
 const Duration _kLayerAnimationDuration = Duration(milliseconds: 180);
 
 double _settingsHeaderLeadingInset({
@@ -287,7 +290,7 @@ class _SettingsNavigationRail extends StatelessWidget {
                   size: 18,
                 ),
                 selected: selected,
-                size: 40,
+                size: _kSettingsRailButtonSize,
                 selectedBackgroundColor: surfaces.cardSelected,
                 selectedForegroundColor: scheme.primary,
                 unselectedForegroundColor: scheme.onSurfaceVariant,
@@ -322,7 +325,15 @@ class _SettingsNavigationRail extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     child: LayoutBuilder(
                       builder: (context, constraints) {
-                        final desiredHeight = items.length * 44.0 + 8;
+                        final itemHeight =
+                            FleurShellIconButtonStyle.tapTargetExtent(
+                              size: _kSettingsRailButtonSize,
+                              adaptiveTapTarget: true,
+                            ) +
+                            _kSettingsRailItemGap;
+                        final desiredHeight =
+                            items.length * itemHeight +
+                            _kSettingsRailListVerticalPadding;
                         final islandHeight = desiredHeight
                             .clamp(0.0, constraints.maxHeight)
                             .toDouble();
