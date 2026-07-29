@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../theme/fleur_theme_extensions.dart';
 import '../../../widgets/app_scrollbar.dart';
 
+const double kSettingsPageBodyMaxWidth = 800;
+const double kSettingsPageBodyHorizontalPadding = 24;
+
 class SectionHeader extends StatelessWidget {
   const SectionHeader({
     super.key,
@@ -50,8 +53,8 @@ class SettingsPageBody extends StatelessWidget {
   const SettingsPageBody({
     super.key,
     required this.children,
-    this.maxWidth = 800,
-    this.padding = const EdgeInsets.all(24),
+    this.maxWidth = kSettingsPageBodyMaxWidth,
+    this.padding = const EdgeInsets.all(kSettingsPageBodyHorizontalPadding),
     this.crossAxisAlignment = CrossAxisAlignment.stretch,
     this.scrollController,
   });

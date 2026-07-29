@@ -636,38 +636,49 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('macOS settings title stays fixed when navigation collapses', (
+  testWidgets('macOS settings title follows the current content baseline', (
     tester,
   ) async {
     debugFleurTargetPlatformOverride = TargetPlatform.macOS;
     addTearDown(() => debugFleurTargetPlatformOverride = null);
 
     await pumpSettingsShell(tester, 1000);
+    await tester.tap(find.byKey(const Key('settings_nav_appearance')));
+    await tester.pumpAndSettle();
 
     final title = find.byKey(const Key('settings_scene_title'));
-    final expandedTitleLeft = tester.getTopLeft(title).dx;
+    final bodyHeading = find.text('App appearance');
+
+    void expectTitleAligned() {
+      expect(
+        tester.getTopLeft(title).dx,
+        closeTo(tester.getTopLeft(bodyHeading).dx, 1),
+      );
+    }
+
+    expectTitleAligned();
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('settings_navigation_rail')), findsOneWidget);
-    expect(tester.getTopLeft(title).dx, closeTo(expandedTitleLeft, 1));
+    expectTitleAligned();
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
     await tester.pumpAndSettle();
     tester.view.physicalSize = const Size(1400, 800);
     await tester.pumpAndSettle();
 
-    final wideExpandedTitleLeft = tester.getTopLeft(title).dx;
+    expectTitleAligned();
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('settings_navigation_rail')), findsOneWidget);
-    expect(tester.getTopLeft(title).dx, closeTo(wideExpandedTitleLeft, 1));
+    expectTitleAligned();
   });
 
-  testWidgets('macOS settings rail avoids L3 without shifting L2', (
+  testWidgets('macOS settings rail avoids L3 and keeps L2 aligned', (
     tester,
   ) async {
     debugFleurTargetPlatformOverride = TargetPlatform.macOS;
@@ -718,7 +729,11 @@ void main() {
       findsNothing,
     );
     final title = find.byKey(const Key('settings_scene_title'));
-    final closedTitleLeft = tester.getTopLeft(title).dx;
+    final bodyHeading = find.text('Language');
+    expect(
+      tester.getTopLeft(title).dx,
+      closeTo(tester.getTopLeft(bodyHeading).dx, 1),
+    );
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
     await tester.pumpAndSettle();
@@ -732,13 +747,19 @@ void main() {
       find.byKey(const Key('settings_content_avoidance')),
     );
     expect(openPadding.padding.resolve(TextDirection.ltr).left, 0);
-    expect(tester.getTopLeft(title).dx, closeTo(closedTitleLeft, 1));
+    expect(
+      tester.getTopLeft(title).dx,
+      closeTo(tester.getTopLeft(bodyHeading).dx, 1),
+    );
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('settings_navigation_rail')), findsOneWidget);
-    expect(tester.getTopLeft(title).dx, closeTo(closedTitleLeft, 1));
+    expect(
+      tester.getTopLeft(title).dx,
+      closeTo(tester.getTopLeft(bodyHeading).dx, 1),
+    );
   });
 
   testWidgets('macOS settings rail scrolls only when its items overflow', (

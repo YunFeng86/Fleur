@@ -20,7 +20,6 @@ import 'widgets/settings_controls.dart';
 const double _kSettingsSidebarWidth = kDefaultWorkspaceSidebarWidth;
 const double _kSettingsPaperMaxWidth = 960;
 const double _kSettingsSearchPaperGap = 8;
-const double _kSettingsPinnedHeaderInset = 14;
 const double _kSettingsRailButtonSize = 40;
 const double _kSettingsRailItemGap = 4;
 const double _kSettingsRailListVerticalPadding = 12;
@@ -28,46 +27,19 @@ const Duration _kLayerAnimationDuration = Duration(milliseconds: 180);
 
 double _settingsHeaderLeadingInset({
   required BuildContext context,
-  required double sceneWidth,
   required ShellFrameGeometry frameGeometry,
   required bool sidebarPinned,
 }) {
-  final availableWidth =
-      (frameGeometry.contentWidth - frameGeometry.contentLeadingInset)
-          .clamp(0.0, double.infinity)
-          .toDouble();
-  final paperWidth = sidebarPinned
-      ? availableWidth.clamp(0.0, _kSettingsPaperMaxWidth).toDouble()
-      : availableWidth;
+  if (sidebarPinned) return 0;
+
   final paperLeft =
-      frameGeometry.translatedContentLeft +
-      frameGeometry.contentLeadingInset +
-      (availableWidth - paperWidth) / 2;
+      frameGeometry.translatedContentLeft + frameGeometry.contentLeadingInset;
   final scope = ShellLayerScope.maybeOf(context);
   final shellAvoidanceLeft =
       frameGeometry.translatedContentLeft + (scope?.headerLeadingInset ?? 0);
-  var leadingInset = shellAvoidanceLeft - paperLeft;
-
-  if (sidebarPinned) {
-    final referenceContentLeft =
-        (kDefaultWorkspaceSidebarWidth + kSidebarContentDividerWidth)
-            .clamp(0.0, sceneWidth)
-            .toDouble();
-    final referenceContentWidth = sceneWidth - referenceContentLeft;
-    final referencePaperWidth = referenceContentWidth
-        .clamp(0.0, _kSettingsPaperMaxWidth)
-        .toDouble();
-    final referencePaperLeft =
-        referenceContentLeft +
-        (referenceContentWidth - referencePaperWidth) / 2;
-    final stableLeadingInset =
-        referencePaperLeft + _kSettingsPinnedHeaderInset - paperLeft;
-    if (stableLeadingInset > leadingInset) {
-      leadingInset = stableLeadingInset;
-    }
-  }
-
-  return leadingInset.clamp(0.0, double.infinity).toDouble();
+  return (shellAvoidanceLeft - paperLeft)
+      .clamp(0.0, double.infinity)
+      .toDouble();
 }
 
 class SettingsScene extends StatelessWidget {
@@ -128,7 +100,6 @@ class SettingsScene extends StatelessWidget {
     final sidebarPinned = sidebarExpanded || sidebarRail;
     final headerLeadingInset = _settingsHeaderLeadingInset(
       context: context,
-      sceneWidth: width,
       frameGeometry: frameGeometry,
       sidebarPinned: sidebarPinned,
     );
@@ -644,66 +615,82 @@ class _SettingsSceneHeader extends StatelessWidget {
         integratedCorner &&
         metrics.trafficLightsVisible;
     final baseLeadingLeft = avoidTrafficLights ? metrics.safeInset : 8.0;
-    final leadingLeft = headerLeadingInset > baseLeadingLeft
-        ? headerLeadingInset
-        : baseLeadingLeft;
     final rowTop = integratedCorner
         ? metrics.shellControlTopInset
         : kShellControlTopInset;
 
     return SizedBox(
       height: kWorkspaceHeaderHeight,
-      child: Stack(
-        children: [
-          Positioned(
-            left: leadingLeft,
-            top: rowTop,
-            right: 12,
-            height: kShellControlSize,
-            child: Row(
-              children: [
-                if (showSidebarButton)
-                  _SettingsHeaderButton(
-                    key: const Key('settings_sidebar_button'),
-                    tooltip: sidebarOpen
-                        ? AppLocalizations.of(context)!.collapse
-                        : AppLocalizations.of(context)!.expand,
-                    icon: sidebarOpen
-                        ? FleurIcons.sidebarCollapse
-                        : FleurIcons.sidebarExpand,
-                    onPressed: onToggleSidebar,
-                    focusNode: navigationToggleFocusNode,
-                  ),
-                if (onBack != null)
-                  _SettingsHeaderButton(
-                    key: const Key('settings_back_button'),
-                    tooltip: MaterialLocalizations.of(
-                      context,
-                    ).backButtonTooltip,
-                    icon: FleurIcons.back,
-                    onPressed: onBack,
-                  ),
-                if (showSidebarButton || onBack != null)
-                  const SizedBox(width: 8),
-                Expanded(
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      title,
-                      key: const Key('settings_scene_title'),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final bodyWidth = constraints.maxWidth
+              .clamp(0.0, kSettingsPageBodyMaxWidth)
+              .toDouble();
+          final bodyLeadingInset = sidebarPinned
+              ? (constraints.maxWidth - bodyWidth) / 2 +
+                    kSettingsPageBodyHorizontalPadding
+              : 0.0;
+          var leadingLeft = baseLeadingLeft;
+          if (headerLeadingInset > leadingLeft) {
+            leadingLeft = headerLeadingInset;
+          }
+          if (bodyLeadingInset > leadingLeft) {
+            leadingLeft = bodyLeadingInset;
+          }
+
+          return Stack(
+            children: [
+              Positioned(
+                left: leadingLeft,
+                top: rowTop,
+                right: 12,
+                height: kShellControlSize,
+                child: Row(
+                  children: [
+                    if (showSidebarButton)
+                      _SettingsHeaderButton(
+                        key: const Key('settings_sidebar_button'),
+                        tooltip: sidebarOpen
+                            ? AppLocalizations.of(context)!.collapse
+                            : AppLocalizations.of(context)!.expand,
+                        icon: sidebarOpen
+                            ? FleurIcons.sidebarCollapse
+                            : FleurIcons.sidebarExpand,
+                        onPressed: onToggleSidebar,
+                        focusNode: navigationToggleFocusNode,
+                      ),
+                    if (onBack != null)
+                      _SettingsHeaderButton(
+                        key: const Key('settings_back_button'),
+                        tooltip: MaterialLocalizations.of(
+                          context,
+                        ).backButtonTooltip,
+                        icon: FleurIcons.back,
+                        onPressed: onBack,
+                      ),
+                    if (showSidebarButton || onBack != null)
+                      const SizedBox(width: 8),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          title,
+                          key: const Key('settings_scene_title'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-        ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }

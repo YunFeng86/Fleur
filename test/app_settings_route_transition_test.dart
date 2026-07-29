@@ -105,6 +105,17 @@ void main() {
         router.routerDelegate.currentConfiguration.uri.toString(),
         '/settings/appearance',
       );
+      await tester.tap(find.byKey(const Key('shell_sidebar_button')));
+      await tester.pumpAndSettle();
+
+      final backButtonLeft = tester
+          .getTopLeft(find.byKey(const Key('settings_back_button')))
+          .dx;
+      final bodyContentLeft = tester.getTopLeft(find.text('App appearance')).dx;
+      expect(backButtonLeft, closeTo(bodyContentLeft, 1));
+
+      await tester.tap(find.byKey(const Key('shell_sidebar_button')));
+      await tester.pumpAndSettle();
       expect(
         tester.element(find.byType(SettingsScreen)),
         same(settingsScreenElement),
