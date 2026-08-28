@@ -87,4 +87,57 @@ void main() {
       expect(state, contains(validSource.path));
     },
   );
+
+  test(
+    'recovers pending deletes from backup when the state file is corrupt',
+    () async {
+      final support = Directory('${tempDir!.path}/support');
+      await Directory('${support.path}/db').create(recursive: true);
+      await File('${support.path}/db/fleur.isar').writeAsString('db');
+      final validSource = File('${tempDir!.path}/recoverable-source');
+      final validDestination = File('${tempDir!.path}/recoverable-destination');
+      // Pending deletes only complete when source and destination match.
+      await validSource.writeAsString('payload');
+      await validDestination.writeAsString('payload');
+      final stateFile = File('${support.path}/.migration_v2_state.json');
+      await File('${stateFile.path}.bak').writeAsString('''
+{
+  "version": 2,
+  "migrated": true,
+  "pendingDeletes": [
+    {
+      "srcPath": "${validSource.path}",
+      "dstPath": "${validDestination.path}",
+      "length": 7
+    }
+  ]
+}
+''');
+      // Simulate a crash mid-write that left a truncated primary snapshot.
+      await stateFile.writeAsString('{ "version": 2, "migra');
+
+      await PathManager.getStateDir();
+
+      // The backup entry was honored: the pending source file got cleaned up.
+      expect(await validSource.exists(), isFalse);
+      expect(PathManager.isMigrationComplete, isTrue);
+    },
+  );
+
+  test(
+    'treats a fully corrupted state file as not migrated without throwing',
+    () async {
+      final support = Directory('${tempDir!.path}/support');
+      final stateFile = File('${support.path}/.migration_v2_state.json');
+      await stateFile.create(recursive: true);
+      await stateFile.writeAsString('garbage');
+
+      await PathManager.getStateDir();
+
+      // Migration simply re-runs from scratch.
+      expect(PathManager.isMigrationComplete, isTrue);
+      final restored = await stateFile.readAsString();
+      expect(restored, contains('"migrated":true'));
+    },
+  );
 }

@@ -1,11 +1,12 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+
+import '../services/persistence/durable_json_store.dart';
 
 /// Centralized, semantic paths for app storage on desktop/mobile.
 ///
@@ -133,7 +134,7 @@ class PathManager {
         'flattened': true,
         'updatedAt': DateTime.now().toIso8601String(),
       };
-      await stateFile.writeAsString(jsonEncode(encoded), encoding: utf8);
+      await _durableStateStore(stateFile).write(encoded);
     } catch (_) {
       // best-effort
     }
@@ -704,20 +705,14 @@ class PathManager {
 
   static Future<_MigrationState> _readMigrationState(File stateFile) async {
     try {
-      if (!await stateFile.exists()) {
+      final snapshot = await _durableStateStore(stateFile).read();
+      if (snapshot == null) {
         return const _MigrationState(
           migrated: false,
           pendingDeletes: <_PendingDelete>[],
         );
       }
-      final raw = await stateFile.readAsString(encoding: utf8);
-      final decoded = jsonDecode(raw);
-      if (decoded is! Map) {
-        return const _MigrationState(
-          migrated: false,
-          pendingDeletes: <_PendingDelete>[],
-        );
-      }
+      final decoded = snapshot.value;
       final migrated = decoded['migrated'] == true;
       final pendingRaw = decoded['pendingDeletes'];
       final pending = <_PendingDelete>[];
@@ -746,7 +741,17 @@ class PathManager {
       'pendingDeletes': [for (final p in state.pendingDeletes) p.toJson()],
       'updatedAt': DateTime.now().toIso8601String(),
     };
-    await stateFile.writeAsString(jsonEncode(encoded), encoding: utf8);
+    await _durableStateStore(stateFile).write(encoded);
+  }
+
+  static DurableJsonStore<Map<String, Object?>> _durableStateStore(
+    File stateFile,
+  ) {
+    return DurableJsonStore<Map<String, Object?>>(
+      file: stateFile,
+      decode: (json) => (json! as Map).cast<String, Object?>(),
+      encode: (value) => value,
+    );
   }
 
   static Future<String> _md5Hex(File file) async {
@@ -779,33 +784,36 @@ class PathManager {
 
   static Future<void> _finalizeLargeDeletesInBackground(File stateFile) async {
     try {
-      final state = await _readMigrationState(stateFile);
-      if (state.pendingDeletes.isEmpty) return;
+      final store = _durableStateStore(stateFile);
+      await store.runExclusive(() async {
+        final state = await _readMigrationState(stateFile);
+        if (state.pendingDeletes.isEmpty) return;
 
-      var changed = false;
-      final remaining = <_PendingDelete>[];
-      for (final item in state.pendingDeletes) {
-        // Only re-check entries that are missing hashes.
-        if (item.srcMd5 != null && item.dstMd5 != null) {
-          remaining.add(item);
-          continue;
+        var changed = false;
+        final remaining = <_PendingDelete>[];
+        for (final item in state.pendingDeletes) {
+          // Only re-check entries that are missing hashes.
+          if (item.srcMd5 != null && item.dstMd5 != null) {
+            remaining.add(item);
+            continue;
+          }
+
+          final next = await _tryDeletePending(item);
+          if (next != null) {
+            if (next != item) changed = true;
+            remaining.add(next);
+          } else {
+            changed = true;
+          }
         }
 
-        final next = await _tryDeletePending(item);
-        if (next != null) {
-          if (next != item) changed = true;
-          remaining.add(next);
-        } else {
-          changed = true;
-        }
-      }
-
-      if (!changed) return;
-      final nextState = _MigrationState(
-        migrated: state.migrated,
-        pendingDeletes: remaining,
-      );
-      await _writeMigrationState(stateFile, nextState);
+        if (!changed) return;
+        final nextState = _MigrationState(
+          migrated: state.migrated,
+          pendingDeletes: remaining,
+        );
+        await _writeMigrationState(stateFile, nextState);
+      });
     } catch (_) {
       // best-effort
     }
