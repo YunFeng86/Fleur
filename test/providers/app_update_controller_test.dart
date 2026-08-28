@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:fleur/providers/app_update_providers.dart';
 import 'package:fleur/services/update/app_update_manifest.dart';
@@ -73,6 +75,78 @@ void main() {
     expect(state.status, AppUpdateStatus.idle);
     expect(state.error, isNull);
   });
+
+  test(
+    'manual result survives a late-failing silent check started earlier',
+    () async {
+      final service = _GatedAppUpdateService();
+      final container = _buildContainer(service);
+      addTearDown(container.dispose);
+      final notifier = container.read(appUpdateControllerProvider.notifier);
+
+      final silent = notifier.check(silent: true);
+      final manual = notifier.check();
+      expect(
+        container.read(appUpdateControllerProvider).status,
+        AppUpdateStatus.checking,
+      );
+
+      service.calls[1].complete(
+        AppUpdateCheckResult(
+          manifest: _manifest(version: '0.2.0'),
+          isUpdateAvailable: true,
+          currentVersion: '0.1.2',
+        ),
+      );
+      await manual;
+      expect(
+        container.read(appUpdateControllerProvider).status,
+        AppUpdateStatus.updateAvailable,
+      );
+
+      service.calls[0].completeError(StateError('network failed'));
+      await silent;
+
+      final state = container.read(appUpdateControllerProvider);
+      expect(state.status, AppUpdateStatus.updateAvailable);
+      expect(state.manifest?.version, '0.2.0');
+    },
+  );
+
+  test(
+    'late-completing silent check does not overwrite a newer manual result',
+    () async {
+      final service = _GatedAppUpdateService();
+      final container = _buildContainer(service);
+      addTearDown(container.dispose);
+      final notifier = container.read(appUpdateControllerProvider.notifier);
+
+      final silent = notifier.check(silent: true);
+      final manual = notifier.check();
+
+      service.calls[1].complete(
+        AppUpdateCheckResult(
+          manifest: _manifest(version: '0.1.5'),
+          isUpdateAvailable: false,
+          currentVersion: '0.1.5',
+        ),
+      );
+      await manual;
+
+      service.calls[0].complete(
+        AppUpdateCheckResult(
+          manifest: _manifest(version: '0.9.9'),
+          isUpdateAvailable: true,
+          currentVersion: '0.1.5',
+        ),
+      );
+      await silent;
+
+      final state = container.read(appUpdateControllerProvider);
+      expect(state.status, AppUpdateStatus.upToDate);
+      expect(state.manifest?.version, '0.1.5');
+    },
+  );
 }
 
 ProviderContainer _buildContainer(AppUpdateService service) {
@@ -109,5 +183,26 @@ class _FakeAppUpdateService extends AppUpdateService {
     final error = _error;
     if (error != null) throw error;
     return _result!;
+  }
+}
+
+/// Each [AppUpdateService.checkLatest] call parks on its own completer so
+/// tests can resolve overlapping requests in any order. Callers of
+/// [AppUpdateController.check] trigger [checkLatest] synchronously, so the
+/// Nth check maps to `calls[N - 1]`.
+class _GatedAppUpdateService extends AppUpdateService {
+  _GatedAppUpdateService()
+    : super(
+        dio: Dio(),
+        manifestUri: Uri.parse('https://updates.example.com/latest.json'),
+      );
+
+  final calls = <Completer<AppUpdateCheckResult>>[];
+
+  @override
+  Future<AppUpdateCheckResult> checkLatest({String? currentVersion}) {
+    final completer = Completer<AppUpdateCheckResult>();
+    calls.add(completer);
+    return completer.future;
   }
 }

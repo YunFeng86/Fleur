@@ -47,6 +47,7 @@ class AppUpdateState {
 class AppUpdateController extends Notifier<AppUpdateState> {
   Timer? _startupTimer;
   bool _startupCheckScheduled = false;
+  int _requestSeq = 0;
 
   @override
   AppUpdateState build() {
@@ -70,6 +71,9 @@ class AppUpdateController extends Notifier<AppUpdateState> {
   Future<void> check({bool silent = false}) async {
     final previous = state;
     if (previous.status == AppUpdateStatus.checking) return;
+    // Silent checks never enter `checking`, so a manual check may start while
+    // one is in flight; only the latest request may write state afterwards.
+    final request = ++_requestSeq;
     if (!silent) {
       state = AppUpdateState(
         status: AppUpdateStatus.checking,
@@ -81,6 +85,7 @@ class AppUpdateController extends Notifier<AppUpdateState> {
 
     try {
       final result = await ref.read(appUpdateServiceProvider).checkLatest();
+      if (request != _requestSeq) return;
       state = AppUpdateState(
         status: result.isUpdateAvailable
             ? AppUpdateStatus.updateAvailable
@@ -96,6 +101,7 @@ class AppUpdateController extends Notifier<AppUpdateState> {
         error: e,
         stackTrace: s,
       );
+      if (request != _requestSeq) return;
       if (silent) {
         state = previous;
         return;
