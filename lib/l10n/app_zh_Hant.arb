@@ -1538,7 +1538,7 @@
   "@shortcutNextPreviousArticle": {
     "description": "切換上一篇/下一篇文章的快速鍵說明"
   },
-  "shortcutBackForwardHistory": "Alt + \u2190 / Alt + \u2192；macOS Cmd + [ / ]：返回 / 前進歷史",
+  "shortcutBackForwardHistory": "Alt + ← / Alt + →；macOS Cmd + [ / ]：返回 / 前進歷史",
   "@shortcutBackForwardHistory": {
     "description": "在歷史記錄中返回或前進的快速鍵說明"
   },
@@ -1983,5 +1983,13 @@
   "dbRecoveryDataPreservedHint": "提示：可使用右側複製按鈕複製路徑，便於排查或回報。",
   "@dbRecoveryDataPreservedHint": {
     "description": "資料庫恢復彈窗底部提示"
-  }
+  },
+  "provider": "提供者",
+  "googleReaderConnectionTitle": "Google Reader 連線",
+  "keepExistingPasswordHint": "留空以保留現有密碼",
+  "testConnection": "測試連線",
+  "googleReaderConnectionFailed": "Google Reader 連線失敗。",
+  "googleReaderConnectedWith": "已連線：{profile}",
+  "googleReaderConnectedAs": "已連線：{profile} - {user}",
+  "googleReaderConnectionSaveFailed": "Google Reader 連線儲存失敗。"
 }

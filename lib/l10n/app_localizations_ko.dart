@@ -1508,4 +1508,32 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get dbRecoveryDataPreservedHint =>
       '팁: 문제 해결이나 지원을 위해 경로를 복사하려면 복사 버튼을 사용하세요.';
+
+  @override
+  String get provider => '공급자';
+
+  @override
+  String get googleReaderConnectionTitle => 'Google Reader 연결';
+
+  @override
+  String get keepExistingPasswordHint => '비워 두면 기존 비밀번호가 유지됩니다';
+
+  @override
+  String get testConnection => '연결 테스트';
+
+  @override
+  String get googleReaderConnectionFailed => 'Google Reader 연결에 실패했습니다.';
+
+  @override
+  String googleReaderConnectedWith(String profile) {
+    return '연결됨: $profile';
+  }
+
+  @override
+  String googleReaderConnectedAs(String profile, String user) {
+    return '연결됨: $profile - $user';
+  }
+
+  @override
+  String get googleReaderConnectionSaveFailed => 'Google Reader 연결 저장에 실패했습니다.';
 }

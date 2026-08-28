@@ -1511,4 +1511,32 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get dbRecoveryDataPreservedHint =>
       'ヒント: コピー ボタンを使用して、トラブルシューティングまたはサポート用のパスをコピーします。';
+
+  @override
+  String get provider => 'プロバイダー';
+
+  @override
+  String get googleReaderConnectionTitle => 'Google Reader 接続';
+
+  @override
+  String get keepExistingPasswordHint => '空欄のままにすると既存のパスワードを保持します';
+
+  @override
+  String get testConnection => '接続をテスト';
+
+  @override
+  String get googleReaderConnectionFailed => 'Google Reader 接続に失敗しました。';
+
+  @override
+  String googleReaderConnectedWith(String profile) {
+    return '接続済み: $profile';
+  }
+
+  @override
+  String googleReaderConnectedAs(String profile, String user) {
+    return '接続済み: $profile - $user';
+  }
+
+  @override
+  String get googleReaderConnectionSaveFailed => 'Google Reader 接続の保存に失敗しました。';
 }

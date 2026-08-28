@@ -2952,6 +2952,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tip: Use the copy buttons to copy paths for troubleshooting or support.'**
   String get dbRecoveryDataPreservedHint;
+
+  /// Label for the sync backend provider dropdown
+  ///
+  /// In en, this message translates to:
+  /// **'Provider'**
+  String get provider;
+
+  /// Title of the Google Reader connection edit dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Google Reader connection'**
+  String get googleReaderConnectionTitle;
+
+  /// Helper text for the password field when a password is already saved
+  ///
+  /// In en, this message translates to:
+  /// **'Leave blank to keep existing password'**
+  String get keepExistingPasswordHint;
+
+  /// Button that probes the Google Reader compatible connection
+  ///
+  /// In en, this message translates to:
+  /// **'Test connection'**
+  String get testConnection;
+
+  /// Status message when probing the connection fails
+  ///
+  /// In en, this message translates to:
+  /// **'Google Reader connection failed.'**
+  String get googleReaderConnectionFailed;
+
+  /// Status message after a successful connection test, without a user display name
+  ///
+  /// In en, this message translates to:
+  /// **'Connected: {profile}'**
+  String googleReaderConnectedWith(String profile);
+
+  /// Status message after a successful connection test, with a user display name
+  ///
+  /// In en, this message translates to:
+  /// **'Connected: {profile} - {user}'**
+  String googleReaderConnectedAs(String profile, String user);
+
+  /// Status message when saving the Google Reader connection fails
+  ///
+  /// In en, this message translates to:
+  /// **'Google Reader connection save failed.'**
+  String get googleReaderConnectionSaveFailed;
 }
 
 class _AppLocalizationsDelegate

@@ -1543,4 +1543,34 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get dbRecoveryDataPreservedHint =>
       'Tip: Use the copy buttons to copy paths for troubleshooting or support.';
+
+  @override
+  String get provider => 'Provider';
+
+  @override
+  String get googleReaderConnectionTitle => 'Google Reader connection';
+
+  @override
+  String get keepExistingPasswordHint =>
+      'Leave blank to keep existing password';
+
+  @override
+  String get testConnection => 'Test connection';
+
+  @override
+  String get googleReaderConnectionFailed => 'Google Reader connection failed.';
+
+  @override
+  String googleReaderConnectedWith(String profile) {
+    return 'Connected: $profile';
+  }
+
+  @override
+  String googleReaderConnectedAs(String profile, String user) {
+    return 'Connected: $profile - $user';
+  }
+
+  @override
+  String get googleReaderConnectionSaveFailed =>
+      'Google Reader connection save failed.';
 }

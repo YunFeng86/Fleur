@@ -1488,6 +1488,34 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get dbRecoveryDataPreservedHint => '提示：可使用右侧复制按钮复制路径，便于排查或反馈。';
+
+  @override
+  String get provider => '提供方';
+
+  @override
+  String get googleReaderConnectionTitle => 'Google Reader 连接';
+
+  @override
+  String get keepExistingPasswordHint => '留空以保留现有密码';
+
+  @override
+  String get testConnection => '测试连接';
+
+  @override
+  String get googleReaderConnectionFailed => 'Google Reader 连接失败。';
+
+  @override
+  String googleReaderConnectedWith(String profile) {
+    return '已连接：$profile';
+  }
+
+  @override
+  String googleReaderConnectedAs(String profile, String user) {
+    return '已连接：$profile - $user';
+  }
+
+  @override
+  String get googleReaderConnectionSaveFailed => 'Google Reader 连接保存失败。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -2974,6 +3002,34 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get dbRecoveryDataPreservedHint => '提示：可使用右侧复制按钮复制路径，便于排查或反馈。';
+
+  @override
+  String get provider => '提供方';
+
+  @override
+  String get googleReaderConnectionTitle => 'Google Reader 连接';
+
+  @override
+  String get keepExistingPasswordHint => '留空以保留现有密码';
+
+  @override
+  String get testConnection => '测试连接';
+
+  @override
+  String get googleReaderConnectionFailed => 'Google Reader 连接失败。';
+
+  @override
+  String googleReaderConnectedWith(String profile) {
+    return '已连接：$profile';
+  }
+
+  @override
+  String googleReaderConnectedAs(String profile, String user) {
+    return '已连接：$profile - $user';
+  }
+
+  @override
+  String get googleReaderConnectionSaveFailed => 'Google Reader 连接保存失败。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -4460,4 +4516,32 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get dbRecoveryDataPreservedHint => '提示：可使用右側複製按鈕複製路徑，便於排查或回報。';
+
+  @override
+  String get provider => '提供者';
+
+  @override
+  String get googleReaderConnectionTitle => 'Google Reader 連線';
+
+  @override
+  String get keepExistingPasswordHint => '留空以保留現有密碼';
+
+  @override
+  String get testConnection => '測試連線';
+
+  @override
+  String get googleReaderConnectionFailed => 'Google Reader 連線失敗。';
+
+  @override
+  String googleReaderConnectedWith(String profile) {
+    return '已連線：$profile';
+  }
+
+  @override
+  String googleReaderConnectedAs(String profile, String user) {
+    return '已連線：$profile - $user';
+  }
+
+  @override
+  String get googleReaderConnectionSaveFailed => 'Google Reader 連線儲存失敗。';
 }

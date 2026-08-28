@@ -1548,6 +1548,37 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get dbRecoveryDataPreservedHint =>
       'Dica: Use os botões de cópia para copiar caminhos para solução de problemas ou suporte.';
+
+  @override
+  String get provider => 'Provedor';
+
+  @override
+  String get googleReaderConnectionTitle => 'Conexão do Google Reader';
+
+  @override
+  String get keepExistingPasswordHint =>
+      'Deixe em branco para manter a senha atual';
+
+  @override
+  String get testConnection => 'Testar conexão';
+
+  @override
+  String get googleReaderConnectionFailed =>
+      'Falha na conexão com o Google Reader.';
+
+  @override
+  String googleReaderConnectedWith(String profile) {
+    return 'Conectado: $profile';
+  }
+
+  @override
+  String googleReaderConnectedAs(String profile, String user) {
+    return 'Conectado: $profile - $user';
+  }
+
+  @override
+  String get googleReaderConnectionSaveFailed =>
+      'Falha ao salvar a conexão do Google Reader.';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -3094,4 +3125,35 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get dbRecoveryDataPreservedHint =>
       'Dica: Use os botões de cópia para copiar caminhos para solução de problemas ou suporte.';
+
+  @override
+  String get provider => 'Provedor';
+
+  @override
+  String get googleReaderConnectionTitle => 'Conexão do Google Reader';
+
+  @override
+  String get keepExistingPasswordHint =>
+      'Deixe em branco para manter a senha atual';
+
+  @override
+  String get testConnection => 'Testar conexão';
+
+  @override
+  String get googleReaderConnectionFailed =>
+      'Falha na conexão com o Google Reader.';
+
+  @override
+  String googleReaderConnectedWith(String profile) {
+    return 'Conectado: $profile';
+  }
+
+  @override
+  String googleReaderConnectedAs(String profile, String user) {
+    return 'Conectado: $profile - $user';
+  }
+
+  @override
+  String get googleReaderConnectionSaveFailed =>
+      'Falha ao salvar a conexão do Google Reader.';
 }

@@ -1982,5 +1982,13 @@
   "dbRecoveryDataPreservedHint": "ヒント: コピー ボタンを使用して、トラブルシューティングまたはサポート用のパスをコピーします。",
   "@dbRecoveryDataPreservedHint": {
     "description": "Hint shown at the bottom of the recovery dialog"
-  }
+  },
+  "provider": "プロバイダー",
+  "googleReaderConnectionTitle": "Google Reader 接続",
+  "keepExistingPasswordHint": "空欄のままにすると既存のパスワードを保持します",
+  "testConnection": "接続をテスト",
+  "googleReaderConnectionFailed": "Google Reader 接続に失敗しました。",
+  "googleReaderConnectedWith": "接続済み: {profile}",
+  "googleReaderConnectedAs": "接続済み: {profile} - {user}",
+  "googleReaderConnectionSaveFailed": "Google Reader 接続の保存に失敗しました。"
 }

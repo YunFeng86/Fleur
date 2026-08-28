@@ -962,11 +962,11 @@ Future<String?> showAddGoogleReaderAccountDialog(
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       initialValue: profileId,
-                      decoration: const InputDecoration(labelText: 'Provider'),
+                      decoration: InputDecoration(labelText: l10n.provider),
                       items: [
-                        const DropdownMenuItem(
+                        DropdownMenuItem(
                           value: GoogleReaderProviderProfiles.autoId,
-                          child: Text('Auto'),
+                          child: Text(l10n.auto),
                         ),
                         for (final profile
                             in GoogleReaderProviderProfiles.values)
@@ -1202,7 +1202,7 @@ Future<void> showEditGoogleReaderAccountDialog(
       if (!dialogContext.mounted) return null;
       final message = e is GoogleReaderProbeException
           ? e.message
-          : 'Google Reader connection failed.';
+          : l10n.googleReaderConnectionFailed;
       setState(() {
         if (e is GoogleReaderProbeException) {
           baseUrlError = e.message;
@@ -1231,9 +1231,13 @@ Future<void> showEditGoogleReaderAccountDialog(
       testing = false;
       statusOk = true;
       final displayName = result.displayName?.trim();
-      statusMessage =
-          'Connected: ${result.profile.displayName}'
-          '${displayName == null || displayName.isEmpty ? '' : ' - $displayName'}';
+      final hasDisplayName = displayName != null && displayName.isNotEmpty;
+      statusMessage = hasDisplayName
+          ? l10n.googleReaderConnectedAs(
+              result.profile.displayName,
+              displayName,
+            )
+          : l10n.googleReaderConnectedWith(result.profile.displayName);
     });
   }
 
@@ -1280,11 +1284,11 @@ Future<void> showEditGoogleReaderAccountDialog(
       if (!dialogContext.mounted) return;
       setState(() {
         submitting = false;
-        statusMessage = 'Google Reader connection save failed.';
+        statusMessage = l10n.googleReaderConnectionSaveFailed;
         statusOk = false;
       });
       dialogContext.showSnack(
-        l10n.errorMessage('Google Reader connection save failed.'),
+        l10n.errorMessage(l10n.googleReaderConnectionSaveFailed),
       );
     }
   }
@@ -1299,7 +1303,7 @@ Future<void> showEditGoogleReaderAccountDialog(
             final scheme = Theme.of(dialogContext).colorScheme;
             return AlertDialog(
               scrollable: true,
-              title: const Text('Google Reader connection'),
+              title: Text(l10n.googleReaderConnectionTitle),
               content: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 520),
                 child: Column(
@@ -1307,11 +1311,11 @@ Future<void> showEditGoogleReaderAccountDialog(
                   children: [
                     DropdownButtonFormField<String>(
                       initialValue: profileId,
-                      decoration: const InputDecoration(labelText: 'Provider'),
+                      decoration: InputDecoration(labelText: l10n.provider),
                       items: [
-                        const DropdownMenuItem(
+                        DropdownMenuItem(
                           value: GoogleReaderProviderProfiles.autoId,
-                          child: Text('Auto'),
+                          child: Text(l10n.auto),
                         ),
                         for (final profile
                             in GoogleReaderProviderProfiles.values)
@@ -1397,7 +1401,7 @@ Future<void> showEditGoogleReaderAccountDialog(
                         labelText: l10n.password,
                         helperText: savedBasicAuth == null
                             ? null
-                            : 'Leave blank to keep existing password',
+                            : l10n.keepExistingPasswordHint,
                         errorText: passwordError,
                         suffixIcon: IconButton(
                           tooltip: obscurePassword ? l10n.show : l10n.hide,
@@ -1447,7 +1451,7 @@ Future<void> showEditGoogleReaderAccountDialog(
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Test connection'),
+                      : Text(l10n.testConnection),
                 ),
                 FilledButton(
                   onPressed: busy

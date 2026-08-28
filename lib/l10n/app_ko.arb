@@ -1982,5 +1982,13 @@
   "dbRecoveryDataPreservedHint": "팁: 문제 해결이나 지원을 위해 경로를 복사하려면 복사 버튼을 사용하세요.",
   "@dbRecoveryDataPreservedHint": {
     "description": "Hint shown at the bottom of the recovery dialog"
-  }
+  },
+  "provider": "공급자",
+  "googleReaderConnectionTitle": "Google Reader 연결",
+  "keepExistingPasswordHint": "비워 두면 기존 비밀번호가 유지됩니다",
+  "testConnection": "연결 테스트",
+  "googleReaderConnectionFailed": "Google Reader 연결에 실패했습니다.",
+  "googleReaderConnectedWith": "연결됨: {profile}",
+  "googleReaderConnectedAs": "연결됨: {profile} - {user}",
+  "googleReaderConnectionSaveFailed": "Google Reader 연결 저장에 실패했습니다."
 }

@@ -1538,7 +1538,7 @@
   "@shortcutNextPreviousArticle": {
     "description": "切换上一篇/下一篇文章的快捷键说明"
   },
-  "shortcutBackForwardHistory": "Alt + \u2190 / Alt + \u2192；macOS Cmd + [ / ]：返回 / 前进历史",
+  "shortcutBackForwardHistory": "Alt + ← / Alt + →；macOS Cmd + [ / ]：返回 / 前进历史",
   "@shortcutBackForwardHistory": {
     "description": "在历史记录中返回或前进的快捷键说明"
   },
@@ -1983,5 +1983,13 @@
   "dbRecoveryDataPreservedHint": "提示：可使用右侧复制按钮复制路径，便于排查或反馈。",
   "@dbRecoveryDataPreservedHint": {
     "description": "数据库恢复弹窗底部提示"
-  }
+  },
+  "provider": "提供方",
+  "googleReaderConnectionTitle": "Google Reader 连接",
+  "keepExistingPasswordHint": "留空以保留现有密码",
+  "testConnection": "测试连接",
+  "googleReaderConnectionFailed": "Google Reader 连接失败。",
+  "googleReaderConnectedWith": "已连接：{profile}",
+  "googleReaderConnectedAs": "已连接：{profile} - {user}",
+  "googleReaderConnectionSaveFailed": "Google Reader 连接保存失败。"
 }

@@ -1556,4 +1556,35 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get dbRecoveryDataPreservedHint =>
       'Tipp: Verwenden Sie die Kopierschaltflächen, um Pfade zur Fehlerbehebung oder zum Support zu kopieren.';
+
+  @override
+  String get provider => 'Anbieter';
+
+  @override
+  String get googleReaderConnectionTitle => 'Google Reader-Verbindung';
+
+  @override
+  String get keepExistingPasswordHint =>
+      'Leer lassen, um das vorhandene Passwort zu behalten';
+
+  @override
+  String get testConnection => 'Verbindung testen';
+
+  @override
+  String get googleReaderConnectionFailed =>
+      'Google Reader-Verbindung fehlgeschlagen.';
+
+  @override
+  String googleReaderConnectedWith(String profile) {
+    return 'Verbunden: $profile';
+  }
+
+  @override
+  String googleReaderConnectedAs(String profile, String user) {
+    return 'Verbunden: $profile - $user';
+  }
+
+  @override
+  String get googleReaderConnectionSaveFailed =>
+      'Speichern der Google Reader-Verbindung fehlgeschlagen.';
 }

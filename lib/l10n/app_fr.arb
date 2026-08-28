@@ -1982,5 +1982,13 @@
   "dbRecoveryDataPreservedHint": "Astuce : utilisez les boutons de copie pour copier les chemins à des fins de dépannage ou d'assistance.",
   "@dbRecoveryDataPreservedHint": {
     "description": "Hint shown at the bottom of the recovery dialog"
-  }
+  },
+  "provider": "Fournisseur",
+  "googleReaderConnectionTitle": "Connexion Google Reader",
+  "keepExistingPasswordHint": "Laisser vide pour conserver le mot de passe actuel",
+  "testConnection": "Tester la connexion",
+  "googleReaderConnectionFailed": "Échec de la connexion à Google Reader.",
+  "googleReaderConnectedWith": "Connecté : {profile}",
+  "googleReaderConnectedAs": "Connecté : {profile} - {user}",
+  "googleReaderConnectionSaveFailed": "Échec de l'enregistrement de la connexion Google Reader."
 }
