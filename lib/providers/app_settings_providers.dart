@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../services/logging/app_logger.dart';
 import '../services/settings/app_settings.dart';
 import '../services/settings/app_settings_store.dart';
 import '../theme/seed_color_presets.dart';
@@ -22,34 +23,51 @@ class AppSettingsController extends AsyncNotifier<AppSettings> {
     await ref.read(appSettingsStoreProvider).save(normalized);
   }
 
+  /// Setter entry point: UI callbacks usually fire this without awaiting, so
+  /// persist failures are logged and the optimistic in-memory state is kept
+  /// instead of surfacing as an unhandled async exception.
+  Future<void> _saveQuietly(AppSettings next) async {
+    try {
+      await save(next);
+    } catch (e, s) {
+      AppLogger.w(
+        'Settings save failed; keeping in-memory state',
+        tag: 'settings',
+        error: e,
+        stackTrace: s,
+        context: const <String, Object?>{'store': 'AppSettingsStore'},
+      );
+    }
+  }
+
   Future<void> setThemeMode(ThemeMode mode) async {
     final cur = state.valueOrNull ?? AppSettings.defaults();
-    await save(cur.copyWith(themeMode: mode));
+    await _saveQuietly(cur.copyWith(themeMode: mode));
   }
 
   Future<void> setUseDynamicColor(bool value) async {
     final cur = state.valueOrNull ?? AppSettings.defaults();
-    await save(cur.copyWith(useDynamicColor: value));
+    await _saveQuietly(cur.copyWith(useDynamicColor: value));
   }
 
   Future<void> setSeedColorPreset(SeedColorPreset preset) async {
     final cur = state.valueOrNull ?? AppSettings.defaults();
-    await save(cur.copyWith(seedColorPreset: preset));
+    await _saveQuietly(cur.copyWith(seedColorPreset: preset));
   }
 
   Future<void> setLocaleTag(String? localeTag) async {
     final cur = state.valueOrNull ?? AppSettings.defaults();
-    await save(cur.copyWith(localeTag: localeTag));
+    await _saveQuietly(cur.copyWith(localeTag: localeTag));
   }
 
   Future<void> setAutoMarkRead(bool value) async {
     final cur = state.valueOrNull ?? AppSettings.defaults();
-    await save(cur.copyWith(autoMarkRead: value));
+    await _saveQuietly(cur.copyWith(autoMarkRead: value));
   }
 
   Future<void> setSourceRefreshMinutes(int? minutes) async {
     final cur = state.valueOrNull ?? AppSettings.defaults();
-    await save(cur.copyWith(sourceRefreshMinutes: minutes));
+    await _saveQuietly(cur.copyWith(sourceRefreshMinutes: minutes));
   }
 
   @Deprecated('Use setSourceRefreshMinutes instead.')
@@ -59,67 +77,67 @@ class AppSettingsController extends AsyncNotifier<AppSettings> {
 
   Future<void> setAutoRefreshConcurrency(int concurrency) async {
     final cur = state.valueOrNull ?? AppSettings.defaults();
-    await save(cur.copyWith(autoRefreshConcurrency: concurrency));
+    await _saveQuietly(cur.copyWith(autoRefreshConcurrency: concurrency));
   }
 
   Future<void> setArticleGroupMode(ArticleGroupMode mode) async {
     final cur = state.valueOrNull ?? AppSettings.defaults();
-    await save(cur.copyWith(articleGroupMode: mode));
+    await _saveQuietly(cur.copyWith(articleGroupMode: mode));
   }
 
   Future<void> setArticleSortOrder(ArticleSortOrder order) async {
     final cur = state.valueOrNull ?? AppSettings.defaults();
-    await save(cur.copyWith(articleSortOrder: order));
+    await _saveQuietly(cur.copyWith(articleSortOrder: order));
   }
 
   Future<void> setSearchInContent(bool value) async {
     final cur = state.valueOrNull ?? AppSettings.defaults();
-    await save(cur.copyWith(searchInContent: value));
+    await _saveQuietly(cur.copyWith(searchInContent: value));
   }
 
   Future<void> setCleanupReadOlderThanDays(int? days) async {
     final cur = state.valueOrNull ?? AppSettings.defaults();
-    await save(cur.copyWith(cleanupReadOlderThanDays: days));
+    await _saveQuietly(cur.copyWith(cleanupReadOlderThanDays: days));
   }
 
   Future<void> setFilterEnabled(bool value) async {
     final cur = state.valueOrNull ?? AppSettings.defaults();
-    await save(cur.copyWith(filterEnabled: value));
+    await _saveQuietly(cur.copyWith(filterEnabled: value));
   }
 
   Future<void> setFilterKeywords(String value) async {
     final cur = state.valueOrNull ?? AppSettings.defaults();
-    await save(cur.copyWith(filterKeywords: value));
+    await _saveQuietly(cur.copyWith(filterKeywords: value));
   }
 
   Future<void> setSyncEnabled(bool value) async {
     final cur = state.valueOrNull ?? AppSettings.defaults();
-    await save(cur.copyWith(syncEnabled: value));
+    await _saveQuietly(cur.copyWith(syncEnabled: value));
   }
 
   Future<void> setSyncImages(bool value) async {
     final cur = state.valueOrNull ?? AppSettings.defaults();
-    await save(cur.copyWith(syncImages: value));
+    await _saveQuietly(cur.copyWith(syncImages: value));
   }
 
   Future<void> setSyncWebPages(bool value) async {
     final cur = state.valueOrNull ?? AppSettings.defaults();
-    await save(cur.copyWith(syncWebPages: value));
+    await _saveQuietly(cur.copyWith(syncWebPages: value));
   }
 
   Future<void> setShowAiSummary(bool value) async {
     final cur = state.valueOrNull ?? AppSettings.defaults();
-    await save(cur.copyWith(showAiSummary: value));
+    await _saveQuietly(cur.copyWith(showAiSummary: value));
   }
 
   Future<void> setAutoTranslate(bool value) async {
     final cur = state.valueOrNull ?? AppSettings.defaults();
-    await save(cur.copyWith(autoTranslate: value));
+    await _saveQuietly(cur.copyWith(autoTranslate: value));
   }
 
   Future<void> setRemoteEntriesLimit(int limit) async {
     final cur = state.valueOrNull ?? AppSettings.defaults();
-    await save(cur.copyWith(remoteEntriesLimit: limit));
+    await _saveQuietly(cur.copyWith(remoteEntriesLimit: limit));
   }
 
   Future<void> setMinifluxEntriesLimit(int limit) async {
@@ -128,22 +146,22 @@ class AppSettingsController extends AsyncNotifier<AppSettings> {
 
   Future<void> setRemoteFetchConcurrency(int concurrency) async {
     final cur = state.valueOrNull ?? AppSettings.defaults();
-    await save(cur.copyWith(remoteFetchConcurrency: concurrency));
+    await _saveQuietly(cur.copyWith(remoteFetchConcurrency: concurrency));
   }
 
   Future<void> setMinifluxWebFetchMode(MinifluxWebFetchMode mode) async {
     final cur = state.valueOrNull ?? AppSettings.defaults();
-    await save(cur.copyWith(minifluxWebFetchMode: mode));
+    await _saveQuietly(cur.copyWith(minifluxWebFetchMode: mode));
   }
 
   Future<void> setRssUserAgent(String value) async {
     final cur = state.valueOrNull ?? AppSettings.defaults();
-    await save(cur.copyWith(rssUserAgent: value));
+    await _saveQuietly(cur.copyWith(rssUserAgent: value));
   }
 
   Future<void> setWebUserAgent(String value) async {
     final cur = state.valueOrNull ?? AppSettings.defaults();
-    await save(cur.copyWith(webUserAgent: value));
+    await _saveQuietly(cur.copyWith(webUserAgent: value));
   }
 }
 

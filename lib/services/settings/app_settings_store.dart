@@ -1,46 +1,22 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'app_settings.dart';
 import '../logging/app_logger.dart';
 import '../network/user_agents.dart';
+import '../persistence/durable_json_store.dart';
+import 'app_settings.dart';
 import '../../utils/path_manager.dart';
 
 class AppSettingsStore {
+  AppSettingsStore({DurableFileSystem fileSystem = const IoDurableFileSystem()})
+    : _fileSystem = fileSystem;
+
+  final DurableFileSystem _fileSystem;
+
   Future<AppSettings> load() async {
     try {
-      var f = await _file();
-      if (!await f.exists() && !PathManager.isMigrationComplete) {
-        final legacy = await PathManager.legacyAppSettingsFile();
-        if (legacy != null) f = legacy;
-      }
-      final exists = await f.exists();
-      if (!exists) return AppSettings.defaults();
-      final raw = await f.readAsString();
-      final decoded = jsonDecode(raw);
-      if (decoded is! Map) {
-        AppLogger.w(
-          'Settings file ignored: unexpected JSON shape',
-          tag: 'settings',
-          context: const <String, Object?>{
-            'file': 'app_settings',
-            'store': 'AppSettingsStore',
-          },
-        );
-        return AppSettings.defaults();
-      }
-
-      final loaded = AppSettings.fromJson(decoded.cast<String, Object?>());
-      final migrated = _migrateIfNeeded(loaded);
-      // Only persist when we actually loaded an on-disk settings file.
-      if (jsonEncode(migrated.toJson()) != jsonEncode(loaded.toJson())) {
-        try {
-          await save(migrated);
-        } catch (_) {
-          // ignore: best-effort migration
-        }
-      }
-      return migrated;
+      final store = await _store();
+      return await store.runExclusive(() => _loadLocked(store));
     } catch (e, s) {
       AppLogger.w(
         'Settings load failed; using defaults',
@@ -56,13 +32,51 @@ class AppSettingsStore {
     }
   }
 
-  Future<void> save(AppSettings settings) async {
-    final f = await _file();
-    await f.writeAsString(jsonEncode(settings.toJson()));
+  Future<AppSettings> _loadLocked(DurableJsonStore<AppSettings> store) async {
+    final snapshot = await store.read();
+    if (snapshot == null) {
+      return await _loadLegacy() ?? AppSettings.defaults();
+    }
+    if (snapshot.wasRecovered) {
+      AppLogger.w(
+        'Settings recovered from ${snapshot.source.name} snapshot',
+        tag: 'settings',
+        context: const <String, Object?>{
+          'file': 'app_settings',
+          'store': 'AppSettingsStore',
+        },
+      );
+    }
+    final loaded = snapshot.value;
+    final migrated = _migrateIfNeeded(loaded);
+    // Only persist when we actually loaded an on-disk settings file.
+    if (jsonEncode(migrated.toJson()) != jsonEncode(loaded.toJson())) {
+      try {
+        await store.write(migrated);
+      } catch (_) {
+        // ignore: best-effort migration
+      }
+    }
+    return migrated;
   }
 
-  Future<File> _file() async {
-    return PathManager.appSettingsFile();
+  Future<AppSettings?> _loadLegacy() async {
+    if (PathManager.isMigrationComplete) return null;
+    final legacy = await PathManager.legacyAppSettingsFile();
+    if (legacy == null) return null;
+    return (await _storeFor(legacy).read())?.value;
+  }
+
+  Future<void> save(AppSettings settings) async {
+    final store = await _store();
+    await store.write(settings);
+  }
+
+  AppSettings _decode(Object? json) {
+    if (json is! Map) {
+      throw const FormatException('App settings JSON root is not an object');
+    }
+    return AppSettings.fromJson(json.cast<String, Object?>());
   }
 
   AppSettings _migrateIfNeeded(AppSettings cur) {
@@ -75,5 +89,18 @@ class AppSettingsStore {
       next = next.copyWith(webUserAgent: platformDefault);
     }
     return next;
+  }
+
+  Future<DurableJsonStore<AppSettings>> _store() async {
+    return _storeFor(await PathManager.appSettingsFile());
+  }
+
+  DurableJsonStore<AppSettings> _storeFor(File file) {
+    return DurableJsonStore<AppSettings>(
+      file: file,
+      decode: _decode,
+      encode: (settings) => settings.toJson(),
+      fileSystem: _fileSystem,
+    );
   }
 }

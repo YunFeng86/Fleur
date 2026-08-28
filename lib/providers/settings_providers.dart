@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../services/logging/app_logger.dart';
 import '../services/settings/reader_settings.dart';
 import '../services/settings/reader_settings_store.dart';
 
@@ -18,99 +19,116 @@ class ReaderSettingsController extends AsyncNotifier<ReaderSettings> {
     await ref.read(readerSettingsStoreProvider).save(next);
   }
 
+  /// Setter entry point: UI callbacks usually fire this without awaiting, so
+  /// persist failures are logged and the optimistic in-memory state is kept
+  /// instead of surfacing as an unhandled async exception.
+  Future<void> _saveQuietly(ReaderSettings next) async {
+    try {
+      await save(next);
+    } catch (e, s) {
+      AppLogger.w(
+        'Settings save failed; keeping in-memory state',
+        tag: 'settings',
+        error: e,
+        stackTrace: s,
+        context: const <String, Object?>{'store': 'ReaderSettingsStore'},
+      );
+    }
+  }
+
   Future<void> setFontSize(double value) async {
     final cur = state.valueOrNull ?? const ReaderSettings();
-    await save(cur.copyWith(fontSize: value));
+    await _saveQuietly(cur.copyWith(fontSize: value));
   }
 
   Future<void> setMinimumFontSize(double value) async {
     final cur = state.valueOrNull ?? const ReaderSettings();
-    await save(cur.copyWith(minimumFontSize: value));
+    await _saveQuietly(cur.copyWith(minimumFontSize: value));
   }
 
   Future<void> setLineHeight(double value) async {
     final cur = state.valueOrNull ?? const ReaderSettings();
-    await save(cur.copyWith(lineHeight: value));
+    await _saveQuietly(cur.copyWith(lineHeight: value));
   }
 
   Future<void> setFontFamily(ReaderFontFamily value) async {
     final cur = state.valueOrNull ?? const ReaderSettings();
-    await save(cur.copyWith(fontFamily: value));
+    await _saveQuietly(cur.copyWith(fontFamily: value));
   }
 
   Future<void> setReaderFontStack(String value) async {
     final cur = state.valueOrNull ?? const ReaderSettings();
-    await save(cur.copyWith(readerFontStack: value));
+    await _saveQuietly(cur.copyWith(readerFontStack: value));
   }
 
   Future<void> setStandardFontStack(String value) async {
     final cur = state.valueOrNull ?? const ReaderSettings();
-    await save(cur.copyWith(standardFontStack: value));
+    await _saveQuietly(cur.copyWith(standardFontStack: value));
   }
 
   Future<void> setSerifFontStack(String value) async {
     final cur = state.valueOrNull ?? const ReaderSettings();
-    await save(cur.copyWith(serifFontStack: value));
+    await _saveQuietly(cur.copyWith(serifFontStack: value));
   }
 
   Future<void> setSansFontStack(String value) async {
     final cur = state.valueOrNull ?? const ReaderSettings();
-    await save(cur.copyWith(sansFontStack: value));
+    await _saveQuietly(cur.copyWith(sansFontStack: value));
   }
 
   Future<void> setMonoFontStack(String value) async {
     final cur = state.valueOrNull ?? const ReaderSettings();
-    await save(cur.copyWith(monoFontStack: value));
+    await _saveQuietly(cur.copyWith(monoFontStack: value));
   }
 
   Future<void> setMathFontStack(String value) async {
     final cur = state.valueOrNull ?? const ReaderSettings();
-    await save(cur.copyWith(mathFontStack: value));
+    await _saveQuietly(cur.copyWith(mathFontStack: value));
   }
 
   Future<void> setReaderTheme(ReaderThemePreset value) async {
     final cur = state.valueOrNull ?? const ReaderSettings();
-    await save(cur.copyWith(readerTheme: value));
+    await _saveQuietly(cur.copyWith(readerTheme: value));
   }
 
   Future<void> setContentWidthPreset(ReaderContentWidthPreset value) async {
     final cur = state.valueOrNull ?? const ReaderSettings();
-    await save(cur.copyWith(contentWidthPreset: value));
+    await _saveQuietly(cur.copyWith(contentWidthPreset: value));
   }
 
   Future<void> setCodeFontFamily(CodeFontFamilyPreset value) async {
     final cur = state.valueOrNull ?? const ReaderSettings();
-    await save(cur.copyWith(codeFontFamily: value));
+    await _saveQuietly(cur.copyWith(codeFontFamily: value));
   }
 
   Future<void> setCodeFontStack(String value) async {
     final cur = state.valueOrNull ?? const ReaderSettings();
-    await save(cur.copyWith(codeFontStack: value));
+    await _saveQuietly(cur.copyWith(codeFontStack: value));
   }
 
   Future<void> setCodeFontSizeMode(CodeFontSizeMode value) async {
     final cur = state.valueOrNull ?? const ReaderSettings();
-    await save(cur.copyWith(codeFontSizeMode: value));
+    await _saveQuietly(cur.copyWith(codeFontSizeMode: value));
   }
 
   Future<void> setCodeFontSize(double value) async {
     final cur = state.valueOrNull ?? const ReaderSettings();
-    await save(cur.copyWith(codeFontSize: value));
+    await _saveQuietly(cur.copyWith(codeFontSize: value));
   }
 
   Future<void> setCodeLineHeight(double value) async {
     final cur = state.valueOrNull ?? const ReaderSettings();
-    await save(cur.copyWith(codeLineHeight: value));
+    await _saveQuietly(cur.copyWith(codeLineHeight: value));
   }
 
   Future<void> setCodeSoftWrap(bool value) async {
     final cur = state.valueOrNull ?? const ReaderSettings();
-    await save(cur.copyWith(codeSoftWrap: value));
+    await _saveQuietly(cur.copyWith(codeSoftWrap: value));
   }
 
   Future<void> resetReaderAppearance() async {
     final cur = state.valueOrNull ?? const ReaderSettings();
-    await save(
+    await _saveQuietly(
       cur.copyWith(
         fontSize: ReaderSettings.defaultFontSize,
         minimumFontSize: ReaderSettings.defaultMinimumFontSize,
@@ -137,7 +155,7 @@ class ReaderSettingsController extends AsyncNotifier<ReaderSettings> {
 
   Future<void> resetCodeAppearance() async {
     final cur = state.valueOrNull ?? const ReaderSettings();
-    await save(
+    await _saveQuietly(
       cur.copyWith(
         codeFontFamily: CodeFontFamilyPreset.systemMono,
         codeFontStack: '',

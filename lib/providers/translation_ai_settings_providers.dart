@@ -29,17 +29,35 @@ class TranslationAiSettingsController
     await ref.read(translationAiSettingsStoreProvider).save(normalized);
   }
 
+  /// Setter entry point: UI callbacks usually fire this without awaiting, so
+  /// persist failures are logged and the optimistic in-memory state is kept
+  /// instead of surfacing as an unhandled async exception. Transactional flows
+  /// (addAiService/updateAiService) keep using [save] so they can roll back.
+  Future<void> _saveQuietly(TranslationAiSettings next) async {
+    try {
+      await save(next);
+    } catch (e, s) {
+      AppLogger.w(
+        'Settings save failed; keeping in-memory state',
+        tag: 'ai_settings',
+        error: e,
+        stackTrace: s,
+        context: const <String, Object?>{'store': 'TranslationAiSettingsStore'},
+      );
+    }
+  }
+
   Future<void> setTranslationProvider(
     TranslationProviderSelection selection,
   ) async {
     final cur = state.valueOrNull ?? TranslationAiSettings.defaults();
-    await save(cur.copyWith(translationProvider: selection));
+    await _saveQuietly(cur.copyWith(translationProvider: selection));
   }
 
   Future<void> setTargetLanguageTag(String? languageTag) async {
     final trimmed = (languageTag ?? '').trim();
     final cur = state.valueOrNull ?? TranslationAiSettings.defaults();
-    await save(
+    await _saveQuietly(
       cur.copyWith(targetLanguageTag: trimmed.isEmpty ? null : trimmed),
     );
   }
@@ -47,13 +65,15 @@ class TranslationAiSettingsController
   Future<void> setAiSummaryPrompt(String? prompt) async {
     final trimmed = (prompt ?? '').trim();
     final cur = state.valueOrNull ?? TranslationAiSettings.defaults();
-    await save(cur.copyWith(aiSummaryPrompt: trimmed.isEmpty ? null : trimmed));
+    await _saveQuietly(
+      cur.copyWith(aiSummaryPrompt: trimmed.isEmpty ? null : trimmed),
+    );
   }
 
   Future<void> setAiTranslationPrompt(String? prompt) async {
     final trimmed = (prompt ?? '').trim();
     final cur = state.valueOrNull ?? TranslationAiSettings.defaults();
-    await save(
+    await _saveQuietly(
       cur.copyWith(aiTranslationPrompt: trimmed.isEmpty ? null : trimmed),
     );
   }
@@ -61,7 +81,7 @@ class TranslationAiSettingsController
   Future<void> setTpmLimit(int tpmLimit) async {
     final next = tpmLimit < 0 ? 0 : tpmLimit;
     final cur = state.valueOrNull ?? TranslationAiSettings.defaults();
-    await save(cur.copyWith(tpmLimit: next));
+    await _saveQuietly(cur.copyWith(tpmLimit: next));
   }
 
   Future<void> disableTranslationReminderForLanguage(String languageTag) async {
@@ -69,7 +89,7 @@ class TranslationAiSettingsController
     if (trimmed.isEmpty) return;
     final cur = state.valueOrNull ?? TranslationAiSettings.defaults();
     if (cur.disabledTranslationReminderLanguages.contains(trimmed)) return;
-    await save(
+    await _saveQuietly(
       cur.copyWith(
         disabledTranslationReminderLanguages: [
           ...cur.disabledTranslationReminderLanguages,
@@ -87,24 +107,26 @@ class TranslationAiSettingsController
         .where((v) => v.trim() != trimmed)
         .toList(growable: false);
     if (next.length == cur.disabledTranslationReminderLanguages.length) return;
-    await save(cur.copyWith(disabledTranslationReminderLanguages: next));
+    await _saveQuietly(
+      cur.copyWith(disabledTranslationReminderLanguages: next),
+    );
   }
 
   Future<void> setDeepLEndpoint(DeepLEndpoint endpoint) async {
     final cur = state.valueOrNull ?? TranslationAiSettings.defaults();
-    await save(cur.copyWith(deepL: DeepLSettings(endpoint: endpoint)));
+    await _saveQuietly(cur.copyWith(deepL: DeepLSettings(endpoint: endpoint)));
   }
 
   Future<void> setDeepLXBaseUrl(String baseUrl) async {
     final trimmed = baseUrl.trim();
     final cur = state.valueOrNull ?? TranslationAiSettings.defaults();
-    await save(cur.copyWith(deepLX: DeepLXSettings(baseUrl: trimmed)));
+    await _saveQuietly(cur.copyWith(deepLX: DeepLXSettings(baseUrl: trimmed)));
   }
 
   Future<void> setDefaultAiServiceId(String? serviceId) async {
     final trimmed = (serviceId ?? '').trim();
     final cur = state.valueOrNull ?? TranslationAiSettings.defaults();
-    await save(
+    await _saveQuietly(
       cur.copyWith(defaultAiServiceId: trimmed.isEmpty ? null : trimmed),
     );
   }
@@ -112,7 +134,7 @@ class TranslationAiSettingsController
   Future<void> setAiSummaryServiceId(String? serviceId) async {
     final trimmed = (serviceId ?? '').trim();
     final cur = state.valueOrNull ?? TranslationAiSettings.defaults();
-    await save(
+    await _saveQuietly(
       cur.copyWith(aiSummaryServiceId: trimmed.isEmpty ? null : trimmed),
     );
   }
@@ -258,7 +280,7 @@ class TranslationAiSettingsController
       nextProvider = const TranslationProviderSelection.googleWeb();
     }
 
-    await save(
+    await _saveQuietly(
       cur.copyWith(
         aiServices: nextServices,
         defaultAiServiceId: nextDefaultId,
@@ -279,7 +301,7 @@ class TranslationAiSettingsController
       nextServices[idx] = target.copyWith(enabled: true);
     }
 
-    await save(
+    await _saveQuietly(
       cur.copyWith(aiServices: nextServices, defaultAiServiceId: serviceId),
     );
   }
@@ -313,7 +335,7 @@ class TranslationAiSettingsController
       nextProvider = const TranslationProviderSelection.googleWeb();
     }
 
-    await save(
+    await _saveQuietly(
       cur.copyWith(
         aiServices: remaining,
         defaultAiServiceId: nextDefaultId,
