@@ -814,7 +814,7 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
                             html,
                             key: _fullHtmlKey,
                             baseUrl: Uri.tryParse(article.link),
-                            factoryBuilder: () => _ReaderWidgetFactory(
+                            factoryBuilder: () => ReaderWidgetFactory(
                               cacheManager,
                               settings: settings,
                               hoveredUrl: _interactionController.hoveredUrl,
@@ -897,7 +897,7 @@ extension _ReaderViewportChunkCoordinator on _ReaderViewportCoordinator {
                         chunkHtml,
                         key: htmlKey,
                         baseUrl: Uri.tryParse(article.link),
-                        factoryBuilder: () => _ReaderWidgetFactory(
+                        factoryBuilder: () => ReaderWidgetFactory(
                           cacheManager,
                           settings: settings,
                           hoveredUrl: _interactionController.hoveredUrl,

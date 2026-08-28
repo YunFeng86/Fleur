@@ -1,7 +1,13 @@
 part of '../reader_view.dart';
 
-class _ReaderWidgetFactory extends WidgetFactory {
-  _ReaderWidgetFactory(
+/// HtmlWidget factory used by the reader viewport.
+///
+/// Public (and exported through the feature facade) so widget tests can drive
+/// recognizer lifecycle directly; production code constructs it only inside
+/// the reader feature.
+@visibleForTesting
+class ReaderWidgetFactory extends WidgetFactory {
+  ReaderWidgetFactory(
     this._cacheManager, {
     required ReaderSettings settings,
     ValueNotifier<String?>? hoveredUrl,
@@ -14,6 +20,7 @@ class _ReaderWidgetFactory extends WidgetFactory {
   final ReaderSettings _settings;
   final ValueNotifier<String?>? _hoveredUrl;
   final Map<int, String>? _recognizerUrlMap;
+  final List<int> _ownRecognizerKeys = <int>[];
 
   @override
   BaseCacheManager? get cacheManager => _cacheManager;
@@ -33,10 +40,27 @@ class _ReaderWidgetFactory extends WidgetFactory {
   }) {
     final recognizer = super.buildGestureRecognizer(tree, onTap: onTap);
     final href = tree.element.attributes['href'];
-    if (href != null && href.isNotEmpty && recognizer != null) {
-      _recognizerUrlMap?[identityHashCode(recognizer)] = href;
+    final map = _recognizerUrlMap;
+    if (href != null && href.isNotEmpty && recognizer != null && map != null) {
+      final key = identityHashCode(recognizer);
+      map[key] = href;
+      // fwfh disposes the recognizers when this factory is disposed; drop the
+      // shared-map entries then so the session-scoped map stays bounded.
+      _ownRecognizerKeys.add(key);
     }
     return recognizer;
+  }
+
+  @override
+  void dispose() {
+    final map = _recognizerUrlMap;
+    if (map != null) {
+      for (final key in _ownRecognizerKeys) {
+        map.remove(key);
+      }
+    }
+    _ownRecognizerKeys.clear();
+    super.dispose();
   }
 
   @override
