@@ -61,6 +61,78 @@ void main() {
   });
 
   test(
+    'syncNow terminates when the server repeats a continuation token',
+    () async {
+      final requests = <_RecordedRequest>[];
+      final service = GoogleReaderSyncService(
+        account: buildTestAccount(
+          type: AccountType.googleReader,
+          baseUrl: 'https://reader.example.com',
+        ),
+        dio: _repeatingContinuationDio(requests),
+        credentials: _FakeCredentialStore(),
+        feeds: FeedRepository(isar!),
+        categories: CategoryRepository(isar!),
+        articles: ArticleRepository(isar!),
+        outbox: _MemoryOutboxStore(),
+        // 0 = unlimited pages; without the repeated-token guard this loops
+        // forever because every page is non-empty.
+        appSettingsStore: FakeAppSettingsStore(
+          AppSettings.defaults().copyWith(remoteEntriesLimit: 0),
+        ),
+        cache: _unusedCache(),
+      );
+
+      final results = await service.syncNow();
+
+      final streamIdRequests = requests
+          .where((request) => request.path == '/reader/api/0/stream/items/ids')
+          .length;
+      // Entries sync + unread reconcile + starred reconcile, each stopping
+      // on the second page when the token repeats.
+      expect(streamIdRequests, 6);
+      expect(results, isNotEmpty);
+    },
+  );
+
+  test(
+    'empty pages with a pending continuation stop without marking articles read',
+    () async {
+      final requests = <_RecordedRequest>[];
+      final service = GoogleReaderSyncService(
+        account: buildTestAccount(
+          type: AccountType.googleReader,
+          baseUrl: 'https://reader.example.com',
+        ),
+        dio: _emptyUnreadPagesDio(requests),
+        credentials: _FakeCredentialStore(),
+        feeds: FeedRepository(isar!),
+        categories: CategoryRepository(isar!),
+        articles: ArticleRepository(isar!),
+        outbox: _MemoryOutboxStore(),
+        appSettingsStore: FakeAppSettingsStore(
+          AppSettings.defaults().copyWith(remoteEntriesLimit: 10),
+        ),
+        cache: _unusedCache(),
+      );
+
+      await service.syncNow();
+
+      final unreadReconcileRequests = requests
+          .where((request) => request.path == '/reader/api/0/stream/items/ids')
+          .where((request) => request.queryParameters.containsKey('xt'))
+          .length;
+      // The empty page breaks the loop instead of refetching forever, and
+      // the incomplete id set must not flip local unread articles to read.
+      expect(unreadReconcileRequests, 1);
+
+      final articles = await isar!.articles.where().findAll();
+      expect(articles, hasLength(1));
+      expect(articles.single.isRead, isFalse);
+    },
+  );
+
+  test(
     'syncNow mirrors subscriptions and imports read/star item state',
     () async {
       final requests = <_RecordedRequest>[];
@@ -405,6 +477,165 @@ Dio _googleReaderDio(
     ),
   );
   return dio;
+}
+
+Dio _repeatingContinuationDio(List<_RecordedRequest> requests) {
+  final dio = Dio();
+  dio.interceptors.add(
+    InterceptorsWrapper(
+      onRequest: (options, handler) {
+        requests.add(_RecordedRequest.fromOptions(options));
+        final data = switch ((options.method, options.uri.path)) {
+          ('GET', '/reader/api/0/subscription/list') => {
+            'subscriptions': [
+              {
+                'id': 'feed/https://example.com/feed.xml',
+                'url': 'https://example.com/feed.xml',
+                'title': 'Example Feed',
+                'htmlUrl': 'https://example.com',
+                'categories': [
+                  {'id': 'user/-/label/Tech', 'label': 'Tech'},
+                ],
+              },
+            ],
+          },
+          // Every stream page is non-empty and repeats the same token.
+          ('GET', '/reader/api/0/stream/items/ids') => {
+            'itemRefs': [
+              {'id': 'tag:reader.example,2026:item/0001'},
+            ],
+            'continuation': 'stuck-token',
+          },
+          ('GET', '/reader/api/0/token') => 'write-token',
+          ('POST', '/reader/api/0/edit-tag') => <String, Object?>{},
+          ('POST', '/reader/api/0/mark-all-as-read') => <String, Object?>{},
+          ('GET', '/reader/api/0/unread-count') => {
+            'unreadcounts': [
+              {
+                'id': GoogleReaderRemoteArticleActionExecutor.readingListState,
+                'count': 1,
+              },
+            ],
+          },
+          ('POST', '/reader/api/0/stream/items/contents') => {
+            'items': [
+              {
+                'id': 'tag:reader.example,2026:item/0001',
+                'title': 'First item',
+                'author': 'Author',
+                'published': 1700000000,
+                'alternate': [
+                  {'href': 'https://example.com/posts/one'},
+                ],
+                'content': {'content': '<p>Hello</p>'},
+                'origin': {
+                  'streamId': 'feed/https://example.com/feed.xml',
+                  'title': 'Example Feed',
+                  'htmlUrl': 'https://example.com',
+                },
+                'categories': [
+                  'user/123/state/com.google/read',
+                  'user/123/state/com.google/starred',
+                ],
+              },
+            ],
+          },
+          _ => throw StateError(
+            'Unexpected request: ${options.method} ${options.uri}',
+          ),
+        };
+        handler.resolve(Response<Object?>(requestOptions: options, data: data));
+      },
+    ),
+  );
+  return dio;
+}
+
+Dio _emptyUnreadPagesDio(List<_RecordedRequest> requests) {
+  final dio = Dio();
+  dio.interceptors.add(
+    InterceptorsWrapper(
+      onRequest: (options, handler) {
+        requests.add(_RecordedRequest.fromOptions(options));
+        final data = switch ((options.method, options.uri.path)) {
+          ('GET', '/reader/api/0/subscription/list') => {
+            'subscriptions': [
+              {
+                'id': 'feed/https://example.com/feed.xml',
+                'url': 'https://example.com/feed.xml',
+                'title': 'Example Feed',
+                'htmlUrl': 'https://example.com',
+                'categories': [
+                  {'id': 'user/-/label/Tech', 'label': 'Tech'},
+                ],
+              },
+            ],
+          },
+          ('GET', '/reader/api/0/stream/items/ids') =>
+            _streamIdsForEmptyUnreadPages(options.uri.queryParameters),
+          ('GET', '/reader/api/0/token') => 'write-token',
+          ('POST', '/reader/api/0/edit-tag') => <String, Object?>{},
+          ('POST', '/reader/api/0/mark-all-as-read') => <String, Object?>{},
+          ('GET', '/reader/api/0/unread-count') => {
+            'unreadcounts': [
+              {
+                'id': GoogleReaderRemoteArticleActionExecutor.readingListState,
+                'count': 1,
+              },
+            ],
+          },
+          ('POST', '/reader/api/0/stream/items/contents') => {
+            'items': [
+              {
+                'id': 'tag:reader.example,2026:item/0001',
+                'title': 'First item',
+                'author': 'Author',
+                'published': 1700000000,
+                'alternate': [
+                  {'href': 'https://example.com/posts/one'},
+                ],
+                'content': {'content': '<p>Hello</p>'},
+                'origin': {
+                  'streamId': 'feed/https://example.com/feed.xml',
+                  'title': 'Example Feed',
+                  'htmlUrl': 'https://example.com',
+                },
+                // Unstarred and unread: only the item itself, no state tags.
+              },
+            ],
+          },
+          _ => throw StateError(
+            'Unexpected request: ${options.method} ${options.uri}',
+          ),
+        };
+        handler.resolve(Response<Object?>(requestOptions: options, data: data));
+      },
+    ),
+  );
+  return dio;
+}
+
+Map<String, Object?> _streamIdsForEmptyUnreadPages(
+  Map<String, Object?> queryParameters,
+) {
+  final excludeState = queryParameters['xt']?.toString();
+  final streamId = queryParameters['s']?.toString() ?? '';
+  if ((excludeState ?? '').contains('/state/com.google/read')) {
+    // Pathological server: empty unread page that still claims more pages.
+    return {'itemRefs': [], 'continuation': 'stuck-token'};
+  }
+  if (streamId.contains('starred')) {
+    return {
+      'itemRefs': [
+        {'id': 'tag:reader.example,2026:item/0001'},
+      ],
+    };
+  }
+  return {
+    'itemRefs': [
+      {'id': 'tag:reader.example,2026:item/0001'},
+    ],
+  };
 }
 
 Dio _failingGoogleReaderDio() {

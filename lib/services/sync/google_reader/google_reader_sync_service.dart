@@ -123,6 +123,10 @@ class _GoogleReaderFeedIndex {
 }
 
 class GoogleReaderSyncService implements SyncServiceBase, OutboxFlushCapable {
+  /// Hard cap on stream pagination pages, guarding against servers that keep
+  /// returning fresh continuation tokens with non-empty pages forever.
+  static const int _maxStreamPages = 5000;
+
   GoogleReaderSyncService({
     required this.account,
     required Dio dio,
@@ -467,6 +471,8 @@ class GoogleReaderSyncService implements SyncServiceBase, OutboxFlushCapable {
 
     String? continuation;
     var fetchedIds = 0;
+    var pages = 0;
+    final seenContinuations = <String>{};
     var result = _GoogleReaderEntrySyncResult.zero;
     while (entriesLimit == 0 || fetchedIds < entriesLimit) {
       final remaining = entriesLimit == 0
@@ -476,6 +482,12 @@ class GoogleReaderSyncService implements SyncServiceBase, OutboxFlushCapable {
           ? remaining
           : _profile.itemIdsPageSize;
       if (count <= 0) break;
+
+      pages += 1;
+      if (pages > _maxStreamPages) {
+        _logStreamPaginationGuard(streamId, reason: 'page limit');
+        break;
+      }
 
       final page = await client.streamItemIds(
         streamId: streamId,
@@ -510,9 +522,27 @@ class GoogleReaderSyncService implements SyncServiceBase, OutboxFlushCapable {
 
       continuation = page.continuation;
       if (continuation == null || continuation.isEmpty) break;
+      if (!seenContinuations.add(continuation)) {
+        // A server that keeps returning a token we have already followed
+        // would loop forever; treat it as the end of the stream.
+        _logStreamPaginationGuard(streamId, reason: 'repeated continuation');
+        break;
+      }
       await Future<void>.delayed(Duration.zero);
     }
     return result;
+  }
+
+  void _logStreamPaginationGuard(String streamId, {required String reason}) {
+    AppLogger.w(
+      'Google Reader stream pagination stopped: $reason',
+      tag: 'sync',
+      context: <String, Object?>{
+        'operation': 'streamItemIds',
+        'streamId': streamId,
+        'reason': reason,
+      },
+    );
   }
 
   Future<void> _reconcileAccountState(
@@ -590,6 +620,8 @@ class GoogleReaderSyncService implements SyncServiceBase, OutboxFlushCapable {
     final ids = <String>{};
     String? continuation;
     var fetched = 0;
+    var pages = 0;
+    final seenContinuations = <String>{};
     var complete = false;
     while (entriesLimit == 0 || fetched < entriesLimit) {
       final remaining = entriesLimit == 0
@@ -599,17 +631,33 @@ class GoogleReaderSyncService implements SyncServiceBase, OutboxFlushCapable {
           ? remaining
           : _profile.itemIdsPageSize;
       if (count <= 0) break;
+
+      pages += 1;
+      if (pages > _maxStreamPages) {
+        _logStreamPaginationGuard(streamId, reason: 'page limit');
+        break;
+      }
+
       final page = await client.streamItemIds(
         streamId: streamId,
         count: count,
         continuation: continuation,
         excludeState: excludeState,
       );
+      if (page.itemIds.isEmpty) {
+        // Empty page with a pending continuation: keep `complete` false so
+        // reconciliation never treats the missing remainder as read/unstarred.
+        break;
+      }
       fetched += page.itemIds.length;
       ids.addAll(_dedupeIds(page.itemIds));
       continuation = page.continuation;
       if (continuation == null || continuation.isEmpty) {
         complete = true;
+        break;
+      }
+      if (!seenContinuations.add(continuation)) {
+        _logStreamPaginationGuard(streamId, reason: 'repeated continuation');
         break;
       }
       await Future<void>.delayed(Duration.zero);
