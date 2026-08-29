@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,15 +19,20 @@ final translationAiSecretStoreProvider = Provider<TranslationAiSecretStore>(
 
 class TranslationAiSettingsController
     extends AsyncNotifier<TranslationAiSettings> {
+  final Object _mutationZoneKey = Object();
+  Future<void> _mutationTail = Future<void>.value();
+
   @override
   Future<TranslationAiSettings> build() async {
     return ref.read(translationAiSettingsStoreProvider).load();
   }
 
-  Future<void> save(TranslationAiSettings next) async {
-    final normalized = next.normalized();
-    state = AsyncValue.data(normalized);
-    await ref.read(translationAiSettingsStoreProvider).save(normalized);
+  Future<void> save(TranslationAiSettings next) {
+    return _serializeMutation(() async {
+      final normalized = next.normalized();
+      state = AsyncValue.data(normalized);
+      await ref.read(translationAiSettingsStoreProvider).save(normalized);
+    });
   }
 
   /// Setter entry point: UI callbacks usually fire this without awaiting, so
@@ -47,95 +53,95 @@ class TranslationAiSettingsController
     }
   }
 
-  Future<void> setTranslationProvider(
-    TranslationProviderSelection selection,
-  ) async {
-    final cur = state.valueOrNull ?? TranslationAiSettings.defaults();
-    await _saveQuietly(cur.copyWith(translationProvider: selection));
-  }
+  Future<void> setTranslationProvider(TranslationProviderSelection selection) =>
+      _updateQuietly((cur) => cur.copyWith(translationProvider: selection));
 
-  Future<void> setTargetLanguageTag(String? languageTag) async {
+  Future<void> setTargetLanguageTag(String? languageTag) {
     final trimmed = (languageTag ?? '').trim();
-    final cur = state.valueOrNull ?? TranslationAiSettings.defaults();
-    await _saveQuietly(
-      cur.copyWith(targetLanguageTag: trimmed.isEmpty ? null : trimmed),
+    return _updateQuietly(
+      (cur) =>
+          cur.copyWith(targetLanguageTag: trimmed.isEmpty ? null : trimmed),
     );
   }
 
-  Future<void> setAiSummaryPrompt(String? prompt) async {
+  Future<void> setAiSummaryPrompt(String? prompt) {
     final trimmed = (prompt ?? '').trim();
-    final cur = state.valueOrNull ?? TranslationAiSettings.defaults();
-    await _saveQuietly(
-      cur.copyWith(aiSummaryPrompt: trimmed.isEmpty ? null : trimmed),
+    return _updateQuietly(
+      (cur) => cur.copyWith(aiSummaryPrompt: trimmed.isEmpty ? null : trimmed),
     );
   }
 
-  Future<void> setAiTranslationPrompt(String? prompt) async {
+  Future<void> setAiTranslationPrompt(String? prompt) {
     final trimmed = (prompt ?? '').trim();
-    final cur = state.valueOrNull ?? TranslationAiSettings.defaults();
-    await _saveQuietly(
-      cur.copyWith(aiTranslationPrompt: trimmed.isEmpty ? null : trimmed),
+    return _updateQuietly(
+      (cur) =>
+          cur.copyWith(aiTranslationPrompt: trimmed.isEmpty ? null : trimmed),
     );
   }
 
-  Future<void> setTpmLimit(int tpmLimit) async {
+  Future<void> setTpmLimit(int tpmLimit) {
     final next = tpmLimit < 0 ? 0 : tpmLimit;
-    final cur = state.valueOrNull ?? TranslationAiSettings.defaults();
-    await _saveQuietly(cur.copyWith(tpmLimit: next));
+    return _updateQuietly((cur) => cur.copyWith(tpmLimit: next));
   }
 
-  Future<void> disableTranslationReminderForLanguage(String languageTag) async {
+  Future<void> disableTranslationReminderForLanguage(String languageTag) {
     final trimmed = canonicalKnownLanguageTagOrNull(languageTag)?.trim() ?? '';
-    if (trimmed.isEmpty) return;
-    final cur = state.valueOrNull ?? TranslationAiSettings.defaults();
-    if (cur.disabledTranslationReminderLanguages.contains(trimmed)) return;
-    await _saveQuietly(
-      cur.copyWith(
-        disabledTranslationReminderLanguages: [
-          ...cur.disabledTranslationReminderLanguages,
-          trimmed,
-        ],
-      ),
-    );
+    if (trimmed.isEmpty) return Future<void>.value();
+    return _serializeMutation(() async {
+      final cur = state.valueOrNull ?? await future;
+      if (cur.disabledTranslationReminderLanguages.contains(trimmed)) return;
+      await _saveQuietly(
+        cur.copyWith(
+          disabledTranslationReminderLanguages: [
+            ...cur.disabledTranslationReminderLanguages,
+            trimmed,
+          ],
+        ),
+      );
+    });
   }
 
-  Future<void> enableTranslationReminderForLanguage(String languageTag) async {
+  Future<void> enableTranslationReminderForLanguage(String languageTag) {
     final trimmed = canonicalKnownLanguageTagOrNull(languageTag)?.trim() ?? '';
-    if (trimmed.isEmpty) return;
-    final cur = state.valueOrNull ?? TranslationAiSettings.defaults();
-    final next = cur.disabledTranslationReminderLanguages
-        .where((v) => v.trim() != trimmed)
-        .toList(growable: false);
-    if (next.length == cur.disabledTranslationReminderLanguages.length) return;
-    await _saveQuietly(
-      cur.copyWith(disabledTranslationReminderLanguages: next),
-    );
+    if (trimmed.isEmpty) return Future<void>.value();
+    return _serializeMutation(() async {
+      final cur = state.valueOrNull ?? await future;
+      final next = cur.disabledTranslationReminderLanguages
+          .where((v) => v.trim() != trimmed)
+          .toList(growable: false);
+      if (next.length == cur.disabledTranslationReminderLanguages.length) {
+        return;
+      }
+      await _saveQuietly(
+        cur.copyWith(disabledTranslationReminderLanguages: next),
+      );
+    });
   }
 
-  Future<void> setDeepLEndpoint(DeepLEndpoint endpoint) async {
-    final cur = state.valueOrNull ?? TranslationAiSettings.defaults();
-    await _saveQuietly(cur.copyWith(deepL: DeepLSettings(endpoint: endpoint)));
-  }
+  Future<void> setDeepLEndpoint(DeepLEndpoint endpoint) => _updateQuietly(
+    (cur) => cur.copyWith(deepL: DeepLSettings(endpoint: endpoint)),
+  );
 
-  Future<void> setDeepLXBaseUrl(String baseUrl) async {
+  Future<void> setDeepLXBaseUrl(String baseUrl) {
     final trimmed = baseUrl.trim();
-    final cur = state.valueOrNull ?? TranslationAiSettings.defaults();
-    await _saveQuietly(cur.copyWith(deepLX: DeepLXSettings(baseUrl: trimmed)));
-  }
-
-  Future<void> setDefaultAiServiceId(String? serviceId) async {
-    final trimmed = (serviceId ?? '').trim();
-    final cur = state.valueOrNull ?? TranslationAiSettings.defaults();
-    await _saveQuietly(
-      cur.copyWith(defaultAiServiceId: trimmed.isEmpty ? null : trimmed),
+    return _updateQuietly(
+      (cur) => cur.copyWith(deepLX: DeepLXSettings(baseUrl: trimmed)),
     );
   }
 
-  Future<void> setAiSummaryServiceId(String? serviceId) async {
+  Future<void> setDefaultAiServiceId(String? serviceId) {
     final trimmed = (serviceId ?? '').trim();
-    final cur = state.valueOrNull ?? TranslationAiSettings.defaults();
-    await _saveQuietly(
-      cur.copyWith(aiSummaryServiceId: trimmed.isEmpty ? null : trimmed),
+    return _updateQuietly(
+      (cur) =>
+          cur.copyWith(defaultAiServiceId: trimmed.isEmpty ? null : trimmed),
+    );
+  }
+
+  Future<void> setAiSummaryServiceId(String? serviceId) {
+    final trimmed = (serviceId ?? '').trim();
+    return _updateQuietly(
+      (cur) =>
+          cur.copyWith(aiSummaryServiceId: trimmed.isEmpty ? null : trimmed),
     );
   }
 
@@ -146,207 +152,259 @@ class TranslationAiSettingsController
     required String defaultModel,
     required bool enabled,
     String? apiKey,
-  }) async {
-    final cur = state.valueOrNull ?? await future;
-    final id = _newServiceId();
-    final service = AiServiceConfig(
-      id: id,
-      name: name.trim().isEmpty ? id : name.trim(),
-      apiType: apiType,
-      baseUrl: baseUrl.trim(),
-      defaultModel: defaultModel.trim(),
-      enabled: enabled,
-    );
+  }) {
+    return _serializeMutation(() async {
+      final cur = state.valueOrNull ?? await future;
+      final id = _newServiceId();
+      final service = AiServiceConfig(
+        id: id,
+        name: name.trim().isEmpty ? id : name.trim(),
+        apiType: apiType,
+        baseUrl: baseUrl.trim(),
+        defaultModel: defaultModel.trim(),
+        enabled: enabled,
+      );
 
-    final next = cur.copyWith(aiServices: [...cur.aiServices, service]);
-    final trimmedKey = (apiKey ?? '').trim();
-    if (trimmedKey.isNotEmpty) {
-      final secrets = ref.read(translationAiSecretStoreProvider);
-      await secrets.setAiServiceApiKey(id, trimmedKey);
-      try {
-        await save(next);
-      } catch (e, st) {
-        _logAiSettingsFailure(
-          operation: 'addAiService',
-          serviceId: service.id,
-          apiType: service.apiType,
-          enabled: service.enabled,
-          error: e,
-          stackTrace: st,
-        );
+      final next = cur.copyWith(aiServices: [...cur.aiServices, service]);
+      final trimmedKey = (apiKey ?? '').trim();
+      if (trimmedKey.isNotEmpty) {
+        final secrets = ref.read(translationAiSecretStoreProvider);
+        await secrets.setAiServiceApiKey(id, trimmedKey);
         try {
-          await secrets.deleteAiServiceApiKey(id);
-        } catch (_) {
-          // ignore: best-effort rollback
+          await save(next);
+        } catch (e, st) {
+          _logAiSettingsFailure(
+            operation: 'addAiService',
+            serviceId: service.id,
+            apiType: service.apiType,
+            enabled: service.enabled,
+            error: e,
+            stackTrace: st,
+          );
+          try {
+            await secrets.deleteAiServiceApiKey(id);
+          } catch (_) {
+            // ignore: best-effort rollback
+          }
+          state = AsyncValue.data(cur);
+          rethrow;
         }
-        state = AsyncValue.data(cur);
-        rethrow;
+      } else {
+        await save(next);
       }
-    } else {
-      await save(next);
-    }
 
-    return id;
+      return id;
+    });
   }
 
   Future<void> updateAiService(
     AiServiceConfig service, {
     String? apiKey,
     String? previousApiKey,
-  }) async {
-    final cur = state.valueOrNull ?? await future;
-    final idx = cur.aiServices.indexWhere((s) => s.id == service.id);
-    if (idx < 0) return;
+  }) {
+    return _serializeMutation(() async {
+      final cur = state.valueOrNull ?? await future;
+      final idx = cur.aiServices.indexWhere((s) => s.id == service.id);
+      if (idx < 0) return;
 
-    final nextServices = [...cur.aiServices];
-    nextServices[idx] = service;
+      final nextServices = [...cur.aiServices];
+      nextServices[idx] = service;
 
-    if (apiKey != null) {
-      final secrets = ref.read(translationAiSecretStoreProvider);
-      final trimmedKey = apiKey.trim();
-      final nextKey = trimmedKey.isEmpty ? null : trimmedKey;
+      if (apiKey != null) {
+        final secrets = ref.read(translationAiSecretStoreProvider);
+        final trimmedKey = apiKey.trim();
+        final nextKey = trimmedKey.isEmpty ? null : trimmedKey;
 
-      final trimmedPrevKey = (previousApiKey ?? '').trim();
-      final prevKey = previousApiKey == null
-          ? await secrets.getAiServiceApiKey(service.id)
-          : (trimmedPrevKey.isEmpty ? null : trimmedPrevKey);
+        final trimmedPrevKey = (previousApiKey ?? '').trim();
+        final prevKey = previousApiKey == null
+            ? await secrets.getAiServiceApiKey(service.id)
+            : (trimmedPrevKey.isEmpty ? null : trimmedPrevKey);
 
-      if (prevKey != nextKey) {
-        if (nextKey == null) {
-          await secrets.deleteAiServiceApiKey(service.id);
-        } else {
-          await secrets.setAiServiceApiKey(service.id, nextKey);
-        }
-      }
-
-      try {
-        await save(cur.copyWith(aiServices: nextServices));
-      } catch (e, st) {
-        _logAiSettingsFailure(
-          operation: 'updateAiService',
-          serviceId: service.id,
-          apiType: service.apiType,
-          enabled: service.enabled,
-          error: e,
-          stackTrace: st,
-        );
         if (prevKey != nextKey) {
-          try {
-            if (prevKey == null) {
-              await secrets.deleteAiServiceApiKey(service.id);
-            } else {
-              await secrets.setAiServiceApiKey(service.id, prevKey);
-            }
-          } catch (_) {
-            // ignore: best-effort rollback
+          if (nextKey == null) {
+            await secrets.deleteAiServiceApiKey(service.id);
+          } else {
+            await secrets.setAiServiceApiKey(service.id, nextKey);
           }
         }
-        state = AsyncValue.data(cur);
-        rethrow;
+
+        try {
+          await save(cur.copyWith(aiServices: nextServices));
+        } catch (e, st) {
+          _logAiSettingsFailure(
+            operation: 'updateAiService',
+            serviceId: service.id,
+            apiType: service.apiType,
+            enabled: service.enabled,
+            error: e,
+            stackTrace: st,
+          );
+          if (prevKey != nextKey) {
+            try {
+              if (prevKey == null) {
+                await secrets.deleteAiServiceApiKey(service.id);
+              } else {
+                await secrets.setAiServiceApiKey(service.id, prevKey);
+              }
+            } catch (_) {
+              // ignore: best-effort rollback
+            }
+          }
+          state = AsyncValue.data(cur);
+          rethrow;
+        }
+      } else {
+        await save(cur.copyWith(aiServices: nextServices));
       }
-    } else {
-      await save(cur.copyWith(aiServices: nextServices));
-    }
+    });
   }
 
-  Future<void> setAiServiceEnabled(String serviceId, bool enabled) async {
-    final cur = state.valueOrNull ?? await future;
-    final idx = cur.aiServices.indexWhere((s) => s.id == serviceId);
-    if (idx < 0) return;
+  Future<void> setAiServiceEnabled(String serviceId, bool enabled) {
+    return _serializeMutation(() async {
+      final cur = state.valueOrNull ?? await future;
+      final idx = cur.aiServices.indexWhere((s) => s.id == serviceId);
+      if (idx < 0) return;
 
-    final nextServices = [...cur.aiServices];
-    nextServices[idx] = nextServices[idx].copyWith(enabled: enabled);
+      final nextServices = [...cur.aiServices];
+      nextServices[idx] = nextServices[idx].copyWith(enabled: enabled);
 
-    String? nextDefaultId = cur.defaultAiServiceId;
-    if (!enabled && nextDefaultId == serviceId) {
-      nextDefaultId = null;
-      for (final s in nextServices) {
-        if (s.enabled) {
-          nextDefaultId = s.id;
-          break;
+      String? nextDefaultId = cur.defaultAiServiceId;
+      if (!enabled && nextDefaultId == serviceId) {
+        nextDefaultId = null;
+        for (final s in nextServices) {
+          if (s.enabled) {
+            nextDefaultId = s.id;
+            break;
+          }
         }
       }
-    }
 
-    String? nextSummaryServiceId = cur.aiSummaryServiceId;
-    if (!enabled && nextSummaryServiceId == serviceId) {
-      nextSummaryServiceId = null;
-    }
+      String? nextSummaryServiceId = cur.aiSummaryServiceId;
+      if (!enabled && nextSummaryServiceId == serviceId) {
+        nextSummaryServiceId = null;
+      }
 
-    var nextProvider = cur.translationProvider;
-    if (!enabled &&
-        nextProvider.kind == TranslationProviderKind.aiService &&
-        nextProvider.aiServiceId == serviceId) {
-      nextProvider = const TranslationProviderSelection.googleWeb();
-    }
+      var nextProvider = cur.translationProvider;
+      if (!enabled &&
+          nextProvider.kind == TranslationProviderKind.aiService &&
+          nextProvider.aiServiceId == serviceId) {
+        nextProvider = const TranslationProviderSelection.googleWeb();
+      }
 
-    await _saveQuietly(
-      cur.copyWith(
-        aiServices: nextServices,
-        defaultAiServiceId: nextDefaultId,
-        aiSummaryServiceId: nextSummaryServiceId,
-        translationProvider: nextProvider,
-      ),
-    );
+      await _saveQuietly(
+        cur.copyWith(
+          aiServices: nextServices,
+          defaultAiServiceId: nextDefaultId,
+          aiSummaryServiceId: nextSummaryServiceId,
+          translationProvider: nextProvider,
+        ),
+      );
+    });
   }
 
-  Future<void> setDefaultAiService(String serviceId) async {
-    final cur = state.valueOrNull ?? await future;
-    final idx = cur.aiServices.indexWhere((s) => s.id == serviceId);
-    if (idx < 0) return;
+  Future<void> setDefaultAiService(String serviceId) {
+    return _serializeMutation(() async {
+      final cur = state.valueOrNull ?? await future;
+      final idx = cur.aiServices.indexWhere((s) => s.id == serviceId);
+      if (idx < 0) return;
 
-    final nextServices = [...cur.aiServices];
-    final target = nextServices[idx];
-    if (!target.enabled) {
-      nextServices[idx] = target.copyWith(enabled: true);
-    }
+      final nextServices = [...cur.aiServices];
+      final target = nextServices[idx];
+      if (!target.enabled) {
+        nextServices[idx] = target.copyWith(enabled: true);
+      }
 
-    await _saveQuietly(
-      cur.copyWith(aiServices: nextServices, defaultAiServiceId: serviceId),
-    );
+      await _saveQuietly(
+        cur.copyWith(aiServices: nextServices, defaultAiServiceId: serviceId),
+      );
+    });
   }
 
-  Future<void> deleteAiService(String serviceId) async {
-    final cur = state.valueOrNull ?? await future;
-    final exists = cur.aiServices.any((s) => s.id == serviceId);
-    if (!exists) return;
+  Future<void> deleteAiService(String serviceId) {
+    return _serializeMutation(() async {
+      final cur = state.valueOrNull ?? await future;
+      final serviceIndex = cur.aiServices.indexWhere((s) => s.id == serviceId);
+      if (serviceIndex < 0) return;
+      final service = cur.aiServices[serviceIndex];
 
-    final remaining = cur.aiServices.where((s) => s.id != serviceId).toList();
+      final remaining = cur.aiServices.where((s) => s.id != serviceId).toList();
 
-    String? nextDefaultId = cur.defaultAiServiceId;
-    if (nextDefaultId == serviceId) {
-      nextDefaultId = null;
-      for (final s in remaining) {
-        if (s.enabled) {
-          nextDefaultId = s.id;
-          break;
+      String? nextDefaultId = cur.defaultAiServiceId;
+      if (nextDefaultId == serviceId) {
+        nextDefaultId = null;
+        for (final s in remaining) {
+          if (s.enabled) {
+            nextDefaultId = s.id;
+            break;
+          }
         }
       }
-    }
 
-    String? nextSummaryServiceId = cur.aiSummaryServiceId;
-    if (nextSummaryServiceId == serviceId) {
-      nextSummaryServiceId = null;
-    }
+      String? nextSummaryServiceId = cur.aiSummaryServiceId;
+      if (nextSummaryServiceId == serviceId) {
+        nextSummaryServiceId = null;
+      }
 
-    var nextProvider = cur.translationProvider;
-    if (nextProvider.kind == TranslationProviderKind.aiService &&
-        nextProvider.aiServiceId == serviceId) {
-      nextProvider = const TranslationProviderSelection.googleWeb();
-    }
+      var nextProvider = cur.translationProvider;
+      if (nextProvider.kind == TranslationProviderKind.aiService &&
+          nextProvider.aiServiceId == serviceId) {
+        nextProvider = const TranslationProviderSelection.googleWeb();
+      }
 
-    await _saveQuietly(
-      cur.copyWith(
+      final next = cur.copyWith(
         aiServices: remaining,
         defaultAiServiceId: nextDefaultId,
         aiSummaryServiceId: nextSummaryServiceId,
         translationProvider: nextProvider,
-      ),
-    );
+      );
+      try {
+        // Deleting the secret is deliberately after the durable settings write;
+        // otherwise a failed write leaves a resurrected service without a key.
+        await save(next);
+      } catch (e, s) {
+        state = AsyncValue.data(cur);
+        _logAiSettingsFailure(
+          operation: 'deleteAiService',
+          serviceId: serviceId,
+          apiType: service.apiType,
+          enabled: service.enabled,
+          error: e,
+          stackTrace: s,
+        );
+        rethrow;
+      }
 
-    await ref
-        .read(translationAiSecretStoreProvider)
-        .deleteAiServiceApiKey(serviceId);
+      await ref
+          .read(translationAiSecretStoreProvider)
+          .deleteAiServiceApiKey(serviceId);
+    });
+  }
+
+  Future<void> _updateQuietly(
+    TranslationAiSettings Function(TranslationAiSettings current) update,
+  ) {
+    return _serializeMutation(() async {
+      final cur = state.valueOrNull ?? await future;
+      await _saveQuietly(update(cur));
+    });
+  }
+
+  Future<T> _serializeMutation<T>(Future<T> Function() mutation) {
+    if (Zone.current[_mutationZoneKey] == true) return mutation();
+
+    final completer = Completer<T>();
+    _mutationTail = _mutationTail.then((_) async {
+      try {
+        final result = await runZoned(
+          mutation,
+          zoneValues: <Object, Object?>{_mutationZoneKey: true},
+        );
+        completer.complete(result);
+      } catch (error, stackTrace) {
+        completer.completeError(error, stackTrace);
+      }
+    });
+    return completer.future;
   }
 
   String _newServiceId() {

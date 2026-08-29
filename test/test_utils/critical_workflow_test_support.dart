@@ -115,9 +115,10 @@ class FakeReaderSettingsStore implements ReaderSettingsStore {
 }
 
 class FakeTranslationAiSettingsStore implements TranslationAiSettingsStore {
-  FakeTranslationAiSettingsStore(this.settings);
+  FakeTranslationAiSettingsStore(this.settings, {this.throwOnSave = false});
 
   TranslationAiSettings settings;
+  bool throwOnSave;
   int saveCount = 0;
 
   @override
@@ -126,6 +127,7 @@ class FakeTranslationAiSettingsStore implements TranslationAiSettingsStore {
   @override
   Future<void> save(TranslationAiSettings next) async {
     saveCount++;
+    if (throwOnSave) throw Exception('settings write failed');
     settings = next;
   }
 }
