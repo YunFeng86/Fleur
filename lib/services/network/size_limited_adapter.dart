@@ -51,6 +51,7 @@ class SizeLimitedHttpClientAdapter implements HttpClientAdapter {
     // The getter parses Content-Length and returns -1 when unspecified.
     final declared = body.contentLength;
     if (declared > 0 && declared > maxBytes) {
+      await _cancelStream(body.stream);
       throw _tooLarge(options);
     }
 
@@ -68,14 +69,10 @@ class SizeLimitedHttpClientAdapter implements HttpClientAdapter {
         },
       ),
     );
-    return ResponseBody(
-      capped,
-      body.statusCode,
-      headers: body.headers,
-      statusMessage: body.statusMessage,
-      isRedirect: body.isRedirect,
-      redirects: body.redirects,
-    );
+    // Preserve the transport's close callback and response metadata. Creating
+    // a new ResponseBody here would detach both from dio's response lifecycle.
+    body.stream = capped;
+    return body;
   }
 
   DioException _tooLarge(RequestOptions options) {
@@ -90,5 +87,14 @@ class SizeLimitedHttpClientAdapter implements HttpClientAdapter {
   @override
   void close({bool force = false}) {
     _inner.close(force: force);
+  }
+
+  Future<void> _cancelStream(Stream<Uint8List> stream) async {
+    try {
+      await stream.listen(null).cancel();
+    } catch (_) {
+      // The adapter still reports the size violation if cancellation is not
+      // supported by a custom transport.
+    }
   }
 }

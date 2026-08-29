@@ -12,18 +12,24 @@ void main() {
 
   ResponseBody bodyOf(
     List<int> bytes, {
+    int statusCode = 200,
     int? contentLength,
     String? contentType,
+    void Function()? onClose,
+    Map<String, Object?> extra = const {},
   }) {
-    return ResponseBody(
+    final body = ResponseBody(
       Stream<Uint8List>.value(Uint8List.fromList(bytes)),
-      200,
+      statusCode,
+      onClose: onClose,
       headers: {
         if (contentType != null) Headers.contentTypeHeader: [contentType],
         if (contentLength != null)
           Headers.contentLengthHeader: ['$contentLength'],
       },
     );
+    body.extra.addAll(extra);
+    return body;
   }
 
   test('responses within the limit pass through and decode as json', () async {
@@ -55,6 +61,52 @@ void main() {
       options: Options(responseType: ResponseType.plain),
     );
     expect(response.data, contains('hello'));
+  });
+
+  test('preserves transport metadata on responses within the limit', () async {
+    final dio = createAppDio(
+      maxResponseBytes: 1024,
+      adapter: _FixedAdapter(
+        (options) async => bodyOf(
+          utf8.encode('ok'),
+          contentType: 'text/plain',
+          extra: {HttpClientAdapter.extraKeyHttpVersion: 'HTTP/2'},
+        ),
+      ),
+    );
+    addTearDown(dio.close);
+
+    final response = await dio.getUri<String>(
+      uri('/metadata'),
+      options: Options(responseType: ResponseType.plain),
+    );
+
+    expect(response.extra[HttpClientAdapter.extraKeyHttpVersion], 'HTTP/2');
+  });
+
+  test('preserves the transport close callback', () async {
+    var closed = false;
+    final dio = createAppDio(
+      maxResponseBytes: 1024,
+      adapter: _FixedAdapter(
+        (options) async => bodyOf(
+          utf8.encode('rejected'),
+          statusCode: 500,
+          onClose: () => closed = true,
+        ),
+      ),
+    );
+    addTearDown(dio.close);
+
+    await expectLater(
+      dio.getUri<Object?>(
+        uri('/rejected'),
+        options: Options(receiveDataWhenStatusError: false),
+      ),
+      throwsA(isA<DioException>()),
+    );
+
+    expect(closed, isTrue);
   });
 
   test(
