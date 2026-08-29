@@ -924,10 +924,16 @@ Future<String?> showAddGoogleReaderAccountDialog(
       setState(() {
         submitting = false;
         if (e is GoogleReaderProbeException) {
-          baseUrlError = e.message;
+          baseUrlError = l10n.googleReaderConnectionFailed;
         }
       });
-      dialogContext.showSnack(l10n.errorMessage(e.toString()));
+      dialogContext.showSnack(
+        l10n.errorMessage(
+          e is GoogleReaderProbeException
+              ? l10n.googleReaderConnectionFailed
+              : e.toString(),
+        ),
+      );
     }
   }
 
@@ -1200,12 +1206,10 @@ Future<void> showEditGoogleReaderAccountDialog(
         stackTrace: s,
       );
       if (!dialogContext.mounted) return null;
-      final message = e is GoogleReaderProbeException
-          ? e.message
-          : l10n.googleReaderConnectionFailed;
+      final message = l10n.googleReaderConnectionFailed;
       setState(() {
         if (e is GoogleReaderProbeException) {
-          baseUrlError = e.message;
+          baseUrlError = message;
         }
         statusMessage = message;
         statusOk = false;
