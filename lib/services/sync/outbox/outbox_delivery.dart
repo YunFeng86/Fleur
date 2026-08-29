@@ -1,7 +1,10 @@
+import '../../logging/app_logger.dart';
+import '../remote_article_action_executor.dart';
 import '../sync_mutex.dart';
 import 'outbox_store.dart';
 
-typedef OutboxActionApplier = Future<bool> Function(OutboxAction action);
+typedef OutboxActionApplier =
+    Future<RemoteActionDisposition> Function(OutboxAction action);
 typedef OutboxActionErrorHandler =
     void Function(OutboxAction action, Object error, StackTrace stackTrace);
 
@@ -16,16 +19,23 @@ class OutboxBatching {
   final int maxSize;
   final bool Function(OutboxAction action) isBatchable;
   final bool Function(OutboxAction first, OutboxAction next) isCompatible;
-  final Future<bool> Function(List<OutboxAction> actions) apply;
+  final Future<RemoteActionDisposition> Function(List<OutboxAction> actions)
+  apply;
 }
 
-/// Delivers a stable outbox snapshot and acknowledges successful actions
+/// Delivers a stable outbox snapshot and acknowledges settled actions
 /// against the latest persisted queue.
 ///
 /// Remote calls intentionally run without the store lock, so UI actions can be
 /// enqueued while a slow flush is in progress. [OutboxStore.acknowledge] merges
 /// successful delivery into the latest queue instead of saving the old
 /// snapshot over newly queued intents.
+///
+/// Actions the executor reports as [RemoteActionDisposition.rejected] can
+/// never be delivered (e.g. missing remote identifiers or a deleted remote
+/// scope); they are acknowledged off the queue with a warning so the pending
+/// count can settle at zero instead of retrying forever. Thrown errors and
+/// [RemoteActionDisposition.transient] results keep the action queued.
 class OutboxDelivery {
   const OutboxDelivery(this._store);
 
@@ -41,28 +51,57 @@ class OutboxDelivery {
       final pending = await _store.load(accountId);
       if (pending.isEmpty) return;
 
-      final delivered = <OutboxAction>[];
+      final acknowledged = <OutboxAction>[];
+      final rejected = <OutboxAction>[];
       var index = 0;
       while (index < pending.length) {
         final action = pending[index];
         final batch = _compatibleBatch(pending, index, batching);
         if (batch != null) {
           if (await _tryApplyBatch(batch, batching!)) {
-            delivered.addAll(batch);
+            acknowledged.addAll(batch);
           } else {
             for (final item in batch) {
-              await _tryApply(item, apply, delivered, onActionError);
+              await _tryApply(
+                item,
+                apply,
+                acknowledged,
+                rejected,
+                onActionError,
+              );
             }
           }
           index += batch.length;
           continue;
         }
 
-        await _tryApply(action, apply, delivered, onActionError);
+        await _tryApply(action, apply, acknowledged, rejected, onActionError);
         index += 1;
       }
 
-      await _store.acknowledge(accountId, delivered);
+      if (rejected.isNotEmpty) {
+        AppLogger.w(
+          'Outbox dropped permanently undeliverable actions',
+          tag: 'sync',
+          context: <String, Object?>{
+            'operation': 'outboxFlush',
+            'accountId': accountId,
+            'dropped': rejected.length,
+            'actions': [
+              for (final action in rejected)
+                {
+                  'type': action.type.name,
+                  'remoteEntryId': action.remoteEntryId,
+                  'remoteEntryKey': action.remoteEntryKey,
+                  'feedUrl': action.feedUrl,
+                  'categoryTitle': action.categoryTitle,
+                },
+            ],
+          },
+        );
+      }
+
+      await _store.acknowledge(accountId, acknowledged);
     });
   }
 
@@ -90,7 +129,7 @@ class OutboxDelivery {
     OutboxBatching batching,
   ) async {
     try {
-      return await batching.apply(batch);
+      return await batching.apply(batch) == RemoteActionDisposition.delivered;
     } catch (_) {
       // Fall back to individual delivery so one bad item cannot block a batch.
       return false;
@@ -100,11 +139,21 @@ class OutboxDelivery {
   static Future<void> _tryApply(
     OutboxAction action,
     OutboxActionApplier apply,
-    List<OutboxAction> delivered,
+    List<OutboxAction> acknowledged,
+    List<OutboxAction> rejected,
     OutboxActionErrorHandler? onActionError,
   ) async {
     try {
-      if (await apply(action)) delivered.add(action);
+      final disposition = await apply(action);
+      switch (disposition) {
+        case RemoteActionDisposition.delivered:
+          acknowledged.add(action);
+        case RemoteActionDisposition.rejected:
+          acknowledged.add(action);
+          rejected.add(action);
+        case RemoteActionDisposition.transient:
+          break;
+      }
     } catch (error, stackTrace) {
       onActionError?.call(action, error, stackTrace);
     }

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:fleur/services/sync/outbox/outbox_delivery.dart';
 import 'package:fleur/services/sync/outbox/outbox_store.dart';
+import 'package:fleur/services/sync/remote_article_action_executor.dart';
 import 'package:fleur/utils/path_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
@@ -76,7 +77,7 @@ void main() {
         apply: (action) async {
           started.complete();
           await release.future;
-          return true;
+          return RemoteActionDisposition.delivered;
         },
       );
       await started.future;
@@ -92,30 +93,77 @@ void main() {
     },
   );
 
-  test('flush acknowledges successes and retains rejected actions', () async {
-    const accountId = 'delivery-partial';
+  test(
+    'flush acknowledges delivered and permanently rejected actions, keeps transient ones',
+    () async {
+      const accountId = 'delivery-partial';
+      final store = OutboxStore();
+      final delivered = OutboxAction(
+        type: OutboxActionType.markRead,
+        remoteEntryId: 1,
+        value: true,
+        createdAt: DateTime.utc(2026, 7, 21, 10),
+      );
+      final rejected = OutboxAction(
+        type: OutboxActionType.bookmark,
+        remoteEntryId: 2,
+        value: true,
+        createdAt: DateTime.utc(2026, 7, 21, 10, 0, 1),
+      );
+      final transient = OutboxAction(
+        type: OutboxActionType.markRead,
+        remoteEntryId: 3,
+        value: true,
+        createdAt: DateTime.utc(2026, 7, 21, 10, 0, 2),
+      );
+      await store.save(accountId, <OutboxAction>[
+        delivered,
+        rejected,
+        transient,
+      ]);
+
+      await OutboxDelivery(store).flush(
+        accountId: accountId,
+        apply: (action) => Future.value(
+          action.remoteEntryId == 1
+              ? RemoteActionDisposition.delivered
+              : action.remoteEntryId == 2
+              ? RemoteActionDisposition.rejected
+              : RemoteActionDisposition.transient,
+        ),
+      );
+
+      // Rejected actions can never be delivered, so they leave the queue
+      // instead of retrying forever; transient ones stay for a later flush.
+      final pending = await store.load(accountId);
+      expect(pending, hasLength(1));
+      expect(pending.single.remoteEntryId, 3);
+    },
+  );
+
+  test('flush keeps actions whose applier throws', () async {
+    const accountId = 'delivery-throwing';
     final store = OutboxStore();
-    final delivered = OutboxAction(
+    final action = OutboxAction(
       type: OutboxActionType.markRead,
-      remoteEntryId: 1,
+      remoteEntryId: 9,
       value: true,
       createdAt: DateTime.utc(2026, 7, 21, 10),
     );
-    final rejected = OutboxAction(
-      type: OutboxActionType.bookmark,
-      remoteEntryId: 2,
-      value: true,
-      createdAt: DateTime.utc(2026, 7, 21, 10, 0, 1),
-    );
-    await store.save(accountId, <OutboxAction>[delivered, rejected]);
+    await store.enqueue(accountId, action);
 
+    var errorReported = false;
     await OutboxDelivery(store).flush(
       accountId: accountId,
-      apply: (action) async => action.remoteEntryId == 1,
+      apply: (action) async => throw StateError('network down'),
+      onActionError: (action, error, stackTrace) {
+        errorReported = true;
+      },
     );
 
+    expect(errorReported, isTrue);
     final pending = await store.load(accountId);
     expect(pending, hasLength(1));
-    expect(pending.single.remoteEntryId, 2);
+    expect(pending.single.remoteEntryId, 9);
   });
 }

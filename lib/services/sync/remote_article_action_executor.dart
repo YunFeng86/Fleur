@@ -3,8 +3,23 @@ import 'google_reader/google_reader_client.dart';
 import 'miniflux/miniflux_client.dart';
 import 'outbox/outbox_store.dart';
 
+/// Outcome of applying an outbox action on the remote backend.
+enum RemoteActionDisposition {
+  /// The remote backend accepted the action.
+  delivered,
+
+  /// The action can never be applied (missing remote identifiers, deleted
+  /// feed/category scope, malformed legacy payload); the queue should drop
+  /// it instead of retrying forever.
+  rejected,
+
+  /// Not applied now but may succeed later (e.g. eventual-consistency
+  /// verification failure); the queue should keep it.
+  transient,
+}
+
 abstract class RemoteArticleActionExecutor {
-  Future<bool> apply(OutboxAction action);
+  Future<RemoteActionDisposition> apply(OutboxAction action);
 }
 
 class MinifluxRemoteArticleActionExecutor
@@ -17,25 +32,34 @@ class MinifluxRemoteArticleActionExecutor
   Map<String, int>? _categoryTitleToRemoteId;
 
   @override
-  Future<bool> apply(OutboxAction action) async {
+  Future<RemoteActionDisposition> apply(OutboxAction action) async {
     switch (action.type) {
       case OutboxActionType.markRead:
         final entryId = _remoteEntryInt(action);
         final value = action.value;
-        if (entryId == null || value == null) return false;
+        if (entryId == null || value == null) {
+          return RemoteActionDisposition.rejected;
+        }
         await _client.setEntriesStatus([
           entryId,
         ], status: value ? 'read' : 'unread');
-        return true;
+        return RemoteActionDisposition.delivered;
       case OutboxActionType.bookmark:
         final entryId = _remoteEntryInt(action);
         final value = action.value;
-        if (entryId == null || value == null) return false;
+        if (entryId == null || value == null) {
+          return RemoteActionDisposition.rejected;
+        }
         await _client.setBookmarkState(entryId, value);
-        return true;
+        return RemoteActionDisposition.delivered;
       case OutboxActionType.markAllRead:
-        await _markAllRead(action);
-        return true;
+        try {
+          await _markAllRead(action);
+        } on StateError {
+          // The remote feed/category backing this scope no longer exists.
+          return RemoteActionDisposition.rejected;
+        }
+        return RemoteActionDisposition.delivered;
     }
   }
 
@@ -119,23 +143,32 @@ class FeverRemoteArticleActionExecutor implements RemoteArticleActionExecutor {
   Map<String, int>? _groupTitleToRemoteId;
 
   @override
-  Future<bool> apply(OutboxAction action) async {
+  Future<RemoteActionDisposition> apply(OutboxAction action) async {
     switch (action.type) {
       case OutboxActionType.markRead:
         final entryId = _remoteEntryInt(action);
         final value = action.value;
-        if (entryId == null || value == null) return false;
+        if (entryId == null || value == null) {
+          return RemoteActionDisposition.rejected;
+        }
         await _client.markItemRead(entryId, read: value);
-        return true;
+        return RemoteActionDisposition.delivered;
       case OutboxActionType.bookmark:
         final entryId = _remoteEntryInt(action);
         final value = action.value;
-        if (entryId == null || value == null) return false;
+        if (entryId == null || value == null) {
+          return RemoteActionDisposition.rejected;
+        }
         await _client.markItemSaved(entryId, saved: value);
-        return true;
+        return RemoteActionDisposition.delivered;
       case OutboxActionType.markAllRead:
-        await _markAllRead(action);
-        return true;
+        try {
+          await _markAllRead(action);
+        } on StateError {
+          // The remote feed/group backing this scope no longer exists.
+          return RemoteActionDisposition.rejected;
+        }
+        return RemoteActionDisposition.delivered;
     }
   }
 
@@ -231,48 +264,56 @@ class GoogleReaderRemoteArticleActionExecutor
   final GoogleReaderClient _client;
 
   @override
-  Future<bool> apply(OutboxAction action) async {
+  Future<RemoteActionDisposition> apply(OutboxAction action) async {
     switch (action.type) {
       case OutboxActionType.markRead:
         final itemId = action.remoteEntryKey;
         final value = action.value;
-        if (itemId == null || value == null) return false;
+        if (itemId == null || value == null) {
+          return RemoteActionDisposition.rejected;
+        }
         await _client.editTag(
           itemId: itemId,
           add: value ? const [readState] : const [],
           remove: value ? const [] : const [readState],
         );
-        return true;
+        return RemoteActionDisposition.delivered;
       case OutboxActionType.bookmark:
         final itemId = action.remoteEntryKey;
         final value = action.value;
-        if (itemId == null || value == null) return false;
+        if (itemId == null || value == null) {
+          return RemoteActionDisposition.rejected;
+        }
         await _client.editTag(
           itemId: itemId,
           add: value ? const [starredState] : const [],
           remove: value ? const [] : const [starredState],
         );
-        return true;
+        return RemoteActionDisposition.delivered;
       case OutboxActionType.markAllRead:
         return _markAllRead(action);
     }
   }
 
-  Future<bool> applyBatch(Iterable<OutboxAction> actions) async {
+  Future<RemoteActionDisposition> applyBatch(
+    Iterable<OutboxAction> actions,
+  ) async {
     final list = actions.toList(growable: false);
-    if (list.isEmpty) return true;
+    if (list.isEmpty) return RemoteActionDisposition.delivered;
     final first = list.first;
-    if (!isBatchable(first)) return false;
+    if (!isBatchable(first)) return RemoteActionDisposition.rejected;
     final value = first.value;
     final ids = <String>[];
     for (final action in list) {
       if (!isBatchable(action) ||
           action.type != first.type ||
           action.value != value) {
-        return false;
+        return RemoteActionDisposition.rejected;
       }
       final itemId = action.remoteEntryKey?.trim();
-      if (itemId == null || itemId.isEmpty) return false;
+      if (itemId == null || itemId.isEmpty) {
+        return RemoteActionDisposition.rejected;
+      }
       ids.add(itemId);
     }
     final state = first.type == OutboxActionType.markRead
@@ -283,20 +324,27 @@ class GoogleReaderRemoteArticleActionExecutor
       add: value == true ? [state] : const [],
       remove: value == true ? const [] : [state],
     );
-    return true;
+    return RemoteActionDisposition.delivered;
   }
 
-  Future<bool> _markAllRead(OutboxAction action) async {
+  Future<RemoteActionDisposition> _markAllRead(OutboxAction action) async {
     final streamId = _streamIdForMarkAllRead(action);
-    if (streamId == null || streamId.isEmpty) return false;
+    if (streamId == null || streamId.isEmpty) {
+      return RemoteActionDisposition.rejected;
+    }
     await _client.markAllAsRead(streamId: streamId, before: action.createdAt);
-    if (!_client.profile.verifyMarkAllAsRead) return true;
+    if (!_client.profile.verifyMarkAllAsRead) {
+      return RemoteActionDisposition.delivered;
+    }
     final unread = await _client.streamItemIds(
       streamId: streamId,
       count: 1,
       excludeState: readState,
     );
-    return unread.itemIds.isEmpty;
+    // Verification may fail due to eventual consistency; retry later.
+    return unread.itemIds.isEmpty
+        ? RemoteActionDisposition.delivered
+        : RemoteActionDisposition.transient;
   }
 
   static bool isBatchable(OutboxAction action) {

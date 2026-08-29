@@ -26,7 +26,7 @@ void main() {
         ),
       );
 
-      expect(applied, isTrue);
+      expect(applied, RemoteActionDisposition.delivered);
       expect(requests, hasLength(1));
       expect(requests.single.method, 'PUT');
       expect(requests.single.path, '/v1/entries');
@@ -52,7 +52,7 @@ void main() {
           ),
         );
 
-        expect(applied, isTrue);
+        expect(applied, RemoteActionDisposition.delivered);
         final payload = requests.single.data as Map<String, Object?>;
         expect(payload['entry_ids'], [42]);
       },
@@ -73,7 +73,7 @@ void main() {
         ),
       );
 
-      expect(applied, isFalse);
+      expect(applied, RemoteActionDisposition.rejected);
       expect(requests, isEmpty);
     });
 
@@ -92,7 +92,7 @@ void main() {
         ),
       );
 
-      expect(applied, isTrue);
+      expect(applied, RemoteActionDisposition.delivered);
       expect(requests.map((request) => '${request.method} ${request.path}'), [
         'GET /v1/entries/42',
         'PUT /v1/entries/42/bookmark',
@@ -121,14 +121,14 @@ void main() {
         ),
       );
 
-      expect(applied, isTrue);
+      expect(applied, RemoteActionDisposition.delivered);
       expect(requests.map((request) => '${request.method} ${request.path}'), [
         'GET /v1/feeds',
         'PUT /v1/feeds/7/mark-all-as-read',
       ]);
     });
 
-    test('returns false for malformed entry-level action', () async {
+    test('rejects malformed entry-level action', () async {
       final requests = <_RecordedRequest>[];
       final executor = MinifluxRemoteArticleActionExecutor(
         _minifluxClient(_minifluxDio(requests)),
@@ -138,27 +138,26 @@ void main() {
         OutboxAction(type: OutboxActionType.markRead, createdAt: now),
       );
 
-      expect(applied, isFalse);
+      expect(applied, RemoteActionDisposition.rejected);
       expect(requests, isEmpty);
     });
 
-    test('throws when markAllRead feed scope cannot be resolved', () async {
+    test('rejects markAllRead when feed scope cannot be resolved', () async {
       final requests = <_RecordedRequest>[];
       final executor = MinifluxRemoteArticleActionExecutor(
         _minifluxClient(_minifluxDio(requests, feeds: const [])),
       );
 
-      await expectLater(
-        executor.apply(
-          OutboxAction(
-            type: OutboxActionType.markAllRead,
-            feedUrl: 'https://missing.example.com/feed.xml',
-            value: true,
-            createdAt: now,
-          ),
+      final applied = await executor.apply(
+        OutboxAction(
+          type: OutboxActionType.markAllRead,
+          feedUrl: 'https://missing.example.com/feed.xml',
+          value: true,
+          createdAt: now,
         ),
-        throwsStateError,
       );
+
+      expect(applied, RemoteActionDisposition.rejected);
     });
   });
 
@@ -178,7 +177,7 @@ void main() {
             createdAt: now,
           ),
         ),
-        isTrue,
+        RemoteActionDisposition.delivered,
       );
       expect(
         await executor.apply(
@@ -189,7 +188,7 @@ void main() {
             createdAt: now,
           ),
         ),
-        isTrue,
+        RemoteActionDisposition.delivered,
       );
 
       expect(requests, hasLength(2));
@@ -218,7 +217,7 @@ void main() {
               createdAt: now,
             ),
           ),
-          isTrue,
+          RemoteActionDisposition.delivered,
         );
 
         expect(requests.single.query, contains('mark=item'));
@@ -250,7 +249,7 @@ void main() {
               createdAt: now,
             ),
           ),
-          isTrue,
+          RemoteActionDisposition.delivered,
         );
 
         final groupExecutor = FeverRemoteArticleActionExecutor(
@@ -273,7 +272,7 @@ void main() {
               createdAt: now,
             ),
           ),
-          isTrue,
+          RemoteActionDisposition.delivered,
         );
 
         final beforeSeconds = (now.toUtc().millisecondsSinceEpoch ~/ 1000)
@@ -289,7 +288,7 @@ void main() {
       },
     );
 
-    test('returns false for malformed entry-level action', () async {
+    test('rejects malformed entry-level action', () async {
       final requests = <_RecordedRequest>[];
       final executor = FeverRemoteArticleActionExecutor(
         _feverClient(_feverDio(requests)),
@@ -299,27 +298,26 @@ void main() {
         OutboxAction(type: OutboxActionType.bookmark, createdAt: now),
       );
 
-      expect(applied, isFalse);
+      expect(applied, RemoteActionDisposition.rejected);
       expect(requests, isEmpty);
     });
 
-    test('throws when markAllRead group scope cannot be resolved', () async {
+    test('rejects markAllRead when group scope cannot be resolved', () async {
       final requests = <_RecordedRequest>[];
       final executor = FeverRemoteArticleActionExecutor(
         _feverClient(_feverDio(requests, groups: const [])),
       );
 
-      await expectLater(
-        executor.apply(
-          OutboxAction(
-            type: OutboxActionType.markAllRead,
-            categoryTitle: 'Missing',
-            value: true,
-            createdAt: now,
-          ),
+      final applied = await executor.apply(
+        OutboxAction(
+          type: OutboxActionType.markAllRead,
+          categoryTitle: 'Missing',
+          value: true,
+          createdAt: now,
         ),
-        throwsStateError,
       );
+
+      expect(applied, RemoteActionDisposition.rejected);
     });
 
     test(
@@ -346,7 +344,7 @@ void main() {
               createdAt: now,
             ),
           ),
-          isTrue,
+          RemoteActionDisposition.delivered,
         );
 
         expect(requests, hasLength(2));
@@ -379,7 +377,7 @@ void main() {
         ),
       ]);
 
-      expect(applied, isTrue);
+      expect(applied, RemoteActionDisposition.delivered);
       expect(requests.map((request) => '${request.method} ${request.path}'), [
         'GET /reader/api/0/token',
         'POST /reader/api/0/edit-tag',
@@ -390,7 +388,7 @@ void main() {
     });
 
     test(
-      'markAllRead returns false when verification still finds unread ids',
+      'markAllRead stays transient when verification still finds unread ids',
       () async {
         final requests = <_RecordedRequest>[];
         final executor = GoogleReaderRemoteArticleActionExecutor(
@@ -408,7 +406,7 @@ void main() {
           ),
         );
 
-        expect(applied, isFalse);
+        expect(applied, RemoteActionDisposition.transient);
         expect(requests.map((request) => '${request.method} ${request.path}'), [
           'GET /reader/api/0/token',
           'POST /reader/api/0/mark-all-as-read',
@@ -438,7 +436,7 @@ void main() {
         ),
       ]);
 
-      expect(applied, isFalse);
+      expect(applied, RemoteActionDisposition.rejected);
       expect(requests, isEmpty);
     });
   });
