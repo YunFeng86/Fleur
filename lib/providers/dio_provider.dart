@@ -2,7 +2,12 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-Dio createAppDio() {
+import '../services/network/size_limited_adapter.dart';
+
+Dio createAppDio({
+  int maxResponseBytes = SizeLimitedHttpClientAdapter.defaultMaxBytes,
+  HttpClientAdapter? adapter,
+}) {
   final dio = Dio(
     BaseOptions(
       connectTimeout: const Duration(seconds: 10),
@@ -11,6 +16,10 @@ Dio createAppDio() {
       followRedirects: true,
       maxRedirects: 5,
     ),
+  );
+  dio.httpClientAdapter = SizeLimitedHttpClientAdapter(
+    inner: adapter ?? dio.httpClientAdapter,
+    maxBytes: maxResponseBytes,
   );
   if (kDebugMode) {
     dio.interceptors.add(
