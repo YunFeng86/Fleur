@@ -176,9 +176,7 @@ class GoogleReaderClient {
       ], queryParameters: _jsonQueryParameters()),
       options: _jsonOptions,
     );
-    final data = resp.data;
-    if (data is! Map) return const <String, Object?>{};
-    return data.cast<String, Object?>();
+    return _responseMap(resp.data, context: 'user info');
   }
 
   Future<List<Map<String, Object?>>> subscriptionList() async {
@@ -190,14 +188,11 @@ class GoogleReaderClient {
       ], queryParameters: _jsonQueryParameters()),
       options: _jsonOptions,
     );
-    final data = resp.data;
-    if (data is! Map) return const [];
-    final subscriptions = data['subscriptions'];
-    if (subscriptions is! List) return const [];
-    return subscriptions
-        .whereType<Map>()
-        .map((item) => item.cast<String, Object?>())
-        .toList(growable: false);
+    return _responseMapList(
+      resp.data,
+      field: 'subscriptions',
+      context: 'subscriptions',
+    );
   }
 
   Future<List<Map<String, Object?>>> tagList() async {
@@ -209,14 +204,7 @@ class GoogleReaderClient {
       ], queryParameters: _jsonQueryParameters()),
       options: _jsonOptions,
     );
-    final data = resp.data;
-    if (data is! Map) return const [];
-    final tags = data['tags'];
-    if (tags is! List) return const [];
-    return tags
-        .whereType<Map>()
-        .map((item) => item.cast<String, Object?>())
-        .toList(growable: false);
+    return _responseMapList(resp.data, field: 'tags', context: 'tags');
   }
 
   Future<List<GoogleReaderUnreadCount>> unreadCounts() async {
@@ -227,15 +215,20 @@ class GoogleReaderClient {
       ], queryParameters: _jsonQueryParameters()),
       options: _jsonOptions,
     );
-    final data = resp.data;
-    if (data is! Map) return const [];
-    final counts = data['unreadcounts'];
-    if (counts is! List) return const [];
-    return counts
-        .whereType<Map>()
-        .map(_unreadCountFromMap)
-        .whereType<GoogleReaderUnreadCount>()
-        .toList(growable: false);
+    final counts = _responseMapList(
+      resp.data,
+      field: 'unreadcounts',
+      context: 'unread counts',
+    );
+    final result = <GoogleReaderUnreadCount>[];
+    for (final count in counts) {
+      final parsed = _unreadCountFromMap(count);
+      if (parsed == null) {
+        throw StateError('Unexpected Google Reader response for unread counts');
+      }
+      result.add(parsed);
+    }
+    return List.unmodifiable(result);
   }
 
   Future<GoogleReaderItemIdsPage> streamItemIds({
@@ -262,22 +255,29 @@ class GoogleReaderClient {
       ),
       options: _jsonOptions,
     );
-    final data = resp.data;
-    if (data is! Map) {
-      return const GoogleReaderItemIdsPage(itemIds: [], continuation: null);
+    final data = _responseMap(resp.data, context: 'stream item ids');
+    final refs = _mapListField(
+      data,
+      field: 'itemRefs',
+      context: 'stream item ids',
+    );
+    final ids = <String>[];
+    for (final item in refs) {
+      final id = _wireString(item['id']);
+      if (id == null || id.isEmpty) {
+        throw StateError(
+          'Unexpected Google Reader response for stream item ids',
+        );
+      }
+      ids.add(id);
     }
-    final refs = data['itemRefs'];
-    final ids = refs is List
-        ? refs
-              .whereType<Map>()
-              .map((item) => item['id']?.toString().trim())
-              .whereType<String>()
-              .where((id) => id.isNotEmpty)
-              .toList(growable: false)
-        : const <String>[];
-    final next = data['continuation']?.toString().trim();
+    final rawContinuation = data['continuation'];
+    final next = _wireString(rawContinuation);
+    if (rawContinuation != null && next == null) {
+      throw StateError('Unexpected Google Reader response for stream item ids');
+    }
     return GoogleReaderItemIdsPage(
-      itemIds: ids,
+      itemIds: List.unmodifiable(ids),
       continuation: next == null || next.isEmpty ? null : next,
     );
   }
@@ -297,14 +297,11 @@ class GoogleReaderClient {
       },
       options: _formOptions,
     );
-    final data = resp.data;
-    if (data is! Map) return const [];
-    final items = data['items'];
-    if (items is! List) return const [];
-    return items
-        .whereType<Map>()
-        .map((item) => item.cast<String, Object?>())
-        .toList(growable: false);
+    return _responseMapList(
+      resp.data,
+      field: 'items',
+      context: 'stream item contents',
+    );
   }
 
   Future<void> editTag({
@@ -375,15 +372,57 @@ class GoogleReaderClient {
         : const <String, Object?>{};
   }
 
+  static Map<String, Object?> _responseMap(
+    Object? data, {
+    required String context,
+  }) {
+    if (data is Map && data.keys.every((key) => key is String)) {
+      return data.cast<String, Object?>();
+    }
+    throw StateError('Unexpected Google Reader response for $context');
+  }
+
+  static List<Map<String, Object?>> _responseMapList(
+    Object? data, {
+    required String field,
+    required String context,
+  }) {
+    return _mapListField(
+      _responseMap(data, context: context),
+      field: field,
+      context: context,
+    );
+  }
+
+  static List<Map<String, Object?>> _mapListField(
+    Map<String, Object?> data, {
+    required String field,
+    required String context,
+  }) {
+    final value = data[field];
+    if (value is! List) {
+      throw StateError('Unexpected Google Reader response for $context');
+    }
+    final result = <Map<String, Object?>>[];
+    for (final item in value) {
+      if (item is! Map || item.keys.any((key) => key is! String)) {
+        throw StateError('Unexpected Google Reader response for $context');
+      }
+      result.add(item.cast<String, Object?>());
+    }
+    return List.unmodifiable(result);
+  }
+
   static GoogleReaderUnreadCount? _unreadCountFromMap(
     Map<Object?, Object?> raw,
   ) {
-    final id = raw['id']?.toString().trim();
+    final id = _wireString(raw['id']);
     if (id == null || id.isEmpty) return null;
     final count = _readInt(raw['count']);
+    if (count == null) return null;
     return GoogleReaderUnreadCount(
       id: id,
-      count: count ?? 0,
+      count: count,
       newestItemTimestampUsec: raw['newestItemTimestampUsec']?.toString(),
     );
   }
@@ -392,6 +431,19 @@ class GoogleReaderClient {
     if (value is int) return value;
     if (value is num) return value.isFinite ? value.toInt() : null;
     if (value is String) return int.tryParse(value.trim());
+    return null;
+  }
+
+  static String? _wireString(Object? value) {
+    if (value is String) {
+      final trimmed = value.trim();
+      return trimmed.isEmpty ? null : trimmed;
+    }
+    if (value is int) return value.toString();
+    if (value is num && value.isFinite) {
+      final integer = value.toInt();
+      if (value == integer) return integer.toString();
+    }
     return null;
   }
 

@@ -325,6 +325,7 @@ class GoogleReaderSyncService implements SyncServiceBase, OutboxFlushCapable {
     final byRemoteStreamId = <String, Feed>{};
     final byFeedUrl = <String, Feed>{};
     final settingsByLocalId = <int, EffectiveFeedSettings>{};
+    var subscriptionListTrustworthy = true;
     var processed = 0;
 
     for (final subscription in subscriptions) {
@@ -332,7 +333,10 @@ class GoogleReaderSyncService implements SyncServiceBase, OutboxFlushCapable {
       status?.update(current: processed, total: subscriptions.length);
       final remoteId = _stringValue(subscription['id']);
       final url = _feedUrlForSubscription(subscription);
-      if (remoteId == null || url == null) continue;
+      if (remoteId == null || url == null) {
+        subscriptionListTrustworthy = false;
+        continue;
+      }
 
       final category = await _primaryCategory(subscription);
       final result = await _feeds.upsertRemoteDetailed(
@@ -368,15 +372,18 @@ class GoogleReaderSyncService implements SyncServiceBase, OutboxFlushCapable {
     }
 
     final allowFeedProtectedOnlyPrune =
+        subscriptionListTrustworthy &&
         subscriptions.isNotEmpty &&
         seenFeedRemoteIds.isEmpty &&
         protectedFeedRemoteIds.isNotEmpty;
     await _feeds.deleteRemoteMissing(
-      seenFeedRemoteIds,
+      subscriptionListTrustworthy ? seenFeedRemoteIds : const <String>{},
       allowEmptyPrune: allowFeedProtectedOnlyPrune,
       protectedRemoteIds: protectedFeedRemoteIds,
     );
-    await _categories.deleteRemoteMissing(seenCategoryRemoteIds);
+    await _categories.deleteRemoteMissing(
+      subscriptionListTrustworthy ? seenCategoryRemoteIds : const <String>{},
+    );
 
     return _GoogleReaderFeedIndex(
       byLocalId: byLocalId,
@@ -645,8 +652,9 @@ class GoogleReaderSyncService implements SyncServiceBase, OutboxFlushCapable {
         excludeState: excludeState,
       );
       if (page.itemIds.isEmpty) {
-        // Empty page with a pending continuation: keep `complete` false so
-        // reconciliation never treats the missing remainder as read/unstarred.
+        // An empty page with a continuation is an incomplete/pathological
+        // response. An empty page without one is a valid empty terminal set.
+        complete = page.continuation == null || page.continuation!.isEmpty;
         break;
       }
       fetched += page.itemIds.length;

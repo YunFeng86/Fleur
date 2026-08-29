@@ -45,8 +45,29 @@ class MinifluxClient {
     Object? data, {
     required String context,
   }) {
-    if (data is Map) return data.cast<String, Object?>();
+    if (data is Map && data.keys.every((key) => key is String)) {
+      return data.cast<String, Object?>();
+    }
     throw StateError('Unexpected Miniflux response for $context');
+  }
+
+  Map<String, Object?> _readEntriesResponse(
+    Object? data, {
+    required String context,
+  }) {
+    final response = _readResponseMap(data, context: context);
+    final entries = response['entries'];
+    if (entries is! List ||
+        entries.any(
+          (entry) => entry is! Map || entry.keys.any((key) => key is! String),
+        )) {
+      throw StateError('Unexpected Miniflux response for $context');
+    }
+    final total = response['total'];
+    if (total != null && total is! int) {
+      throw StateError('Unexpected Miniflux response for $context');
+    }
+    return response;
   }
 
   Future<Map<String, Object?>> getEntry(int entryId) async {
@@ -59,26 +80,29 @@ class MinifluxClient {
 
   Future<List<Map<String, Object?>>> getCategories() async {
     final resp = await _dio.get('$_baseUrl/v1/categories', options: _options);
-    final data = resp.data;
-    if (data is List) {
-      return data
-          .whereType<Map>()
-          .map((e) => e.cast<String, Object?>())
-          .toList(growable: false);
-    }
-    return const [];
+    return _readResponseMapList(resp.data, context: 'categories');
   }
 
   Future<List<Map<String, Object?>>> getFeeds() async {
     final resp = await _dio.get('$_baseUrl/v1/feeds', options: _options);
-    final data = resp.data;
-    if (data is List) {
-      return data
-          .whereType<Map>()
-          .map((e) => e.cast<String, Object?>())
-          .toList(growable: false);
+    return _readResponseMapList(resp.data, context: 'feeds');
+  }
+
+  List<Map<String, Object?>> _readResponseMapList(
+    Object? data, {
+    required String context,
+  }) {
+    if (data is! List) {
+      throw StateError('Unexpected Miniflux response for $context');
     }
-    return const [];
+    final result = <Map<String, Object?>>[];
+    for (final item in data) {
+      if (item is! Map || item.keys.any((key) => key is! String)) {
+        throw StateError('Unexpected Miniflux response for $context');
+      }
+      result.add(item.cast<String, Object?>());
+    }
+    return List.unmodifiable(result);
   }
 
   Future<Map<String, Object?>> getEntries({
@@ -102,9 +126,7 @@ class MinifluxClient {
         'direction': direction,
       },
     );
-    final data = resp.data;
-    if (data is Map) return data.cast<String, Object?>();
-    return const <String, Object?>{};
+    return _readEntriesResponse(resp.data, context: 'entries');
   }
 
   Future<Map<String, Object?>> getFeedEntries({
@@ -129,9 +151,7 @@ class MinifluxClient {
         'direction': direction,
       },
     );
-    final data = resp.data;
-    if (data is Map) return data.cast<String, Object?>();
-    return const <String, Object?>{};
+    return _readEntriesResponse(resp.data, context: 'feed $feedId entries');
   }
 
   Future<void> setEntriesStatus(

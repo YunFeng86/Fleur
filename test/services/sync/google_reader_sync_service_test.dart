@@ -133,6 +133,79 @@ void main() {
   );
 
   test(
+    'empty terminal pages are complete for remote state reconciliation',
+    () async {
+      final requests = <_RecordedRequest>[];
+      final service = GoogleReaderSyncService(
+        account: buildTestAccount(
+          type: AccountType.googleReader,
+          baseUrl: 'https://reader.example.com',
+        ),
+        dio: _emptyTerminalPagesDio(requests),
+        credentials: _FakeCredentialStore(),
+        feeds: FeedRepository(isar!),
+        categories: CategoryRepository(isar!),
+        articles: ArticleRepository(isar!),
+        outbox: _MemoryOutboxStore(),
+        appSettingsStore: FakeAppSettingsStore(
+          AppSettings.defaults().copyWith(remoteEntriesLimit: 10),
+        ),
+        cache: _unusedCache(),
+      );
+
+      final feed = Feed()
+        ..id = 1
+        ..title = 'Example Feed'
+        ..url = 'https://example.com/feed.xml';
+      await isar!.writeTxn(() => isar!.feeds.put(feed));
+      final article = Article()
+        ..id = 1
+        ..feedId = 1
+        ..remoteId = 'item-stale'
+        ..title = 'Stale'
+        ..link = 'https://example.com/stale'
+        ..isRead = false
+        ..isStarred = true;
+      await isar!.writeTxn(() => isar!.articles.put(article));
+
+      await service.syncNow();
+      final saved = await isar!.articles.get(1);
+      expect(saved!.isRead, isTrue);
+      expect(saved.isStarred, isFalse);
+    },
+  );
+
+  test('malformed subscriptions do not prune local remote mirrors', () async {
+    final repository = FeedRepository(isar!);
+    final feed = Feed()
+      ..remoteId = 'feed/https://example.com/preserved.xml'
+      ..title = 'Preserved'
+      ..url = 'https://example.com/preserved.xml';
+    await isar!.writeTxn(() => isar!.feeds.put(feed));
+
+    final service = GoogleReaderSyncService(
+      account: buildTestAccount(
+        type: AccountType.googleReader,
+        baseUrl: 'https://reader.example.com',
+      ),
+      dio: _malformedSubscriptionDio(),
+      credentials: _FakeCredentialStore(),
+      feeds: repository,
+      categories: CategoryRepository(isar!),
+      articles: ArticleRepository(isar!),
+      outbox: _MemoryOutboxStore(),
+      appSettingsStore: FakeAppSettingsStore(AppSettings.defaults()),
+      cache: _unusedCache(),
+    );
+
+    await expectLater(service.syncNow(), throwsStateError);
+    expect(
+      await repository.getByRemoteId('feed/https://example.com/preserved.xml'),
+      isNotNull,
+    );
+  });
+
+  test(
     'syncNow mirrors subscriptions and imports read/star item state',
     () async {
       final requests = <_RecordedRequest>[];
@@ -551,7 +624,14 @@ Dio _repeatingContinuationDio(List<_RecordedRequest> requests) {
   return dio;
 }
 
-Dio _emptyUnreadPagesDio(List<_RecordedRequest> requests) {
+Dio _emptyTerminalPagesDio(List<_RecordedRequest> requests) {
+  return _emptyUnreadPagesDio(requests, terminal: true);
+}
+
+Dio _emptyUnreadPagesDio(
+  List<_RecordedRequest> requests, {
+  bool terminal = false,
+}) {
   final dio = Dio();
   dio.interceptors.add(
     InterceptorsWrapper(
@@ -572,7 +652,10 @@ Dio _emptyUnreadPagesDio(List<_RecordedRequest> requests) {
             ],
           },
           ('GET', '/reader/api/0/stream/items/ids') =>
-            _streamIdsForEmptyUnreadPages(options.uri.queryParameters),
+            _streamIdsForEmptyUnreadPages(
+              options.uri.queryParameters,
+              terminal: terminal,
+            ),
           ('GET', '/reader/api/0/token') => 'write-token',
           ('POST', '/reader/api/0/edit-tag') => <String, Object?>{},
           ('POST', '/reader/api/0/mark-all-as-read') => <String, Object?>{},
@@ -616,14 +699,18 @@ Dio _emptyUnreadPagesDio(List<_RecordedRequest> requests) {
 }
 
 Map<String, Object?> _streamIdsForEmptyUnreadPages(
-  Map<String, Object?> queryParameters,
-) {
+  Map<String, Object?> queryParameters, {
+  bool terminal = false,
+}) {
   final excludeState = queryParameters['xt']?.toString();
   final streamId = queryParameters['s']?.toString() ?? '';
   if ((excludeState ?? '').contains('/state/com.google/read')) {
     // Pathological server: empty unread page that still claims more pages.
-    return {'itemRefs': [], 'continuation': 'stuck-token'};
+    return terminal
+        ? {'itemRefs': []}
+        : {'itemRefs': [], 'continuation': 'stuck-token'};
   }
+  if (terminal) return {'itemRefs': []};
   if (streamId.contains('starred')) {
     return {
       'itemRefs': [
@@ -650,6 +737,27 @@ Dio _failingGoogleReaderDio() {
               requestOptions: options,
               statusCode: 500,
             ),
+          ),
+        );
+      },
+    ),
+  );
+  return dio;
+}
+
+Dio _malformedSubscriptionDio() {
+  final dio = Dio();
+  dio.interceptors.add(
+    InterceptorsWrapper(
+      onRequest: (options, handler) {
+        handler.resolve(
+          Response<Object?>(
+            requestOptions: options,
+            data: <String, Object?>{
+              'subscriptions': <Object?>[
+                {'title': 'Missing ID and URL'},
+              ],
+            },
           ),
         );
       },

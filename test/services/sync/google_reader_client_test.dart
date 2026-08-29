@@ -221,6 +221,90 @@ void main() {
     },
   );
 
+  test('empty Google Reader collections remain valid', () async {
+    final subscriptions = GoogleReaderClient(
+      dio: _fixedResponseDio({'subscriptions': <Object?>[]}),
+      baseUrl: 'https://reader.example.com',
+      authToken: 'auth-token',
+    );
+    expect(await subscriptions.subscriptionList(), isEmpty);
+
+    final itemIds = GoogleReaderClient(
+      dio: _fixedResponseDio({'itemRefs': <Object?>[]}),
+      baseUrl: 'https://reader.example.com',
+      authToken: 'auth-token',
+    );
+    expect(
+      (await itemIds.streamItemIds(streamId: 'user/-/state/test')).itemIds,
+      isEmpty,
+    );
+  });
+
+  test('Google Reader collections reject missing or malformed data', () async {
+    final subscriptions = GoogleReaderClient(
+      dio: _fixedResponseDio(<String, Object?>{}),
+      baseUrl: 'https://reader.example.com',
+      authToken: 'auth-token',
+    );
+    await expectLater(subscriptions.subscriptionList(), throwsStateError);
+
+    final itemIds = GoogleReaderClient(
+      dio: _fixedResponseDio({
+        'itemRefs': <Object?>[
+          {'id': 'item-1'},
+          'garbage',
+        ],
+      }),
+      baseUrl: 'https://reader.example.com',
+      authToken: 'auth-token',
+    );
+    await expectLater(
+      itemIds.streamItemIds(streamId: 'user/-/state/test'),
+      throwsStateError,
+    );
+
+    final malformedId = GoogleReaderClient(
+      dio: _fixedResponseDio({
+        'itemRefs': <Object?>[
+          {
+            'id': {'nested': true},
+          },
+        ],
+      }),
+      baseUrl: 'https://reader.example.com',
+      authToken: 'auth-token',
+    );
+    await expectLater(
+      malformedId.streamItemIds(streamId: 'user/-/state/test'),
+      throwsStateError,
+    );
+
+    final malformedContinuation = GoogleReaderClient(
+      dio: _fixedResponseDio({
+        'itemRefs': <Object?>[],
+        'continuation': <String, Object?>{'nested': true},
+      }),
+      baseUrl: 'https://reader.example.com',
+      authToken: 'auth-token',
+    );
+    await expectLater(
+      malformedContinuation.streamItemIds(streamId: 'user/-/state/test'),
+      throwsStateError,
+    );
+
+    final contents = GoogleReaderClient(
+      dio: _fixedResponseDio({
+        'items': <Object?>['garbage'],
+      }),
+      baseUrl: 'https://reader.example.com',
+      authToken: 'auth-token',
+    );
+    await expectLater(
+      contents.streamItemsContents(const ['item-1']),
+      throwsStateError,
+    );
+  });
+
   test(
     'token retries ClientLogin after auth failure when basic auth exists',
     () async {
@@ -326,6 +410,23 @@ Dio _dio(
           ),
         };
         handler.resolve(Response<Object?>(requestOptions: options, data: data));
+      },
+    ),
+  );
+  return dio;
+}
+
+Dio _fixedResponseDio(Object? data) {
+  final dio = Dio();
+  dio.interceptors.add(
+    InterceptorsWrapper(
+      onRequest: (options, handler) {
+        handler.resolve(
+          Response<Object?>(
+            requestOptions: options,
+            data: options.uri.path.endsWith('/token') ? 'write-token' : data,
+          ),
+        );
       },
     ),
   );

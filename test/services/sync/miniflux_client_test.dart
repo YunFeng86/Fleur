@@ -9,7 +9,7 @@ void main() {
   test('api token wins over basic auth and is trimmed', () async {
     final requests = <_RecordedRequest>[];
     final client = MinifluxClient(
-      dio: _dio(requests),
+      dio: _dio(requests, data: const []),
       baseUrl: 'https://miniflux.example.com///',
       apiToken: ' token-123 ',
       username: 'user',
@@ -27,7 +27,7 @@ void main() {
   test('falls back to basic auth when no api token', () async {
     final requests = <_RecordedRequest>[];
     final client = MinifluxClient(
-      dio: _dio(requests),
+      dio: _dio(requests, data: const []),
       baseUrl: 'https://miniflux.example.com',
       username: ' user ',
       password: 'secret',
@@ -60,22 +60,42 @@ void main() {
     expect(request.queryParameters['direction'], ['desc']);
   });
 
-  test(
-    'getEntries omits offset=0 and returns empty map for bad data',
-    () async {
-      final requests = <_RecordedRequest>[];
-      final client = MinifluxClient(
-        dio: _dio(requests, data: 'not-a-map'),
-        baseUrl: 'https://miniflux.example.com',
-        apiToken: 'token',
-      );
+  test('getEntries omits offset=0 and rejects bad data', () async {
+    final requests = <_RecordedRequest>[];
+    final client = MinifluxClient(
+      dio: _dio(requests, data: 'not-a-map'),
+      baseUrl: 'https://miniflux.example.com',
+      apiToken: 'token',
+    );
 
-      final page = await client.getEntries(limit: 10);
+    await expectLater(client.getEntries(limit: 10), throwsStateError);
+    expect(requests.single.queryParameters.containsKey('offset'), isFalse);
+  });
 
-      expect(page, isEmpty);
-      expect(requests.single.queryParameters.containsKey('offset'), isFalse);
-    },
-  );
+  test('getEntries rejects missing and partially malformed entries', () async {
+    final missing = MinifluxClient(
+      dio: _dio([], data: {'total': 0}),
+      baseUrl: 'https://miniflux.example.com',
+      apiToken: 'token',
+    );
+    await expectLater(missing.getEntries(limit: 10), throwsStateError);
+
+    final malformed = MinifluxClient(
+      dio: _dio(
+        [],
+        data: {
+          'total': 2,
+          'entries': <Object?>[
+            {'id': 1},
+            'garbage',
+          ],
+        },
+      ),
+      baseUrl: 'https://miniflux.example.com',
+      apiToken: 'token',
+    );
+    await expectLater(malformed.getEntries(limit: 10), throwsStateError);
+  });
 
   test('getFeedEntries scopes to feed path and validates feed id', () async {
     final requests = <_RecordedRequest>[];
@@ -95,7 +115,7 @@ void main() {
     expect(requests, hasLength(1));
   });
 
-  test('getFeeds and getCategories tolerate malformed payloads', () async {
+  test('getFeeds rejects partially malformed payloads', () async {
     final client = MinifluxClient(
       dio: _dio(
         [],
@@ -109,17 +129,15 @@ void main() {
       apiToken: 'token',
     );
 
-    expect(await client.getFeeds(), [
-      {'id': 1, 'title': 'Kept'},
-    ]);
+    await expectLater(client.getFeeds(), throwsStateError);
 
     final badShape = MinifluxClient(
       dio: _dio([], data: {'unexpected': true}),
       baseUrl: 'https://miniflux.example.com',
       apiToken: 'token',
     );
-    expect(await badShape.getFeeds(), isEmpty);
-    expect(await badShape.getCategories(), isEmpty);
+    await expectLater(badShape.getFeeds(), throwsStateError);
+    await expectLater(badShape.getCategories(), throwsStateError);
   });
 
   test('setEntriesStatus sends batch payload and skips empty ids', () async {

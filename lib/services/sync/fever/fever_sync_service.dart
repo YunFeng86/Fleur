@@ -253,13 +253,16 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
     final remoteGroupIdToLocalId = <int, int>{};
     final seenCategoryRemoteIds = <String>{};
     final protectedCategoryRemoteIds = <String>{};
-    final groupListTrustworthy =
+    var groupListTrustworthy =
         remoteGroups.isNotEmpty || !await _categories.hasRemoteMirrors();
 
     for (final g in remoteGroups) {
       final id = _asInt(g['id']);
       final title = g['title'];
-      if (id == null || title is! String) continue;
+      if (id == null || title is! String) {
+        groupListTrustworthy = false;
+        continue;
+      }
       final remoteId = id.toString();
       final result = await _categories.upsertRemoteDetailed(
         remoteId: remoteId,
@@ -283,13 +286,22 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
       for (final m in mappings) {
         final groupId = _asInt(m['group_id']);
         final feedIds = m['feed_ids'];
-        if (groupId == null || feedIds is! String) continue;
+        if (groupId == null || feedIds is! String) {
+          feedGroupMappingsAvailable = false;
+          continue;
+        }
         final localCatId = remoteGroupIdToLocalId[groupId];
         if (localCatId == null) continue;
-        final ids = feedIds
-            .split(',')
-            .map((s) => int.tryParse(s.trim()))
-            .whereType<int>();
+        if (feedIds.trim().isEmpty) continue;
+        final ids = <int>[];
+        for (final part in feedIds.split(',')) {
+          final id = int.tryParse(part.trim());
+          if (id == null) {
+            feedGroupMappingsAvailable = false;
+            continue;
+          }
+          ids.add(id);
+        }
         for (final remoteFeedId in ids) {
           remoteFeedIdToLocalCategoryId.putIfAbsent(
             remoteFeedId,
@@ -318,6 +330,7 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
         feedGroupMappingsAvailable && groupListTrustworthy;
     final feedMirrorIndex = await _feeds.createRemoteMirrorIndex();
 
+    var feedListTrustworthy = true;
     var processed = 0;
     for (final f in remoteFeeds) {
       processed += 1;
@@ -325,7 +338,10 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
 
       final id = _asInt(f['id']);
       final feedUrl = f['url'];
-      if (id == null || feedUrl is! String) continue;
+      if (id == null || feedUrl is! String) {
+        feedListTrustworthy = false;
+        continue;
+      }
 
       final localCatId = remoteFeedIdToLocalCategoryId[id];
       final title = f['title'] as String?;
@@ -357,6 +373,7 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
       localFeedIdToFeed[refreshed.id] = refreshed;
     }
     final allowFeedProtectedOnlyPrune =
+        feedListTrustworthy &&
         remoteFeeds.isNotEmpty &&
         seenFeedRemoteIds.isEmpty &&
         protectedFeedRemoteIds.isNotEmpty;
@@ -366,7 +383,7 @@ class FeverSyncService implements SyncServiceBase, OutboxFlushCapable {
         seenCategoryRemoteIds.isEmpty &&
         protectedCategoryRemoteIds.isNotEmpty;
     await _feeds.deleteRemoteMissing(
-      seenFeedRemoteIds,
+      feedListTrustworthy ? seenFeedRemoteIds : const <String>{},
       allowEmptyPrune: allowFeedProtectedOnlyPrune,
       protectedRemoteIds: protectedFeedRemoteIds,
     );

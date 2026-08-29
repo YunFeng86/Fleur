@@ -606,6 +606,47 @@ void main() {
     },
   );
 
+  test('Miniflux malformed feed entries disable mirror pruning', () async {
+    await _seedRemoteFeed(
+      isar!,
+      id: 1,
+      remoteId: '11',
+      url: 'https://example.com/preserved.xml',
+      title: 'Preserved',
+    );
+
+    final service = MinifluxSyncService(
+      account: buildTestAccount(
+        type: AccountType.miniflux,
+        baseUrl: 'https://miniflux.example.com',
+      ),
+      dio: _minifluxDio(
+        categories: () => const <Map<String, Object?>>[],
+        feeds: () => const <Map<String, Object?>>[
+          {
+            'id': 10,
+            'feed_url': 'https://example.com/valid.xml',
+            'title': 'Valid',
+          },
+          {'id': 11, 'title': 'Missing URL'},
+        ],
+      ),
+      credentials: _FakeCredentialStore(),
+      feeds: FeedRepository(isar!),
+      categories: CategoryRepository(isar!),
+      articles: ArticleRepository(isar!),
+      outbox: _MemoryOutboxStore(),
+      appSettingsStore: FakeAppSettingsStore(_subscriptionsOnlySettings()),
+      cache: _unusedCache(),
+      extractor: ArticleExtractor(Dio()),
+    );
+
+    await service.syncNow();
+
+    expect(await FeedRepository(isar!).getByRemoteId('10'), isNotNull);
+    expect(await FeedRepository(isar!).getByRemoteId('11'), isNotNull);
+  });
+
   test(
     'Miniflux sync preserves categories when category list is empty',
     () async {
@@ -1113,6 +1154,45 @@ void main() {
     expect(articles, hasLength(1));
     expect(articles.single.feedId, firstFeed.id);
     expect(articles.single.categoryId, firstCategory.id);
+  });
+
+  test('Fever malformed feed entries disable mirror pruning', () async {
+    await _seedRemoteFeed(
+      isar!,
+      id: 1,
+      remoteId: '11',
+      url: 'https://example.com/preserved.xml',
+      title: 'Preserved',
+    );
+
+    final service = FeverSyncService(
+      account: buildTestAccount(
+        type: AccountType.fever,
+        baseUrl: 'https://fever.example.com',
+      ),
+      dio: _feverDio(
+        groups: () => const <Map<String, Object?>>[],
+        feedsGroups: () => const <Map<String, Object?>>[],
+        feeds: () => const <Map<String, Object?>>[
+          {'id': 10, 'url': 'https://example.com/valid.xml', 'title': 'Valid'},
+          {'id': 11, 'title': 'Missing URL'},
+        ],
+      ),
+      credentials: _FakeCredentialStore(),
+      feeds: FeedRepository(isar!),
+      categories: CategoryRepository(isar!),
+      articles: ArticleRepository(isar!),
+      outbox: _MemoryOutboxStore(),
+      appSettingsStore: FakeAppSettingsStore(_subscriptionsOnlySettings()),
+      notifications: _NoopNotificationService(),
+      cache: _unusedCache(),
+      extractor: ArticleExtractor(Dio()),
+    );
+
+    await service.syncNow(notify: false);
+
+    expect(await FeedRepository(isar!).getByRemoteId('10'), isNotNull);
+    expect(await FeedRepository(isar!).getByRemoteId('11'), isNotNull);
   });
 
   test('Fever sync preserves categories when group list is empty', () async {

@@ -3,6 +3,18 @@ import 'google_reader/google_reader_client.dart';
 import 'miniflux/miniflux_client.dart';
 import 'outbox/outbox_store.dart';
 
+/// Indicates that an outbox action targets a remote scope that no longer
+/// exists. This is safe to acknowledge; transport and response-shape failures
+/// must continue to propagate so the action can be retried.
+class RemoteScopeNotFoundException implements Exception {
+  const RemoteScopeNotFoundException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
 /// Outcome of applying an outbox action on the remote backend.
 enum RemoteActionDisposition {
   /// The remote backend accepted the action.
@@ -55,7 +67,7 @@ class MinifluxRemoteArticleActionExecutor
       case OutboxActionType.markAllRead:
         try {
           await _markAllRead(action);
-        } on StateError {
+        } on RemoteScopeNotFoundException {
           // The remote feed/category backing this scope no longer exists.
           return RemoteActionDisposition.rejected;
         }
@@ -73,7 +85,9 @@ class MinifluxRemoteArticleActionExecutor
       final map = await _getFeedUrlMap();
       final remoteFeedId = map[feedUrl];
       if (remoteFeedId == null) {
-        throw StateError('Remote feed not found for url: $feedUrl');
+        throw RemoteScopeNotFoundException(
+          'Remote feed not found for url: $feedUrl',
+        );
       }
       await _client.markFeedAllAsRead(remoteFeedId);
       return;
@@ -83,7 +97,9 @@ class MinifluxRemoteArticleActionExecutor
       final map = await _getCategoryTitleMap();
       final remoteCategoryId = map[categoryTitle];
       if (remoteCategoryId == null) {
-        throw StateError('Remote category not found for title: $categoryTitle');
+        throw RemoteScopeNotFoundException(
+          'Remote category not found for title: $categoryTitle',
+        );
       }
       await _client.markCategoryAllAsRead(remoteCategoryId);
       return;
@@ -164,7 +180,7 @@ class FeverRemoteArticleActionExecutor implements RemoteArticleActionExecutor {
       case OutboxActionType.markAllRead:
         try {
           await _markAllRead(action);
-        } on StateError {
+        } on RemoteScopeNotFoundException {
           // The remote feed/group backing this scope no longer exists.
           return RemoteActionDisposition.rejected;
         }
@@ -184,7 +200,9 @@ class FeverRemoteArticleActionExecutor implements RemoteArticleActionExecutor {
       final map = await _getFeedUrlMap();
       final remoteFeedId = map[feedUrl];
       if (remoteFeedId == null) {
-        throw StateError('Remote feed not found for url: $feedUrl');
+        throw RemoteScopeNotFoundException(
+          'Remote feed not found for url: $feedUrl',
+        );
       }
       await _client.markFeedRead(remoteFeedId, beforeSeconds: beforeSeconds);
       return;
@@ -194,7 +212,9 @@ class FeverRemoteArticleActionExecutor implements RemoteArticleActionExecutor {
       final map = await _getGroupTitleMap();
       final remoteGroupId = map[groupTitle];
       if (remoteGroupId == null) {
-        throw StateError('Remote group not found for title: $groupTitle');
+        throw RemoteScopeNotFoundException(
+          'Remote group not found for title: $groupTitle',
+        );
       }
       await _client.markGroupRead(remoteGroupId, beforeSeconds: beforeSeconds);
       return;

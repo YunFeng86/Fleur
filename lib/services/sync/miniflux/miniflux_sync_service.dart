@@ -324,12 +324,15 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
     final remoteCatIdToLocalId = <int, int>{};
     final seenCategoryRemoteIds = <String>{};
     final protectedCategoryRemoteIds = <String>{};
-    final categoryListTrustworthy =
+    var categoryListTrustworthy =
         cats.isNotEmpty || !await _categories.hasRemoteMirrors();
     for (final c in cats) {
       final id = c['id'];
       final title = c['title'];
-      if (id is! int || title is! String) continue;
+      if (id is! int || title is! String) {
+        categoryListTrustworthy = false;
+        continue;
+      }
       final remoteId = id.toString();
       final result = await _categories.upsertRemoteDetailed(
         remoteId: remoteId,
@@ -359,13 +362,17 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
     final seenFeedRemoteIds = <String>{};
     final protectedFeedRemoteIds = <String>{};
     final feedMirrorIndex = await _feeds.createRemoteMirrorIndex();
+    var feedListTrustworthy = true;
     var feedProcessed = 0;
     for (final f in feeds) {
       feedProcessed += 1;
       status?.update(current: feedProcessed, total: feeds.length);
       final id = f['id'];
       final feedUrl = f['feed_url'];
-      if (id is! int || feedUrl is! String) continue;
+      if (id is! int || feedUrl is! String) {
+        feedListTrustworthy = false;
+        continue;
+      }
       final remoteId = id.toString();
       final categoryId = f['category'] is Map
           ? (f['category'] as Map)['id']
@@ -429,6 +436,7 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
       }
     }
     final allowFeedProtectedOnlyPrune =
+        feedListTrustworthy &&
         feeds.isNotEmpty &&
         seenFeedRemoteIds.isEmpty &&
         protectedFeedRemoteIds.isNotEmpty;
@@ -438,7 +446,7 @@ class MinifluxSyncService implements SyncServiceBase, OutboxFlushCapable {
         seenCategoryRemoteIds.isEmpty &&
         protectedCategoryRemoteIds.isNotEmpty;
     await _feeds.deleteRemoteMissing(
-      seenFeedRemoteIds,
+      feedListTrustworthy ? seenFeedRemoteIds : const <String>{},
       allowEmptyPrune: allowFeedProtectedOnlyPrune,
       protectedRemoteIds: protectedFeedRemoteIds,
     );

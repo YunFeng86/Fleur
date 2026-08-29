@@ -162,6 +162,31 @@ void main() {
   });
 
   group('FeverRemoteArticleActionExecutor', () {
+    test('keeps transport response-shape failures retryable', () async {
+      final dio = Dio();
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            handler.resolve(
+              Response<Object?>(requestOptions: options, data: 'malformed'),
+            );
+          },
+        ),
+      );
+      final executor = FeverRemoteArticleActionExecutor(_feverClient(dio));
+
+      await expectLater(
+        executor.apply(
+          OutboxAction(
+            type: OutboxActionType.markAllRead,
+            value: true,
+            createdAt: now,
+          ),
+        ),
+        throwsA(isA<StateError>()),
+      );
+    });
+
     test('applies markRead and bookmark to item mark queries', () async {
       final requests = <_RecordedRequest>[];
       final executor = FeverRemoteArticleActionExecutor(

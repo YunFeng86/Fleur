@@ -78,7 +78,7 @@ class FeverClient {
       options: _options,
     );
     final data = resp.data;
-    if (data is! Map) {
+    if (data is! Map || data.keys.any((key) => key is! String)) {
       throw StateError('Unexpected Fever response');
     }
     final map = data.cast<String, Object?>();
@@ -92,18 +92,18 @@ class FeverClient {
 
   Future<List<Map<String, Object?>>> getFeeds() async {
     final data = await _post(_buildUri(flags: const ['feeds']));
-    return _asListOfMaps(data['feeds']);
+    return _asListOfMaps(data['feeds'], context: 'feeds');
   }
 
   Future<List<Map<String, Object?>>> getGroups() async {
     final data = await _post(_buildUri(flags: const ['groups']));
-    return _asListOfMaps(data['groups']);
+    return _asListOfMaps(data['groups'], context: 'groups');
   }
 
   /// Returns group -> feedIds mapping objects: `{group_id, feed_ids}`.
   Future<List<Map<String, Object?>>> getFeedsGroups() async {
     final data = await _post(_buildUri(flags: const ['feeds', 'groups']));
-    return _asListOfMaps(data['feeds_groups']);
+    return _asListOfMaps(data['feeds_groups'], context: 'feeds_groups');
   }
 
   Future<List<int>> getUnreadItemIds() async {
@@ -126,7 +126,7 @@ class FeverClient {
         params: {'with_ids': limited.join(',')},
       ),
     );
-    return _asListOfMaps(data['items']);
+    return _asListOfMaps(data['items'], context: 'items');
   }
 
   Future<void> markItemRead(int itemId, {required bool read}) async {
@@ -179,27 +179,48 @@ class FeverClient {
     );
   }
 
-  static List<Map<String, Object?>> _asListOfMaps(Object? v) {
-    if (v is! List) return const [];
-    return v
-        .whereType<Map>()
-        .map((e) => e.cast<String, Object?>())
-        .toList(growable: false);
+  static List<Map<String, Object?>> _asListOfMaps(
+    Object? value, {
+    required String context,
+  }) {
+    if (value is! List) {
+      throw StateError('Unexpected Fever response for $context');
+    }
+    final result = <Map<String, Object?>>[];
+    for (final item in value) {
+      if (item is! Map || item.keys.any((key) => key is! String)) {
+        throw StateError('Unexpected Fever response for $context');
+      }
+      result.add(item.cast<String, Object?>());
+    }
+    return List.unmodifiable(result);
   }
 
-  static List<int> _parseIdList(Object? v) {
-    if (v is String) {
-      final trimmed = v.trim();
+  static List<int> _parseIdList(Object? value) {
+    if (value is String) {
+      final trimmed = value.trim();
       if (trimmed.isEmpty) return const [];
-      return trimmed
-          .split(',')
-          .map((s) => int.tryParse(s.trim()))
-          .whereType<int>()
-          .toList(growable: false);
+      final result = <int>[];
+      for (final part in trimmed.split(',')) {
+        final id = int.tryParse(part.trim());
+        if (id == null) {
+          throw StateError('Unexpected Fever response for item ids');
+        }
+        result.add(id);
+      }
+      return List.unmodifiable(result);
     }
-    if (v is List) {
-      return v.map(_asInt).whereType<int>().toList(growable: false);
+    if (value is List) {
+      final result = <int>[];
+      for (final item in value) {
+        final id = _asInt(item);
+        if (id == null || (item is num && item != id)) {
+          throw StateError('Unexpected Fever response for item ids');
+        }
+        result.add(id);
+      }
+      return List.unmodifiable(result);
     }
-    return const [];
+    throw StateError('Unexpected Fever response for item ids');
   }
 }
