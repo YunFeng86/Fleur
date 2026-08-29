@@ -530,7 +530,22 @@ final class _ReaderInteractionController {
   Future<bool> _onTapUrl(String url) async {
     final uri = Uri.tryParse(url);
     if (uri == null) return false;
-    return launchUrl(uri, mode: LaunchMode.externalApplication);
+    final owner = _owner;
+    final message = AppLocalizations.of(owner.context)!.openFailedGeneral;
+    try {
+      final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!opened && owner.mounted) owner.context.showErrorMessage(message);
+      return opened;
+    } catch (e, s) {
+      AppLogger.w(
+        'Open reader link failed',
+        tag: 'reader',
+        error: e,
+        stackTrace: s,
+      );
+      if (owner.mounted) owner.context.showErrorMessage(message);
+      return false;
+    }
   }
 
   void _onTapImage(ImageMetadata meta) {
