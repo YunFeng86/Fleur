@@ -20,6 +20,7 @@ import 'package:fleur/providers/query_providers.dart';
 import 'package:fleur/providers/navigation_history_provider.dart';
 import 'package:fleur/providers/service_providers.dart';
 import 'package:fleur/providers/unread_providers.dart';
+import 'package:fleur/services/logging/app_logger.dart';
 import 'package:fleur/services/settings/app_settings.dart';
 import 'package:fleur/services/sync/backend_capabilities.dart';
 import 'package:fleur/theme/fleur_icons.dart';
@@ -31,6 +32,7 @@ import 'package:fleur/ui/layout_spec.dart';
 import 'package:fleur/ui/motion.dart';
 import 'package:fleur/ui/sidebar_layout.dart';
 import 'package:fleur/ui/workspace_layers.dart';
+import 'package:fleur/utils/context_extensions.dart';
 import 'package:fleur/utils/platform.dart';
 import 'package:fleur/widgets/app_scrollbar.dart';
 import 'package:fleur/widgets/fleur_empty_state.dart';
@@ -451,7 +453,25 @@ class _ArticleListState extends ConsumerState<ArticleList> {
       case _ArticleContextAction.openInBrowser:
         final uri = Uri.tryParse(article.link);
         if (uri == null) return;
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        try {
+          final opened = await launchUrl(
+            uri,
+            mode: LaunchMode.externalApplication,
+          );
+          if (!opened && context.mounted) {
+            context.showErrorMessage(l10n.openFailedGeneral);
+          }
+        } catch (e, s) {
+          AppLogger.w(
+            'Open article in browser failed',
+            tag: 'article_list',
+            error: e,
+            stackTrace: s,
+          );
+          if (context.mounted) {
+            context.showErrorMessage(l10n.openFailedGeneral);
+          }
+        }
         return;
     }
   }

@@ -273,10 +273,27 @@ final class _ReaderInteractionController {
     return selected.isEmpty ? null : selected;
   }
 
-  void _searchSelectedText(String text) {
+  Future<void> _searchSelectedText(String text) async {
     final query = Uri.encodeQueryComponent(text);
     final uri = Uri.parse('https://duckduckgo.com/?q=$query');
-    unawaited(launchUrl(uri, mode: LaunchMode.externalApplication));
+    // Capture the message and owner before awaiting: the quick menu closes
+    // right after this call and the reader state may be disposed.
+    final owner = _owner;
+    final message = AppLocalizations.of(owner.context)!.openFailedGeneral;
+    var opened = false;
+    try {
+      opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (e, s) {
+      AppLogger.w(
+        'Search selected text failed',
+        tag: 'reader',
+        error: e,
+        stackTrace: s,
+      );
+    }
+    if (!opened && owner.mounted) {
+      owner.context.showErrorMessage(message);
+    }
   }
 
   void _handleSelectionChanged(SelectedContent? selection) {
@@ -317,7 +334,7 @@ final class _ReaderInteractionController {
           label: l10n.search,
           onPressed: () {
             selectableRegionState.hideToolbar();
-            _searchSelectedText(selectedText);
+            unawaited(_searchSelectedText(selectedText));
           },
           type: ContextMenuButtonType.custom,
         ),
@@ -397,7 +414,7 @@ final class _ReaderInteractionController {
         icon: FleurIcons.search,
         label: l10n.search,
         onPressed: () {
-          _searchSelectedText(text);
+          unawaited(_searchSelectedText(text));
           ContextMenuController.removeAny();
         },
       ),

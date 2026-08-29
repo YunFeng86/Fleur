@@ -12,6 +12,7 @@ import 'package:fleur/features/reader/application/reader_providers.dart';
 import 'package:fleur/providers/repository_providers.dart';
 import 'package:fleur/providers/service_providers.dart';
 import 'package:fleur/services/logging/app_logger.dart';
+import 'package:fleur/utils/context_extensions.dart';
 import 'package:fleur/services/translation/article_translation.dart';
 import 'package:fleur/theme/fleur_icons.dart';
 import 'package:fleur/theme/fleur_theme_extensions.dart';
@@ -380,11 +381,25 @@ class ReaderBottomBar extends ConsumerWidget {
                       tooltip: l10n.openInBrowser,
                       onPressed: () async {
                         final uri = Uri.tryParse(article.link);
-                        if (uri != null) {
-                          await launchUrl(
+                        if (uri == null) return;
+                        try {
+                          final opened = await launchUrl(
                             uri,
                             mode: LaunchMode.externalApplication,
                           );
+                          if (!opened && context.mounted) {
+                            context.showErrorMessage(l10n.openFailedGeneral);
+                          }
+                        } catch (e, s) {
+                          AppLogger.w(
+                            'Open article in browser failed',
+                            tag: 'reader',
+                            error: e,
+                            stackTrace: s,
+                          );
+                          if (context.mounted) {
+                            context.showErrorMessage(l10n.openFailedGeneral);
+                          }
                         }
                       },
                       icon: const Icon(FleurIcons.openExternal),
