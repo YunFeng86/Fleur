@@ -1991,5 +1991,42 @@
   "googleReaderConnectionFailed": "Google Reader 连接失败。",
   "googleReaderConnectedWith": "已连接：{profile}",
   "googleReaderConnectedAs": "已连接：{profile} - {user}",
-  "googleReaderConnectionSaveFailed": "Google Reader 连接保存失败。"
+  "googleReaderConnectionSaveFailed": "Google Reader 连接保存失败。",
+  "@provider": {
+    "description": "Label for the sync backend provider dropdown"
+  },
+  "@googleReaderConnectionTitle": {
+    "description": "Title of the Google Reader connection edit dialog"
+  },
+  "@keepExistingPasswordHint": {
+    "description": "Helper text for the password field when a password is already saved"
+  },
+  "@testConnection": {
+    "description": "Button that probes the Google Reader compatible connection"
+  },
+  "@googleReaderConnectionFailed": {
+    "description": "Status message when probing the connection fails"
+  },
+  "@googleReaderConnectedWith": {
+    "description": "Status message after a successful connection test, without a user display name",
+    "placeholders": {
+      "profile": {
+        "type": "String"
+      }
+    }
+  },
+  "@googleReaderConnectedAs": {
+    "description": "Status message after a successful connection test, with a user display name",
+    "placeholders": {
+      "profile": {
+        "type": "String"
+      },
+      "user": {
+        "type": "String"
+      }
+    }
+  },
+  "@googleReaderConnectionSaveFailed": {
+    "description": "Status message when saving the Google Reader connection fails"
+  }
 }
