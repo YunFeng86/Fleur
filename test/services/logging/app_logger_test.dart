@@ -198,7 +198,9 @@ void main() {
       contents,
       contains('[W] [settings] Settings load failed; using defaults'),
     );
-    expect(contents, contains('error: FormatException'));
+    // The durable store surfaces snapshot corruption as a
+    // DurableJsonReadException; only the type name is logged.
+    expect(contents, contains('error: DurableJsonReadException'));
     expect(contents, contains('file=translation_ai_settings'));
     expect(contents, isNot(contains('Private summary prompt')));
     expect(contents, isNot(contains('Private translation prompt')));
