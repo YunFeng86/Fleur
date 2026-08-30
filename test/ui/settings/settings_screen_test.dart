@@ -596,12 +596,9 @@ void main() {
     expect(find.byKey(const Key('shell_window_close_button')), findsOneWidget);
     expect(
       tester.getTopLeft(find.byKey(const Key('settings_content_layer'))).dy,
-      kWorkspaceHeaderHeight,
+      kWindowsTitleBarHeight,
     );
-    expect(
-      tester.getTopLeft(find.byKey(const Key('shell_title_bar_divider'))).dx,
-      kDefaultWorkspaceSidebarWidth + kSidebarContentDividerWidth,
-    );
+    expect(find.byKey(const Key('shell_frame_boundary')), findsOneWidget);
     expect(
       tester.getCenter(find.byKey(const Key('shell_sidebar_button'))).dx,
       kTitleBarExpectedSidebarRailWidth / 2,
@@ -616,6 +613,24 @@ void main() {
           )
           .dx,
       kTitleBarExpectedSidebarRailWidth / 2,
+    );
+    expect(
+      tester
+          .getCenter(
+            find.descendant(
+              of: find.byKey(const Key('settings_sidebar_header')),
+              matching: find.byType(Icon),
+            ),
+          )
+          .dx,
+      tester
+          .getCenter(
+            find.descendant(
+              of: find.byKey(const Key('settings_nav_button_app-preferences')),
+              matching: find.byType(Icon),
+            ),
+          )
+          .dx,
     );
   });
 
@@ -811,7 +826,8 @@ void main() {
       tester.getTopLeft(find.byKey(const Key('settings_content_layer'))).dx,
       kTitleBarExpectedSidebarRailWidth,
     );
-    expect(find.byKey(const Key('settings_sidebar_divider')), findsOneWidget);
+    expect(find.byKey(const Key('settings_sidebar_divider')), findsNothing);
+    expect(find.byKey(const Key('shell_frame_boundary')), findsOneWidget);
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
     await tester.pumpAndSettle();
 

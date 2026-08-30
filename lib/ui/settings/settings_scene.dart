@@ -93,6 +93,13 @@ class SettingsScene extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final surfaces = Theme.of(context).fleurSurface;
+    final shellChromeLayout =
+        ShellLayerScope.maybeOf(context)?.shellChromeLayout ??
+        ShellChromeLayout.resolve();
+    final navigationSurfaceColor =
+        shellChromeLayout.usesContinuousNavigationSurface
+        ? surfaces.chrome
+        : surfaces.sidebar;
     final sidebarExpanded =
         navigationPresentation == WorkspaceNavigationPresentation.expanded;
     final sidebarRail =
@@ -106,6 +113,7 @@ class SettingsScene extends StatelessWidget {
     final expandedSidebar = _SettingsSidebar(
       title: sidebarTitle,
       railWidth: railWidth,
+      backgroundColor: navigationSurfaceColor,
       items: items,
       selectedIndex: sidebarSelectedIndex,
       onSelect: onSelect,
@@ -148,11 +156,13 @@ class SettingsScene extends StatelessWidget {
                       frameGeometry.topology.navigationSurface ==
                       ShellNavigationSurface.floatingIsland,
                   items: items,
+                  backgroundColor: navigationSurfaceColor,
                   selectedIndex: sidebarSelectedIndex,
                   onSelect: onSelect,
                 ),
               ),
             if (!temporaryNavigationOpen &&
+                !shellChromeLayout.usesContinuousNavigationSurface &&
                 (sidebarExpanded || frameGeometry.structuralRailVisible))
               Positioned(
                 key: const Key('settings_sidebar_divider'),
@@ -224,6 +234,7 @@ class _SettingsNavigationRail extends StatelessWidget {
     required this.items,
     required this.selectedIndex,
     required this.onSelect,
+    required this.backgroundColor,
   });
 
   final double width;
@@ -231,6 +242,7 @@ class _SettingsNavigationRail extends StatelessWidget {
   final List<SettingsPageItem> items;
   final int? selectedIndex;
   final ValueChanged<SettingsTab> onSelect;
+  final Color backgroundColor;
 
   @override
   Widget build(BuildContext context) {
@@ -274,7 +286,7 @@ class _SettingsNavigationRail extends StatelessWidget {
     );
 
     return Material(
-      color: floating ? Colors.transparent : surfaces.sidebar,
+      color: floating ? Colors.transparent : backgroundColor,
       child: Column(
         children: [
           SizedBox(
@@ -344,6 +356,7 @@ class _SettingsSidebar extends StatelessWidget {
   const _SettingsSidebar({
     required this.title,
     required this.railWidth,
+    required this.backgroundColor,
     required this.items,
     required this.selectedIndex,
     required this.onSelect,
@@ -351,20 +364,19 @@ class _SettingsSidebar extends StatelessWidget {
 
   final String title;
   final double railWidth;
+  final Color backgroundColor;
   final List<SettingsPageItem> items;
   final int? selectedIndex;
   final ValueChanged<SettingsTab> onSelect;
 
   @override
   Widget build(BuildContext context) {
-    final surfaces = Theme.of(context).fleurSurface;
-
     return Material(
-      color: surfaces.sidebar,
+      color: backgroundColor,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _SettingsSidebarHeader(title: title),
+          _SettingsSidebarHeader(title: title, railWidth: railWidth),
           Expanded(
             child: AppScrollbar(
               child: ListView(
@@ -392,9 +404,10 @@ class _SettingsSidebar extends StatelessWidget {
 }
 
 class _SettingsSidebarHeader extends StatelessWidget {
-  const _SettingsSidebarHeader({required this.title});
+  const _SettingsSidebarHeader({required this.title, required this.railWidth});
 
   final String title;
+  final double railWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -407,7 +420,9 @@ class _SettingsSidebarHeader extends StatelessWidget {
     final avoidTrafficLights =
         chromeLayout.profile == ShellChromeProfile.integratedCorner &&
         metrics.trafficLightsVisible;
-    final leadingLeft = avoidTrafficLights ? metrics.safeInset : 16.0;
+    final leadingLeft = avoidTrafficLights
+        ? metrics.safeInset
+        : navigationItemContentLeadingInset(railWidth);
     final reserveShellTools =
         scope != null &&
         chromeLayout.profile == ShellChromeProfile.integratedCorner;
@@ -426,7 +441,7 @@ class _SettingsSidebarHeader extends StatelessWidget {
                     size: 18,
                     color: theme.colorScheme.primary,
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: kNavigationItemIconLabelGap),
                   Expanded(
                     child: Text(
                       title,
@@ -788,7 +803,12 @@ class _SettingsNavigationTile extends StatelessWidget {
         selected: selected,
         onPressed: onTap,
         minimumHeight: 42,
-        padding: EdgeInsetsDirectional.fromSTEB(railWidth / 2 - 21, 8, 12, 8),
+        padding: EdgeInsetsDirectional.fromSTEB(
+          navigationItemLeadingInset(railWidth),
+          8,
+          12,
+          8,
+        ),
         alignment: AlignmentDirectional.centerStart,
         borderRadius: BorderRadius.circular(22),
         selectedBackgroundColor: surfaces.cardSelected,
@@ -796,8 +816,8 @@ class _SettingsNavigationTile extends StatelessWidget {
         unselectedForegroundColor: scheme.onSurfaceVariant,
         child: Row(
           children: [
-            Icon(item.icon, size: 18),
-            const SizedBox(width: 10),
+            Icon(item.icon, size: kNavigationItemIconSize),
+            const SizedBox(width: kNavigationItemIconLabelGap),
             Expanded(
               child: Text(
                 item.label,
