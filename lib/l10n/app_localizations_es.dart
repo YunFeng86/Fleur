@@ -228,13 +228,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get readerFontSerif => 'Serifa';
 
   @override
-  String get readerFontSans => 'sin';
+  String get readerFontSans => 'Sans';
 
   @override
-  String get readerFontMono => 'monocromático';
+  String get readerFontMono => 'Monoespaciada';
 
   @override
-  String get readerFontStack => 'Lectura de pila de fuentes';
+  String get readerFontStack => 'Pila de fuentes de lectura';
 
   @override
   String get standardFont => 'Fuente estándar';
@@ -263,16 +263,16 @@ class AppLocalizationsEs extends AppLocalizations {
       '\"STIX Two Math\", \"Cambria Math\", serif';
 
   @override
-  String get readerTheme => 'textura de lectura';
+  String get readerTheme => 'Estilo de lectura';
 
   @override
   String get readerThemeDefault => 'Predeterminado';
 
   @override
-  String get readerThemePaper => 'papel';
+  String get readerThemePaper => 'Papel';
 
   @override
-  String get readerThemeSepia => 'sepia';
+  String get readerThemeSepia => 'Sepia';
 
   @override
   String get readerThemeDim => 'Gris suave';
@@ -293,7 +293,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get codeFontFamily => 'Fuente de código';
 
   @override
-  String get codeFontSystemMono => 'Sistema mono';
+  String get codeFontSystemMono => 'Monoespaciada del sistema';
 
   @override
   String get codeFontStack => 'Pila de fuentes de código';
@@ -302,7 +302,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get codeFontSize => 'Tamaño de fuente del código';
 
   @override
-  String get codeFontSizeFollowReader => 'seguir el cuerpo';
+  String get codeFontSizeFollowReader => 'Seguir el tamaño del texto';
 
   @override
   String get codeFontSizeOneStepDown => 'un paso hacia abajo';
@@ -333,7 +333,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get defaultsGroup => 'Mundial';
 
   @override
-  String get folders => 'Suscripciones';
+  String get folders => 'Carpetas';
 
   @override
   String get globalDefaults => 'Valores predeterminados globales';
@@ -713,7 +713,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get exportedOpml => 'Exportado OPML';
+  String get exportedOpml => 'OPML exportado';
 
   @override
   String fullTextFailed(String error) {
@@ -756,13 +756,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get openArticle => 'Abrir artículo';
 
   @override
-  String get markRead => 'marcar leído';
+  String get markRead => 'Marcar como leído';
 
   @override
   String get markUnread => 'Marcar como no leído';
 
   @override
-  String get collapse => 'Colapso';
+  String get collapse => 'Contraer';
 
   @override
   String get expand => 'Expandir';
@@ -811,10 +811,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get findInPage => 'Buscar en la pagina';
 
   @override
-  String get previousMatch => 'Partido anterior';
+  String get previousMatch => 'Coincidencia anterior';
 
   @override
-  String get nextMatch => 'Próximo partido';
+  String get nextMatch => 'Siguiente coincidencia';
 
   @override
   String get caseSensitive => 'Distingue entre mayúsculas y minúsculas';
@@ -913,7 +913,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get addOrRegisterAccount => 'Agregar o registrar cuenta';
 
   @override
-  String get local => 'locales';
+  String get local => 'local';
 
   @override
   String get miniflux => 'Miniflux';
@@ -937,7 +937,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get googleReaderApi => 'Google Reader API';
 
   @override
-  String get googleReaderCompatible => 'Google Reader compatible service';
+  String get googleReaderCompatible => 'Compatible con Google Reader';
 
   @override
   String get addFever => 'Añadir Fever';
@@ -962,7 +962,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get remoteSyncStrategyGoogleReaderSubtitle =>
-      'Google Reader página de servicios compatibles a través de entradas de transmisión remota hasta esta ventana por sincronización.';
+      'Los servicios compatibles con Google Reader recorren las entradas del flujo remoto por páginas hasta este límite en cada sincronización.';
 
   @override
   String get remoteSyncStrategyFeverSubtitle =>
@@ -1021,10 +1021,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get baseUrlRequired => 'Introduzca la base URL';
 
   @override
-  String get minifluxBaseUrlHint => 'https://miniflux.ejemplo.com';
+  String get minifluxBaseUrlHint => 'https://miniflux.example.com';
 
   @override
-  String get feverBaseUrlHint => 'https://ejemplo.com/fever/';
+  String get feverBaseUrlHint => 'https://example.com/fever/';
 
   @override
   String get apiToken => 'API Token';
@@ -1082,7 +1082,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'Déjelo en blanco para borrar las credenciales guardadas.';
 
   @override
-  String get aiServicesEmptyState => 'Aún no se han agregado servicios AI.';
+  String get aiServicesEmptyState => 'Aún no se han agregado servicios de IA.';
 
   @override
   String modelSummary(String model) {
@@ -1099,7 +1099,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get missingRequiredFields => 'Faltan campos obligatorios';
 
   @override
-  String get invalidBaseUrl => 'Base no válida URL';
+  String get invalidBaseUrl => 'URL base no válida';
 
   @override
   String get onlySupportedInLocalAccount => 'Solo admitido en cuenta local';
@@ -1223,7 +1223,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'R: Actualizar (selección actual)';
 
   @override
-  String get shortcutToggleUnreadOnly => 'U: alternar solo sin lectura';
+  String get shortcutToggleUnreadOnly => 'U: Mostrar solo los no leídos';
 
   @override
   String get shortcutToggleReadUnreadSelectedArticle =>
@@ -1381,13 +1381,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get translationProvider => 'Proveedor de traducción';
 
   @override
-  String get aiServices => 'AI servicios';
+  String get aiServices => 'Servicios de IA';
 
   @override
-  String get addAiService => 'Añadir servicio AI';
+  String get addAiService => 'Añadir servicio de IA';
 
   @override
-  String get aiService => 'AI servicio';
+  String get aiService => 'Servicio de IA';
 
   @override
   String get aiSummary => 'Resumen con IA';
@@ -1536,7 +1536,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'La traducción no está disponible para el proveedor seleccionado.';
 
   @override
-  String get clearTranslation => 'Traducción clara';
+  String get clearTranslation => 'Borrar traducción';
 
   @override
   String get dbRecoveryTitle => 'Recuperación de base de datos';

@@ -418,7 +418,7 @@
   "@defaultsGroup": {
     "description": "Section label for default settings entries"
   },
-  "folders": "订阅源",
+  "folders": "文件夹",
   "@folders": {
     "description": "Section label for subscription folders"
   },
@@ -426,7 +426,7 @@
   "@globalDefaults": {
     "description": "Entry label for subscription-wide default settings"
   },
-  "allSubscriptions": "全部项目",
+  "allSubscriptions": "所有订阅源",
   "@allSubscriptions": {
     "description": "Entry label for the full subscription scope"
   },
@@ -446,7 +446,7 @@
   "@globalDefaultsDescription": {
     "description": "Description shown for the global defaults pane"
   },
-  "allSubscriptionsDescription": "在这里查看整体订阅结构，并选择具体项目继续编辑。",
+  "allSubscriptionsDescription": "查看所有订阅源的整体结构，并选择要编辑的订阅源。",
   "@allSubscriptionsDescription": {
     "description": "Description shown for the all subscriptions overview"
   },
@@ -1051,11 +1051,11 @@
   "@findInPage": {
     "description": "findInPage"
   },
-  "previousMatch": "上一个匹配",
+  "previousMatch": "上一个匹配项",
   "@previousMatch": {
     "description": "previousMatch"
   },
-  "nextMatch": "下一个匹配",
+  "nextMatch": "下一个匹配项",
   "@nextMatch": {
     "description": "nextMatch"
   },
@@ -1225,7 +1225,7 @@
   "@remoteSyncStrategyMinifluxSubtitle": {
     "description": "remoteSyncStrategyMinifluxSubtitle"
   },
-  "remoteSyncStrategyGoogleReaderSubtitle": "Google Reader 兼容服务会分页拉取远程 stream 文章，最多到这个每次同步窗口。",
+  "remoteSyncStrategyGoogleReaderSubtitle": "Google Reader 兼容服务会按页拉取远程信息流条目，每次同步最多拉取到此窗口。",
   "@remoteSyncStrategyGoogleReaderSubtitle": {
     "description": "remoteSyncStrategyGoogleReaderSubtitle"
   },
@@ -1952,7 +1952,7 @@
   "@translationNotAvailable": {
     "description": "所选翻译提供方未实现时的错误提示"
   },
-  "clearTranslation": "关闭翻译",
+  "clearTranslation": "清除翻译",
   "@clearTranslation": {
     "description": "清除/隐藏翻译视图的操作文案"
   },

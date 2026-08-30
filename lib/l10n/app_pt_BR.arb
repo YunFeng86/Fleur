@@ -282,15 +282,15 @@
   "@readerFontSerif": {
     "description": "Reader serif font option"
   },
-  "readerFontSans": "Sem",
+  "readerFontSans": "Sem serifa",
   "@readerFontSans": {
     "description": "Reader sans font option"
   },
-  "readerFontMono": "Mono",
+  "readerFontMono": "Monoespaçada",
   "@readerFontMono": {
     "description": "Reader mono font option"
   },
-  "readerFontStack": "Lendo pilha de fontes",
+  "readerFontStack": "Pilha de fontes de leitura",
   "@readerFontStack": {
     "description": "Reader custom font stack setting label"
   },
@@ -326,7 +326,7 @@
   "@mathFontStackExample": {
     "description": "Example helper text for math font stack input"
   },
-  "readerTheme": "Textura de leitura",
+  "readerTheme": "Estilo de leitura",
   "@readerTheme": {
     "description": "Reader surface texture preset setting label"
   },
@@ -366,7 +366,7 @@
   "@codeFontFamily": {
     "description": "Code font family setting label"
   },
-  "codeFontSystemMono": "Sistema mono",
+  "codeFontSystemMono": "Monoespaçada do sistema",
   "@codeFontSystemMono": {
     "description": "Code system monospace font option"
   },
@@ -378,7 +378,7 @@
   "@codeFontSize": {
     "description": "Code font size setting label"
   },
-  "codeFontSizeFollowReader": "Siga o corpo",
+  "codeFontSizeFollowReader": "Seguir o corpo do texto",
   "@codeFontSizeFollowReader": {
     "description": "Code font size follows reader body option"
   },
@@ -418,7 +418,7 @@
   "@defaultsGroup": {
     "description": "Section label for default settings entries"
   },
-  "folders": "Assinaturas",
+  "folders": "Pastas",
   "@folders": {
     "description": "Section label for subscription folders"
   },
@@ -894,7 +894,7 @@
     },
     "description": "importedFeeds"
   },
-  "exportedOpml": "Exportado OPML",
+  "exportedOpml": "OPML exportado",
   "@exportedOpml": {
     "description": "exportedOpml"
   },
@@ -1022,11 +1022,11 @@
   "@findInPage": {
     "description": "findInPage"
   },
-  "previousMatch": "Partida anterior",
+  "previousMatch": "Ocorrência anterior",
   "@previousMatch": {
     "description": "previousMatch"
   },
-  "nextMatch": "Próxima partida",
+  "nextMatch": "Próxima ocorrência",
   "@nextMatch": {
     "description": "nextMatch"
   },
@@ -1196,7 +1196,7 @@
   "@googleReaderApi": {
     "description": "googleReaderApi"
   },
-  "googleReaderCompatible": "Google Reader compatible service",
+  "googleReaderCompatible": "Compatível com Google Reader",
   "@googleReaderCompatible": {
     "description": "googleReaderCompatible"
   },
@@ -1224,7 +1224,7 @@
   "@remoteSyncStrategyMinifluxSubtitle": {
     "description": "remoteSyncStrategyMinifluxSubtitle"
   },
-  "remoteSyncStrategyGoogleReaderSubtitle": "Google Reader página de serviços compatíveis através de entradas de fluxo remoto até esta janela por sincronização.",
+  "remoteSyncStrategyGoogleReaderSubtitle": "Os serviços compatíveis com o Google Reader percorrem as entradas do fluxo remoto em páginas até este limite a cada sincronização.",
   "@remoteSyncStrategyGoogleReaderSubtitle": {
     "description": "remoteSyncStrategyGoogleReaderSubtitle"
   },
@@ -1364,7 +1364,7 @@
   "@savedCredentialsClearHint": {
     "description": "Helper text explaining that empty credential fields clear the saved values"
   },
-  "aiServicesEmptyState": "Nenhum serviço AI adicionado ainda.",
+  "aiServicesEmptyState": "Nenhum serviço de IA adicionado ainda.",
   "@aiServicesEmptyState": {
     "description": "Empty state shown when no custom AI services have been configured"
   },
@@ -1389,7 +1389,7 @@
   "@missingRequiredFields": {
     "description": "missingRequiredFields"
   },
-  "invalidBaseUrl": "Base inválida URL",
+  "invalidBaseUrl": "URL base inválida",
   "@invalidBaseUrl": {
     "description": "invalidBaseUrl"
   },
@@ -1553,7 +1553,7 @@
   "@shortcutRefreshCurrentSelection": {
     "description": "Keyboard shortcut help text for refreshing the current selection"
   },
-  "shortcutToggleUnreadOnly": "U: Alternar somente não lido",
+  "shortcutToggleUnreadOnly": "U: Alternar somente não lidos",
   "@shortcutToggleUnreadOnly": {
     "description": "Keyboard shortcut help text for toggling the unread-only filter"
   },
@@ -1754,15 +1754,15 @@
   "@translationProvider": {
     "description": "Setting title for selecting translation provider"
   },
-  "aiServices": "AI serviços",
+  "aiServices": "Serviços de IA",
   "@aiServices": {
     "description": "AI services section title"
   },
-  "addAiService": "Adicionar serviço AI",
+  "addAiService": "Adicionar serviço de IA",
   "@addAiService": {
     "description": "Button/title for adding an AI service"
   },
-  "aiService": "AI serviço",
+  "aiService": "Serviço de IA",
   "@aiService": {
     "description": "Generic label for AI service"
   },
@@ -1951,7 +1951,7 @@
   "@translationNotAvailable": {
     "description": "Error message shown when the selected translation provider is not supported"
   },
-  "clearTranslation": "Tradução clara",
+  "clearTranslation": "Limpar tradução",
   "@clearTranslation": {
     "description": "Action label to clear/hide the translated view"
   },

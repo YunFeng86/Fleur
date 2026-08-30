@@ -134,7 +134,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get applicationAppearance => '앱 외관';
 
   @override
-  String get readerAppearance => '리더의 모습';
+  String get readerAppearance => '리더 화면';
 
   @override
   String get codeAppearance => '코드 모양';
@@ -223,13 +223,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get readerFontSerif => '세리프';
 
   @override
-  String get readerFontSans => '샌즈';
+  String get readerFontSans => '산세리프';
 
   @override
-  String get readerFontMono => '모노';
+  String get readerFontMono => '고정폭';
 
   @override
-  String get readerFontStack => '글꼴 스택 읽기';
+  String get readerFontStack => '읽기용 글꼴 스택';
 
   @override
   String get standardFont => '표준 글꼴';
@@ -258,7 +258,7 @@ class AppLocalizationsKo extends AppLocalizations {
       '\"STIX Two Math\", \"Cambria Math\", serif';
 
   @override
-  String get readerTheme => '질감 읽기';
+  String get readerTheme => '읽기 테마';
 
   @override
   String get readerThemeDefault => '기본값';
@@ -288,7 +288,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get codeFontFamily => '코드 글꼴';
 
   @override
-  String get codeFontSystemMono => '시스템 모노';
+  String get codeFontSystemMono => '시스템 고정폭 글꼴';
 
   @override
   String get codeFontStack => '코드 글꼴 스택';
@@ -297,7 +297,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get codeFontSize => '코드 글꼴 크기';
 
   @override
-  String get codeFontSizeFollowReader => '신체 따르기';
+  String get codeFontSizeFollowReader => '본문 글꼴 크기 따르기';
 
   @override
   String get codeFontSizeOneStepDown => '한 단계 아래로';
@@ -327,7 +327,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get defaultsGroup => '글로벌';
 
   @override
-  String get folders => '구독';
+  String get folders => '폴더';
 
   @override
   String get globalDefaults => '전역 기본값';
@@ -786,10 +786,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get findInPage => '페이지에서 찾기';
 
   @override
-  String get previousMatch => '이전 경기';
+  String get previousMatch => '이전 찾기';
 
   @override
-  String get nextMatch => '다음 경기';
+  String get nextMatch => '다음 찾기';
 
   @override
   String get caseSensitive => '대소문자 구분';
@@ -912,7 +912,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get googleReaderApi => 'Google Reader API';
 
   @override
-  String get googleReaderCompatible => 'Google Reader compatible service';
+  String get googleReaderCompatible => 'Google Reader 호환';
 
   @override
   String get addFever => 'Fever 추가';
@@ -935,7 +935,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get remoteSyncStrategyGoogleReaderSubtitle =>
-      '이 동기화 창까지 원격 스트림 항목을 통해 Google Reader 호환 서비스 페이지를 표시합니다.';
+      'Google Reader 호환 서비스는 동기화할 때마다 이 한도까지 원격 스트림 항목을 페이지 단위로 가져옵니다.';
 
   @override
   String get remoteSyncStrategyFeverSubtitle =>
@@ -1066,7 +1066,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get missingRequiredFields => '필수 입력란이 누락되었습니다.';
 
   @override
-  String get invalidBaseUrl => '잘못된 베이스 URL';
+  String get invalidBaseUrl => '잘못된 기본 URL';
 
   @override
   String get onlySupportedInLocalAccount => '로컬 계정에서만 지원됩니다.';
@@ -1188,7 +1188,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get shortcutRefreshCurrentSelection => 'R: 새로 고침(현재 선택)';
 
   @override
-  String get shortcutToggleUnreadOnly => 'U: 읽지 않은 상태로 전환';
+  String get shortcutToggleUnreadOnly => 'U: 읽지 않은 항목만 표시';
 
   @override
   String get shortcutToggleReadUnreadSelectedArticle =>
@@ -1491,7 +1491,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get translationNotAvailable => '선택한 제공업체에 대해서는 번역이 제공되지 않습니다.';
 
   @override
-  String get clearTranslation => '명확한 번역';
+  String get clearTranslation => '번역 지우기';
 
   @override
   String get dbRecoveryTitle => '데이터베이스 복구';

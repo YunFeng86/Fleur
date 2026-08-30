@@ -331,7 +331,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get defaultsGroup => 'Global';
 
   @override
-  String get folders => 'Subscriptions';
+  String get folders => 'Folders';
 
   @override
   String get globalDefaults => 'Global defaults';

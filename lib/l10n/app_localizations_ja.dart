@@ -119,7 +119,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get chineseTraditional => '繁體中文';
 
   @override
-  String get reader => '読む';
+  String get reader => 'リーダー';
 
   @override
   String get fontSize => 'フォントサイズ';
@@ -134,7 +134,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get applicationAppearance => 'アプリの外観';
 
   @override
-  String get readerAppearance => '読者登場';
+  String get readerAppearance => 'リーダーの外観';
 
   @override
   String get codeAppearance => 'コードの外観';
@@ -222,13 +222,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get readerFontSerif => 'セリフ';
 
   @override
-  String get readerFontSans => 'サンズ';
+  String get readerFontSans => 'サンセリフ';
 
   @override
-  String get readerFontMono => 'モノラル';
+  String get readerFontMono => '等幅';
 
   @override
-  String get readerFontStack => 'フォントスタックの読み取り';
+  String get readerFontStack => '読書用フォントスタック';
 
   @override
   String get standardFont => '標準フォント';
@@ -257,7 +257,7 @@ class AppLocalizationsJa extends AppLocalizations {
       '\"STIX Two Math\", \"Cambria Math\", serif';
 
   @override
-  String get readerTheme => 'テクスチャの読み取り';
+  String get readerTheme => '読書テーマ';
 
   @override
   String get readerThemeDefault => 'デフォルト';
@@ -287,7 +287,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get codeFontFamily => 'コードフォント';
 
   @override
-  String get codeFontSystemMono => 'システムモノラル';
+  String get codeFontSystemMono => 'システム等幅フォント';
 
   @override
   String get codeFontStack => 'コードフォントスタック';
@@ -296,7 +296,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get codeFontSize => 'コードのフォントサイズ';
 
   @override
-  String get codeFontSizeFollowReader => '本文に従う';
+  String get codeFontSizeFollowReader => '本文の文字サイズに合わせる';
 
   @override
   String get codeFontSizeOneStepDown => '一歩下がって';
@@ -326,7 +326,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get defaultsGroup => 'グローバル';
 
   @override
-  String get folders => '定期購入';
+  String get folders => 'フォルダー';
 
   @override
   String get globalDefaults => 'グローバルデフォルト';
@@ -743,7 +743,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get markUnread => '未読としてマークする';
 
   @override
-  String get collapse => '崩壊する';
+  String get collapse => '折りたたむ';
 
   @override
   String get expand => '拡大する';
@@ -790,10 +790,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get findInPage => 'ページ内で検索';
 
   @override
-  String get previousMatch => '前回の試合';
+  String get previousMatch => '前の一致';
 
   @override
-  String get nextMatch => '次の試合';
+  String get nextMatch => '次の一致';
 
   @override
   String get caseSensitive => '大文字と小文字を区別する';
@@ -916,7 +916,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get googleReaderApi => 'Google Reader API';
 
   @override
-  String get googleReaderCompatible => 'Google Reader compatible service';
+  String get googleReaderCompatible => 'Google Reader 互換';
 
   @override
   String get addFever => 'Fever を追加';
@@ -939,7 +939,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get remoteSyncStrategyGoogleReaderSubtitle =>
-      'Google Reader 互換サービス ページは、この同期ごとのウィンドウまでのリモート ストリーム エントリを介して表示されます。';
+      'Google Reader 互換サービスは、同期ごとにこの件数を上限としてリモートストリームのエントリをページ単位で取得します。';
 
   @override
   String get remoteSyncStrategyFeverSubtitle =>
@@ -1192,7 +1192,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get shortcutRefreshCurrentSelection => 'R: リフレッシュ (現在の選択)';
 
   @override
-  String get shortcutToggleUnreadOnly => 'U: 読み取り専用に切り替えます';
+  String get shortcutToggleUnreadOnly => 'U: 未読のみ表示に切り替え';
 
   @override
   String get shortcutToggleReadUnreadSelectedArticle =>
@@ -1494,7 +1494,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get translationNotAvailable => '選択したプロバイダーでは翻訳を利用できません。';
 
   @override
-  String get clearTranslation => '明確な翻訳';
+  String get clearTranslation => '翻訳を消去';
 
   @override
   String get dbRecoveryTitle => 'データベースの回復';

@@ -166,7 +166,7 @@
   "@applicationAppearance": {
     "description": "Section title for app-wide appearance settings"
   },
-  "readerAppearance": "Aussehen des Lesers",
+  "readerAppearance": "Lesedarstellung",
   "@readerAppearance": {
     "description": "Section title for reader appearance settings"
   },
@@ -282,15 +282,15 @@
   "@readerFontSerif": {
     "description": "Reader serif font option"
   },
-  "readerFontSans": "Ohne",
+  "readerFontSans": "Serifenlos",
   "@readerFontSans": {
     "description": "Reader sans font option"
   },
-  "readerFontMono": "Mono",
+  "readerFontMono": "Monospace",
   "@readerFontMono": {
     "description": "Reader mono font option"
   },
-  "readerFontStack": "Schriftstapel lesen",
+  "readerFontStack": "Leseschriftstapel",
   "@readerFontStack": {
     "description": "Reader custom font stack setting label"
   },
@@ -326,7 +326,7 @@
   "@mathFontStackExample": {
     "description": "Example helper text for math font stack input"
   },
-  "readerTheme": "Textur lesen",
+  "readerTheme": "Leseoberfläche",
   "@readerTheme": {
     "description": "Reader surface texture preset setting label"
   },
@@ -378,7 +378,7 @@
   "@codeFontSize": {
     "description": "Code font size setting label"
   },
-  "codeFontSizeFollowReader": "Folge dem Körper",
+  "codeFontSizeFollowReader": "Textgröße des Lesetexts übernehmen",
   "@codeFontSizeFollowReader": {
     "description": "Code font size follows reader body option"
   },
@@ -418,7 +418,7 @@
   "@defaultsGroup": {
     "description": "Section label for default settings entries"
   },
-  "folders": "Abonnements",
+  "folders": "Ordner",
   "@folders": {
     "description": "Section label for subscription folders"
   },
@@ -522,7 +522,7 @@
   "@opmlParseFailed": {
     "description": "opmlParseFailed"
   },
-  "exportOpml": "Exportieren OPML",
+  "exportOpml": "OPML exportieren",
   "@exportOpml": {
     "description": "exportOpml"
   },
@@ -894,7 +894,7 @@
     },
     "description": "importedFeeds"
   },
-  "exportedOpml": "Exportiert OPML",
+  "exportedOpml": "OPML exportiert",
   "@exportedOpml": {
     "description": "exportedOpml"
   },
@@ -951,7 +951,7 @@
   "@openArticle": {
     "description": "Action label for opening an article from a list"
   },
-  "markRead": "Mark hat gelesen",
+  "markRead": "Als gelesen markieren",
   "@markRead": {
     "description": "markRead"
   },
@@ -959,7 +959,7 @@
   "@markUnread": {
     "description": "markUnread"
   },
-  "collapse": "Zusammenbruch",
+  "collapse": "Einklappen",
   "@collapse": {
     "description": "collapse"
   },
@@ -1022,11 +1022,11 @@
   "@findInPage": {
     "description": "findInPage"
   },
-  "previousMatch": "Vorheriges Spiel",
+  "previousMatch": "Vorheriger Treffer",
   "@previousMatch": {
     "description": "previousMatch"
   },
-  "nextMatch": "Nächstes Spiel",
+  "nextMatch": "Nächster Treffer",
   "@nextMatch": {
     "description": "nextMatch"
   },
@@ -1196,7 +1196,7 @@
   "@googleReaderApi": {
     "description": "googleReaderApi"
   },
-  "googleReaderCompatible": "Google Reader compatible service",
+  "googleReaderCompatible": "Google Reader-kompatibel",
   "@googleReaderCompatible": {
     "description": "googleReaderCompatible"
   },
@@ -1224,7 +1224,7 @@
   "@remoteSyncStrategyMinifluxSubtitle": {
     "description": "remoteSyncStrategyMinifluxSubtitle"
   },
-  "remoteSyncStrategyGoogleReaderSubtitle": "Google Reader kompatible Dienste blättern durch Remote-Stream-Einträge bis zu diesem Fenster pro Synchronisierung.",
+  "remoteSyncStrategyGoogleReaderSubtitle": "Google-Reader-kompatible Dienste rufen pro Synchronisierung Remote-Stream-Einträge bis zu diesem Fenster seitenweise ab.",
   "@remoteSyncStrategyGoogleReaderSubtitle": {
     "description": "remoteSyncStrategyGoogleReaderSubtitle"
   },
@@ -1553,7 +1553,7 @@
   "@shortcutRefreshCurrentSelection": {
     "description": "Keyboard shortcut help text for refreshing the current selection"
   },
-  "shortcutToggleUnreadOnly": "U: Schreibgeschützt umschalten",
+  "shortcutToggleUnreadOnly": "U: Nur ungelesene anzeigen",
   "@shortcutToggleUnreadOnly": {
     "description": "Keyboard shortcut help text for toggling the unread-only filter"
   },
@@ -1951,7 +1951,7 @@
   "@translationNotAvailable": {
     "description": "Error message shown when the selected translation provider is not supported"
   },
-  "clearTranslation": "Klare Übersetzung",
+  "clearTranslation": "Übersetzung löschen",
   "@clearTranslation": {
     "description": "Action label to clear/hide the translated view"
   },

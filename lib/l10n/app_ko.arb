@@ -166,7 +166,7 @@
   "@applicationAppearance": {
     "description": "Section title for app-wide appearance settings"
   },
-  "readerAppearance": "리더의 모습",
+  "readerAppearance": "리더 화면",
   "@readerAppearance": {
     "description": "Section title for reader appearance settings"
   },
@@ -282,15 +282,15 @@
   "@readerFontSerif": {
     "description": "Reader serif font option"
   },
-  "readerFontSans": "샌즈",
+  "readerFontSans": "산세리프",
   "@readerFontSans": {
     "description": "Reader sans font option"
   },
-  "readerFontMono": "모노",
+  "readerFontMono": "고정폭",
   "@readerFontMono": {
     "description": "Reader mono font option"
   },
-  "readerFontStack": "글꼴 스택 읽기",
+  "readerFontStack": "읽기용 글꼴 스택",
   "@readerFontStack": {
     "description": "Reader custom font stack setting label"
   },
@@ -326,7 +326,7 @@
   "@mathFontStackExample": {
     "description": "Example helper text for math font stack input"
   },
-  "readerTheme": "질감 읽기",
+  "readerTheme": "읽기 테마",
   "@readerTheme": {
     "description": "Reader surface texture preset setting label"
   },
@@ -366,7 +366,7 @@
   "@codeFontFamily": {
     "description": "Code font family setting label"
   },
-  "codeFontSystemMono": "시스템 모노",
+  "codeFontSystemMono": "시스템 고정폭 글꼴",
   "@codeFontSystemMono": {
     "description": "Code system monospace font option"
   },
@@ -378,7 +378,7 @@
   "@codeFontSize": {
     "description": "Code font size setting label"
   },
-  "codeFontSizeFollowReader": "신체 따르기",
+  "codeFontSizeFollowReader": "본문 글꼴 크기 따르기",
   "@codeFontSizeFollowReader": {
     "description": "Code font size follows reader body option"
   },
@@ -418,7 +418,7 @@
   "@defaultsGroup": {
     "description": "Section label for default settings entries"
   },
-  "folders": "구독",
+  "folders": "폴더",
   "@folders": {
     "description": "Section label for subscription folders"
   },
@@ -1022,11 +1022,11 @@
   "@findInPage": {
     "description": "findInPage"
   },
-  "previousMatch": "이전 경기",
+  "previousMatch": "이전 찾기",
   "@previousMatch": {
     "description": "previousMatch"
   },
-  "nextMatch": "다음 경기",
+  "nextMatch": "다음 찾기",
   "@nextMatch": {
     "description": "nextMatch"
   },
@@ -1196,7 +1196,7 @@
   "@googleReaderApi": {
     "description": "googleReaderApi"
   },
-  "googleReaderCompatible": "Google Reader compatible service",
+  "googleReaderCompatible": "Google Reader 호환",
   "@googleReaderCompatible": {
     "description": "googleReaderCompatible"
   },
@@ -1224,7 +1224,7 @@
   "@remoteSyncStrategyMinifluxSubtitle": {
     "description": "remoteSyncStrategyMinifluxSubtitle"
   },
-  "remoteSyncStrategyGoogleReaderSubtitle": "이 동기화 창까지 원격 스트림 항목을 통해 Google Reader 호환 서비스 페이지를 표시합니다.",
+  "remoteSyncStrategyGoogleReaderSubtitle": "Google Reader 호환 서비스는 동기화할 때마다 이 한도까지 원격 스트림 항목을 페이지 단위로 가져옵니다.",
   "@remoteSyncStrategyGoogleReaderSubtitle": {
     "description": "remoteSyncStrategyGoogleReaderSubtitle"
   },
@@ -1389,7 +1389,7 @@
   "@missingRequiredFields": {
     "description": "missingRequiredFields"
   },
-  "invalidBaseUrl": "잘못된 베이스 URL",
+  "invalidBaseUrl": "잘못된 기본 URL",
   "@invalidBaseUrl": {
     "description": "invalidBaseUrl"
   },
@@ -1553,7 +1553,7 @@
   "@shortcutRefreshCurrentSelection": {
     "description": "Keyboard shortcut help text for refreshing the current selection"
   },
-  "shortcutToggleUnreadOnly": "U: 읽지 않은 상태로 전환",
+  "shortcutToggleUnreadOnly": "U: 읽지 않은 항목만 표시",
   "@shortcutToggleUnreadOnly": {
     "description": "Keyboard shortcut help text for toggling the unread-only filter"
   },
@@ -1951,7 +1951,7 @@
   "@translationNotAvailable": {
     "description": "Error message shown when the selected translation provider is not supported"
   },
-  "clearTranslation": "명확한 번역",
+  "clearTranslation": "번역 지우기",
   "@clearTranslation": {
     "description": "Action label to clear/hide the translated view"
   },

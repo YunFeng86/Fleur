@@ -146,7 +146,7 @@
   "@chineseTraditional": {
     "description": "chineseTraditional"
   },
-  "reader": "読む",
+  "reader": "リーダー",
   "@reader": {
     "description": "reader"
   },
@@ -166,7 +166,7 @@
   "@applicationAppearance": {
     "description": "Section title for app-wide appearance settings"
   },
-  "readerAppearance": "読者登場",
+  "readerAppearance": "リーダーの外観",
   "@readerAppearance": {
     "description": "Section title for reader appearance settings"
   },
@@ -282,15 +282,15 @@
   "@readerFontSerif": {
     "description": "Reader serif font option"
   },
-  "readerFontSans": "サンズ",
+  "readerFontSans": "サンセリフ",
   "@readerFontSans": {
     "description": "Reader sans font option"
   },
-  "readerFontMono": "モノラル",
+  "readerFontMono": "等幅",
   "@readerFontMono": {
     "description": "Reader mono font option"
   },
-  "readerFontStack": "フォントスタックの読み取り",
+  "readerFontStack": "読書用フォントスタック",
   "@readerFontStack": {
     "description": "Reader custom font stack setting label"
   },
@@ -326,7 +326,7 @@
   "@mathFontStackExample": {
     "description": "Example helper text for math font stack input"
   },
-  "readerTheme": "テクスチャの読み取り",
+  "readerTheme": "読書テーマ",
   "@readerTheme": {
     "description": "Reader surface texture preset setting label"
   },
@@ -366,7 +366,7 @@
   "@codeFontFamily": {
     "description": "Code font family setting label"
   },
-  "codeFontSystemMono": "システムモノラル",
+  "codeFontSystemMono": "システム等幅フォント",
   "@codeFontSystemMono": {
     "description": "Code system monospace font option"
   },
@@ -378,7 +378,7 @@
   "@codeFontSize": {
     "description": "Code font size setting label"
   },
-  "codeFontSizeFollowReader": "本文に従う",
+  "codeFontSizeFollowReader": "本文の文字サイズに合わせる",
   "@codeFontSizeFollowReader": {
     "description": "Code font size follows reader body option"
   },
@@ -418,7 +418,7 @@
   "@defaultsGroup": {
     "description": "Section label for default settings entries"
   },
-  "folders": "定期購入",
+  "folders": "フォルダー",
   "@folders": {
     "description": "Section label for subscription folders"
   },
@@ -959,7 +959,7 @@
   "@markUnread": {
     "description": "markUnread"
   },
-  "collapse": "崩壊する",
+  "collapse": "折りたたむ",
   "@collapse": {
     "description": "collapse"
   },
@@ -1022,11 +1022,11 @@
   "@findInPage": {
     "description": "findInPage"
   },
-  "previousMatch": "前回の試合",
+  "previousMatch": "前の一致",
   "@previousMatch": {
     "description": "previousMatch"
   },
-  "nextMatch": "次の試合",
+  "nextMatch": "次の一致",
   "@nextMatch": {
     "description": "nextMatch"
   },
@@ -1196,7 +1196,7 @@
   "@googleReaderApi": {
     "description": "googleReaderApi"
   },
-  "googleReaderCompatible": "Google Reader compatible service",
+  "googleReaderCompatible": "Google Reader 互換",
   "@googleReaderCompatible": {
     "description": "googleReaderCompatible"
   },
@@ -1224,7 +1224,7 @@
   "@remoteSyncStrategyMinifluxSubtitle": {
     "description": "remoteSyncStrategyMinifluxSubtitle"
   },
-  "remoteSyncStrategyGoogleReaderSubtitle": "Google Reader 互換サービス ページは、この同期ごとのウィンドウまでのリモート ストリーム エントリを介して表示されます。",
+  "remoteSyncStrategyGoogleReaderSubtitle": "Google Reader 互換サービスは、同期ごとにこの件数を上限としてリモートストリームのエントリをページ単位で取得します。",
   "@remoteSyncStrategyGoogleReaderSubtitle": {
     "description": "remoteSyncStrategyGoogleReaderSubtitle"
   },
@@ -1553,7 +1553,7 @@
   "@shortcutRefreshCurrentSelection": {
     "description": "Keyboard shortcut help text for refreshing the current selection"
   },
-  "shortcutToggleUnreadOnly": "U: 読み取り専用に切り替えます",
+  "shortcutToggleUnreadOnly": "U: 未読のみ表示に切り替え",
   "@shortcutToggleUnreadOnly": {
     "description": "Keyboard shortcut help text for toggling the unread-only filter"
   },
@@ -1951,7 +1951,7 @@
   "@translationNotAvailable": {
     "description": "Error message shown when the selected translation provider is not supported"
   },
-  "clearTranslation": "明確な翻訳",
+  "clearTranslation": "翻訳を消去",
   "@clearTranslation": {
     "description": "Action label to clear/hide the translated view"
   },

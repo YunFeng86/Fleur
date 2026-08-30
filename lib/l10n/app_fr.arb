@@ -166,7 +166,7 @@
   "@applicationAppearance": {
     "description": "Section title for app-wide appearance settings"
   },
-  "readerAppearance": "Apparition du lecteur",
+  "readerAppearance": "Apparence du lecteur",
   "@readerAppearance": {
     "description": "Section title for reader appearance settings"
   },
@@ -290,7 +290,7 @@
   "@readerFontMono": {
     "description": "Reader mono font option"
   },
-  "readerFontStack": "Lecture de la pile de polices",
+  "readerFontStack": "Pile de polices de lecture",
   "@readerFontStack": {
     "description": "Reader custom font stack setting label"
   },
@@ -326,7 +326,7 @@
   "@mathFontStackExample": {
     "description": "Example helper text for math font stack input"
   },
-  "readerTheme": "Texture de lecture",
+  "readerTheme": "Style de lecture",
   "@readerTheme": {
     "description": "Reader surface texture preset setting label"
   },
@@ -366,7 +366,7 @@
   "@codeFontFamily": {
     "description": "Code font family setting label"
   },
-  "codeFontSystemMono": "Système mono",
+  "codeFontSystemMono": "Police à chasse fixe du système",
   "@codeFontSystemMono": {
     "description": "Code system monospace font option"
   },
@@ -378,7 +378,7 @@
   "@codeFontSize": {
     "description": "Code font size setting label"
   },
-  "codeFontSizeFollowReader": "Suivre le corps",
+  "codeFontSizeFollowReader": "Suivre la taille du texte",
   "@codeFontSizeFollowReader": {
     "description": "Code font size follows reader body option"
   },
@@ -418,7 +418,7 @@
   "@defaultsGroup": {
     "description": "Section label for default settings entries"
   },
-  "folders": "Abonnements",
+  "folders": "Dossiers",
   "@folders": {
     "description": "Section label for subscription folders"
   },
@@ -894,7 +894,7 @@
     },
     "description": "importedFeeds"
   },
-  "exportedOpml": "Exporté OPML",
+  "exportedOpml": "OPML exporté",
   "@exportedOpml": {
     "description": "exportedOpml"
   },
@@ -1022,11 +1022,11 @@
   "@findInPage": {
     "description": "findInPage"
   },
-  "previousMatch": "Match précédent",
+  "previousMatch": "Occurrence précédente",
   "@previousMatch": {
     "description": "previousMatch"
   },
-  "nextMatch": "Prochain match",
+  "nextMatch": "Occurrence suivante",
   "@nextMatch": {
     "description": "nextMatch"
   },
@@ -1164,7 +1164,7 @@
   "@addOrRegisterAccount": {
     "description": "Action label for adding or registering an account"
   },
-  "local": "Locale",
+  "local": "Local",
   "@local": {
     "description": "local"
   },
@@ -1196,7 +1196,7 @@
   "@googleReaderApi": {
     "description": "googleReaderApi"
   },
-  "googleReaderCompatible": "Google Reader compatible service",
+  "googleReaderCompatible": "Compatible avec Google Reader",
   "@googleReaderCompatible": {
     "description": "googleReaderCompatible"
   },
@@ -1224,7 +1224,7 @@
   "@remoteSyncStrategyMinifluxSubtitle": {
     "description": "remoteSyncStrategyMinifluxSubtitle"
   },
-  "remoteSyncStrategyGoogleReaderSubtitle": "Google Reader page des services compatibles via les entrées de flux à distance jusqu'à cette fenêtre par synchronisation.",
+  "remoteSyncStrategyGoogleReaderSubtitle": "Les services compatibles avec Google Reader parcourent les entrées du flux distant jusqu’à cette limite à chaque synchronisation.",
   "@remoteSyncStrategyGoogleReaderSubtitle": {
     "description": "remoteSyncStrategyGoogleReaderSubtitle"
   },
@@ -1292,7 +1292,7 @@
   "@minifluxBaseUrlHint": {
     "description": "minifluxBaseUrlHint"
   },
-  "feverBaseUrlHint": "https://exemple.com/fièvre/",
+  "feverBaseUrlHint": "https://example.com/fever/",
   "@feverBaseUrlHint": {
     "description": "feverBaseUrlHint"
   },
@@ -1364,7 +1364,7 @@
   "@savedCredentialsClearHint": {
     "description": "Helper text explaining that empty credential fields clear the saved values"
   },
-  "aiServicesEmptyState": "Aucun service AI ajouté pour l'instant.",
+  "aiServicesEmptyState": "Aucun service d’IA ajouté pour le moment.",
   "@aiServicesEmptyState": {
     "description": "Empty state shown when no custom AI services have been configured"
   },
@@ -1553,7 +1553,7 @@
   "@shortcutRefreshCurrentSelection": {
     "description": "Keyboard shortcut help text for refreshing the current selection"
   },
-  "shortcutToggleUnreadOnly": "U : basculer en lecture seule",
+  "shortcutToggleUnreadOnly": "U : afficher uniquement les non-lus",
   "@shortcutToggleUnreadOnly": {
     "description": "Keyboard shortcut help text for toggling the unread-only filter"
   },
@@ -1754,15 +1754,15 @@
   "@translationProvider": {
     "description": "Setting title for selecting translation provider"
   },
-  "aiServices": "AI prestations",
+  "aiServices": "Services d’IA",
   "@aiServices": {
     "description": "AI services section title"
   },
-  "addAiService": "Ajouter le service AI",
+  "addAiService": "Ajouter un service d’IA",
   "@addAiService": {
     "description": "Button/title for adding an AI service"
   },
-  "aiService": "Service AI",
+  "aiService": "Service d’IA",
   "@aiService": {
     "description": "Generic label for AI service"
   },
@@ -1951,7 +1951,7 @@
   "@translationNotAvailable": {
     "description": "Error message shown when the selected translation provider is not supported"
   },
-  "clearTranslation": "Traduction claire",
+  "clearTranslation": "Effacer la traduction",
   "@clearTranslation": {
     "description": "Action label to clear/hide the translated view"
   },

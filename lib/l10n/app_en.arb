@@ -418,7 +418,7 @@
   "@defaultsGroup": {
     "description": "Section label for default settings entries"
   },
-  "folders": "Subscriptions",
+  "folders": "Folders",
   "@folders": {
     "description": "Section label for subscription folders"
   },

@@ -290,7 +290,7 @@
   "@readerFontMono": {
     "description": "Reader mono font option"
   },
-  "readerFontStack": "閱讀字體棧",
+  "readerFontStack": "閱讀字型堆疊",
   "@readerFontStack": {
     "description": "Reader custom font stack setting label"
   },
@@ -418,7 +418,7 @@
   "@defaultsGroup": {
     "description": "Section label for default settings entries"
   },
-  "folders": "訂閱源",
+  "folders": "資料夾",
   "@folders": {
     "description": "Section label for subscription folders"
   },
@@ -426,7 +426,7 @@
   "@globalDefaults": {
     "description": "Entry label for subscription-wide default settings"
   },
-  "allSubscriptions": "全部項目",
+  "allSubscriptions": "所有訂閱源",
   "@allSubscriptions": {
     "description": "Entry label for the full subscription scope"
   },
@@ -446,7 +446,7 @@
   "@globalDefaultsDescription": {
     "description": "Description shown for the global defaults pane"
   },
-  "allSubscriptionsDescription": "在這裡查看整體訂閱結構，並選擇具體項目繼續編輯。",
+  "allSubscriptionsDescription": "查看所有訂閱源的整體結構，並選擇要編輯的訂閱源。",
   "@allSubscriptionsDescription": {
     "description": "Description shown for the all subscriptions overview"
   },
@@ -1051,11 +1051,11 @@
   "@findInPage": {
     "description": "findInPage"
   },
-  "previousMatch": "上一個符合",
+  "previousMatch": "上一個符合項目",
   "@previousMatch": {
     "description": "previousMatch"
   },
-  "nextMatch": "下一個符合",
+  "nextMatch": "下一個符合項目",
   "@nextMatch": {
     "description": "nextMatch"
   },
@@ -1225,7 +1225,7 @@
   "@remoteSyncStrategyMinifluxSubtitle": {
     "description": "remoteSyncStrategyMinifluxSubtitle"
   },
-  "remoteSyncStrategyGoogleReaderSubtitle": "Google Reader 相容服務會分頁拉取遠端 stream 文章，最多到這個每次同步視窗。",
+  "remoteSyncStrategyGoogleReaderSubtitle": "Google Reader 相容服務會按頁擷取遠端資訊流項目，每次同步最多擷取到此上限。",
   "@remoteSyncStrategyGoogleReaderSubtitle": {
     "description": "remoteSyncStrategyGoogleReaderSubtitle"
   },
@@ -1952,7 +1952,7 @@
   "@translationNotAvailable": {
     "description": "所選翻譯提供方未實作時的錯誤提示"
   },
-  "clearTranslation": "關閉翻譯",
+  "clearTranslation": "清除翻譯",
   "@clearTranslation": {
     "description": "清除/隱藏翻譯視圖的操作文案"
   },

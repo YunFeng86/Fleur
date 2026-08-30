@@ -324,13 +324,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get defaultsGroup => '全局';
 
   @override
-  String get folders => '订阅源';
+  String get folders => '文件夹';
 
   @override
   String get globalDefaults => '全局默认';
 
   @override
-  String get allSubscriptions => '全部项目';
+  String get allSubscriptions => '所有订阅源';
 
   @override
   String get manage => '管理';
@@ -345,7 +345,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get globalDefaultsDescription => '当文件夹或订阅源未覆盖设置时，会继承这里的默认值。';
 
   @override
-  String get allSubscriptionsDescription => '在这里查看整体订阅结构，并选择具体项目继续编辑。';
+  String get allSubscriptionsDescription => '查看所有订阅源的整体结构，并选择要编辑的订阅源。';
 
   @override
   String get uncategorizedDescription => '未分类的订阅源会继承全局默认，直到你为它们单独覆盖设置。';
@@ -771,10 +771,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get findInPage => '页面内查找';
 
   @override
-  String get previousMatch => '上一个匹配';
+  String get previousMatch => '上一个匹配项';
 
   @override
-  String get nextMatch => '下一个匹配';
+  String get nextMatch => '下一个匹配项';
 
   @override
   String get caseSensitive => '区分大小写';
@@ -920,7 +920,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get remoteSyncStrategyGoogleReaderSubtitle =>
-      'Google Reader 兼容服务会分页拉取远程 stream 文章，最多到这个每次同步窗口。';
+      'Google Reader 兼容服务会按页拉取远程信息流条目，每次同步最多拉取到此窗口。';
 
   @override
   String get remoteSyncStrategyFeverSubtitle => 'Fever 同步未读和收藏条目，并受这个每次同步窗口限制。';
@@ -1472,7 +1472,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get translationNotAvailable => '所选翻译提供方暂不支持。';
 
   @override
-  String get clearTranslation => '关闭翻译';
+  String get clearTranslation => '清除翻译';
 
   @override
   String get dbRecoveryTitle => '数据库恢复';
@@ -1851,13 +1851,13 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get defaultsGroup => '全局';
 
   @override
-  String get folders => '订阅源';
+  String get folders => '文件夹';
 
   @override
   String get globalDefaults => '全局默认';
 
   @override
-  String get allSubscriptions => '全部项目';
+  String get allSubscriptions => '所有订阅源';
 
   @override
   String get manage => '管理';
@@ -1872,7 +1872,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get globalDefaultsDescription => '当文件夹或订阅源未覆盖设置时，会继承这里的默认值。';
 
   @override
-  String get allSubscriptionsDescription => '在这里查看整体订阅结构，并选择具体项目继续编辑。';
+  String get allSubscriptionsDescription => '查看所有订阅源的整体结构，并选择要编辑的订阅源。';
 
   @override
   String get uncategorizedDescription => '未分类的订阅源会继承全局默认，直到你为它们单独覆盖设置。';
@@ -2298,10 +2298,10 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get findInPage => '页面内查找';
 
   @override
-  String get previousMatch => '上一个匹配';
+  String get previousMatch => '上一个匹配项';
 
   @override
-  String get nextMatch => '下一个匹配';
+  String get nextMatch => '下一个匹配项';
 
   @override
   String get caseSensitive => '区分大小写';
@@ -2447,7 +2447,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get remoteSyncStrategyGoogleReaderSubtitle =>
-      'Google Reader 兼容服务会分页拉取远程 stream 文章，最多到这个每次同步窗口。';
+      'Google Reader 兼容服务会按页拉取远程信息流条目，每次同步最多拉取到此窗口。';
 
   @override
   String get remoteSyncStrategyFeverSubtitle => 'Fever 同步未读和收藏条目，并受这个每次同步窗口限制。';
@@ -2999,7 +2999,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get translationNotAvailable => '所选翻译提供方暂不支持。';
 
   @override
-  String get clearTranslation => '关闭翻译';
+  String get clearTranslation => '清除翻译';
 
   @override
   String get dbRecoveryTitle => '数据库恢复';
@@ -3280,7 +3280,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get readerFontMono => '等寬';
 
   @override
-  String get readerFontStack => '閱讀字體棧';
+  String get readerFontStack => '閱讀字型堆疊';
 
   @override
   String get standardFont => '標準字體';
@@ -3378,13 +3378,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get defaultsGroup => '全域';
 
   @override
-  String get folders => '訂閱源';
+  String get folders => '資料夾';
 
   @override
   String get globalDefaults => '全域預設';
 
   @override
-  String get allSubscriptions => '全部項目';
+  String get allSubscriptions => '所有訂閱源';
 
   @override
   String get manage => '管理';
@@ -3399,7 +3399,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get globalDefaultsDescription => '當資料夾或訂閱源沒有覆寫設定時，會繼承這裡的預設值。';
 
   @override
-  String get allSubscriptionsDescription => '在這裡查看整體訂閱結構，並選擇具體項目繼續編輯。';
+  String get allSubscriptionsDescription => '查看所有訂閱源的整體結構，並選擇要編輯的訂閱源。';
 
   @override
   String get uncategorizedDescription => '未分類的訂閱源會繼承全域預設，直到你為它們單獨覆寫設定。';
@@ -3825,10 +3825,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get findInPage => '頁面內尋找';
 
   @override
-  String get previousMatch => '上一個符合';
+  String get previousMatch => '上一個符合項目';
 
   @override
-  String get nextMatch => '下一個符合';
+  String get nextMatch => '下一個符合項目';
 
   @override
   String get caseSensitive => '區分大小寫';
@@ -3974,7 +3974,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get remoteSyncStrategyGoogleReaderSubtitle =>
-      'Google Reader 相容服務會分頁拉取遠端 stream 文章，最多到這個每次同步視窗。';
+      'Google Reader 相容服務會按頁擷取遠端資訊流項目，每次同步最多擷取到此上限。';
 
   @override
   String get remoteSyncStrategyFeverSubtitle => 'Fever 同步未讀和收藏項目，並受這個每次同步視窗限制。';
@@ -4526,7 +4526,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get translationNotAvailable => '所選翻譯提供方暫不支援。';
 
   @override
-  String get clearTranslation => '關閉翻譯';
+  String get clearTranslation => '清除翻譯';
 
   @override
   String get dbRecoveryTitle => '資料庫恢復';

@@ -138,7 +138,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get applicationAppearance => 'App-Erscheinungsbild';
 
   @override
-  String get readerAppearance => 'Aussehen des Lesers';
+  String get readerAppearance => 'Lesedarstellung';
 
   @override
   String get codeAppearance => 'Code-Erscheinungsbild';
@@ -227,13 +227,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get readerFontSerif => 'Serife';
 
   @override
-  String get readerFontSans => 'Ohne';
+  String get readerFontSans => 'Serifenlos';
 
   @override
-  String get readerFontMono => 'Mono';
+  String get readerFontMono => 'Monospace';
 
   @override
-  String get readerFontStack => 'Schriftstapel lesen';
+  String get readerFontStack => 'Leseschriftstapel';
 
   @override
   String get standardFont => 'Standardschriftart';
@@ -262,7 +262,7 @@ class AppLocalizationsDe extends AppLocalizations {
       '\"STIX Two Math\", \"Cambria Math\", serif';
 
   @override
-  String get readerTheme => 'Textur lesen';
+  String get readerTheme => 'Leseoberfläche';
 
   @override
   String get readerThemeDefault => 'Standard';
@@ -301,7 +301,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get codeFontSize => 'Code-Schriftgröße';
 
   @override
-  String get codeFontSizeFollowReader => 'Folge dem Körper';
+  String get codeFontSizeFollowReader => 'Textgröße des Lesetexts übernehmen';
 
   @override
   String get codeFontSizeOneStepDown => 'Einen Schritt nach unten';
@@ -332,7 +332,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get defaultsGroup => 'Global';
 
   @override
-  String get folders => 'Abonnements';
+  String get folders => 'Ordner';
 
   @override
   String get globalDefaults => 'Globale Standardwerte';
@@ -416,7 +416,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get opmlParseFailed => 'Ungültige OPML-Datei';
 
   @override
-  String get exportOpml => 'Exportieren OPML';
+  String get exportOpml => 'OPML exportieren';
 
   @override
   String get addSubscription => 'Abonnement hinzufügen';
@@ -714,7 +714,7 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get exportedOpml => 'Exportiert OPML';
+  String get exportedOpml => 'OPML exportiert';
 
   @override
   String fullTextFailed(String error) {
@@ -756,13 +756,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get openArticle => 'Artikel öffnen';
 
   @override
-  String get markRead => 'Mark hat gelesen';
+  String get markRead => 'Als gelesen markieren';
 
   @override
   String get markUnread => 'Als ungelesen markieren';
 
   @override
-  String get collapse => 'Zusammenbruch';
+  String get collapse => 'Einklappen';
 
   @override
   String get expand => 'Erweitern';
@@ -811,10 +811,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get findInPage => 'Auf der Seite finden';
 
   @override
-  String get previousMatch => 'Vorheriges Spiel';
+  String get previousMatch => 'Vorheriger Treffer';
 
   @override
-  String get nextMatch => 'Nächstes Spiel';
+  String get nextMatch => 'Nächster Treffer';
 
   @override
   String get caseSensitive => 'Groß- und Kleinschreibung beachten';
@@ -937,7 +937,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get googleReaderApi => 'Google Reader API';
 
   @override
-  String get googleReaderCompatible => 'Google Reader compatible service';
+  String get googleReaderCompatible => 'Google Reader-kompatibel';
 
   @override
   String get addFever => 'Fever hinzufügen';
@@ -962,7 +962,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get remoteSyncStrategyGoogleReaderSubtitle =>
-      'Google Reader kompatible Dienste blättern durch Remote-Stream-Einträge bis zu diesem Fenster pro Synchronisierung.';
+      'Google-Reader-kompatible Dienste rufen pro Synchronisierung Remote-Stream-Einträge bis zu diesem Fenster seitenweise ab.';
 
   @override
   String get remoteSyncStrategyFeverSubtitle =>
@@ -1223,7 +1223,7 @@ class AppLocalizationsDe extends AppLocalizations {
       'R: Aktualisieren (aktuelle Auswahl)';
 
   @override
-  String get shortcutToggleUnreadOnly => 'U: Schreibgeschützt umschalten';
+  String get shortcutToggleUnreadOnly => 'U: Nur ungelesene anzeigen';
 
   @override
   String get shortcutToggleReadUnreadSelectedArticle =>
@@ -1539,7 +1539,7 @@ class AppLocalizationsDe extends AppLocalizations {
       'Für den ausgewählten Anbieter ist keine Übersetzung verfügbar.';
 
   @override
-  String get clearTranslation => 'Klare Übersetzung';
+  String get clearTranslation => 'Übersetzung löschen';
 
   @override
   String get dbRecoveryTitle => 'Datenbankwiederherstellung';

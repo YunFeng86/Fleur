@@ -734,7 +734,7 @@ abstract class AppLocalizations {
   /// Section label for subscription folders
   ///
   /// In en, this message translates to:
-  /// **'Subscriptions'**
+  /// **'Folders'**
   String get folders;
 
   /// Entry label for subscription-wide default settings
