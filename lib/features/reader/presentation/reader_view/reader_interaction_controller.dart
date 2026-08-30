@@ -283,6 +283,17 @@ final class _ReaderInteractionController {
     var opened = false;
     try {
       opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!opened) {
+        AppLogger.w(
+          'Opening external link was rejected',
+          tag: 'reader',
+          context: <String, Object?>{
+            'operation': 'launchUrl',
+            'scheme': uri.scheme,
+            'host': uri.host,
+          },
+        );
+      }
     } catch (e, s) {
       AppLogger.w(
         'Search selected text failed',
@@ -534,7 +545,18 @@ final class _ReaderInteractionController {
     final message = AppLocalizations.of(owner.context)!.openFailedGeneral;
     try {
       final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-      if (!opened && owner.mounted) owner.context.showErrorMessage(message);
+      if (!opened) {
+        AppLogger.w(
+          'Opening reader link was rejected',
+          tag: 'reader',
+          context: <String, Object?>{
+            'operation': 'launchUrl',
+            'scheme': uri.scheme,
+            'host': uri.host,
+          },
+        );
+        if (owner.mounted) owner.context.showErrorMessage(message);
+      }
       return opened;
     } catch (e, s) {
       AppLogger.w(
