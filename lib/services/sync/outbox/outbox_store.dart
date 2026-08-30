@@ -309,6 +309,26 @@ class OutboxStore {
     _emitChange(accountId);
   }
 
+  Future<int> restoreQuarantined(String accountId) async {
+    final records = await loadQuarantined(accountId);
+    var restored = 0;
+    for (final record in records) {
+      final raw = record['action'];
+      if (raw is! Map) continue;
+      try {
+        await enqueue(
+          accountId,
+          OutboxAction.fromJson(raw.cast<String, Object?>()),
+        );
+        restored += 1;
+      } catch (_) {
+        // Keep malformed quarantine records for inspection/expiry.
+      }
+    }
+    if (restored > 0) await clearQuarantined(accountId);
+    return restored;
+  }
+
   Future<File> _file(String accountId) async {
     final dir = await PathManager.getStateDir();
     return File('${dir.path}${Platform.pathSeparator}outbox_$accountId.json');

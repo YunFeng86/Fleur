@@ -1260,6 +1260,8 @@
   "minifluxWebFetchModeServer": "服务端（Miniflux fetch-content）",
   "maxNetworkResponseBytes": "最大网络响应大小",
   "maxNetworkResponseBytesSubtitle": "限制同步、订阅、网页和其他网络请求的响应缓冲大小；仍保留内部高限制。",
+  "retryQuarantined": "重试",
+  "clearQuarantined": "清除",
   "@minifluxWebFetchModeServer": {
     "description": "minifluxWebFetchModeServer"
   },

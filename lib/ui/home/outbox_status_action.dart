@@ -65,13 +65,45 @@ class OutboxStatusAction extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
 
+    Future<void> showQuarantine() async {
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(l10n.syncStatusFailed),
+          content: Text('$quarantined'),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                await ref
+                    .read(outboxStoreProvider)
+                    .restoreQuarantined(account.id);
+                if (dialogContext.mounted) Navigator.pop(dialogContext);
+              },
+              child: Text(l10n.retryQuarantined),
+            ),
+            TextButton(
+              onPressed: () async {
+                await ref
+                    .read(outboxStoreProvider)
+                    .clearQuarantined(account.id);
+                if (dialogContext.mounted) Navigator.pop(dialogContext);
+              },
+              child: Text(l10n.clearQuarantined),
+            ),
+          ],
+        ),
+      );
+    }
+
     return IconButton(
       tooltip: quarantined > 0
           ? l10n.syncStatusFailed
           : isWarning
           ? l10n.syncStatusFailed
           : l10n.syncStatusUploadingChanges,
-      onPressed: () => unawaited(flushNow()),
+      onPressed: () => unawaited(
+        quarantined > 0 && pending == 0 ? showQuarantine() : flushNow(),
+      ),
       iconSize: compact ? 18 : null,
       style: compact
           ? FleurCapsuleIconButton.styleFor(context, selected: isWarning)

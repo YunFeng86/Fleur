@@ -1931,6 +1931,18 @@ abstract class AppLocalizations {
   /// **'Limits buffered responses for sync, feeds, web pages, and other network requests. A high limit is still enforced.'**
   String get maxNetworkResponseBytesSubtitle;
 
+  /// No description provided for @retryQuarantined.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retryQuarantined;
+
+  /// No description provided for @clearQuarantined.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get clearQuarantined;
+
   /// unlimited
   ///
   /// In en, this message translates to:

@@ -954,6 +954,12 @@ class AppLocalizationsZh extends AppLocalizations {
       '限制同步、订阅、网页和其他网络请求的响应缓冲大小；仍保留内部高限制。';
 
   @override
+  String get retryQuarantined => '重试';
+
+  @override
+  String get clearQuarantined => '清除';
+
+  @override
   String get unlimited => '无限制';
 
   @override

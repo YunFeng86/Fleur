@@ -995,6 +995,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Limits buffered responses for sync, feeds, web pages, and other network requests. A high limit is still enforced.';
 
   @override
+  String get retryQuarantined => 'Retry';
+
+  @override
+  String get clearQuarantined => 'Clear';
+
+  @override
   String get unlimited => 'Unlimited';
 
   @override
