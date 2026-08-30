@@ -419,6 +419,15 @@ List<SettingsSearchEntry> buildSettingsSearchEntries(AppLocalizations l10n) {
       targetId: 'services.remote.miniflux_web_fetch_mode',
       keywords: ['web', 'readability', 'fetch content', 'miniflux'],
     ),
+    _setting(
+      id: 'services.remote.max_network_response_bytes',
+      tab: SettingsTab.services,
+      title: l10n.maxNetworkResponseBytes,
+      section: l10n.remoteSyncStrategy,
+      subtitle: l10n.maxNetworkResponseBytesSubtitle,
+      targetId: 'services.remote.max_network_response_bytes',
+      keywords: ['network', 'response', 'size', 'limit'],
+    ),
     _section(
       id: 'translation_ai.translation',
       tab: SettingsTab.translationAndAiServices,

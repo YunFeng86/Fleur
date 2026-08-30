@@ -35,7 +35,11 @@ class AppSettingsController extends AsyncNotifier<AppSettings> {
         tag: 'settings',
         error: e,
         stackTrace: s,
-        context: const <String, Object?>{'store': 'AppSettingsStore'},
+        context: const <String, Object?>{
+          'store': 'AppSettingsStore',
+          'operation': 'replace',
+          'settingKey': 'appSettings',
+        },
       );
     }
   }
@@ -152,6 +156,11 @@ class AppSettingsController extends AsyncNotifier<AppSettings> {
   Future<void> setMinifluxWebFetchMode(MinifluxWebFetchMode mode) async {
     final cur = state.valueOrNull ?? AppSettings.defaults();
     await _saveQuietly(cur.copyWith(minifluxWebFetchMode: mode));
+  }
+
+  Future<void> setMaxNetworkResponseBytes(int bytes) async {
+    final cur = state.valueOrNull ?? AppSettings.defaults();
+    await _saveQuietly(cur.copyWith(maxNetworkResponseBytes: bytes));
   }
 
   Future<void> setRssUserAgent(String value) async {

@@ -4,6 +4,7 @@ import '../network/user_agents.dart';
 import '../../theme/seed_color_presets.dart';
 import '../../utils/language_utils.dart';
 import 'settings_json.dart';
+import '../network/size_limited_adapter.dart';
 
 enum ArticleGroupMode { none, day }
 
@@ -37,6 +38,7 @@ class AppSettings {
     this.minifluxEntriesLimit = 400,
     this.remoteFetchConcurrency = 2,
     this.minifluxWebFetchMode = MinifluxWebFetchMode.clientReadability,
+    this.maxNetworkResponseBytes = SizeLimitedHttpClientAdapter.defaultMaxBytes,
     this.rssUserAgent = UserAgents.rss,
     // Keep legacy value as a const fallback; prefer [AppSettings.defaults].
     this.webUserAgent = UserAgents.web,
@@ -121,6 +123,15 @@ class AppSettings {
   /// enabled.
   final MinifluxWebFetchMode minifluxWebFetchMode;
 
+  static const networkResponseLimitOptions = <int>[
+    16 * 1024 * 1024,
+    32 * 1024 * 1024,
+    64 * 1024 * 1024,
+    128 * 1024 * 1024,
+    256 * 1024 * 1024,
+  ];
+  final int maxNetworkResponseBytes;
+
   /// User-Agent for RSS/Atom fetches.
   final String rssUserAgent;
 
@@ -151,6 +162,7 @@ class AppSettings {
     int? minifluxEntriesLimit,
     int? remoteFetchConcurrency,
     MinifluxWebFetchMode? minifluxWebFetchMode,
+    int? maxNetworkResponseBytes,
     String? rssUserAgent,
     String? webUserAgent,
   }) {
@@ -187,6 +199,8 @@ class AppSettings {
       remoteFetchConcurrency:
           remoteFetchConcurrency ?? this.remoteFetchConcurrency,
       minifluxWebFetchMode: minifluxWebFetchMode ?? this.minifluxWebFetchMode,
+      maxNetworkResponseBytes:
+          maxNetworkResponseBytes ?? this.maxNetworkResponseBytes,
       rssUserAgent: rssUserAgent ?? this.rssUserAgent,
       webUserAgent: webUserAgent ?? this.webUserAgent,
     );
@@ -214,6 +228,7 @@ class AppSettings {
     'minifluxEntriesLimit': minifluxEntriesLimit,
     'remoteFetchConcurrency': remoteFetchConcurrency,
     'minifluxWebFetchMode': minifluxWebFetchMode.name,
+    'maxNetworkResponseBytes': maxNetworkResponseBytes,
     'rssUserAgent': rssUserAgent,
     'webUserAgent': webUserAgent,
   };
@@ -276,6 +291,10 @@ class AppSettings {
         MinifluxWebFetchMode.clientReadability,
         trim: false,
       ),
+      maxNetworkResponseBytes: readIntOr(
+        json['maxNetworkResponseBytes'],
+        SizeLimitedHttpClientAdapter.defaultMaxBytes,
+      ),
       rssUserAgent: readOptionalString(json['rssUserAgent']) ?? UserAgents.rss,
       webUserAgent:
           readOptionalString(json['webUserAgent']) ??
@@ -313,6 +332,10 @@ class AppSettings {
         : remoteFetchConcurrency > 4
         ? 4
         : remoteFetchConcurrency;
+    final normalizedNetworkResponseBytes =
+        networkResponseLimitOptions.contains(maxNetworkResponseBytes)
+        ? maxNetworkResponseBytes
+        : SizeLimitedHttpClientAdapter.defaultMaxBytes;
 
     return AppSettings(
       themeMode: themeMode,
@@ -338,6 +361,7 @@ class AppSettings {
       minifluxEntriesLimit: minifluxEntriesLimit,
       remoteFetchConcurrency: normalizedRemoteFetchConcurrency,
       minifluxWebFetchMode: minifluxWebFetchMode,
+      maxNetworkResponseBytes: normalizedNetworkResponseBytes,
       rssUserAgent: normalizedRssUserAgent,
       webUserAgent: normalizedWebUserAgent,
     );

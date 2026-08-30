@@ -988,6 +988,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minifluxWebFetchModeServer => 'Server (Miniflux fetch-content)';
 
   @override
+  String get maxNetworkResponseBytes => 'Maximum network response size';
+
+  @override
+  String get maxNetworkResponseBytesSubtitle =>
+      'Limits buffered responses for sync, feeds, web pages, and other network requests. A high limit is still enforced.';
+
+  @override
   String get unlimited => 'Unlimited';
 
   @override

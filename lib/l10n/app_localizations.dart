@@ -1919,6 +1919,18 @@ abstract class AppLocalizations {
   /// **'Server (Miniflux fetch-content)'**
   String get minifluxWebFetchModeServer;
 
+  /// No description provided for @maxNetworkResponseBytes.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum network response size'**
+  String get maxNetworkResponseBytes;
+
+  /// No description provided for @maxNetworkResponseBytesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Limits buffered responses for sync, feeds, web pages, and other network requests. A high limit is still enforced.'**
+  String get maxNetworkResponseBytesSubtitle;
+
   /// unlimited
   ///
   /// In en, this message translates to:

@@ -439,6 +439,35 @@ class _ServicesTabState extends ConsumerState<ServicesTab> {
                         ),
                       ),
                     ),
+                  SettingsTargetAnchor(
+                    id: 'services.remote.max_network_response_bytes',
+                    controller: widget.targetController,
+                    child: SettingsControlRow(
+                      title: Text(l10n.maxNetworkResponseBytes),
+                      subtitle: Text(l10n.maxNetworkResponseBytesSubtitle),
+                      control: SettingsSelectField<int>(
+                        key: const Key(
+                          'services_max_network_response_bytes_select',
+                        ),
+                        value: appSettings.maxNetworkResponseBytes,
+                        options: [
+                          for (final bytes
+                              in AppSettings.networkResponseLimitOptions)
+                            SettingsSelectOption(
+                              value: bytes,
+                              label: Text('${bytes ~/ (1024 * 1024)} MiB'),
+                            ),
+                        ],
+                        onChanged: (v) {
+                          unawaited(
+                            ref
+                                .read(appSettingsProvider.notifier)
+                                .setMaxNetworkResponseBytes(v),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
                   if (contentCapabilities
                       .canChooseServerArticleContentFetchMode)
                     SettingsTargetAnchor(

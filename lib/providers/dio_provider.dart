@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../services/network/size_limited_adapter.dart';
+import 'app_settings_providers.dart';
 
 Dio createAppDio({
   int maxResponseBytes = SizeLimitedHttpClientAdapter.defaultMaxBytes,
@@ -35,4 +36,13 @@ Dio createAppDio({
   return dio;
 }
 
-final dioProvider = Provider<Dio>((ref) => createAppDio());
+final dioProvider = Provider<Dio>((ref) {
+  final settings = ref.watch(appSettingsProvider).valueOrNull;
+  final dio = createAppDio(
+    maxResponseBytes:
+        settings?.maxNetworkResponseBytes ??
+        SizeLimitedHttpClientAdapter.defaultMaxBytes,
+  );
+  ref.onDispose(dio.close);
+  return dio;
+});
