@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 
+import '../../network/response_shape_exception.dart';
+
 class FeverAuthException implements Exception {
   FeverAuthException();
 
@@ -79,7 +81,13 @@ class FeverClient {
     );
     final data = resp.data;
     if (data is! Map || data.keys.any((key) => key is! String)) {
-      throw StateError('Unexpected Fever response');
+      throw ResponseShapeException(
+        backend: 'fever',
+        endpoint: 'api',
+        field: '<root>',
+        expectedType: 'object',
+        actualType: data.runtimeType.toString(),
+      );
     }
     final map = data.cast<String, Object?>();
     if (_truthy(map['auth'])) return map;
@@ -184,12 +192,25 @@ class FeverClient {
     required String context,
   }) {
     if (value is! List) {
-      throw StateError('Unexpected Fever response for $context');
+      throw ResponseShapeException(
+        backend: 'fever',
+        endpoint: context,
+        field: context,
+        expectedType: 'list<object>',
+        actualType: value.runtimeType.toString(),
+      );
     }
     final result = <Map<String, Object?>>[];
     for (final item in value) {
       if (item is! Map || item.keys.any((key) => key is! String)) {
-        throw StateError('Unexpected Fever response for $context');
+        throw ResponseShapeException(
+          backend: 'fever',
+          endpoint: context,
+          field: context,
+          expectedType: 'object',
+          actualType: item.runtimeType.toString(),
+          itemIndex: result.length,
+        );
       }
       result.add(item.cast<String, Object?>());
     }
@@ -204,7 +225,14 @@ class FeverClient {
       for (final part in trimmed.split(',')) {
         final id = int.tryParse(part.trim());
         if (id == null) {
-          throw StateError('Unexpected Fever response for item ids');
+          throw ResponseShapeException(
+            backend: 'fever',
+            endpoint: 'item ids',
+            field: 'itemIds',
+            expectedType: 'integer',
+            actualType: part.runtimeType.toString(),
+            itemIndex: result.length,
+          );
         }
         result.add(id);
       }
@@ -215,12 +243,25 @@ class FeverClient {
       for (final item in value) {
         final id = _asInt(item);
         if (id == null || (item is num && item != id)) {
-          throw StateError('Unexpected Fever response for item ids');
+          throw ResponseShapeException(
+            backend: 'fever',
+            endpoint: 'item ids',
+            field: 'itemIds',
+            expectedType: 'integer',
+            actualType: item.runtimeType.toString(),
+            itemIndex: result.length,
+          );
         }
         result.add(id);
       }
       return List.unmodifiable(result);
     }
-    throw StateError('Unexpected Fever response for item ids');
+    throw ResponseShapeException(
+      backend: 'fever',
+      endpoint: 'item ids',
+      field: 'itemIds',
+      expectedType: 'string|list<integer>',
+      actualType: value.runtimeType.toString(),
+    );
   }
 }

@@ -492,7 +492,12 @@ class GoogleReaderSyncService implements SyncServiceBase, OutboxFlushCapable {
 
       pages += 1;
       if (pages > _maxStreamPages) {
-        _logStreamPaginationGuard(streamId, reason: 'page limit');
+        _logStreamPaginationGuard(
+          streamId,
+          reason: 'page limit',
+          pagesFetched: pages - 1,
+          itemCount: fetchedIds,
+        );
         break;
       }
 
@@ -532,7 +537,12 @@ class GoogleReaderSyncService implements SyncServiceBase, OutboxFlushCapable {
       if (!seenContinuations.add(continuation)) {
         // A server that keeps returning a token we have already followed
         // would loop forever; treat it as the end of the stream.
-        _logStreamPaginationGuard(streamId, reason: 'repeated continuation');
+        _logStreamPaginationGuard(
+          streamId,
+          reason: 'repeated continuation',
+          pagesFetched: pages,
+          itemCount: fetchedIds,
+        );
         break;
       }
       await Future<void>.delayed(Duration.zero);
@@ -540,7 +550,12 @@ class GoogleReaderSyncService implements SyncServiceBase, OutboxFlushCapable {
     return result;
   }
 
-  void _logStreamPaginationGuard(String streamId, {required String reason}) {
+  void _logStreamPaginationGuard(
+    String streamId, {
+    required String reason,
+    required int pagesFetched,
+    required int itemCount,
+  }) {
     AppLogger.w(
       'Google Reader stream pagination stopped: $reason',
       tag: 'sync',
@@ -548,6 +563,9 @@ class GoogleReaderSyncService implements SyncServiceBase, OutboxFlushCapable {
         'operation': 'streamItemIds',
         'streamId': streamId,
         'reason': reason,
+        'pagesFetched': pagesFetched,
+        'itemCount': itemCount,
+        'maxPages': _maxStreamPages,
       },
     );
   }
@@ -641,7 +659,12 @@ class GoogleReaderSyncService implements SyncServiceBase, OutboxFlushCapable {
 
       pages += 1;
       if (pages > _maxStreamPages) {
-        _logStreamPaginationGuard(streamId, reason: 'page limit');
+        _logStreamPaginationGuard(
+          streamId,
+          reason: 'page limit',
+          pagesFetched: pages - 1,
+          itemCount: fetched,
+        );
         break;
       }
 
@@ -665,7 +688,12 @@ class GoogleReaderSyncService implements SyncServiceBase, OutboxFlushCapable {
         break;
       }
       if (!seenContinuations.add(continuation)) {
-        _logStreamPaginationGuard(streamId, reason: 'repeated continuation');
+        _logStreamPaginationGuard(
+          streamId,
+          reason: 'repeated continuation',
+          pagesFetched: pages,
+          itemCount: fetched,
+        );
         break;
       }
       await Future<void>.delayed(Duration.zero);

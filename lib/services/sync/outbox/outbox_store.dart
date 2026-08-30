@@ -239,9 +239,86 @@ class OutboxStore {
     if (changed) _emitChange(accountId);
   }
 
+  Future<List<Map<String, Object?>>> loadQuarantined(String accountId) async {
+    final file = await _quarantineFile(accountId);
+    final store = DurableJsonStore<List<Map<String, Object?>>>(
+      file: file,
+      decode: (value) => value is List
+          ? value
+                .whereType<Map>()
+                .map((e) => e.cast<String, Object?>())
+                .toList()
+          : <Map<String, Object?>>[],
+      encode: (value) => value,
+      fileSystem: _fileSystem,
+    );
+    final snapshot = await store.read();
+    final now = DateTime.now();
+    final kept = (snapshot?.value ?? const <Map<String, Object?>>[])
+        .where((item) {
+          final raw = item['quarantinedAt'];
+          final date = raw is String ? DateTime.tryParse(raw) : null;
+          return date != null && now.difference(date).inDays < 7;
+        })
+        .toList(growable: false);
+    if (kept.length != (snapshot?.value.length ?? 0)) await store.write(kept);
+    return kept;
+  }
+
+  Future<void> quarantine(
+    String accountId,
+    Iterable<OutboxAction> actions, {
+    required String reason,
+  }) async {
+    final existing = await loadQuarantined(accountId);
+    final now = DateTime.now().toIso8601String();
+    final next = [
+      ...existing,
+      for (final action in actions)
+        <String, Object?>{
+          'action': action.toJson(),
+          'reason': reason,
+          'quarantinedAt': now,
+        },
+    ];
+    final file = await _quarantineFile(accountId);
+    final store = DurableJsonStore<List<Map<String, Object?>>>(
+      file: file,
+      decode: (value) => value is List
+          ? value
+                .whereType<Map>()
+                .map((e) => e.cast<String, Object?>())
+                .toList()
+          : <Map<String, Object?>>[],
+      encode: (value) => value,
+      fileSystem: _fileSystem,
+    );
+    await store.write(next);
+    _emitChange(accountId);
+  }
+
+  Future<void> clearQuarantined(String accountId) async {
+    final file = await _quarantineFile(accountId);
+    final store = DurableJsonStore<List<Map<String, Object?>>>(
+      file: file,
+      decode: (value) => <Map<String, Object?>>[],
+      encode: (value) => value,
+      fileSystem: _fileSystem,
+    );
+    await store.write(const []);
+    _emitChange(accountId);
+  }
+
   Future<File> _file(String accountId) async {
     final dir = await PathManager.getStateDir();
     return File('${dir.path}${Platform.pathSeparator}outbox_$accountId.json');
+  }
+
+  Future<File> _quarantineFile(String accountId) async {
+    final dir = await PathManager.getStateDir();
+    return File(
+      '${dir.path}${Platform.pathSeparator}outbox_quarantine_$accountId.json',
+    );
   }
 
   Future<DurableJsonStore<List<OutboxAction>>> _store(String accountId) async {

@@ -28,13 +28,16 @@ class OutboxStatusAction extends ConsumerWidget {
     }
 
     final pending = ref.watch(outboxPendingCountProvider).valueOrNull ?? 0;
-    if (pending <= 0) return const SizedBox.shrink();
+    final quarantined =
+        ref.watch(outboxQuarantinedCountProvider).valueOrNull ?? 0;
+    if (pending <= 0 && quarantined <= 0) return const SizedBox.shrink();
 
     final stalls = ref.watch(outboxFlushStallCountProvider);
     final isWarning = stalls >= 2;
     final scheme = Theme.of(context).colorScheme;
     final badgeColor = isWarning ? scheme.error : scheme.primary;
-    final label = pending > 99 ? '99+' : pending.toString();
+    final total = pending + quarantined;
+    final label = total > 99 ? '99+' : total.toString();
 
     Future<void> flushNow() async {
       final before = pending;
@@ -63,7 +66,9 @@ class OutboxStatusAction extends ConsumerWidget {
     }
 
     return IconButton(
-      tooltip: isWarning
+      tooltip: quarantined > 0
+          ? l10n.syncStatusFailed
+          : isWarning
           ? l10n.syncStatusFailed
           : l10n.syncStatusUploadingChanges,
       onPressed: () => unawaited(flushNow()),

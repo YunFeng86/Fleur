@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 
+import '../../network/response_shape_exception.dart';
+
 class MinifluxClient {
   MinifluxClient({
     required Dio dio,
@@ -48,7 +50,13 @@ class MinifluxClient {
     if (data is Map && data.keys.every((key) => key is String)) {
       return data.cast<String, Object?>();
     }
-    throw StateError('Unexpected Miniflux response for $context');
+    throw ResponseShapeException(
+      backend: 'miniflux',
+      endpoint: context,
+      field: '<root>',
+      expectedType: 'object',
+      actualType: data.runtimeType.toString(),
+    );
   }
 
   Map<String, Object?> _readEntriesResponse(
@@ -61,11 +69,23 @@ class MinifluxClient {
         entries.any(
           (entry) => entry is! Map || entry.keys.any((key) => key is! String),
         )) {
-      throw StateError('Unexpected Miniflux response for $context');
+      throw ResponseShapeException(
+        backend: 'miniflux',
+        endpoint: context,
+        field: 'entries',
+        expectedType: 'list<object>',
+        actualType: entries.runtimeType.toString(),
+      );
     }
     final total = response['total'];
     if (total != null && total is! int) {
-      throw StateError('Unexpected Miniflux response for $context');
+      throw ResponseShapeException(
+        backend: 'miniflux',
+        endpoint: context,
+        field: 'total',
+        expectedType: 'integer',
+        actualType: total.runtimeType.toString(),
+      );
     }
     return response;
   }
@@ -93,12 +113,25 @@ class MinifluxClient {
     required String context,
   }) {
     if (data is! List) {
-      throw StateError('Unexpected Miniflux response for $context');
+      throw ResponseShapeException(
+        backend: 'miniflux',
+        endpoint: context,
+        field: '<root>',
+        expectedType: 'list<object>',
+        actualType: data.runtimeType.toString(),
+      );
     }
     final result = <Map<String, Object?>>[];
     for (final item in data) {
       if (item is! Map || item.keys.any((key) => key is! String)) {
-        throw StateError('Unexpected Miniflux response for $context');
+        throw ResponseShapeException(
+          backend: 'miniflux',
+          endpoint: context,
+          field: '<item>',
+          expectedType: 'object',
+          actualType: item.runtimeType.toString(),
+          itemIndex: result.length,
+        );
       }
       result.add(item.cast<String, Object?>());
     }

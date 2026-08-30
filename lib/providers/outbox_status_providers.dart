@@ -25,6 +25,17 @@ final outboxPendingCountProvider = FutureProvider.autoDispose<int>((ref) async {
   return pending.length;
 });
 
+final outboxQuarantinedCountProvider = FutureProvider.autoDispose<int>((
+  ref,
+) async {
+  ref.watch(outboxChangesProvider);
+  final account = ref.watch(activeAccountProvider);
+  final capabilities = ref.watch(backendCapabilitiesProvider);
+  if (!capabilities.isVisible(BackendFeature.outboxFlush)) return 0;
+  return (await ref.watch(outboxStoreProvider).loadQuarantined(account.id))
+      .length;
+});
+
 /// Consecutive "no progress" / "failed flush" count in the foreground outbox flusher.
 ///
 /// Used for UI indication and for coarse background scheduling backoff.

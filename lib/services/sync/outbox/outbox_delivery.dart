@@ -80,21 +80,26 @@ class OutboxDelivery {
       }
 
       if (rejected.isNotEmpty) {
+        await _store.quarantine(
+          accountId,
+          rejected,
+          reason: 'permanentlyUndeliverable',
+        );
         AppLogger.w(
-          'Outbox dropped permanently undeliverable actions',
+          'Outbox actions quarantined as permanently undeliverable',
           tag: 'sync',
           context: <String, Object?>{
             'operation': 'outboxFlush',
             'accountId': accountId,
-            'dropped': rejected.length,
+            'rejected': rejected.length,
             'actions': [
               for (final action in rejected)
                 {
                   'type': action.type.name,
-                  'remoteEntryId': action.remoteEntryId,
-                  'remoteEntryKey': action.remoteEntryKey,
-                  'feedUrl': action.feedUrl,
-                  'categoryTitle': action.categoryTitle,
+                  'hasRemoteEntryId': action.remoteEntryId != null,
+                  'hasRemoteEntryKey': action.remoteEntryKey != null,
+                  'hasFeedUrl': action.feedUrl != null,
+                  'hasCategoryTitle': action.categoryTitle != null,
                 },
             ],
           },
