@@ -30,6 +30,8 @@ class ShellWindowTitleBar extends StatelessWidget {
     this.leadingLeft = 0,
     this.dividerLeadingInset = 0,
     this.navigationToggleFocusNode,
+    this.height = kWorkspaceHeaderHeight,
+    this.showBottomDivider = true,
   });
 
   final ShellWindowTitleBarCommands? commands;
@@ -41,6 +43,8 @@ class ShellWindowTitleBar extends StatelessWidget {
   final double leadingLeft;
   final double dividerLeadingInset;
   final FocusNode? navigationToggleFocusNode;
+  final double height;
+  final bool showBottomDivider;
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +64,7 @@ class ShellWindowTitleBar extends StatelessWidget {
                   .clamp(0.0, double.infinity)
                   .toDouble();
           return SizedBox(
-            height: kWorkspaceHeaderHeight,
+            height: height,
             child: Stack(
               clipBehavior: Clip.hardEdge,
               children: [
@@ -80,25 +84,27 @@ class ShellWindowTitleBar extends StatelessWidget {
                     updateManifest: updateManifest,
                     globalToolAreaKey: globalToolAreaKey,
                     navigationToggleFocusNode: navigationToggleFocusNode,
+                    titleBarHeight: height,
                   ),
-                const Positioned(
+                Positioned(
                   key: Key('shell_window_caption_controls_host'),
                   top: 0,
                   right: 0,
-                  height: kWorkspaceHeaderHeight,
+                  height: height,
                   width: kShellWindowCaptionControlsWidth,
-                  child: _WindowCaptionControls(),
+                  child: _WindowCaptionControls(height: height),
                 ),
-                Positioned(
-                  left: dividerLeadingInset,
-                  right: 0,
-                  bottom: 0,
-                  height: 1,
-                  child: ColoredBox(
-                    key: const Key('shell_title_bar_divider'),
-                    color: surfaces.subtleDivider,
+                if (showBottomDivider)
+                  Positioned(
+                    left: dividerLeadingInset,
+                    right: 0,
+                    bottom: 0,
+                    height: 1,
+                    child: ColoredBox(
+                      key: const Key('shell_title_bar_divider'),
+                      color: surfaces.subtleDivider,
+                    ),
                   ),
-                ),
               ],
             ),
           );
@@ -119,6 +125,7 @@ class _AdaptiveShellWindowControlsHost extends StatefulWidget {
     required this.updateManifest,
     required this.globalToolAreaKey,
     required this.navigationToggleFocusNode,
+    required this.titleBarHeight,
   });
 
   final double left;
@@ -130,6 +137,7 @@ class _AdaptiveShellWindowControlsHost extends StatefulWidget {
   final AppUpdateManifest? updateManifest;
   final Key? globalToolAreaKey;
   final FocusNode? navigationToggleFocusNode;
+  final double titleBarHeight;
 
   @override
   State<_AdaptiveShellWindowControlsHost> createState() =>
@@ -162,7 +170,10 @@ class _AdaptiveShellWindowControlsHostState
     );
     return Positioned(
       left: widget.left,
-      top: (kWorkspaceHeaderHeight - targetExtent) / 2,
+      top: shellControlTopInsetForHeight(
+        widget.titleBarHeight,
+        controlExtent: targetExtent,
+      ),
       width: widget.width,
       height: targetExtent,
       child: _ShellWindowControlsHost(
@@ -230,7 +241,9 @@ class _ShellWindowControlsHost extends StatelessWidget {
 }
 
 class _WindowCaptionControls extends StatefulWidget {
-  const _WindowCaptionControls();
+  const _WindowCaptionControls({required this.height});
+
+  final double height;
 
   @override
   State<_WindowCaptionControls> createState() => _WindowCaptionControlsState();
@@ -307,11 +320,12 @@ class _WindowCaptionControlsState extends State<_WindowCaptionControls>
     final brightness = Theme.of(context).brightness;
     return SizedBox(
       key: const Key('shell_window_caption_controls'),
-      height: kWorkspaceHeaderHeight,
+      height: widget.height,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           _CaptionButtonSlot(
+            height: widget.height,
             child: WindowCaptionButton.minimize(
               key: const Key('shell_window_minimize_button'),
               brightness: brightness,
@@ -320,6 +334,7 @@ class _WindowCaptionControlsState extends State<_WindowCaptionControls>
           ),
           if (_maximized)
             _CaptionButtonSlot(
+              height: widget.height,
               child: WindowCaptionButton.unmaximize(
                 key: const Key('shell_window_maximize_button'),
                 brightness: brightness,
@@ -328,6 +343,7 @@ class _WindowCaptionControlsState extends State<_WindowCaptionControls>
             )
           else
             _CaptionButtonSlot(
+              height: widget.height,
               child: WindowCaptionButton.maximize(
                 key: const Key('shell_window_maximize_button'),
                 brightness: brightness,
@@ -335,6 +351,7 @@ class _WindowCaptionControlsState extends State<_WindowCaptionControls>
               ),
             ),
           _CaptionButtonSlot(
+            height: widget.height,
             child: WindowCaptionButton.close(
               key: const Key('shell_window_close_button'),
               brightness: brightness,
@@ -348,15 +365,16 @@ class _WindowCaptionControlsState extends State<_WindowCaptionControls>
 }
 
 class _CaptionButtonSlot extends StatelessWidget {
-  const _CaptionButtonSlot({required this.child});
+  const _CaptionButtonSlot({required this.child, required this.height});
 
   final Widget child;
+  final double height;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: kShellWindowCaptionButtonWidth,
-      height: kWorkspaceHeaderHeight,
+      height: height,
       child: child,
     );
   }

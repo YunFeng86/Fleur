@@ -19,6 +19,7 @@ class ShellFrameGeometry {
     required this.dividerLeadingInset,
     required this.railOverlayVisible,
     required this.structuralRailVisible,
+    this.contentBoundaryRadius = 0,
   });
 
   final ShellFrameTopology topology;
@@ -32,6 +33,7 @@ class ShellFrameGeometry {
   final double dividerLeadingInset;
   final bool railOverlayVisible;
   final bool structuralRailVisible;
+  final double contentBoundaryRadius;
 
   double get translatedContentLeft => contentLeft + contentTranslation;
 
@@ -50,7 +52,7 @@ class ShellFrameGeometry {
       temporaryNavigationOpen: temporaryNavigationOpen,
     );
     final usesTitleBar = shellChromeLayout.placesControlsInTitleBar;
-    final titleBarHeight = usesTitleBar ? kWorkspaceHeaderHeight : 0.0;
+    final titleBarHeight = shellChromeLayout.titleBarHeight;
     final workspaceHeight = (size.height - titleBarHeight)
         .clamp(0.0, double.infinity)
         .toDouble();
@@ -97,6 +99,7 @@ class ShellFrameGeometry {
       dividerLeadingInset: dividerLeadingInset,
       railOverlayVisible: railOverlay && !temporaryNavigationOpen,
       structuralRailVisible: structuralRail && !temporaryNavigationOpen,
+      contentBoundaryRadius: shellChromeLayout.contentBoundaryRadius,
     );
   }
 }

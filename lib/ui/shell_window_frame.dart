@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/update/app_update_manifest.dart';
 import '../theme/fleur_theme_extensions.dart';
 import 'shell_chrome_layout.dart';
+import 'shell_frame_boundary.dart';
 import 'shell_frame_geometry.dart';
 import 'shell_global_tool_area.dart';
 import 'shell_title_bar.dart';
@@ -60,6 +61,8 @@ class ShellWindowFrame extends StatelessWidget {
                 presentationMode: controlsPresentationMode,
                 searchSelected: searchSelected,
                 showSearch: true,
+                height: geometry.titleBarHeight,
+                showBottomDivider: false,
                 updateManifest: updateManifest,
                 globalToolAreaKey: globalToolAreaKey,
                 leadingLeft: controlsLeading,
@@ -89,6 +92,8 @@ class ShellWindowFrame extends StatelessWidget {
                 navigationToggleFocusNode: navigationToggleFocusNode,
               ),
             ),
+          if (geometry.contentBoundaryRadius > 0)
+            Positioned.fill(child: ShellFrameBoundary(geometry: geometry)),
         ],
       ),
     );

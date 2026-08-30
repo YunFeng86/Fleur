@@ -73,6 +73,19 @@ class ShellChromeLayout {
     ShellChromeProfile.contentOnly => kSidebarRailWidth,
   };
 
+  double get titleBarHeight => switch (profile) {
+    ShellChromeProfile.titleBarExpected => kWindowsTitleBarHeight,
+    ShellChromeProfile.integratedCorner || ShellChromeProfile.contentOnly => 0,
+  };
+
+  double get contentBoundaryRadius => switch (profile) {
+    ShellChromeProfile.titleBarExpected => 12,
+    ShellChromeProfile.integratedCorner || ShellChromeProfile.contentOnly => 0,
+  };
+
+  bool get usesContinuousNavigationSurface =>
+      profile == ShellChromeProfile.titleBarExpected;
+
   WorkspaceNavigationMetrics get workspaceNavigationMetrics {
     final railExtent = switch (profile) {
       ShellChromeProfile.integratedCorner =>

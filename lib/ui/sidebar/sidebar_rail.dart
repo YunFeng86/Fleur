@@ -118,6 +118,7 @@ class _SidebarRail extends StatelessWidget {
     required this.accountAnchorKey,
     required this.railSurfaceStyle,
     required this.showAnchorKeys,
+    required this.showRailDivider,
   });
 
   final SidebarPresentationMode mode;
@@ -128,6 +129,7 @@ class _SidebarRail extends StatelessWidget {
   final Key accountAnchorKey;
   final SidebarRailSurfaceStyle railSurfaceStyle;
   final bool showAnchorKeys;
+  final bool showRailDivider;
 
   @override
   Widget build(BuildContext context) {
@@ -136,7 +138,9 @@ class _SidebarRail extends StatelessWidget {
     final showsCapsuleSurface =
         collapsed && railSurfaceStyle == SidebarRailSurfaceStyle.capsule;
     final showsPlainDivider =
-        collapsed && railSurfaceStyle == SidebarRailSurfaceStyle.plain;
+        showRailDivider &&
+        collapsed &&
+        railSurfaceStyle == SidebarRailSurfaceStyle.plain;
     final railButtons = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -199,17 +203,23 @@ class _SidebarRail extends StatelessWidget {
         child: semanticRail,
       );
     }
-    if (!showsPlainDivider) return semanticRail;
+    if (!collapsed || railSurfaceStyle != SidebarRailSurfaceStyle.plain) {
+      return semanticRail;
+    }
 
     return KeyedSubtree(
       key: const Key('app_shell_connected_rail'),
-      child: DecoratedBox(
-        key: const Key('sidebar_collapsed_rail_divider'),
-        decoration: BoxDecoration(
-          border: Border(right: BorderSide(color: surfaces.subtleDivider)),
-        ),
-        child: semanticRail,
-      ),
+      child: showsPlainDivider
+          ? DecoratedBox(
+              key: const Key('sidebar_collapsed_rail_divider'),
+              decoration: BoxDecoration(
+                border: Border(
+                  right: BorderSide(color: surfaces.subtleDivider),
+                ),
+              ),
+              child: semanticRail,
+            )
+          : semanticRail,
     );
   }
 }

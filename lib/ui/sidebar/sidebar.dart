@@ -44,6 +44,8 @@ class Sidebar extends ConsumerStatefulWidget {
     this.presentationModeOverride,
     this.reserveShellHeader = false,
     this.transparentBackground = false,
+    this.backgroundColor,
+    this.showRailDivider = true,
     this.showAccountSyncStatus = true,
     this.currentUri,
     this.railSurfaceStyle = SidebarRailSurfaceStyle.capsule,
@@ -56,6 +58,8 @@ class Sidebar extends ConsumerStatefulWidget {
   final SidebarPresentationMode? presentationModeOverride;
   final bool reserveShellHeader;
   final bool transparentBackground;
+  final Color? backgroundColor;
+  final bool showRailDivider;
   final bool showAccountSyncStatus;
   final Uri? currentUri;
   final SidebarRailSurfaceStyle railSurfaceStyle;
@@ -284,9 +288,10 @@ class _SidebarState extends ConsumerState<Sidebar> {
     return SidebarRailLayoutScope(
       railWidth: widget.railWidth,
       child: Material(
+        key: const Key('app_shell_navigation_surface'),
         color: widget.transparentBackground
             ? Colors.transparent
-            : surfaces.sidebar,
+            : widget.backgroundColor ?? surfaces.sidebar,
         child: _PersistentSidebarChrome(
           collapsed: collapsed,
           expandedWidth: widget.expandedWidth,
@@ -300,6 +305,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
             accountAnchorKey: _accountFooterKey,
             railSurfaceStyle: widget.railSurfaceStyle,
             showAnchorKeys: collapsed,
+            showRailDivider: widget.showRailDivider,
           ),
           detail: _SidebarPanel(
             fixedItems: fixedItems,

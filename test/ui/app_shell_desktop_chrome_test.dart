@@ -7,6 +7,7 @@ import 'package:fleur/providers/app_update_providers.dart';
 import 'package:fleur/providers/core_providers.dart';
 import 'package:fleur/services/update/app_update_manifest.dart';
 import 'package:fleur/theme/fleur_icons.dart';
+import 'package:fleur/theme/fleur_theme_extensions.dart';
 import 'package:fleur/ui/adaptive_workspace_layout.dart';
 import 'package:fleur/ui/shell_chrome_layout.dart';
 import 'package:fleur/ui/shell_frame_topology.dart';
@@ -90,6 +91,22 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    final surfaces = Theme.of(
+      tester.element(find.byKey(const Key('shell_title_bar'))),
+    ).fleurSurface;
+    expect(
+      tester.widget<Material>(find.byKey(const Key('shell_title_bar'))).color,
+      surfaces.chrome,
+    );
+    expect(
+      tester
+          .widget<Material>(
+            find.byKey(const Key('app_shell_navigation_surface')),
+          )
+          .color,
+      surfaces.chrome,
+    );
+
     expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_update_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_global_tool_area')), findsOneWidget);
@@ -120,8 +137,9 @@ void main() {
     );
     expect(
       find.byKey(const Key('sidebar_collapsed_rail_divider')),
-      findsOneWidget,
+      findsNothing,
     );
+    expect(find.byKey(const Key('shell_frame_boundary')), findsOneWidget);
   });
 
   testWidgets('macOS expanded sidebar keeps update in global tools', (
@@ -227,6 +245,22 @@ void main() {
     await tester.pumpWidget(buildShellHarness());
     await tester.pumpAndSettle();
 
+    final surfaces = Theme.of(
+      tester.element(find.byKey(const Key('shell_title_bar'))),
+    ).fleurSurface;
+    expect(
+      tester.widget<Material>(find.byKey(const Key('shell_title_bar'))).color,
+      surfaces.chrome,
+    );
+    expect(
+      tester
+          .widget<Material>(
+            find.byKey(const Key('app_shell_navigation_surface')),
+          )
+          .color,
+      surfaces.chrome,
+    );
+
     expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_controls_capsule')), findsNothing);
     expect(find.byKey(const Key('shell_window_close_button')), findsOneWidget);
@@ -249,8 +283,9 @@ void main() {
     );
     expect(
       find.byKey(const Key('sidebar_collapsed_rail_divider')),
-      findsOneWidget,
+      findsNothing,
     );
+    expect(find.byKey(const Key('shell_frame_boundary')), findsOneWidget);
     expectWorkspaceSurfaceAppearance(
       tester,
       const Key('app_shell_content_layer'),
@@ -307,10 +342,10 @@ void main() {
         .getCenter(find.byKey(const Key('home_scope_header')))
         .dy;
 
-    expect(shellCenter, kWorkspaceHeaderHeight / 2);
+    expect(shellCenter, kWindowsTitleBarHeight / 2);
     expect(shellCenterX, kTitleBarExpectedSidebarRailWidth / 2);
-    expect(headerTop, kWorkspaceHeaderHeight);
-    expect(headerCenter, kWorkspaceHeaderHeight + kWorkspaceHeaderHeight / 2);
+    expect(headerTop, kWindowsTitleBarHeight);
+    expect(headerCenter, kWindowsTitleBarHeight + kWorkspaceHeaderHeight / 2);
   });
 
   testWidgets('Windows connected rail gives content headers their full width', (
@@ -360,6 +395,7 @@ void main() {
       kTitleBarExpectedSidebarRailWidth,
     );
     expect(find.text('leading:0.0'), findsOneWidget);
+    expect(find.byKey(const Key('shell_frame_boundary')), findsOneWidget);
   });
 
   testWidgets('App shell keeps macOS traffic lights clear of sidebar items', (

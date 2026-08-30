@@ -21,7 +21,8 @@ void main() {
       temporaryNavigationWidth: kTemporaryWorkspaceSidebarWidth,
     );
 
-    expect(geometry.titleBarHeight, kWorkspaceHeaderHeight);
+    expect(geometry.titleBarHeight, kWindowsTitleBarHeight);
+    expect(geometry.contentBoundaryRadius, 12);
     expect(geometry.contentLeft, kTitleBarExpectedSidebarRailWidth);
     expect(geometry.contentWidth, 944);
     expect(geometry.structuralRailVisible, isTrue);

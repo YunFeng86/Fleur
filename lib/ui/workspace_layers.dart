@@ -15,6 +15,7 @@ import 'shell_chrome_layout.dart';
 import 'shell_frame_geometry.dart';
 import 'shell_frame_topology.dart';
 import 'sidebar_layout.dart';
+import 'design_system/design_system.dart';
 
 const BorderRadius kWorkspaceLayerRadius = BorderRadius.only(
   topLeft: Radius.circular(16),
@@ -628,19 +629,17 @@ class WorkspacePageHeader extends StatelessWidget {
                     top: rowTop,
                     width: kShellControlSize,
                     height: kShellControlSize,
-                    child: IconButton(
+                    child: FleurShellIconButton(
                       key: const Key('workspace_page_back_button'),
                       tooltip: MaterialLocalizations.of(
                         context,
                       ).backButtonTooltip,
-                      icon: const Icon(FleurIcons.back),
-                      onPressed: onBack,
-                      style: IconButton.styleFrom(
-                        fixedSize: const Size.square(kShellControlSize),
-                        minimumSize: const Size.square(kShellControlSize),
-                        padding: EdgeInsets.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      icon: const Icon(
+                        FleurIcons.back,
+                        size: kShellControlIconSize,
                       ),
+                      onPressed: onBack,
+                      size: kShellControlSize,
                     ),
                   ),
                 if (title.isNotEmpty)

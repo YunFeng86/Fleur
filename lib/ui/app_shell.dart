@@ -246,6 +246,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     SidebarPresentationMode? presentationModeOverride,
     bool transparentBackground = false,
   }) {
+    final connectedFrame = shellChromeLayout.usesContinuousNavigationSurface;
     return SizedBox(
       key: key,
       width: width,
@@ -254,6 +255,10 @@ class _AppShellState extends ConsumerState<AppShell> {
         reserveShellHeader:
             shellChromeLayout.profile == ShellChromeProfile.integratedCorner,
         transparentBackground: transparentBackground,
+        backgroundColor: connectedFrame
+            ? Theme.of(context).fleurSurface.chrome
+            : null,
+        showRailDivider: !connectedFrame,
         presentationModeOverride: presentationModeOverride,
         showAccountSyncStatus: showAccountSyncStatus,
         currentUri: currentUri,

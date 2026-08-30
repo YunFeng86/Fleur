@@ -22,6 +22,11 @@ const double kSidebarBreakpoint = 900;
 const double kSidebarContentDividerWidth = 1;
 const double kWorkspaceSplitHandleHitWidth = 12;
 const double kWorkspaceHeaderHeight = 48;
+const double kWindowsTitleBarHeight = 40;
+const double kNavigationItemHeight = 42;
+const double kNavigationItemIconSize = 18;
+const double kNavigationItemIconLabelGap = 10;
+const double kNavigationListHorizontalInset = 12;
 const double kShellControlSize = 32;
 const double kShellControlIconSize = FleurIconMetrics.small;
 const double kShellControlCapsuleHeight = kShellControlSize;
@@ -32,6 +37,21 @@ const double kMacOSShellControlTopInset =
     kMacOSTrafficLightTargetCenterY - (kShellControlSize / 2);
 const double kMacOSTrafficLightSafeInset = 72;
 const double kMacOSFullscreenClickSafeTopInset = 8;
+
+double shellControlTopInsetForHeight(
+  double height, {
+  double controlExtent = kShellControlSize,
+}) {
+  return (height - controlExtent) / 2;
+}
+
+double navigationItemLeadingInset(double railWidth) {
+  return (railWidth - kNavigationItemHeight) / 2;
+}
+
+double navigationItemContentLeadingInset(double railWidth) {
+  return kNavigationListHorizontalInset + navigationItemLeadingInset(railWidth);
+}
 
 class SidebarRailLayoutScope extends InheritedWidget {
   const SidebarRailLayoutScope({

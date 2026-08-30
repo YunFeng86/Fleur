@@ -405,9 +405,10 @@ void main() {
     expect(find.byKey(const Key('shell_title_bar')), findsOneWidget);
     expect(
       tester.getSize(find.byKey(const Key('shell_title_bar'))).height,
-      kWorkspaceHeaderHeight,
+      kWindowsTitleBarHeight,
     );
-    expect(find.byKey(const Key('shell_title_bar_divider')), findsOneWidget);
+    expect(find.byKey(const Key('shell_title_bar_divider')), findsNothing);
+    expect(find.byKey(const Key('shell_frame_boundary')), findsOneWidget);
     expect(find.byKey(const Key('shell_sidebar_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_back_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_forward_button')), findsOneWidget);
@@ -427,19 +428,19 @@ void main() {
     expect(find.byKey(const Key('shell_window_close_button')), findsOneWidget);
     expect(
       tester.getSize(find.byKey(const Key('shell_window_caption_controls'))),
-      const Size(kShellWindowCaptionControlsWidth, kWorkspaceHeaderHeight),
+      const Size(kShellWindowCaptionControlsWidth, kWindowsTitleBarHeight),
     );
     expect(
       tester.getSize(find.byKey(const Key('shell_window_minimize_button'))),
-      const Size(kShellWindowCaptionButtonWidth, kWorkspaceHeaderHeight),
+      const Size(kShellWindowCaptionButtonWidth, kWindowsTitleBarHeight),
     );
     expect(
       tester.getSize(find.byKey(const Key('shell_window_maximize_button'))),
-      const Size(kShellWindowCaptionButtonWidth, kWorkspaceHeaderHeight),
+      const Size(kShellWindowCaptionButtonWidth, kWindowsTitleBarHeight),
     );
     expect(
       tester.getSize(find.byKey(const Key('shell_window_close_button'))),
-      const Size(kShellWindowCaptionButtonWidth, kWorkspaceHeaderHeight),
+      const Size(kShellWindowCaptionButtonWidth, kWindowsTitleBarHeight),
     );
     expect(find.byKey(const Key('shell_outbox_button')), findsNothing);
     expect(
@@ -504,20 +505,17 @@ void main() {
     expect(find.byType(AppBar), findsNothing);
     expect(
       tester.getSize(find.byKey(const Key('app_shell_child'))).height,
-      900 - kWorkspaceHeaderHeight,
+      900 - kWindowsTitleBarHeight,
     );
     expect(
       tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dy,
-      kWorkspaceHeaderHeight,
+      kWindowsTitleBarHeight,
     );
     expect(
       tester.getTopLeft(find.byKey(const Key('app_shell_content_layer'))).dx,
       kDefaultWorkspaceSidebarWidth + kSidebarContentDividerWidth,
     );
-    expect(
-      tester.getTopLeft(find.byKey(const Key('shell_title_bar_divider'))).dx,
-      kDefaultWorkspaceSidebarWidth + kSidebarContentDividerWidth,
-    );
+    expect(find.byKey(const Key('shell_frame_boundary')), findsOneWidget);
     final expandedToggleTopLeft = tester.getTopLeft(
       find.byKey(const Key('shell_sidebar_button')),
     );
@@ -529,7 +527,10 @@ void main() {
     );
     expect(expandedForwardTopLeft.dx, 12 + kShellControlSize * 2);
     expect(expandedSearchTopLeft.dx, 12 + kShellControlSize * 3);
-    expect(expandedSearchTopLeft.dy, kShellControlTopInset);
+    expect(
+      expandedSearchTopLeft.dy,
+      shellControlTopInsetForHeight(kWindowsTitleBarHeight),
+    );
     expect(
       expandedSearchTopLeft.dx,
       expandedForwardTopLeft.dx + kShellControlSize,
@@ -600,7 +601,7 @@ void main() {
         of: connectedRail,
         matching: find.byKey(const Key('sidebar_collapsed_rail_divider')),
       ),
-      findsOneWidget,
+      findsNothing,
     );
     expect(
       find.descendant(
@@ -626,10 +627,7 @@ void main() {
       showShadow: false,
       leadingEdge: WorkspaceLayerEdge.none,
     );
-    expect(
-      tester.getTopLeft(find.byKey(const Key('shell_title_bar_divider'))).dx,
-      kTitleBarExpectedSidebarRailWidth,
-    );
+    expect(find.byKey(const Key('shell_frame_boundary')), findsOneWidget);
     expect(find.byKey(const Key('shell_back_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_forward_button')), findsOneWidget);
     expect(find.byKey(const Key('shell_search_button')), findsOneWidget);
@@ -725,7 +723,7 @@ void main() {
     );
     expect(
       tester.getSize(find.byKey(const Key('app_shell_child'))).height,
-      900 - kWorkspaceHeaderHeight,
+      900 - kWindowsTitleBarHeight,
     );
 
     await tester.tap(find.byKey(const Key('shell_sidebar_button')));
