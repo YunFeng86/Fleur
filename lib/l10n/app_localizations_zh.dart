@@ -2474,6 +2474,19 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get minifluxWebFetchModeServer => '服务端（Miniflux fetch-content）';
 
   @override
+  String get maxNetworkResponseBytes => '最大网络响应大小';
+
+  @override
+  String get maxNetworkResponseBytesSubtitle =>
+      '限制同步、订阅、网页和其他网络请求的响应缓冲大小；仍保留内部高限制。';
+
+  @override
+  String get retryQuarantined => '重试';
+
+  @override
+  String get clearQuarantined => '清除';
+
+  @override
   String get unlimited => '无限制';
 
   @override
@@ -3986,6 +3999,19 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get minifluxWebFetchModeServer => '伺服端（Miniflux fetch-content）';
+
+  @override
+  String get maxNetworkResponseBytes => '最大網路回應大小';
+
+  @override
+  String get maxNetworkResponseBytesSubtitle =>
+      '限制同步、訂閱、網頁和其他網路請求的回應緩衝大小；仍保留內部高限制。';
+
+  @override
+  String get retryQuarantined => '重試';
+
+  @override
+  String get clearQuarantined => '清除';
 
   @override
   String get unlimited => '無限制';

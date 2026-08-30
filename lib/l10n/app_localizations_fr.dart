@@ -992,17 +992,17 @@ class AppLocalizationsFr extends AppLocalizations {
       'Serveur (Miniflux récupérer le contenu)';
 
   @override
-  String get maxNetworkResponseBytes => 'Maximum network response size';
+  String get maxNetworkResponseBytes => 'Taille maximale des réponses réseau';
 
   @override
   String get maxNetworkResponseBytesSubtitle =>
-      'Limits buffered responses for sync, feeds, web pages, and other network requests. A high limit is still enforced.';
+      'Limite les réponses mises en mémoire tampon pour la synchronisation, les flux, les pages web et les autres requêtes réseau. Une limite haute reste appliquée.';
 
   @override
-  String get retryQuarantined => 'Retry';
+  String get retryQuarantined => 'Réessayer';
 
   @override
-  String get clearQuarantined => 'Clear';
+  String get clearQuarantined => 'Effacer';
 
   @override
   String get unlimited => 'Illimité';

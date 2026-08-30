@@ -1260,6 +1260,14 @@
   "@minifluxWebFetchModeServer": {
     "description": "minifluxWebFetchModeServer"
   },
+  "maxNetworkResponseBytes": "Tamanho máximo da resposta de rede",
+  "@maxNetworkResponseBytes": {"description": "Maximum buffered network response size setting"},
+  "maxNetworkResponseBytesSubtitle": "Limita respostas armazenadas em buffer para sincronização, feeds, páginas web e outras solicitações de rede. Um limite máximo continua sendo aplicado.",
+  "@maxNetworkResponseBytesSubtitle": {"description": "Explains which requests the network response limit affects"},
+  "retryQuarantined": "Tentar novamente",
+  "@retryQuarantined": {"description": "Retries quarantined outbox actions"},
+  "clearQuarantined": "Limpar",
+  "@clearQuarantined": {"description": "Clears quarantined outbox actions"},
   "unlimited": "Ilimitado",
   "@unlimited": {
     "description": "unlimited"

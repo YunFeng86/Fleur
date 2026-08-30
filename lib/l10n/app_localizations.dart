@@ -1919,25 +1919,25 @@ abstract class AppLocalizations {
   /// **'Server (Miniflux fetch-content)'**
   String get minifluxWebFetchModeServer;
 
-  /// No description provided for @maxNetworkResponseBytes.
+  /// Maximum buffered network response size setting
   ///
   /// In en, this message translates to:
   /// **'Maximum network response size'**
   String get maxNetworkResponseBytes;
 
-  /// No description provided for @maxNetworkResponseBytesSubtitle.
+  /// Explains which requests the network response limit affects
   ///
   /// In en, this message translates to:
   /// **'Limits buffered responses for sync, feeds, web pages, and other network requests. A high limit is still enforced.'**
   String get maxNetworkResponseBytesSubtitle;
 
-  /// No description provided for @retryQuarantined.
+  /// Retries quarantined outbox actions
   ///
   /// In en, this message translates to:
   /// **'Retry'**
   String get retryQuarantined;
 
-  /// No description provided for @clearQuarantined.
+  /// Clears quarantined outbox actions
   ///
   /// In en, this message translates to:
   /// **'Clear'**

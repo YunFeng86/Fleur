@@ -964,17 +964,17 @@ class AppLocalizationsKo extends AppLocalizations {
   String get minifluxWebFetchModeServer => '서버(Miniflux 가져오기 콘텐츠)';
 
   @override
-  String get maxNetworkResponseBytes => 'Maximum network response size';
+  String get maxNetworkResponseBytes => '최대 네트워크 응답 크기';
 
   @override
   String get maxNetworkResponseBytesSubtitle =>
-      'Limits buffered responses for sync, feeds, web pages, and other network requests. A high limit is still enforced.';
+      '동기화, 피드, 웹 페이지 및 기타 네트워크 요청에서 버퍼링되는 응답 크기를 제한합니다. 내부 상한은 계속 적용됩니다.';
 
   @override
-  String get retryQuarantined => 'Retry';
+  String get retryQuarantined => '다시 시도';
 
   @override
-  String get clearQuarantined => 'Clear';
+  String get clearQuarantined => '지우기';
 
   @override
   String get unlimited => '무제한';

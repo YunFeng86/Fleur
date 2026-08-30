@@ -990,17 +990,17 @@ class AppLocalizationsPt extends AppLocalizations {
       'Servidor (Miniflux conteúdo de busca)';
 
   @override
-  String get maxNetworkResponseBytes => 'Maximum network response size';
+  String get maxNetworkResponseBytes => 'Tamanho máximo da resposta de rede';
 
   @override
   String get maxNetworkResponseBytesSubtitle =>
-      'Limits buffered responses for sync, feeds, web pages, and other network requests. A high limit is still enforced.';
+      'Limita respostas armazenadas em buffer para sincronização, feeds, páginas web e outras solicitações de rede. Um limite máximo continua sendo aplicado.';
 
   @override
-  String get retryQuarantined => 'Retry';
+  String get retryQuarantined => 'Tentar novamente';
 
   @override
-  String get clearQuarantined => 'Clear';
+  String get clearQuarantined => 'Limpar';
 
   @override
   String get unlimited => 'Ilimitado';
@@ -2578,6 +2578,19 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get minifluxWebFetchModeServer =>
       'Servidor (Miniflux conteúdo de busca)';
+
+  @override
+  String get maxNetworkResponseBytes => 'Tamanho máximo da resposta de rede';
+
+  @override
+  String get maxNetworkResponseBytesSubtitle =>
+      'Limita respostas armazenadas em buffer para sincronização, feeds, páginas web e outras solicitações de rede. Um limite máximo continua sendo aplicado.';
+
+  @override
+  String get retryQuarantined => 'Tentar novamente';
+
+  @override
+  String get clearQuarantined => 'Limpar';
 
   @override
   String get unlimited => 'Ilimitado';

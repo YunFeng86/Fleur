@@ -1260,6 +1260,14 @@
   "@minifluxWebFetchModeServer": {
     "description": "minifluxWebFetchModeServer"
   },
+  "maxNetworkResponseBytes": "최대 네트워크 응답 크기",
+  "@maxNetworkResponseBytes": {"description": "Maximum buffered network response size setting"},
+  "maxNetworkResponseBytesSubtitle": "동기화, 피드, 웹 페이지 및 기타 네트워크 요청에서 버퍼링되는 응답 크기를 제한합니다. 내부 상한은 계속 적용됩니다.",
+  "@maxNetworkResponseBytesSubtitle": {"description": "Explains which requests the network response limit affects"},
+  "retryQuarantined": "다시 시도",
+  "@retryQuarantined": {"description": "Retries quarantined outbox actions"},
+  "clearQuarantined": "지우기",
+  "@clearQuarantined": {"description": "Clears quarantined outbox actions"},
   "unlimited": "무제한",
   "@unlimited": {
     "description": "unlimited"

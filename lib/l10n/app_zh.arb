@@ -1258,12 +1258,24 @@
     "description": "minifluxWebFetchModeClient"
   },
   "minifluxWebFetchModeServer": "服务端（Miniflux fetch-content）",
-  "maxNetworkResponseBytes": "最大网络响应大小",
-  "maxNetworkResponseBytesSubtitle": "限制同步、订阅、网页和其他网络请求的响应缓冲大小；仍保留内部高限制。",
-  "retryQuarantined": "重试",
-  "clearQuarantined": "清除",
   "@minifluxWebFetchModeServer": {
     "description": "minifluxWebFetchModeServer"
+  },
+  "maxNetworkResponseBytes": "最大网络响应大小",
+  "@maxNetworkResponseBytes": {
+    "description": "Maximum buffered network response size setting"
+  },
+  "maxNetworkResponseBytesSubtitle": "限制同步、订阅、网页和其他网络请求的响应缓冲大小；仍保留内部高限制。",
+  "@maxNetworkResponseBytesSubtitle": {
+    "description": "Explains which requests the network response limit affects"
+  },
+  "retryQuarantined": "重试",
+  "@retryQuarantined": {
+    "description": "Retries quarantined outbox actions"
+  },
+  "clearQuarantined": "清除",
+  "@clearQuarantined": {
+    "description": "Clears quarantined outbox actions"
   },
   "unlimited": "无限制",
   "@unlimited": {

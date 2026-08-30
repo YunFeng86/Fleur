@@ -968,17 +968,17 @@ class AppLocalizationsJa extends AppLocalizations {
   String get minifluxWebFetchModeServer => 'サーバー (Miniflux コンテンツの取得)';
 
   @override
-  String get maxNetworkResponseBytes => 'Maximum network response size';
+  String get maxNetworkResponseBytes => 'ネットワーク応答の最大サイズ';
 
   @override
   String get maxNetworkResponseBytesSubtitle =>
-      'Limits buffered responses for sync, feeds, web pages, and other network requests. A high limit is still enforced.';
+      '同期、フィード、Webページ、その他のネットワーク要求でバッファする応答サイズを制限します。内部の上限は引き続き適用されます。';
 
   @override
-  String get retryQuarantined => 'Retry';
+  String get retryQuarantined => '再試行';
 
   @override
-  String get clearQuarantined => 'Clear';
+  String get clearQuarantined => '消去';
 
   @override
   String get unlimited => '無制限';

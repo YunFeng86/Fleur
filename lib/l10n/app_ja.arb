@@ -1260,6 +1260,14 @@
   "@minifluxWebFetchModeServer": {
     "description": "minifluxWebFetchModeServer"
   },
+  "maxNetworkResponseBytes": "ネットワーク応答の最大サイズ",
+  "@maxNetworkResponseBytes": {"description": "Maximum buffered network response size setting"},
+  "maxNetworkResponseBytesSubtitle": "同期、フィード、Webページ、その他のネットワーク要求でバッファする応答サイズを制限します。内部の上限は引き続き適用されます。",
+  "@maxNetworkResponseBytesSubtitle": {"description": "Explains which requests the network response limit affects"},
+  "retryQuarantined": "再試行",
+  "@retryQuarantined": {"description": "Retries quarantined outbox actions"},
+  "clearQuarantined": "消去",
+  "@clearQuarantined": {"description": "Clears quarantined outbox actions"},
   "unlimited": "無制限",
   "@unlimited": {
     "description": "unlimited"

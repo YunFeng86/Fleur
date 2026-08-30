@@ -1261,6 +1261,14 @@
   "@minifluxWebFetchModeServer": {
     "description": "minifluxWebFetchModeServer"
   },
+  "maxNetworkResponseBytes": "最大網路回應大小",
+  "@maxNetworkResponseBytes": {"description": "Maximum buffered network response size setting"},
+  "maxNetworkResponseBytesSubtitle": "限制同步、訂閱、網頁和其他網路請求的回應緩衝大小；仍保留內部高限制。",
+  "@maxNetworkResponseBytesSubtitle": {"description": "Explains which requests the network response limit affects"},
+  "retryQuarantined": "重試",
+  "@retryQuarantined": {"description": "Retries quarantined outbox actions"},
+  "clearQuarantined": "清除",
+  "@clearQuarantined": {"description": "Clears quarantined outbox actions"},
   "unlimited": "無限制",
   "@unlimited": {
     "description": "unlimited"
