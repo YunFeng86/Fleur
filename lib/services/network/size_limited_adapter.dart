@@ -7,13 +7,29 @@ import 'package:dio/dio.dart';
 /// Thrown (wrapped in a [DioException]) when a response body exceeds the
 /// configured byte limit.
 class ResponseTooLargeException implements IOException {
-  const ResponseTooLargeException(this.uri, this.limitBytes);
+  const ResponseTooLargeException({
+    required this.limitBytes,
+    required this.observedBytes,
+    required this.declaredContentLength,
+    required this.mode,
+    required this.method,
+    required this.host,
+    required this.path,
+  });
 
-  final Uri? uri;
   final int limitBytes;
+  final int observedBytes;
+  final int? declaredContentLength;
+  final String mode;
+  final String method;
+  final String host;
+  final String path;
 
   @override
-  String toString() => 'Response exceeded $limitBytes bytes: $uri';
+  String toString() =>
+      'Response exceeded limit (limitBytes=$limitBytes, '
+      'observedBytes=$observedBytes, mode=$mode, method=$method, '
+      'host=$host, path=$path)';
 }
 
 /// [HttpClientAdapter] decorator that bounds how many response bytes dio is
@@ -52,7 +68,12 @@ class SizeLimitedHttpClientAdapter implements HttpClientAdapter {
     final declared = body.contentLength;
     if (declared > 0 && declared > maxBytes) {
       await _cancelStream(body.stream);
-      throw _tooLarge(options);
+      throw _tooLarge(
+        options,
+        declared: declared,
+        observed: declared,
+        mode: 'declared',
+      );
     }
 
     var received = 0;
@@ -61,7 +82,14 @@ class SizeLimitedHttpClientAdapter implements HttpClientAdapter {
         handleData: (chunk, sink) {
           received += chunk.length;
           if (received > maxBytes) {
-            sink.addError(_tooLarge(options));
+            sink.addError(
+              _tooLarge(
+                options,
+                declared: declared,
+                observed: received,
+                mode: 'stream',
+              ),
+            );
             sink.close();
             return;
           }
@@ -75,11 +103,25 @@ class SizeLimitedHttpClientAdapter implements HttpClientAdapter {
     return body;
   }
 
-  DioException _tooLarge(RequestOptions options) {
+  DioException _tooLarge(
+    RequestOptions options, {
+    required int? declared,
+    required int observed,
+    required String mode,
+  }) {
+    final uri = options.uri;
     return DioException(
       requestOptions: options,
       type: DioExceptionType.unknown,
-      error: ResponseTooLargeException(options.uri, maxBytes),
+      error: ResponseTooLargeException(
+        limitBytes: maxBytes,
+        observedBytes: observed,
+        declaredContentLength: declared,
+        mode: mode,
+        method: options.method,
+        host: uri.host,
+        path: uri.path,
+      ),
       message: 'response exceeded the ${maxBytes}B limit',
     );
   }

@@ -319,6 +319,21 @@ class AppLogger {
   }
 
   static String _sanitizeContextValue(Object? value) {
+    if (value is Map) {
+      final entries = value.entries
+          .where((entry) => entry.key != null && entry.value != null)
+          .map((entry) {
+            final childKey = entry.key.toString();
+            final child = _isSensitiveContextKey(childKey)
+                ? '<redacted>'
+                : _sanitizeContextValue(entry.value);
+            return '$childKey=$child';
+          });
+      return '{${entries.join(',')}}';
+    }
+    if (value is Iterable) {
+      return '[${value.map(_sanitizeContextValue).join(',')}]';
+    }
     final raw = value.toString();
     return raw.replaceAll(RegExp(r'[\r\n\t]+'), ' ').trim();
   }
